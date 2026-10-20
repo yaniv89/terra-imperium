@@ -258,7 +258,8 @@ export const armyArt = (m, atWar, scale) => {
   if (m.own) {
     const icon = unitIconUrl(m.mainClass);
     const label = shortMen(m.men);
-    return bannerBox(`army|own|${fill}|${moraleColor(m.morale)}|${m.mainClass}|${label}|${m.canMove ? 1 : 0}|${icon ? 'i' : 'g'}`, 30, 34, scale, waiting(icon), (ctx) => {
+    const stacked = m.count > 1 ? m.count : 0; // units on the tile: one flag shows them all (a small count)
+    return bannerBox(`army|own|${fill}|${moraleColor(m.morale)}|${m.mainClass}|${label}|${m.canMove ? 1 : 0}|${icon ? 'i' : 'g'}|${stacked}`, 30, 34, scale, waiting(icon), (ctx) => {
       svgBox(ctx, 26, 32, 30, 34, () => {
         ctx.fillStyle = fill; ctx.strokeStyle = moraleColor(m.morale); ctx.lineWidth = 2.4;
         const p = path2d(SHIELD); if (p) { ctx.fill(p); ctx.shadowColor = 'transparent'; ctx.stroke(p); }
@@ -272,6 +273,13 @@ export const armyArt = (m, atWar, scale) => {
       ctx.fillText(label, 15, 4);
       ctx.shadowColor = 'transparent';
       if (m.canMove) dot(ctx, 28.5, 1.5);
+      if (stacked) {
+        ctx.shadowColor = 'transparent';
+        ctx.fillStyle = '#0f172a'; ctx.beginPath(); ctx.arc(3.5, 30.5, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#f8fafc'; ctx.lineWidth = 1.2; ctx.stroke();
+        ctx.font = fontOf(8, 800); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#f8fafc';
+        ctx.fillText(String(Math.min(stacked, 99)), 3.5, 31);
+      }
     });
   }
   const pips = BAND_PIPS[m.band] || 0;

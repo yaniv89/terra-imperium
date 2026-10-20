@@ -98,7 +98,13 @@ export const FIGURE_HEIGHT_HEX = 0.45;
 export const FIGURE_WIDTH_RATIO = 0.45; // a figure's width (spear and shield) over its height
 export const GROUP_WIDTH_HEX = 0.65;
 export const SETTLER_FIGURE_SHARE = 0.6;
-export const ARMY_SPOT_HEX = { x: 0.12, y: 0.1 };
+// ONE unit model is drawn per tile (tileStack.js), standing on its hex: at the centre of a plain hex
+// (a small step toward the viewer so the feet are on the ground), and on a city's hex a little
+// further forward, in front of the town's models and still inside the hex.
+export const ARMY_SPOT_HEX = { x: 0, y: 0.1 };
+export const CITY_SPOT_HEX = { x: 0, y: 0.22 };
+/** Where the tile's unit stands, in pixels from the tile's centre (screen x, y down). */
+export const armySpotPx = (hexPx, inCity = false) => { const s = inCity ? CITY_SPOT_HEX : ARMY_SPOT_HEX; return [s.x * hexPx, s.y * hexPx]; };
 /** One hex spacing (neighbour to neighbour) in screen pixels at zoom k, measured north-south. */
 export const hexPxOf = (projection, k, tiles) => (projection.scale() * k * kmPerRing(tiles)) / EARTH_RADIUS_KM;
 /** The scale of a figure whose model is `modelHeight` units tall, in a hex of `hexPx`. `classFactor`: MODEL_SCALE of its class. */
@@ -116,7 +122,7 @@ export const SHIP_HALF_LENGTH = 1.9;
 export const SHIP_SPACING = 2.2;
 export const fleetCapPx = (hexPx, n) => hexCapPx(hexPx, ((n - 1) / 2) * SHIP_SPACING + SHIP_HALF_LENGTH);
 /** Where an army's banner hangs over its soldiers, in pixels from its tile (one rule for the WebGL map and the SVG map). */
-export const armyBannerOffset = (hexPx) => [ARMY_SPOT_HEX.x * hexPx, ARMY_SPOT_HEX.y * hexPx - FIGURE_HEIGHT_HEX * hexPx * 0.85 - 10];
+export const armyBannerOffset = (hexPx, inCity = false) => { const [x, y] = armySpotPx(hexPx, inCity); return [x, y - FIGURE_HEIGHT_HEX * hexPx * 0.85 - 10]; };
 
 // How far the models lean toward the viewer (radians about the screen x axis, 0 = seen from the
 // side, pi/2 = straight down). About 35 degrees: a low three-quarter look, so towers, walls and

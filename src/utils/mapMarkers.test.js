@@ -120,4 +120,38 @@ describe('map markers', () => {
     const ev = { ...s, activeProceduralEvent: { id: 'flood-1', title: 'The river floods', cityId: paris.id, options: [] } };
     expect(getMapMarkers(ev).events).toEqual([{ id: 'event:flood-1', regionId: paris.id, ownerId: FR, own: true, tile: paris.tile, title: 'The river floods' }]);
   });
+
+  // Civilization: ONE flag and ONE model per tile, whatever the units' home cities
+  it('makes one marker per tile, owner and domain, whichever cities the units belong to', () => {
+    const { s, mine } = setup();
+    const other = Object.keys(s.regions).find((id) => id !== mine && s.regions[id].owner === FR) || mine;
+    const tile = getTiles().neighbors[s.regions[mine].tile].find((t) => getTiles().land[t] === 1);
+    const st = onlyUnits(s, [unit('a', FR, mine, { tile }), unit('b', FR, other, { tile, classId: 'cavalry', strength: 300 })]);
+    const { armies } = getMapMarkers(st);
+    expect(armies).toHaveLength(1);
+    expect(armies[0].units.sort()).toEqual(['a', 'b']);
+    expect(armies[0].count).toBe(2);
+  });
+
+  it('shows the strongest soldier, else the selected one, and counts settlers in the flag', () => {
+    const { s, mine } = setup();
+    const tile = getTiles().neighbors[s.regions[mine].tile].find((t) => getTiles().land[t] === 1);
+    const st = onlyUnits(s, [unit('a', FR, mine, { tile, strength: 50 }), unit('b', FR, mine, { tile, classId: 'cavalry', strength: 300 }), unit('s', FR, mine, { tile, classId: 'settler', strength: 900 })]);
+    const [m] = getMapMarkers(st).armies;
+    expect(m.topClass).toBe('cavalry'); expect(m.top).toBe('b');
+    expect(m.civilians).toBe(1); expect(m.count).toBe(3);
+    expect(m.stack).toEqual(['b', 'a']);
+    const picked = getMapMarkers(st, { selected: { tile, unitId: 'a' } }).armies[0];
+    expect(picked.top).toBe('a'); expect(picked.topClass).toBe('infantry');
+    // a selection on another tile changes nothing
+    expect(getMapMarkers(st, { selected: { tile: tile + 1, unitId: 'a' } }).armies[0].top).toBe('b');
+  });
+
+  it('marks a stack standing on a city tile', () => {
+    const { s, mine } = setup();
+    const st = onlyUnits(s, [unit('a', FR, mine)]);
+    expect(getMapMarkers(st).armies[0].inCity).toBe(true);
+    const tile = getTiles().neighbors[s.regions[mine].tile].find((t) => getTiles().land[t] === 1);
+    expect(getMapMarkers(onlyUnits(s, [unit('a', FR, mine, { tile })])).armies[0].inCity).toBe(false);
+  });
 });

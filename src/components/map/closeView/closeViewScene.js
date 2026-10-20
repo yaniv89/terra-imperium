@@ -31,7 +31,7 @@ import { skinToneFor, soldierSkinTone, emblemCellFor } from '../../../battle/ren
 import { getNationColor } from '../../../data/nationColors';
 import { getTownGeometry, townTier } from './townModels';
 import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrls, palaceFor, wallsFor, COLONY_CAMP, isCamp, FIELDS_FOR_WORK, instanceTownAsset, showLod, lodForZoom } from './townAssets';
-import { ARMY_SPOT_HEX, SETTLER_FIGURE_SHARE, unitPx, tiltFor, lightRig, townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE, figureScale, figureGap, hexPxOf, hexCapPx, fleetCapPx, SHIP_SPACING } from './scale';
+import { armySpotPx, SETTLER_FIGURE_SHARE, unitPx, tiltFor, lightRig, townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE, figureScale, figureGap, hexPxOf, hexCapPx, fleetCapPx, SHIP_SPACING } from './scale';
 import { cityHexOf, hexTownPx, insideHex } from './cityHex';
 import { cachedFootprint, screenFrame, plotsOnScreen, reliefOnScreen, riverDiscsOnScreen } from './terrainPlacement';
 import { getRidgeGeometry, getHillGeometry, RIDGE_VARIANTS } from './mountainModels';
@@ -75,7 +75,6 @@ const ageOf = (state, nationId) => {
 };
 // The ground a field takes, model units (a field is about 1.6 by 1.2: the disc round its middle).
 const FIELD_DISC = 0.8;
-const figuresFor = (men) => (men == null ? 2 : men < 5000 ? 1 : men < 20000 ? 2 : 3);
 const MAX_PLOTS = 3000;
 const MAX_RIDGE_MESH = 600; // per variant
 // Field plots: the footprint's rectangles, flat on the map (placeholder for the `map-terrain/
@@ -665,7 +664,8 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       markers.armies.forEach((m, mi) => {
         const at = toScreenLatLng(markerLatLng(m));
         if (!at) return;
-        const classId = m.own && m.mainClass && m.mainClass !== 'mixed' ? m.mainClass : 'infantry';
+        // ONE model per tile: the top unit's class (a soldier over a settler, the picked or strongest soldier)
+        const classId = m.own && (m.topClass || (m.mainClass && m.mainClass !== 'mixed' && m.mainClass)) || 'infantry';
         const ageId = ageOf(state, m.ownerId);
         const peopleId = m.ownerId ? peopleForNationId(m.ownerId) : null;
         const sigKey = signatureLayerKey(peopleId, ageId, classId);
@@ -681,7 +681,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         const walking = !!next;
         if (walking) moving = true;
         const heading = next ? Math.atan2(next.x - at.x, next.y - at.y) : STAND_HEADING;
-        const n = rigFig ? Math.min(rigFig.figures, figuresFor(m.men)) : figuresFor(m.men);
+        const n = 1;
         // Civilization's rule: scaled up against the land but inside the hex, one world size
         // (a share of the hex, no pixel floor); the army's banner carries the far zoom
         const side = rigFig ? 2.8 : 1.1; // elephants stand wider apart than men and horses, as in battle
@@ -691,7 +691,8 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         const tone = skinToneFor(m.ownerId); const cell = emblemCellFor(m.own ? 0 : 1, mi);
         for (let i = 0; i < n && l.mesh.count < MAX_SOLDIERS; i++) {
           const k2 = l.mesh.count;
-          const ox = (i - (n - 1) / 2) * gap * side + hexPx * ARMY_SPOT_HEX.x; const oy = hexPx * ARMY_SPOT_HEX.y + (i % 2) * gap * 0.4;
+          const [sx, sy] = armySpotPx(hexPx, !!m.inCity); // on the tile's hex, in front of a town
+          const ox = (i - (n - 1) / 2) * gap * side + sx; const oy = sy + (i % 2) * gap * 0.4;
           tmp.position.set(at.x + ox, -(at.y + oy), (at.y + oy) * 0.05 + 40);
           tmp.rotation.set(TILT, heading, 0, 'XYZ');
           tmp.scale.setScalar(scale);
@@ -706,7 +707,10 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       });
       // Settlers: the party of the owner's age band (settlerModels.js) on their tile, facing and
       // walking toward their target; until its model is in, the map's wagon disc stands alone.
+      // a settler never stands over a soldier of the same tile: one model per tile
+      const armyTiles = new Set(markers.armies.filter((a) => a.own && a.tile != null).map((a) => a.tile));
       settlersInSight(state, fog.isVisible).forEach((u, si) => {
+        if (armyTiles.has(u.tile)) return;
         const ageId = ageOf(state, u.ownerId);
         const band = settlerBand(ageId);
         if (!band) return;

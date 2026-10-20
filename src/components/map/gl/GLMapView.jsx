@@ -103,7 +103,7 @@ export const canRunGLMap = () => {
 const GLMapView = ({
   onAmbiguousTap = null, width, height, selectedRegion, onSelectRegion, hudOffset = false,
   initialFocusRegionId = null, focusRegionId = null, navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null,
-  onSelectArmy = null, selectedArmy = null, lens = 'political', onFail = null, settle = null
+  onSelectArmy = null, selectedArmy = null, selectedUnit = null, lens = 'political', onFail = null, settle = null
 }) => {
   const { state: gameState } = useGame();
   const gameStateRef = useRef(gameState);
@@ -547,9 +547,9 @@ const GLMapView = ({
   // ---------------------------------------------------------------- sprites and lines
   const k = settled.k;
   const closeGround = k >= CLOSE_ZOOM_K;
-  const markers = useMemo(() => getMapMarkers(gameState),
+  const markers = useMemo(() => getMapMarkers(gameState, { selected: selectedUnit }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [gameState.units, gameState.regions, gameState.nations, gameState.intel, gameState.battleReports, gameState.turnNumber, gameState.playerNationId]);
+    [selectedUnit, gameState.units, gameState.regions, gameState.nations, gameState.intel, gameState.battleReports, gameState.turnNumber, gameState.playerNationId]);
   // A stack that moved since the last markers glides there from its last tile (I070). Drawing
   // only; never with reduced motion. After End Turn the banners stand on their old tiles until the
   // turn report is closed (at once when no report opens), then glide. While they wait, the "last
@@ -603,9 +603,9 @@ const GLMapView = ({
     [state, projection, k, landKey, fog, lens, closeGround, dpr]);
   const marks = useMemo(() => (projection ? groundMarks({ state, projection, k, dpr }) : []), [state, projection, k, dpr]);
   // (assetsTick: a settler party's model came in, so its disc gives way in the close view)
-  const settlers = useMemo(() => (projection ? settlerSprites({ state, projection, k, isVisible: fog.isVisible, dpr, modelled: settlerModelled(state) }) : null),
+  const settlers = useMemo(() => (projection ? settlerSprites({ state, projection, k, isVisible: fog.isVisible, dpr, modelled: settlerModelled(state), armyTiles: new Set(markers.armies.filter((a) => a.own).map((a) => a.tile)) }) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state, projection, k, fog, dpr, assetsTick]);
+    [state, projection, k, fog, dpr, assetsTick, markers]);
   // settlers on their way draw their road like a march (settleRoutes.js, I095)
   const settlerRoads = useMemo(() => settlerLines(gameState),
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import { geoEquirectangular } from 'd3-geo';
 import { getTiles } from '../../../data/geo/tiles';
 import { kmPerRing } from '../../../data/geo/gridScale';
-import { hexPxOf, figureScale, figureGap, armyBannerOffset, FIGURE_HEIGHT_HEX, FIGURE_WIDTH_RATIO, GROUP_WIDTH_HEX, ARMY_SPOT_HEX, SETTLER_FIGURE_SHARE } from './scale';
+import { armySpotPx, CITY_SPOT_HEX, hexPxOf, figureScale, figureGap, armyBannerOffset, FIGURE_HEIGHT_HEX, FIGURE_WIDTH_RATIO, GROUP_WIDTH_HEX, ARMY_SPOT_HEX, SETTLER_FIGURE_SHARE } from './scale';
 import { maxZoomFor, HEXES_ACROSS_AT_MAX_ZOOM } from '../gl/mapView';
 import { CLOSE_ZOOM_K } from '../gl/sceneModel';
 
@@ -39,6 +39,32 @@ describe('army figures fit their hex', () => {
     const [x, y] = armyBannerOffset(100); const [x2, y2] = armyBannerOffset(200);
     expect(x2).toBeCloseTo(2 * x, 9);
     expect(y).toBeLessThan(0); expect(y2).toBeLessThan(y);
+  });
+});
+
+describe('one figure per tile, standing on its hex', () => {
+  const modelHeight = 1.5;
+  it('a unit on a city tile stands on the city hex, in front of the town, inside the hex', () => {
+    ZOOMS.forEach((k) => {
+      const hex = hexPxOf(projection, k);
+      const h = figureScale(hex, modelHeight) * modelHeight; const w = FIGURE_WIDTH_RATIO * h;
+      const [x, y] = armySpotPx(hex, true);
+      expect(Math.abs(x) + w / 2).toBeLessThanOrEqual(0.5 * hex);           // across the hex
+      expect(y).toBeGreaterThan(0);                                         // in front (toward the viewer) of the town's middle
+      expect(y).toBeLessThanOrEqual(0.5 * hex);                             // feet inside the hex
+      expect(y - h * 0.85).toBeGreaterThanOrEqual(-0.58 * hex);             // head inside the hex's top
+    });
+  });
+  it('a unit on a plain tile stands at the centre of the hex', () => {
+    const hex = hexPxOf(projection, 40);
+    expect(armySpotPx(hex, false)).toEqual([ARMY_SPOT_HEX.x * hex, ARMY_SPOT_HEX.y * hex]);
+    expect(ARMY_SPOT_HEX.x).toBe(0);
+    expect(CITY_SPOT_HEX.y).toBeGreaterThan(ARMY_SPOT_HEX.y);
+  });
+  it('the banner hangs above the figure on a city tile too', () => {
+    const [, yPlain] = armyBannerOffset(100, false); const [, yCity] = armyBannerOffset(100, true);
+    expect(yCity).toBeGreaterThan(yPlain); // feet are further forward, so the flag is too
+    expect(yCity).toBeLessThan(armySpotPx(100, true)[1]);
   });
 });
 

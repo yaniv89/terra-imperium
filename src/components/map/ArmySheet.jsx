@@ -5,7 +5,7 @@
 // on a wider screen, like the tile sheet.
 import React, { useMemo, useState } from 'react';
 import { useCornerSheet } from '../../hooks/useExclusivePanel';
-import { X, Flag, Shield, Pencil, Trash2, Flame, Award, Swords, Castle, Anchor, Compass } from 'lucide-react';
+import { X, Flag, Shield, Pencil, Trash2, Flame, Award, Swords, Castle, Anchor, Compass, ChevronLeft, ChevronRight } from 'lucide-react';
 import { menText } from '../../engine/battleLedger';
 import { useT } from '../../i18n/useT';
 import { tOr } from '../../i18n/core';
@@ -18,14 +18,18 @@ import { startMarch } from './marchEvents';
 import { askConfirm } from '../ui/ConfirmActionDialog';
 import { declareWarConfirm } from '../ui/confirmSpecs';
 import { armySheetModel } from './armySheetModel';
+import { orderedStack, topUnit } from './tileStack';
 import { UnitIcon } from '../ui/icons';
 
-const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
+const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectRegion }) => {
   const { state, dispatch } = useGame();
   const { t: tr, lang } = useT();
   const isMobile = useIsMobile();
   const sheet = useCornerSheet('army-sheet', true, onClose); // one sheet at a time on a phone (H-18)
   const model = useMemo(() => armySheetModel(state, tile), [state, tile, lang]); // eslint-disable-line react-hooks/exhaustive-deps -- lang only words the sheet
+  // The tile's units in drawing order, and the one whose model shows (tileStack.js): prev and next arrows switch it.
+  const order = useMemo(() => orderedStack((model?.groups || []).flatMap((g) => g.units)), [model]);
+  const shownId = topUnit(order, unitId)?.id ?? null;
   const [renaming, setRenaming] = useState(null);
   const [picked, setPicked] = useState(null); // unit ids chosen to march (null: the whole stack)
   const [attack, setAttack] = useState(null); // a target of the pre-battle modal
@@ -47,6 +51,13 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
             <div className="text-fa-muted text-[10px]" data-testid="army-where">{menText(model.soldiers)} {model.naval ? tr('mx.army.crew') : tr('mx.army.soldiers')} · {where}{showBase ? tr('mx.army.basedAt') : ''}{showBase && <button type="button" onClick={() => onSelectRegion?.(model.regionId)} className="underline">{model.base}</button>}</div>
           </div>
         </div>
+        {order.length > 1 && onCycleUnit && (
+          <div className="flex items-center shrink-0 me-1" data-testid="army-unit-cycle">
+            <button type="button" onClick={() => onCycleUnit(-1)} aria-label={tOr('mx.army.prevUnit', 'Previous unit on this tile')} className="p-1 rounded hover:bg-fa-hover text-fa-muted hover:text-fa-text"><ChevronLeft className="w-4 h-4 rtl:rotate-180" /></button>
+            <span className="text-[10px] text-fa-muted tabular-nums" data-testid="army-unit-of">{tOr('mx.army.unitOf', 'Unit {n} of {total}', { n: order.findIndex((u) => u.id === shownId) + 1, total: order.length })}</span>
+            <button type="button" onClick={() => onCycleUnit(1)} aria-label={tOr('mx.army.nextUnit', 'Next unit on this tile')} className="p-1 rounded hover:bg-fa-hover text-fa-muted hover:text-fa-text"><ChevronRight className="w-4 h-4 rtl:rotate-180" /></button>
+          </div>
+        )}
         <button onClick={onClose} aria-label={tr('at.close')} className="p-1 hover:bg-fa-hover rounded text-fa-muted hover:text-fa-text shrink-0"><X className="w-4 h-4" /></button>
       </div>
       <div className="text-[11px] text-fa-text mb-2" data-testid="army-supply">{model.zoneText}{model.airCover ? tr('mx.army.air', { n: model.airCover, range: model.airRange }) : ''}</div>
@@ -71,7 +82,7 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
           <div className="text-[11px] font-semibold text-fa-text mb-1">{g.name} <span className="text-fa-muted">({g.units.length})</span></div>
           <ul className="space-y-1">
             {g.units.map((u) => (
-              <li key={u.id} className="flex items-center gap-2 rounded-lg px-2 min-h-[40px] text-xs bg-fa-raised/60 border border-fa-line/60">
+              <li key={u.id} data-shown={u.id === shownId ? 'true' : undefined} className={`flex items-center gap-2 rounded-lg px-2 min-h-[40px] text-xs bg-fa-raised/60 border ${order.length > 1 && u.id === shownId ? 'border-amber-400/80' : 'border-fa-line/60'}`}>
                 {model.unitIds.length > 1 && !model.route && <input type="checkbox" aria-label={tr('mx.army.march1', { name: u.name })} checked={!picked || picked.has(u.id)} onChange={() => togglePick(u.id)} className="w-5 h-5 shrink-0" data-testid="army-pick" />}
                 <UnitIcon classId={u.classId} navalLine={u.navalLine} ageId={state.age} size={28} />
                 <div className="min-w-0 flex-1">

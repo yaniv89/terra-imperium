@@ -16,7 +16,7 @@ const hasWebGL2 = () => {
 
 const Map2DContainer = ({
   selectedRegion, onSelectRegion, onAmbiguousTap = null, hudOffset = false, initialFocusRegionId = null, focusRegionId = null,
-  navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null, onSelectArmy = null, lens = 'political', selectedArmy = null,
+  navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null, onSelectArmy = null, lens = 'political', selectedArmy = null, selectedUnit = null,
   renderer = null, settle = null }) => {
   const containerRef = useRef(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -37,7 +37,7 @@ const Map2DContainer = ({
 
   const props = {
     width: size.width, height: size.height, selectedRegion, onSelectRegion, onAmbiguousTap, hudOffset, initialFocusRegionId, focusRegionId,
-    navigateTarget, onViewportChange, selectedTile, selectedArmy, onSelectTile, onSelectArmy, lens, settle
+    navigateTarget, onViewportChange, selectedTile, selectedArmy, selectedUnit, onSelectTile, onSelectArmy, lens, settle
   };
   return (
     <div ref={containerRef} className="relative w-full h-full bg-slate-900">
