@@ -6,6 +6,7 @@ import fs from 'fs';
 import { indexShipFiles } from './shipModels';
 import { outpostModel, outpostFor, outpostFitRadius, OUTPOST_RADIUS, OUTPOST_HEX_SHARE } from './outpostModels';
 import { readGlbJson } from '../../../../scripts/art/glbInfo.mjs';
+import { AGE_ORDER } from '../../../data/ages';
 
 const INDEX = indexShipFiles({
   '../../../assets/map/outposts/outpost-bronze.glb': 'u/ob',
@@ -40,7 +41,7 @@ describe('outpost models', () => {
 
   it('ships one camp per age band, each a root with LOD0..LOD2 and a smoke socket', () => {
     const files = fs.readdirSync('src/assets/map/outposts').filter((f) => f.endsWith('.glb')).sort();
-    expect(files).toEqual(['outpost-bronze.glb', 'outpost-kingdoms.glb', 'outpost-modern.glb']);
+    expect(files).toEqual(['outpost-bronze.glb', 'outpost-kingdoms.glb', 'outpost-modern.glb', 'outpost-stone.glb']);
     files.forEach((f) => {
       const name = f.replace('.glb', '');
       const { nodes, materials } = readGlbJson(`src/assets/map/outposts/${f}`);
@@ -49,8 +50,10 @@ describe('outpost models', () => {
       const kids = root.children.map((i) => nodes[i].name).sort();
       expect(kids, f).toEqual(['LOD0', 'LOD1', 'LOD2', 'smoke']);
       expect(materials.map((m) => m.name).sort(), f).toEqual(['Ground', 'Team', 'Town']);
-      // the bundled index picks the file of the owner's band
-      expect(outpostModel(root.name.split('-')[1]).name).toBe(name);
+      // the bundled index picks the file of the owner's band (an age the code has registered:
+      // the Stone camp waits for the Stone age, eight-ages plan U22)
+      const age = root.name.split('-')[1];
+      if (AGE_ORDER.includes(age)) expect(outpostModel(age).name).toBe(name);
     });
   });
 });
