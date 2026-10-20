@@ -463,7 +463,8 @@ def bare_poser(arm, kit, meshes):
 
 class RiderLib(FC.Lib):
     """Key specs for a rider (no planted feet; the weapon in the right fist: kind 'lance', 'sword', 'mace',
-    'torch' or 'hand' for an empty pointing hand)."""
+    'torch' or 'hand' for an empty pointing hand; 'bow': the pointing hand with a bow in the left fist, posed as
+    'hand' but shooting in the Attack and the Charge)."""
 
     def __init__(self, P, kit, kind):
         super().__init__(P, kit)
@@ -472,7 +473,7 @@ class RiderLib(FC.Lib):
     def rest(self, **extra):
         spec = super().rest(**extra)
         spec['plant'] = 0
-        if self.kind == 'hand':  # an empty hand: its targets ride on the chest (the arm keeps its reach as he leans)
+        if self.kind in ('hand', 'bow'):  # an empty hand: its targets ride on the chest (the arm keeps its reach as he leans)
             spec.pop('W', None)
             spec[self.side] = self.free(self.side)
             spec['space'] = 'chest'
@@ -484,7 +485,7 @@ class RiderLib(FC.Lib):
 
     def hand_at(self, p, d, f=(0, -1, 0)):
         """The right fist (or the pointing hand) at p, its knuckle axis (the weapon's axis) along d."""
-        if self.kind == 'hand':
+        if self.kind in ('hand', 'bow'):
             return {}, {'R': self.free('R', p=p, d=d, f=f, pole=(-1, .2, -.6))}
         dd, ff = d if isinstance(d, tuple) and len(d) == 2 and isinstance(d[0], tuple) else (d, f)
         return {'W': self.W(p, dd, ff)}, {'R': self.on('R', pole=(-1, .2, -.6))}
@@ -535,7 +536,8 @@ def rider_clips(L, acts, horse_specs, sides=(-1, 1)):
         elif act == 'Charge':
             out[act] = Clip(act, frames, loop, None, fn=rider_charge(L, horse_specs[act]), events=events)
         elif act == 'Attack':
-            out[act] = Clip(act, frames, loop, None, keys=rider_attack(L), events=events)
+            keys = [(1, r0)] + bow_shot(L, events['contact']) + [(21, dict(r0, ease='io'))] if k == 'bow' else rider_attack(L)
+            out[act] = Clip(act, frames, loop, None, keys=keys, events=events)
         elif act == 'Hit':
             a = L.key({'Spine': (-6, 0, -4), 'Chest': (-13, 0, -8), 'Head': (-12, 0, 6), 'Hips': (-2, 0, 0)}, (0, 0, .012), ease='out')
             out[act] = Clip(act, frames, loop, None, keys=[(1, r0), (4, a), (6, dict(a, root=(0, 0, .006))), (10, r0)])
@@ -607,6 +609,33 @@ def weapon_keys(L, act):
     return [(7, up, tw), (11, fwd, st), (12, fwd, st), (16, up, tw)]
 
 
+def bow_shot(L, release):
+    """A mounted bow shot loosed on frame `release` (the clip's contact): the bow comes up and out in the left
+    fist while the body turns a little side on and the head looks along the arrow, the right hand reaches to
+    the string at the bow, draws it to the cheek, holds, looses (the hand flicks back past the ear), then
+    drops. The string itself stays put on the bow (no string bone on the riders). Keys [(frame, spec)] from
+    release - 7 to release + 6, between rest poses."""
+    P = L.P
+    gL = V(P.grip['L'][0])
+    head = V(P.rest['Head'].translation)
+    bow = gL + V((-.015, -.020, .075))  # the bow raised and pushed out
+    string = bow + V((-.030, .045, .005))
+    cheek = head + V((-.055, -.055, .040))
+    loose = cheek + V((-.060, .070, .015))
+    d = tuple(nrm(bow - cheek))
+    turn = {'Spine': (0, 0, -5), 'Chest': (-2, 0, -9), 'Head': (-3, 0, 20)}
+    full = {'Spine': (-1, 0, -7), 'Chest': (-4, 0, -12), 'Head': (-4, 0, 24)}
+    bow_hand = L.free('L', p=bow, pole=(1, .2, -.6))
+
+    def k(r, p, f=(0, 0, -1), pole=(-1, .5, .2), root=(0, 0, 0), ease=None):
+        return L.key(r, root, hands={'L': bow_hand, 'R': L.free('R', p=p, d=d, f=f, pole=pole)}, ease=ease)
+    nock = k(turn, string, pole=(-1, .2, -.6))
+    drawn = k(full, cheek, root=(0, 0, .004), ease='io')
+    after = k(full, loose, root=(0, 0, .004), ease='out')
+    down = k(turn, loose - V((0, .02, .10)), ease='io')
+    return [(release - 7, nock), (release - 2, drawn), (release - 1, drawn), (release, dict(after, ease='out')), (release + 1, after), (release + 6, down)]
+
+
 def rider_attack(L):
     r0 = L.rest()
     keys = [(1, r0)]
@@ -618,9 +647,11 @@ def rider_attack(L):
 
 def rider_charge(L, hspec):
     r0 = L.rest()
-    wk = [(1, r0)] + [(f, L.key(r, at=at)) for f, at, r in weapon_keys(L, 'Charge')] + [(38, r0), (41, r0)]
-
     contact = ACTS['Charge'][2]['contact']
+    if L.kind == 'bow':  # a shot loosed at the contact
+        wk = [(1, r0), (contact - 12, r0)] + bow_shot(L, contact) + [(38, r0), (41, r0)]
+    else:
+        wk = [(1, r0)] + [(f, L.key(r, at=at)) for f, at, r in weapon_keys(L, 'Charge')] + [(38, r0), (41, r0)]
 
     def fn(f):
         hs = hspec(contact if f == contact + 1 else f)  # the body held through the strike (the horse gallops on)
@@ -640,7 +671,7 @@ def rider_charge(L, hspec):
 
 def rider_cheer(L):
     r0 = L.rest()
-    if L.kind == 'hand':
+    if L.kind in ('hand', 'bow'):
         hi = L.key({'Spine': (-3, 0, 0), 'Chest': (-5, 0, 0), 'Head': (-10, 0, 0)}, at=(L.arm_to((-.15, -.2, 1)), (-.15, -.2, 1)))
         lo = L.key({'Spine': (-1, 0, 0), 'Chest': (-1, 0, 0), 'Head': (-4, 0, 0)}, at=(L.arm_to((-.3, -.7, .6)), (-.3, -.7, .6)))
     else:
@@ -903,7 +934,8 @@ def mounted(horse_arm, rider_arm, kind, archetype='mounted', stirrups=False, bea
     rein = add_rein_bone(horse_arm)
     horse = Horse(horse_arm, [m for m in F.meshes if m.parent == horse_arm])
     kit = FC.Kit('spear' if kind == 'lance' else 'sword', side='R')
-    rider = Person(rider_arm, kit, axes={'R': 'point'} if kind == 'hand' else None, stirrups=stirrups, weapon=kind != 'hand')
+    bare = kind in ('hand', 'bow')  # the pointing hand (a general's; a horse archer's drawing hand)
+    rider = Person(rider_arm, kit, axes={'R': 'point'} if bare else None, stirrups=stirrups, weapon=not bare)
     L = RiderLib(rider.P, kit, kind)
     unit = Unit(archetype)
     acts = unit.acts

@@ -15,8 +15,8 @@
 # Weapons and their clip kind (ti_mounted_clips.RiderLib): 'lance' (a spear upright, couched in the Charge),
 # 'javelin' (a short spear and a spare, on the lance clips; not named Spear* so the battle does not stretch
 # it to a 3.5 m lance), 'sword' (a sabre or a long sword upright: the sword clips), 'bow' (the bow in the left
-# fist with the reins; the mounted clips have no bow kind, so the right hand is an empty drawing hand on the
-# 'hand' clips: raised and thrust forward in the Attack).
+# fist with the reins; the right hand is the pointing hand on the mounted clips' 'bow' kind: it reaches to the
+# string, draws to the cheek and looses in the Attack and at the Charge's contact; the string stays on the bow).
 # Contract as the base units: faces -Y, Team only on the rider's Spine, Chest and Head parts (a mount's Team
 # cloth is drawn as plain wool, so the horse's cloths take colours of their own), shield faces Emblem, flat
 # colours, baked shade in COLOR_0. The close version stays under 5,000 triangles.
@@ -38,13 +38,22 @@ S = 'Mount_Spine'
 BASE = {'Coat': '6E3F24', 'Mane': '1F1712', 'Pale': 'EDE6D6', 'Leather': '5A3624', 'Boot': '4A2F20', 'Wood': '5A4130', 'Cloth': 'E2D8C2',
         'Saddle': '7A4A30', 'Trim': 'D8C99A', 'Metal': ('B8925A', .45, .6), 'Iron': ('9EA2A6', .4, .72), 'Gold': ('D4A84A', .35, .8),
         'Hair': '2B201A', 'Skin': 'C48A62', 'Emblem': 'E6D6AF', 'Fur': '4A3A2C', 'String': 'E8E0CC',
-        'Horn': '3A2E24', 'Felt': '3A3530', 'Straw': 'C9B27A', 'Rope': 'B89E74'}
+        'Horn': '3A2E24', 'Felt': '3A3530', 'Straw': 'C9B27A', 'Rope': 'B89E74', 'Hoof': '2E2620'}
+PAL = dict(BASE)  # the current unit's palette (start)
+
+
+def pale(colour, limit=.45):
+    """Is a palette colour (hex, or (hex, roughness, metal)) light: its mean channel above `limit`?"""
+    h = colour[0] if isinstance(colour, tuple) else colour
+    return sum(int(h[i:i + 2], 16) for i in (0, 2, 4)) / (3 * 255) > limit
 
 
 def start(colors):
     os.environ['TI_UNITS_OUT'] = str(u.REPO / 'art-build' / 'units' / 'signature')
     pal = dict(BASE)
     pal.update(colors or {})
+    PAL.clear()
+    PAL.update(pal)
     F.start(pal, rig=False)
 
 
@@ -87,9 +96,11 @@ def horse(h):
     (a short hide or quilted cover), 'shabraque' (the hussar's pointed cloth over a war saddle); cloth: its
     material; border: a material for a broader cloth under it (an edge round the saddle cloth); blaze, socks;
     discs and disc; chanfron, peytral (materials); spots (material), bells (material), stirrups, tack (the
-    bridle's material: 'Rope' for a rope bridle)."""
+    bridle's material: 'Rope' for a rope bridle), hoof (the hooves' material: by default the mane's, or the dark
+    'Hoof' under a pale mane)."""
     arm, _ = tm.fine_horse('Mount', (0, 0, 0), pale='Pale', tack=h.get('tack', 'Leather'), blaze=h.get('blaze', True), socks=h.get('socks', False), detail=2)
-    tm.fine_legs(arm, sides=8)
+    # dark hooves under a pale (flaxen, white, grey) mane: fine_legs' default takes the mane's colour
+    tm.fine_legs(arm, sides=8, hoof=h.get('hoof') or ('Hoof' if pale(PAL['Mane']) else 'Mane'))
     tm.full_tail(arm, sides=10)
     style, cloth = h.get('style', 'cloth'), h.get('cloth', 'Saddle')
     span = h.get('span', (-.30, .16))
@@ -360,7 +371,7 @@ def mounted(model, r):
             F.self_bow(gl, wk.get('length', 1.05), back=(0, 1, 0), brace=.040)
         else:
             composite_bow(gl, length=wk.get('length', .62))
-        clip = 'hand'
+        clip = 'bow'
     else:
         F.astride(right=(-.215, -.120, .680 if wkind == 'sword' else .660), left=(.105, -.185, .640))
         g = F.fist('R', None, (0, 0, 1), mat=r.get('glove', 'Skin'))

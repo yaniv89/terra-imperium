@@ -452,9 +452,12 @@ def cheer(kind):
     """The win: the tool raised high in the right fist and shaken twice, the head up (a barrow man punches the
     air with his left fist, the right on the handle)."""
     W = {'plant': True}
-    if kind == 'barrow':
-        lo = dict(W, r={'Head': (-4, 0, 0)}, L={'p': (.18, -.10, .78), 'pole': (1, .3, -.3)})
-        hi = dict(W, r={'Spine': (-3, 0, 0), 'Chest': (-5, 0, 0), 'Head': (-12, 0, 0)}, root=(0, 0, .008), L={'p': (.16, -.06, 1.08), 'pole': (1, .3, -.3)})
+    if kind == 'barrow':  # the right fist stays on its handle, the left lets go (free_left) and punches the air twice
+        W = dict(W, free_left=True)
+        lo = dict(W, r={'Spine': (-1, 0, 0), 'Chest': (-3, 0, 0), 'Head': (-6, 0, 0)}, root=(0, 0, .002),
+                  L={'p': (.21, -.10, .86), 'pole': (1, .2, -.4)})
+        hi = dict(W, r={'Spine': (-6, 0, 0), 'Chest': (-12, 0, -6), 'Head': (-22, 0, -8)}, root=(0, 0, .022),
+                  L={'p': (.17, -.05, 1.24), 'pole': (1, .4, -.2)}, ease='out')
         return Clip('Cheer', 33, True, 'Held', keys=[(1, lo), (9, hi), (17, lo), (25, hi), (33, lo)], barrow=True)
     hi = dict(W, r={'Spine': (-3, 0, 0), 'Chest': (-6, 0, 0), 'Head': (-12, 0, 0)}, root=(0, 0, .008), R={'p': (-.18, -.08, 1.04), 'd': (0, -.15, .99)},
               L={'p': (.20, -.10, .80), 'pole': (1, .3, -.3)})

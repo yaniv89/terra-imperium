@@ -155,12 +155,17 @@ def couch_keys(sign, drop, kind='Death'):
 
 # The gaits of the other beasts at the horse's stride and cadence (T, amp: the same natural ground speed).
 PACE = dict(T=14, d=.46, amp=.20, lift=(.12, .10), ph={'FL': 0, 'HL': 0, 'FR': .5, 'HR': .5}, hop=0)  # the camel's pace: both legs of a side
-AMBLE = {  # the elephant: a four-beat walk at every speed (a lateral sequence, no suspension)
-    'walk': dict(T=20, d=.66, amp=.17, lift=(.07, .06), ph={'HL': 0, 'FL': .22, 'HR': .5, 'FR': .72}, hop=0),
-    'trot': dict(T=14, d=.58, amp=.20, lift=(.09, .08), ph={'HL': 0, 'FL': .2, 'HR': .5, 'FR': .7}, hop=0),
-    'gallop': dict(T=12, d=.52, amp=.26, lift=(.11, .09), ph={'HL': 0, 'FL': .2, 'HR': .5, 'FR': .7}, hop=0),
-    'charge': dict(T=10, d=.50, amp=.26, lift=(.12, .10), ph={'HL': 0, 'FL': .2, 'HR': .5, 'FR': .7}, hop=0),
+# The elephant: a four-beat amble at every speed (a lateral sequence, always a foot down, no suspension), the
+# faster gaits a longer stride on its long legs, a shorter stance and a higher step. Each gait's natural ground
+# speed 40 amp / (d T) (model units a second; a unit is 0.95 tiles) matches the battle's MOUNTED_TPS for its
+# role (clipPlayer.js: walk .52, trot 1.29, gallop 2.74, charge 3.29 tiles a second), as the horse's do.
+AMBLE = {
+    'walk': dict(T=20, d=.66, amp=.180, lift=(.07, .06), ph={'HL': 0, 'FL': .22, 'HR': .5, 'FR': .72}, hop=0),     # .545 u/s
+    'trot': dict(T=14, d=.52, amp=.247, lift=(.13, .11), ph={'HL': 0, 'FL': .2, 'HR': .5, 'FR': .7}, hop=0),       # 1.357
+    'gallop': dict(T=12, d=.44, amp=.381, lift=(.19, .16), ph={'HL': 0, 'FL': .2, 'HR': .5, 'FR': .7}, hop=0),     # 2.886
+    'charge': dict(T=10, d=.42, amp=.364, lift=(.21, .17), ph={'HL': 0, 'FL': .2, 'HR': .5, 'FR': .7}, hop=0),     # 3.467
 }
+AMBLE_SWING = {'walk': 1.0, 'trot': 1.9, 'gallop': 2.8, 'charge': 3.2}  # the body's rock, the head's nod, the tail's swing
 
 
 @contextmanager
@@ -175,8 +180,9 @@ def beast_gaits(kind, drop):
         if kind == 'camel' and k == 'trot':  # the pace rocks the body from side to side
             s.update(pitch=.4 * MC.cosd(2 * p), roll=2.6 * MC.cosd(p), comp=-.006 * (.5 + .5 * MC.cosd(2 * p)))
         if kind == 'elephant':  # no bound: a level back, the head nodding with the steps, the tail swinging
-            s.update(pitch=.5 * MC.cosd(2 * p), roll=1.4 * MC.sind(p), neck=2 * MC.cosd(2 * (p - .2)), head=-1 * MC.cosd(2 * (p - .2)), tail=4,
-                     tail_y=9 * MC.sind(p), comp=0)
+            g = AMBLE_SWING.get(k, 1.)
+            s.update(pitch=.5 * g * MC.cosd(2 * p), roll=1.4 * g * MC.sind(p), neck=2 * g * MC.cosd(2 * (p - .2)) - 2 * (g - 1),
+                     head=-1 * g * MC.cosd(2 * (p - .2)), tail=4 * g, tail_y=9 * min(g, 2.) * MC.sind(p), comp=-.010 * (g - 1) * (.5 + .5 * MC.cosd(2 * p)))
         if kind == 'ox' and k in ('gallop', 'charge'):  # a heavy bound: the head carried low
             s.update(neck=s['neck'] + 4, head=s['head'] + 2)
         return s
@@ -967,8 +973,9 @@ def slump_keys(L, seated):
 def trunk_pose(arm, act, f, ph):
     """The trunk's swing (world degrees: -X lifts it forward and up)."""
     if act in ('Walk', 'Trot', 'Gallop', 'Charge'):
-        lift = {'Walk': 0, 'Trot': -4, 'Gallop': -8, 'Charge': -14}[act]
-        x, z = lift + 6 * MC.sind(ph), 7 * MC.sind(ph + .25)
+        lift = {'Walk': 0, 'Trot': -6, 'Gallop': -12, 'Charge': -16}[act]
+        g = {'Walk': 1., 'Trot': 1.8, 'Gallop': 2.6, 'Charge': 2.6}[act]  # the trunk swings wider the faster it goes
+        x, z = lift + 6 * g * MC.sind(ph), 7 * g * MC.sind(ph + .25)
         if act == 'Charge':  # raised for the impact
             w = max(0., 1 - abs(f - 23) / 8)
             x -= 40 * w
