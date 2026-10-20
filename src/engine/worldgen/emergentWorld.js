@@ -14,7 +14,8 @@ import { createRng } from '../../utils/rng';
 import { distanceKm } from '../../data/geo/geodesic';
 import { buildPeoplesStarts } from './peoplesWorld';
 import { DEFAULT_WORLD_SIZE } from '../../data/worldSizes';
-import { withAgesResearched } from '../research';
+import { withAgesResearched, withTechsResearched } from '../research';
+import { hearthOfTile, AGRICULTURE_TECH } from '../../data/hearths';
 import { FIRST_AGE_ID } from '../../data/ages';
 
 export const NATION_COUNTS = [15, 30, 45, 60, 75];
@@ -131,11 +132,14 @@ const bandWorld = (initial, starts) => {
 const applyPeoplesScenario = (initial, { size = DEFAULT_WORLD_SIZE, seed = 1, start = DEFAULT_SCENARIO_ID, map = { kind: 'earth' }, sites = null, band = false }) => {
   if (start !== 'dawn') throw new Error('The peoples world starts at Dawn only');
   const ids = Object.keys(initial.nations).sort();
-  const built = (band ? bandWorld : buildCityWorld)(initial, buildPeoplesStarts(ids, sites));
+  const peoplesStarts = buildPeoplesStarts(ids, sites);
+  // A people whose home is an agricultural hearth (hearths.js, U24) already farms.
+  const farming = ids.filter((id) => hearthOfTile(getTiles(), peoplesStarts[id].capital)).reduce((s, id) => withTechsResearched(s, id, [AGRICULTURE_TECH]), initial);
+  const built = (band ? bandWorld : buildCityWorld)(farming, peoplesStarts);
   const starts = {};
   built.activeNationIds.forEach((id) => { starts[id] = built.nations[id].capitalRegionId; });
   return {
-    ...initial,
+    ...farming,
     nations: built.nations,
     regions: built.regions,
     units: built.units,

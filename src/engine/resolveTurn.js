@@ -4,6 +4,7 @@ import { advanceTutorial } from './tutorial';
 export { DESERTION_SHARE, DESERTION_MORALE, DESERTION_DISBAND_BELOW } from './armyDesertion';
 import { processEmergence } from './emergence';
 import { processLateArrivals, independentCityCtx } from './independents';
+import { forageCtx } from '../data/hearths';
 import { isIndependent, isIndependentNation } from '../data/independents';
 import { processAIOperations } from './aiOperations';
 import { processIndependents } from './raids';
@@ -148,6 +149,7 @@ const runCitiesPhase = (state, newTurnNumber) => {
         trainMult: speedTrainMult(state.gameSpeed, ageOf(state, nid)), // units and settlers (I024)
         luxuries: luxuriesByNation[nid] ? luxuriesByNation[nid].size : 0,
         greatProjects: state.greatProjects || {},
+        ...forageCtx(nid ? getResearched(state, nid) : []), // no Agriculture: a size cap (hearths.js)
         // An independent's city: capped size, a small border, a garrison and buildings only (independents.js).
         ...(isIndependent(state.nations, nid) ? independentCityCtx(state, nid) : {})
       });

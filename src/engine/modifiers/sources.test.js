@@ -114,7 +114,8 @@ describe('contextSources', () => {
       ...base,
       techTree: { ...base.techTree, governance_civic_assemblies: { ...base.techTree.governance_civic_assemblies, researched: true } }
     };
-    expect(contextSources(withTech, FR_ID).some((l) => l.sourceType === 'tech')).toBe(false);
+    const techLines = (s) => contextSources(s, FR_ID).filter((l) => l.sourceType === 'tech').length;
+    expect(techLines(withTech)).toBe(techLines(base)); // only the techs with effects (a hearth's Agriculture) emit
   });
 
   it('includes a great project\'s current-tier effect only for whoever currently owns its site region (plan §M10)', () => {

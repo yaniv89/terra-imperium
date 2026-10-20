@@ -143,22 +143,24 @@ export const deriveTechAge = (researched) => {
  * (never lowered). Era fixtures (later-era starts, kept for tests and the sandbox) use it so their
  * nations are in the fixture's age by research, the only way a nation has an age (KTD1).
  */
-export const withAgesResearched = (state, nationId, ageId) => {
-  const below = AGE_ORDER.slice(0, Math.max(0, AGE_ORDER.indexOf(ageId))).flatMap((a) => getTechsForAge(a).map((t) => t.id));
+export const withAgesResearched = (state, nationId, ageId) => withTechsResearched(state, nationId, AGE_ORDER.slice(0, Math.max(0, AGE_ORDER.indexOf(ageId))).flatMap((a) => getTechsForAge(a).map((t) => t.id)));
+
+/** The state with `ids` (tech ids) researched by a nation, its age re-derived (never lowered). */
+export const withTechsResearched = (state, nationId, ids) => {
   const researched = researchedSetOf(state, nationId);
-  below.forEach((id) => researched.add(id));
+  ids.forEach((id) => researched.add(id));
   const derived = deriveTechAge(researched);
   const current = techAgeOf(state, nationId);
   const techAgeId = AGE_ORDER.indexOf(current) > AGE_ORDER.indexOf(derived) ? current : derived;
   if (isPlayer(state, nationId)) {
     const techTree = { ...state.techTree };
-    below.forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
+    ids.forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
     return { ...state, techTree, techAgeId };
   }
   const nation = state.nations[nationId];
   if (!nation) return state;
   const list = [...(nation.tech?.researched || [])];
-  below.forEach((id) => { if (!list.includes(id)) list.push(id); });
+  ids.forEach((id) => { if (!list.includes(id)) list.push(id); });
   return { ...state, nations: { ...state.nations, [nationId]: { ...nation, tech: { ...nation.tech, researched: list, ageId: techAgeId } } } };
 };
 
