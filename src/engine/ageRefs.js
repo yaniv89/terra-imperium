@@ -40,6 +40,15 @@ export const researchLeaderAge = (state) => {
 /** The index of researchLeaderAge in AGE_ORDER. */
 export const researchLeaderIndex = (state) => getAgeIndex(researchLeaderAge(state));
 
+/** An independent's age (KTD8): its strongest known major's age, the first age when it knows none. */
+export const independentAgeOf = (state, nationId) => {
+  const major = strongestKnownMajor(state, nationId);
+  return major ? ageOf(state, major) : FIRST_AGE_ID;
+};
+
+/** The age a side fights and pays at: an independent's from independentAgeOf, a major's its own. */
+export const sideAgeOf = (state, nationId) => (isIndependentNation(state.nations?.[nationId]) ? independentAgeOf(state, nationId) : ageOf(state, nationId));
+
 /** The known major with the largest economy, ties to the lower id; null when `nationId` knows none. */
 export const strongestKnownMajor = (state, nationId) => {
   const sizes = economySizes(state);

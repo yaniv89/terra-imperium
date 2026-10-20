@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { researchLeaderAge, strongestKnownMajor } from './ageRefs';
+import { researchLeaderAge, strongestKnownMajor, independentAgeOf, sideAgeOf } from './ageRefs';
 import { contactsOf } from './techDiffusion';
 import { peoplesWorld } from './testWorld';
 import { FIRST_AGE_ID } from '../data/ages';
@@ -51,5 +51,24 @@ describe('strongestKnownMajor', () => {
   it('is null for an independent that knows no major', () => {
     const lone = { ...world, nations: { [indep]: world.nations[indep] }, regions: Object.fromEntries(Object.entries(world.regions).filter(([, c]) => c.owner === indep)) };
     expect(strongestKnownMajor(lone, indep)).toBeNull();
+  });
+});
+
+describe('independentAgeOf and sideAgeOf', () => {
+  const world = peoplesWorld({ seed: 11, independents: true });
+  const indep = Object.keys(world.nations).sort().find((id) => world.nations[id].kind === 'independent' && contactsOf(world, id).size > 0);
+
+  it('an independent reads the age of its strongest known major', () => {
+    const major = strongestKnownMajor(world, indep);
+    const s = { ...world, nations: { ...world.nations, [major]: { ...world.nations[major], tech: { ...world.nations[major].tech, ageId: 'kingdoms' } } } };
+    if (major === world.playerNationId) s.techAgeId = 'kingdoms';
+    expect(independentAgeOf(s, indep)).toBe('kingdoms');
+    expect(sideAgeOf(s, indep)).toBe('kingdoms');
+    expect(sideAgeOf(s, major)).toBe('kingdoms');
+  });
+
+  it('an independent that knows no major is in the first age', () => {
+    const lone = { ...world, nations: { [indep]: world.nations[indep] }, regions: Object.fromEntries(Object.entries(world.regions).filter(([, c]) => c.owner === indep)) };
+    expect(independentAgeOf(lone, indep)).toBe(FIRST_AGE_ID);
   });
 });
