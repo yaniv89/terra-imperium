@@ -85,6 +85,21 @@ const fieldState = (extra = []) => {
   return { ...S, units, wars: [...S.wars, { id: 'w-f', aggressor: 'in', enemy: 'pk', active: true, startYear: S.year, battleScore: 0 }], nations: { ...S.nations, in: { ...S.nations.in, isAtWar: true }, pk: { ...S.nations.pk, isAtWar: true } } };
 };
 
+describe('a Stone raid (eight-ages plan U32)', () => {
+  it('a village-phase winner takes loot, not the city, and is remembered for the raid', () => {
+    const s0 = armies();
+    const s = { ...s0, techAgeId: 'stone', techTree: { ...s0.techTree, governance_chiefdoms: { ...s0.techTree.governance_chiefdoms, researched: false } }, nations: { ...s0.nations, [AGG]: { ...s0.nations[AGG], economy: { ...s0.nations[AGG].economy, gold: 500 } } } };
+    const next = applyBattleOutcome(s, invasion(s, 'attacker', { a1: 900 }, { d1: 0, d2: 0 }, { decisive: true }));
+    expect(next.regions[T].owner).toBe(AGG);
+    expect(next.resources.gold).toBeGreaterThan(s.resources.gold);
+    expect(next.nations[AGG].economy.gold).toBeLessThan(500);
+    expect(next.nations[AGG].raidedBy.fr).toBe(s.turnNumber);
+    expect(next.logs.some((l) => /looted/.test(l.message))).toBe(true);
+    // the same battle past the village phase takes the city
+    expect(applyBattleOutcome(s0, invasion(s0, 'attacker', { a1: 900 }, { d1: 0, d2: 0 }, { decisive: true })).regions[T].owner).toBe('fr');
+  });
+});
+
 describe('the report line tells what happened to the garrison (LOGIC-02)', () => {
   const garrisonBattle = (s, defStrength, id) => {
     const o = makeBattleOutcome({ id, kind: 'invasion', mode: 'auto', warId: 'war_t', attackerNationId: 'fr', defenderNationId: AGG, viewerId: 'fr', fromRegionId: FR, regionId: T, tile: s.regions[T].tile, isDefended: true }, {

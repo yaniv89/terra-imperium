@@ -137,6 +137,8 @@ export const ActionTypes = {
   // Open borders and demands (plans/civ-map-rework.md C6, src/engine/accords.js).
   OPEN_BORDERS: 'OPEN_BORDERS',
   CLOSE_BORDERS: 'CLOSE_BORDERS',
+  // The Border Stele, the first treaty (accords.js, eight-ages plan U32): payload { nationId }.
+  PROPOSE_STELE: 'PROPOSE_STELE',
   DEMAND: 'DEMAND',
   MILITARY_ALLIANCE: 'MILITARY_ALLIANCE',
   GIFT_BRIBE: 'GIFT_BRIBE',
@@ -216,6 +218,12 @@ export const ActionTypes = {
   // (`state.pendingMapOffer`): payload { accept }.
   TRADE_MAPS: 'TRADE_MAPS',
   ANSWER_MAP_OFFER: 'ANSWER_MAP_OFFER'
+};
+
+// Actions open only from or until an age (eight-ages plan U32, 2026-10-03 plan 9): read at the
+// actor's age by gameReducer's one check. Stone peoples exchange gifts; trade agreements come with Bronze.
+export const ACTION_AGE_GATES = {
+  [ActionTypes.TRADE_AGREEMENT]: { minAge: 'bronze' }
 };
 
 export const LogTypes = {

@@ -31,7 +31,7 @@ import { verificationNotice } from '../components/battle/battleReportView';
 import { neighbourWorld, rivalOf } from './testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
-const PEOPLES_WORLD = neighbourWorld({ player: 'ahhiyawa', seed: 1 });
+const PEOPLES_WORLD = neighbourWorld({ player: 'ahhiyawa', seed: 1, age: 'bronze' });
 const FR_ID = PEOPLES_WORLD.playerNationId;
 const GB_ID = rivalOf(PEOPLES_WORLD, 3);
 
@@ -39,7 +39,7 @@ const GB_ID = rivalOf(PEOPLES_WORLD, 3);
 // cities on the nearest free land: FR_BORDER (bordering a foreign capital, the war's target),
 // and FR_NEAR, a second French city bordering that target. The enemy is whoever owns the target.
 const WORLD = (() => {
-  const first = addCity(neighbourWorld({ player: 'ahhiyawa', seed: 1 }), FR_ID);
+  const first = addCity(neighbourWorld({ player: 'ahhiyawa', seed: 1, age: 'bronze' }), FR_ID);
   // A land attack from inside a city needs touching lands (registry `touching`); else the army
   // stands at the target's gates (`unit` below places it there).
   const target = getTouchingIds(first.cityId).find((id) => first.state.regions[id].owner !== FR_ID) || getNeighborIds(first.cityId).find((id) => first.state.regions[id].owner !== FR_ID);
@@ -543,7 +543,7 @@ describe('T7: reinforcements and powers in the campaign', () => {
 
 describe('T9: commanded amphibious landing', () => {
   // A rival city founded on the nearest free land to the port stands in for London across the water.
-  const T9 = (() => { const s0 = neighbourWorld({ player: 'ahhiyawa', seed: 1 }); return addCity(s0, GB_ID, { near: s0.nations[FR_ID].capitalRegionId }); })();
+  const T9 = (() => { const s0 = neighbourWorld({ player: 'ahhiyawa', seed: 1, age: 'bronze' }); return addCity(s0, GB_ID, { near: s0.nations[FR_ID].capitalRegionId }); })();
   const GB_TARGET = T9.cityId;
   const landingState = () => {
     const s = { ...T9.state, techAgeId: 'modern' }; // a modern fleet's reach covers the other coast (bronze reaches one tile)

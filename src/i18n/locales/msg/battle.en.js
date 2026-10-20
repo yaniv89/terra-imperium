@@ -39,6 +39,7 @@ export default {
   'm.battle.garrisonDestroyed': '{who} destroyed the garrison of {city}: none of it escaped. The city is not taken yet: attack its defences next.',
   'm.battle.conqueredMine': '{city} is conquered: taken from {from}, it is now yours{capital}. Decide what becomes of it.',
   'm.battle.conquered': '{city} is conquered: taken from {from} by {by}{capital}.',
+  'm.battle.stoneLoot': '{who} looted {gold} gold from {city}: before Chiefdoms a war takes loot, not cities.',
   'm.battle.brokeThrough': '{who} broke through at {city} (control now {control}%), but could not yet secure it.',
   'm.battle.invasionRepelledMine': 'Your invasion on {city} was repelled.',
   'm.battle.invasionRepelled': "{nation}'s attack on {city} was repelled.",

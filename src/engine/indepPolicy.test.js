@@ -22,6 +22,7 @@ import { auditGameState } from './stateAudit';
 import { updateFog } from './fog';
 import { PEOPLES } from '../data/peoples';
 import { opinionReasons } from './opinion';
+import { withAgesResearched } from './research';
 
 const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {});
 const world = () => {
@@ -274,6 +275,10 @@ describe('W3 AI majors against independents (independents 5)', () => {
     const garrison = Object.values(s.units).filter((u) => u.ownerId === ind.id).length;
     for (let i = 0; i < 2 * garrison + 2; i++) units[`m${i}`] = unit(`m${i}`, major.id, cap.id, cap.tile);
     s = { ...s, units, nations: { ...s.nations, [major.id]: { ...s.nations[major.id], economy: { ...(s.nations[major.id].economy || {}), gold: 0 } } } };
+    let v = s;
+    for (let g = 0; g < 3 * INDEP_POLICY_PERIOD; g++) v = step(v);
+    expect(['conquer', 'muster']).not.toContain(v.nations[major.id].indepGoal?.kind); // a village people never campaigns for a city
+    s = withAgesResearched(s, major.id, 'bronze');
     let guard = 0;
     while (!s.nations[major.id].indepGoal && guard++ < 10 * INDEP_POLICY_PERIOD) s = step(s);
     expect(['conquer', 'muster']).toContain(s.nations[major.id].indepGoal?.kind);
@@ -283,6 +288,7 @@ describe('W3 AI majors against independents (independents 5)', () => {
   it('a siege force marches on the independent, besieges it and takes it, with no war', () => {
     let s = world();
     const { major, ind } = majorWithNeighbour(s, CONQUER_KM);
+    s = withAgesResearched(s, major.id, 'bronze'); // past the village phase: a Stone raid takes no city
     const cap = s.regions[major.capitalRegionId];
     const units = { ...s.units };
     const garrison = Object.values(s.units).filter((u) => u.ownerId === ind.id).length;

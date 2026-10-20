@@ -7,9 +7,10 @@
 
 import { opinionOf, opinionGivesCasusBelli } from './opinion';
 import { claimsAgainst } from './claims';
-import { hasDemandCasusBelli, setOpenBorders } from './accords';
+import { hasDemandCasusBelli, setOpenBorders, hasStele, setStele } from './accords';
 import { RelationStatus } from '../data/types';
 import { isIndependent } from '../data/independents';
+import { canAnnex } from './stonePhase';
 import { isAdjacentToOwner, REGIONS_DATA, getCapital } from '../data/regions';
 import { CAPTURE_PREFERRING_DOCTRINES } from '../data/nations';
 import { resolveSiegeControlDamage } from './siege';
@@ -82,7 +83,7 @@ const findCaptureTarget = (regions, ownerId, attackerId) =>
 // only ever getting an auto-assigned one. Gracefully falls back to destroy_military if
 // 'capture_region' is requested but no valid bordering target exists.
 export const buildWarGoal = (state, nationId, aggressor, type) => {
-  if (type === 'capture_region') {
+  if (type === 'capture_region' && canAnnex(state, aggressor)) { // a Stone raid has no city to take (stonePhase.js)
     // The claimed (or core) city first: that is what the war is for.
     const targetRegion = claimsAgainst(state, aggressor, nationId)[0]?.id || findCaptureTarget(state.regions, nationId, aggressor);
     if (targetRegion) return { type: 'capture_region', regionId: targetRegion };
@@ -227,6 +228,11 @@ const declareWarOnly = (state, nationId, { aggressor, goal = null } = {}) => {
       isAtWar: true,
       relationStatus: RelationStatus.WAR
     };
+  }
+  // A war breaks a Border Stele between them (accords.js); every people remembers the breaker (opinion.js).
+  if (nextNations[aggressor] && hasStele(state, aggressor, nationId)) {
+    Object.assign(nextNations, setStele(nextNations, aggressor, nationId, null));
+    nextNations[aggressor] = { ...nextNations[aggressor], brokeSteleTurn: state.turnNumber || 0 };
   }
   // One relationship state for the pair (playtest audit I105): the war ends any truce between
   // the two, and a peace treaty with the player is over (the "Peace treaty" chip sat beside AT WAR).

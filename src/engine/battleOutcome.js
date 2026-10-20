@@ -54,7 +54,9 @@ import { findTilePath, passableTile, placeInCity, regionForTile, unitTile, neare
 import { isAir } from './airPower';
 import { battleNameOf } from './battleName';
 import { addGrudge } from './grudges';
-import { isIndependentNation, GRUDGE_ATTACKED } from '../data/independents';
+import { isIndependentNation, GRUDGE_ATTACKED, SACK_INCOME_TURNS, SACK_MIN_GOLD } from '../data/independents';
+import { canAnnex } from './stonePhase';
+import { goldIn, addGoldIn } from './mercenaries';
 import { seaPassable, fleetAge, enemyFleetAt } from './fleets';
 import { mapEffectsFor } from './techMapEffects';
 import { sackCityDamage } from './raidBattle';
@@ -159,7 +161,8 @@ const siegeOf = (o, region) => {
 // when it brought the city's HP to 0 (`cityAttack.falls`) and the attackers can hold it. A
 // commanded battle is untouched: winning it takes the city (decision 40).
 const autoCityRule = (o) => (o.mode === 'command' ? null : o.report?.cityAttack ? 'attack' : o.report?.garrisonFirst ? 'garrison' : null);
-const cityCaptured = (o, siege) => {
+const cityCaptured = (s, o, siege) => {
+  if (!canAnnex(s, o.attackerNationId)) return false; // a Stone raid takes loot, not the city (stonePhase.js)
   const rule = autoCityRule(o);
   if (rule === 'garrison') return false;
   if (rule === 'attack') return !!o.report.cityAttack.falls && siege.hasMeleeUnit;
@@ -213,7 +216,7 @@ const listOf = (refs) => refs.reduce((acc, r) => (acc == null ? r : sub('m.battl
 const invasionAdapter = (s, o, war, att, def) => {
   const target = s.regions[o.regionId];
   const siege = siegeOf(o, target);
-  const captured = cityCaptured(o, siege);
+  const captured = cityCaptured(s, o, siege);
   const rule = autoCityRule(o);
   const units = { ...s.units };
   att.forEach((u) => {
@@ -251,7 +254,7 @@ const invasionAdapter = (s, o, war, att, def) => {
 const landingAdapter = (s, o, war, att, def) => {
   const target = s.regions[o.regionId];
   const siege = siegeOf(o, target);
-  const captured = cityCaptured(o, siege);
+  const captured = cityCaptured(s, o, siege);
   const rule = autoCityRule(o);
   const units = { ...s.units };
   att.forEach((u) => {
@@ -292,7 +295,7 @@ const landingAdapter = (s, o, war, att, def) => {
 const defenseAdapter = (s, o, war, att, def, record) => {
   const region = s.regions[o.regionId];
   const siege = siegeOf(o, region);
-  const captured = cityCaptured(o, siege);
+  const captured = cityCaptured(s, o, siege);
   const rule = autoCityRule(o);
   const damaged = siege.nextControl < (region.control || 0);
   const pressure = rule === 'attack' ? null : o.pressure;
@@ -641,6 +644,21 @@ export const applyBattleOutcome = (state, o) => {
 
   // row 20: the city's damage
   if (o.kind === 'invasion' || o.kind === 'landing' || o.kind === 'defense') s = applyCityDamage(state, s, o.regionId, { cityDamage: out.cityDamage, razed: out.razed });
+  // A Stone raid (stonePhase.js canAnnex): the winner before Chiefdoms takes SACK_INCOME_TURNS of the
+  // city's gold (at least SACK_MIN_GOLD) from what its owner holds, never the city.
+  let lootLog = null;
+  if ((o.kind === 'invasion' || o.kind === 'landing' || o.kind === 'defense') && out.outcome === 'attacker' && !canAnnex(state, out.attackerNationId)) {
+    const city = s.regions[o.regionId];
+    const w = { playerId: s.playerNationId, resources: { ...s.resources }, nations: { ...s.nations } };
+    const loot = Math.min(goldIn(w, out.defenderNationId), Math.max(SACK_MIN_GOLD, Math.round(SACK_INCOME_TURNS * (city?.lastYields?.gold || 0))));
+    if (loot > 0) {
+      addGoldIn(w, out.defenderNationId, -loot); addGoldIn(w, out.attackerNationId, loot);
+      const victim = w.nations[out.defenderNationId];
+      if (victim) w.nations[out.defenderNationId] = { ...victim, raidedBy: { ...(victim.raidedBy || {}), [out.attackerNationId]: state.turnNumber || 0 } }; // "Raided us" (opinion.js)
+      s = { ...s, resources: w.resources, nations: w.nations };
+      lootLog = { year: state.year, ...msg('m.battle.stoneLoot', { who: nameRef(s, out.attackerNationId), gold: loot, city: cityOr(s.regions, o.regionId) }), type: LogTypes.COMBAT };
+    }
+  }
   // A sack burns the town (raidBattle.js sackBurn) under the same 50% rule; never a capture.
   if (o.kind === 'sack') { const burn = sackCityDamage(state, out); if (burn) s = applyCityDamage(state, s, o.regionId, { cityDamage: burn }); }
 
@@ -696,6 +714,6 @@ export const applyBattleOutcome = (state, o) => {
     ...s,
     ...reportFields,
     rngSeed: out.rngSeed ?? s.rngSeed,
-    logs: [...s.logs, { year: state.year, ...msg('m.battle.logLine', { battle: thing('battle', null, name), line: sub(placed.msgKey, placed.msgVars), loss: lossLine }), type: LogTypes.COMBAT }, ...aftermath.logs]
+    logs: [...s.logs, { year: state.year, ...msg('m.battle.logLine', { battle: thing('battle', null, name), line: sub(placed.msgKey, placed.msgVars), loss: lossLine }), type: LogTypes.COMBAT }, ...(lootLog ? [lootLog] : []), ...aftermath.logs]
   };
 };

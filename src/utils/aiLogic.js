@@ -29,7 +29,7 @@ import { getBorderingNationIds, getNeighborIds, getOwnedRegionIds } from '../dat
 import { hasMet } from '../engine/fog';
 import { declareWar, isInTruce, hasActiveWarBetween, hasCasusBelli } from '../engine/diplomacy';
 import { claimsOf, claimsInProgressOf, claimableCities, startClaim } from '../engine/claims';
-import { hasOpenDemand } from '../engine/accords';
+import { hasOpenDemand, hasStele } from '../engine/accords';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { UNIT_CLASSES, UNIT_CLASS_IDS, getAvailableClasses } from '../data/unitClasses';
 import { AE_COALITION_ROLL_SCALE, AE_COALITION_ROLL_CAP } from '../data/actionCosts';
@@ -317,6 +317,8 @@ const pickWarTarget = (state, nationId, preferredTargetId = null, excludeId = nu
     .filter(id => id !== excludeId && state.nations[id] && !state.nations[id].isEliminated && !isIndependentNation(state.nations[id]) && state.nations[id].vassalOf !== nationId && !isInTruce(state, nationId, id) && hasMet(state, nationId, id)
       // Never a people it holds an open demand on: the answer comes first (accords.js, addendum X21).
       && !hasOpenDemand(state, nationId, id)
+      // Nor a Border Stele partner: the AI keeps its treaty (accords.js).
+      && !hasStele(state, nationId, id)
       // Nor one it made peace with lately: the truce's end is not the next war's start (CB09).
       // (a coalition's strike on the runaway leader honours only the truce itself).
       && (id === memoryExempt || !recentlyAtPeace(state, nationId, id))

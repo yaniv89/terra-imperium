@@ -9,7 +9,7 @@ import { addCity } from './testWorld';
 import { neighbourWorld, rivalOf } from './testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
-const PEOPLES_WORLD = neighbourWorld({ seed: 1 });
+const PEOPLES_WORLD = neighbourWorld({ seed: 1, age: 'bronze' });
 const US_ID = PEOPLES_WORLD.playerNationId;
 const CA_ID = rivalOf(PEOPLES_WORLD, 0);
 const MX_ID = rivalOf(PEOPLES_WORLD, 1);
@@ -31,7 +31,7 @@ const neverRolls = { next: () => 0.999999 }; // guarantees any realistic probabi
 // Every nation starts with a garrison in its capital on the tile world; these legacy capture-roll
 // tests want undefended capitals, so the starting units go. Canada gets a second city so a lost
 // capital has somewhere to move to.
-const usState = () => {const s=addCity(neighbourWorld({ seed: 1 }),CA_ID).state;s.units={};for(const n of Object.values(s.nations))if(!n.isPlayer)n.economy=undefined;return s;};
+const usState = () => {const s=addCity(neighbourWorld({ seed: 1, age: 'bronze' }),CA_ID).state;s.units={};for(const n of Object.values(s.nations))if(!n.isPlayer)n.economy=undefined;return s;};
 
 describe('assignDefaultWarGoal', () => {
   it('gives the player a capture_region goal against a nation with a bordering region', () => {

@@ -39,6 +39,7 @@ export default {
   'm.battle.garrisonDestroyed': '{who} השמיד את חיל המצב של {city}: איש לא נמלט. העיר עוד לא נכבשה: תקפו את ביצוריה.',
   'm.battle.conqueredMine': '{city} נכבשה: נלקחה מ{from} והיא עכשיו שלך{capital}. החליטו מה ייעשה בה.',
   'm.battle.conquered': '{city} נכבשה: נלקחה מ{from} בידי {by}{capital}.',
+  'm.battle.stoneLoot': '{who} בזזו {gold} זהב מ{city}: לפני "שבטים ומנהיגים" מלחמה לוקחת שלל, לא ערים.',
   'm.battle.brokeThrough': '{who} פרצו ב{city} (שליטה עכשיו {control}%), אך עוד לא הצליחו לאבטח אותה.',
   'm.battle.invasionRepelledMine': 'הפלישה שלך ל{city} נהדפה.',
   'm.battle.invasionRepelled': 'ההתקפה של {nation} על {city} נהדפה.',

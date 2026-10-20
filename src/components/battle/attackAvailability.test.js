@@ -13,7 +13,7 @@ import { getTouchingIds } from '../../data/regions';
 import { peoplesWorld, rivalOf } from '../../engine/testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
-const WORLD = peoplesWorld({ seed: 7 });
+const WORLD = peoplesWorld({ seed: 7, age: 'bronze' });
 const FR = WORLD.playerNationId;
 const DE = rivalOf(WORLD, 0);
 
@@ -32,7 +32,7 @@ describe('attack buttons follow the engine validation', () => {
   beforeEach(() => {
     // Two German cities beside the capital, so a conquered one still has a German neighbour.
     // packed tighter than the settling rule so the two German lands touch (testWorld loose)
-    const first = addCity(peoplesWorld({ seed: 7 }), DE, { loose: true });
+    const first = addCity(peoplesWorld({ seed: 7, age: 'bronze' }), DE, { loose: true });
     const second = addCity(first.state, DE, { near: first.cityId, loose: true });
     game.state = addCity(second.state, DE, { near: second.cityId, loose: true }).state; // a third, so a conquered city still has a neighbour to attack
     from = Object.keys(game.state.regions).find(id => game.state.regions[id].owner === DE && getNeighborIds(id).some(n => game.state.regions[n]?.owner === DE));

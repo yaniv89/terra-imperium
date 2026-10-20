@@ -22,5 +22,9 @@ export const stonePhaseOf = (state, nationId) => {
   return FIRST_CITIES_TECHS.every((id) => known.includes(id)) ? 'cities' : 'village';
 };
 
+/** Can this nation take a city? Not in the village phase (eight-ages plan U32, 2026-10-03 plan 9.1):
+ * a war before Chiefdoms is a raid, its win at a city is loot. One rule for war goals, battles and peace terms. */
+export const canAnnex = (state, nationId) => stonePhaseOf(state, nationId) !== 'village';
+
 /** The city context of a nation's phase (resolveTurn nationCtx, cityEconomy cityCtx). */
 export const stonePhaseCtx = (state, nationId) => (stonePhaseOf(state, nationId) === 'cities' ? { riverFood: RIVER_FOOD } : {});

@@ -5,13 +5,13 @@ import { addCity } from './testWorld';
 import { neighbourWorld, rivalOf } from './testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
-const PEOPLES_WORLD = neighbourWorld({ seed: 11 });
+const PEOPLES_WORLD = neighbourWorld({ seed: 11, age: 'bronze' });
 const US_ID = PEOPLES_WORLD.playerNationId;
 const CA_ID = rivalOf(PEOPLES_WORLD, 0);
 const MX_ID = rivalOf(PEOPLES_WORLD, 1);
 
 const cap = getNationCapital;
-const usState = () => neighbourWorld();
+const usState = () => neighbourWorld({ age: 'bronze' });
 
 // A minimal war record between the US (aggressor) and Canada (enemy), with Canada's capital
 // occupied by the US — the shared starting point for most of these tests.

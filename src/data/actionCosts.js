@@ -75,6 +75,7 @@ export const ACTION_COSTS = {
   fabricateClaim: { gold: 150, dip: 11 },
   tradeAgreement: { gold: 100, dip: 1 },
   openBorders: { gold: 50, dip: 5 },
+  borderStele: { gold: 40 },
   demand: { dip: 5 },
   militaryAlliance: { gold: 150, dip: 16 },
   giftBribe: { gold: 100, dip: 1 },

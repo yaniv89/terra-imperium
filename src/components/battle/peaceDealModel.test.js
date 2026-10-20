@@ -8,12 +8,12 @@ import { peaceDealModel, peaceCandidates, peaceOfferModel, refusalReason } from 
 import { peoplesWorld, rivalOf } from '../../engine/testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
-const PEOPLES_WORLD = peoplesWorld({ seed: 2 });
+const PEOPLES_WORLD = peoplesWorld({ seed: 2, age: 'bronze' });
 const FR_ID = PEOPLES_WORLD.playerNationId;
 const DE_ID = rivalOf(PEOPLES_WORLD, 0);
 
 const WORLD = (() => {
-  const first = addCity(peoplesWorld({ seed: 2 }), FR_ID);
+  const first = addCity(peoplesWorld({ seed: 2, age: 'bronze' }), FR_ID);
   const foe = addCity(first.state, DE_ID, { near: first.cityId });
   return { state: foe.state, foeCity: foe.cityId };
 })();
