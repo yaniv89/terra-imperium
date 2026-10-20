@@ -1027,15 +1027,59 @@ def crew_clips(L, acts, lean=1., bow=None):
     return out
 
 
-def chariot(near, off, car, driver, archer, arrow=('ArcherNockedArrow', 'ArcherNockedArrowHead')):
+def crew_polearm(L, out, chop=False):
+    """A chariot crewman with a spear, a javelin or a halberd in the right fist (no bow), over crew_clips'
+    clips: the Charge levels the point over the car's side and thrusts at the contact (held two frames),
+    Archer-shoot is a thrust (chop: a halberd's overhead blow) while the archer looses."""
+    r0 = L.rest()
+    up = (L.arm_to((-.35, -.30, .75), .235), FC.pitch(55, -10))
+    level = (L.arm_to((-.45, -.75, -.15), .235), FC.pitch(98, -18))
+    stab = (L.arm_to((-.40, -.95, -.25), .245), FC.pitch(106, -20))
+    lean = {'Spine': (6, 0, 6), 'Chest': (4, 0, 8), 'Head': (-6, 0, -8)}
+    wk = [(1, r0), (10, L.key(at=up)), (19, L.key(at=level)), (23, L.key(lean, at=stab, ease='in')), (24, L.key(lean, at=stab)),
+          (31, L.key(at=up)), (38, dict(r0, ease='io')), (41, r0)]
+    ride = out['Charge'].fn
+
+    def charge(f):
+        s = ride(f)
+        w = dict(spec_at(wk, f))
+        r = dict(s.get('r') or {})
+        for b, a in (w.get('r') or {}).items():
+            r[b] = tuple(x + y for x, y in zip(r.get(b, (0, 0, 0)), a))
+        w['r'] = r
+        w['root'] = s.get('root', (0, 0, 0))
+        return w
+    c = out['Charge']
+    out['Charge'] = Clip('Charge', c.frames, c.loop, c.tool, fn=charge, events=c.events)
+    tw = {'Spine': (-2, 0, -8), 'Chest': (-4, 0, -12), 'Head': (2, 0, 10)}
+    st = {'Hips': (2, 0, 6), 'Spine': (10, 0, 10), 'Chest': (6, 0, 12), 'Head': (-8, 0, -10)}
+    if chop:  # the blade raised behind the head, brought down over the side
+        wind = (L.arm_to((-.30, .10, .95), .23), FC.pitch(-25, -10))
+        hit = (L.arm_to((-.40, -.85, -.20), .24), FC.pitch(118, -15))
+    else:
+        wind = (L.arm_to((-.35, .25, .90), .23), FC.pitch(100, -12))
+        hit = stab
+    keys = [(1, r0), (10, L.key(tw, at=wind)), (18, L.key(tw, at=wind)), (22, L.key(st, at=hit, ease='in')), (23, L.key(st, at=hit)),
+            (27, L.key(tw, at=wind, ease='out')), (33, dict(r0, ease='io'))]
+    out['Archer-shoot'] = Clip('Archer-shoot', ACTS['Archer-shoot'][0], False, None, keys=keys, events=ACTS['Archer-shoot'][2])
+    return out
+
+
+def chariot(near, off, car, driver, archer, arrow=('ArcherNockedArrow', 'ArcherNockedArrowHead'), extra_horses=(), crew=(), sides=(-.12, .15)):
     """Author the Bronze chariot: the two horses (in step), the car (it pitches about its axle with the horses'
     withers under the yoke, the wheels roll a turn a stride), the driver (the reins in both fists: they hang
-    from the car) and the archer (the bow drawn and loosed in Archer-shoot). Returns (table, order)."""
-    horses = [Horse(h, [m for m in F.meshes if m.parent == h]) for h in (near, off)]
+    from the car) and the archer (the bow drawn and loosed in Archer-shoot). Returns (table, order).
+    The signature chariots (2026-10-20; the base call above is unchanged): `extra_horses` [(rig, like)] the
+    outer pair of a four-horse team, each posed as the near (like 0) or the off (1) horse, every rig keyed in
+    every clip (the yoke pair alone lifts the car); `archer` None for a car with no bowman; `crew` more men
+    [(rig, role, side_x)], role 'spear' (a spear or a javelin), 'halberd' (crew_polearm) or 'hand' (the
+    driver's watch), side_x where the Wreck throws him; `sides`: the driver's and the archer's."""
+    pairs = [(near, 0), (off, 1)] + [(h, like) for h, like in extra_horses]
+    horses = [Horse(h, [m for m in F.meshes if m.parent == h]) for h, _ in pairs]
     unit = Unit('chariot')
     acts = unit.acts
     specs = []
-    for i, h in enumerate(horses):
+    for h, (_, i) in zip(horses, pairs):
         hs = {}
         for act in acts:
             if act == 'Move':
@@ -1059,7 +1103,7 @@ def chariot(near, off, car, driver, archer, arrow=('ArcherNockedArrow', 'ArcherN
     car_rest = CB['Hull'].matrix_local.copy()
     axle = V((0, CB['Wheel_L'].head_local.y, CB['Wheel_L'].head_local.z))
     yoke_y = -.88 - axle.y
-    withers = [h.arm.matrix_world.inverted() @ V((h.arm.matrix_world.translation.x, -.88, .80)) for h in horses]
+    withers = [h.arm.matrix_world.inverted() @ V((h.arm.matrix_world.translation.x, -.88, .80)) for h in horses[:2]]
     car_body = C.ground_set([m for m in F.meshes if m.parent == car], None)
     state = {}
 
@@ -1077,7 +1121,7 @@ def chariot(near, off, car, driver, archer, arrow=('ArcherNockedArrow', 'ArcherN
             upd()
             state['D'] = Matrix.Identity(4)
             return
-        dz = sum((h.D @ w - w).z for h, w in zip(horses, withers)) / 2
+        dz = sum((h.D @ w - w).z for h, w in zip(horses[:2], withers)) / 2
         # the yoke rides on the withers: the car turns about its axle (the yoke is yoke_y in front of it)
         pitch, roll, spin_l, spin_r = math.atan2(-dz, -yoke_y), 0., 0., 0.
         if act == 'Move':
@@ -1109,17 +1153,25 @@ def chariot(near, off, car, driver, archer, arrow=('ArcherNockedArrow', 'ArcherN
 
     unit.add(near, pose_horses)
     unit.add(off, lambda act, f: None)
+    for h, _ in extra_horses:
+        unit.add(h, lambda act, f: None)
     unit.add(car, pose_car)
     people = []
-    for arm, kit, side_x in ((driver, FC.Kit('sword'), -.12), (archer, FC.Kit('bow', side='L', arrow=arrow, quiver='hip'), .15)):
-        per = Person(arm, kit, weapon=kit.kind == 'bow')
-        L = CrewLib(per.P, kit, 'hand' if kit.kind != 'bow' else 'bow')
+    men = [(driver, FC.Kit('sword'), sides[0], 'hand')]
+    if archer is not None:
+        men.append((archer, FC.Kit('bow', side='L', arrow=arrow, quiver='hip'), sides[1], 'bow'))
+    men += [(arm, FC.Kit('sword' if role == 'hand' else 'spear'), side_x, role) for arm, role, side_x in crew]
+    for arm, kit, side_x, role in men:
+        per = Person(arm, kit, weapon=kit.kind != 'sword')
+        L = CrewLib(per.P, kit, 'hand' if kit.kind == 'sword' else 'bow' if kit.kind == 'bow' else 'lance')
         L.side_x = side_x
         bow = None
         if kit.kind == 'bow':
             L.kind = 'bow'
             bow = FC.bow_draw(L)
-        clips = crew_clips(L, acts, lean=1. if arm == driver else .7, bow=bow)
+        clips = crew_clips(L, acts, lean=1. if arm == driver else .7 if role == 'bow' else .8, bow=bow)
+        if role in ('spear', 'halberd'):
+            clips = crew_polearm(L, clips, chop=role == 'halberd')
         M = arm.matrix_world.copy()
 
         def pose(act, f, per=per, clips=clips, M=M):
