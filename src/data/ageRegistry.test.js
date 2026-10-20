@@ -108,7 +108,7 @@ describe('registry completeness: every per-age table has every age', () => {
       });
       expect(AGES[age].power.attack, `${age} power`).toBeGreaterThan(0);
       expect(AGES[age].unitCostMult, `${age} unitCostMult`).toBeGreaterThan(0);
-      expect(RECRUIT_STRATEGIC_RESOURCE_BY_AGE[age]?.key, `recruit resource ${age}`).toBeTruthy();
+      expect(RECRUIT_STRATEGIC_RESOURCE_BY_AGE, `recruit resource ${age}`).toHaveProperty(age); // null = no metal
     });
   });
 

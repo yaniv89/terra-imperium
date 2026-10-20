@@ -32,7 +32,7 @@ export const RESOURCES = {
   copper: {
     id: 'copper',
     name: 'Copper',
-    unlockAge: 'bronze',
+    unlockAge: 'stone',
     description: 'Bronze-tier units and early buildings. Stays relevant into later ages (coinage, electrical).'
   },
   iron: {

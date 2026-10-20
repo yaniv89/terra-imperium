@@ -129,7 +129,7 @@ export const BUILDING_CATEGORY_IDS = Object.keys(BUILDING_CATEGORIES);
 // above; a region can hold one of each it has the deposit + age for, all at once. Untouched by
 // M6: extraction is a separate, already-real mechanic (src/data/deposits.js).
 export const EXTRACTION_BUILDINGS = {
-  copper: { age: 'bronze', name: 'Copper Mine' },
+  copper: { age: 'stone', name: 'Copper Mine' },
   iron: { age: 'kingdoms', name: 'Iron Foundry' },
   oil: { age: 'modern', name: 'Oil Well' }
 };
