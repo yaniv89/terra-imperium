@@ -34,11 +34,11 @@ F.start({'Coat': '8A5A34', 'Mane': '2A1F17', 'Leather': '5E3A24', 'Boot': '3E2A1
          'Fleece': 'E9E1CF', 'Rug': '9C3F2C', 'Sack': 'CDBB94', 'Metal': ('C09A54', .45, .6), 'Iron': ('B9BCC0', .35, .7),
          'Hair': '2B201A', 'Skin': 'C48A62', 'Flame': 'F6A22E'}, rig=False)
 parts = []
-horse, _ = tm.fine_horse('Mount', (0, 0, 0), socks=False)
-tm.fine_legs(horse)  # 2026-10-20: knees, hocks, fetlocks and flared hooves
-tm.full_tail(horse)
+horse, _ = tm.fine_horse('Mount', (0, 0, 0), socks=False, detail=2)
+tm.fine_legs(horse, sides=8)  # 2026-10-20: knees, hocks, fetlocks and flared hooves
+tm.full_tail(horse, sides=10)
 parts.append(horse)
-tm.tack(horse, 'Fleece', span=(-.28, .15), reach=100, fringe=.040, discs=0)
+tm.tack(horse, 'Fleece', span=(-.28, .15), reach=100, fringe=.040, discs=0, steps=12, rows=5)
 S = 'Mount_Spine'
 # ---- the loot: a tied sack on each flank behind the rider's legs, a rolled rug and a bronze cauldron on the croup ----
 for sx in (-1, 1):
@@ -94,4 +94,4 @@ tris = F.finish_unit(UID, parts, {
     'notes': 'Quality pass of 2026-10-14 on ti_figure.py (astride, cloak, phrygian_cap) and ti_mounts.py (fine_horse, tack, reins). The flame is a flat orange material named Flame with no baked shade; fire and smoke come from the battle effects.'},
     centre=(0, -.05, .75), scale=2.3, mode='NLA_TRACKS', clips=MC.hook(UID, lambda: MC.mounted(horse, rider, 'torch'), 'mounted'))
 print('TRIS', tris)
-assert tris <= 3500, tris
+assert tris <= 5000, tris  # the close version (2026-10-20); the mid and far levels stay at 550 and 220 (soldierLod.js)
