@@ -67,3 +67,27 @@ describe('H-26: on to the next building', () => {
     expect(lost / brought).toBeLessThan(0.6); // before: all of it
   }, 120000);
 });
+
+// Playtest 4 P4-H4: squads stood idle (or locked in place) beside the last buildings until they died.
+describe('P4-H4: squads keep fighting', () => {
+  it('two squads walking straight into each other pass instead of locking', () => {
+    const w = createWorld(town());
+    const [a, b] = army(w, 0);
+    const y = w.structures[0].y;
+    a.x = 10 * Q; a.y = y; b.x = 20 * Q; b.y = y;
+    applyOrder(w, { side: 0, type: 'move', squads: [a.idx], x: 20 * Q, y });
+    applyOrder(w, { side: 0, type: 'move', squads: [b.idx], x: 10 * Q, y });
+    for (let i = 0; i < 400; i++) { step(w, []); w.events.length = 0; }
+    expect(a.x).toBeGreaterThan(18 * Q); // before: both stood 1.2 tiles apart in the middle forever
+    expect(b.x).toBeLessThan(12 * Q);
+  });
+
+  it('an attack-moving squad with no target turns on the tower that shoots it', () => {
+    const w = createWorld(town());
+    const keep = w.structures[0];
+    const a = army(w, 0)[0];
+    a.x = keep.x - 4 * Q; a.y = keep.y; a.order = { type: 'attackMove', x: keep.x, y: keep.y }; a.target = -1;
+    keep.cooldown = 0; buildSpatialHash(w); resolveStructureFire(w);
+    expect([a.targetKind, a.target]).toEqual(['structure', 0]); // before: it bled to 0 on "attackMove" with no target
+  });
+});

@@ -71,7 +71,10 @@ import { FIRST_AGE_ID } from '../../data/ages';
 // shoots them, a town's sealed pockets are closed (cityBattle.js sealPockets), a deployed squad
 // stands on open ground.
 // v15: the satellite sweep, missile and nuclear powers are retired (eight ages plan U19).
-export const SETUP_VERSION = 15;
+// v16: playtest 4 P4-H4: two squads walking into each other slide past instead of locking, an
+// attack-moving squad turns on a tower that shoots it, and an assault goes on to base buildings
+// near the attack-move's goal or the building that fell (CONTINUE_NEAR 18 tiles).
+export const SETUP_VERSION = 16;
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
 
