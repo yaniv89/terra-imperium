@@ -37,7 +37,7 @@ import { attackReach, planMarchAttack } from '../../engine/marchAttack';
 import { describeAttackBlock } from '../../utils/attackAvailability';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
-import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
+import { useInteraction, useDismissOverlays, PRIORITY } from '../../hooks/useExclusivePanel';
 import { useReportInset } from '../../context/MapInsetsContext';
 import ProgressBar from '../ui/ProgressBar';
 import { ActionButton } from '../ui';
@@ -111,6 +111,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   // sliver (the interaction registry, useExclusivePanel.js; same rule as ProvinceModal).
   const cardWanted = !!regionId && isCornerCard && !isMobile;
   const card = useInteraction('region-card', cardWanted, { kind: 'panel', priority: PRIORITY.panel, user: true });
+  useDismissOverlays(() => onClose?.(), cardWanted);
   const cardTucked = cardWanted && !card.shown;
   useEffect(() => { if (cardTucked) onClose?.(); }, [cardTucked]); // eslint-disable-line react-hooks/exhaustive-deps
 

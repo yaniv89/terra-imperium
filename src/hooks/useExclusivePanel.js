@@ -9,7 +9,8 @@
 //
 //   const { shown, tuck, promote } = useInteraction('defense', open, { priority, kind, label });
 //   if (!shown) return null;   // it waits as a chip, or (a panel) simply stays closed
-import { useEffect, useLayoutEffect, useSyncExternalStore } from 'react';
+import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
+import { closePanels } from '../components/panels/panelEvents';
 import { getLayoutMode } from './useLayoutMode';
 import {
   emptyInteractions, openInteraction, closeInteraction, promoteInteraction, tuckInteraction,
@@ -26,6 +27,8 @@ const compactNow = () => hasWindow && getLayoutMode(window.innerWidth, window.in
 let model = emptyInteractions();
 let chipsCache = null; // { model, width, chips }
 const listeners = new Set();
+// Overlays the player can dismiss (a sheet, the log, march mode): End Turn closes them all and acts.
+const dismissers = new Set();
 const openListeners = new Set();
 let resizeBound = false;
 
@@ -51,8 +54,12 @@ export const interactions = {
     if (!chipsCache || chipsCache.model !== model || chipsCache.width !== width || chipsCache.compact !== compact) chipsCache = { model, width, compact, chips: waitingChips(model, width, compact) };
     return chipsCache.chips;
   },
+  /** Close every overlay that asked to be dismissable (useDismissOverlays), and the tab dock. */
+  dismissOverlays: () => { [...dismissers].forEach((fn) => fn()); if (hasWindow) closePanels(); },
+  /** Register a dismisser; returns the way to withdraw it. (useDismissOverlays calls this.) */
+  addDismisser: (fn) => { dismissers.add(fn); emit(); return () => { dismissers.delete(fn); emit(); }; },
   /** For tests. */
-  reset: () => { model = emptyInteractions(); chipsCache = null; emit(); }
+  reset: () => { model = emptyInteractions(); chipsCache = null; dismissers.clear(); emit(); }
 };
 
 // On the server (the tests render components to a string) nothing registers: everything shows.
@@ -77,6 +84,22 @@ export const useInteraction = (id, open, { priority = PRIORITY.sheet, kind = 'ca
   const shown = useSyncExternalStore(subscribe, () => interactions.isShown(id), () => true);
   return { shown: !!open && shown, tuck: () => interactions.tuck(id), promote: () => interactions.promote(id) };
 };
+
+/**
+ * While `active`, `fn` closes this overlay when End Turn (or anything else) dismisses them all
+ * (interactions.dismissOverlays). Decision cards never register: they stay until answered.
+ */
+export const useDismissOverlays = (fn, active = true) => {
+  const ref = useRef(fn);
+  ref.current = fn;
+  useEffect(() => {
+    if (!active) return undefined;
+    return interactions.addDismisser(() => ref.current());
+  }, [active]);
+};
+
+/** Is any dismissable overlay open? End Turn rides above the sheets while one is. */
+export const useOverlayOpen = () => useSyncExternalStore(subscribe, () => dismissers.size > 0, () => false);
 
 /** The cards and notices that wait, for the chips. */
 export const useWaitingChips = () => useSyncExternalStore(subscribe, interactions.chips, () => NO_CHIPS);

@@ -7,7 +7,7 @@
 // another. Closing one decides nothing (it stays in Relations until it lapses).
 import React, { useEffect, useRef, useState } from 'react';
 import { useGame } from '../../context/GameContext';
-import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
+import { useInteraction, useDismissOverlays, PRIORITY } from '../../hooks/useExclusivePanel';
 import IndependentSheet from './IndependentSheet';
 import { TributeDemandSheet, JoinOfferSheet } from './TributeDemandSheet';
 import { OPEN_INDEPENDENT, OPEN_TRIBUTE_DEMAND, OPEN_JOIN_OFFER } from './independentEvents';
@@ -54,6 +54,8 @@ const IndependentsHost = () => {
   // The independent's own sheet is something the player opened: it takes the screen, and a card
   // that waited comes back when it closes.
   const own = useInteraction('independent', !!sheet, { priority: PRIORITY.sheet, user: true, label: tNow('wait.independent') });
+
+  useDismissOverlays(() => setSheet(null), !!sheet);
 
   return (
     <>

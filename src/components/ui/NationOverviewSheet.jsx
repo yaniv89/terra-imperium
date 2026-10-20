@@ -12,7 +12,7 @@ import { openPanelTab } from '../panels/panelEvents';
 import { nationOverviewModel } from './nationOverviewModel';
 import { Button, Label, Meter, SheetHeader, Shield, signed } from './atlas';
 import MapCard from './MapCard';
-import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
+import { useInteraction, useDismissOverlays, PRIORITY } from '../../hooks/useExclusivePanel';
 import GovernmentChangeDialog from '../panels/GovernmentChangeDialog';
 import { t as tNow } from '../../i18n';
 import { useT } from '../../i18n/useT';
@@ -46,6 +46,7 @@ const NationOverviewSheet = () => {
   const m = useMemo(() => (open ? nationOverviewModel(state) : null), [open, state, lang]);
   // A sheet the player opened: it takes the screen, and a decision card it covers waits as a chip.
   const turn = useInteraction('nation-overview', open && !!m, { priority: PRIORITY.sheet, user: true, label: tNow('wait.nation') });
+  useDismissOverlays(() => setOpen(false), open);
   // The government change card lives here because this sheet stays mounted (see GovernmentChangeDialog.jsx).
   if (!open || !m || !turn.shown) return <GovernmentChangeDialog />;
   const close = () => setOpen(false);
