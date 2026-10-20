@@ -66,6 +66,9 @@ describe('art index', () => {
     expect(a.terrain('river-kit')).toBeNull();
     expect(a.bridge('modern').material).toBe('stone');
     expect(a.bridge('bronze').object).toBe('bridge-wood');
+    // Stone takes its log crossing, or the wooden bridge while there is none
+    expect(a.bridge('stone').object).toBe('bridge-wood');
+    expect(idx('battle/terrain/bridge-ford.glb', 'battle/terrain/bridge-wood.glb').bridge('stone').object).toBe('bridge-ford');
     expect(a.signature('kingdom-of-israel').url).toMatch(/signature\/kingdom-of-israel/);
     expect(a.signature('hittites')).toBeNull();
     expect(a.mapTerrain('hills').url).toMatch(/hills/);

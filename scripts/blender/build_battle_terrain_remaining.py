@@ -6,7 +6,7 @@ The sheet must be provided and viewed by the author before geometry creation.
 import argparse,json,sys,os
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
-FILES=('river-kit','ford','bridge-wood','bridge-stone','bridge-steel')
+FILES=('river-kit','ford','bridge-wood','bridge-stone','bridge-steel','bridge-ford')
 
 def main():
     args=sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else sys.argv[1:]

@@ -18,8 +18,8 @@ import { styleChain } from '../../data/architecture';
 export const VEGETATION_KITS = ['temperate', 'conifer', 'mediterranean', 'tropical', 'steppe', 'desert', 'cold'];
 export const VEGETATION_FALLBACK = { conifer: 'temperate', cold: 'conifer', mediterranean: 'temperate', tropical: 'temperate', steppe: 'temperate', desert: 'steppe' };
 /** The bridge a road crossing gets in each age, and the lighter bridges it falls back to. */
-export const BRIDGE_BY_AGE = { stone: 'wood', bronze: 'wood', classical: 'stone', kingdoms: 'stone', gunpowder: 'stone', modern: 'steel' };
-const BRIDGE_FALLBACK = { steel: 'stone', stone: 'wood' };
+export const BRIDGE_BY_AGE = { stone: 'ford', bronze: 'wood', classical: 'stone', kingdoms: 'stone', gunpowder: 'stone', modern: 'steel' };
+const BRIDGE_FALLBACK = { steel: 'stone', stone: 'wood', ford: 'wood' };
 /** Resource node files (S9). */
 export const NATURE_NODES = ['stone-outcrop', 'ore-outcrop', 'gold-vein', 'fish-shoal', 'herd-sheep-goat', 'herd-cattle', 'berry-bushes'];
 /** Map terrain kits (S11) the close view can read. */
@@ -126,7 +126,7 @@ export const createArtIndex = (files = {}) => {
     },
     /** S11 battle terrain: battle/terrain/<id>.glb (river-kit, ford). */
     terrain: (id) => (url(`battle/terrain/${id}.glb`) ? { url: url(`battle/terrain/${id}.glb`), id, key: `battle/terrain/${id}.glb` } : null),
-    /** S11 bridges: battle/terrain/bridge-<wood|stone|steel>.glb for the age, lighter ones after. */
+    /** S11 bridges: battle/terrain/bridge-<ford|wood|stone|steel>.glb for the age (Stone: the log crossing), lighter ones after. */
     bridge: (ageId) => {
       for (let m = BRIDGE_BY_AGE[ageId] || 'wood'; m; m = BRIDGE_FALLBACK[m]) {
         const key = `battle/terrain/bridge-${m}.glb`;

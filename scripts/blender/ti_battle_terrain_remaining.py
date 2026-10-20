@@ -189,6 +189,7 @@ def river_piece(kind,width_tiles):
 
 def deck_height(material,y):
     if material=='steel':return .055
+    if material=='ford':return .058  # logs laid on stepping stones, level with the banks (a log's foot clears the ground)
     return .015+(.10 if material=='wood' else .23)*math.sin(math.pi*(y+.72)/1.44)
 
 
@@ -200,9 +201,11 @@ def approach(ms,material):
 
 def bridge(material,state):
     def build(ms,rng):
-        damaged=state=='damaged';destroyed=state=='destroyed';deckmat={'wood':'btr_wood','stone':'btr_ashlar','steel':'btr_concrete'}[material]
+        damaged=state=='damaged';destroyed=state=='destroyed';deckmat={'wood':'btr_wood','stone':'btr_ashlar','steel':'btr_concrete','ford':'btr_wood'}[material]
         approach(ms,material)
         for level,n in enumerate((32,12,4)):
+            if material=='ford':
+                ford_crossing(ms,rng,level,damaged,destroyed);continue
             for k in range(n):
                 a=-.72+1.44*k/n;b=-.72+1.44*(k+1)/n
                 if destroyed and a<.32 and b>-.32:continue
@@ -281,10 +284,31 @@ def bridge(material,state):
     return build
 
 
+def ford_crossing(ms,rng,level,damaged,destroyed):
+    """The Stone Age crossing (H-25 follow-up, the plan's `BRIDGE_BY_AGE.stone = 'ford'`): three felled logs lashed
+    side by side, laid over piles of stepping stones in the shallows, the bark on, the cut ends showing."""
+    segs=(8,6,4)[level];z=deck_height('ford',0)
+    for x in (-.075,0,.075):
+        spans=((-.72,-.30),(.30,.72)) if destroyed or (damaged and x>0) else ((-.72,.72),)
+        for a,b in spans:
+            r=.026 if x==0 else .023
+            ms.cyl('btr_wood',r,r*.92,b-a,at=(x,a,z-r),rot=(-90,0,0),segs=segs,only=(level,))
+            if level==0:
+                for y in (a,b):ms.cyl('btr_endgrain',r*.97,r*.97,.003,at=(x,y-(.0015 if y==b else -.0015),z-r),rot=(-90,0,0),segs=segs,only=(0,))
+    if level==0:  # the lashings where the logs cross the piles, and the stones of the piles (LOD0 and LOD1)
+        for y in (-.45,-.15,.15,.45):
+            if not (destroyed and abs(y)<.3):ms.box('btr_endgrain',(.2,.012,.008),at=(0,y,z-.002),lod=1)
+            for k in range(4):
+                rock(ms,rng,rng.uniform(-.08,.08),y+rng.uniform(-.035,.035),rng.uniform(.026,.04),z-.024,lod=1)
+    if level==2:  # one low heap a pile far away
+        for y in (-.45,-.15,.15,.45):ms.cyl('btr_stone',.07,.06,z-.026,at=(0,y,0),segs=6,only=(2,))
+
+
 def bridge_scaled(material,state):
     def build(ms,rng):
         bridge(material,state)(ms,rng)
         sx=(.36 if material=='steel' else .30)/.44;sy=(1.2 if material=='steel' else 1.0)/1.44
+        if material=='ford':sx=1.0  # the logs keep their true thickness across
         for bm,_,_,_ in ms.parts:
             for v in bm.verts:v.co.x*=sx;v.co.y*=sy
     return build
