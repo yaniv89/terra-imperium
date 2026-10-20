@@ -90,6 +90,36 @@ export const cityKeepInset = (manifest) => {
 const centre = (t) => Math.round(t * Q);
 
 /**
+ * Close the town's sealed pockets (audit H-04): walkable ground boxed in by houses, buildings and
+ * the wall ring that the city's own side cannot walk out of even through its open gate. A squad
+ * deployed or pushed there could never sortie (its orders silently did nothing). Every walkable
+ * tile within `radius` tiles of the keep that a 4-way flood from the field's edges (the gate
+ * open: the defender's view) never reaches becomes building ground. Writes `tiles`; returns the
+ * number of tiles closed.
+ */
+export const sealPockets = (tiles, w, h, kx, ky, radius) => {
+  const open = (t) => isPassable(t) || t === TILE.GATE;
+  const seen = new Uint8Array(w * h); const queue = [];
+  const seed = (i) => { if (!seen[i] && open(tiles[i])) { seen[i] = 1; queue.push(i); } };
+  for (let j = 0; j < h; j++) { seed(j * w); seed(j * w + w - 1); }
+  for (let i = 0; i < w; i++) { seed(i); seed((h - 1) * w + i); }
+  for (let k = 0; k < queue.length; k++) {
+    const i = queue[k]; const x = i % w; const y = (i - x) / w;
+    const next = [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, y > 0 ? i - w : -1, y < h - 1 ? i + w : -1];
+    for (const j of next) if (j >= 0 && !seen[j] && open(tiles[j])) { seen[j] = 1; queue.push(j); }
+  }
+  let closed = 0;
+  for (let j = Math.max(0, Math.floor(ky - radius)); j <= Math.min(h - 1, Math.ceil(ky + radius)); j++) {
+    for (let i = Math.max(0, Math.floor(kx - radius)); i <= Math.min(w - 1, Math.ceil(kx + radius)); i++) {
+      const c = j * w + i;
+      if (seen[c] || !isPassable(tiles[c]) || (i + 0.5 - kx) ** 2 + (j + 0.5 - ky) ** 2 > radius * radius) continue;
+      tiles[c] = TILE.BUILDING; closed += 1;
+    }
+  }
+  return closed;
+};
+
+/**
  * Place the manifest's structures on the map (writes map.tiles). `keepStructures`: the keep and
  * towers from buildStructures (the keep stays first: the objective). Returns { structures, city }.
  */
@@ -232,6 +262,7 @@ export const placeCity = ({ map, manifest, damage = null, fortLevel = 0, keepStr
   structures.forEach((s) => {
     if (s.kind === 'gate') s.footprint.forEach((c) => { tiles[c] = s.ruinedAtStart ? TILE.RUBBLE : TILE.GATE; });
   });
+  sealPockets(tiles, w, h, kx, ky, townR + 1);
   return {
     structures,
     city: {

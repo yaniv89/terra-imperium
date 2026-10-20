@@ -30,6 +30,7 @@ import { baseBuildings, hasBase } from './base';
 import { BUILDINGS } from '../data/economy';
 
 const ARRIVE = Math.round(0.3 * Q);
+const NO_PATH = 0xffff; // a flow field's unreached tile (pathing.js)
 const TURN_RATE = 24;
 const IDLE_LEASH = 6 * Q;
 
@@ -64,8 +65,14 @@ export const stepToward = (w, q, gx, gy, cacheKey = null) => {
   if (!q.stats.flying) {
     speed = Math.max(1, Math.trunc((speed * 8) / (TILE_COST[w.map.tiles[tileOf(w.map, q.x, q.y)]] || 8)));
     if (!lineClear(w.map, q.x, q.y, gx, gy)) {
-      const wp = nextWaypoint(w, cacheKey ? getFlowField(w, tileOf(w.map, gx, gy), cacheKey, 96, q.side) : getFlowField(w, tileOf(w.map, gx, gy), undefined, undefined, q.side), q.x, q.y);
-      if (!wp) return true; // unreachable: stop trying
+      const field = cacheKey ? getFlowField(w, tileOf(w.map, gx, gy), cacheKey, 96, q.side) : getFlowField(w, tileOf(w.map, gx, gy), undefined, undefined, q.side);
+      const wp = nextWaypoint(w, field, q.x, q.y);
+      if (!wp) {
+        // Truly unreachable from where it stands (not merely next to a goal inside a building): the
+        // screen says "no path" (H-04) instead of the order silently doing nothing. Drawing only.
+        if (field[tileOf(w.map, q.x, q.y)] === NO_PATH) q.noPathTick = w.tick;
+        return true; // unreachable: stop trying
+      }
       wx = wp.x; wy = wp.y;
     }
   }

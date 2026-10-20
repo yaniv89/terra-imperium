@@ -22,6 +22,9 @@ export const clipFieldsOf = (q, visible, work) => (visible
   ? { lastStrikeTick: q.lastStrikeTick ?? -10000, lastHitTick: q.lastHitTick ?? -10000, lastDepositTick: q.lastDepositTick ?? -10000, work: work[q.idx] || 0 }
   : { lastStrikeTick: -10000, lastHitTick: -10000, lastDepositTick: -10000, work: 0 });
 
+/** A squad shows "no path" while its order found no way this recently (ticks). */
+export const NO_PATH_SHOW = 20;
+
 export const makeRenderView = (w, pendingOrders = [], playerSide = 0, includeFog = true) => {
   const work = workCodes(w);
   return makeView(w, pendingOrders, playerSide, includeFog, work);
@@ -49,6 +52,8 @@ const makeView = (w, pendingOrders, playerSide, includeFog, work) => ({
     strength: q.strength, maxStrength: q.maxStrength, startStrength: q.startStrength, morale: q.morale,
     // what your own squad lost to attrition (out of supply on enemy ground, sim/support.js): H-03
     attritionLost: q.side === playerSide ? q.lossBy?.attrition || 0 : 0,
+    // your squad's order cannot be carried out: no way there from where it stands (H-04)
+    noPath: q.side === playerSide && w.tick - (q.noPathTick ?? -10000) <= NO_PATH_SHOW,
     alive: q.alive, onField: q.onField, fled: q.fled, routed: q.routed, retreating: q.retreating,
     reserve: q.reserve, enterTick: q.enterTick, inside: q.inside ?? -1,
     visible: canSeeSquad(w, playerSide, q),

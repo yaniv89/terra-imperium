@@ -19,8 +19,20 @@ import { Q, SIDE_ATTACKER } from './constants';
 import { activateAbility, firePower } from './effects';
 import { canGarrison, garrisonRoom, leaveGarrison } from './objectives';
 import { applyEcoOrder, clearWorkerJobs } from './economy';
+import { tileOf, walkableGoal } from './pathing';
+import { TILE_COST } from '../setup/mapgen';
 
 const SLOT_SPACING = Math.round(2.5 * Q);
+
+// A squad set down on a house, a wall or water stands on the nearest open ground instead (H-04: one
+// set down inside a building block could never walk out, and its orders did nothing).
+const onGround = (w, q) => {
+  const at = tileOf(w.map, q.x, q.y);
+  if (TILE_COST[w.map.tiles[at]] > 0) return;
+  const g = walkableGoal(w.map, at);
+  if (g === at) return;
+  q.x = (g % w.map.w) * Q + (Q >> 1); q.y = Math.floor(g / w.map.w) * Q + (Q >> 1);
+};
 
 const commandable = (w, side, idx) => {
   const q = w.squads[idx];
@@ -152,7 +164,7 @@ export const applyOrder = (w, o) => {
       const clampX = (x) => Math.max(zone.x0 * Q + (Q >> 1), Math.min(zone.x1 * Q + (Q >> 1), x));
       const clampY = (y) => Math.max(zone.y0 * Q + (Q >> 1), Math.min(zone.y1 * Q + (Q >> 1), y));
       const slots = squads.length === 1 ? new Map([[squads[0].idx, { x: o.x, y: o.y }]]) : formationSlots(squads, clampX(o.x), clampY(o.y), o.formation);
-      squads.forEach((q) => { const slot = slots.get(q.idx); q.x = clampX(slot.x); q.y = clampY(slot.y); q.anchorX = q.x; q.anchorY = q.y; q.order = { type: 'idle' }; q.target = -1; q.targetKind = null; });
+      squads.forEach((q) => { const slot = slots.get(q.idx); q.x = clampX(slot.x); q.y = clampY(slot.y); onGround(w, q); q.anchorX = q.x; q.anchorY = q.y; q.order = { type: 'idle' }; q.target = -1; q.targetKind = null; });
       w.events.push({ t: w.tick, type: 'deployed', side, ids: squads.map((q) => q.idx) });
       return;
     }

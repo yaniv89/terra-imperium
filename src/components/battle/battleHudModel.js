@@ -83,7 +83,9 @@ export const selectionSummary = (selected = []) => {
   const morale = Math.round(sum(selected, (q) => q.morale) / selected.length);
   // strength lost to attrition (out of supply on enemy ground): every loss has a cause on screen (H-03)
   const attrition = sum(selected, (q) => Math.max(0, q.attritionLost || 0));
-  return { name, squads: selected.length, men, share: max ? men / max : 0, morale, routed: selected.some((q) => q.routed), shaken: selected.filter(isShakenView).length, attrition };
+  // squads whose order found no way there (H-04): the order is not silently ignored
+  const noPath = selected.filter((q) => q.noPath).length;
+  return { name, squads: selected.length, men, share: max ? men / max : 0, morale, routed: selected.some((q) => q.routed), shaken: selected.filter(isShakenView).length, attrition, noPath };
 };
 
 /**
@@ -143,6 +145,7 @@ export const nextAlerts = (prev, cur, playerSide, setup, last = {}) => {
     const p = prev.squads[i];
     if (!p) return;
     if (q.side === playerSide) {
+      if (!p.noPath && q.noPath && q.alive && q.onField) out.push({ id: `np${q.idx}`, kind: 'noPath', squad: q.idx, title: t('bt.alert.noPath', { name: squadName(q.classId, q.ageId) }), detail: t('bt.alert.noPathDetail'), x: q.x, y: q.y, tick: cur.tick, tone: 'danger' });
       if (!isShakenView(p) && isShakenView(q) && q.onField) out.push({ id: `sh${q.idx}`, kind: 'shaken', squad: q.idx, title: t('bt.alert.squadShaken', { name: squadName(q.classId, q.ageId) }), detail: t('bt.alert.shakenDetail'), x: q.x, y: q.y, tick: cur.tick, tone: 'danger' });
     } else if (!p.routed && q.routed && q.alive && q.visible !== false) broke.push(q);
   });
