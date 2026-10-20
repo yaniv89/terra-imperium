@@ -46,6 +46,8 @@ date. Most of turns 160 to 260 were End Turn.
 Verdict in one line: the layer of explanation and the AI improved a lot; stability fell; fix the battle
 result, the ghost-city crash and the post-load registry before anything new.
 
+Recheck on the newest build (abd9387c, after the session): P4-C1 still reproduces (the T202 save on the WebGL map: "reading 'filter'", no game mounts) and so does P4-H1 (after Continue  holds 54 of 574 cities and a Cities row opens nothing).
+
 ## 2. Test coverage
 
 | Area | Covered | How |
