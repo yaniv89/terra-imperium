@@ -201,15 +201,6 @@ describe('applyEventEffects', () => {
       expect(Object.values(next.units).filter((u) => u.regionId === frCapital && u.ownerId === 'rebels')).toHaveLength(1);
     });
 
-    it('ruler.addTrait/removeTrait mutate the real ruler traits array', () => {
-      const state = neighbourWorld();
-      const withScholar = { ...state, nations: { ...state.nations, [FR_ID]: { ...state.nations[FR_ID], ruler: { ...state.nations[FR_ID].ruler, traits: ['scholar'] } } } };
-      const added = applyEventEffects(withScholar, fixtureEvent('trait_event', { ruler: { addTrait: 'warrior' } }), 0);
-      expect(added.nations[FR_ID].ruler.traits).toEqual(['scholar', 'warrior']);
-      const removed = applyEventEffects(withScholar, fixtureEvent('trait_event_2', { ruler: { removeTrait: 'scholar' } }), 0);
-      expect(removed.nations[FR_ID].ruler.traits).toEqual([]);
-    });
-
     it('dev bumps the real region development field, floored at 1', () => {
       const state = neighbourWorld();
       const frCapital = getNationCapital(FR_ID);

@@ -1,92 +1,42 @@
 import { describe, it, expect } from 'vitest';
 import { createRng } from '../utils/rng';
-import {
-  rulerStyleFor, reignLengthTurns, generateRuler, processReignEnd,
-  getAdvisorHireCost, getAdvisorSalary, generateAdvisorCandidates
-} from './rulers';
+import { createRuler, attributeCap, getAdvisorHireCost, getAdvisorSalary, generateAdvisorCandidates } from './rulers';
+import { RULER_START, attributeCapAt } from '../data/rulers';
+import { AGE_ORDER, FIRST_AGE_ID, LAST_AGE_ID, nextAgeId } from '../data/ages';
+import { createInitialState } from './gameReducer';
 
-describe('rulerStyleFor', () => {
-  it('biases a Theocracy toward ADM and a Dictatorship toward MIL, nothing else', () => {
-    expect(rulerStyleFor({ type: 'theocracy' })).toBe('theocratic');
-    expect(rulerStyleFor({ type: 'dictatorship' })).toBe('autocratic');
-    expect(rulerStyleFor({ type: 'monarchy' })).toBe(null);
-    expect(rulerStyleFor(null)).toBe(null);
+describe('createRuler (differentiation plan U5)', () => {
+  it('is fixed: the same ruler for the same nation, no rolls, reign or house', () => {
+    expect(createRuler('akkad')).toEqual({ id: 'ruler_akkad', name: 'Sargon', ...RULER_START });
+    expect(createRuler('fr')).toEqual(createRuler('fr'));
+    expect(typeof createRuler('fr').name).toBe('string');
+  });
+
+  it('every major of a Standard peoples world starts 3/3/3/0/0/0', () => {
+    const state = createInitialState({ playerNationId: 'akkad', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11 } });
+    const majors = Object.values(state.nations).filter((n) => n.kind !== 'independent');
+    expect(majors.length).toBeGreaterThan(5);
+    majors.forEach((n) => expect(n.ruler).toEqual({ id: `ruler_${n.id}`, name: n.ruler.name, adm: 3, dip: 3, mil: 3, cmd: 0, lrn: 0, maj: 0 }));
+    Object.values(state.nations).filter((n) => n.kind === 'independent').forEach((n) => expect(n.ruler).toBeNull());
   });
 });
 
-describe('reignLengthTurns', () => {
-  it('is always within the clamped [3, 25] turn range regardless of age/speed', () => {
-    const rng = createRng(1);
-    for (let i = 0; i < 200; i++) {
-      const length = reignLengthTurns(rng, 'bronze', 'normal');
-      expect(length).toBeGreaterThanOrEqual(3);
-      expect(length).toBeLessThanOrEqual(25);
-    }
+describe('attribute caps by research age (KTD1)', () => {
+  it('rise from 4 in the first age to 8 in the last, never falling', () => {
+    expect(attributeCapAt(0, AGE_ORDER.length)).toBe(4);
+    expect(attributeCapAt(AGE_ORDER.length - 1, AGE_ORDER.length)).toBe(8);
+    for (let i = 1; i < AGE_ORDER.length; i++) expect(attributeCapAt(i, AGE_ORDER.length)).toBeGreaterThanOrEqual(attributeCapAt(i - 1, AGE_ORDER.length));
+    expect(attributeCapAt(1, 5)).toBe(5);
+    expect(attributeCapAt(1, 8)).toBe(5);
   });
 
-  it('produces shorter turn-spans in a later age (fewer years per turn) than Bronze, for the same rng draws', () => {
-    const bronze = reignLengthTurns(createRng(42), 'bronze', 'normal');
-    const modern = reignLengthTurns(createRng(42), 'modern', 'normal');
-    expect(modern).toBeGreaterThanOrEqual(bronze);
-  });
-});
-
-describe('generateRuler', () => {
-  it('is fully deterministic from (nationId, turnNumber) given the same rng draws', () => {
-    const a = generateRuler('fr', createRng(7), { turnNumber: 5, age: 'bronze', gameSpeed: 'normal' });
-    const b = generateRuler('fr', createRng(7), { turnNumber: 5, age: 'bronze', gameSpeed: 'normal' });
-    expect(a).toEqual(b);
-  });
-
-  it('ids are derived from nationId and turnNumber, never a mutable counter', () => {
-    const ruler = generateRuler('de', createRng(3), { turnNumber: 12, age: 'bronze', gameSpeed: 'normal' });
-    expect(ruler.id).toBe('ruler_de_12');
-  });
-
-  it('rolls adm/dip/mil skill within 0-6', () => {
-    const rng = createRng(99);
-    for (let i = 0; i < 50; i++) {
-      const ruler = generateRuler('fr', rng, { turnNumber: i, age: 'bronze', gameSpeed: 'normal' });
-      ['adm', 'dip', 'mil'].forEach((k) => {
-        expect(ruler[k]).toBeGreaterThanOrEqual(0);
-        expect(ruler[k]).toBeLessThanOrEqual(6);
-      });
-    }
-  });
-
-  it('rolls 0-2 traits, all valid trait ids, with no duplicates', () => {
-    const rng = createRng(55);
-    for (let i = 0; i < 50; i++) {
-      const ruler = generateRuler('fr', rng, { turnNumber: i, age: 'bronze', gameSpeed: 'normal' });
-      expect(ruler.traits.length).toBeLessThanOrEqual(2);
-      expect(new Set(ruler.traits).size).toBe(ruler.traits.length);
-    }
-  });
-
-  it('sets reignEndsTurn to reignStartTurn plus a positive reign length', () => {
-    const ruler = generateRuler('fr', createRng(1), { turnNumber: 10, age: 'bronze', gameSpeed: 'normal' });
-    expect(ruler.reignStartTurn).toBe(10);
-    expect(ruler.reignEndsTurn).toBeGreaterThan(10);
-  });
-
-  it('theocratic style biases ADM upward (rolls twice, keeps the higher)', () => {
-    const rng = createRng(3);
-    let theocraticTotal = 0;
-    let plainTotal = 0;
-    for (let i = 0; i < 100; i++) {
-      theocraticTotal += generateRuler('fr', rng, { turnNumber: i, age: 'bronze', gameSpeed: 'normal', style: 'theocratic' }).adm;
-    }
-    for (let i = 0; i < 100; i++) {
-      plainTotal += generateRuler('fr', rng, { turnNumber: i, age: 'bronze', gameSpeed: 'normal' }).adm;
-    }
-    expect(theocraticTotal).toBeGreaterThan(plainTotal);
-  });
-
-  it('autocratic style floors MIL at 3', () => {
-    const rng = createRng(11);
-    for (let i = 0; i < 50; i++) {
-      expect(generateRuler('fr', rng, { turnNumber: i, age: 'bronze', gameSpeed: 'normal', style: 'autocratic' }).mil).toBeGreaterThanOrEqual(3);
-    }
+  it("follow each nation's own age: the one that researches ahead gets the next cap, its neighbour does not", () => {
+    const state = { playerNationId: 'p', techAgeId: FIRST_AGE_ID, nations: { a: { tech: { ageId: nextAgeId(FIRST_AGE_ID) } }, b: { tech: { ageId: FIRST_AGE_ID } }, c: { tech: { ageId: LAST_AGE_ID } } } };
+    expect(attributeCap(state, 'b')).toBe(4);
+    expect(attributeCap(state, 'p')).toBe(4);
+    expect(attributeCap(state, 'a')).toBe(attributeCapAt(1, AGE_ORDER.length));
+    expect(attributeCap(state, 'a')).toBeGreaterThan(attributeCap(state, 'b'));
+    expect(attributeCap(state, 'c')).toBe(8);
   });
 });
 
@@ -118,31 +68,6 @@ describe('generateAdvisorCandidates', () => {
       expect(c.level).toBeGreaterThanOrEqual(1);
       expect(c.level).toBeLessThanOrEqual(3);
     });
-  });
-});
-
-describe('processReignEnd', () => {
-  const ctx = { turnNumber: 20, age: 'bronze', gameSpeed: 'normal' };
-  const ruler = generateRuler('fr', createRng(1), { dynasty: 'Capet', turnNumber: 1, age: 'bronze', gameSpeed: 'normal' });
-
-  it('returns null while the reign has not ended, or with no ruler at all', () => {
-    expect(processReignEnd({ id: 'fr', ruler: { ...ruler, reignEndsTurn: 21 } }, createRng(1), ctx)).toBe(null);
-    expect(processReignEnd({ id: 'fr', ruler: null }, createRng(1), ctx)).toBe(null);
-  });
-
-  it('a monarchy keeps its royal house; a new ruler starts reigning this turn', () => {
-    const next = processReignEnd({ id: 'fr', government: { type: 'monarchy' }, ruler: { ...ruler, reignEndsTurn: 20 } }, createRng(2), ctx);
-    expect(next.dynasty).toBe('Capet');
-    expect(next.id).toBe('ruler_fr_20');
-    expect(next.reignStartTurn).toBe(20);
-    expect(next.reignEndsTurn).toBeGreaterThan(20);
-  });
-
-  it('any other government rolls a new house name and carries no heir or claim', () => {
-    const next = processReignEnd({ id: 'fr', government: { type: 'republic' }, ruler: { ...ruler, reignEndsTurn: 20 } }, createRng(2), ctx);
-    expect(typeof next.dynasty).toBe('string');
-    expect(next).not.toHaveProperty('claim');
-    expect(next).not.toHaveProperty('consort');
   });
 });
 

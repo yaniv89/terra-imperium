@@ -72,7 +72,7 @@ import {
   ECONOMIC_COLLAPSE_STABILITY_PENALTY,
   POWER_POOL_CAP
 } from '../data/actionCosts';
-import { processReignEnd, getAdvisorSalary, successionLine } from './rulers';
+import { getAdvisorSalary } from './rulers';
 import { applyResearchTurn, researchesThisTurn } from './research';
 import { processNationalPowerTurn, clampStability, clampPrestige, STABILITY_MAX, getOverextension } from './nationalPower';
 import { GREAT_PROJECTS, cityWonderTotal } from '../data/greatProjects';
@@ -712,18 +712,6 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       nations[me] = { ...nations[me], governorCandidates: generateGovernorCandidates(me, `${state.rngSeed}|${newTurnNumber}`) };
     }
   }
-  Object.entries(nations).forEach(([nId, nation]) => {
-    const ruler = processReignEnd(nation, rng, { turnNumber: newTurnNumber, age: ageOf(state, nId), gameSpeed: state.gameSpeed });
-    if (!ruler) return;
-    // Plan §M18's "Dynasty" achievement ("the same royal house for 10 rulers"): counts consecutive
-    // rulers of one house, reset the moment the house changes (any government but a monarchy rolls
-    // a new house name each reign).
-    const sameDynastyStreak = ruler.dynasty === nation.ruler?.dynasty ? (nation.sameDynastyStreak || 0) + 1 : 1;
-    nations[nId] = { ...nation, ruler, sameDynastyStreak };
-    if (nId === state.playerNationId) {
-      logs.push({ year: newYear, ...carry(successionLine(nation.ruler, ruler)), type: LogTypes.MILESTONE });
-    }
-  });
   mark('rulers');
 
   // --- national power: stability decay, legitimacy/tradition/devotion, prestige (plan §M4) ---

@@ -77,14 +77,12 @@ describe('describeEffects (plan §M17: the one shared effect-description functio
     const out = describeEffects({
       addModifier: { label: 'Test Boon', mods: { 'national.goldMult': 0.1 }, duration: 10 },
       spawnRebels: { regionId: frCapital, strength: 100 },
-      ruler: { addTrait: 'scholar' },
       dev: { regionId: frCapital, type: 'tax', delta: 2 },
       construct: { regionId: frCapital, category: 'military' },
       law: { category: 'taxation', lawId: 'land_tax' }
     });
     expect(out.find((e) => e.text === 'Test Boon (10 turns)')).toBeTruthy();
     expect(out.find((e) => e.text.startsWith('Unrest in'))).toBeTruthy();
-    expect(out.find((e) => e.text === 'Ruler gains Scholar')).toBeTruthy();
     expect(out.find((e) => e.text.includes('Tax +2'))).toBeTruthy();
     expect(out.find((e) => e.text === 'Free Military building')).toBeTruthy();
     expect(out.find((e) => e.text === 'Law: Land Tax')).toBeTruthy();
@@ -94,7 +92,7 @@ describe('describeEffects (plan §M17: the one shared effect-description functio
     expect(describeEffects({ estateLoyalty: { clergy: 10 }, crownLand: -10, heir: { claim: 15 } })).toEqual([]);
   });
 
-  it('drops a ruler effect with neither addTrait nor removeTrait, and an invalid law id, rather than showing a blank/broken line', () => {
+  it('drops the retired ruler trait effect and an invalid law id, rather than showing a blank/broken line', () => {
     const out = describeEffects({ ruler: {}, law: { category: 'taxation', lawId: 'not_real' } });
     expect(out).toHaveLength(0);
   });

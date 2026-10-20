@@ -129,8 +129,11 @@ describe('forts start battles (decision 34)', () => {
     const marching = { ...s, firedEvents, proceduralEventCooldown: 999999, units: { ...s.units, m1: { ...s.units.m1, tile: start, route: [beside], routePace: 4, routeBank: 0 }, m2: { ...s.units.m2, tile: start, route: [beside], routePace: 4, routeBank: 0 } } };
     const after = resolveTurn(marching);
     expect(after.units.m1.tile).toBe(beside);
-    const rec = after.pendingDefenses.find((d) => d.fort);
-    expect(rec).toMatchObject({ aggressorId: 'in', tile: fort });
+    // The garrison meets the marchers: the fort's own battle, or (on some rng streams) the AI
+    // sallying out from it first. Either way the march halted beside the fort and a battle waits.
+    const rec = after.pendingDefenses.find((d) => d.fort) || after.pendingDefenses.find((d) => [...d.attackerUnitIds, ...d.defenderUnitIds].includes('g1'));
+    expect([fort, beside]).toContain(rec.tile);
+    if (rec.fort) expect(rec).toMatchObject({ aggressorId: 'in', tile: fort });
   }, 120000);
 });
 

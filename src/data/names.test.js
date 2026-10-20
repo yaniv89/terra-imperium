@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createRng } from '../utils/rng';
-import { getCultureGroup, generateGivenName, generateDynastyName } from './names';
+import { getCultureGroup, generateGivenName } from './names';
 
 describe('getCultureGroup', () => {
   it('maps a curated country to its named group', () => {
@@ -14,10 +14,9 @@ describe('getCultureGroup', () => {
   });
 });
 
-describe('generateGivenName / generateDynastyName', () => {
+describe('generateGivenName', () => {
   it('is deterministic for the same nation and rng seed', () => {
     expect(generateGivenName('fr', createRng(1))).toBe(generateGivenName('fr', createRng(1)));
-    expect(generateDynastyName('fr', createRng(1))).toBe(generateDynastyName('fr', createRng(1)));
   });
 
   it('always returns a non-empty string, even for an unmapped nation', () => {

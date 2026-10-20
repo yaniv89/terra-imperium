@@ -20,7 +20,6 @@ import { VICTORY_CONDITIONS } from '../data/victoryConditions';
 import { TAX_RATES } from '../data/taxRates';
 import { DIFFICULTIES } from '../data/difficulty';
 import { IDENTITY_AXES } from '../data/identity';
-import { TRAITS } from '../data/traits';
 import { PROMOTION_BRANCHES, CLASS_CAPSTONES } from '../data/promotions';
 import { PERSONAS } from '../data/personas';
 import { UNIT_CLASSES, UNIT_ROSTER } from '../data/unitClasses';
@@ -63,8 +62,7 @@ describe('Hebrew game data covers every id', () => {
     Object.keys(DIFFICULTIES).forEach((id) => { need(`diff.${id}`); need(`diff.${id}.desc`); });
     Object.keys(IDENTITY_AXES).forEach((id) => { need(`ident.${id}.pos`); need(`ident.${id}.neg`); need(`ident.${id}.desc`); });
   });
-  it('traits, promotions, personas, unit classes, the roster, ships and signature units', () => {
-    Object.keys(TRAITS).forEach((id) => { need(`trait.${id}`); need(`trait.${id}.desc`); });
+  it('promotions, personas, unit classes, the roster, ships and signature units', () => {
     Object.values(PROMOTION_BRANCHES).forEach((b) => { need(`branch.${b.id}`); Object.keys(b.perks).forEach((p) => { need(`perk.${p}`); need(`perk.${p}.desc`); }); });
     Object.values(CLASS_CAPSTONES).forEach((c) => { need(`perk.${c.id}`); need(`perk.${c.id}.desc`); });
     Object.keys(PERSONAS).forEach((id) => { need(`persona.${id}`); need(`persona.${id}.desc`); });

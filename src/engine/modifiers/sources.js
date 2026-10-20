@@ -11,7 +11,6 @@ import { LAW_CATEGORIES, getLaw } from '../../data/laws';
 import { GREAT_PROJECTS, getGreatProjectOwner } from '../../data/greatProjects';
 import { TAX_RATES } from '../../data/taxRates';
 import { TECH_TREE } from '../../data/techTree';
-import { TRAITS } from '../../data/traits';
 import { LEGACY_HOOK } from './registry';
 import { getOverextension, getRulerBestPool } from '../nationalPower';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
@@ -52,18 +51,12 @@ export const staticSources = (nation) => {
     });
   });
 
-  // Plan §M3: the ruler's own ADM/DIP/MIL skill (0-6 each) feeds the matching per-pool bonus hook
-  // directly — a skill of 0 contributes nothing rather than a negative, so an unskilled ruler is
-  // merely unhelpful, not actively harmful (that's what the Incompetent/Sickly TRAITS are for).
-  // Ruler and advisor traits reuse linesFromEffect exactly like a government/policy/wonder does.
+  // The ruler's ADM/DIP/MIL attributes feed the matching per-pool bonus hook (differentiation plan
+  // KTD5: until U7 retires the pools).
   const ruler = nation?.ruler;
   if (ruler) {
     ['adm', 'dip', 'mil'].forEach((pool) => {
       if (ruler[pool]) lines.push({ key: `national.${pool}Bonus`, value: ruler[pool], sourceType: 'ruler', sourceId: ruler.id, label: ruler.name });
-    });
-    (ruler.traits || []).forEach((traitId) => {
-      const trait = TRAITS[traitId];
-      if (trait) lines.push(...linesFromEffect(trait.effects, 'trait', traitId, trait.name));
     });
   }
 

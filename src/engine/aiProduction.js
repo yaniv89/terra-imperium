@@ -35,7 +35,6 @@ import { canQueue, productionCost } from './world/cities';
 import { bestSites, outpostsOf, outpostSlots, settlersOf } from './settlers';
 import { wonderOptions, wonderItem } from './wonders';
 import { DOCTRINE_WONDERS, DOCTRINE_BUILDING_PRIORITY } from '../data/nations';
-import { rulerBuildOrder } from './rulerBias';
 import { getNeighborIds } from '../data/regions';
 import { claimsInProgressOf } from './claims';
 
@@ -177,7 +176,7 @@ export const chooseProduction = (state, city, ctx) => {
     const item = { kind: 'settler' };
     if (site && canQueue(city, tiles, world, item, ctx).ok) offer(item, SETTLER_UTILITY * (sit.atWar ? WAR_SETTLER_MULT : 1)); // bestSites already holds the quality floor
   }
-  const order = rulerBuildOrder(state.nations?.[nationId], buildingOrder(state.nations?.[nationId]?.doctrine)); // the ruler's favourite lines first (rulerBias.js)
+  const order = buildingOrder(state.nations?.[nationId]?.doctrine);
   order.forEach((category, rank) => {
     const tier = (city.buildings?.categories?.[category] ?? -1) + 1;
     if (!BUILDING_CATEGORIES[category]?.tiers[tier]) return;

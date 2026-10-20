@@ -1,87 +1,24 @@
 // src/engine/rulers.js
-// Plan §M3: rulers and advisors. Every nation has one ruler (adm/dip/mil 0-6, 0-2 traits) who
-// reigns for a rolled number of real years. When the reign ends a new ruler simply takes over:
-// there are no heirs, claims, succession crises or pretenders (master plan decision 37 removed
-// succession). A monarchy keeps its royal house's name; any other government gets a new one.
-// The government type only biases the new ruler's skills: a Theocracy favours ADM (rolls twice,
-// keeps the higher), a Dictatorship floors MIL at 3.
-import { speedCostMult, FIRST_AGE_ID } from '../data/ages';
-import { generateGivenName, givenNamePool, generateDynastyName } from '../data/names';
-import { POSITIVE_TRAIT_IDS, NEGATIVE_TRAIT_IDS, TRAITS } from '../data/traits';
-import { msg, sub, person, thing } from './messages';
+// One ruler per major for the whole game (plans/RULER-PLAN.md 2.1, differentiation plan U5): no
+// reign, death, heir or house, nothing rolled. The name comes from the people (src/data/peoples.js);
+// a legacy-world nation picks one from its culture's pool by a hash of its id. Attributes start
+// equal for everyone (src/data/rulers.js) and are capped by the nation's own research age.
+// Advisors (plan §M3) follow below.
+import { AGE_ORDER } from '../data/ages';
+import { RULER_START, attributeCapAt } from '../data/rulers';
+import { PEOPLES } from '../data/peoples';
+import { generateGivenName, givenNamePool } from '../data/names';
+import { hashRoll } from './aftermath';
+import { ageIndexOf } from './nationState';
 
-/** The skill bias a government type gives a newly rolled ruler ('theocratic', 'autocratic' or null). */
-export const rulerStyleFor = (government) => {
-  switch (government?.type) {
-    case 'theocracy': return 'theocratic';
-    case 'dictatorship': return 'autocratic';
-    default: return null;
-  }
+export const createRuler = (nationId) => {
+  const pool = givenNamePool(nationId);
+  const name = PEOPLES[nationId]?.ruler?.name || pool[Math.floor(hashRoll(nationId) * pool.length)];
+  return { id: `ruler_${nationId}`, name, ...RULER_START };
 };
 
-// Two dice summed, so most rulers are unremarkable (mean about 3) and a 6 is genuinely rare.
-const rollSkill = (rng) => Math.min(6, Math.floor(rng.next() * 4) + Math.floor(rng.next() * 4));
-
-const rollTraits = (rng) => {
-  const traits = [];
-  const count = Math.floor(rng.next() * 3); // 0-2 traits
-  for (let i = 0; i < count; i++) {
-    const pool = rng.next() < 0.2 ? NEGATIVE_TRAIT_IDS : POSITIVE_TRAIT_IDS; // 20% chance of a negative trait
-    const candidate = pool[Math.floor(rng.next() * pool.length)];
-    if (!traits.includes(candidate)) traits.push(candidate);
-  }
-  return traits;
-};
-
-// A reign is counted in turns (no rule reads the year, eight-ages plan KTD3). A reign of 15-40 years
-// is REIGN_TURNS_PER_YEAR[age] reference turns a year (the pace the balance was tuned at: later ages
-// have more turns per span of history), times the speed's cost multiplier at the ruler's nation's
-// own age, clamped to 3-25 turns: the same reigns as before at every speed and age.
-export const REIGN_TURNS_PER_YEAR = { bronze: 1 / 40, classical: 1 / 20, kingdoms: 1 / 10, gunpowder: 1 / 4, modern: 1 / 2 };
-export const reignLengthTurns = (rng, age, gameSpeed) => {
-  const years = 15 + Math.floor(rng.next() * 26); // 15-40 years
-  const ageId = REIGN_TURNS_PER_YEAR[age] != null ? age : FIRST_AGE_ID;
-  return Math.max(3, Math.min(25, Math.round(years * REIGN_TURNS_PER_YEAR[ageId] * speedCostMult(gameSpeed, ageId))));
-};
-
-// The id comes from (nationId, turnNumber), never a mutable counter, so a replay reproduces it.
-export const generateRuler = (nationId, rng, { dynasty, turnNumber, age, gameSpeed, style } = {}) => {
-  const adm = style === 'theocratic' ? Math.max(rollSkill(rng), rollSkill(rng)) : rollSkill(rng);
-  const dip = rollSkill(rng);
-  const milRoll = rollSkill(rng);
-  const mil = style === 'autocratic' ? Math.max(3, milRoll) : milRoll;
-  return {
-    id: `ruler_${nationId}_${turnNumber}`,
-    name: generateGivenName(nationId, rng),
-    dynasty: dynasty || generateDynastyName(nationId, rng),
-    adm,
-    dip,
-    mil,
-    traits: rollTraits(rng),
-    reignStartTurn: turnNumber,
-    reignEndsTurn: turnNumber + reignLengthTurns(rng, age, gameSpeed)
-  };
-};
-
-// Runs once per nation per turn (resolveTurn.js) and only does anything the turn a reign ends.
-// Returns the new ruler, or null. The caller writes it back and logs it.
-export const processReignEnd = (nation, rng, { turnNumber, age, gameSpeed }) => {
-  if (!nation.ruler || turnNumber < nation.ruler.reignEndsTurn) return null;
-  const dynasty = nation.government?.type === 'monarchy' ? nation.ruler.dynasty : generateDynastyName(nation.id, rng);
-  return generateRuler(nation.id, rng, { dynasty, turnNumber, age, gameSpeed, style: rulerStyleFor(nation.government) });
-};
-
-/** The Log line for a succession (I147), as msg(): who the reign ended for, how long it lasted, the new
- *  ruler's house, skills and traits. One line per succession; phase RU owns the full history. */
-export const successionLine = (prev, next) => {
-  // A msg() result (message is the English line); the traits are a list of names ("a, b, c").
-  const traits = (next.traits || []).map((id) => thing('trait', id, TRAITS[id]?.name || id)).reduce((acc, t) => (acc === '' ? t : sub('m.world.listMore', { a: acc, b: t })), '');
-  return msg('m.world.succession', {
-    ended: prev ? sub('m.world.reignEnded', { ruler: person(prev.name), house: person(prev.dynasty), turns: Math.max(1, next.reignStartTurn - prev.reignStartTurn) }) : '',
-    ruler: person(next.name), house: person(next.dynasty), adm: next.adm, dip: next.dip, mil: next.mil,
-    traits: traits === '' ? '' : sub('m.world.successionTraits', { traits }),
-  });
-};
+/** The highest value any attribute of this nation's ruler may reach in its own research age. */
+export const attributeCap = (state, nationId) => attributeCapAt(ageIndexOf(state, nationId), AGE_ORDER.length);
 
 // Advisors (plan §M3). A hired advisor's only effect is +level to their own power pool
 // (src/engine/modifiers/sources.js).
