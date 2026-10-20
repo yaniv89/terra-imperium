@@ -10,5 +10,47 @@
   "footprint": [
     1.34,
     1.56
-  ]
+  ],
+  "clips": {
+    "Idle": {
+      "frames": 41,
+      "fps": 20,
+      "loop": true
+    },
+    "Move": {
+      "frames": 41,
+      "fps": 20,
+      "loop": true
+    },
+    "Fire": {
+      "frames": 44,
+      "fps": 20,
+      "loop": false,
+      "events": {
+        "fire": 32
+      }
+    },
+    "Hit": {
+      "frames": 10,
+      "fps": 20,
+      "loop": false
+    },
+    "Death": {
+      "frames": 40,
+      "fps": 20,
+      "loop": false,
+      "events": {
+        "settle": 40
+      }
+    },
+    "Wreck": {
+      "frames": 40,
+      "fps": 20,
+      "loop": false,
+      "events": {
+        "settle": 40
+      }
+    }
+  },
+  "restClip": "^Idle$"
 }

@@ -22,6 +22,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ti_units as u  # noqa: E402
 import ti_figure as F  # noqa: E402
 import ti_mounts as tm  # noqa: E402
+import ti_mounted_clips as MC  # noqa: E402
+import ti_vehicle_clips as VC  # noqa: E402
 
 UID = 'gunpowder-siege'
 # the gun's colours as before (bronze Metal, iron Leather, Wood, the sponge Cloth); the crew's their own
@@ -88,13 +90,16 @@ F.tube('Handspike', [((0, -.420, .095), .013, 'Prop_R'), ((0, -.248, .560), .011
 F.place((0, .93, 0), 0)
 parts.append(r2)
 
+# the clips (2026-10-20, ti_vehicle_clips.field_cannon): Idle, Move, Fire, Hit, Death (the crew), Wreck
+CLIPS = {}
 tris = F.finish_unit(UID, parts, {
     'role': 'Field cannon: a bronze gun on a two-wheeled carriage with a trail, a rammer and a pile of balls; three gunners in the line dress (tricorne with pale lace, Team coat with white-lined skirts, white cross belts, buff breeches, black gaiters): one with the rammer and sponge upright, one holding a ball, one stooping to lay the gun with a handspike',
     'notes': 'The gun is the one of build_units_gunpowder.py g_siege (ti_mounts.field_gun, the same calls, unchanged); the crew are ti_figure.py figures (LITE) from the quality pass of 2026-10-14.'},
-    centre=(0, .3, .6), scale=2.6)
+    centre=(0, .3, .6), scale=2.6, mode='NLA_TRACKS', clips=MC.hook(UID, lambda: CLIPS.setdefault('r', VC.field_cannon(parts)), 'vehicle'))
 out = u.out_dir(UID)
 (out / f'{UID}.json').write_text(json.dumps({'enabled': True, 'quadruped': False, 'triangleBudget': 6000,
                                              'tags': {'team': '(^|\\s)Team(\\s|$)', 'skin': '(^|\\s)Skin(\\s|$)', 'emblem': '(^|\\s)Emblem(\\s|$)'}}, indent=2) + '\n')
 tm.mark_machine(UID)
+VC.write_options(UID, *CLIPS['r'])
 print('TRIS', tris)
 assert tris <= 4000, tris  # a machine: 4,000 hard (unitScale.test.js checks it)

@@ -90,6 +90,7 @@ bpy.ops.object.select_all(action='DESELECT')
 for o in bpy.context.scene.objects:
  if o.type in ('MESH','ARMATURE','EMPTY'):o.select_set(True)
 bpy.context.view_layer.objects.active=machinery
+unit.smooth_organic()
 bpy.ops.export_scene.gltf(filepath=str(OUT/'bronze-siege.glb'),export_format='GLB',use_selection=True,export_yup=True,export_skins=True,export_animations=True,export_animation_mode='NLA_TRACKS',export_force_sampling=True,export_frame_range=False,export_cameras=False,export_lights=False,export_extras=True,export_materials='EXPORT',export_image_format='NONE',export_vertex_color='ACTIVE',export_all_vertex_colors=False,export_active_vertex_color_when_no_material=True)
 (OUT/'assembly-report.json').write_text(json.dumps({'triangles':tri,'cap':6000,'shade_range':shade,'by_rig':{o.name:unit.triangles([m for m in mesh if m.parent==o]) for o in [machinery,*[c['rig'] for c in crew]]},'crew':4,'wheels':4,'fps':20,'clips':clips,'floor_correction_maximum_by_clip':floor_corrections,'textures':0,'source_body':'scripts/blender/ti_figure.py crew (quality pass of 2026-10-14)','human_height':1,'limitations':['VAT integration pending; authored animation not played by current battle renderer']},indent=2))
 # The unit's bake options: drawn at the people's scale, spaced by its footprint (unitModels.js).

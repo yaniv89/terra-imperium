@@ -306,6 +306,7 @@ arm.select_set(True)
 for o in meshes:
     o.select_set(True)
 bpy.context.view_layer.objects.active = arm
+u.smooth_organic()
 bpy.ops.export_scene.gltf(filepath=str(OUT / 'bronze-infantry.glb'), export_format='GLB', use_selection=True, export_yup=True,
                           export_skins=True, export_animations=True, export_animation_mode='ACTIONS', export_force_sampling=True,
                           export_frame_range=False, export_cameras=False, export_lights=False, export_extras=True,

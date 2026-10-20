@@ -107,7 +107,8 @@ class Vehicle:
             self.D = Matrix.Identity(4)
             return
         R = Euler((math.radians(s.get('pitch', 0)), math.radians(s.get('roll', 0)), 0), 'XYZ').to_matrix().to_4x4()
-        D = Matrix.Translation(self.pivot + V((0, 0, s.get('bob', 0)))) @ R @ Matrix.Translation(-self.pivot)
+        slide = V((0, s.get('slide', 0), 0))  # a towed gun rolling back on its wheels at the shot (2026-10-20)
+        D = Matrix.Translation(self.pivot + slide + V((0, 0, s.get('bob', 0)))) @ R @ Matrix.Translation(-self.pivot)
         self.pb('Hull').matrix = D @ self.rest['Hull']
         upd()
         R3 = D.to_3x3()
@@ -121,13 +122,17 @@ class Vehicle:
                 Rw = Matrix.Rotation(math.radians(camber[w]), 3, nrm(R3 @ V((0, 1, 0)))) @ Rw
             if w in self.wheels and spin:
                 Rw = Matrix.Rotation(spin, 3, axle) @ Rw
-            self.pb(w).matrix = Matrix.Translation(rest.translation) @ Rw.to_4x4()
+            self.pb(w).matrix = Matrix.Translation(rest.translation + slide) @ Rw.to_4x4()
             upd()
         for w in self.wheels:  # road wheels on a track: they turn on their own bone
             if w in self.fixed or not spin:
                 continue
             u.rotate_world(self.rig, w, (math.degrees(spin), 0, 0))
         upd()
+        if 'Beam' in self.rig.data.bones:  # a trebuchet's arm about its axle, its stone hidden once loosed
+            u.rotate_world(self.rig, 'Beam', (s.get('beam', 0), 0, 0))  # (positive: the long arm rises over the top)
+            self.pb('Tool_Stone').scale = (1, 1, 1) if s.get('stone', 1) > .5 else (0, 0, 0)
+            upd()
         d = s.get('recoil', 0)
         if self.barrel and self.bore is not None and abs(d) > 1e-6:
             self.pb(self.barrel).location = self.rest[self.barrel].to_3x3().inverted() @ (-self.bore * d)
@@ -387,8 +392,8 @@ def howitzer(parts):
     load = [(1, {}), (6, {'r': {'Spine': (28, 0, -10), 'Chest': (10, 0, -6), 'Arm_R': (-30, 0, 0), 'Arm_L': (-30, 0, 0)}, 'root': (0, 0, -.06), 'plant': 1}),
             (12, {'r': {'Spine': (10, 0, 8), 'Chest': (6, 0, 6), 'Arm_R': (-60, 0, 0), 'Arm_L': (-55, 0, 0)}, 'root': (0, 0, -.02), 'plant': 1}),
             (16, {'r': {'Spine': (4, 0, 0)}, 'plant': 1}), (22, cover), (34, cover), (40, {})]
-    ram = {'r': {'Spine': (14, 0, 0), 'Arm_R': (-55, 0, 0), 'Arm_L': (-50, 0, 0), 'Forearm_R': (-10, 0, 0)}, 'root': (0, 0, -.03), 'plant': 1}
-    back = {'r': {'Spine': (6, 0, 0), 'Arm_R': (-25, 0, 0), 'Arm_L': (-20, 0, 0), 'Forearm_R': (-30, 0, 0)}, 'plant': 1}
+    ram = {'r': {'Spine': (14, 0, 0), 'Arm_R': (-30, 0, 0), 'Arm_L': (-26, 0, 0)}, 'root': (0, 0, -.03), 'plant': 1}  # the rammer driven down the bore
+    back = {'r': {'Spine': (6, 0, 0), 'Arm_R': (-12, 0, 0), 'Arm_L': (-10, 0, 0)}, 'plant': 1}
     rammer = [(1, {}), (12, back), (15, dict(ram, ease='in')), (17, back), (19, dict(ram, ease='in')), (21, back), (24, cover), (34, cover), (40, {})]
     look = {'r': {'Arm_R': (-70, 0, 20), 'Forearm_R': (-70, 0, 0), 'Arm_L': (-60, 0, -20), 'Forearm_L': (-60, 0, 0), 'Head': (-6, 0, 0)}, 'plant': 1}
     observer = [(1, {}), (8, look), (26, look), (28, dict(look, r=dict(look['r'], Spine=(-3, 0, 0), Head=(-10, 0, 0)), ease='out')), (34, look), (40, {})]
@@ -399,6 +404,114 @@ def howitzer(parts):
         crews.append((per, clips, False, None))
     out = run('modern-siege', parts, table, v, specs, crews, 'vehicle')
     print('NATURAL modern-siege', natural(v, T, revs), flush=True)
+    return out
+
+
+# ---- the older machines (2026-10-20): a frame or a carriage on two wheels (rig: Hull, Wheel_L, Wheel_R) ----------
+
+def machine_parts(parts):
+    rig = next(p for p in parts if p.type == 'ARMATURE' and not p.name.startswith('Crew'))
+    return rig, [p for p in parts if p.type == 'ARMATURE' and p.name.startswith('Crew')]
+
+
+def roll_back(at, slide, frames, rock, r):
+    """The shot at frame `at`: the machine kicks back `slide` on its wheels (they turn with it) and rolls forward
+    again over a second; the trail or the frame rocks."""
+    spin = -math.degrees(slide / r)
+    return [(1, {}), (at - 1, {}), (at, {'slide': slide * .5, 'spin': spin * .5, 'pitch': -rock, 'bob': .004, 'ease': 'out'}),
+            (at + 3, {'slide': slide, 'spin': spin, 'pitch': rock * .3}), (at + 18, {'slide': 0, 'spin': 0, 'pitch': 0, 'ease': 'io'}), (frames, {})]
+
+
+def old_machine(uid, parts, fire_at, fire_frames, slide, rock, crew_fire):
+    """Idle, Move (the wheels turn once a loop, the crew walk beside it), Fire (the machine kicks back and
+    the crew work it: crew_fire(i) gives crewman i's keys, or None for a flinch), Hit, Death (the crew) and
+    Wreck (a wheel splayed, the frame down on its side)."""
+    rig, crew = machine_parts(parts)
+    wheels = [b.name for b in rig.data.bones if b.name.startswith('Wheel_')]
+    v = Vehicle(rig, wheels)
+    r = max(v.radius.values())
+    T, revs = 40, 1
+    table = acts(fire_frames, fire_at, T + 1)
+    specs = {'Idle': lambda f: None if f in (1, 41) else {}, 'Move': move_spec(T, revs, bob=.004, pitch=.3),
+             'Fire': keyed(roll_back(fire_at, slide, fire_frames, rock, r)), 'Hit': keyed(HIT), 'Death': lambda f: {},
+             'Wreck': keyed(wreck(wheels[0], drop=.05, roll=4, pitch=1.2))}
+    crews = []
+    for i, arm in enumerate(crew):
+        per = crew_person(arm)
+        clips = standing_crew(per, table, fire=crew_fire(i), death='thrown', side=-1 if i % 2 == 0 else 1, carried=False)
+        crews.append((per, clips, False, None))
+    out = run(uid, parts, table, v, specs, crews, 'vehicle')
+    print('NATURAL', uid, natural(v, T, revs), flush=True)
+    return out
+
+
+def _cover(at):
+    """Crouched, head turned down and away for the shot; the arms keep their hold (a held rammer or ball stays put)."""
+    return {'r': {'Spine': (12, 0, 0), 'Chest': (8, 0, 0), 'Head': (14, 0, 16)}, 'root': (0, 0, -.08), 'plant': 1}
+
+
+def field_cannon(parts):
+    """The Gunpowder field gun: the gun runs back on its wheels at the shot; the loader swings the ball in at
+    the muzzle, the rammer drives it home, the gun layer leans on the trail; all cover for the shot."""
+    at, n = 30, 46
+    cover = _cover(at)
+    ram = {'r': {'Spine': (14, 0, 0), 'Arm_R': (-55, 0, 0), 'Arm_L': (-50, 0, 0), 'Forearm_R': (-10, 0, 0)}, 'root': (0, 0, -.03), 'plant': 1}
+    back = {'r': {'Spine': (6, 0, 0), 'Arm_R': (-25, 0, 0), 'Arm_L': (-20, 0, 0), 'Forearm_R': (-30, 0, 0)}, 'plant': 1}
+    keys = {1: [(1, {}), (6, {'r': {'Spine': (28, 0, -10), 'Chest': (10, 0, -6), 'Arm_R': (-30, 0, 0), 'Arm_L': (-30, 0, 0)}, 'root': (0, 0, -.06), 'plant': 1}),
+                (12, {'r': {'Spine': (10, 0, 8), 'Chest': (6, 0, 6), 'Arm_R': (-60, 0, 0), 'Arm_L': (-55, 0, 0)}, 'root': (0, 0, -.02), 'plant': 1}),
+                (18, {'r': {'Spine': (4, 0, 0)}, 'plant': 1}), (at - 4, cover), (at + 8, cover), (n, {})],
+            0: [(1, {}), (12, back), (15, dict(ram, ease='in')), (17, back), (19, dict(ram, ease='in')), (21, back), (at - 4, cover), (at + 8, cover), (n, {})],
+            2: [(1, {}), (8, {'r': {'Spine': (24, 0, 0), 'Chest': (8, 0, 0), 'Head': (-14, 0, 0)}, 'root': (0, 0, -.10), 'plant': 1}),
+                (20, {'r': {'Spine': (24, 0, 4), 'Chest': (8, 0, 2), 'Head': (-14, 0, 0)}, 'root': (0, 0, -.10), 'plant': 1}),
+                (at - 4, cover), (at + 8, cover), (n, {})]}
+    return old_machine('gunpowder-siege', parts, at, n, .045, 1.6, lambda i: keys.get(i))
+
+
+def ballista(parts):
+    """The Classical ballista: the man behind winds the winch (his fists turning round the axle), the two at
+    the arms brace and lean clear; at the shot the frame jumps and settles."""
+    at, n = 32, 44
+    crank = [(1, {})]
+    for k, f in enumerate(range(4, 26, 4)):
+        a = 1 if k % 2 == 0 else -1
+        crank.append((f, {'r': {'Spine': (10 + 4 * a, 0, 0), 'Chest': (4, 0, 0), 'Arm_L': (-30 - 20 * a, 0, 0), 'Arm_R': (-30 + 20 * a, 0, 0),
+                                'Forearm_L': (-30 + 10 * a, 0, 0), 'Forearm_R': (-30 - 10 * a, 0, 0)}, 'root': (0, 0, -.02), 'plant': 1}))
+    crank += [(28, {'r': {'Spine': (4, 0, 0)}, 'plant': 1}), (at + 2, {'r': {'Spine': (-4, 0, 0), 'Head': (-8, 0, 0)}, 'plant': 1, 'ease': 'out'}), (n, {})]
+    brace = [(1, {}), (10, {'r': {'Spine': (18, 0, 0), 'Chest': (8, 0, 0), 'Head': (-12, 0, 0)}, 'root': (0, 0, -.05), 'plant': 1}),
+             (24, {'r': {'Spine': (18, 0, 0), 'Chest': (8, 0, 0), 'Head': (-12, 0, 0)}, 'root': (0, 0, -.05), 'plant': 1}),
+             (at - 2, {'r': {'Spine': (-4, 0, 0), 'Head': (-6, 0, 0)}, 'plant': 1}), (at + 3, {'r': {'Spine': (-6, 0, 0), 'Head': (-10, 0, 0)}, 'plant': 1, 'ease': 'out'}), (n, {})]
+    return old_machine('classical-siege', parts, at, n, .012, 2.0, lambda i: crank if i == 2 else brace)
+
+
+def trebuchet(parts):
+    """The Kingdoms trebuchet: the counterweight drops, the beam whips up and over and looses the stone
+    (event fire), overswings and settles; then the crew wind it down again at the winch and the stone is
+    laid back in the sling."""
+    at, n = 14, 60
+    beam = [(1, {}), (8, {'beam': -3, 'ease': 'in'}), (12, {'beam': 70, 'ease': 'in'}), (at, {'beam': 112, 'stone': 0}),
+            (18, {'beam': 138, 'stone': 0, 'ease': 'out'}), (24, {'beam': 118, 'stone': 0}), (30, {'beam': 126, 'stone': 0}),
+            (34, {'beam': 122, 'stone': 0}), (54, {'beam': 0, 'stone': 0, 'ease': 'io'}), (57, {'beam': 0, 'stone': 1}), (n, {})]
+    crank = [(1, {}), (at, {}), (at + 3, {'r': {'Spine': (-4, 0, 0), 'Head': (-12, 0, 0)}, 'plant': 1, 'ease': 'out'})]
+    for k, f in enumerate(range(34, 54, 4)):
+        a = 1 if k % 2 == 0 else -1
+        crank.append((f, {'r': {'Spine': (14 + 4 * a, 0, 0), 'Chest': (4, 0, 0), 'Arm_L': (-30 - 20 * a, 0, 0), 'Arm_R': (-30 + 20 * a, 0, 0)},
+                          'root': (0, 0, -.03), 'plant': 1}))
+    crank += [(56, {}), (n, {})]
+    rig, crew = machine_parts(parts)
+    wheels = [b.name for b in rig.data.bones if b.name.startswith('Wheel_')]
+    v = Vehicle(rig, wheels)
+    T, revs = 40, 1
+    table = acts(n, at, T + 1)
+    specs = {'Idle': lambda f: None if f in (1, 41) else {}, 'Move': move_spec(T, revs, bob=.004, pitch=.25),
+             'Fire': keyed([(f, dict(k, pitch=-.6 if f in (at, 18) else 0)) for f, k in beam]), 'Hit': keyed(HIT), 'Death': lambda f: {},
+             'Wreck': keyed(wreck(wheels[0] if wheels else None, drop=.05, roll=4, pitch=1.2))}
+    crews = []
+    for i, arm in enumerate(crew):
+        per = crew_person(arm)
+        clips = standing_crew(per, table, fire=crank, death='thrown', side=-1 if i % 2 == 0 else 1, carried=False)
+        crews.append((per, clips, False, None))
+    out = run('kingdoms-siege', parts, table, v, specs, crews, 'vehicle')
+    print('NATURAL kingdoms-siege', natural(v, T, revs), flush=True)
     return out
 
 

@@ -540,7 +540,7 @@ def torsion_engine(info, stone=False, mat='Wood', rope='Cloth', metal='Metal', s
         u.tube('BoltHead', [(0, -.45 * s, z + .17 * s), (0, -.52 * s, z + .17 * s)], [.018 * s, .002], metal, ['Hull'] * 2, 4, rig)
 
 
-def trebuchet(info, mat='Wood', rope='Cloth', metal='Metal'):
+def trebuchet(info, mat='Wood', rope='Cloth', metal='Metal', swing=False):
     """A counterweight trebuchet on a frame's deck (moved here from build_units_kingdoms.py, the same
     parts): two A-frame uprights, the axle, the long beam cocked with its sling end down at the back,
     the counterweight box hanging at the front, a sling and a stone on the trough, a winch drum."""
@@ -552,17 +552,27 @@ def trebuchet(info, mat='Wood', rope='Cloth', metal='Metal'):
         u.tube(f'Upright{sx}b', [(x, .22, z), (x, 0, top)], [.03, .026], mat, ['Hull'] * 2, 5, rig)
         u.box(f'UprightBrace{sx}', (x, 0, z + .4), (.05, .40, .04), mat, 'Hull', rig)
     u.tube('Axle', [(-.26, 0, top), (.26, 0, top)], [.03, .03], metal, ['Hull'] * 2, 6, rig)
+    # swing (2026-10-20): the beam, its counterweight and the sling on a bone of their own (Beam, about the
+    # axle) and the stone on another under it (Tool_Stone: hidden by scale once it is loosed, keyed like a worker's tools), for the Fire clip
+    B, St = ('Beam', 'Tool_Stone') if swing else ('Hull', 'Hull')
+    if swing:
+        bpy.context.view_layer.objects.active = rig
+        bpy.ops.object.mode_set(mode='EDIT')
+        eb = rig.data.edit_bones
+        b = eb.new('Beam'); b.head, b.tail, b.parent = (0, 0, top), (0, .2, top), eb['Hull']
+        s_ = eb.new('Tool_Stone'); s_.head, s_.tail, s_.parent = (0, .55, z + .13), (0, .55, z + .25), b
+        bpy.ops.object.mode_set(mode='OBJECT')
     long_end = (0, .95, z + .2)
     short_end = (0, -.32, top + .4)
-    u.tube('Beam', [long_end, (0, 0, top), short_end], [.022, .04, .035], mat, ['Hull'] * 3, 5, rig)
+    u.tube('Beam', [long_end, (0, 0, top), short_end], [.022, .04, .035], mat, [B] * 3, 5, rig)
     cw = (0, -.32, top - .05)
-    u.tube('CwHanger', [short_end, (0, -.32, cw[2] + .17)], [.01, .01], metal, ['Hull'] * 2, 4, rig)
-    u.box('Counterweight', (0, -.32, cw[2] - .17), (.32, .30, .34), mat, 'Hull', rig)
-    u.box('CounterweightBand', (0, -.32, cw[2]), (.34, .32, .04), metal, 'Hull', rig)
+    u.tube('CwHanger', [short_end, (0, -.32, cw[2] + .17)], [.01, .01], metal, [B] * 2, 4, rig)
+    u.box('Counterweight', (0, -.32, cw[2] - .17), (.32, .30, .34), mat, B, rig)
+    u.box('CounterweightBand', (0, -.32, cw[2]), (.34, .32, .04), metal, B, rig)
     u.box('Trough', (0, .62, z + .02), (.16, .55, .04), mat, 'Hull', rig)
-    u.tube('Sling', [long_end, (0, .78, z + .1), (0, .58, z + .07)], [.006, .006, .006], rope, ['Hull'] * 3, 3, rig)
-    u.box('SlingPouch', (0, .55, z + .08), (.09, .08, .03), 'Leather', 'Hull', rig)
-    u.tube('Stone', [(0, .55, z + .09), (0, .55, z + .17)], [.05, .04], 'Cloth', ['Hull'] * 2, 6, rig)
+    u.tube('Sling', [long_end, (0, .78, z + .1), (0, .58, z + .07)], [.006, .006, .006], rope, [B] * 3, 3, rig)
+    u.box('SlingPouch', (0, .55, z + .08), (.09, .08, .03), 'Leather', B, rig)
+    u.tube('Stone', [(0, .55, z + .09), (0, .55, z + .17)], [.05, .04], 'Cloth', [St] * 2, 6, rig)
     u.tube('WinchDrum', [(-.24, .3, z + .1), (.24, .3, z + .1)], [.05, .05], mat, ['Hull'] * 2, 6, rig)
 
 

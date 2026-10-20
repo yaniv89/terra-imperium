@@ -1397,6 +1397,8 @@ def export_glb(path, animations=True, extra=()):
     for o in meshes:
         o.select_set(True)
     bpy.context.view_layer.objects.active = arm
+    u.smooth_organic()
+
     bpy.ops.export_scene.gltf(filepath=str(path), export_format='GLB', use_selection=True, export_yup=True,
                               export_skins=True, export_animations=animations, export_animation_mode='ACTIONS', export_force_sampling=True,
                               export_frame_range=False, export_cameras=False, export_lights=False, export_extras=True,
@@ -1492,6 +1494,8 @@ def export_scene(path, animations=False, mode='ACTIONS'):
     for o in bpy.context.scene.objects:
         if o.type in ('MESH', 'ARMATURE', 'EMPTY'):
             o.select_set(True)
+    u.smooth_organic()
+
     bpy.ops.export_scene.gltf(filepath=str(path), export_format='GLB', use_selection=True, export_yup=True, export_skins=True,
                               export_animations=animations, export_animation_mode=mode, export_force_sampling=True, export_frame_range=False,
                               export_cameras=False, export_lights=False, export_extras=True, export_materials='EXPORT', export_image_format='NONE',
