@@ -13,14 +13,14 @@ import { BUILDING_CATEGORIES } from '../../../data/buildings';
 // The model id of each building tier, by category, in tier order. Defense has none: its tiers are
 // the wall rings of the shared file.
 export const BUILDING_MODEL_IDS = {
-  food: ['granary', 'irrigation', 'farm_estate', 'crop_rotation_farm', 'mechanized_farm'],
+  food: ['storage_pits', 'granary', 'irrigation', 'farm_estate', 'crop_rotation_farm', 'mechanized_farm'],
   economy: ['market', 'bazaar', 'bank', 'stock_exchange'],
-  military: ['barracks', 'drill_yard', 'military_academy', 'war_college'],
-  science: ['library', 'scriptorium', 'university', 'research_lab'],
+  military: ['warrior_lodge', 'barracks', 'drill_yard', 'military_academy', 'war_college'],
+  science: ['tablet_house', 'library', 'scriptorium', 'university', 'research_lab'],
   industry: ['workshop', 'manufactory', 'factory'],
-  culture: ['shrine', 'temple', 'cathedral', 'civic_center'],
-  naval: ['harbor', 'shipyard', 'naval_base', 'carrier_dock'],
-  logistics: ['road_post', 'highway', 'rail_depot']
+  culture: ['stone_circle', 'shrine', 'temple', 'cathedral', 'civic_center'],
+  naval: ['canoe_landing', 'harbor', 'shipyard', 'naval_base', 'carrier_dock'],
+  logistics: ['trail_cairns', 'road_post', 'highway', 'rail_depot']
 };
 export const EXTRACTION_MODEL_IDS = { copper: 'copper_mine', iron: 'iron_foundry', oil: 'oil_well' };
 const EXTRACTION_AGE = { copper: 'bronze', iron: 'kingdoms', oil: 'modern' };

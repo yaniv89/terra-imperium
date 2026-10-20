@@ -304,3 +304,21 @@ describe('migrateSave v16 to v17: the Stone Age comes first', () => {
     expect(ageOf(loaded, ai)).toBe('bronze');
   });
 });
+
+describe('migrateSave v17 to v18: Stone building tiers come first', () => {
+  it('moves every built tier, order and stored progress of the seven lines up one', () => {
+    const base = JSON.parse(JSON.stringify(peoplesWorld({ seed: 5 })));
+    const id = capOf(base, base.playerNationId);
+    const city = base.regions[id];
+    const regions = { ...base.regions, [id]: {
+      ...city,
+      buildings: { ...city.buildings, categories: { ...city.buildings.categories, food: 0, defense: 1, economy: 0, science: -1 } },
+      production: { ...city.production, current: { kind: 'building', category: 'food', tier: 1 }, queue: [{ kind: 'building', category: 'economy', tier: 1 }], stored: { 'building:food:1': 7, 'unit:infantry': 3 } }
+    } };
+    const loaded = migrateSave({ version: 17, state: { ...base, regions } }).state.regions[id];
+    expect(loaded.buildings.categories).toMatchObject({ food: 1, defense: 2, economy: 0, science: -1 });
+    expect(loaded.production.current).toEqual({ kind: 'building', category: 'food', tier: 2 });
+    expect(loaded.production.queue[0].tier).toBe(1);
+    expect(loaded.production.stored).toEqual({ 'building:food:2': 7, 'unit:infantry': 3 });
+  });
+});

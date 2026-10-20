@@ -101,7 +101,7 @@ export const battleSize = ({ regiments, kind = 'assault' }) => {
  */
 export const wallsLabel = (city) => {
   const level = city ? wallsOf(city) : 0;
-  return level > 0 ? getCategoryTierName('defense', level - 1) || t('bt.war.walls', { n: level }) : t('bt.war.noWalls');
+  return level > 0 ? getCategoryTierName('defense', city.buildings?.categories?.defense) || t('bt.war.walls', { n: level }) : t('bt.war.noWalls');
 };
 
 /**

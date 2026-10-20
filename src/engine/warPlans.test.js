@@ -38,7 +38,7 @@ describe('war plans (lane W5)', () => {
     expect(garrisonUnits(garrisoned, city)).toBe(3);
     // 2 x 3 garrison + 0.5 x size 2 = 7
     expect(strikeSize(garrisoned, city, 'bronze')).toBe(7);
-    const walled = { ...city, buildings: { categories: { defense: 1 } } }; // two wall levels: +3
+    const walled = { ...city, buildings: { categories: { defense: 2 } } }; // two wall levels: +3
     expect(strikeSize(garrisoned, walled, 'bronze')).toBe(STRIKE_MAX.bronze);
     expect(strikeSize(garrisoned, walled, 'modern')).toBe(10);
   });

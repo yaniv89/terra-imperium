@@ -31,6 +31,7 @@ import { isBlockaded, isFleet, portWaters } from './fleets';
 import { NAVAL_BOMBARD, navalBombards } from '../data/navalLines';
 import { isSettler } from './settlers';
 import { cityWonderTotal } from '../data/greatProjects';
+import { BUILDING_CATEGORIES } from '../data/buildings';
 
 export const SIEGE_HP_BASE = 200;
 export const SIEGE_STRENGTH_SIEGE = 40;
@@ -45,8 +46,8 @@ export const MAX_WALLS = 3;
  * lifted keeps a healing `siege` record without `by`. */
 export const isBesieged = (city) => !!city?.siege?.by;
 
-/** Walls from the Defense building line: none 0, Palisade 1, Stone Walls 2, Star Fort and up 3. */
-export const wallsOf = (city) => Math.min(MAX_WALLS, (city.buildings?.categories?.defense ?? -1) + 1);
+/** Walls from the Defense line's fort level: none 0, Earthwork Ditch and Palisade 1, Stone Walls 2, Star Fort and up 3. */
+export const wallsOf = (city) => Math.min(MAX_WALLS, Math.ceil(BUILDING_CATEGORIES.defense.tiers[city.buildings?.categories?.defense ?? -1]?.effects['local.fortLevel'] || 0));
 // `greatProjects` (state.greatProjects): a national fortress wonder in the city (Masada,
 // greatProjects.js cityEffects 'local.wallHp') raises the walls' HP by its share.
 export const siegeMaxHp = (city, greatProjects = null) => Math.round(SIEGE_HP_BASE * (1 + wallsOf(city)) * (1 + (city.size || 1) / 10) * (1 + cityWonderTotal(greatProjects, city.id, 'local.wallHp')));

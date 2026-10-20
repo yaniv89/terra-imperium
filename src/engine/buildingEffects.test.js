@@ -49,7 +49,7 @@ describe('region buildings have real effects', () => {
 
   it('Military (Barracks…) raises manpower', () => {
     const s = base();
-    expect(calcIncome(withBuilding(s, 'military')).hr - calcIncome(s).hr).toBeGreaterThanOrEqual(3);
+    expect(calcIncome(withBuilding(s, 'military')).hr - calcIncome(s).hr).toBeGreaterThanOrEqual(2); // the Warrior Lodge: +2 flat
   });
 
   it('Science (Library…) produces research points', () => {

@@ -124,7 +124,7 @@ describe('calcNationBalance', () => {
     const state = peoplesWorld();
     const capitalId = Object.keys(state.regions).find((id) => state.regions[id].owner === FR_ID);
     const buildings = createEmptyRegionBuildings();
-    buildings.categories.defense = 0; // Palisade: local.fortLevel 1
+    buildings.categories.defense = 1; // Palisade: local.fortLevel 1
     const regions = { ...state.regions, [capitalId]: { ...state.regions[capitalId], buildings } };
     expect(calcNationBalance({ ...state, regions, units: {} }, FR_ID).expenses.fortUpkeep).toBe(1);
   });

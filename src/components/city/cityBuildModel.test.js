@@ -92,10 +92,10 @@ describe('build options', () => {
     let s = queue(S, { kind: 'building', category: 'food', tier: 0 });
     s = queue(s, { kind: 'unit', classId: 'infantry' });
     const q = buildQueue(s, paris);
-    expect(q.map((r) => r.label)[0]).toBe('Granary');
+    expect(q.map((r) => r.label)[0]).toBe('Storage Pits');
     expect(q[1].turns).toBeGreaterThanOrEqual(q[0].turns);
     const moved = gameReducer(s, { type: ActionTypes.MOVE_PRODUCTION, payload: { cityId: paris, index: 1, to: 0 } });
-    expect(buildQueue(moved, paris).map((r) => r.label)[1]).toBe('Granary');
+    expect(buildQueue(moved, paris).map((r) => r.label)[1]).toBe('Storage Pits');
   });
 
   it('warns about long builds and points at Production focus only when it would help', () => {
@@ -163,7 +163,7 @@ describe('the other city tabs', () => {
   it('the Defense tab points at what can be done', () => {
     const m = cityDefenseModel(S, paris);
     expect(m.paths.map((p) => p.id)).toEqual(['walls', 'garrison', 'works']);
-    expect(m.paths[0]).toMatchObject({ tab: 'build', action: 'Build Palisade' });
+    expect(m.paths[0]).toMatchObject({ tab: 'build', action: 'Build Earthwork Ditch' });
     expect(cityDefenseModel(S, getNationCapital(DE)).paths).toEqual([]);
   });
 });

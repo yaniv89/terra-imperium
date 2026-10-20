@@ -208,7 +208,7 @@ describe('fog of war: saves', () => {
     old.pendingEventChains = [{ id: 'succession_crisis_2', dueTurn: 9 }];
     const loaded = migrateSave({ version: 10, state: old });
     expect(loaded.version).toBe(CURRENT_SAVE_VERSION);
-    expect(CURRENT_SAVE_VERSION).toBe(17);
+    expect(CURRENT_SAVE_VERSION).toBe(18);
     ['heir', 'estates', 'crownLand'].forEach((k) => expect(loaded.state.nations[ME], k).not.toHaveProperty(k));
     expect(loaded.state.nations[ME].ruler).not.toHaveProperty('consort');
     expect(loaded.state.pendingEventChains).toEqual([]);

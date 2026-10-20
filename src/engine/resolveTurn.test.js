@@ -259,7 +259,7 @@ describe('resolveTurn economy (plan §M11)', () => {
 
   it('charges fort upkeep for a built Defense-tier region', () => {
     const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    const buildings = { ...base.regions[cap('fr')].buildings, categories: { ...base.regions[cap('fr')].buildings.categories, defense: 0 } }; // Palisade: fortLevel 1
+    const buildings = { ...base.regions[cap('fr')].buildings, categories: { ...base.regions[cap('fr')].buildings.categories, defense: 1 } }; // Palisade: fortLevel 1
     const withFort = { ...base, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], buildings } } };
     const nextBase = resolveTurn(base);
     const nextFort = resolveTurn(withFort);

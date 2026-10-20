@@ -192,10 +192,10 @@ describe('regionSources (plan §M6: building tiers)', () => {
 
   it('uses the CURRENT tier\'s value only, not every tier up to it', () => {
     const buildings = createEmptyRegionBuildings();
-    buildings.categories.military = 2; // Military Academy: local.manpower 0.50 (not Barracks' 0.20 or Drill Yard's 0.35)
+    buildings.categories.military = 3; // Military Academy: local.manpower 0.50 (not Barracks' 0.20 or Drill Yard's 0.35)
     const lines = regionSources({ buildings });
     expect(lines.filter((l) => l.key === 'local.manpower')).toEqual([
-      { key: 'local.manpower', value: 0.50, sourceType: 'building', sourceId: 'military_2', label: 'Military Academy' }
+      { key: 'local.manpower', value: 0.50, sourceType: 'building', sourceId: 'military_3', label: 'Military Academy' }
     ]);
   });
 

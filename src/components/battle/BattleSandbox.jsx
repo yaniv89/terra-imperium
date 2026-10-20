@@ -72,7 +72,7 @@ const params = typeof window !== 'undefined' ? new URLSearchParams(window.locati
 // damaged, as a second invasion of the same city finds them.
 const sandboxCity = (config) => {
   if (!config.city) return {};
-  const cityManifest = buildTownManifest({ cityId: 'sandbox-city', ageId: config.ageId, tierId: config.city, style: params.get('style') || 'europe', seed: config.seed, capital: config.fortLevel >= 4, defenseTier: Math.max(0, Math.floor(config.fortLevel / 2)), buildings: { military: 0, economy: 1, culture: 1, food: 0, industry: 0, science: 1 } });
+  const cityManifest = buildTownManifest({ cityId: 'sandbox-city', ageId: config.ageId, tierId: config.city, style: params.get('style') || 'europe', seed: config.seed, capital: config.fortLevel >= 4, defenseTier: Math.max(0, Math.floor(config.fortLevel / 2)), buildings: { military: 1, economy: 1, culture: 2, food: 1, industry: 0, science: 2 } });
   const houses = cityManifest.structures.filter((s) => s.kind === 'house').map((s) => s.id);
   const nr = Number(params.get('ruined') || 0); const nd = Number(params.get('damaged') || 0);
   return { cityManifest, cityDamage: { ruined: Object.fromEntries(houses.slice(2, 2 + nr).map((id) => [id, 5])), damaged: Object.fromEntries(houses.slice(2 + nr, 2 + nr + nd).map((id) => [id, 2])) } };
@@ -132,7 +132,7 @@ const BattleSandbox = () => {
     powers: [[...sandboxPowers(config.ageId, buildArmy('a', config.attacker, config.ageId, 1000)), ...(config.landing ? [{ id: 'navalBombardment', uses: 2 }] : [])], sandboxPowers(config.ageId, buildArmy('d', config.defender, config.ageId, 900)).filter((p) => p.id !== 'nuclearStrike')],
     landing: config.landing,
     // The defended province's own buildings, as a real region with a few built would have them.
-    regionBuildings: [{ category: 'military', tier: 0, name: 'Barracks' }, { category: 'economy', tier: 1, name: 'Bazaar' }, { category: 'culture', tier: 1, name: 'Temple' }, { category: 'food', tier: 0, name: 'Granary' }, { category: 'industry', tier: 0, name: 'Workshop' }, { category: 'science', tier: 1, name: 'Scriptorium' }],
+    regionBuildings: [{ category: 'military', tier: 1, name: 'Barracks' }, { category: 'economy', tier: 1, name: 'Bazaar' }, { category: 'culture', tier: 2, name: 'Temple' }, { category: 'food', tier: 1, name: 'Granary' }, { category: 'industry', tier: 0, name: 'Workshop' }, { category: 'science', tier: 2, name: 'Scriptorium' }],
     reinforcements: [
       config.landing ? [] : [{ regionId: 'north', name: 'Northern March', edge: 'N', units: buildArmy('r', 'small', config.ageId, 800) }],
       [{ regionId: 'east', name: 'Eastern Garrison', edge: 'S', units: buildArmy('s', 'small', config.ageId, 700) }]
