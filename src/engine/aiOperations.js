@@ -389,7 +389,7 @@ export const processAIOperations = (state, rng) => {
       // or hold the tile and keep the siege on). It used to keep the step and wait there all war,
       // battering the walls to 0 HP and never fighting the garrison (lane W5).
       if (stack.some(u => u.route?.length) && stack.every(u => !u.route?.length || u.routeHalt === 'attack')) {
-        stack.forEach((u, i) => { if (u.route) { next.units[u.id] = { ...next.units[u.id], route: null, routeHalt: null, routeBank: 0 }; stack[i] = next.units[u.id]; } });
+        stack.forEach((u, i) => { if (u.route && next.units[u.id]) { next.units[u.id] = { ...next.units[u.id], route: null, routeHalt: null, routeBank: 0 }; stack[i] = next.units[u.id]; } });
       }
       if (stack.some(u => u.route?.length)) { marching = true; continue; } // already on the road: the march phase below walks it
       const pool = getPool(next, nationId);
@@ -674,7 +674,8 @@ export const processIndependentOps = (state, nationId, rng) => {
     if (!beside && stack.some((u) => u.route?.length)) { marching = true; continue; }
     if (!stack.every((u) => (u.movesLeft ?? 1) > 0)) continue;
     if (beside) {
-      stack.forEach((u) => { if (u.route) next.units[u.id] = { ...next.units[u.id], route: null, routeHalt: null }; });
+      // An earlier stack's assault from the same region may have killed some of these: never revive them.
+      stack.forEach((u) => { if (u.route && next.units[u.id]) next.units[u.id] = { ...next.units[u.id], route: null, routeHalt: null }; });
       const cur = next.regions[city.id];
       if (cur.owner !== goal.id) break;
       const pool = getPool(next, nationId);
