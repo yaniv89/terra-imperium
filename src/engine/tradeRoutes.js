@@ -15,6 +15,7 @@ import { passableTile, unitTile } from './armies';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { isWarBetween } from './diplomacy';
 import { msg, sub } from './messages';
+import { ageOf } from './nationState';
 
 // A closed route's reason: the English `reason` and its message (`reasonMsg`, a sub for the log lines that quote it).
 const noRoute = (key) => ({ ok: false, reason: msg(key).message, reasonMsg: sub(key) });
@@ -83,15 +84,15 @@ const computeTradeRoute = (state, partnerId) => {
   if (land) return { ok: true, kind: 'land', regions: land.regions, tiles: land.tiles };
   const ports=id=>getOwnedRegionIds(state.regions,id).filter(r=>isCoastal(r) && !state.regions[r].occupiedBy && (state.regions[r].buildings?.categories?.naval ?? -1)>=0);
   const blocked=r=>isBlockaded(state,r)||Object.values(state.units).some(u=>u.regionId===r && u.domain==='naval' && state.wars.some(w=>w.active && ((w.aggressor===me&&w.enemy===u.ownerId)||(w.enemy===me&&w.aggressor===u.ownerId))));
-  for(const a of ports(me))for(const b of ports(partnerId))if(isReachableBySea(a,b,state.age) && !blocked(a) && !blocked(b))return {ok:true,kind:'sea',regions:[a,b]};
+  for(const a of ports(me))for(const b of ports(partnerId))if(isReachableBySea(a,b,ageOf(state, me)) && !blocked(a) && !blocked(b))return {ok:true,kind:'sea',regions:[a,b]};
   return noRoute('m.diplo.routeNone');
 };
 
 export const getTradeRoute = (state, partnerId) => {
   if (!state.regions) return computeTradeRoute(state, partnerId);
   let entry = routeCache.get(state.regions);
-  if (!entry || entry.wars !== state.wars || entry.nations !== state.nations || entry.world !== state.world || entry.units !== state.units || entry.age !== state.age || entry.disruptions !== state.tradeDisruptions) {
-    entry = { wars: state.wars, nations: state.nations, world: state.world, units: state.units, age: state.age, disruptions: state.tradeDisruptions, byPartner: new Map() };
+  if (!entry || entry.wars !== state.wars || entry.nations !== state.nations || entry.world !== state.world || entry.units !== state.units || entry.techAgeId !== state.techAgeId || entry.disruptions !== state.tradeDisruptions) {
+    entry = { wars: state.wars, nations: state.nations, world: state.world, units: state.units, techAgeId: state.techAgeId, disruptions: state.tradeDisruptions, byPartner: new Map() };
     routeCache.set(state.regions, entry);
   }
   if (!entry.byPartner.has(partnerId)) entry.byPartner.set(partnerId, computeTradeRoute(state, partnerId));

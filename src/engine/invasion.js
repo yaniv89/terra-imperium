@@ -11,7 +11,7 @@
 import { withAirSupport } from './airPower';
 import { REGIONS_DATA, getNeighborIds, getTouchingIds } from '../data/regions';
 import { getRegionTerrain } from '../data/terrain';
-import { getEffectiveAgeId, isAgeAtLeast, isAgeBefore } from '../data/ages';
+import { isAgeAtLeast, isAgeBefore } from '../data/ages';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { canAfford } from '../utils/helpers';
 import { isWarBetween } from './diplomacy';
@@ -24,6 +24,8 @@ import { getTiles } from '../data/geo/tiles';
 import { touchesCity, unitTile, unitsWithinRings, REINFORCE_RINGS } from './armies';
 import { atSea, touchesCoastOf } from './fleets';
 import { LANDING_ATTACK_MULT } from '../battle/setup/battleType';
+import { ageOf } from './nationState';
+import { sideAgeOf } from './ageRefs';
 
 // Units committed to an in-progress tactical battle can't be moved, disbanded or sent into a
 // second fight until it resolves.
@@ -125,10 +127,10 @@ export const getInvasionBattleContext = (state, { targetRegionId, targetRegion, 
     isAttackingFortification: (targetRegion.defenseLevel || 0) > 0,
     battleType: (targetRegion.defenseLevel || 0) > 0 ? 'assault' : 'field', // battleType.js
     generals: state.hiredCommanders,
-    // Plan §M14: each side's roster stats are looked up live from its OWNER's current effective
-    // age. The defender has no independent tech age here, so it fights at the calendar age.
-    attackerAgeId: getEffectiveAgeId(state.age, state.techAgeId),
-    defenderAgeId: state.age,
+    // Plan §M14: each side's roster stats are looked up live from its OWNER's own age (KTD1; an
+    // independent's from its strongest known major, KTD8).
+    attackerAgeId: ageOf(state, state.playerNationId),
+    defenderAgeId: sideAgeOf(state, targetRegion.owner),
     // defenseLevel's own damage reduction ("Walls", src/engine/siege.js); plan §M6: the Defense
     // building's local.fortLevel stacks on top of the manual defenseLevel. Plan §M14 folds Zone
     // of Control into the same slot — a fortified neighbor makes a siege harder too.
@@ -180,7 +182,7 @@ export const validateAmphibious = (state, navalUnitId, targetRegionId, { ignoreC
   if (targetRegion.occupiedBy === state.playerNationId) return { ok: false, reason: 'already_held' };
   if (!isCoastal(targetRegionId)) return { ok: false, reason: 'not_coastal' };
   const beside = atSea(state, navalUnit) && touchesCoastOf(state, getTiles(), navalUnit.tile, targetRegionId);
-  if (!beside && !getNeighborIds(navalUnit.regionId).includes(targetRegionId) && !isReachableBySea(navalUnit.regionId, targetRegionId, state.age)) return { ok: false, reason: 'out_of_reach' };
+  if (!beside && !getNeighborIds(navalUnit.regionId).includes(targetRegionId) && !isReachableBySea(navalUnit.regionId, targetRegionId, ageOf(state, state.playerNationId))) return { ok: false, reason: 'out_of_reach' };
   const embarkedLandUnits = Object.values(state.units).filter((u) => u.embarkedOn === navalUnitId && u.ownerId === state.playerNationId);
   if (embarkedLandUnits.length === 0) return { ok: false, reason: 'no_units' };
   const war = state.wars.find((w) => w.active && isWarBetween(w, state.playerNationId, targetRegion.owner)) || null;
@@ -201,8 +203,8 @@ export const getAmphibiousBattleContext = (state, v, defenderLandUnits) => {
     terrain: getRegionTerrain(v.targetRegionId, REGIONS_DATA),
     isAttackingFortification: (v.targetRegion.defenseLevel || 0) > 0,
     generals: state.hiredCommanders,
-    attackerAgeId: getEffectiveAgeId(state.age, state.techAgeId),
-    defenderAgeId: state.age,
+    attackerAgeId: ageOf(state, state.playerNationId),
+    defenderAgeId: sideAgeOf(state, v.targetRegion.owner),
     battleType: v.hasBeachhead ? ((v.targetRegion.defenseLevel || 0) > 0 ? 'assault' : 'field') : 'landing',
     attackerPenaltyMultiplier: 1,
     defenderDamageReductionMultiplier: isDefended

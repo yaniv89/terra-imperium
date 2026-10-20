@@ -21,7 +21,7 @@ import {
 } from 'three';
 import { REGION_COORDINATES } from '../../../data/regionCoordinates';
 import { markerLatLng } from '../../../utils/markerPosition';
-import { getEffectiveAgeId } from '../../../data/ages';
+import { ageOf } from '../../../engine/nationState';
 import { getSoldierGeometry, hasSoldierOverride, packForGPU, createSoldierMaterial, MODEL_SCALE } from '../../../battle/render/soldierFactory';
 import { findUnitModel, preloadSoldierModel, preloadSignatureModel } from '../../../battle/render/unitModels';
 import { signatureUnitFor, signatureKey, rigFiguresOf } from '../../../data/signatureUnits';
@@ -68,11 +68,6 @@ export const MAP_FIGURE_TRIS = 150000;
 const EDGE = 80;
 const PLAYER_COLOR = '#2563eb';
 
-const ageOf = (state, nationId) => {
-  if (!nationId) return state.age;
-  if (nationId === state.playerNationId) return getEffectiveAgeId(state.age, state.techAgeId);
-  return getEffectiveAgeId(state.age, state.nations[nationId]?.tech?.ageId);
-};
 // The ground a field takes, model units (a field is about 1.6 by 1.2: the disc round its middle).
 const FIELD_DISC = 0.8;
 const MAX_PLOTS = 3000;

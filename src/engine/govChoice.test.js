@@ -18,7 +18,7 @@ describe('government change with chosen reforms (I140)', () => {
   it('lists the tiers and applies the player pick; nothing applies in the preview', () => {
     const s = rich();
     const nation = s.nations[s.playerNationId];
-    const target = Object.keys(GOVERNMENT_TYPES).find((id) => canChangeGovernmentType(nation, id, s.age) && previewGovernmentChange(s, id).reformSlots?.some((x) => x.options.length > 1));
+    const target = Object.keys(GOVERNMENT_TYPES).find((id) => canChangeGovernmentType(nation, id, s.techAgeId) && previewGovernmentChange(s, id).reformSlots?.some((x) => x.options.length > 1));
     if (!target) return;
     const pv = previewGovernmentChange(s, target);
     const slot = pv.reformSlots.find((x) => x.options.length > 1);

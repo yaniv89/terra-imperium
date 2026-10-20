@@ -1,4 +1,4 @@
-import { orderMarch, cancelRoute, placeName, moveNowCheck, released, MARCH_ATTRITION } from './routes';
+import { orderMarch, cancelRoute, placeName, moveNowCheck, released, stepMarchesNow, MARCH_ATTRITION } from './routes';
 import { orderMarchAttack } from './marchAttack';
 import { orderExplore, stopExplore } from './scouting';
 import { normalizeUnitTiles, regionForTile, tileAccess, passableTile, unitTile } from './armies';
@@ -71,7 +71,10 @@ import { applyPeace, getPeaceAcceptance } from './peace';
 import { levyUnit } from './aftermath';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { START_YEAR, END_YEAR, getCalendarAgeId, getEffectiveAgeId, isAgeAtLeast } from '../data/ages';
+import { AGES, FIRST_AGE_ID, isAgeAtLeast } from '../data/ages';
+import { endingSignal } from './ending';
+import { ageOf } from './nationState';
+import { sideAgeOf } from './ageRefs';
 import { getRegionTerrain } from '../data/terrain';
 import { createEmptyResourcePool } from '../data/resources';
 import {
@@ -154,8 +157,9 @@ const DEFAULT_PLAYER_NATION_ID = 'us';
 // and applyEventEffects.test.js build realistic states from it rather than hand-rolling partial
 // mocks that could silently drift from the real shape.
 export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, gameSpeed = 'normal', rngSeed, scenario, guided = false, fog = true } = {}) => {
-  const year = START_YEAR;
-  const age = getCalendarAgeId(year);
+  // Every nation starts in the first age by research (KTD1); the year is only its label (KTD3).
+  const age = FIRST_AGE_ID;
+  const year = AGES[age].startYear;
 
   // Cities and land come from the scenario (src/engine/worldgen/emergentWorld.js applies the
   // start on the tile grid at the end of this function); `regions` is empty until then.
@@ -347,8 +351,8 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // AI parity (plan §M16). Only non-player nations get these — the player keeps living on
       // state.resources/techTree/techAgeId (src/engine/nationState.js's own header explains why:
       // moving the player onto this shape too would touch every existing test and UI component that
-      // reads state.resources directly, for zero present benefit). tech.ageId starts equal to the
-      // calendar age, mirroring state.techAgeId's own seeding.
+      // reads state.resources directly, for zero present benefit). tech.ageId starts in the first
+      // age, as state.techAgeId does.
       ...(id !== playerNationId ? { economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 }, tech: { researched: [], ageId: age } } : {}),
       ...(data.kind ? { kind: data.kind } : {}) // an independent (phase W1, independents.js finalizes it)
     };
@@ -356,8 +360,8 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
 
   // Initialize tech tree (currently empty content — see src/data/techTree.js).
   const techTree = {};
-  Object.entries(TECH_TREE).forEach(([id, data]) => {
-    techTree[id] = { id, researched: false, available: data.yearAvailable <= year };
+  Object.keys(TECH_TREE).forEach((id) => {
+    techTree[id] = { id, researched: false };
   });
 
   const initial = {
@@ -366,12 +370,8 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
 
     // Time
     year,
-    age,
-    // The nation's tech-earned age (plan §2) — starts equal to the calendar age; RESEARCH_TECH
-    // advances it once enough of its current age's tech line is researched. Never used directly
-    // for gating; src/data/ages.js's getEffectiveAgeId(age, techAgeId) is what buildings/units/
-    // extraction actually read, capped at one age ahead of the calendar. See techTree.js's file
-    // header for what this currently does and doesn't unlock beyond Phase B's existing rush rule.
+    // The player's age: its research age (ageOf in nationState.js, eight-ages plan KTD1). RESEARCH_TECH
+    // advances it once 6 of its current age's 10 techs are researched.
     techAgeId: age,
     gameSpeed,
     turnNumber: 1,
@@ -538,7 +538,13 @@ const reject = (state, message) => ({
 
 // Log line pieces (phase H3, src/engine/messages.js).
 const yearRef = (y) => sub(y < 0 ? 'm.act.yearBce' : 'm.act.yearCe', { y: Math.abs(y) });
-const aboutTurns = (n) => sub(n > 1 ? 'm.act.aboutTurnsMany' : 'm.act.aboutTurnsOne', { n });
+const aboutTurns = (n) => (n <= 0 ? sub('m.act.thisTurn') : sub(n > 1 ? 'm.act.aboutTurnsMany' : 'm.act.aboutTurnsOne', { n }));
+/** A march order steps at once with this turn's points (routes.js stepMarchesNow): the ordered
+ * units on `units`, and the walk's own log lines (arrived, halted) after the order's line. */
+const stepOrdered = (state, units, ids, orderLog) => {
+  const step = stepMarchesNow({ ...state, units }, ids);
+  return { ...state, units: step.units, logs: [...state.logs, orderLog, ...step.logs.map((l) => ({ ...l, year: state.year }))] };
+};
 /** A nation by id, else the fallback words (a sub-message key). */
 const nationOr = (state, id, fallbackKey) => (state.nations[id]?.name ? people(id, state.nations[id].name) : sub(fallbackKey));
 /** A city by id with the name the line used, else the fallback words. */
@@ -777,7 +783,7 @@ const reduceAction = (state, action) => {
       const region = state.regions[regionId];
       const costs = ACTION_COSTS.buildClimateResilience;
       if (!region || region.owner !== state.playerNationId || (region.climateResilience || 0) >= CLIMATE_RESILIENCE_MAX) return state;
-      if (!isAgeAtLeast(getEffectiveAgeId(state.age, state.techAgeId), 'modern')) return state;
+      if (!isAgeAtLeast(ageOf(state, state.playerNationId), 'modern')) return state;
       if (!canAfford(state.resources, costs)) return state;
       const nextLevel = (region.climateResilience || 0) + 1;
       return {
@@ -791,7 +797,7 @@ const reduceAction = (state, action) => {
     case ActionTypes.CULTURAL_EXPORT: {
       const nation = state.nations[state.playerNationId];
       const costs = ACTION_COSTS.culturalExport;
-      if (!isAgeAtLeast(getEffectiveAgeId(state.age, state.techAgeId), 'modern')) return state;
+      if (!isAgeAtLeast(ageOf(state, state.playerNationId), 'modern')) return state;
       if (!canAfford(state.resources, costs)) return state;
       const nextInfluence = (nation.culturalInfluence || 0) + CULTURAL_EXPORT_INFLUENCE_GAIN;
       const nextNations = {
@@ -922,7 +928,7 @@ const reduceAction = (state, action) => {
       const costs = ACTION_COSTS.developResourceSite;
       if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
       if (region.buildings.extraction[resourceId] === undefined || region.buildings.extraction[resourceId]) return state;
-      if (!regionHasDeposit(REGIONS_DATA[regionId], resourceId) || !canBuildExtraction(resourceId, getEffectiveAgeId(state.age, state.techAgeId))) return state;
+      if (!regionHasDeposit(REGIONS_DATA[regionId], resourceId) || !canBuildExtraction(resourceId, ageOf(state, state.playerNationId))) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
@@ -1150,7 +1156,7 @@ const reduceAction = (state, action) => {
       const { typeId } = action.payload;
       const costs = ACTION_COSTS.launchSatellite;
       if (!SATELLITE_TYPES[typeId]) return state;
-      if (!canLaunchSatellite(state.age, state.techAgeId, state.year)) return state;
+      if (!canLaunchSatellite(null, ageOf(state, state.playerNationId), state.year)) return state;
       if (!canAfford(state.resources, costs)) return state;
       const satelliteId = `satellite_${state.nextSatelliteSeq}`;
       return {
@@ -1183,7 +1189,7 @@ const reduceAction = (state, action) => {
     case ActionTypes.BUILD_MISSILE: {
       const { tierId } = action.payload;
       if (!MISSILE_TIERS[tierId]) return state;
-      if (!canBuildMissile(getEffectiveAgeId(state.age, state.techAgeId))) return reject(state, msg('m.act.no.missilesAge'));
+      if (!canBuildMissile(ageOf(state, state.playerNationId))) return reject(state, msg('m.act.no.missilesAge'));
       const costs = ACTION_COSTS.buildMissile[tierId];
       if (!canAfford(state.resources, costs)) return reject(state, msg('m.act.no.missileCost', { missile: thing('missile', tierId, MISSILE_TIERS[tierId].name) }));
       const nation = state.nations[state.playerNationId];
@@ -1290,7 +1296,7 @@ const reduceAction = (state, action) => {
     case ActionTypes.BUILD_ABM_DEFENSE: {
       const costs = ACTION_COSTS.buildAbmDefense;
       const nation = state.nations[state.playerNationId];
-      if (!canBuildMissile(getEffectiveAgeId(state.age, state.techAgeId))) return reject(state, msg('m.act.no.abmAge'));
+      if (!canBuildMissile(ageOf(state, state.playerNationId))) return reject(state, msg('m.act.no.abmAge'));
       if ((nation.abmDefenseLevel || 0) >= MAX_ABM_LEVEL) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
@@ -1305,7 +1311,7 @@ const reduceAction = (state, action) => {
       const { missionId } = action.payload;
       const mission = SPACE_MISSIONS_BY_ID[missionId];
       if (!mission) return state;
-      if (!canLaunchSatellite(state.age, state.techAgeId, state.year)) return state;
+      if (!canLaunchSatellite(null, ageOf(state, state.playerNationId), state.year)) return state;
       if (!canLaunchMission(missionId, state.completedMissions, state.spaceMissionProgress)) return state;
       const costs = { ...mission.cost, dip: ACTION_COSTS.launchMission.dip };
       if (!canAfford(state.resources, costs)) return state;
@@ -1326,9 +1332,9 @@ const reduceAction = (state, action) => {
       // Plan §M11 resource sink: costs the age's strategic resource when available, else a gold
       // penalty (getRecruitUnitCost's own header) — computed fresh per recruit, not a flat table
       // entry, the same "dynamically-priced action" shape RESEARCH_TECH/CHANGE_LAW already use.
-      const costs = getRecruitUnitCost(state, state.age);
+      const costs = getRecruitUnitCost(state, ageOf(state, state.playerNationId));
       if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
-      if (!getAvailableClasses(getEffectiveAgeId(state.age, state.techAgeId)).includes(classId)) return state;
+      if (!getAvailableClasses(ageOf(state, state.playerNationId)).includes(classId)) return state;
       if (!canAfford(state.resources, costs)) return state;
       const unitId = `unit_${state.nextUnitSeq}`;
       const isNaval = classId === 'naval';
@@ -1359,7 +1365,7 @@ const reduceAction = (state, action) => {
         commanderId: null,
         // Naval-only: how many land units it can carry (plan §7.5's Embark/Disembark). Land-only:
         // which naval unit currently carries it, if any — set by EMBARK_UNIT/AMPHIBIOUS_ASSAULT.
-        transportCapacity: isNaval ? navalCargo(navalLine, getEffectiveAgeId(state.age, state.techAgeId)) : null,
+        transportCapacity: isNaval ? navalCargo(navalLine, ageOf(state, state.playerNationId)) : null,
         ...(isNaval ? { navalLine } : {}),
         embarkedOn: null
       };
@@ -1417,7 +1423,7 @@ const reduceAction = (state, action) => {
       // Plan §M14: a stack moves at most once per turn — forcedMarch grants a unit a second move.
       if ((unit.movesLeft ?? 1) <= 0) return state;
       const isLandAdjacent = getNeighborIds(unit.regionId).includes(toRegionId);
-      const isSeaLaneReachable = unit.domain === 'naval' && isReachableBySea(unit.regionId, toRegionId, state.age);
+      const isSeaLaneReachable = unit.domain === 'naval' && isReachableBySea(unit.regionId, toRegionId, ageOf(state, unit.ownerId));
       // A land unit moves now only where its march would arrive this turn (routes.js moveNowCheck,
       // the same route and schedule as the preview): never a jump over a march of several turns
       // (playtest audit I065). Fleets keep the sea-lane rule.
@@ -1450,7 +1456,8 @@ const reduceAction = (state, action) => {
     }
 
     // March anywhere over several turns (plan §4g, routes.js): the stack in `fromRegionId` (or the
-    // units in `unitIds`) gets a route to `toRegionId`, walked at End Turn. Giving the order is free.
+    // units in `unitIds`) gets a route to `toRegionId`. It steps at once as far as this turn's
+    // points go (stepMarchesNow) and walks the rest at the start of each later turn. Giving the order is free.
     case ActionTypes.SET_ROUTE: {
       // The target is a city id or a tile id (free land).
       const { fromRegionId, toRegionId, toTile, unitIds = null, naval = false, attack = false } = action.payload || {};
@@ -1462,21 +1469,14 @@ const reduceAction = (state, action) => {
         const p = order.plan;
         const who = p.units.length > 1 ? sub('m.act.unitsMarch', { n: p.units.length }) : sub('m.act.anArmyMarches');
         const dest = state.regions[toRegionId]?.name ? cityRef(toRegionId, state.regions[toRegionId].name) : place(placeName(state, p.path[p.path.length - 1]));
-        return {
-          ...state,
-          units: order.units,
-          logs: [...state.logs, { year: state.year, ...msg('m.act.marchAttack', { who, dest, turns: aboutTurns(p.turns), stops: p.stopsAt ? sub('m.act.stoppingAt', { city: cityOr(p.stopsAt, state.regions[p.stopsAt]?.name, 'm.act.anEnemyCity') }) : '' }), type: LogTypes.ACTION }]
-        };
+        // Reaching the city's ring now opens the assault at once (marchAttack.js readyAttacks).
+        return stepOrdered(state, order.units, p.units, { year: state.year, ...msg('m.act.marchAttack', { who, dest, turns: aboutTurns(p.turns), stops: p.stopsAt ? sub('m.act.stoppingAt', { city: cityOr(p.stopsAt, state.regions[p.stopsAt]?.name, 'm.act.anEnemyCity') }) : '' }), type: LogTypes.ACTION });
       }
       const target = toTile != null ? toTile : toRegionId;
       const order = orderMarch(state, fromRegionId, target, unitIds, { naval });
       if (!order.units) return reject(state, order.reasonMsg ? whyOf(order) : order.reason || msg('m.act.no.march'));
       const p = order.plan;
-      return {
-        ...state,
-        units: order.units,
-        logs: [...state.logs, { year: state.year, ...msg('m.act.march', { who: p.naval ? (p.units.length > 1 ? sub('m.act.whoShips', { n: p.units.length }) : sub('m.act.whoFleet')) : (p.units.length > 1 ? sub('m.act.whoUnits', { n: p.units.length }) : sub('m.act.whoArmy')), dest: place(placeName(state, p.path[p.path.length - 1])), turns: aboutTurns(p.turns) }), type: LogTypes.ACTION }]
-      };
+      return stepOrdered(state, order.units, p.units, { year: state.year, ...msg('m.act.march', { who: p.naval ? (p.units.length > 1 ? sub('m.act.whoShips', { n: p.units.length }) : sub('m.act.whoFleet')) : (p.units.length > 1 ? sub('m.act.whoUnits', { n: p.units.length }) : sub('m.act.whoArmy')), dest: place(placeName(state, p.path[p.path.length - 1])), turns: aboutTurns(p.turns) }), type: LogTypes.ACTION });
     }
 
     case ActionTypes.CANCEL_ROUTE: {
@@ -1990,7 +1990,7 @@ const reduceAction = (state, action) => {
       const rng = createRng(state.rngSeed);
       let nextUnits = { ...state.units };
       const terrain = getRegionTerrain(targetRegionId, REGIONS_DATA);
-      const attackerAgeId = getEffectiveAgeId(state.age, state.techAgeId);
+      const attackerAgeId = ageOf(state, state.playerNationId);
       let paid = { ...state, resources: applyCosts(state.resources, costs) };
 
       // Naval interception (plan §7.5): a defending fleet forces a naval battle before the landing,
@@ -2005,7 +2005,7 @@ const reduceAction = (state, action) => {
           isAttackingFortification: false,
           generals: state.hiredCommanders,
           attackerAgeId,
-          defenderAgeId: state.age
+          defenderAgeId: sideAgeOf(state, defenderNavalUnits[0].ownerId)
         }, { kind: 'lane' }, rng);
         const sunk = navalBattle.outcome !== 'attacker';
         const fought = sunk ? { ...navalBattle, attackerUnits: navalBattle.attackerUnits.map((u) => ({ ...u, strength: 0 })) } : navalBattle;
@@ -2035,7 +2035,7 @@ const reduceAction = (state, action) => {
         isAttackingFortification: (targetRegion.defenseLevel || 0) > 0,
         generals: state.hiredCommanders,
         attackerAgeId,
-        defenderAgeId: state.age,
+        defenderAgeId: sideAgeOf(state, targetRegion.owner),
         attackerPenaltyMultiplier: 1,
         battleType: hasBeachhead ? 'field' : 'landing', // the landing's odds live in battleType.js
         defenderDamageReductionMultiplier: isDefended
@@ -2053,7 +2053,7 @@ const reduceAction = (state, action) => {
       if (!fromRegion || fromRegion.owner !== state.playerNationId) return state;
       const attackerNavalUnits = Object.values(state.units).filter(u => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'naval');
       const isLandAdjacent = getNeighborIds(fromRegionId).includes(targetRegionId);
-      const isSeaLaneReachable = isReachableBySea(fromRegionId, targetRegionId, state.age);
+      const isSeaLaneReachable = isReachableBySea(fromRegionId, targetRegionId, ageOf(state, state.playerNationId));
       // A fleet at sea beside the target's coast (fleets.js) engages too.
       const besideCoast = attackerNavalUnits.some(u => atSea(state, u) && touchesCoastOf(state, getTiles(), u.tile, targetRegionId));
       if (!isLandAdjacent && !isSeaLaneReachable && !besideCoast) return state;
@@ -2074,8 +2074,8 @@ const reduceAction = (state, action) => {
         terrain: getRegionTerrain(targetRegionId, REGIONS_DATA),
         isAttackingFortification: false,
         generals: state.hiredCommanders,
-        attackerAgeId: getEffectiveAgeId(state.age, state.techAgeId),
-        defenderAgeId: state.age
+        attackerAgeId: ageOf(state, state.playerNationId),
+        defenderAgeId: sideAgeOf(state, defenderNavalUnits[0].ownerId)
       }, { kind: 'lane' }, rng);
       // A naval engagement only contests the lane: survivors hold their own positions, win or
       // lose (battleOutcome.js, kind 'lane').
@@ -2105,8 +2105,8 @@ const reduceAction = (state, action) => {
         terrain: getRegionTerrain(regionId, REGIONS_DATA),
         isAttackingFortification: false,
         generals: state.hiredCommanders,
-        attackerAgeId: getEffectiveAgeId(state.age, state.techAgeId),
-        defenderAgeId: state.age
+        attackerAgeId: ageOf(state, state.playerNationId),
+        defenderAgeId: ageOf(state, region.owner) // rebels fight at their host's age
       }, { kind: 'suppress' }, rng);
       // The rebels are fought like any battle (master plan 6.7 row 17), through the outcome service.
       const meta = { kind: 'suppress', warId: null, attackerNationId: state.playerNationId, defenderNationId: REBEL_OWNER_ID, fromRegionId: regionId, regionId, tile: region.tile ?? null, rngSeed: rng.getSeed() };
@@ -2173,7 +2173,7 @@ const reduceAction = (state, action) => {
       const type = GOVERNMENT_TYPES[typeId];
       const nation = state.nations[state.playerNationId];
       const costs = ACTION_COSTS.changeGovernmentType;
-      if (!type || !canChangeGovernmentType(nation, typeId, state.age)) return state;
+      if (!type || !canChangeGovernmentType(nation, typeId, ageOf(state, state.playerNationId))) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
@@ -2182,7 +2182,7 @@ const reduceAction = (state, action) => {
           ...state.nations,
           [state.playerNationId]: {
             ...nation,
-            government: { type: typeId, reforms: resetReformsForType(typeId, state.age, pickedReforms) },
+            government: { type: typeId, reforms: resetReformsForType(typeId, ageOf(state, state.playerNationId), pickedReforms) },
             stability: clampStability((nation.stability || 0) - 2)
           }
         },
@@ -2194,7 +2194,7 @@ const reduceAction = (state, action) => {
       const { ageId, reformId } = action.payload;
       const nation = state.nations[state.playerNationId];
       const costs = ACTION_COSTS.enactGovernmentReform;
-      if (!canEnactReform(nation, ageId, reformId, state.age)) return state;
+      if (!canEnactReform(nation, ageId, reformId, ageOf(state, state.playerNationId))) return state;
       if (!canAfford(state.resources, costs)) return state;
       const reform = getReformChoices(nation.government.type, ageId).find((r) => r.id === reformId);
       return {
@@ -2855,14 +2855,14 @@ const reduceAction = (state, action) => {
       };
     }
 
-    // Plan §M18: "Continue playing after victory" — only valid for an AMBITION win reached BEFORE
-    // the calendar's own end (year < END_YEAR); the END_YEAR ranked ending (finalScore) is the
-    // real, final game-over and has nothing left to continue toward. Records the condition in
+    // Plan §M18: "Continue playing after victory" — only valid for an AMBITION win reached before
+    // the ending signal (ending.js: the turn limit or the Future's goal); the ranked ending
+    // (finalScore) is the real, final game-over and has nothing left to continue toward. Records the condition in
     // victoriesAchieved so checkVictoryConditions (still true every later turn, since the region/
     // GDP/streak/etc. threshold that was met usually stays met) doesn't immediately re-fire the
     // SAME victory the very next turn.
     case ActionTypes.CONTINUE_AFTER_VICTORY: {
-      if (state.gameStatus !== GameStatus.VICTORY || state.year >= END_YEAR) return state;
+      if (state.gameStatus !== GameStatus.VICTORY || state.ending || endingSignal(state)) return state;
       const conditionId = state.victoryConditionId;
       return {
         ...state,
@@ -2970,7 +2970,7 @@ const reduceAction = (state, action) => {
     case ActionTypes.SAVE_ARMY_TEMPLATE: {
       // Army templates (armyTemplates.js): a named composition the cities build as one order.
       const { template } = action.payload || {};
-      const ok = validateTemplate(template, getEffectiveAgeId(state.age, state.techAgeId));
+      const ok = validateTemplate(template, ageOf(state, state.playerNationId));
       if (!ok.ok) return reject(state, whyOf(ok));
       const me = state.nations[state.playerNationId];
       return { ...state, nations: { ...state.nations, [state.playerNationId]: saveTemplate(me, template, state.turnNumber) } };
@@ -3078,7 +3078,7 @@ const reduceAction = (state, action) => {
         item = wonderItem(raw.projectId, raw.tier || 1, raw.tile ?? can.tile);
       }
       const world = { cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} };
-      const ok = canQueue(city, getTiles(), world, item, { researched: Object.keys(state.techTree || {}).filter((t) => state.techTree[t]?.researched), ageId: getEffectiveAgeId(state.age, state.techAgeId) });
+      const ok = canQueue(city, getTiles(), world, item, { researched: Object.keys(state.techTree || {}).filter((t) => state.techTree[t]?.researched), ageId: ageOf(state, state.playerNationId) });
       if (!ok.ok) return reject(state, whyOf(ok));
       // One order per building tier and per tile improvement: a second tap says so instead of
       // paying for the same thing twice (playtest audits I045).
@@ -3101,7 +3101,7 @@ const reduceAction = (state, action) => {
       const { unitId } = action.payload || {};
       const unit = state.units[unitId];
       if (!unit || unit.ownerId !== state.playerNationId || !isSettler(unit)) return reject(state, msg('m.act.no.notYourSettlers'));
-      const can = canSettle(state, unit.tile, state.playerNationId, getEffectiveAgeId(state.age, state.techAgeId));
+      const can = canSettle(state, unit.tile, state.playerNationId, ageOf(state, state.playerNationId));
       if (!can.ok) return reject(state, whyOf(can));
       const founded = foundOutpost(state, state.regions, { tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} }, unit, state.turnNumber);
       if (!founded) return reject(state, msg('m.act.no.noCityHere'));
@@ -3189,7 +3189,10 @@ const reduceAction = (state, action) => {
       if (stop) { const stopped = stopExplore(state, unitIds); return stopped ? { ...state, units: stopped } : state; }
       const order = orderExplore(state, unitIds, toTile);
       if (!order.units) return reject(state, order.reason || msg('m.act.no.scouts'));
-      return { ...state, units: order.units, logs: [...state.logs, { year: state.year, ...(order.count > 1 ? msg('m.act.scoutsMany', { n: order.count }) : msg('m.act.scoutsOne')), type: LogTypes.ACTION }] };
+      // Each scout steps at once on its own route, like a march (routes.js stepMarchesNow).
+      let scouted = order.units;
+      unitIds.forEach((id) => { scouted = stepMarchesNow({ ...state, units: scouted }, [id]).units; });
+      return { ...state, units: scouted, logs: [...state.logs, { year: state.year, ...(order.count > 1 ? msg('m.act.scoutsMany', { n: order.count }) : msg('m.act.scoutsOne')), type: LogTypes.ACTION }] };
     }
 
     case ActionTypes.SET_HOLD: {

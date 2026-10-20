@@ -7,7 +7,7 @@
 import { findSettlerModel, preloadSettlerModel, SETTLER_KEY } from '../../../battle/render/unitModels';
 import { hasSoldierOverride } from '../../../battle/render/soldierFactory';
 import { isSettler } from '../../../engine/settlers';
-import { getEffectiveAgeId } from '../../../data/ages';
+import { ageOf } from '../../../engine/nationState';
 
 export { SETTLER_KEY, preloadSettlerModel };
 
@@ -22,8 +22,8 @@ export const settlerModelReady = (ageId, { find, has = hasSoldierOverride } = {}
 
 /** A nation's age as the close view draws it (the player's tech age, others' own). */
 export const ownerAge = (state, nationId) => (nationId === state.playerNationId
-  ? getEffectiveAgeId(state.age, state.techAgeId)
-  : getEffectiveAgeId(state.age, state.nations?.[nationId]?.tech?.ageId));
+  ? ageOf(state, state.playerNationId)
+  : ageOf(state, nationId));
 
 /** For the map's sprites: (unit) => whether the close view draws that settler's party now. */
 export const settlerModelled = (state, opts = {}) => (u) => settlerModelReady(ownerAge(state, u.ownerId), opts);

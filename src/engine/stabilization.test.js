@@ -62,7 +62,7 @@ describe('AI lifecycle and recruitment', () => {
     occupied.currentPopulation = 1e12;
     occupied.occupiedBy = 'fr';
     state.nations = { de: { ...state.nations.de, economy: { gold: 1e6, hr: 1e6, mil: 999 } } };
-    const result = processAIRecruitment(state, {}, state.nations, state.regions, ['de'], state.age, { next: () => 0 });
+    const result = processAIRecruitment(state, {}, state.nations, state.regions, ['de'], { next: () => 0 });
     expect(Object.values(result.units)).toHaveLength(1);
     expect(Object.values(result.units)[0].regionId).not.toBe(occupied.id);
   });
@@ -75,7 +75,7 @@ describe('AI lifecycle and recruitment', () => {
     interior.currentPopulation = 1e12;
     state.wars = [{ id: 'w', aggressor: 'fr', enemy: 'de', active: true, goal: { type: 'capture_region', regionId: front.id } }];
     state.nations = { de: { ...state.nations.de, isAtWar: true, economy: { gold: 1e6, hr: 1e6, mil: 999 } } };
-    const result = processAIRecruitment(state, {}, state.nations, state.regions, ['de'], state.age, { next: () => 0 });
+    const result = processAIRecruitment(state, {}, state.nations, state.regions, ['de'], { next: () => 0 });
     expect(Object.values(result.units)[0].regionId).toBe(front.id);
   });
 });

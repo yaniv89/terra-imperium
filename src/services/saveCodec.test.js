@@ -7,7 +7,7 @@ const samplePayload = () => ({
     playerNationId: 'fr',
     turnNumber: 42,
     year: 1523.7,
-    age: 'kingdoms',
+    techAgeId: 'kingdoms',
     gameStatus: 'ACTIVE',
     nations: { fr: { name: 'France' } },
     // A real state has thousands of region/unit entries; padding here just makes gzip's size win
@@ -76,6 +76,6 @@ describe('saveMetadata', () => {
   });
 
   it('falls back to null nation_name when the nation record is missing', () => {
-    expect(saveMetadata({ playerNationId: 'xx', nations: {}, turnNumber: 1, year: 0, age: 'bronze', gameStatus: 'ACTIVE' }).nation_name).toBeNull();
+    expect(saveMetadata({ playerNationId: 'xx', nations: {}, turnNumber: 1, year: 0, techAgeId: 'bronze', gameStatus: 'ACTIVE' }).nation_name).toBeNull();
   });
 });

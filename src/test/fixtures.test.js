@@ -22,9 +22,8 @@ describe('makeState', () => {
     expect(state.resources.hr).toBe(makeState().resources.hr); // untouched, matches a fresh state's own default
   });
 
-  it('applies top-level overrides (e.g. age) alongside resource overrides', () => {
-    const state = makeState({ overrides: { age: 'modern', techAgeId: 'modern' }, resources: { techPoints: 100000 } });
-    expect(state.age).toBe('modern');
+  it('applies top-level overrides (e.g. the research age) alongside resource overrides', () => {
+    const state = makeState({ overrides: { techAgeId: 'modern' }, resources: { techPoints: 100000 } });
     expect(state.techAgeId).toBe('modern');
     expect(state.resources.techPoints).toBe(100000);
   });

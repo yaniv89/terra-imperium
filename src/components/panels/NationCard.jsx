@@ -36,6 +36,9 @@ import { nameNow } from '../../i18n/names';
 import { reasonText } from '../../i18n/messageText';
 import { msgRefText } from '../battle/battleText';
 import { opinionLabel, opinionDetail } from './opinionText';
+import { ageOf } from '../../engine/nationState';
+import { ageVersusPlayer } from '../ui/ageProgress';
+import { shortAge } from './researchSheetModel';
 
 // Plan feedback ("I don't understand why I can't start a war, I have plenty of resources"): the
 // player was reading the top-bar Gold total and assuming that meant "affordable," when most
@@ -188,6 +191,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
             <span className={`fa-chip !min-h-[24px] !px-2 !text-[11px] uppercase tracking-wide ${atWarWithPlayer ? 'text-fa-danger-text border-fa-danger' : nation.hasMilitaryPact ? 'text-fa-good border-fa-good/60' : ''}`}>
               {atWarWithPlayer ? t('nc.status.war') : isVassalOfPlayer ? t('nc.status.vassal') : nation.hasMilitaryPact ? t('nc.status.pact') : nation.hasPeaceTreaty ? t('nc.status.peace') : nation.relationStatus ? (hasKey(`nc.rel.${nation.relationStatus}`, 'en') ? t(`nc.rel.${nation.relationStatus}`) : nation.relationStatus) : t('nc.status.met')}
             </span>
+            <span className="fa-chip !min-h-[24px] !px-2 !text-[11px]" data-testid="nation-age" data-age-vs-you={ageVersusPlayer(state, nation.id)}>{t(`p2.pp.age.${ageVersusPlayer(state, nation.id)}`, { age: shortAge(ageOf(state, nation.id)) })}</span>
             <span className="text-[12px] text-fa-muted">{metTurn != null ? t('nc.metT', { n: metTurn }) : t('nc.known')}{nation.doctrine ? `, ${hasKey(`p2.aidoc.${nation.doctrine}`, 'en') ? t(`p2.aidoc.${nation.doctrine}`) : nation.doctrine}` : ''}</span>
           </div>
         </div>
@@ -218,7 +222,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
         </div>
         <div className="flex flex-wrap gap-x-3 text-[12px] text-fa-muted mt-1.5">
           <span>{t('nc.army')} {hasIntel(state, nation.id) ? <span className="fa-num text-fa-text">{formatNumber(getFieldedStrength(state, nation.id))}</span> : <span className="fa-num" title={t('nc.armyUnknown')}>?</span>}</span>
-          {atWarWithPlayer && <span>{t('nc.warExhaustion')} <span className="fa-num text-fa-text">{nation.warExhaustion || 0}</span></span>}
+          {atWarWithPlayer && <span>{t('nc.warExhaustion')} <span className="fa-num text-fa-text">{Math.round(nation.warExhaustion || 0)}</span></span>}
           {atWarWithPlayer && activeWar && <span>{t('nc.warScore')} <span className={`fa-num ${playerWarScore >= 0 ? 'text-fa-good' : 'text-fa-danger-text'}`}>{playerWarScore >= 0 ? '+' : ''}{playerWarScore}</span></span>}
         </div>
       </div>

@@ -7,8 +7,8 @@
 // Switching keeps the progress made on each tech. Picking a tech further down a line queues the
 // missing earlier ones first.
 //
-//   cost = RESEARCH_AGE_BASE[age] x the speed's cost multiplier x (1 + research cost modifiers and diffusion)
-//          x the ages-behind multiplier
+//   cost = RESEARCH_AGE_BASE[tech's age] x the speed's cost multiplier at the PAYING nation's own age
+//          x (1 + research cost modifiers and diffusion)
 //
 // Diffusion (techDiffusion.js) is Civ V's catch-up: cheaper when neighbours already know it,
 // dearer as a pioneer. The ADM/DIP/MIL power pools no longer pay for research; Research Focus
@@ -19,19 +19,22 @@
 import { applyBoosts } from './boosts';
 import { BOOSTS, BOOST_SHARE } from '../data/boosts';
 import { TECH_TREE, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
-import { AGES, AGE_ORDER, getAgesBehind, getAgesBehindResearchCostMultiplier, speedCostMult, formatYear } from '../data/ages';
+import { AGES, AGE_ORDER, getAgeIndex, speedCostMult } from '../data/ages';
 import { DOCTRINE_TECH_CATEGORY_PRIORITY } from '../data/nations';
 import { LogTypes } from '../data/types';
-import { msg, thing } from './messages';
+import { msg, thing, carry, people } from './messages';
 import { getModifier } from './modifiers/sheet';
 import { withDiffusion } from './techDiffusion';
+import { ageOf } from './nationState';
+import { awardEraLegacy } from './eraGoals';
+import { isIndependentNation } from '../data/independents';
 
-// Science cost of one tech, by its age, at Normal speed. Calibrated with the balance-sim so a
-// typical nation researches about 6 to 8 of an age's 10 techs before the calendar age ends.
-// Recalibrated for the one-city Dawn start (plans/civ-map-rework.md, Part H): a size-2 capital
-// makes about 3 science a turn, so a Bronze tech takes about 8 turns. The later ages keep their
-// values until the balance-sim pass of workstream 13.
-export const RESEARCH_AGE_BASE = { bronze: 24, classical: 85, kingdoms: 135, gunpowder: 140, modern: 290 };
+// Science cost of one tech, by its age, before the speed multiplier. With no calendar and no year
+// gate (eight-ages plan KTD4) these alone pace the ages, calibrated with the balance-sim (U17,
+// peoples world, Normal, seeds 11 to 13, 300 turns) to KTD9's target turns: about half the majors
+// past Bronze at turn 48 and past Classical at turn 157, Kingdoms ending near 324. Gunpowder and
+// Modern are first guesses past the 300 turns measured (eight-age calibration, U96).
+export const RESEARCH_AGE_BASE = { bronze: 17, classical: 82, kingdoms: 1200, gunpowder: 2400, modern: 6000 };
 export { SCIENCE_PER_DEV } from '../data/actionCosts';
 export const FOCUS_SCIENCE_BONUS = 0.1;
 // A safety cap on techs completed in one turn (a big bank paid into cheap techs).
@@ -51,25 +54,28 @@ const researchOf = (state, nationId) => (isPlayer(state, nationId) ? state.resea
 const researchedSetOf = (state, nationId) => new Set(isPlayer(state, nationId)
   ? Object.keys(state.techTree || {}).filter((id) => state.techTree[id]?.researched)
   : state.nations[nationId]?.tech?.researched || []);
-const techAgeOf = (state, nationId) => (isPlayer(state, nationId) ? state.techAgeId : state.nations[nationId]?.tech?.ageId) || state.age;
+const techAgeOf = (state, nationId) => ageOf(state, nationId);
 
 export const getResearchCost = (state, nationId, techId) => {
   const tech = TECH_TREE[techId];
   if (!tech) return Infinity;
   const base = RESEARCH_AGE_BASE[tech.ageId] ?? RESEARCH_AGE_BASE.modern;
-  const speed = speedCostMult(state.gameSpeed, tech.ageId); // the speed table (ages.js): the same span of history per tech at every speed
+  const speed = speedCostMult(state.gameSpeed, techAgeOf(state, nationId)); // the speed table (ages.js, KTD9): keyed by the paying nation's own age
   const mult = withDiffusion(state, nationId, techId, getModifier(state, nationId, 'national.researchCost').total);
-  const behind = getAgesBehindResearchCostMultiplier(getAgesBehind(state.age, techAgeOf(state, nationId)));
-  return Math.max(1, Math.round(base * speed * (1 + mult) * behind));
+  return Math.max(1, Math.round(base * speed * (1 + mult)));
 };
 
-// Can this tech be researched now? (Its year has come, its line's earlier tech is known, and no
-// exclusive rival is.) `researched` is a Set of tech ids.
-export const canStartTech = (techId, researched, year, techDefs = TECH_TREE) => {
+/** The research window (eight-ages plan KTD4): a nation may start techs of its own age and the next. */
+export const inResearchWindow = (ageId, tech) => !!tech && getAgeIndex(tech.ageId) <= getAgeIndex(ageId) + 1;
+
+// Can this tech be researched now? (It is in the research window of the nation's age `ageId`, its
+// line's earlier tech is known, and no exclusive rival is.) `researched` is a Set of tech ids. No
+// rule reads the year.
+export const canStartTech = (techId, researched, ageId, techDefs = TECH_TREE) => {
   const tech = techDefs[techId];
   if (!tech) return { ok: false, reason: 'Unknown tech' };
   if (researched.has(techId)) return { ok: false, reason: 'Already researched' };
-  if (tech.yearAvailable > year) return { ok: false, reason: `Available from ${formatYear(tech.yearAvailable)}` };
+  if (!inResearchWindow(ageId, tech)) return { ok: false, reason: `Reach the ${AGES[AGE_ORDER[Math.max(0, getAgeIndex(tech.ageId) - 1)]]?.name || tech.ageId} first`, window: true };
   const prereqs = tech.requiresAny ? tech.prerequisites.some((p) => researched.has(p)) : tech.prerequisites.every((p) => researched.has(p));
   if (!prereqs) return { ok: false, reason: `Needs ${tech.prerequisites.map((p) => techDefs[p]?.name || p).join(' and ')}` };
   const rival = (tech.exclusiveWith || []).find((id) => researched.has(id));
@@ -91,15 +97,16 @@ export const getResearchPath = (techId, researched) => {
   return path;
 };
 
-// The techs an advisor (or the AI) would pick, best first: available now, by the doctrine's
-// line priority, then the earliest.
-export const suggestTechs = (state, nationId, count = 3, researched = researchedSetOf(state, nationId)) => {
+// The techs an advisor (or the AI) would pick, best first: startable now, the earliest age first (a
+// nation finishes its own age before reaching ahead), then the doctrine's line priority, then the
+// line's order, then the id, so the pick is deterministic.
+export const suggestTechs = (state, nationId, count = 3, researched = researchedSetOf(state, nationId), ageId = techAgeOf(state, nationId)) => {
   const doctrine = state.nations[nationId]?.doctrine;
   const priority = DOCTRINE_TECH_CATEGORY_PRIORITY[doctrine] || [];
   const rank = (cat) => { const i = priority.indexOf(cat); return i === -1 ? 99 : i; };
   return Object.values(TECH_TREE)
-    .filter((t) => canStartTech(t.id, researched, state.year).ok)
-    .sort((a, b) => rank(a.category) - rank(b.category) || a.yearAvailable - b.yearAvailable || (a.id < b.id ? -1 : 1))
+    .filter((t) => canStartTech(t.id, researched, ageId).ok)
+    .sort((a, b) => getAgeIndex(a.ageId) - getAgeIndex(b.ageId) || rank(a.category) - rank(b.category) || a.lineIndex - b.lineIndex || (a.id < b.id ? -1 : 1))
     .slice(0, count)
     .map((t) => t.id);
 };
@@ -121,6 +128,40 @@ const techAgeAfter = (techAgeId, researched) => {
   return count >= TECH_AGE_ADVANCEMENT_THRESHOLD && nextIndex < AGE_ORDER.length ? AGE_ORDER[nextIndex] : techAgeId;
 };
 
+/** The age a researched Set reaches: from the first age, on while 6 of the age's 10 techs are known. */
+export const deriveTechAge = (researched) => {
+  let ageId = AGE_ORDER[0];
+  for (;;) {
+    const next = techAgeAfter(ageId, researched);
+    if (next === ageId) return ageId;
+    ageId = next;
+  }
+};
+
+/**
+ * `nationId` with every tech of the ages before `ageId` researched and its age derived from that
+ * (never lowered). Era fixtures (later-era starts, kept for tests and the sandbox) use it so their
+ * nations are in the fixture's age by research, the only way a nation has an age (KTD1).
+ */
+export const withAgesResearched = (state, nationId, ageId) => {
+  const below = AGE_ORDER.slice(0, Math.max(0, AGE_ORDER.indexOf(ageId))).flatMap((a) => getTechsForAge(a).map((t) => t.id));
+  const researched = researchedSetOf(state, nationId);
+  below.forEach((id) => researched.add(id));
+  const derived = deriveTechAge(researched);
+  const current = techAgeOf(state, nationId);
+  const techAgeId = AGE_ORDER.indexOf(current) > AGE_ORDER.indexOf(derived) ? current : derived;
+  if (isPlayer(state, nationId)) {
+    const techTree = { ...state.techTree };
+    below.forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
+    return { ...state, techTree, techAgeId };
+  }
+  const nation = state.nations[nationId];
+  if (!nation) return state;
+  const list = [...(nation.tech?.researched || [])];
+  below.forEach((id) => { if (!list.includes(id)) list.push(id); });
+  return { ...state, nations: { ...state.nations, [nationId]: { ...nation, tech: { ...nation.tech, researched: list, ageId: techAgeId } } } };
+};
+
 // One nation's research for one turn: pay the science stock into the current tech (and on down
 // the queue). Pure. Returns { research, stock, completed: [techIds], techAgeId }.
 export const stepResearch = (state, nationId) => {
@@ -136,13 +177,13 @@ export const stepResearch = (state, nationId) => {
     while (research.queue.length) {
       const id = research.queue[0];
       if (researched.has(id) || !TECH_TREE[id]) { research.queue.shift(); continue; }
-      return canStartTech(id, researched, state.year).ok ? research.queue.shift() : null; // the next one isn't ready yet: wait
+      return canStartTech(id, researched, techAgeId).ok ? research.queue.shift() : null; // the next one isn't ready yet: wait
     }
-    return auto ? suggestTechs(state, nationId, 1, researched)[0] || null : null;
+    return auto ? suggestTechs(state, nationId, 1, researched, techAgeId)[0] || null : null;
   };
   while (stock > 0 && completed.length < MAX_COMPLETIONS_PER_TURN) {
-    if (!research.current || researched.has(research.current) || !canStartTech(research.current, researched, state.year).ok) {
-      if (research.current && !researched.has(research.current) && TECH_TREE[research.current] && !canStartTech(research.current, researched, state.year).ok) break; // chosen but not yet available: bank
+    if (!research.current || researched.has(research.current) || !canStartTech(research.current, researched, techAgeId).ok) {
+      if (research.current && !researched.has(research.current) && TECH_TREE[research.current] && !canStartTech(research.current, researched, techAgeId).ok) break; // chosen but not yet available: bank
       research.current = nextStartable();
       if (!research.current) break;
     }
@@ -165,9 +206,29 @@ export const stepResearch = (state, nationId) => {
   return { research, stock, completed, techAgeId };
 };
 
+// A nation's own age advanced (KTD7): each age it left is scored for its era goals (a legacy), the
+// turn it entered the new age is kept (nation.ageSince), and the first major into an age is named
+// in the log. Returns the nation; pushes the player's lines into `logs`.
+const isMajorNation = (n) => !!n && !n.isEliminated && !isIndependentNation(n);
+const onAgeAdvance = (state, nation, fromAgeId, toAgeId, logs, world) => {
+  let n = nation;
+  for (let i = getAgeIndex(fromAgeId); i < getAgeIndex(toAgeId); i++) {
+    const legacy = awardEraLegacy(state, n, AGE_ORDER[i], state.turnNumber);
+    n = legacy.nation;
+    if (nation.id === state.playerNationId && legacy.log) logs.push({ year: state.year, ...carry(legacy.log), type: LogTypes.MILESTONE });
+  }
+  if (getAgeIndex(toAgeId) > world.top) {
+    world.top = getAgeIndex(toAgeId);
+    logs.push({ year: state.year, ...msg('m.world.firstIntoAge', { nation: people(nation.id, nation.name), age: thing('age', toAgeId, AGES[toAgeId]?.name) }), type: LogTypes.MILESTONE });
+  }
+  return { ...n, ageSince: state.turnNumber };
+};
+
 // Runs every nation's research for the turn (the player's and every AI nation with an economy).
 export const applyResearchTurn = (state) => {
   let next = state;
+  // The highest age any major holds before this turn's research: who passes it is first in the world.
+  const world = { top: Math.max(0, ...Object.keys(state.nations || {}).filter((id) => isMajorNation(state.nations[id])).map((id) => getAgeIndex(techAgeOf(state, id)))) };
   // Boosts from the map (boosts.js): every tech whose fact a nation has met gets its share first.
   const boostedPlayer = applyBoosts(state, state.playerNationId, researchOf(state, state.playerNationId), researchedSetOf(state, state.playerNationId));
   if (boostedPlayer.applied.length) {
@@ -180,8 +241,11 @@ export const applyResearchTurn = (state) => {
     p.completed.forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
     const logs = [...next.logs];
     p.completed.forEach((id) => logs.push({ year: state.year, ...msg('m.world.researched', { tech: thing('tech', id, TECH_TREE[id].name) }), type: LogTypes.TECH }));
-    if (p.techAgeId !== state.techAgeId) logs.push({ year: state.year, ...msg('m.world.techAge', { age: thing('age', p.techAgeId, AGES[p.techAgeId]?.name) }), type: LogTypes.MILESTONE });
+    const before = techAgeOf(state, state.playerNationId);
+    if (p.techAgeId !== before) logs.push({ year: state.year, ...msg('m.world.techAge', { age: thing('age', p.techAgeId, AGES[p.techAgeId]?.name) }), type: LogTypes.MILESTONE });
     next = { ...next, techTree, techAgeId: p.techAgeId, research: p.research, resources: { ...next.resources, techPoints: p.stock }, logs };
+    const me = next.nations?.[state.playerNationId];
+    if (p.techAgeId !== before && me) next = { ...next, nations: { ...next.nations, [state.playerNationId]: onAgeAdvance(next, me, before, p.techAgeId, logs, world) } };
   }
   // AI nations.
   let nations = null;
@@ -193,8 +257,13 @@ export const applyResearchTurn = (state) => {
     const r = stepResearch(boosted.applied.length ? { ...state, nations: { ...state.nations, [id]: { ...nation, research: boosted.research } } } : state, id);
     if (!r.completed.length && r.stock === nation.economy.techPoints && r.research.current === nation.research?.current) return;
     nations ||= { ...next.nations };
+    const advanced = r.techAgeId !== techAgeOf(state, id);
+    let logs = null;
+    if (advanced) { logs = [...next.logs]; }
+    const scored = advanced ? onAgeAdvance(state, nation, techAgeOf(state, id), r.techAgeId, logs, world) : nation;
+    if (logs && logs.length !== next.logs.length) next = { ...next, logs };
     nations[id] = {
-      ...nation,
+      ...scored,
       research: r.research,
       economy: { ...nation.economy, techPoints: r.stock },
       // The same researched list while nothing completed: its identity keys the tile-yield memos.

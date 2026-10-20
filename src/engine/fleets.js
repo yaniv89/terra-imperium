@@ -19,9 +19,9 @@
 // Pure; ties in the path search break on tile id.
 import { getTiles, onWorldChange } from '../data/geo/tiles';
 import { ringsForKm, cellsForAreaKm2, minStepsBetween } from '../data/geo/gridScale';
-import { getEffectiveAgeId, agesFrom } from '../data/ages';
+import { agesFrom } from '../data/ages';
 import { canAttack, canFight } from './hostility';
-import { getTechAgeId } from './nationState';
+import { ageOf } from './nationState';
 import { regionAccess, unitTile } from './armies';
 import { mapEffectsFor } from './techMapEffects';
 import { reasonOf, cityRef, people, sub } from './messages';
@@ -41,7 +41,7 @@ export const MAX_SEA_STEPS = ringsForKm(17_400);        // 170 steps at frequenc
 const MAX_SEARCH = cellsForAreaKm2(108_810_000);       // 12000 tiles at frequency 75
 
 export const isFleet = (u) => u?.domain === 'naval';
-export const fleetAge = (state, nationId) => getEffectiveAgeId(state.age, getTechAgeId(state, nationId));
+export const fleetAge = (state, nationId) => ageOf(state, nationId);
 export const fleetPace = (state, unit) => ringsForKm((NAVAL_KM_BY_AGE[fleetAge(state, unit.ownerId)] || NAVAL_KM_BY_AGE.bronze) + mapEffectsFor(state, unit.ownerId).navalMoves); // techs that sail further (techMapEffects.js)
 export const deepOk = (ageId, deepTech = false) => deepTech || DEEP_OK_FROM.includes(ageId);
 export const shelfOk = (ageId, shelfTech = false) => shelfTech || SHELF_OK_FROM.includes(ageId) || deepOk(ageId);

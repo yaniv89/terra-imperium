@@ -5,15 +5,9 @@ import {
   START_YEAR,
   END_YEAR,
   getAgeIndex,
-  getCalendarAgeId,
-  getEffectiveAgeIndex,
-  getEffectiveAgeId,
-  getAgesBehind,
-  getAgesBehindResearchCostMultiplier,
   GAME_SPEEDS,
-  getYearsPerTurn,
   speedCostMult,
-  gameLengthTurns,
+  speedTurnLimit,
   FIRST_AGE_ID,
   LAST_AGE_ID,
   isAgeAtLeast,
@@ -37,104 +31,31 @@ describe('AGES calendar coverage', () => {
   });
 });
 
-describe('getCalendarAgeId', () => {
-  it('returns bronze at the very start of the timeline', () => {
-    expect(getCalendarAgeId(START_YEAR)).toBe('bronze');
+describe('game speed (KTD9: a cost multiplier per age, a turn limit, no years per turn)', () => {
+  it('keeps the values the old calendar gave Bronze to Modern exactly', () => {
+    const old = { bronze: 40, classical: 20, kingdoms: 10, gunpowder: 4, modern: 2 };
+    const years = { fast: { bronze: 50, classical: 25, kingdoms: 12, gunpowder: 5, modern: 2 }, normal: { bronze: 25, classical: 12, kingdoms: 6, gunpowder: 2, modern: 1 }, marathon: { bronze: 10, classical: 5, kingdoms: 3, gunpowder: 1, modern: 1 } };
+    Object.keys(years).forEach((sp) => AGE_ORDER.forEach((ageId) => expect(speedCostMult(sp, ageId)).toBe(old[ageId] / years[sp][ageId])));
+    expect(speedCostMult('normal', 'gunpowder')).toBe(2);
   });
 
-  it('returns modern at the very end of the timeline', () => {
-    expect(getCalendarAgeId(END_YEAR)).toBe('modern');
-  });
-
-  it('places boundary years in the newer age (start-inclusive ranges)', () => {
-    expect(getCalendarAgeId(-800)).toBe('classical');
-    expect(getCalendarAgeId(500)).toBe('kingdoms');
-    expect(getCalendarAgeId(1500)).toBe('gunpowder');
-    expect(getCalendarAgeId(1900)).toBe('modern');
-  });
-
-  it('clamps years outside the timeline instead of throwing', () => {
-    expect(getCalendarAgeId(-99999)).toBe('bronze');
-    expect(getCalendarAgeId(99999)).toBe('modern');
-  });
-});
-
-describe('getEffectiveAgeIndex / getEffectiveAgeId', () => {
-  it('floors a nation at the calendar age even with no tech progress', () => {
-    expect(getEffectiveAgeId('kingdoms', 'bronze')).toBe('kingdoms');
-  });
-
-  it('lets a nation rush exactly one age ahead of the calendar', () => {
-    expect(getEffectiveAgeId('bronze', 'classical')).toBe('classical');
-  });
-
-  it('never grants more than one age of unearned rush, even if techAge claims more', () => {
-    expect(getEffectiveAgeId('bronze', 'modern')).toBe('classical');
-  });
-
-  it('matches calendar exactly when tech age equals it', () => {
-    expect(getEffectiveAgeIndex('gunpowder', 'gunpowder')).toBe(getAgeIndex('gunpowder'));
-  });
-});
-
-describe('getAgesBehind', () => {
-  it('is zero when tech age is at or ahead of calendar', () => {
-    expect(getAgesBehind('kingdoms', 'kingdoms')).toBe(0);
-    expect(getAgesBehind('kingdoms', 'gunpowder')).toBe(0);
-  });
-
-  it('counts how many ages a nation has fallen behind the calendar', () => {
-    expect(getAgesBehind('modern', 'classical')).toBe(3);
-  });
-});
-
-describe('getAgesBehindResearchCostMultiplier', () => {
-  it('is 1 (no penalty) when not behind', () => {
-    expect(getAgesBehindResearchCostMultiplier(0)).toBe(1);
-  });
-
-  it('rises 30% per age behind, uncapped', () => {
-    expect(getAgesBehindResearchCostMultiplier(1)).toBeCloseTo(1.3);
-    expect(getAgesBehindResearchCostMultiplier(4)).toBeCloseTo(2.2);
-  });
-});
-
-describe('game speed (the speed table, plans/playtest-1.md P3)', () => {
-  it('Marathon moves the calendar slowest at every age and a full game is about 1,500 turns', () => {
-    AGE_ORDER.forEach(ageId => {
-      expect(getYearsPerTurn(ageId, 'fast')).toBeGreaterThanOrEqual(getYearsPerTurn(ageId, 'normal'));
-      expect(getYearsPerTurn(ageId, 'normal')).toBeGreaterThanOrEqual(getYearsPerTurn(ageId, 'marathon'));
-    });
-    expect(getYearsPerTurn('bronze', 'marathon')).toBe(10);
-    expect(getYearsPerTurn('bronze', 'normal')).toBe(25);
-    expect(gameLengthTurns('fast')).toBeGreaterThan(400); expect(gameLengthTurns('fast')).toBeLessThan(500);
-    expect(gameLengthTurns('normal')).toBeGreaterThan(850); expect(gameLengthTurns('normal')).toBeLessThan(1000);
-    expect(gameLengthTurns('marathon')).toBeGreaterThan(1400); expect(gameLengthTurns('marathon')).toBeLessThan(1600);
-    // The cost multiplier follows the turns: more turns per year, dearer techs and buildings, so
-    // the pace per year of history holds at every speed and age.
+  it('is slower on a slower speed at every age, and Normal is the fallback speed', () => {
     AGE_ORDER.forEach((ageId) => {
       expect(speedCostMult('fast', ageId)).toBeLessThanOrEqual(speedCostMult('normal', ageId));
       expect(speedCostMult('normal', ageId)).toBeLessThanOrEqual(speedCostMult('marathon', ageId));
-      ['fast', 'normal', 'marathon'].forEach((sp) => expect(speedCostMult(sp, ageId) * getYearsPerTurn(ageId, sp)).toBeCloseTo(speedCostMult('fast', ageId) * getYearsPerTurn(ageId, 'fast'), 6));
     });
     expect(speedCostMult('unknown', 'bronze')).toBe(speedCostMult('normal', 'bronze'));
   });
 
-  it('Normal years-per-turn shrinks monotonically as ages advance', () => {
-    const normalValues = AGE_ORDER.map(ageId => getYearsPerTurn(ageId, 'normal'));
-    for (let i = 0; i < normalValues.length - 1; i++) {
-      expect(normalValues[i]).toBeGreaterThan(normalValues[i + 1]);
-    }
+  it('throws for an unknown age under the tests', () => {
+    expect(() => speedCostMult('normal', 'atlantis')).toThrow(/unknown age/);
   });
 
-  it('falls back to Normal speed for an unknown speed id', () => {
-    expect(getYearsPerTurn('bronze', 'unknown')).toBe(getYearsPerTurn('bronze', 'normal'));
-  });
-
-  it('every speed id in GAME_SPEEDS actually resolves', () => {
-    Object.keys(GAME_SPEEDS).forEach(speedId => {
-      expect(getYearsPerTurn('modern', speedId)).toBeGreaterThan(0);
-    });
+  it('ends a game at the speed turn limit', () => {
+    expect(speedTurnLimit('fast')).toBe(440);
+    expect(speedTurnLimit('normal')).toBe(923);
+    expect(speedTurnLimit('marathon')).toBe(1514);
+    Object.values(GAME_SPEEDS).forEach((sp) => expect(sp.years).toBeUndefined());
   });
 });
 
@@ -208,14 +129,13 @@ describe('tech tree listed by age', () => {
       'science_cuneiform_records', 'science_early_astronomy', 'science_geometry', 'science_natural_philosophy', 'science_scholastic_method', 'science_optics', 'science_scientific_method', 'science_calculus', 'science_computing', 'science_genomics'
     ]);
   });
-  it('ten techs an age, two per line, the second staggered to mid-age after the first', () => {
+  it('ten techs an age, two per line, the second after the first', () => {
     AGE_ORDER.forEach((age) => {
       const techs = getTechsForAge(age);
       expect(techs.length, age).toBe(10);
       const perLine = techs.reduce((acc, t) => ({ ...acc, [t.category]: [...(acc[t.category] || []), t] }), {});
       Object.values(perLine).forEach(([first, second]) => {
-        expect(first.yearAvailable).toBe(AGES[age].startYear);
-        expect(second.yearAvailable).toBe(Math.round((AGES[age].startYear + AGES[age].endYear) / 2));
+        expect(second.lineIndex).toBe(first.lineIndex + 1);
         expect(second.prerequisites[0]).toBe(first.id);
       });
     });

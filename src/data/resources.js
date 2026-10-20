@@ -69,25 +69,25 @@ export const RESOURCE_IDS = Object.keys(RESOURCES);
 // Resources with no age gate at all — always present in every nation's economy from turn one.
 export const ALWAYS_AVAILABLE_RESOURCE_IDS = RESOURCE_IDS.filter(id => RESOURCES[id].unlockAge === null);
 
-export const isResourceUnlocked = (resourceId, calendarAgeId) => {
+export const isResourceUnlocked = (resourceId, nationAgeId) => {
   const resource = RESOURCES[resourceId];
   if (!resource) return false;
   if (resource.unlockAge === null) return true;
   const unlockIdx = getAgeIndex(resource.unlockAge);
-  const currentIdx = getAgeIndex(calendarAgeId);
+  const currentIdx = getAgeIndex(nationAgeId);
   if (unlockIdx === -1 || currentIdx === -1) return false;
   return currentIdx >= unlockIdx;
 };
 
 // Every resource unlocked by (and including) the given age, in age-unlock order then always-on
 // resources — a starter pool for createInitialState() to zero-initialize.
-export const getUnlockedResourceIds = (calendarAgeId) => RESOURCE_IDS.filter(id => isResourceUnlocked(id, calendarAgeId));
+export const getUnlockedResourceIds = (nationAgeId) => RESOURCE_IDS.filter(id => isResourceUnlocked(id, nationAgeId));
 
 // A fresh, all-zero resource pool covering every resource that exists at the given age — the
 // shape createInitialState() should spread nation-specific starting amounts over.
-export const createEmptyResourcePool = (calendarAgeId) => {
+export const createEmptyResourcePool = (nationAgeId) => {
   const pool = {};
-  getUnlockedResourceIds(calendarAgeId).forEach(id => { pool[id] = 0; });
+  getUnlockedResourceIds(nationAgeId).forEach(id => { pool[id] = 0; });
   return pool;
 };
 

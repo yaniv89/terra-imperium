@@ -14,9 +14,9 @@ import { isUnitInBattle } from './invasion';
 // Britain (AI, at war with the player's France) carries an army to a French coastal city.
 const fixture = ({ player = 'fr', frenchFleet = 0, guard = true } = {}) => {
   const s = createInitialState({ playerNationId: player, rngSeed: 7 });
-  s.age = 'modern'; s.techAgeId = 'modern';
+  s.techAgeId = 'modern';
   const port = Object.keys(s.regions).find((r) => s.regions[r].owner === 'gb' && isCoastal(r));
-  const target = Object.keys(s.regions).find((r) => s.regions[r].owner === 'fr' && isCoastal(r) && isReachableBySea(port, r, s.age));
+  const target = Object.keys(s.regions).find((r) => s.regions[r].owner === 'fr' && isCoastal(r) && isReachableBySea(port, r, s.techAgeId));
   s.wars = [{ id: 'island', aggressor: 'gb', enemy: 'fr', active: true, startYear: s.year, battleScore: 0 }];
   s.nations.gb = { ...s.nations.gb, isAtWar: true, economy: { gold: 1000, hr: 1000, mil: 100, adm: 100 }, tech: { ageId: 'modern', researched: [] } };
   s.nations.fr = { ...s.nations.fr, isAtWar: true, ...(player !== 'fr' ? { economy: { gold: 1000, hr: 1000, mil: 100, adm: 100 } } : {}) };

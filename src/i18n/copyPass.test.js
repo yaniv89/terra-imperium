@@ -38,7 +38,7 @@ describe('copy pass (H-20)', () => {
   it('the march line has no stray punctuation', () => {
     const line = translate('march.toTurns', { target: 'Waset', turns: '1 turn' }, 'en') + translate('march.setsOut', null, 'en')
       + translate('march.supplies', { supplies: '1 supply' }, 'en') + translate('march.moveNowNote', null, 'en');
-    expect(line).toBe('To Waset: 1 turn, it sets out at End Turn, about 1 supply. Move now arrives this turn.');
+    expect(line).toBe('To Waset: 1 turn, it sets out now, about 1 supply. Move now arrives this turn.');
     expect(line).not.toMatch(/\. ,|\.\./);
   });
 });

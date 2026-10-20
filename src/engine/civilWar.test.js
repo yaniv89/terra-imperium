@@ -81,7 +81,7 @@ describe('processCivilWarTurn (plan §M15)', () => {
     const rng = createRng(7);
     const started = startCivilWar(state.regions, state.units, US_ID, 10000, rng, 1);
     const nation = { ...state.nations[US_ID], civilWar: started.civilWar, stability: -3, prestige: 40, legitimacy: 40 };
-    return { state: { ...state, age: state.age }, regions: started.regions, units: started.units, nation, rng };
+    return { state, regions: started.regions, units: started.units, nation, rng };
   };
 
   it('crushes the civil war once every insurgent army is gone (+1 stability, +10 legitimacy)', () => {
@@ -121,13 +121,13 @@ describe('processCivilWarTurn (plan §M15)', () => {
     let nation = { ...state.nations[US_ID], civilWar: { active: true, startedTurn: 1, holdStreak: 0 } };
 
     for (let turn = 2; turn <= 5; turn++) {
-      const result = processCivilWarTurn({ ...state, age: state.age }, regions, units, nation, US_ID, rng, turn);
+      const result = processCivilWarTurn(state, regions, units, nation, US_ID, rng, turn);
       expect(result.result).toBe('ongoing');
       regions = result.regions;
       units = result.units;
       nation = result.nation;
     }
-    const final = processCivilWarTurn({ ...state, age: state.age }, regions, units, nation, US_ID, rng, 6);
+    const final = processCivilWarTurn(state, regions, units, nation, US_ID, rng, 6);
     expect(final.result).toBe('lost');
     expect(final.nation.civilWar).toBeNull();
     expect(final.nation.prestige).toBe((nation.prestige || 0) - 20);

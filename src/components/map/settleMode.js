@@ -14,10 +14,10 @@
 // This file is the pure part (tested without a DOM); MapContainer.jsx holds the state, SettleBar.jsx
 // is the bar, gl/sceneModel.js draws the tints and the numbered site marks.
 import { getTiles } from '../../data/geo/tiles';
-import { getEffectiveAgeId } from '../../data/ages';
 import { bestSites, isSettler, settlersOf, siteOutlook, MAX_SETTLE_RINGS, SETTLER_MOVES } from '../../engine/settlers';
 import { ringDistance } from '../../engine/world/cities';
 import { citySpacingRings } from '../../data/geo/citySpacing';
+import { ageOf } from '../../engine/nationState';
 import { t as tNow } from '../../i18n';
 import { nameNow } from '../../i18n/names';
 
@@ -26,7 +26,7 @@ export const SETTLE_SITE_LIMIT = 8;
 /** How many of the engine's ranked tiles the list is drawn from. */
 export const SETTLE_SITE_POOL = 400;
 
-const ageOf = (state) => getEffectiveAgeId(state.age, state.techAgeId);
+const playerAge = (state) => ageOf(state, state.playerNationId);
 
 /** The player's settler the mode is about, or null when it is gone or not a settler any more. */
 export const settleUnit = (state, mode) => {
@@ -69,7 +69,7 @@ export const settleSites = (state, mode, limit = SETTLE_SITE_LIMIT) => {
   // is the same place), so every "Next good site" is somewhere else to go.
   const apart = citySpacingRings(tiles);
   const kept = [];
-  for (const s of bestSites(state, me, u.tile, ageOf(state), { rings: MAX_SETTLE_RINGS, limit: SETTLE_SITE_POOL })) {
+  for (const s of bestSites(state, me, u.tile, playerAge(state), { rings: MAX_SETTLE_RINGS, limit: SETTLE_SITE_POOL })) {
     if (kept.some((q) => ringDistance(tiles, q.tile, s.tile, apart - 1) < apart)) continue;
     kept.push(s);
     if (kept.length >= limit * 2) break;

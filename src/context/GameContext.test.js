@@ -21,6 +21,7 @@ import { TAX_RATE_CHANGE_COOLDOWN_TURNS } from '../data/taxRates';
 import { ARMY_MAINTENANCE_MIN, ARMY_MAINTENANCE_MAX, ARMY_MAINTENANCE_DEFAULT, FUSION_GRID_ACTIVATION_HELIUM3 } from '../data/actionCosts';
 import { MAX_RIVALS, VASSAL_ANNEX_COOLDOWN_TURNS, TRUCE_BREAK_STABILITY_PENALTY } from '../data/actionCosts';
 import { claimableCities } from '../engine/claims';
+import { displayYear } from '../engine/displayYear';
 
 // A nation now spans many real provinces, not one region matching its own id — these tests use
 // each nation's capital as "its" region wherever the old one-region-per-nation model used the
@@ -51,10 +52,10 @@ const expectRefused = (next, state) => {
 };
 
 describe('ADVANCE_TURN / RESOLVE_EVENT delegate to the pure engine', () => {
-  it('ADVANCE_TURN advances the year and delegates to resolveTurn', () => {
+  it('ADVANCE_TURN advances the turn, writes the year label and delegates to resolveTurn', () => {
     const state = createInitialState({ playerNationId: 'fr' });
     const next = gameReducer(state, { type: ActionTypes.ADVANCE_TURN });
-    expect(next.year).toBeGreaterThan(state.year);
+    expect(next.year).toBe(displayYear(next));
     expect(next.turnNumber).toBe(state.turnNumber + 1);
   });
 
@@ -1025,7 +1026,7 @@ describe('Military tab actions', () => {
       const unitId = Object.keys(state.units)[0];
       const next = gameReducer(state, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: FR_NEIGHBOR } });
       expect(next.units).toBe(state.units);
-      expect(next.logs[next.logs.length - 1].message).toMatch(/Too far to move now: the march takes \d+ turns/);
+      expect(next.logs[next.logs.length - 1].message).toMatch(/Too far to move now: the march needs \d+ more End Turn/);
     });
 
     it('is a no-op once the unit has no moves left this turn (plan §M14)', () => {
@@ -1698,13 +1699,13 @@ describe('Research tab actions', () => {
       expect(next.research.queue).toEqual(['military_composite_bow']);
     });
 
-    it('costs more science the further the tech age has fallen behind the calendar', () => {
+    it('costs no more science for a nation that has fallen behind (KTD5)', () => {
       const baseline = richState();
-      const behind = { ...baseline, age: 'gunpowder', techAgeId: 'bronze' }; // 3 ages behind -> +90%
-      expect(Math.abs(getResearchCost(behind, 'fr', 'military_bronze_casting') - getResearchCost(baseline, 'fr', 'military_bronze_casting') * 1.9)).toBeLessThanOrEqual(1); // rounding of the speed table's multiplier (ages.js)
+      const behind = { ...baseline, year: 1700 };
+      expect(getResearchCost(behind, 'fr', 'military_bronze_casting')).toBe(getResearchCost(baseline, 'fr', 'military_bronze_casting'));
     });
 
-    it('the second tech of a line follows once the first is researched and its year has come', () => {
+    it('the second tech of a line follows once the first is researched', () => {
       const state = { ...richState(), year: -1000 };
       const next = researchWith(state, 'military_composite_bow', 10000);
       expect(next.techTree.military_bronze_casting.researched).toBe(true);

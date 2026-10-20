@@ -539,8 +539,8 @@ describe('processAIRecruitment', () => {
     turnNumber: 42,
     nations: {
       us: { id: 'us', isPlayer: true },
-      de: { id: 'de', isPlayer: false, isAtWar: false, militaryStrength: 5000 },
-      fr: { id: 'fr', isPlayer: false, isAtWar: false, militaryStrength: 2000 }
+      de: { id: 'de', isPlayer: false, isAtWar: false, militaryStrength: 5000, tech: { researched: [], ageId: 'classical' } },
+      fr: { id: 'fr', isPlayer: false, isAtWar: false, militaryStrength: 2000, tech: { researched: [], ageId: 'classical' } }
     },
     regions: {
       de: { owner: 'de', currentPopulation: 1000 },
@@ -551,7 +551,7 @@ describe('processAIRecruitment', () => {
 
   it('recruits a real unit for a Tier 1 nation, spends militaryStrength, and places it in its most populous region', () => {
     const state = baseState();
-    const result = processAIRecruitment(state, {}, state.nations, state.regions, ['de'], 'classical', alwaysRecruit);
+    const result = processAIRecruitment(state, {}, state.nations, state.regions, ['de'], alwaysRecruit);
     const recruited = Object.values(result.units).find(u => u.ownerId === 'de');
     expect(recruited).toBeDefined();
     expect(recruited.regionId).toBe('de2'); // more populous than 'de'
@@ -561,19 +561,19 @@ describe('processAIRecruitment', () => {
 
   it('does nothing for a Tier 2/3 nation (not in sortedByMilitary, no war, no player border)', () => {
     const state = baseState();
-    const result = processAIRecruitment(state, {}, state.nations, state.regions, [], 'classical', alwaysRecruit);
+    const result = processAIRecruitment(state, {}, state.nations, state.regions, [], alwaysRecruit);
     expect(Object.keys(result.units)).toHaveLength(0);
   });
 
   it('never recruits for the player', () => {
     const state = baseState();
-    const result = processAIRecruitment(state, {}, state.nations, state.regions, ['us'], 'classical', alwaysRecruit);
+    const result = processAIRecruitment(state, {}, state.nations, state.regions, ['us'], alwaysRecruit);
     expect(Object.values(result.units).some(u => u.ownerId === 'us')).toBe(false);
   });
 
   it('does nothing when the roll fails', () => {
     const state = baseState();
-    const result = processAIRecruitment(state, {}, state.nations, state.regions, ['de'], 'classical', neverRecruit);
+    const result = processAIRecruitment(state, {}, state.nations, state.regions, ['de'], neverRecruit);
     expect(Object.keys(result.units)).toHaveLength(0);
     expect(result.nations.de.militaryStrength).toBe(5000);
   });
@@ -581,7 +581,7 @@ describe('processAIRecruitment', () => {
   it('refuses to recruit below the militaryStrength cost', () => {
     const state = baseState();
     state.nations.de.militaryStrength = 100;
-    const result = processAIRecruitment(state, {}, state.nations, state.regions, ['de'], 'classical', alwaysRecruit);
+    const result = processAIRecruitment(state, {}, state.nations, state.regions, ['de'], alwaysRecruit);
     expect(Object.keys(result.units)).toHaveLength(0);
   });
 
@@ -592,7 +592,8 @@ describe('processAIRecruitment', () => {
     const state = baseState();
     const existing = {};
     for (let i = 0; i < 8; i++) existing[`existing_${i}`] = { ownerId: 'de', classId: 'infantry' };
-    const result = processAIRecruitment(state, existing, state.nations, state.regions, ['de'], 'bronze', alwaysRecruit);
+    const bronze = { ...state, nations: { ...state.nations, de: { ...state.nations.de, tech: { researched: [], ageId: 'bronze' } } } };
+    const result = processAIRecruitment(bronze, existing, bronze.nations, bronze.regions, ['de'], alwaysRecruit);
     const newOnes = Object.keys(result.units).filter(id => !existing[id]);
     expect(newOnes).toHaveLength(0);
   });
@@ -602,15 +603,15 @@ describe('processAIRecruitment', () => {
     const existing = {};
     for (let i = 0; i < 8; i++) existing[`existing_${i}`] = { ownerId: 'de', classId: 'infantry' };
     // At classical (cap 10 vs. bronze's 8), being at the OLD flat cap should no longer block recruiting.
-    const result = processAIRecruitment(state, existing, state.nations, state.regions, ['de'], 'classical', alwaysRecruit);
+    const result = processAIRecruitment(state, existing, state.nations, state.regions, ['de'], alwaysRecruit);
     const newOnes = Object.keys(result.units).filter(id => !existing[id]);
     expect(newOnes.length).toBeGreaterThan(0);
   });
 
   it('is deterministic given the same rng sequence', () => {
     const state = baseState();
-    const a = processAIRecruitment(state, {}, state.nations, state.regions, ['de'], 'classical', createRng(7));
-    const b = processAIRecruitment(state, {}, state.nations, state.regions, ['de'], 'classical', createRng(7));
+    const a = processAIRecruitment(state, {}, state.nations, state.regions, ['de'], createRng(7));
+    const b = processAIRecruitment(state, {}, state.nations, state.regions, ['de'], createRng(7));
     expect(a).toEqual(b);
   });
 });

@@ -75,6 +75,23 @@ const checkpoints = () => { const c = []; for (let t = EVERY; t <= TURNS; t += E
 
 const isPlagued = (r) => r.disaster?.kind === 'plague' || (r.plague?.i || 0) > 0;
 
+// Ages (eight-ages plan U17): a nation's age as the engine under test sees it. An old engine (a
+// base commit) still had the calendar floor and the +1 cap; the ages-by-tech engine has only research.
+const nationAge = (s, id) => (AGES.getEffectiveAgeId ? AGES.getEffectiveAgeId(s.age, getTechAgeId(s, id)) : getTechAgeId(s, id));
+const livingMajors = (s) => Object.values(s.nations).filter((n) => n.kind !== 'independent' && !n.isEliminated && !n.id.startsWith('free_') && n.id !== 'rebels');
+// The plan's target end turn of each age by speed (KTD9, Bronze to Gunpowder; Modern runs to the end).
+const AGE_TARGET_TURNS = { fast: { bronze: 24, classical: 52, kingdoms: 84, gunpowder: 80 }, normal: { bronze: 48, classical: 109, kingdoms: 167, gunpowder: 200 }, marathon: { bronze: 120, classical: 260, kingdoms: 334, gunpowder: 400 } };
+const ageTargetEnds = (speed) => { const t = AGE_TARGET_TURNS[speed] || AGE_TARGET_TURNS.normal; let sum = 0; return Object.fromEntries(Object.entries(t).map(([a, n]) => { sum += n; return [a, sum]; })); };
+const ageStats = (s, counters) => {
+  const idx = livingMajors(s).map((n) => AGES.getAgeIndex(nationAge(s, n.id))).sort((a, b) => a - b);
+  const median = idx[Math.floor(idx.length / 2)] ?? 0;
+  const leader = idx[idx.length - 1] ?? 0;
+  const out = { medianMajorAgeIndex: median, leaderAgeIndex: leader, leaderAgeGap: leader - median };
+  AGES.AGE_ORDER.forEach((a, i) => { out[`ageShare_${a}`] = +(idx.filter((x) => x === i).length / Math.max(1, idx.length)).toFixed(3); });
+  Object.entries(counters.pastAt || {}).forEach(([k, v]) => { out[k] = v; });
+  return out;
+};
+
 const snapshot = (s, t, counters, ms, lives, telemetry) => {
   const regs = Object.values(s.regions);
   const nations = Object.values(s.nations);
@@ -158,6 +175,7 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     campaigns: s.indepStats?.campaigns || 0, musters: s.indepStats?.musters || 0, courtships: s.indepStats?.courtships || 0, gifts: s.indepStats?.gifts || 0, tradeDeals: s.indepStats?.tradeDeals || 0,
     tradeGold: s.indepStats?.tradeGold || 0, majorTributeDemands: s.indepStats?.tributeDemandsByMajors || 0, tributeToMajors: s.indepStats?.tributeToMajors || 0, patrons: s.indepStats?.patrons || 0,
     campaignsRunning: nations.filter((n) => n.indepGoal?.kind === 'conquer' && !n.isEliminated).length,
+    ...ageStats(s, counters), maxLeaderGap: counters.maxLeaderGap || 0, leaderGapOver1Share: +((counters.gapOver1 || 0) / Math.max(1, counters.gapTurns || 1)).toFixed(3),
     nonFinite, auditViolations: auditCount(s), auditCodes: (() => { const r = auditGameState(s); return Array.isArray(r) && r.length ? r.slice(0, 4).map((x) => `${x.code}:${x.path}`).join(',') : 'none'; })(), msPerTurn: +ms.toFixed(1)
   };
 };
@@ -175,7 +193,7 @@ SEEDS.forEach((seed) => {
     const telemetry = createTelemetry({ playerId: s.playerNationId, isIndependent: isIndependentNation, authorityOf, getOverextension, metNations, getTiles, traceFile: TRACE_WARS, writeLine: traceStream == null ? null : (line) => fs.writeSync(traceStream, line + '\n') });
     let telemMs = 0;
     s = { ...s, research: { ...s.research, auto: true } }; // the passive player lets its advisor pick research
-    const counters = { leagues: 0, conquests: 0, changedHands: 0, flips: 0, civilWars: 0, leadChanges: 0, plagued: new Set(), actions: scripted ? { turns: 0, turns100: 0, gap: 0, maxGap: 0, maxGap100: 0, over5: 0, techsPrev: null } : null };
+    const counters = { leagues: 0, conquests: 0, changedHands: 0, flips: 0, civilWars: 0, leadChanges: 0, plagued: new Set(), pastAt: {}, actions: scripted ? { turns: 0, turns100: 0, gap: 0, maxGap: 0, maxGap100: 0, over5: 0, techsPrev: null } : null };
     const logSum = (l) => l.queued + l.settled + l.events + l.peace + l.defenses + l.joins + l.demands.length + l.tribute.length + (l.rushes || 0);
     const techCount = (st) => Object.values(st.techTree || {}).filter((x) => x.researched).length;
     // One life per nation alive at the start; a nation that dies and comes back starts a new life.
@@ -204,6 +222,18 @@ SEEDS.forEach((seed) => {
       if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null };
       const tm0 = performance.now(); telemetry.observe(pre, s); telemMs += performance.now() - tm0;
       turnsSince += 1;
+      // The share of living majors past an age at that age's target end turn (SC4); the leader gap
+      // over the median at every checkpoint is in ageStats (SC5).
+      const ends = ageTargetEnds(s.gameSpeed);
+      Object.entries(ends).forEach(([a, end]) => {
+        if (t !== end) return;
+        const ms = livingMajors(s);
+        counters.pastAt[`pastAt_${a}`] = +(ms.filter((n) => AGES.getAgeIndex(nationAge(s, n.id)) > AGES.getAgeIndex(a)).length / Math.max(1, ms.length)).toFixed(3);
+      });
+      const gap = ageStats(s, { pastAt: {} }).leaderAgeGap;
+      counters.maxLeaderGap = Math.max(counters.maxLeaderGap || 0, gap);
+      counters.gapOver1 = (counters.gapOver1 || 0) + (gap > 1 ? 1 : 0);
+      counters.gapTurns = (counters.gapTurns || 0) + 1;
       s.logs.slice(before).forEach((l) => {
         if (/defensive league/.test(l.message)) counters.leagues += 1;
         if (/conquers|is conquered|storms/.test(l.message)) counters.conquests += 1;

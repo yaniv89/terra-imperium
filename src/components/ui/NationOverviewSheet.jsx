@@ -161,7 +161,7 @@ const NationOverviewSheet = () => {
         <div className="px-4 py-2.5 border-t border-fa-line shrink-0" data-testid="nation-age-strip">
           <div className="flex items-baseline justify-between gap-2 mb-1.5">
             <span className="text-[12px]">{rich(tNow('p1.no.ageStrip'), ageNodes)}</span>
-            {m.nextAge && <span className="text-[12px] text-fa-muted">{rich(tNow('p1.no.nextAge', { name: m.nextAge.name }), { turns: <span className="fa-num text-fa-text">{m.nextAge.turns}</span> })}</span>}
+            {m.nextAge && <span className="text-[12px] text-fa-muted">{rich(tNow('p1.no.nextAge', { name: m.nextAge.name }), { techs: <span className="fa-num text-fa-text">{m.nextAge.techs}</span> })}</span>}
           </div>
           <div className="grid grid-cols-5 gap-1.5">
             {m.ages.map((a) => (

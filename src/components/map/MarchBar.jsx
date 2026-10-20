@@ -92,11 +92,12 @@ const MarchBar = () => {
 
   // The army's own place, never its base ("march to from Men-nefer" while it stood at Jerusalem).
   const who = <b data-testid="march-origin">{naval ? t('march.fleet') : t('march.army')} {m.fromText || t('where.at', { name: name(march.from) })}</b>;
-  const turnsText = (count) => t('march.turns', { count });
+  // 0 End Turns: the march gets there now (routes.js: an order steps at once with this turn's points).
+  const turnsText = (count) => (count <= 0 ? t('march.thisTurn') : t('march.turns', { count }));
   const suppliesText = (count) => t('march.suppliesCount', { count });
   const R = (key, nodes, vars) => rich(t(key, vars), nodes);
   const danger = (text) => <span className="text-fa-danger-text">{text}</span>;
-  // When it sets out (I066): a march walks at End Turn; a stack that already moved now waits a turn.
+  // When it sets out (I066): a march steps at once; a stack that already moved this turn sets out next turn.
   const leaves = plan?.ok ? (plan.spent ? t('march.movedAlready') : t('march.setsOut')) : '';
   let line;
   if (target == null) line = R(naval ? 'march.tapPort' : 'march.tapCity', { who });

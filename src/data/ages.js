@@ -1,8 +1,8 @@
 // src/data/ages.js
-// The age registry (plans/2026-10-20-001-feat-eight-ages-plan.md U1, KTD12): the five ages spanning
-// Terra Imperium's full timeline (2000 BCE - 2300 CE), each age's unit power and cost, the game-speed
-// years-per-turn table, and the calendar <-> age helpers everything else (resources, buildings,
-// units, tech) gates against. Code outside this file never names the first or last age or compares
+// The age registry (plans/2026-10-20-001-feat-eight-ages-plan.md U1, KTD12): the five ages, each
+// age's nominal year range (a display label only: no rule reads the year, KTD3), unit power and
+// cost, and the game-speed cost table. A nation's age is its research age (ageOf in
+// src/engine/nationState.js). Code outside this file never names the first or last age or compares
 // age ids by hand: it uses FIRST_AGE_ID / LAST_AGE_ID, isAgeAtLeast, isAgeBefore, agesFrom and
 // nextAgeId, so adding an age is a data change plus the per-age tables keyed by age id.
 
@@ -107,77 +107,38 @@ export const artAgeFor = (available, ageId, { kind = null } = {}) => {
   return null;
 };
 
-// The age the calendar alone puts you in, independent of any nation's own tech progress. Every
-// nation is at least this age — it's a floor, not something you have to research into.
-export const getCalendarAgeId = (year) => {
-  const clamped = Math.max(START_YEAR, Math.min(year, END_YEAR));
-  const found = AGE_ORDER.find(id => clamped >= AGES[id].startYear && clamped < AGES[id].endYear);
-  return found || LAST_AGE_ID; // END_YEAR itself is the exclusive upper bound of the last age
-};
+// A nation's age is its research age only (ageOf in src/engine/nationState.js, eight-ages plan
+// KTD1): the old calendar floor and one-age cap (getEffectiveAgeId) are gone.
 
-// A nation's effective age = max(calendar floor, its own tech-earned age) — see plan §2. Rushing
-// ahead of the calendar is capped at one full age (research gating is what actually enforces the
-// cap when spending tech points; this clamp is the defensive backstop so a stale/corrupt techAge
-// can never grant more than one age of unearned access).
-export const getEffectiveAgeIndex = (calendarAgeId, techAgeId) => {
-  const calendarIdx = getAgeIndex(calendarAgeId);
-  const techIdx = getAgeIndex(techAgeId);
-  if (calendarIdx === -1) return 0;
-  if (techIdx === -1) return calendarIdx;
-  return Math.max(calendarIdx, Math.min(techIdx, calendarIdx + 1));
-};
-
-export const getEffectiveAgeId = (calendarAgeId, techAgeId) => AGE_ORDER[getEffectiveAgeIndex(calendarAgeId, techAgeId)];
-
-// How many ages behind the calendar a nation's own tech-earned age has fallen. 0 means at or
-// ahead of calendar. Feeds the "backward" penalty described in plan §2 (higher tech costs) via
-// getAgesBehindResearchCostMultiplier below — a nation that never researches falls further behind
-// every turn the calendar advances without it, and previously paid nothing for that at all.
-//
-// Plan §M14 removes this file's own former combat-side penalty (getAgesBehindCombatMultiplier,
-// -15%/age behind, floored at 40%) — it only ever penalized ONE side and double-counted against
-// src/data/unitClasses.js's roster stats once those got wired into combat. A real two-sided
-// comparison (getRosterCombatMultiplier there) replaces it: two nations at the SAME age always net
-// to a neutral 1.0, whichever age that is, and an age GAP swings the multiplier in both directions
-// at once rather than only ever punishing whoever fell behind.
-export const getAgesBehind = (calendarAgeId, techAgeId) => {
-  const calendarIdx = getAgeIndex(calendarAgeId);
-  const techIdx = getAgeIndex(techAgeId);
-  if (calendarIdx === -1 || techIdx === -1) return 0;
-  return Math.max(0, calendarIdx - techIdx);
-};
-
-// Research cost multiplier for a nation trying to catch up from behind — the further behind, the
-// more it costs to research the SAME tech, so falling behind compounds instead of being a free
-// pause button. +30% per age behind, uncapped (unlike the combat floor, there's no reason to cap
-// how expensive catching up from a long neglect should get).
-const AGES_BEHIND_RESEARCH_COST_PER_AGE = 0.3;
-export const getAgesBehindResearchCostMultiplier = (agesBehind) => 1 + agesBehind * AGES_BEHIND_RESEARCH_COST_PER_AGE;
+// Falling behind costs nothing extra (KTD5): the old ages-behind research penalty is gone; a
+// laggard catches up through the diffusion discount instead (src/engine/techDiffusion.js CATCHUP_MAX).
 
 // ============ GAME SPEED ============
 
-// The speed table (plans/playtest-1.md P3): the years each turn advances, by age and speed. The
-// pace of play follows the calendar, not the turn: research, production and growth cost
-// REFERENCE_YEARS[age] / years[age] times their base, so a Bronze tech, a granary or a size of
-// growth takes the same span of history at every speed (the balance was tuned at the reference
-// table, the old Normal). `turns` is the length of a full game, 2000 BCE to 2300 CE.
-export const REFERENCE_YEARS = { bronze: 40, classical: 20, kingdoms: 10, gunpowder: 4, modern: 2 };
+// The speed table (eight-ages plan KTD9). There are no years per turn and no rule reads the year:
+// a speed is a cost multiplier per age on research, production and growth, keyed by the PAYING
+// nation's own age, and a turn limit that ends the game. Bronze to Modern keep exactly the values
+// the old calendar gave them (the reference years per turn over the speed's: Normal Bronze 40/25),
+// so their tuning holds. `turnLimit` is the speed's length of a full game (src/engine/ending.js).
 export const GAME_SPEEDS = {
-  fast: { id: 'fast', name: 'Fast', years: { bronze: 50, classical: 25, kingdoms: 12, gunpowder: 5, modern: 2 }, turns: 440, blurb: 'About 440 turns. 50 years a turn in the Bronze Age.' },
-  normal: { id: 'normal', name: 'Normal', years: { bronze: 25, classical: 12, kingdoms: 6, gunpowder: 2, modern: 1 }, turns: 920, blurb: 'About 920 turns. 25 years a turn in the Bronze Age.' },
-  marathon: { id: 'marathon', name: 'Marathon', years: { bronze: 10, classical: 5, kingdoms: 3, gunpowder: 1, modern: 1 }, turns: 1510, blurb: 'About 1,500 turns. 10 years a turn in the Bronze Age.' }
+  fast: { id: 'fast', name: 'Fast', costMult: { bronze: 0.8, classical: 0.8, kingdoms: 10 / 12, gunpowder: 0.8, modern: 1 }, turnLimit: 440, blurb: 'About 440 turns.' },
+  normal: { id: 'normal', name: 'Normal', costMult: { bronze: 1.6, classical: 20 / 12, kingdoms: 10 / 6, gunpowder: 2, modern: 2 }, turnLimit: 923, blurb: 'About 920 turns.' },
+  marathon: { id: 'marathon', name: 'Marathon', costMult: { bronze: 4, classical: 4, kingdoms: 10 / 3, gunpowder: 4, modern: 2 }, turnLimit: 1514, blurb: 'About 1,500 turns.' }
 };
 
-export const getYearsPerTurn = (ageId, speedId) => {
-  const speed = GAME_SPEEDS[speedId] ?? GAME_SPEEDS.normal;
-  return speed.years[ageId] ?? speed.years[LAST_AGE_ID];
-};
-/** The cost multiplier of a speed on research, production and growth in an age: the reference
- * years per turn over this speed's, so the pace per year of history is the same at every speed. */
+const inTests = typeof process !== 'undefined' && !!process.env?.VITEST;
+/** The cost multiplier of a speed on research, production and growth for a payer in `ageId`. An
+ * unknown age is a bug: it throws under the tests and reads the first age otherwise. */
 export const speedCostMult = (speedId, ageId = FIRST_AGE_ID) => {
-  const age = REFERENCE_YEARS[ageId] != null ? ageId : LAST_AGE_ID;
-  return REFERENCE_YEARS[age] / getYearsPerTurn(age, speedId);
+  const table = (GAME_SPEEDS[speedId] ?? GAME_SPEEDS.normal).costMult;
+  if (table[ageId] == null) {
+    if (inTests) throw new Error(`speedCostMult: unknown age ${ageId}`);
+    return table[FIRST_AGE_ID];
+  }
+  return table[ageId];
 };
+/** The turn that ends a game at this speed (KTD3). */
+export const speedTurnLimit = (speedId) => (GAME_SPEEDS[speedId] ?? GAME_SPEEDS.normal).turnLimit;
 /** Training has its own speed percentage, as in Civilization (Civ 4 and 5 Marathon: buildings,
  * research and growth at 300%, units at 200%): armies march the same distance a turn at every
  * speed, so on a slower game a unit that cost the full multiplier would arrive long after the war
@@ -206,5 +167,3 @@ export const buildSpeedMult = (mult, ageId = FIRST_AGE_ID) => {
  * speed (playtest audits, trap T11: never a hardcoded number of turns). Normal is 1.6 to 2 turns
  * per reference turn, Marathon 2 to 4. */
 export const speedTurns = (refTurns, speedId, ageId = FIRST_AGE_ID) => Math.max(1, Math.round(refTurns * speedCostMult(speedId, ageId) - 1e-9));
-/** The turns a full game takes at a speed, from the table itself. */
-export const gameLengthTurns = (speedId) => AGE_ORDER.reduce((sum, id) => sum + Math.ceil((AGES[id].endYear - AGES[id].startYear) / getYearsPerTurn(id, speedId)), 0);

@@ -14,6 +14,7 @@ import { createRng } from '../../utils/rng';
 import { distanceKm } from '../../data/geo/geodesic';
 import { buildPeoplesStarts } from './peoplesWorld';
 import { DEFAULT_WORLD_SIZE } from '../../data/worldSizes';
+import { withAgesResearched } from '../research';
 
 export const NATION_COUNTS = [15, 30, 45, 60, 75];
 export const GENERATION_VERSION = 2;
@@ -144,7 +145,7 @@ export const applyScenario = (initial, { mode = 'full', nationCount = 45, seed =
   built.nations =Object.fromEntries(built.activeNationIds.map((id) => [id, built.nations[id]]));
   const starts = {};
   built.activeNationIds.forEach((id) => { starts[id] = built.nations[id].capitalRegionId; });
-  return {
+  const applied = {
     ...initial,
     nations: built.nations,
     regions: built.regions,
@@ -153,4 +154,9 @@ export const applyScenario = (initial, { mode = 'full', nationCount = 45, seed =
     resources: { ...initial.resources, supplies: 20 },
     scenario: { mode, start, generationVersion: GENERATION_VERSION, seed, nationCount: mode === 'emergent' ? nationCount : allIds.length, activeNationIds: built.activeNationIds, starts, relocations: [], dormantNationIds, map: { kind: 'earth' } }
   };
+  // An era start (a test and sandbox fixture): every nation knows the earlier ages' techs, so its
+  // research puts it in the start's age (a nation's age is only its research, eight-ages plan KTD1).
+  const eraAge = SCENARIOS[start].age;
+  return eraAge === SCENARIOS[DEFAULT_SCENARIO_ID].age ? applied
+    : [applied.playerNationId, ...built.activeNationIds].reduce((s, id) => withAgesResearched(s, id, eraAge), applied);
 };

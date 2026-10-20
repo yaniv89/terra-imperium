@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { Trophy, Skull, FlagOff, RotateCcw, PlayCircle, Copy, Check } from 'lucide-react';
 import { GameStatus } from '../../data/types';
 import { VICTORY_CONDITIONS } from '../../data/victoryConditions';
-import { END_YEAR } from '../../data/ages';
+import { endingSignal } from '../../engine/ending';
 import { calcNationScore, rankNations } from '../../engine/score';
 import { formatNumber, getPlayerControl, getPlayerRegions } from '../../utils/helpers';
 import { t as tNow } from '../../i18n';
@@ -22,8 +22,8 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
   const isComplete = status === GameStatus.COMPLETE;
   // Plan §M18: "Victory if the player ranks #1; otherwise Game Complete — Rank N" — an ambition
   // win (domination/conqueror/economicHegemony/diplomatic/spaceAscendancy) can still land before
-  // END_YEAR, and offers a real choice to keep playing rather than a forced stop.
-  const canContinue = isVictory && state.year < END_YEAR;
+  // the ending signal (ending.js), and offers a real choice to keep playing rather than a forced stop.
+  const canContinue = isVictory && !state.ending && !endingSignal(state);
   const playerNation = state.nations[state.playerNationId];
   const nationText = playerNation?.name ? nameNow('people', state.playerNationId, playerNation.name) : playerNation?.name;
   const yearValue = lang === 'he' ? yearText(state.year) : state.year;

@@ -28,6 +28,7 @@
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { getNeighborIds } from '../data/regions';
 import { generateRuler } from './rulers';
+import { ageOf } from './nationState';
 import { getAvailableGovernmentTypes, resetReformsForType } from '../data/government';
 import { DEFAULT_LAWS } from '../data/laws';
 import { clampStability, clampLegitimacy, clampPrestige } from './nationalPower';
@@ -189,9 +190,9 @@ export const processCivilWarTurn = (state, regionsIn, unitsIn, nation, nationId,
     });
     Object.values(units).forEach((u) => { if (u.isInsurgent && insurgentRegionIds.has(u.regionId)) delete clearedUnits[u.id]; });
 
-    const availableTypes = getAvailableGovernmentTypes(state.age, nation.identity).filter((t) => t.id !== nation.government?.type);
+    const availableTypes = getAvailableGovernmentTypes(ageOf(state, nationId), nation.identity).filter((t) => t.id !== nation.government?.type);
     const newType = availableTypes.length > 0 ? availableTypes[Math.floor(rng.next() * availableTypes.length)].id : nation.government?.type;
-    const newRuler = generateRuler(nationId, rng, { turnNumber, age: state.age, gameSpeed: state.gameSpeed });
+    const newRuler = generateRuler(nationId, rng, { turnNumber, age: ageOf(state, nationId), gameSpeed: state.gameSpeed });
 
     return {
       regions: clearedRegions,
@@ -200,7 +201,7 @@ export const processCivilWarTurn = (state, regionsIn, unitsIn, nation, nationId,
         ...nation,
         civilWar: null,
         ruler: newRuler,
-        government: { type: newType, reforms: resetReformsForType(newType, state.age) },
+        government: { type: newType, reforms: resetReformsForType(newType, ageOf(state, nationId)) },
         laws: { ...DEFAULT_LAWS },
         prestige: clampPrestige((nation.prestige || 0) - CIVIL_WAR_LOSE_PRESTIGE_PENALTY)
       },

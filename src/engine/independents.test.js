@@ -22,6 +22,7 @@ import { getNationTier, getSortedByMilitary } from '../utils/aiLogic';
 import { chooseProduction } from './aiProduction';
 import { assertGameState } from './stateAudit';
 import { neighbourWorld, rivalOf } from './testWorld';
+import { LAST_AGE_ID } from '../data/ages';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
 const PEOPLES_WORLD = neighbourWorld({ seed: 7 });
@@ -131,9 +132,12 @@ describe('who is an independent in a peoples world', () => {
     assertGameState(s);
   }, 120000);
 
-  it('a late people arrives in its year as an independent when its land is free', () => {
+  it('a late people arrives when the year label of the research leader reaches its year, as an independent when its land is free', () => {
     const lateId = Object.keys(state.scenario.lateArrivals).sort((a, b) => state.scenario.lateArrivals[a] - state.scenario.lateArrivals[b])[0];
-    const s = processLateArrivals({ ...state, year: state.scenario.lateArrivals[lateId] });
+    // The calendar is gone (KTD3): a written year changes nothing; the research of the leader does.
+    expect(processLateArrivals({ ...state, year: 3000 }).nations[lateId]).toBeUndefined();
+    const learned = { ...state, techAgeId: LAST_AGE_ID, techTree: Object.fromEntries(Object.keys(state.techTree).map((id) => [id, { ...state.techTree[id], researched: true }])) };
+    const s = processLateArrivals(learned);
     const n = s.nations[lateId];
     expect(n?.kind).toBe(INDEPENDENT_KIND);
     expect(s.regions[n.capitalRegionId].owner).toBe(lateId);

@@ -25,6 +25,7 @@ import { getMapMarkers } from '../../utils/mapMarkers';
 import { clusterGlobeItems, createMarkerElement, markerItems } from '../map/mapBanners';
 import { markerLatLng } from '../../utils/markerPosition';
 import { openBattleReport } from '../battle/battleReportEvents';
+import { ageOf } from '../../engine/nationState';
 
 // Above this camera altitude (globe radii) the globe shows nations, not provinces.
 const FAR_VIEW_ALTITUDE = 1.1;
@@ -380,7 +381,7 @@ const GlobeView = ({ onAmbiguousTap = null,
         htmlTransitionDuration={0}
       />
       {!prefersReducedMotion() && (
-        <GlobeEffectsOverlay globeRef={globeRef} width={width} height={height} effects={effects} ageId={state.age} />
+        <GlobeEffectsOverlay globeRef={globeRef} width={width} height={height} effects={effects} ageId={ageOf(state, state.playerNationId)} />
       )}
       </div>
       </div>

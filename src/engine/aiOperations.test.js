@@ -130,9 +130,9 @@ describe('operational AI',()=>{
     expect(next.nations.de.economy.mil).toBe(98);
   });
   it('can transport a real army to a reachable island front without creating free units',()=>{
-    const s=createInitialState({playerNationId:'fr',rngSeed:7});s.age='modern';s.techAgeId='modern';
+    const s=createInitialState({playerNationId:'fr',rngSeed:7});s.techAgeId='modern';
     const port=Object.keys(s.regions).find(r=>s.regions[r].owner==='gb'&&isCoastal(r));
-    const target=Object.keys(s.regions).find(r=>s.regions[r].owner==='fr'&&isCoastal(r)&&isReachableBySea(port,r,s.age));
+    const target=Object.keys(s.regions).find(r=>s.regions[r].owner==='fr'&&isCoastal(r)&&isReachableBySea(port,r,s.techAgeId));
     expect(target).toBeDefined();s.wars=[{id:'island',aggressor:'gb',enemy:'fr',active:true,startYear:s.year}];
     s.nations.gb={...s.nations.gb,isAtWar:true,economy:{gold:1000,hr:1000,mil:100,adm:100},tech:{ageId:'modern',researched:[]}};
     s.nations.fr={...s.nations.fr,isAtWar:true};s.units={fleet:{id:'fleet',ownerId:'gb',regionId:port,domain:'naval',classId:'naval',strength:1000,maxStrength:1000,morale:100,movesLeft:1,transportCapacity:2,promotions:[]},army:{id:'army',ownerId:'gb',regionId:port,homeRegionId:port,domain:'land',classId:'infantry',strength:1000,maxStrength:1000,morale:100,movesLeft:1,promotions:[],xp:0}};

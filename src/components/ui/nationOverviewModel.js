@@ -8,9 +8,11 @@
 //   stability    -3 to +3, legitimacy of 100, and authority with its parts as the reasons
 //   victory      how far each victory is: capitals held, cities held, share of the world's gold,
 //                the score rank
-//   era goals    the calendar age's goals (met of needed, each with its legacy)
+//   era goals    your age's goals (met of needed, each with its legacy)
 //   age          the age strip and when the next age begins at this pace
-import { AGES, AGE_ORDER, getYearsPerTurn } from '../../data/ages';
+import { AGE_ORDER } from '../../data/ages';
+import { getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../../data/techTree';
+import { ageOf, getResearched } from '../../engine/nationState';
 import { PEOPLES } from '../../data/peoples';
 import { titleFor, EMPIRE_CITY_COUNT } from '../../data/nationTitles';
 import { getGovernmentType, getActiveReforms } from '../../data/government';
@@ -77,17 +79,19 @@ export const nationOverviewModel = (state) => {
   const ranked = Object.keys(state.nations).length;
 
   const era = eraGoalProgress(state);
-  const ageIndex = Math.max(0, AGE_ORDER.indexOf(state.age));
+  // The player's own age; the next one comes with 6 of this age's 10 techs (KTD1), never a date.
+  const myAge = ageOf(state, me);
+  const ageIndex = Math.max(0, AGE_ORDER.indexOf(myAge));
   const nextAge = AGE_ORDER[ageIndex + 1] || null;
-  const yearsLeft = nextAge ? AGES[nextAge].startYear - (state.year ?? AGES[state.age]?.startYear ?? 0) : 0;
-  const nextIn = nextAge ? Math.max(1, Math.ceil(yearsLeft / getYearsPerTurn(state.age, state.gameSpeed))) : null;
+  const known = new Set(getResearched(state, me));
+  const techsLeft = nextAge ? Math.max(1, TECH_AGE_ADVANCEMENT_THRESHOLD - getTechsForAge(myAge).filter((t) => known.has(t.id)).length) : null;
 
   return {
     name: nameNow('people', me, n.name),
     color: n.color || '#5B9BF0',
     cities: mine.length,
     capital: capital?.owner === me ? nameNow('city', null, capital.name) : null,
-    ageName: shortAge(state.age),
+    ageName: shortAge(myAge),
     ruler,
     government,
     stability,
@@ -95,7 +99,7 @@ export const nationOverviewModel = (state) => {
     score: { rank, of: ranked },
     era: { ageName: shortAge(era.ageId), met: era.met, needed: era.needed, legacyTurns: ERA_LEGACY_TURNS, goals: era.goals.map((g) => ({ ...g, label: playstyleName(g.id, g.label), unit: goalUnit(g.id, g.unit), bonus: PLAYSTYLES[g.id] ? goalBonus(g.id, PLAYSTYLES[g.id].bonusLabel) : '' })) },
     ages: AGE_ORDER.map((id, i) => ({ id, name: shortAge(id), past: i < ageIndex, current: i === ageIndex })),
-    nextAge: nextAge ? { name: shortAge(nextAge), turns: nextIn } : null,
+    nextAge: nextAge ? { name: shortAge(nextAge), techs: techsLeft } : null,
     turn: state.turnNumber
   };
 };

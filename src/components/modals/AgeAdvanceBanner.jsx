@@ -1,10 +1,7 @@
 // src/components/modals/AgeAdvanceBanner.jsx
-// The calendar age (src/data/ages.js's AGE_ORDER) used to advance completely silently — no log
-// line, no animation, nothing — so a player had no way to notice the world had moved into a new
-// age at all (plan §10.5's "Age Advance — the showpiece" was never built). App.jsx's GameLayout
-// diffs state.age turn-over-turn and shows this non-blocking banner (plus triggers the
-// 'age_advance' globe pulse, src/data/effectRegistry.js) the turn it changes; resolveTurn.js
-// itself only adds the matching log line, since it's pure and has no access to EffectsContext.
+// The player's own age (its research age, state.techAgeId; eight-ages plan KTD7) advancing gets
+// this non-blocking banner: App.jsx's GameLayout diffs state.techAgeId turn over turn and shows it
+// (plus the 'age_advance' globe pulse, src/data/effectRegistry.js); research.js adds the log line.
 import React from 'react';
 import { Sparkles } from 'lucide-react';
 import { AGES } from '../../data/ages';

@@ -6,6 +6,9 @@ import { createInitialState } from './gameReducer';
 import { getTiles } from '../data/geo/tiles';
 import { canFoundCity, foundCity, sizeToPeople } from './world/cities';
 import { msg, people, cityRef } from './messages';
+import { FIRST_AGE_ID } from '../data/ages';
+import { withAgesResearched } from './research';
+import { researchLeaderAge } from './ageRefs';
 
 export const processEmergence = state => {
   if (state.gameStatus !== 'ACTIVE' || state.scenario?.mode !== 'emergent' || state.turnNumber < 50 || state.turnNumber % 50 !== 0) return state;
@@ -24,8 +27,10 @@ export const processEmergence = state => {
   const region = { ...city, founderId: id, owner: id, control: 100, currentPopulation: sizeToPeople(2), currentInfrastructure: 0, underInvasion: false, unrest: 0, defenseLevel: 0, climateResilience: 0, dev: { tax: 2, production: 2, manpower: 2 } };
   const unitId = `emerged_${id}_${state.turnNumber}`;
   const unit = { id: unitId, ownerId: id, regionId, homeRegionId: regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, rank: 'recruit', commanderId: null, promotions: [], xp: 0 };
-  const nation = { ...fresh.nations[id], capitalRegionId: regionId, startRegionCount: 1, militaryStrength: 5000, frontierClaims: 0, economy: { gold: 500, hr: 100, techPoints: 0, adm: 3, dip: 3, mil: 3, supplies: 20 }, tech: { researched: [], ageId: state.age } };
-  return {
+  const nation = { ...fresh.nations[id], capitalRegionId: regionId, startRegionCount: 1, militaryStrength: 5000, frontierClaims: 0, economy: { gold: 500, hr: 100, techPoints: 0, adm: 3, dip: 3, mil: 3, supplies: 20 }, tech: { researched: [], ageId: FIRST_AGE_ID } };
+  // It arrives knowing what the world's research leader's earlier ages know (a nation's age is its
+  // research, eight-ages plan KTD1).
+  return withAgesResearched({
     ...state,
     rngSeed: fresh.rngSeed,
     nations: { ...state.nations, [id]: nation },
@@ -34,5 +39,5 @@ export const processEmergence = state => {
     units: { ...state.units, [unitId]: unit },
     scenario: { ...state.scenario, activeNationIds: [...state.scenario.activeNationIds, id], dormantNationIds: state.scenario.dormantNationIds.filter((n) => n !== id), starts: { ...state.scenario.starts, [id]: regionId } },
     logs: [...state.logs, { year: state.year, type: 'milestone', ...msg('m.world.emerges', { nation: people(id, nation.name), city: cityRef(city.id, city.name) }) }]
-  };
+  }, id, researchLeaderAge(state));
 };

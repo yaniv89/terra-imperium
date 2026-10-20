@@ -240,7 +240,7 @@ export default {
   'p1.no.openResearch': 'פתיחת המחקר',
   'p1.no.ageLabel': 'תקופה',
   'p1.no.ageStrip': '{age}, תור {turn}{label}',
-  'p1.no.nextAge': '{name} בעוד כ־{turns} תורות בקצב הזה',
+  'p1.no.nextAge': '{name} אחרי עוד {techs} מטכנולוגיות התקופה הזו',
   'p1.no.vic.domination': 'שליטה',
   'p1.no.vic.capitals': '{a} מתוך {b} בירות',
   'p1.no.vic.conqueror': 'כובש',

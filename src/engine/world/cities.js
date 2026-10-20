@@ -192,11 +192,17 @@ const noteFoundedCity = (cities, tiles, city) => {
   markBlocked(map, tiles, city);
 };
 
+// Who holds a city now: `owner` on a game's city record (conquest, flips and cessions write it),
+// `ownerId` on a bare world record (foundCity). A record carries both and `ownerId` stays the
+// founder after a change of hands, so it is never read alone (playtest 4 P4-M3: a lost city's
+// news, and its finished units, went to its founder).
+export const cityHolder = (c) => (!c ? null : 'owner' in c ? c.owner ?? null : c.ownerId ?? null);
+
 export const canFoundCity = (world, tiles, tile, nationId) => {
   if (!tiles.land[tile]) return { ok: false, ...reasonOf('m.world.reasonLand') };
   if (tiles.terrainOf(tile) === 'snow' || tiles.featureOf(tile) === 'ice') return { ok: false, ...reasonOf('m.world.reasonIce') };
   const owner = world.tileOwner[tile];
-  if (owner && world.cities[owner]?.ownerId !== nationId) return { ok: false, ...reasonOf('m.world.reasonBelongs') };
+  if (owner && cityHolder(world.cities[owner]) !== nationId) return { ok: false, ...reasonOf('m.world.reasonBelongs') };
   const near = blockerOf(blockedTiles(world.cities, tiles), tile);
   if (near) return { ok: false, ...reasonOf('m.world.reasonTooClose', { city: cityRef(near.id ?? null, near.name) }) };
   return { ok: true };
@@ -299,7 +305,7 @@ export const allocateTiles = (city, tiles, world, researched = [], blocked = new
 const allocateFresh = (city, tiles, world, researched, candidates, ys) => {
   const yields = new Map(candidates.map((t, i) => [t, ys[i]]));
   const chosen = [];
-  const locked = city.locked.filter((t) => yields.has(t)).sort((a, b) => a - b);
+  const locked = (city.locked || []).filter((t) => yields.has(t)).sort((a, b) => a - b);
   locked.forEach((t) => { if (chosen.length < city.size) chosen.push(t); });
   const rest = candidates.filter((t) => !chosen.includes(t));
   const centre = centreYields(tiles, world, city, researched);
@@ -731,8 +737,9 @@ export const processCities = (world, tiles, ctxFor) => {
     w = r.world;
     cities[id] = r.city;
     results[id] = r.yields;
-    r.logs.forEach((m) => logs.push({ cityId: id, nationId: city.ownerId, ...carry(m) }));
-    completed.push(...r.completed.map((x) => ({ ...x, nationId: city.ownerId })));
+    const holder = cityHolder(city);
+    r.logs.forEach((m) => logs.push({ cityId: id, nationId: holder, ...carry(m) }));
+    completed.push(...r.completed.map((x) => ({ ...x, nationId: holder })));
   });
   return { world: { ...w, cities }, yields: results, logs, completed };
 };

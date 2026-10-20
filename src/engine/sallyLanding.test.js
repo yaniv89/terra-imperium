@@ -54,9 +54,9 @@ describe('a sally is a full base-building battle', () => {
 describe('a landing is a full base-building battle, on the city assault\'s clock', () => {
   it('the AI lands on the player\'s coast: the real town, the camp on the beach, workers, 30 minutes', () => {
     const s = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
-    s.age = 'modern'; s.techAgeId = 'modern';
+    s.techAgeId = 'modern';
     const port = Object.keys(s.regions).find((r) => s.regions[r].owner === 'gb' && isCoastal(r));
-    const target = Object.keys(s.regions).find((r) => s.regions[r].owner === 'fr' && isCoastal(r) && isReachableBySea(port, r, s.age));
+    const target = Object.keys(s.regions).find((r) => s.regions[r].owner === 'fr' && isCoastal(r) && isReachableBySea(port, r, s.techAgeId));
     s.wars = [{ id: 'island', aggressor: 'gb', enemy: 'fr', active: true, startYear: s.year, battleScore: 0 }];
     s.nations.gb = { ...s.nations.gb, isAtWar: true, economy: { gold: 1000, hr: 1000, mil: 100, adm: 100 }, tech: { ageId: 'modern', researched: [] } };
     s.nations.fr = { ...s.nations.fr, isAtWar: true };

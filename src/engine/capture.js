@@ -30,6 +30,8 @@
 // no second tribute purse. Pure.
 import { LogTypes } from '../data/types';
 import { msg, people, cityRef, sub, reasonOf } from './messages';
+import { independentAgeOf } from './ageRefs';
+import { ageOf } from './nationState';
 import { getTiles } from '../data/geo/tiles';
 import { isIndependentNation, FAVOUR_MAX, tributeGold } from '../data/independents';
 import { canRaze, startRazing, aiWantsRaze } from './razing';
@@ -107,6 +109,10 @@ const troopsIn = (state, cityId, nationId) => {
 // An option's effect sentence: the English `effect` and its message `effectMsg` for other languages.
 const effectOf = (key, vars) => { const m = msg(key, vars); return { effect: m.message, effectMsg: sub(key, vars) }; };
 
+// The age a city captured from `cap.by` would stand at as an independent (KTD8): an independent's own
+// if it is one already, else the capturer's, who borders it and is the contact it is sure to have.
+const standingAgeOf = (state, cap) => (isIndependentNation(state.nations?.[cap.from]) ? independentAgeOf(state, cap.from) : ageOf(state, cap.by));
+
 /** The four options for a capture record: [{ id, label, effect, effectMsg, disabled, reason, reasonMsg }]. */
 export const captureOptions = (state, cap) => {
   const city = state.regions?.[cap.cityId];
@@ -130,7 +136,7 @@ export const captureOptions = (state, cap) => {
     ...effectOf('m.cap.raze', { count: city.size || 1 }),
     disabled: !raze.ok, reason: raze.ok ? null : raze.reason, reasonMsg: raze.ok ? null : raze.reasonMsg || null
   });
-  const gold = Math.max(tributeGold(state.age), Math.round((Math.max(0, city.dev?.tax || 0) + Math.max(0, city.dev?.production || 0)) * TRIBUTE_INCOME_SHARE));
+  const gold = Math.max(tributeGold(standingAgeOf(state, cap)), Math.round((Math.max(0, city.dev?.tax || 0) + Math.max(0, city.dev?.production || 0)) * TRIBUTE_INCOME_SHARE));
   const tribReason = !hasIndependents(state) ? reasonOf('m.why.capNoIndep') : leaveBlock;
   out.push({
     id: 'tributary', label: 'Make tributary',
@@ -252,7 +258,7 @@ export const resolveCapture = (state, captureId, choice) => {
     const id = standIndependent(state, nations, regions, cap, turn);
     if (!id) return reasonOf('m.why.capNoStand');
     if (choice === 'tributary') {
-      const gold = tributePerTurn({ ...state, regions }, id);
+      const gold = tributePerTurn({ ...state, regions, nations }, id, id);
       const until = turn + CAPTURE_TRIBUTE_TURNS;
       const n = nations[id];
       setIndep(nations, id, {

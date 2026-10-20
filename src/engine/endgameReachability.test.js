@@ -18,9 +18,8 @@ import { describe, it, expect } from 'vitest';
 import { resolveTurn } from './resolveTurn';
 import { createInitialState, gameReducer } from '../context/GameContext';
 import { ActionTypes, GameStatus } from '../data/types';
-import { AGES, getYearsPerTurn, END_YEAR } from '../data/ages';
-import { SATELLITE_UNLOCK_YEAR } from '../data/satellites';
-import { SPACE_MISSIONS, FINAL_SPACE_MISSION_ID } from '../data/spaceMissions';
+import { speedTurnLimit } from '../data/ages';
+import { FINAL_SPACE_MISSION_ID } from '../data/spaceMissions';
 import {
   DOMINATION_CAPITAL_SHARE, ECONOMIC_HEGEMONY_SHARE, getEconomicShare, DIPLOMATIC_LEADERSHIP_STREAK_TURNS
 } from '../data/victoryConditions';
@@ -28,7 +27,6 @@ import { HISTORICAL_EVENTS } from '../data/events';
 import { advanceCampaign } from '../../scripts/simulate.mjs';
 import { assertGameState } from './stateAudit';
 import { getNationCapital } from '../data/regions';
-import { addCities, growCities } from './testWorld';
 
 const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {});
 
@@ -60,7 +58,7 @@ const advanceUntil = (state, predicate, maxTurns) => {
   return current;
 };
 
-describe('endgame reachability: the game always resolves to a definite outcome by 2300', () => {
+describe('endgame reachability: the game always resolves to a definite outcome by the turn limit', () => {
   // Plan §M18: "Remove the free win... the passive run must NOT win by default." A player who never
   // acts can't form the trade pact/alliance a Diplomatic Victory needs, can't conquer anything a
   // Domination/Conqueror/Economic Hegemony victory needs, and can't launch a single space mission —
@@ -74,7 +72,9 @@ describe('endgame reachability: the game always resolves to a definite outcome b
     expect(state.gameStatus, 'the game never reached a definite outcome within the turn budget').not.toBe(GameStatus.ACTIVE);
     expect(state.gameStatus, `won by ${state.victoryConditionId} in ${state.year} (rank ${state.finalRank})`).not.toBe(GameStatus.VICTORY);
     expect([GameStatus.DEFEAT, GameStatus.COMPLETE]).toContain(state.gameStatus);
-    expect(state.year).toBeLessThanOrEqual(END_YEAR);
+    // The ending fires on the first turn it can be checked: an open event or peace offer that turn holds it one more.
+    expect(state.turnNumber).toBeLessThanOrEqual(speedTurnLimit(state.gameSpeed) + 3);
+    if (state.gameStatus === GameStatus.COMPLETE) expect(state.ending).toEqual({ reason: 'turnLimit' });
     if (state.gameStatus === GameStatus.COMPLETE) {
       expect(state.finalRank, 'a nation that never acted should not rank #1 against 239 real AI economies').toBeGreaterThan(1);
     }
@@ -163,86 +163,6 @@ describe('endgame reachability: defeat and bankruptcy are achievable (plan §M15
   });
 });
 
-describe('endgame reachability: the space-race ladder completes within the Modern Age\'s turn budget', () => {
-  // Plan §13: "the Modern Age is ~200 turns and must not outlast its own content." The ladder
-  // itself only unlocks once a satellite can be launched (SATELLITE_UNLOCK_YEAR, 1957) — real
-  // turns spent get the calendar there first, so what's actually checked below is the ladder's own
-  // turn cost against what's LEFT of the Modern Age's ~200-turn budget after reaching 1957, not
-  // the Modern Age's full 400-year span.
-  it('launching every mission back-to-back, in order, completes the ladder and wins Space Ascendancy well inside the Modern Age', () => {
-    const MODERN_AGE_YEARS = AGES.modern.endYear - AGES.modern.startYear;
-    const MODERN_AGE_TURNS_NORMAL = Math.ceil(MODERN_AGE_YEARS / getYearsPerTurn('modern', 'normal'));
-    const YEARS_INTO_MODERN_AT_UNLOCK = SATELLITE_UNLOCK_YEAR - AGES.modern.startYear;
-    const TURNS_INTO_MODERN_AT_UNLOCK = Math.ceil(YEARS_INTO_MODERN_AT_UNLOCK / getYearsPerTurn('modern', 'normal'));
-    const REMAINING_MODERN_BUDGET = MODERN_AGE_TURNS_NORMAL - TURNS_INTO_MODERN_AT_UNLOCK;
-
-    let state = { ...freshWorld(), year: SATELLITE_UNLOCK_YEAR, age: 'modern', techAgeId: 'modern' };
-    expect(state.year, 'never reached the satellite-unlock year within the search budget').toBeGreaterThanOrEqual(SATELLITE_UNLOCK_YEAR);
-    const turnsUsedToReachUnlock = state.turnNumber;
-
-    SPACE_MISSIONS.forEach((mission) => {
-      // Top up resources rather than simulating decades of realistic economic buildup between
-      // launches — this test is about whether the ladder's own turn lengths fit the Modern Age's
-      // budget, which is a fact about SPACE_MISSIONS' `turns` values, not about tax-rate tuning.
-      state = {
-        ...state,
-        resources: { ...state.resources, gold: 999999, techPoints: 999999, actionPoints: 999 }
-      };
-      const afterLaunch = gameReducer(state, { type: ActionTypes.LAUNCH_MISSION, payload: { missionId: mission.id } });
-      expect(afterLaunch.spaceMissionProgress[mission.id], `${mission.id} failed to launch`).toBe(mission.turns);
-      state = advanceUntil(afterLaunch, (s) => s.completedMissions.includes(mission.id) || s.gameStatus !== GameStatus.ACTIVE, mission.turns + 1);
-      if(!state.completedMissions.includes(mission.id))console.log('mission deadline',mission.id,state.year,state.gameStatus,state.resources,state.spaceMissionProgress);
-      expect(state.completedMissions, `${mission.id} never completed: year=${state.year} status=${state.gameStatus} gold=${state.resources.gold} science=${state.resources.techPoints} active=${JSON.stringify(state.activeMission)}`).toContain(mission.id);
-    });
-
-    const turnsSpentOnLadder = state.turnNumber - turnsUsedToReachUnlock;
-    expect(
-      turnsSpentOnLadder,
-      `the ladder itself took ${turnsSpentOnLadder} turns, over the ~${REMAINING_MODERN_BUDGET} turns left in the Modern Age after reaching the unlock year`
-    ).toBeLessThan(REMAINING_MODERN_BUDGET);
-    expect(state.year, 'the ladder finished after the game already ended (2300)').toBeLessThanOrEqual(2300);
-    expect(state.gameStatus).toBe(GameStatus.VICTORY);
-    expect(state.victoryConditionId).toBe('spaceAscendancy');
-  }, 900000); // several hundred whole-world turns
-
-  // Plan §M19: "Space ladder costs retuned so a real Modern economy can afford the ladder (the
-  // current test force-feeds 999,999 gold). Add a reachability test using the natural income of a
-  // strong nation." No injected gold/techPoints here at all — every mission is paid for out of
-  // whatever calcIncome has actually accrued by the time it's affordable. A totally passive nation's
-  // techPoints income is 0 (nothing generates it without at least one Science building — a genuinely
-  // untouched nation, per the passive-run test above, never plays at all), so "a strong nation" here
-  // means one Research Lab (Science tier 3) in the capital: a single, modest, realistic build for
-  // any nation that reached the Modern Age still playing — not a min-maxed or resource-injected one.
-  // On the tile world a modern nation is many cities, not one Dawn capital jumped to 1900: the
-  // fixture grows the United States to twelve cities with Science, Economy and Industry
-  // buildings (testWorld.js growCities), about 600 gold and 250 science a turn, and the ladder
-  // must still be paid from that income alone.
-  it('a twelve-city nation with Research Labs affords the entire ladder from its own natural income, no injected resources', () => {
-    const base = growCities(addCities(freshWorld('us'), 'us', 11).state, 'us');
-    // Isolate mission affordability from external conquests and a new ruler's traits.
-    // Diplomacy and wartime save/load are exercised in separate campaign scenarios.
-    base.nations.us={...base.nations.us,stability:3,legitimacy:100,ruler:{...base.nations.us.ruler,reignEndsTurn:999999,traits:[]},truces:Object.fromEntries(Object.keys(base.nations).filter(id=>id!=='us').map(id=>[id,999999]))};
-    for(const id of Object.keys(base.nations))if(id!=='us')base.nations[id]={...base.nations[id],truces:{...base.nations[id].truces,us:999999}};
-    let state = base;
-    // The lab operates from the start of the Modern Age; its savings come from real turns.
-    state = { ...state, year: AGES.modern.startYear, age: 'modern', techAgeId: 'modern' };
-    state = advanceUntil(state, s => s.year >= SATELLITE_UNLOCK_YEAR, Math.ceil((SATELLITE_UNLOCK_YEAR - AGES.modern.startYear) / getYearsPerTurn('modern', 'normal')) + 2); // the speed table's own turn count (ages.js)
-    expect(state.year, 'never reached the satellite-unlock year within the search budget').toBeGreaterThanOrEqual(SATELLITE_UNLOCK_YEAR);
-
-    for (const mission of SPACE_MISSIONS) {
-      let waited = 0;
-      while (!(state.resources.gold >= mission.cost.gold && state.resources.techPoints >= mission.cost.techPoints) && waited < 60 && state.gameStatus === GameStatus.ACTIVE) {
-        state = advance(state);
-        waited++;
-      }
-      expect(waited, `${mission.id} never became affordable from natural income alone`).toBeLessThan(60);
-      expect(state.gameStatus, `the game ended while waiting to afford ${mission.id}`).toBe(GameStatus.ACTIVE);
-      const launched = gameReducer(state, { type: ActionTypes.LAUNCH_MISSION, payload: { missionId: mission.id } });
-      expect(launched, `${mission.id} failed to launch even though it was affordable`).not.toBe(state);
-      state = advanceUntil(launched, (s) => s.completedMissions.includes(mission.id) || s.gameStatus !== GameStatus.ACTIVE, mission.turns + 1);
-      expect(state.completedMissions, `${mission.id} never completed: year=${state.year} status=${state.gameStatus} gold=${state.resources.gold} science=${state.resources.techPoints} active=${JSON.stringify(state.activeMission)}`).toContain(mission.id);
-    }
-    expect(state.gameStatus).toBe(GameStatus.VICTORY);
-    expect(state.victoryConditionId).toBe('spaceAscendancy');
-  }, 900000);
-});
+// The space-race ladder's end-to-end runs lived here. They waited for the calendar to reach
+// SATELLITE_UNLOCK_YEAR, a rule on the year that ages by tech removes (eight-ages plan KTD3); the
+// space race itself is removed in phase B (U18).

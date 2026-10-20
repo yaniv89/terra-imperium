@@ -52,7 +52,7 @@ describe("Israel's national wonders: who may build them", () => {
     expect(tiles.countryOf(temple.tile)).toBe('il');
     expect(tileFacts(tiles, temple.tile, {}).relief).toBe('hills');
     expect(canQueueWonder(s, jer, 'masada', 1).reason).toMatch(/classical/);
-    const classical = { ...s, age: 'classical' };
+    const classical = { ...s, techAgeId: 'classical' };
     const masada = canQueueWonder(classical, jer, 'masada', 1);
     expect(masada.ok).toBe(true);
     expect(tiles.countryOf(masada.tile)).toBe('il');
@@ -66,7 +66,8 @@ describe("Israel's national wonders: who may build them", () => {
   });
 
   it("no city off Israel's land may build them, whoever owns it; a conqueror of Jerusalem may", () => {
-    const s = { ...quiet(createInitialState({ playerNationId: 'eg', rngSeed: 3 })), age: 'classical' };
+    const eg = quiet(createInitialState({ playerNationId: 'eg', rngSeed: 3 }));
+    const s = { ...eg, techAgeId: 'classical', nations: { ...eg.nations, il: { ...eg.nations.il, tech: { ...eg.nations.il?.tech, ageId: 'classical' } } } };
     const cairo = s.regions[getNationCapital('eg')];
     expect(canQueueWonder(s, cairo, 'solomons_temple', 1).reason).toMatch(/Israel's land/);
     expect(canQueueWonder(s, cairo, 'masada', 1).reason).toMatch(/Israel's land/);
@@ -124,7 +125,7 @@ describe("Israel's national wonders: their effects on their own city", () => {
   });
 
   it('Masada raises its walls’ siege HP and its fort level against assaults', () => {
-    const s = { ...israel(), age: 'classical' };
+    const s = { ...israel(), techAgeId: 'classical' };
     const id = JER();
     const city = s.regions[id];
     const gp = (tier) => ({ masada: { regionId: id, tier, tile: canQueueWonder(s, city, 'masada', 1).tile } });

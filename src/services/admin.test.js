@@ -31,7 +31,7 @@ const sampleSaveRow = (overrides = {}) => ({
   state: {
     version: 1,
     state: {
-      playerNationId: 'fr', turnNumber: 30, year: 1600, age: 'gunpowder', gameStatus: 'ACTIVE',
+      playerNationId: 'fr', turnNumber: 30, year: 1600, techAgeId: 'gunpowder', gameStatus: 'ACTIVE',
       nations: { fr: { name: 'France' } },
       regions: { 'fr-75': { owner: 'fr' }, 'de-be': { owner: 'de' } },
       resources: { gold: 5000 },

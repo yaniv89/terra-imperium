@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { TECH_TREE } from '../data/techTree';
-import { researchStatus, researchNeedsChoice, turnsUntilYear, researchSchedule, advisorPlan, scholarsPreview, nextGatedTech } from './researchStatus';
+import { researchStatus, researchNeedsChoice, researchSchedule, advisorPlan, scholarsPreview, nextGatedTech } from './researchStatus';
 import { researchIdle, turnBlockers } from './turnBlockers';
 import { nextPrompts } from '../components/ui/nextPromptModel';
 import { getResearchView } from '../components/panels/researchView';
@@ -16,73 +16,64 @@ import { peoplesWorld } from './testWorld';
 const fresh = () => peoplesWorld({ seed: 5 });
 const techs = Object.values(TECH_TREE);
 
-// A state in which every tech that is open by date is known, so what is left is all held back by its year.
+// A Bronze state in which every tech of its research window (Bronze and Classical) is known, so
+// what is left is all held back by the window (the age stays Bronze: nothing re-derives it here).
 const allOpenKnown = (s) => {
   const techTree = { ...s.techTree };
-  techs.filter((t) => t.yearAvailable <= s.year).forEach((t) => { techTree[t.id] = { ...techTree[t.id], researched: true }; });
-  return { ...s, techTree, research: { current: null, queue: [], progress: {}, auto: false, lastCompleted: null } };
+  techs.filter((t) => t.ageId === 'bronze' || t.ageId === 'classical').forEach((t) => { techTree[t.id] = { ...techTree[t.id], researched: true }; });
+  return { ...s, techAgeId: 'bronze', techTree, research: { current: null, queue: [], progress: {}, auto: false, lastCompleted: null } };
 };
 
-describe('turnsUntilYear', () => {
-  it('counts turns on the real calendar schedule across BCE to CE', () => {
-    const s = { year: -30, age: 'classical', gameSpeed: 'normal' };
-    expect(turnsUntilYear(s, -30)).toBe(0);
-    expect(turnsUntilYear(s, 20)).toBe(5); // 12 years a turn: -18, -6, 6, 18, 30
-    expect(turnsUntilYear({ ...s, gameSpeed: 'marathon' }, 20)).toBe(10); // 5 years a turn
-  });
-});
-
-describe('research status: a tech held back by its date', () => {
+describe('research status: a tech held back by the research window (KTD4)', () => {
   const gatedState = () => {
     const base = allOpenKnown(fresh());
     const gated = nextGatedTech(base);
-    // Make it startable by prerequisites, then choose it with a big bank.
-    const techTree = { ...base.techTree };
-    techs.filter((t) => t.id !== gated.techId && t.yearAvailable > base.year).forEach((t) => { techTree[t.id] = { ...techTree[t.id], researched: true }; });
-    return { gated, state: { ...base, techTree, research: { ...base.research, current: gated.techId }, resources: { ...base.resources, techPoints: 100000 } } };
+    return { gated, state: { ...base, research: { ...base.research, current: gated.techId }, resources: { ...base.resources, techPoints: 100000 } } };
   };
 
-  it('never says 1 turn while the date is far: the wait is shown with the banked science', () => {
+  it('a tech two ages ahead waits for the age before it, never for a year', () => {
     const { gated, state } = gatedState();
+    expect(TECH_TREE[gated.techId].ageId).toBe('kingdoms');
+    expect(gated.ageId).toBe('classical');
     const st = researchStatus(state);
     expect(st.kind).toBe('waiting');
-    expect(st.gate).toMatchObject({ kind: 'wait', year: gated.year, turns: gated.turns });
-    expect(st.finishesIn).toBe(gated.turns);
-    expect(gated.turns).toBeGreaterThan(1);
-    expect(st.note).toContain(`waits for ${gated.label}`);
+    expect(st.gate).toMatchObject({ kind: 'age', ageId: 'classical', label: 'Classical Age', turns: null });
+    expect(st.finishesIn).toBe(Infinity);
+    expect(st.note).toContain('waits for the Classical Age');
     expect(st.note).toContain('banked');
     const view = getResearchView(state);
-    expect(view.current.finishesIn).toBe(gated.turns);
-    expect(scienceLabel(view.current, view.status)).toBe(`${TECH_TREE[gated.techId].name} waits for ${gated.label}`);
+    expect(scienceLabel(view.current, view.status)).toBe(`${TECH_TREE[gated.techId].name} waits for the Classical Age`);
     expect(topBarModel(state).science.label).toContain('waits for');
-    expect(empireOverviewModel(state).research.name).toBe(TECH_TREE[gated.techId].name);
     expect(empireOverviewModel(state).research.gate).toBeTruthy();
-    // a gated current tech is neither a "Choose research" prompt nor a blocker
     expect(researchNeedsChoice(state)).toBe(false);
     expect(nextPrompts(state).some((p) => p.kind === 'research')).toBe(false);
     expect(turnBlockers(state).some((b) => b.kind === 'research')).toBe(false);
   });
 
-  it('the finish is the later of science ready and date reached', () => {
-    const { gated, state } = gatedState();
-    const poor = { ...state, resources: { ...state.resources, techPoints: 0 } };
-    const [slow] = researchSchedule(poor, [gated.techId], 0.001);
-    expect(slow.finishesIn).toBeGreaterThanOrEqual(gated.turns);
-    const [fast] = researchSchedule(state, [gated.techId], 50);
-    expect(fast.finishesIn).toBe(gated.turns); // science was ready long before the date
+  it('a queue opens its own gate: techs earlier in the order move the age on', () => {
+    const s = fresh();
+    const bronze = techs.filter((t) => t.ageId === 'bronze');
+    const classical = techs.filter((t) => t.ageId === 'classical');
+    const kingdoms = techs.find((t) => t.ageId === 'kingdoms');
+    const order = [...bronze.map((t) => t.id), ...classical.map((t) => t.id), kingdoms.id];
+    const sched = researchSchedule({ ...s, techAgeId: 'bronze' }, order, 1000);
+    expect(sched[sched.length - 1].gate).toBeNull();
+    const [alone] = researchSchedule({ ...s, techAgeId: 'bronze' }, [kingdoms.id], 1000);
+    expect(alone.gate).toMatchObject({ kind: 'age', ageId: 'classical' });
+    expect(alone.finishesIn).toBe(Infinity);
   });
 });
 
 describe('research status: nothing can start', () => {
-  it('waiting for a date is not a "Choose research" prompt, with or without the advisor', () => {
+  it('waiting for an age is not a "Choose research" prompt, with or without the advisor', () => {
     const s = allOpenKnown(fresh());
     expect(researchNeedsChoice(s)).toBe(false);
     expect(researchIdle(s)).toBe(false);
     expect(nextPrompts(s).some((p) => p.kind === 'research')).toBe(false);
     const st = researchStatus(s);
     expect(st.kind).toBe('idle-waiting');
-    expect(st.next.turns).toBeGreaterThan(0);
-    expect(st.note).toContain('opens in');
+    expect(st.next.ageId).toBe('classical');
+    expect(st.note).toContain('opens in the Classical Age');
     const auto = { ...s, research: { ...s.research, auto: true } };
     expect(researchStatus(auto).kind).toBe('advisor-waiting');
     expect(advisorPlan(s).techId).toBeNull();
@@ -120,7 +111,7 @@ describe('government change preview', () => {
   it('matches what the real action does, including the Authority 25 law line', () => {
     const base = fresh();
     const me = base.playerNationId;
-    const target = getAvailableGovernmentTypes(base.age, base.nations[me].identity).find((t) => t.id !== base.nations[me].government?.type);
+    const target = getAvailableGovernmentTypes(base.techAgeId, base.nations[me].identity).find((t) => t.id !== base.nations[me].government?.type);
     expect(target).toBeTruthy();
     let sawLock = false;
     for (const legitimacy of [0, 20, 35, 50, 70, 100]) {
@@ -143,7 +134,7 @@ describe('government change preview', () => {
     const s = fresh();
     const me = s.playerNationId;
     const poor = { ...s, resources: { ...s.resources, adm: 0 } };
-    const target = getAvailableGovernmentTypes(s.age, s.nations[me].identity).find((t) => t.id !== s.nations[me].government?.type);
+    const target = getAvailableGovernmentTypes(s.techAgeId, s.nations[me].identity).find((t) => t.id !== s.nations[me].government?.type);
     const pv = previewGovernmentChange(poor, target.id);
     expect(pv.ok).toBe(true);
     expect(pv.affordable).toBe(false);

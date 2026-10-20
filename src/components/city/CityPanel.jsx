@@ -20,8 +20,7 @@ import { Lock, Unlock, X, Plus, Coins, Wheat, Hammer, Home, Smile, ArrowUp, Arro
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { getTiles } from '../../data/geo/tiles';
-import { getEffectiveAgeId } from '../../data/ages';
-import { getResearched } from '../../engine/nationState';
+import { getResearched, ageOf } from '../../engine/nationState';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { getAvailableClasses } from '../../data/unitClasses';
 import { IMPROVEMENTS, tileFacts, tileYields } from '../../data/tileYields';
@@ -72,7 +71,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   const { state, dispatch } = useGame();
   const city = state.regions[cityId];
   const tiles = getTiles();
-  const ageId = getEffectiveAgeId(state.age, state.techAgeId);
+  const ageId = ageOf(state, state.playerNationId);
   const mine = !!city && city.owner === state.playerNationId;
   const showOverview = view === 'overview' || view === 'city';
   const showBuild = view === 'build' || view === 'city';

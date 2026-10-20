@@ -22,7 +22,7 @@ import { devastationIncomeMult } from './aftermath';
 import { addPeople, sizeToPeople, productionCost } from './world/cities';
 import { ACTION_COSTS, BASE_TECHPOINTS_PER_TURN, SCIENCE_PER_DEV, BANKRUPTCY_DURATION_TURNS } from '../data/actionCosts';
 import { getFieldedStrength } from '../utils/helpers';
-import { getResearched, getTechAgeId } from './nationState';
+import { getResearched, ageOf } from './nationState';
 import { getModifier, getRegionModifierTotals } from './modifiers/sheet';
 const INCOME_KEYS = ['local.taxIncome', 'local.productionIncome', 'local.manpower', 'local.techPoints', 'local.flatGold', 'local.flatManpower', 'local.tradeIncome'];
 import {
@@ -32,7 +32,7 @@ import { REGIONS_DATA, getOwnedRegionIds } from '../data/regions';
 import {
   BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, canBuildTier, getBuildingTierCost, getBuildingSlots, getUsedBuildingSlots
 } from '../data/buildings';
-import { getEffectiveAgeId, speedCostMult, speedTrainMult, isAgeAtLeast } from '../data/ages';
+import { speedCostMult, speedTrainMult, isAgeAtLeast } from '../data/ages';
 import { getAvailableGovernmentTypes, getReformChoices, resetReformsForType } from '../data/government';
 import { DOCTRINE_BUILDING_PRIORITY, DOCTRINE_GOVERNMENT, DOCTRINE_LAWS, DOCTRINE_REFORMS } from '../data/nations';
 import { clampStability, getIncreaseStabilityCost } from './nationalPower';
@@ -138,7 +138,7 @@ export const calcAllNationIncomes = (state, only = null) => {
 // doctrine's preferred type first (DOCTRINE_GOVERNMENT, plan C4.5), or fills in the current age's
 // reform tier with the doctrine's preferred reform (DOCTRINE_REFORMS), else the first choice.
 const tryAdoptOrReformGovernment = (state, nation) => {
-  const ageId = state.age;
+  const ageId = ageOf(state, nation.id);
   if (!nation.government || nation.government.type === 'tribal') {
     if (!isAgeAtLeast(ageId, 'classical')) return null;
     const available = getAvailableGovernmentTypes(ageId, nation.identity).filter((t) => t.id !== 'tribal');
@@ -265,7 +265,7 @@ const tryRushProduction = (state, nation, regions, skip = null) => {
   if (best == null) return null;
   const city = regions[best];
   const p = city.production;
-  const ageId = getEffectiveAgeId(state.age, getTechAgeId(state, nation.id));
+  const ageId = ageOf(state, nation.id);
   const cost = productionCost(p.current, { ageId, citiesOwned: owned.length || 1, speedMult: speedCostMult(state.gameSpeed, ageId), trainMult: speedTrainMult(state.gameSpeed, ageId) });
   const missing = cost - (p.progress || 0);
   const perTurn = city.lastYields?.production || 0;

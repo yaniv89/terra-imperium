@@ -38,7 +38,7 @@ export default {
   'm.why.moveOwnCity': 'Move now only goes to a city of your own.',
   'm.why.alreadyMoved': 'This army has already moved this turn.',
   'm.why.armyThere': 'The army is already there.',
-  'm.why.tooFarMove': 'Too far to move now: the march takes {turns} turns.',
+  'm.why.tooFarMove': 'Too far to move now: the march needs {turns} more End Turn(s).',
   'm.why.notSafe': 'The way is not safe (an enemy is close): give a march order instead.',
   'm.why.noFleetSail': 'No fleet here can sail.',
   'm.why.noArmyMarch': 'No army here can march.',

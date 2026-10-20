@@ -12,7 +12,7 @@
 //
 // Sea lanes themselves are NOT age-gated here — this just computes the full pairwise distance
 // graph among coastal nations once; src/data/navalReach.js filters it by the age-appropriate
-// range at read time, the same way techTree.js's yearAvailable gates content by year rather than
+// range at read time, the same way techs are gated by the nation's age rather than
 // baking "is this available" into the data file itself.
 //
 // Run with: node scripts/geo/build-sea-lanes.mjs (after build-world-regions.mjs's inputs exist).

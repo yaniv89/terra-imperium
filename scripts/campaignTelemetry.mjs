@@ -1,7 +1,7 @@
 // scripts/campaignTelemetry.mjs
 // Campaign telemetry for the balance harness (plans/playtest-audits-implementation-plan.md W00,
 // section 8; addendum X15, X22, X24). Tooling only: it reads game states, it never changes a rule.
-// It has no engine imports, so the vitest sim (.claude/skills/balance-sim/worldStats.sim.js) and
+// It has no engine imports (createActionCounter below counts actions by type), so the vitest sim (.claude/skills/balance-sim/worldStats.sim.js) and
 // scripts/simulate.mjs share it; engine helpers it needs are passed in.
 //
 //   const policy = createScriptedPlayer({ engine: { gameReducer, ActionTypes, chooseProduction, ... }, ... });
@@ -16,6 +16,80 @@
 // settlers to the best site in reach, so first-build ETAs and city counts mean something. It never
 // declares war and never moves an army.
 
+// Per-action use counts (differentiation plan U1, read by U33's economy measurement). Dev tooling
+// only, outside game logic: it counts the actions handed to the reducer and never changes one.
+//   const counter = createActionCounter(ActionTypes);
+//   const reducer = counter.wrap(gameReducer);       // every call through it is counted
+//   counter.get('QUEUE_PRODUCTION')                   // 0 for a type never dispatched, never undefined
+//   counter.table()                                   // { [type]: n } with every known type, zeros kept
+//   counter.rows()                                    // [{ type, count }] most used first, then by name
+// In a dev browser the same counts come from installBrowserActionCounter (run in the page).
+export const createActionCounter = (ActionTypes = {}) => {
+  const known = [...new Set(Object.values(ActionTypes).filter((t) => typeof t === 'string'))];
+  const counts = new Map();
+  const count = (action) => {
+    const type = action?.type;
+    if (typeof type !== 'string' || !type) return;
+    counts.set(type, (counts.get(type) || 0) + 1);
+  };
+  const add = (type, n) => { if (typeof type === 'string' && Number.isFinite(n) && n > 0) counts.set(type, (counts.get(type) || 0) + n); };
+  const wrap = (reducer) => (state, action) => { count(action); return reducer(state, action); };
+  const get = (type) => counts.get(type) || 0;
+  const table = () => {
+    const out = {};
+    for (const t of [...known, ...counts.keys()].sort()) out[t] = get(t);
+    return out;
+  };
+  const rows = () => Object.entries(table()).map(([type, n]) => ({ type, count: n })).sort((a, b) => (b.count - a.count) || (a.type < b.type ? -1 : 1));
+  const merge = (obj) => { for (const [t, n] of Object.entries(obj || {})) add(t, n); };
+  const total = () => [...counts.values()].reduce((a, n) => a + n, 0);
+  return { count, wrap, get, table, rows, merge, total };
+};
+
+// Run in a dev page (Playwright page.evaluate, or the console): counts every action the UI hands
+// to GameProvider's dispatch into window.__actionCounts, without touching the game's code. It finds
+// GameProvider through React's fiber (the hook whose callback is window.__game.dispatch) and watches
+// the ref that dispatch writes each action into (src/context/GameContext.jsx lastActionRef). Returns
+// true once installed (again on a later call: no double count).
+export function installBrowserActionCounter() {
+  if (window.__actionCounterInstalled) return true;
+  const target = window.__game?.dispatch;
+  if (!target) return false;
+  const rootEl = document.getElementById('root') || document.body;
+  const key = Object.keys(rootEl).find((k) => k.startsWith('__reactContainer$') || k.startsWith('__reactFiber$'));
+  if (!key) return false;
+  const stack = [rootEl[key]?.stateNode?.current || rootEl[key]];
+  const seen = new Set();
+  while (stack.length) {
+    const f = stack.pop();
+    if (!f || seen.has(f)) continue;
+    seen.add(f);
+    const hooks = [];
+    for (let h = f.memoizedState; h && typeof h === 'object' && 'next' in h; h = h.next) hooks.push(h);
+    const cb = hooks.findIndex((h) => Array.isArray(h.memoizedState) && h.memoizedState[0] === target);
+    if (cb >= 1) {
+      // the ref written by dispatch is the useRef just before the useCallback that holds no state
+      for (let i = cb - 1; i >= 0; i--) {
+        const ref = hooks[i].memoizedState;
+        if (!ref || typeof ref !== 'object' || !('current' in ref) || Object.keys(ref).length !== 1) continue;
+        if (ref.current && typeof ref.current === 'object' && ref.current.regions) continue; // a state ref
+        let value = ref.current;
+        window.__actionCounts = window.__actionCounts || {};
+        Object.defineProperty(ref, 'current', {
+          configurable: true,
+          get: () => value,
+          set: (v) => { if (v && typeof v.type === 'string') window.__actionCounts[v.type] = (window.__actionCounts[v.type] || 0) + 1; value = v; }
+        });
+        window.__actionCounterInstalled = true;
+        return true;
+      }
+    }
+    if (f.child) stack.push(f.child);
+    if (f.sibling) stack.push(f.sibling);
+  }
+  return false;
+}
+
 const median = (xs) => { if (!xs.length) return 0; const a = [...xs].sort((p, q) => p - q); const m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; };
 const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
 const r1 = (v) => (Number.isFinite(v) ? Math.round(v * 10) / 10 : 0);
@@ -28,8 +102,10 @@ const buildingCount = (city) => Object.values(city.buildings?.categories || {}).
  * major's demand and an independent's tribute demand; default 'refuse' (the passive baseline).
  * Everything it answers is recorded in `log` for the tribute metrics.
  */
-export const createScriptedPlayer = ({ engine, demands = 'refuse', production = true, settle = true, rush = false, opinionOf = null }) => {
-  const { gameReducer, ActionTypes } = engine;
+export const createScriptedPlayer = ({ engine, demands = 'refuse', production = true, settle = true, rush = false, opinionOf = null, counter = null }) => {
+  const { ActionTypes } = engine;
+  // counter (createActionCounter): every action this player hands the reducer is counted by type
+  const gameReducer = counter ? counter.wrap(engine.gameReducer) : engine.gameReducer;
   const log = { demands: [], tribute: [], peace: 0, defenses: 0, events: 0, joins: 0, queued: 0, settled: 0 };
   const answer = (state) => {
     let s = state;
@@ -52,7 +128,7 @@ export const createScriptedPlayer = ({ engine, demands = 'refuse', production = 
     if (production && engine.chooseProduction) {
       const counts = engine.nationCounts(s)[me] || { settlers: 0, outposts: 0, landUnits: 0 };
       const owned = Object.values(s.regions).filter((c) => c.owner === me).length;
-      const ageId = engine.getEffectiveAgeId(s.age, engine.getTechAgeId(s, me));
+      const ageId = engine.getEffectiveAgeId ? engine.getEffectiveAgeId(s.age, engine.getTechAgeId(s, me)) : engine.getTechAgeId(s, me); // the old engine (a base commit) still had the calendar floor
       const ctx = { researched: engine.getResearched(s, me), ageId, turnNumber: s.turnNumber, citiesOwned: owned || 1, speedMult: engine.speedCostMult(s.gameSpeed, ageId), trainMult: engine.speedTrainMult ? engine.speedTrainMult(s.gameSpeed, ageId) : undefined, greatProjects: s.greatProjects || {}, units: s.units, counts: { ...counts } };
       for (const city of Object.values(s.regions)) {
         if (city.owner !== me || city.outpost || city.razing || city.tile == null || city.production?.current) continue;
@@ -78,7 +154,7 @@ export const createScriptedPlayer = ({ engine, demands = 'refuse', production = 
     // Settlers without a destination walk to the best site in reach (the AI's own site search), so the
     // player's city count and the second-city ETA mean something. Founding is the engine's (processSettlers).
     if (settle && engine.bestSites) {
-      const ageId = engine.getEffectiveAgeId(s.age, engine.getTechAgeId(s, me));
+      const ageId = engine.getEffectiveAgeId ? engine.getEffectiveAgeId(s.age, engine.getTechAgeId(s, me)) : engine.getTechAgeId(s, me); // the old engine (a base commit) still had the calendar floor
       for (const u of Object.values(s.units)) {
         if (u.ownerId !== me || u.classId !== 'settler' || u.target != null || u.tile == null) continue;
         const site = engine.bestSites(s, me, u.tile, ageId, { rings: engine.MAX_SETTLE_RINGS, limit: 1 })[0];

@@ -179,12 +179,12 @@ describe('getCategoryTierName', () => {
 });
 
 describe('canBuildExtraction', () => {
-  it('gates each extraction building by its own age', () => {
+  it('gates each extraction building by the nation\'s own age, with no age-ahead allowance', () => {
     expect(canBuildExtraction('copper', 'bronze')).toBe(true);
-    expect(canBuildExtraction('iron', 'bronze')).toBe(false);
-    expect(canBuildExtraction('iron', 'classical')).toBe(true); // one age ahead of kingdoms
-    expect(canBuildExtraction('oil', 'gunpowder')).toBe(true); // one age ahead of modern
-    expect(canBuildExtraction('oil', 'kingdoms')).toBe(false);
+    expect(canBuildExtraction('iron', 'classical')).toBe(false);
+    expect(canBuildExtraction('iron', 'kingdoms')).toBe(true);
+    expect(canBuildExtraction('oil', 'gunpowder')).toBe(false);
+    expect(canBuildExtraction('oil', 'modern')).toBe(true);
   });
 
   it('rejects an unknown resource', () => {

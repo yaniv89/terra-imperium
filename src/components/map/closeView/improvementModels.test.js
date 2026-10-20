@@ -14,6 +14,7 @@ import { prepareBuildingModel, createBuildingLayer, modelInfo } from './building
 import { loadAssetObjects } from './townAssets';
 import { createOccupancy } from './occupancy';
 import { buildingGlb } from './glbFixture';
+import { AGE_ORDER } from '../../../data/ages';
 
 const tiles = getTiles();
 const INDEX = indexImprovementFiles({
@@ -61,14 +62,17 @@ describe('improvement models: files and lookup', () => {
     const files = fs.readdirSync('src/assets/map/improvements').filter((f) => f.endsWith('.glb'));
     // every file names a real improvement, a game age (written out: a file without one would read
     // as bronze) and at most one style
-    files.forEach((f) => {
+    // art for an age the code has not registered yet (eight-ages plan: stone before U22) waits
+    // unread: its name must still be <kind>-<that age>
+    const waiting = (name) => ['stone', 'information', 'future'].includes(name.split('-')[1]) && !AGE_ORDER.includes(name.split('-')[1]);
+    files.filter((f) => !waiting(f.replace('.glb', ''))).forEach((f) => {
       const name = f.replace('.glb', '');
       const p = parseImprovementFile(name);
       expect(p, f).toBeTruthy();
       expect(IMPROVEMENT_IDS, f).toContain(p.kind);
       expect(name.split('-')[1], f).toBe(p.age);
     });
-    const base = files.filter((f) => parseImprovementFile(f.replace('.glb', '')).style === 'base').map((f) => f.replace('.glb', '')).sort();
+    const base = files.filter((f) => !waiting(f.replace('.glb', ''))).filter((f) => parseImprovementFile(f.replace('.glb', '')).style === 'base').map((f) => f.replace('.glb', '')).sort();
     expect(base).toEqual(['camp-bronze', 'farm-bronze', 'farm-modern', 'fishing_boats-bronze', 'fishing_boats-modern', 'fort-classical', 'fort-gunpowder', 'fort-kingdoms', 'fort-modern', 'lumber_camp-bronze', 'mine-bronze', 'mine-modern',
       'pasture-bronze', 'plantation-bronze', 'quarry-bronze', 'road-bronze', 'road-modern']);
     const israelite = files.filter((f) => f.endsWith('-israelite.glb')).sort();

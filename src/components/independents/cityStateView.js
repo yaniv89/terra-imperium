@@ -3,6 +3,7 @@
 // gets, and who that patron is. iconUrl is the type's badge (UI18 art, data/icons.js) and patronUrl
 // the "they favour you" mark; while either is missing the badge draws the lucide placeholder (`icon`).
 import { CITY_STATE_TYPES, cityStateTypeOf, patronBonusOf } from '../../data/cityStates';
+import { independentAgeOf } from '../../engine/ageRefs';
 import { t } from '../../i18n/core';
 import { nameNow } from '../../i18n/names';
 import { cityStateTypeName } from '../../i18n/gameText';
@@ -15,7 +16,7 @@ export const cityStateViewOf = (state, nation, me = state?.playerNationId) => {
   const ct = CITY_STATE_TYPES[type];
   const patronId = nation.indep?.patron || null;
   const patron = !patronId ? null : patronId === me ? 'you' : (state.nations?.[patronId]?.name ? nameNow('people', patronId, state.nations[patronId].name) : patronId);
-  const b = patronBonusOf(type, state?.age);
+  const b = patronBonusOf(type, independentAgeOf(state, nation.id));
   const bonus = b.gold ? t('ind.cs.bonusGold', { n: b.gold }) : b.hr ? t('ind.cs.bonusHr', { n: b.hr }) : b.techPoints ? t('ind.cs.bonusTech', { n: b.techPoints }) : b.prestige ? t('ind.cs.bonusPrestige', { n: b.prestige }) : null;
   const line = !bonus ? t('ind.cs.noPatron')
     : t('ind.cs.patronGets', { bonus, who: patron === 'you' ? t('ind.cs.favourYou') : patron ? t('ind.cs.favourOther', { name: patron }) : t('ind.cs.favourNobody') });

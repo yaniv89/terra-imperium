@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createScriptedPlayer, createTelemetry } from './campaignTelemetry.mjs';
+import { createScriptedPlayer, createTelemetry, createActionCounter } from './campaignTelemetry.mjs';
 import { parseArgs } from './simulate.mjs';
 
 const AT = { ACCEPT_PENDING_PEACE: 'acceptPeace', REJECT_PENDING_PEACE: 'rejectPeace', RESOLVE_ALL_DEFENSES_AUTO: 'defAuto', ANSWER_TRIBUTE_DEMAND: 'tribute', ANSWER_DEMAND: 'demand', QUEUE_PRODUCTION: 'queue' };
@@ -76,6 +76,52 @@ describe('telemetry', () => {
     expect(snap.capturesTotal).toBe(1);
     expect(snap.conquestsKept20).toBe(1);
   });
+});
+
+describe('action counter', () => {
+  it('counts each type, keeps every known type at 0 and ignores a bad action', () => {
+    const c = createActionCounter({ A: 'A', B: 'B', NESTED: { x: 1 } });
+    const r = c.wrap((s, a) => ({ ...s, last: a.type }));
+    expect(r({}, { type: 'A' }).last).toBe('A');
+    r({}, { type: 'A' }); r({}, { type: 'Z' }); c.count(null); c.count({});
+    expect(c.get('A')).toBe(2);
+    expect(c.get('B')).toBe(0);
+    expect(c.get('NEVER')).toBe(0);
+    expect(c.table()).toEqual({ A: 2, B: 0, Z: 1 });
+    expect(c.rows()[0]).toEqual({ type: 'A', count: 2 });
+    c.merge({ B: 3, A: 'x' });
+    expect(c.get('B')).toBe(3);
+    expect(c.total()).toBe(6);
+  });
+
+  it('counts the actions of a scripted 20-turn run, a missing type reads 0', async () => {
+    const [{ gameReducer, createInitialState }, { resolveTurn }, { ActionTypes }, prod, settlers, ns, ages] = await Promise.all([
+      import('../src/engine/gameReducer.js'), import('../src/engine/resolveTurn.js'), import('../src/data/types.js'),
+      import('../src/engine/aiProduction.js'), import('../src/engine/settlers.js'), import('../src/engine/nationState.js'), import('../src/data/ages.js')
+    ]);
+    const engine = { gameReducer, ActionTypes, chooseProduction: prod.chooseProduction, nationCounts: prod.nationCounts, bestSites: settlers.bestSites, MAX_SETTLE_RINGS: settlers.MAX_SETTLE_RINGS, getResearched: ns.getResearched, getTechAgeId: ns.getTechAgeId, getEffectiveAgeId: ages.getEffectiveAgeId, speedCostMult: ages.speedCostMult };
+    const counter = createActionCounter(ActionTypes);
+    const player = createScriptedPlayer({ engine, counter });
+    // the harness setup of scripts/simulate.mjs runGame: no historical or procedural events, auto defences
+    const { HISTORICAL_EVENTS } = await import('../src/data/events.js');
+    const firedEvents = Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true]));
+    let s = { ...createInitialState({ playerNationId: 'akkad', rngSeed: 11, scenario: { mode: 'peoples', size: 'small', seed: 11 } }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { defaultMode: 'auto', autoDefend: true } };
+    for (let t = 0; t < 20; t++) {
+      s = player.answer(s).state;
+      s = resolveTurn(s);
+      if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null };
+    }
+    expect(s.turnNumber).toBeGreaterThanOrEqual(20);
+    // every queue the player made went through the counter (failed attempts are counted too)
+    expect(player.log.queued).toBeGreaterThan(0);
+    expect(counter.get(ActionTypes.QUEUE_PRODUCTION)).toBeGreaterThanOrEqual(player.log.queued);
+    expect(counter.get(ActionTypes.SET_SETTLER_TARGET)).toBeGreaterThanOrEqual(player.log.settled);
+    expect(counter.total()).toBe(Object.values(counter.table()).reduce((a, n) => a + n, 0));
+    const table = counter.table();
+    for (const type of Object.values(ActionTypes).filter((v) => typeof v === 'string')) expect(Number.isInteger(table[type])).toBe(true);
+    expect(counter.get(ActionTypes.VASSALIZE)).toBe(0);
+    expect(table[ActionTypes.VASSALIZE]).toBe(0);
+  }, 120000);
 });
 
 describe('simulate.mjs options', () => {

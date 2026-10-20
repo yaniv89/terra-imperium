@@ -3,12 +3,16 @@
 // form Civilization IV uses for tech cost). A breakthrough is cheaper the larger the share of the
 // world you know that already has it; being first in the world is costlier:
 //
-//   known     nations you border, nations whose capital lies within CONTACT_KM[age] of yours, and
+//   known     nations you border, nations whose capital lies within CONTACT_KM[reach age] of yours
+//             (the reach age is the higher of your own age and the research leader's age minus one,
+//             so an isolated people's horizon widens as the world advances, KTD5), and
 //             your trade partners (a pact with the player, either way round)
 //   weight    each known nation's economy (its summed city size, tradeValue.js economySizes),
 //             x TRADE_CONTACT_WEIGHT for a trade partner: merchants carry ideas
 //   share     weight of the known nations that have the tech / weight of all known nations
-//   mult      1 - DIFFUSION_MAX x share; x PIONEER_MULT when no nation in the world has it yet
+//   mult      1 - DIFFUSION_MAX x share; 1 - CATCHUP_MAX x share when at least one known holder is
+//             in a later age than you (catching up, KTD5: no penalty for falling behind, a bigger
+//             discount instead); x PIONEER_MULT when no nation in the world has it yet
 //
 // The multiplier applies to the power and the tech-point cost of a tech. A laggard among
 // advanced neighbours catches up up to 30% faster (the same ceiling as the old 6% per bordering
@@ -19,11 +23,15 @@
 import { getBorderingNationIds, getCapital } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
 import { economySizes, tileKm } from './tradeValue';
+import { AGE_ORDER, getAgeIndex } from '../data/ages';
+import { ageOf } from './nationState';
+import { researchLeaderIndex } from './ageRefs';
 
 export const DIFFUSION_MAX = 0.3;
+export const CATCHUP_MAX = 0.45;
 export const TRADE_CONTACT_WEIGHT = 2;
 export const PIONEER_MULT = 1.2;
-// How far a capital "knows" other capitals, by calendar age (km).
+// How far a capital "knows" other capitals, by the reach age (km): see reachAgeOf.
 export const CONTACT_KM = { bronze: 1500, classical: 2500, kingdoms: 4000, gunpowder: 10000, modern: 40000 };
 
 // techId -> Set of nations that have it. Cached per (nations, techTree) object pair: the index is
@@ -46,7 +54,10 @@ const holderIndex = (state) => {
   return index;
 };
 
-// nationId -> Map(knownId -> weight). Cached per (regions, nations, age).
+/** The age a nation's contact reach is read at: its own, or the research leader's minus one. */
+export const reachAgeOf = (state, nationId) => AGE_ORDER[Math.max(getAgeIndex(ageOf(state, nationId)), researchLeaderIndex(state) - 1, 0)];
+
+// nationId -> Map(knownId -> weight). Cached per (regions, nations, the player's age).
 const contactCache = new WeakMap();
 const isTradePartner = (state, a, b) => {
   const p = state.playerNationId;
@@ -59,8 +70,8 @@ const isTradePartner = (state, a, b) => {
 export const contactsOf = (state, nationId) => {
   const regions = state.regions || {};
   let entry = contactCache.get(regions);
-  if (!entry || entry.nations !== state.nations || entry.age !== state.age) {
-    entry = { nations: state.nations, age: state.age, byNation: new Map(), capitals: null };
+  if (!entry || entry.nations !== state.nations || entry.techAgeId !== state.techAgeId) {
+    entry = { nations: state.nations, techAgeId: state.techAgeId, byNation: new Map(), capitals: null };
     contactCache.set(regions, entry);
   }
   const hit = entry.byNation.get(nationId);
@@ -75,7 +86,7 @@ export const contactsOf = (state, nationId) => {
     });
   }
   const sizes = economySizes(state);
-  const reach = CONTACT_KM[state.age] ?? CONTACT_KM.bronze;
+  const reach = CONTACT_KM[reachAgeOf(state, nationId)] ?? CONTACT_KM[AGE_ORDER[0]];
   const known = new Map();
   const add = (id) => {
     if (id === nationId || known.has(id) || !state.nations?.[id] || state.nations[id].isEliminated) return;
@@ -91,12 +102,18 @@ export const contactsOf = (state, nationId) => {
 
 export const getTechDiffusion = (state, nationId, techId) => {
   const holders = holderIndex(state).get(techId);
-  if (!holders || holders.size === 0) return { mult: PIONEER_MULT, share: 0, knownWithIt: 0, known: 0, pioneer: true };
+  if (!holders || holders.size === 0) return { mult: PIONEER_MULT, share: 0, knownWithIt: 0, known: 0, pioneer: true, catchUp: false };
   const known = contactsOf(state, nationId);
-  let total = 0; let withIt = 0; let knownWithIt = 0;
-  known.forEach((w, id) => { total += w; if (holders.has(id)) { withIt += w; knownWithIt += 1; } });
+  const mine = getAgeIndex(ageOf(state, nationId));
+  let total = 0; let withIt = 0; let knownWithIt = 0; let catchUp = false;
+  known.forEach((w, id) => {
+    total += w;
+    if (!holders.has(id)) return;
+    withIt += w; knownWithIt += 1;
+    if (getAgeIndex(ageOf(state, id)) > mine) catchUp = true;
+  });
   const share = total > 0 ? withIt / total : 0;
-  return { mult: 1 - DIFFUSION_MAX * share, share, knownWithIt, known: known.size, pioneer: false };
+  return { mult: 1 - (catchUp ? CATCHUP_MAX : DIFFUSION_MAX) * share, share, knownWithIt, known: known.size, pioneer: false, catchUp };
 };
 
 // Folds diffusion into the (1 + researchCostMult) factor every research-cost formula already uses,

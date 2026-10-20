@@ -5,7 +5,8 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { AGE_ORDER, AGES, GAME_SPEEDS, REFERENCE_YEARS } from './ages';
+import { AGE_ORDER, AGES, GAME_SPEEDS } from './ages';
+import { REIGN_TURNS_PER_YEAR } from '../engine/rulers';
 import { TECH_TREE, getTechsForAge } from './techTree';
 import { UNIT_ROSTER } from './unitClasses';
 import { BUILDING_CATEGORIES } from './buildings';
@@ -54,7 +55,7 @@ const knownOnly = (name, keys) => [...new Set(keys)].filter((k) => !AGE_ORDER.in
 // Tables keyed directly by age id; each must have every age unless OPT_OUT gives a reason.
 const KEYED = [
   ['AGES', AGES], ['UNIT_ROSTER', UNIT_ROSTER],
-  ['REFERENCE_YEARS', REFERENCE_YEARS], ['RESEARCH_AGE_BASE', RESEARCH_AGE_BASE],
+  ['REIGN_TURNS_PER_YEAR', REIGN_TURNS_PER_YEAR], ['RESEARCH_AGE_BASE', RESEARCH_AGE_BASE],
   ['COLONY_SLOTS_BY_AGE', COLONY_SLOTS_BY_AGE], ['OUTPOST_SLOTS_BY_AGE', OUTPOST_SLOTS_BY_AGE],
   ['NAVAL_KM_BY_AGE', NAVAL_KM_BY_AGE], ['NAVAL_REACH_KM', NAVAL_REACH_KM], ['CONTACT_KM', CONTACT_KM],
   ['STRIKE_MAX', STRIKE_MAX], ['BORDER_KM_BY_AGE', BORDER_KM_BY_AGE],
@@ -65,7 +66,7 @@ const KEYED = [
   ['HELMETS', HELMETS], ['BODY_CLOTH', BODY_CLOTH], ['LEG_CLOTH', LEG_CLOTH],
   ...ROSTER_CLASSES.map((c) => [`MODELS.${c}`, MODELS[c]]),
   ['AGE_STYLE', AGE_STYLE],
-  ...Object.values(GAME_SPEEDS).map((s) => [`GAME_SPEEDS.${s.id}.years`, s.years]),
+  ...Object.values(GAME_SPEEDS).map((s) => [`GAME_SPEEDS.${s.id}.costMult`, s.costMult]),
   ...Object.entries(PLAYSTYLES).map(([id, p]) => [`PLAYSTYLES.${id}.targets`, p.targets]),
   ...Object.entries(NAVAL_LINES).flatMap(([id, l]) => [[`NAVAL_LINES.${id}.names`, l.names], [`NAVAL_LINES.${id}.cargo`, l.cargo]]),
   ...['warship', 'transport', 'raider'].map((id) => [`NAVAL_LINE_STATS.${id}`, NAVAL_LINE_STATS[id]])

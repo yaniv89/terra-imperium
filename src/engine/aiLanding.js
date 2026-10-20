@@ -15,11 +15,10 @@
 // under the queued record's id, so Command and Auto can never both land. Pure.
 import { getRegionTerrain } from '../data/terrain';
 import { REGIONS_DATA } from '../data/regions';
-import { getEffectiveAgeId } from '../data/ages';
 import { LogTypes } from '../data/types';
 import { msg, sub, people, cityRef } from './messages';
 import { createRng } from '../utils/rng';
-import { getTechAgeId } from './nationState';
+import { getTechAgeId, ageOf } from './nationState';
 import { resolveAutoBattle } from './autoBattle';
 import { applyBattleOutcome, makeBattleOutcome } from './battleOutcome';
 import { validateAmphibious, getAmphibiousBattleContext, applyAmphibiousLanding } from './invasion';
@@ -65,7 +64,7 @@ export const interceptArmies = (state, def) => {
 /** resolveBattle's arguments for the interception. */
 export const interceptArgs = (state, def, armies) => ({
   attackerUnits: armies.attackerUnits, defenderUnits: armies.defenderUnits, terrain: getRegionTerrain(def.regionId, REGIONS_DATA), isAttackingFortification: false,
-  generals: state.hiredCommanders, attackerAgeId: getEffectiveAgeId(state.age, getTechAgeId(state, def.aggressorId)), defenderAgeId: getEffectiveAgeId(state.age, state.techAgeId)
+  generals: state.hiredCommanders, attackerAgeId: ageOf(state, def.aggressorId), defenderAgeId: ageOf(state, state.playerNationId)
 });
 
 /** Fight (or apply) the interception: `battle` is the commanded result or null for Auto. */

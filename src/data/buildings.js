@@ -187,12 +187,12 @@ export const getUsedBuildingSlots = (regionBuildings) =>
 
 // True if `resourceId`'s extraction building can be built right now (age gate only — the deposit
 // check itself is src/data/deposits.js's job). Untouched by M6.
-export const canBuildExtraction = (resourceId, calendarAgeId) => {
+export const canBuildExtraction = (resourceId, ageId) => {
   const building = EXTRACTION_BUILDINGS[resourceId];
   if (!building) return false;
-  const calendarIdx = getAgeIndex(calendarAgeId);
-  if (calendarIdx === -1) return false;
-  return getAgeIndex(building.age) <= calendarIdx + 1;
+  const idx = getAgeIndex(ageId);
+  if (idx === -1) return false;
+  return getAgeIndex(building.age) <= idx;
 };
 
 // A fresh region's building state: no category built, no extraction developed.

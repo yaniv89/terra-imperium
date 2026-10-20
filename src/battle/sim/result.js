@@ -5,6 +5,9 @@
 import { SIDE_ATTACKER, SIDE_DEFENDER, TICK_HZ } from './constants';
 import { cityDamageReport } from './cityStructures';
 import { economyReport } from './economy';
+import { LOSS_CAUSES, emptyLosses } from './losses';
+
+const sumLosses = (squads) => { const out = emptyLosses(); squads.forEach((q) => LOSS_CAUSES.forEach((k) => { out[k] += q.lossBy?.[k] || 0; })); return out; };
 
 // A skilled commander earns a little more XP than auto-resolve would give — capped, so battles
 // can't be farmed (one attack per stack per turn already holds).
@@ -72,6 +75,9 @@ export const toStrategicResult = (w) => {
         joinedReinforcements: w.squads.filter((q) => q.reinforcement && q.joined).map((q) => q.unitId),
         powersUsed: [{ ...w.powersUsed[0] }, { ...w.powersUsed[1] }],
         xpBonusById,
+        // What each side's campaign units lost, by cause (losses.js: melee, ranged, tower, impact,
+        // attrition): every loss of a commanded battle is accounted for (H-03).
+        losses: [SIDE_ATTACKER, SIDE_DEFENDER].map((side) => sumLosses(w.squads.filter((q) => q.side === side && tookPart(q)))),
         // Generals whose guard fell on the field (world.js spawnGenerals): the campaign rolls the
         // shared COMMANDER_FALL_CHANCE for each (aftermath.js); the others rode off.
         generalsStruck: w.squads.filter((q) => q.isGeneral && !q.alive).map((q) => q.isGeneral),

@@ -70,7 +70,7 @@ export const getLoanSize = (state, nationId) => {
 const unitsAfterMarch = (state, nationId, owned) => {
   if (nationId !== state.playerNationId || !owned.some((u) => u.route?.length)) return owned;
   const after = { ...state.units };
-  advanceMarches(state, after, { year: state.year });
+  advanceMarches(state, after, { year: state.year, turnOf: state.turnNumber + 1 });
   return Object.values(after).filter((u) => u.ownerId === nationId);
 };
 
@@ -104,7 +104,7 @@ export const calcNationBalance =(state, nationId, knownIncome, ownedUnits = null
 
 // Plan §M11 resource sink: "bronze-age units cost copper, iron-age units cost iron, modern units
 // cost oil... missing resources give +50% gold cost instead of blocking" (verbatim). ageId is the
-// unit's own stamped age (state.age at recruit time, matching RECRUIT_UNIT's existing behavior).
+// recruiting nation's own age (ageOf).
 // Plan §M11/§M15: shared bankruptcy consequence, extracted so both the natural "a loan is needed but
 // capacity is already full" shortfall path (resolveTurn.js's own economy phase) and the Economic
 // Collapse disaster's own completion (disasters.js, plan §M15: "3 loans and negative net income for 5

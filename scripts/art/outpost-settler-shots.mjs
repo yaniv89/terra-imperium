@@ -55,7 +55,7 @@ const spots = await page.evaluate(async ({ base, age }) => {
   if (age) { g.dispatch({ type: 'LOAD_GAME', payload: { ...state, age, techAgeId: age } }); await new Promise((r) => setTimeout(r, 300)); state = window.__game.state; }
   const me = state.playerNationId;
   const cap = state.regions[state.nations[me].capitalRegionId];
-  const ageId = age || state.age;
+  const ageId = age || state.techAgeId;
   const sites = S.bestSites(state, me, cap.tile, ageId, { rings: 8, limit: 6 });
   if (sites.length < 2) return { error: `only ${sites.length} sites` };
   const mk = (id, tile) => ({ ...S.makeSettler(id, cap, me), tile });

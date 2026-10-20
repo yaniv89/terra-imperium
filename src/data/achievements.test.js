@@ -77,11 +77,11 @@ describe('checkAchievements', () => {
 
   it('detects unbroken only in/past the Modern Age with no region ever ceded in peace', () => {
     const state = peoplesWorld();
-    const kingdomsClean = { ...state, age: 'kingdoms' };
+    const kingdomsClean = { ...state, techAgeId: 'kingdoms' };
     expect(checkAchievements(kingdomsClean)).not.toContain('unbroken'); // age too early
-    const modernButBroken = { ...state, age: 'modern', nations: { ...state.nations, [FR]: { ...state.nations[FR], hasCededRegionInPeace: true } } };
+    const modernButBroken = { ...state, techAgeId: 'modern', nations: { ...state.nations, [FR]: { ...state.nations[FR], hasCededRegionInPeace: true } } };
     expect(checkAchievements(modernButBroken)).not.toContain('unbroken');
-    const modernClean = { ...state, age: 'modern' };
+    const modernClean = { ...state, techAgeId: 'modern' };
     expect(checkAchievements(modernClean)).toContain('unbroken');
   });
 

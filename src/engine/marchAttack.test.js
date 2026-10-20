@@ -38,7 +38,7 @@ describe('march to attack a city the army does not border', () => {
   it('Attack becomes a march order with the route to the city and the attack intent', () => {
     const plan = planMarchAttack(BASE, KISH, MARI);
     expect(plan.ok).toBe(true);
-    expect(plan.turns).toBeGreaterThan(1);
+    expect(plan.turns).toBeGreaterThan(0);
     expect(plan.path[plan.path.length - 1]).toBe(BASE.regions[MARI].tile);
     expect(plan.canAttack).toBe(true);
     const s = gameReducer(BASE, { type: ActionTypes.SET_ROUTE, payload: { fromRegionId: KISH, toRegionId: MARI, attack: true } });
@@ -47,9 +47,32 @@ describe('march to attack a city the army does not border', () => {
     units.forEach((u) => {
       expect(u.routeAttack).toBe(MARI);
       expect(u.route[u.route.length - 1]).toBe(BASE.regions[MARI].tile);
-      expect(u.route).toEqual(plan.steps);
+      // The order stepped at once (routes.js stepMarchesNow): the rest of the route is still to go.
+      const at = unitTile(s, u);
+      expect(at).not.toBe(unitTile(BASE, BASE.units[u.id]));
+      expect(u.route).toEqual(plan.steps.slice(plan.steps.indexOf(at) + 1));
     });
-    expect(s.logs[s.logs.length - 1].message).toMatch(/on Mari to attack it: about \d+ turns/);
+    expect(s.logs.some((l) => /on Mari to attack it: about \d+ turns?/.test(l.message))).toBe(true);
+  });
+
+  it('an army that reaches the city this turn is offered the assault at once, by the same card', () => {
+    // Horsemen a few tiles from Mari's land, not touching it: the whole way fits in this turn's points.
+    const tiles = getTiles();
+    const ids = army(BASE).map((u) => u.id);
+    const near = new Set([BASE.regions[MARI].tile]);
+    for (let d = 0; d < 5; d++) [...near].forEach((t) => tiles.neighbors[t].forEach((n) => { if (tiles.land[n]) near.add(n); }));
+    const start = [...near].sort((a, b) => a - b).map((tile) => ({ ...BASE, units: { ...BASE.units, ...Object.fromEntries(ids.map((id) => [id, { ...BASE.units[id], tile, classId: 'cavalry' }])) } }))
+      .find((s) => attackReach(s, KISH, MARI, ids) === 'far' && planMarchAttack(s, KISH, MARI, ids).turns === 0);
+    expect(start).toBeTruthy();
+    expect(readyAttacks(start)).toEqual([]);
+    const s = gameReducer(start, { type: ActionTypes.SET_ROUTE, payload: { fromRegionId: KISH, toRegionId: MARI, attack: true, unitIds: ids } });
+    // No End Turn: the army stands on the city's ring and the assault is offered now.
+    const ready = readyAttacks(s);
+    expect(ready).toHaveLength(1);
+    expect(ready[0]).toMatchObject({ kind: 'city', fromRegionId: KISH, targetRegionId: MARI });
+    army(s).forEach((u) => expect(tiles.neighbors[s.regions[MARI].tile]).toContain(unitTile(s, u)));
+    const battle = gameReducer(s, { type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: { fromRegionId: ready[0].fromRegionId, targetRegionId: MARI } });
+    expect(battle.pendingBattle).toMatchObject({ kind: 'invasion', targetRegionId: MARI, attackerUnitIds: ready[0].unitIds });
   });
 
   it('on arrival the army besieges the city and the assault is offered, then fought through the usual card', () => {

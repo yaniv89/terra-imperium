@@ -100,7 +100,7 @@ export const EFFECT_REGISTRY = {
   build_missile: { scene: 'silo', palette: P('#f97316', '#fff7ed') },
   cultural_export: { scene: 'culture', palette: P('#f472b6', '#fce7f3') },
   // Age Advance (plan §10.5's "showpiece") — App.jsx's GameLayout triggers this on the player's
-  // capital when state.age changes turn over turn.
+  // capital when the player's own age (state.techAgeId) advances.
   age_advance: { scene: 'ageAdvance', palette: P('#facc15', '#fffde7') }
 };
 
