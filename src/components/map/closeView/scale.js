@@ -1,18 +1,20 @@
 // src/components/map/closeView/scale.js
 // The close view's sizes, shared with the banner overlay (kept free of three.js so the overlay
 // does not pull the 3D engine into the main bundle).
-import { hexSizeVsF75 } from '../../../data/geo/gridScale';
+import { hexSizeVsF75, kmPerRing } from '../../../data/geo/gridScale';
+import { EARTH_RADIUS_KM } from '../../../data/geo/geodesic';
 
-// Pixels per model unit at zoom k.
-// Linear up to the super zoom, then slower (power SUPER_GROWTH), so in the super zoom a town
-// stays inside its hex and the land around it shows (plans/playtest-1.md P1.1).
+// Pixels per model unit at zoom k. Every 3D model on the map has ONE world size (user rule
+// 2026-10-20): pixels per unit are exactly proportional to the zoom, at every zoom, so a model only
+// looks bigger because the camera is closer. The constant is the size at the zoom where the close
+// view opens (CLOSE_K): 5.5 px per unit there. No floor, no slower growth in the super zoom.
 // Model sizes follow the hex: HEX (0.75 at frequency 100, hexSizeVsF75) shrinks every model so a
 // hex stays HEX_UNITS model units across on any grid; the close view opens HEX times later
 // (CLOSE_ZOOM_K in Map2DView), so at its first zoom a town looks as it did on the 106 km grid.
 export const HEX = hexSizeVsF75();
-export const SUPER_FROM_K = 40;
-export const SUPER_GROWTH = 0.7;
-export const unitPx = (k) => HEX * (k <= SUPER_FROM_K ? Math.max(2, k * 0.55) : SUPER_FROM_K * 0.55 * (k / SUPER_FROM_K) ** SUPER_GROWTH);
+export const CLOSE_K = 10 / HEX;
+export const SUPER_FROM_K = 40; // only the tilt and the tree density change from here, never a size
+export const unitPx = (k) => HEX * 0.55 * k;
 // A town fills its own hex (cityHex.js, decision D10): the tier's art shows the city's size. The
 // rules below are the fallback where a hex cannot be projected whole (the map's wrap), and the cap
 // for wonders and improvements: there a medium town is drawn 12% and a big one 25% above its size.
@@ -86,25 +88,42 @@ const townGapSearch = (projection, tiles, tile, isTown) => {
   return best;
 };
 
-// Army figures and settler parties (closeViewScene.js placeArmies). A figure is drawn at
-// `figureScale` pixels per model unit: its true size (unitPx times its class's factor) but never
-// below its floor (a pixel height over the model's height), so it never shrinks as the map zooms in.
-export const figureScale = (k, trueFactor, floorScale) => Math.max(unitPx(k) * trueFactor, floorScale);
-/**
- * The close view is laid out once a zoom settles (at `layoutK`) and the GPU scales that layout with
- * the live zoom `k` until the next one (GLMapView: the root's scale k / layoutK). A figure scaled
- * that way grew past its size during a zoom in and then snapped back to its floor when the zoom
- * settled: the soldiers shrank on every zoom in. This is the factor a figure laid out at layoutK
- * is scaled by in place (about its feet, its offset from the army's spot with it) so that at every
- * live zoom it shows at figureScale(k), the size the next layout gives it.
- */
-export const figureLiveFactor = (k, layoutK, trueFactor, floorScale) => {
-  if (!(k > 0) || !(layoutK > 0)) return 1;
-  return figureScale(k, trueFactor, floorScale) / (figureScale(layoutK, trueFactor, floorScale) * (k / layoutK));
+// Army figures and settler parties (closeViewScene.js placeArmies), as Civilization draws units:
+// they are scaled up against the land on purpose, but always fit inside their hex. A figure is
+// FIGURE_HEIGHT_HEX of a hex spacing tall (hex-relative world size: it grows in proportion to the
+// zoom, no pixel floor), a group of one to three stands in at most GROUP_WIDTH_HEX of the hex, and
+// the group's spot is a small step off the hex centre so the group never leaves the hex.
+// Readability when the hex is small comes from the army's banner, a flat sprite of one screen size.
+export const FIGURE_HEIGHT_HEX = 0.45;
+export const FIGURE_WIDTH_RATIO = 0.45; // a figure's width (spear and shield) over its height
+export const GROUP_WIDTH_HEX = 0.65;
+export const SETTLER_FIGURE_SHARE = 0.6;
+// ONE unit model is drawn per tile (tileStack.js), standing on its hex: at the centre of a plain hex
+// (a small step toward the viewer so the feet are on the ground), and on a city's hex a little
+// further forward, in front of the town's models and still inside the hex.
+export const ARMY_SPOT_HEX = { x: 0, y: 0.1 };
+export const CITY_SPOT_HEX = { x: 0, y: 0.22 };
+/** Where the tile's unit stands, in pixels from the tile's centre (screen x, y down). */
+export const armySpotPx = (hexPx, inCity = false) => { const s = inCity ? CITY_SPOT_HEX : ARMY_SPOT_HEX; return [s.x * hexPx, s.y * hexPx]; };
+/** One hex spacing (neighbour to neighbour) in screen pixels at zoom k, measured north-south. */
+export const hexPxOf = (projection, k, tiles) => (projection.scale() * k * kmPerRing(tiles)) / EARTH_RADIUS_KM;
+/** The scale of a figure whose model is `modelHeight` units tall, in a hex of `hexPx`. `classFactor`: MODEL_SCALE of its class. */
+export const figureScale = (hexPx, modelHeight, classFactor = 0.88) => (FIGURE_HEIGHT_HEX * hexPx * Math.min(1.15, classFactor / 0.88)) / Math.max(1e-6, modelHeight);
+/** The gap between the figures of a group of n (side: 1.1 men, 2.8 elephants) so the group is at most GROUP_WIDTH_HEX wide. */
+export const figureGap = (hexPx, figureHeightPx, n, side = 1.1) => {
+  const w = FIGURE_WIDTH_RATIO * figureHeightPx;
+  return n < 2 ? w : Math.min(w, (GROUP_WIDTH_HEX * hexPx - w) / ((n - 1) * side));
 };
+/** The most a thing standing in one hex may be (pixels per model unit) so its ground radius `radiusUnits` stays inside the hex (HEX_FIT of the half spacing). Proportional to the zoom, like every model. */
+export const HEX_FIT = 0.95;
+export const hexCapPx = (hexPx, radiusUnits) => (radiusUnits > 0 ? (HEX_FIT * 0.5 * hexPx) / radiusUnits : Infinity);
+/** A fleet's ships (n of them, SHIP_HALF_LENGTH units of ship, spaced SHIP_SPACING ship scales): pixels per unit that keep the fleet inside its hex. */
+export const SHIP_HALF_LENGTH = 1.9;
+export const SHIP_SPACING = 2.2;
+export const fleetCapPx = (hexPx, n) => hexCapPx(hexPx, ((n - 1) / 2) * SHIP_SPACING + SHIP_HALF_LENGTH);
+/** Where an army's banner hangs over its soldiers, in pixels from its tile (one rule for the WebGL map and the SVG map). */
+export const armyBannerOffset = (hexPx, inCity = false) => { const [x, y] = armySpotPx(hexPx, inCity); return [x, y - FIGURE_HEIGHT_HEX * hexPx * 0.85 - 10]; };
 
-// Where an army's soldiers stand, in model units from the province centre (screen x, screen y).
-export const ARMY_SPOT = { x: 2.4, y: 1.6 };
 // How far the models lean toward the viewer (radians about the screen x axis, 0 = seen from the
 // side, pi/2 = straight down). About 35 degrees: a low three-quarter look, so towers, walls and
 // roofs show their sides and read as 3D models; a touch lower still in the super zoom (from k 40

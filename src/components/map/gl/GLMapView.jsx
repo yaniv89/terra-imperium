@@ -52,7 +52,8 @@ import { riverStrips, riverBandAt, riverRankCap, RIVER_BANDS } from './riverMode
 import { loadRiverLines } from '../../../data/geo/riverLines';
 import { createAtlas } from './spriteAtlas';
 import { onImageLoad } from './spriteArt';
-import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, carryTransform, isSaneTransform, startZoomFor, wheelZoomDelta } from './mapView';
+import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, carryTransform, isSaneTransform, startZoomFor, wheelZoomDelta, maxZoomFor } from './mapView';
+import { kmPerRing } from '../../../data/geo/gridScale';
 import { cleanLatLng, latLngOfCity, cameraTarget, cameraKey, rememberCamera, recallCamera, createIntentGate, INTENT_SETTLE_MS } from '../mapCamera';
 import {
   citySprites, nearView, markerSprites, landSprites, groundMarks, settlerSprites, marchShapes, lensShapes, terrainSprites, tileOutline,
@@ -73,7 +74,7 @@ import { noteCrashEvent } from '../../../utils/crashLog';
 import { ageOf } from '../../../engine/nationState';
 
 const OCEAN_COLOR = '#0f172a';
-const ZOOM_MAX = 200;
+const ZOOM_CAP = 200; // the closest zoom is also limited to a few hexes across the screen (maxZoomFor)
 const ZOOM_STEP_SCALE = 1.6;
 const ZOOM_SETTLE_MS = 150;
 const ZOOM_JUMP = 1.8;
@@ -103,7 +104,7 @@ export const canRunGLMap = () => {
 const GLMapView = ({
   onAmbiguousTap = null, width, height, selectedRegion, onSelectRegion, hudOffset = false,
   initialFocusRegionId = null, focusRegionId = null, navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null,
-  onSelectArmy = null, selectedArmy = null, lens = 'political', onFail = null, settle = null
+  onSelectArmy = null, selectedArmy = null, selectedUnit = null, lens = 'political', onFail = null, settle = null
 }) => {
   const { state: gameState } = useGame();
   const gameStateRef = useRef(gameState);
@@ -149,6 +150,7 @@ const GLMapView = ({
   const dpr = devicePixelRatio();
 
   const projection = useMemo(() => (width > 0 && height > 0 ? geoEquirectangular().fitSize([width, height], { type: 'Sphere' }) : null), [width, height]);
+  const ZOOM_MAX = projection ? maxZoomFor({ width, scale: projection.scale(), hexKm: kmPerRing(), cap: ZOOM_CAP }) : ZOOM_CAP;
   const raster = useMemo(() => (projection ? worldRect(projection) : null), [projection]);
   const minK = raster ? minZoomFor(width, raster) : 1;
   const view = useCallback(() => (projection ? viewFor({ transform: transformRef.current, width, height, dpr, projection, raster }) : null), [projection, raster, width, height, dpr]);
@@ -305,8 +307,6 @@ const GLMapView = ({
       const shift = wrapNear(lay.camX, v.camX, v.worldW) - lay.camX;
       g.closeRoot.position.set(-lay.tx / lay.k + shift, lay.ty / lay.k, 0);
       g.closeRoot.scale.setScalar(1 / lay.k);
-      // the figures at the live zoom's size, not the layout's scaled up (no snap back on settle)
-      g.closeScene.zoomFigures(v.k);
       RIG_TIME.value = (now ?? performance.now()) / 1000;
       renderer.clearDepth();
       renderer.render(g.close, camera);
@@ -368,7 +368,7 @@ const GLMapView = ({
     // keep the current view (a resize rebuilds the behaviour)
     selection.call(behavior.transform, transformRef.current.k < minK ? zoomIdentity.scale(minK) : transformRef.current);
     return () => { selection.on('.zoom', null); };
-  }, [ready, width, height, minK, onZoom, projection]);
+  }, [ready, width, height, minK, onZoom, projection, ZOOM_MAX]);
 
   // The free part of the screen is read when the camera moves, through a ref: a sheet that opens or
   // closes changes the insets but must not rebuild the fly-to callbacks, or every effect that
@@ -398,7 +398,7 @@ const GLMapView = ({
     const selection = select(containerRef.current);
     (animate ? selection.transition().duration(450) : selection).call(zoomBehaviorRef.current.transform, desired);
     return true;
-  }, [projection, view, width, height, minK]);
+  }, [projection, view, width, height, minK, ZOOM_MAX]);
 
   // The first view: where this game's map was before it was unmounted (its box had no size, the
   // globe was shown), else close on the capital (startZoomFor), else the selected army; never a
@@ -412,7 +412,7 @@ const GLMapView = ({
     const t = cameraTarget(gameStateRef.current, [{ regionId: initialFocusRegionId }], { selectedArmyTile: selectedArmy });
     const k = startZoomFor({ height, scale: projection.scale(), viewKm: START_VIEW_KM, minK: CLOSE_ZOOM_K * 1.05, maxK: ZOOM_MAX }) ?? INITIAL_FOCUS_ZOOM;
     if (t && focusOnLatLng(t.lat, t.lng, k)) appliedInitialFocusRef.current = true;
-  }, [initialFocusRegionId, focusOnLatLng, ready, projection, camKey, selectedArmy, height]);
+  }, [initialFocusRegionId, focusOnLatLng, ready, projection, camKey, selectedArmy, height, ZOOM_MAX]);
 
   // A new action effect: pan to it (keeping a deeper zoom) and keep it centred while it plays.
   const lastEffectIdRef = useRef(effects.length ? effects[effects.length - 1].id : null);
@@ -446,7 +446,7 @@ const GLMapView = ({
     // keep the player's zoom (a phone sits in the close view): only pan, or zoom in to the city
     const c = latLngOfCity(gameStateRef.current, focusRegionId);
     if (c) fly(c.lat, c.lng, focusZoomFor(transformRef.current.k, INITIAL_FOCUS_ZOOM, ZOOM_MAX));
-  }, [focusRegionId, fly, focusOnLatLng]);
+  }, [focusRegionId, fly, focusOnLatLng, ZOOM_MAX]);
   useEffect(() => {
     if (!navGate.current.take(navigateTarget)) return;
     // a target may ask for a closer zoom of its own (`minK`: at least this close)
@@ -502,7 +502,7 @@ const GLMapView = ({
     if (!t || !projection) return;
     const close = startZoomFor({ height, scale: projection.scale(), viewKm: START_VIEW_KM, minK: CLOSE_ZOOM_K * 1.05, maxK: ZOOM_MAX }) ?? INITIAL_FOCUS_ZOOM;
     focusOnLatLng(t.lat, t.lng, Math.max(close, Math.min(transformRef.current.k, ZOOM_MAX)), true);
-  }, [projection, height, focusOnLatLng]);
+  }, [projection, height, focusOnLatLng, ZOOM_MAX]);
   const homeTarget = cameraTarget(state, [], {});
   const armyTarget = selectedArmy != null ? cameraTarget(state, [], { selectedArmyTile: selectedArmy }) : null;
   const goHome = useCallback(() => goTo(cameraTarget(gameStateRef.current, [], {})), [goTo]);
@@ -548,9 +548,9 @@ const GLMapView = ({
   // ---------------------------------------------------------------- sprites and lines
   const k = settled.k;
   const closeGround = k >= CLOSE_ZOOM_K;
-  const markers = useMemo(() => getMapMarkers(gameState),
+  const markers = useMemo(() => getMapMarkers(gameState, { selected: selectedUnit }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [gameState.units, gameState.regions, gameState.nations, gameState.intel, gameState.battleReports, gameState.turnNumber, gameState.playerNationId]);
+    [selectedUnit, gameState.units, gameState.regions, gameState.nations, gameState.intel, gameState.battleReports, gameState.turnNumber, gameState.playerNationId]);
   // A stack that moved since the last markers glides there from its last tile (I070). Drawing
   // only; never with reduced motion. After End Turn the banners stand on their old tiles until the
   // turn report is closed (at once when no report opens), then glide. While they wait, the "last
@@ -604,9 +604,9 @@ const GLMapView = ({
     [state, projection, k, landKey, fog, lens, closeGround, dpr]);
   const marks = useMemo(() => (projection ? groundMarks({ state, projection, k, dpr }) : []), [state, projection, k, dpr]);
   // (assetsTick: a settler party's model came in, so its disc gives way in the close view)
-  const settlers = useMemo(() => (projection ? settlerSprites({ state, projection, k, isVisible: fog.isVisible, dpr, modelled: settlerModelled(state) }) : null),
+  const settlers = useMemo(() => (projection ? settlerSprites({ state, projection, k, isVisible: fog.isVisible, dpr, modelled: settlerModelled(state), armyTiles: new Set(markers.armies.filter((a) => a.own).map((a) => a.tile)) }) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state, projection, k, fog, dpr, assetsTick]);
+    [state, projection, k, fog, dpr, assetsTick, markers]);
   // settlers on their way draw their road like a march (settleRoutes.js, I095)
   const settlerRoads = useMemo(() => settlerLines(gameState),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -787,7 +787,7 @@ const GLMapView = ({
   const zoomToRegion = useCallback((regionId) => {
     const c = latLngOfCity(gameStateRef.current, regionId);
     if (c) focusOnLatLng(c.lat, c.lng, Math.min(ZOOM_MAX, Math.max(transformRef.current.k * 2.5, INITIAL_FOCUS_ZOOM)), true);
-  }, [focusOnLatLng]);
+  }, [focusOnLatLng, ZOOM_MAX]);
   // What a tap at a screen point picks, top first: a marker or cluster, a settler, a city's badge,
   // banner or town, else the land (the city that holds it, else the tile, land or sea).
   // While a march is aimed, a cluster of banners (the strategic zoom piles them on the cities) and a

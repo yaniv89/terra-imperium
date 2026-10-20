@@ -31,7 +31,7 @@ import { skinToneFor, soldierSkinTone, emblemCellFor } from '../../../battle/ren
 import { getNationColor } from '../../../data/nationColors';
 import { getTownGeometry, townTier } from './townModels';
 import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrls, palaceFor, wallsFor, COLONY_CAMP, isCamp, FIELDS_FOR_WORK, instanceTownAsset, showLod, lodForZoom } from './townAssets';
-import { ARMY_SPOT, unitPx, tiltFor, lightRig, townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE, figureScale, figureLiveFactor } from './scale';
+import { armySpotPx, SETTLER_FIGURE_SHARE, unitPx, tiltFor, lightRig, townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE, figureScale, figureGap, hexPxOf, hexCapPx, fleetCapPx, SHIP_SPACING } from './scale';
 import { cityHexOf, hexTownPx, insideHex } from './cityHex';
 import { cachedFootprint, screenFrame, plotsOnScreen, reliefOnScreen, riverDiscsOnScreen } from './terrainPlacement';
 import { getRidgeGeometry, getHillGeometry, RIDGE_VARIANTS } from './mountainModels';
@@ -58,16 +58,10 @@ import { improvementModel, improvementRoot, modelAllowedOnTile, boatsSpot, coast
 
 const TREE_KINDS = ['conifer', 'broad', 'palm'];
 const MAX_WORKS = 400;
-const SOLDIER_SIZE = 2.4; // soldiers are drawn larger than true scale so they read at map size
 const MAX_SOLDIERS = 240;
 // A standing army turns a little toward the viewer: body, kilt and spear show beside the shield's
 // face (team colour and device) on the left arm, not just the shield or its back.
 const STAND_HEADING = 0.15;
-// Army figures stand at least this tall (layout px, model height before the tilt; about 34 css px
-// on screen at mid zoom): smaller, the spear, shield and kilt of the battle model run together.
-const MIN_FIGURE_PX = 64;
-// A settler party's people at their smallest: this share of an army figure's floor (settlerModels.js).
-const SETTLER_FIGURE_SHARE = 0.6;
 // The army figures' triangle budget at full detail (phones: about 100 Bronze spearmen of 1,500
 // triangles, a small share of the map's frame); past it every figure takes the clustered level.
 export const MAP_FIGURE_TRIS = 150000;
@@ -76,10 +70,6 @@ const PLAYER_COLOR = '#2563eb';
 
 // The ground a field takes, model units (a field is about 1.6 by 1.2: the disc round its middle).
 const FIELD_DISC = 0.8;
-// A figure's matrix as laid out and its army's spot (layout px; the point it grows about in
-// zoomFigures), at instance i of a soldier layer.
-const keepFigure = (l, i, matrix, x, y) => { l.base.set(matrix.elements, i * 16); l.feet[i * 2] = x; l.feet[i * 2 + 1] = y; };
-const figuresFor = (men) => (men == null ? 2 : men < 5000 ? 1 : men < 20000 ? 2 : 3);
 const MAX_PLOTS = 3000;
 const MAX_RIDGE_MESH = 600; // per variant
 // Field plots: the footprint's rectangles, flat on the map (placeholder for the `map-terrain/
@@ -204,6 +194,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       return p ? { x: p[0] * k + transform.x, y: p[1] * k + transform.y } : null;
     };
     const pxPerKmNorth = (projection.scale() * k) / EARTH_RADIUS_KM;
+    const hexPx = hexPxOf(projection, k, getTiles()); // one hex spacing on screen: figures, wonders, works and ships fit inside it
     const plotTiles = []; // [{ tile, fp }]: towns' and farms' fields, laid after the works
 
     // The age's shared files (palaces, walls, the camp, fields): each loaded once, the objects by
@@ -395,7 +386,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       showLod(mesh, lodForZoom(k));
       const radius = mesh.userData.radius;
       const room = Math.min(townRoomUnits(projection, getTiles(), w.tile), townGapUnits(projection, getTiles(), w.tile, isTown));
-      const ws = townUnitPx(k, radius, room * k);
+      const ws = Math.min(townUnitPx(k, radius, room * k), hexCapPx(hexPx, radius));
       occ.claim(at.x, at.y, radius * ws);
       mesh.position.set(at.x, -at.y, at.y * 0.05);
       mesh.rotation.set(TILT, 0, 0);
@@ -516,7 +507,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       if (!centre || (boats && !coast)) return true;
       const radius = Math.max(0.5, info.radius * IMPROVEMENT_SCALE);
       const room = boats ? Infinity : Math.min(townRoomUnits(projection, tilesNow, w.tile), townGapUnits(projection, tilesNow, w.tile, isTown));
-      const px = townUnitPx(k, radius, Number.isFinite(room) ? room * k : 0) * IMPROVEMENT_SCALE;
+      const px = Math.min(townUnitPx(k, radius, Number.isFinite(room) ? room * k : 0) * IMPROVEMENT_SCALE, hexCapPx(hexPx, info.radius));
       // boats: the shoreline turned toward the land and laid on the coast
       const yaw = boats && info.ground ? yawToward(info.ground[0], info.ground[1], coast.x - centre.x, coast.y - centre.y, lean) : w.turn * 0.15;
       const shore = boats ? coastShare(centre, coast, landAt) : null;
@@ -613,7 +604,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     // marker's `at` is where it is on its way, `toward` the point it walks to.
     const placeArmies = (markers) => {
       t.layoutK = k;
-      t.layers.forEach((l) => { l.levels.forEach((m) => { m.count = 0; }); l.live = 1; });
+      t.layers.forEach((l) => { l.levels.forEach((m) => { m.count = 0; }); });
       // The battle's own soldier: the artist's GLB where the unit has one (loaded once, then the
       // layer is rebuilt on it; the procedural body meanwhile and if it fails), else the procedural
       // model. The full model whenever the figures on screen fit MAP_FIGURE_TRIS (the clustered
@@ -658,9 +649,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
             return mesh;
           });
           source.computeBoundingBox();
-          // `base`, `feet`: each figure's matrix and its army's spot as laid out, for zoomFigures
-          l = { source, levels, mesh: levels[0], anim, variant, color, tris: triangleCount(levels[0].geometry), height: Math.max(0.1, source.boundingBox.max.y - source.boundingBox.min.y),
-            base: new Float32Array(MAX_SOLDIERS * 16), feet: new Float32Array(MAX_SOLDIERS * 2), trueFactor: 0, floorScale: 0, live: 1 };
+          l = { source, levels, mesh: levels[0], anim, variant, color, tris: triangleCount(levels[0].geometry), height: Math.max(0.1, source.boundingBox.max.y - source.boundingBox.min.y) };
           t.layers.set(key, l);
         }
         return l;
@@ -670,7 +659,8 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       markers.armies.forEach((m, mi) => {
         const at = toScreenLatLng(markerLatLng(m));
         if (!at) return;
-        const classId = m.own && m.mainClass && m.mainClass !== 'mixed' ? m.mainClass : 'infantry';
+        // ONE model per tile: the top unit's class (a soldier over a settler, the picked or strongest soldier)
+        const classId = m.own && (m.topClass || (m.mainClass && m.mainClass !== 'mixed' && m.mainClass)) || 'infantry';
         const ageId = ageOf(state, m.ownerId);
         const peopleId = m.ownerId ? peopleForNationId(m.ownerId) : null;
         const sigKey = signatureLayerKey(peopleId, ageId, classId);
@@ -686,24 +676,23 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         const walking = !!next;
         if (walking) moving = true;
         const heading = next ? Math.atan2(next.x - at.x, next.y - at.y) : STAND_HEADING;
-        const n = rigFig ? Math.min(rigFig.figures, figuresFor(m.men)) : figuresFor(m.men);
-        // never smaller than MIN_FIGURE_PX on screen (mid zoom), spaced to match
-        l.trueFactor = SOLDIER_SIZE * (MODEL_SCALE[classId] || 0.88); l.floorScale = MIN_FIGURE_PX / l.height;
-        const trueScale = s * l.trueFactor;
-        const scale = figureScale(k, l.trueFactor, l.floorScale);
-        const gap = s * (scale / trueScale);
+        const n = 1;
+        // Civilization's rule: scaled up against the land but inside the hex, one world size
+        // (a share of the hex, no pixel floor); the army's banner carries the far zoom
+        const side = rigFig ? 2.8 : 1.1; // elephants stand wider apart than men and horses, as in battle
+        const scale = figureScale(hexPx, l.height, MODEL_SCALE[classId] || 0.88);
+        const gap = figureGap(hexPx, scale * l.height, n, side);
         color.set(m.own ? PLAYER_COLOR : getNationColor(m.ownerId) || '#64748b');
         const tone = skinToneFor(m.ownerId); const cell = emblemCellFor(m.own ? 0 : 1, mi);
-        const side = rigFig ? 2.8 : 1.1; // elephants stand wider apart than men and horses, as in battle
         for (let i = 0; i < n && l.mesh.count < MAX_SOLDIERS; i++) {
           const k2 = l.mesh.count;
-          const ox = (i - (n - 1) / 2) * gap * side + gap * ARMY_SPOT.x; const oy = gap * ARMY_SPOT.y + (i % 2) * gap * 0.4;
+          const [sx, sy] = armySpotPx(hexPx, !!m.inCity); // on the tile's hex, in front of a town
+          const ox = (i - (n - 1) / 2) * gap * side + sx; const oy = sy + (i % 2) * gap * 0.4;
           tmp.position.set(at.x + ox, -(at.y + oy), (at.y + oy) * 0.05 + 40);
           tmp.rotation.set(TILT, heading, 0, 'XYZ');
           tmp.scale.setScalar(scale);
           tmp.updateMatrix();
           l.mesh.setMatrixAt(k2, tmp.matrix);
-          keepFigure(l, k2, tmp.matrix, at.x, -at.y);
           l.mesh.setColorAt(k2, color);
           l.anim.setXYZ(k2, (mi * 1.7 + i) % 6.28, walking ? 1 : 0, 0);
           // one people's skin tone and one device per army, as in battle (unitVariants.js)
@@ -713,7 +702,10 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       });
       // Settlers: the party of the owner's age band (settlerModels.js) on their tile, facing and
       // walking toward their target; until its model is in, the map's wagon disc stands alone.
+      // a settler never stands over a soldier of the same tile: one model per tile
+      const armyTiles = new Set(markers.armies.filter((a) => a.own && a.tile != null).map((a) => a.tile));
       settlersInSight(state, fog.isVisible).forEach((u, si) => {
+        if (armyTiles.has(u.tile)) return;
         const ageId = ageOf(state, u.ownerId);
         const band = settlerBand(ageId);
         if (!band) return;
@@ -737,15 +729,13 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         const heading = next ? Math.atan2(next.x - at.x, next.y - at.y) : STAND_HEADING + 0.5;
         // the party is a cart or truck two to three people long: its people stand a little
         // shorter than an army's figure, so it never outgrows the camp it is going to found
-        l.trueFactor = SOLDIER_SIZE * (MODEL_SCALE.support || 0.88); l.floorScale = (MIN_FIGURE_PX * SETTLER_FIGURE_SHARE) / l.height;
-        const scale = figureScale(k, l.trueFactor, l.floorScale);
+        const scale = figureScale(hexPx, l.height, MODEL_SCALE.support || 0.88) * SETTLER_FIGURE_SHARE;
         const k2 = l.mesh.count;
         tmp.position.set(at.x, -at.y, at.y * 0.05 + 40);
         tmp.rotation.set(TILT, heading, 0, 'XYZ');
         tmp.scale.setScalar(scale);
         tmp.updateMatrix();
         l.mesh.setMatrixAt(k2, tmp.matrix);
-        keepFigure(l, k2, tmp.matrix, at.x, -at.y);
         color.set(u.ownerId === state.playerNationId ? PLAYER_COLOR : getNationColor(u.ownerId) || '#64748b');
         l.mesh.setColorAt(k2, color);
         l.anim.setXYZ(k2, (si * 1.3) % 6.28, walking ? 1 : 0, 0);
@@ -800,11 +790,11 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         const stepLL = m.toward ? { lat: m.toward.lat, lon: m.toward.lng } : step != null && step >= 0 ? getTiles().latLonOf(step) : null;
         const next = stepLL ? project(stepLL.lat, stepLL.lon) : null;
         const heading = next ? Math.atan2(next.x - at.x, next.y - at.y) : 0.5 + mi * 0.7;
-        const px = s * SHIP_SCALE;
         const n = shipsFor(m.units?.length || 1);
+        const px = Math.min(s * SHIP_SCALE, fleetCapPx(hexPx, n)); // the whole fleet inside its hex
         const teamColor = m.own ? PLAYER_COLOR : (getNationColor(m.ownerId) || '#64748b');
         for (let i = 0; i < n; i++) {
-          const ox = (i - (n - 1) / 2) * px * 2.2; const oy = (i % 2) * px * 1.2;
+          const ox = (i - (n - 1) / 2) * px * SHIP_SPACING; const oy = (i % 2) * px * 1.2;
           tmp.position.set(at.x + ox, -(at.y + oy), (at.y + oy) * 0.05 + 40);
           tmp.rotation.set(TILT, heading, 0, 'XYZ');
           tmp.scale.setScalar(px);
@@ -819,38 +809,8 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     hold.set(used); // the files off screen now may leave memory (and are dropped here if they do)
   };
 
-  /**
-   * Sizes the army figures and settler parties for the live zoom `k` of a frame between two layouts
-   * (a pinch or wheel zoom under way): each grows in place about its army's spot to the size the
-   * next layout gives it (scale.js figureLiveFactor), so no figure grows past it and then snaps
-   * back smaller when the zoom settles. True when a matrix changed.
-   */
-  const zoomFigures = (k) => {
-    if (!t.layoutK) return false;
-    let changed = false;
-    t.layers.forEach((l) => {
-      const n = Math.max(...l.levels.map((m) => m.count));
-      if (!n || !l.floorScale) return;
-      const f = figureLiveFactor(k, t.layoutK, l.trueFactor, l.floorScale);
-      if (Math.abs(f - l.live) < 1e-4) return;
-      l.live = f; changed = true;
-      const attr = l.levels[0].instanceMatrix; // shared by both levels
-      const a = attr.array; const b = l.base;
-      for (let i = 0; i < n; i++) {
-        const o = i * 16;
-        for (let c = 0; c < 12; c++) a[o + c] = c % 4 === 3 ? b[o + c] : b[o + c] * f;
-        a[o + 12] = l.feet[i * 2] + (b[o + 12] - l.feet[i * 2]) * f;
-        a[o + 13] = l.feet[i * 2 + 1] + (b[o + 13] - l.feet[i * 2 + 1]) * f;
-        a[o + 14] = b[o + 14]; a[o + 15] = b[o + 15];
-      }
-      attr.needsUpdate = true;
-    });
-    return changed;
-  };
-
   return {
     layout,
-    zoomFigures,
     /** Lays out only the armies and fleets again, in the last layout's view (a glide's frame). */
     moveArmies: (markers) => { t.placeArmies?.(markers); },
     moving: () => t.moving,

@@ -24,7 +24,7 @@ import { RESOURCES_ON_TILES, resourceKnown } from '../../../data/tileYields';
 import { resourceIconUrl, improvementIconUrl, wonderIconUrl, markerIconUrl, unitIconUrl, cityIconUrl } from '../../../data/icons';
 import { townTier } from '../closeView/townTiers';
 import { WORK_KINDS } from '../closeView/landscape';
-import { ARMY_SPOT, unitPx, tiltFor, TIER_SCALE } from '../closeView/scale';
+import { armyBannerOffset, hexPxOf, tiltFor, TIER_SCALE } from '../closeView/scale';
 import { hexTownPx } from '../closeView/cityHex';
 import { markerLatLng } from '../../../utils/markerPosition';
 import { clusterScreenMarkers, MARKER_OFFSET, markerItems } from '../mapBanners';
@@ -153,8 +153,7 @@ export const markerSprites = ({ markers, projection, k, atWar, dpr, waterTile })
     const c = markerLatLng(m);
     const p = c && projection([c.lng, c.lat]);
     if (!p) return;
-    const s = unitPx(k);
-    const off = close && m.kind === 'army' ? [s * ARMY_SPOT.x, s * ARMY_SPOT.y - s * 2.2 - 10] : MARKER_OFFSET[m.kind] || [0, 0];
+    const off = close && m.kind === 'army' ? armyBannerOffset(hexPxOf(projection, k), !!m.inCity) : MARKER_OFFSET[m.kind] || [0, 0];
     items.push({ ...m, anchor: p, off, x: p[0] * k + off[0], y: p[1] * k + off[1] });
   });
   const sprites = []; const hits = [];
@@ -289,11 +288,12 @@ export const settlerRadius = (k) => Math.max(SETTLER_MIN_R, Math.min(5 * Math.sq
 /** Settlers on their tiles: yours, and foreign ones in sight from zoom 2. In the close view a
  * settler whose party model is drawn (`modelled(unit)`, closeView/settlerModels.js) keeps only its
  * tap target: the 3D party stands where the disc was. */
-export const settlerSprites = ({ state, projection, k, isVisible, dpr, modelled = null }) => {
+export const settlerSprites = ({ state, projection, k, isVisible, dpr, modelled = null, armyTiles = null }) => {
   const sprites = []; const hits = [];
   const close = k >= CLOSE_ZOOM_K;
   Object.values(state.units || {}).forEach((u) => {
     if (!isSettler(u) || u.tile == null) return;
+    if (armyTiles?.has(u.tile)) return; // a soldier of the tile stands over the settler: one flag and one model per tile
     const own = u.ownerId === state.playerNationId;
     if (!own && !(k >= 2 && isVisible(u.tile))) return;
     const anchor = pointOf(projection, u.tile);

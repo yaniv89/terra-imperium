@@ -16,6 +16,7 @@ import { playerWon } from '../engine/battleReports';
 import { unitTile } from '../engine/armies';
 import { visibleTiles } from '../engine/sight';
 import { supplyOf } from '../engine/supplyMeter';
+import { orderedStack, topUnit, isCivilian } from '../components/map/tileStack';
 
 // Soldier bands a foreign army is described by when the player has intel on its owner.
 export const sizeBand = (strength) => (strength >= 3000 ? 'large' : strength >= 1000 ? 'medium' : 'small');
@@ -47,7 +48,8 @@ export const getVisibleRegionIds = (state) => {
 };
 
 // { armies: [...], fleets: [...], battles: [...], colonies: [...] } — one entry per (province, owner, domain).
-export const getMapMarkers = (state) => {
+// `selected`: { tile, unitId }, the unit the player picked on a tile (cycling): its model is the tile's.
+export const getMapMarkers = (state, { selected = null } = {}) => {
   const me = state.playerNationId;
   const sight = visibleTiles(state, me);
   const groups = new Map();
@@ -55,10 +57,13 @@ export const getMapMarkers = (state) => {
     if (!u || !(u.strength > 0) || u.embarkedOn || u.classId === 'settler' || !REGIONS_DATA[u.regionId]) return;
     const domain = u.domain === 'naval' ? 'naval' : 'land';
     const tile = unitTile(state, u);
-    const key = `${tile}|${u.regionId}|${u.ownerId}|${domain}`;
+    const key = `${tile}|${u.ownerId}|${domain}`; // one stack, one flag, one model per tile (Civilization)
     if (!groups.has(key)) groups.set(key, { tile, regionId: u.regionId, ownerId: u.ownerId, domain, units: [] });
     groups.get(key).units.push(u);
   });
+  const cityTiles = new Set(Object.values(state.regions).map((r) => r.tile));
+  const civilians = new Map(); // tile -> settlers and workers standing there (counted in the flag, never drawn over a soldier)
+  Object.values(state.units).forEach((u) => { if (u && isCivilian(u) && !u.embarkedOn && u.ownerId === me && u.tile != null) civilians.set(u.tile, (civilians.get(u.tile) || 0) + 1); });
   const armies = []; const fleets = [];
   groups.forEach((g) => {
     const own = g.ownerId === me;
@@ -69,6 +74,7 @@ export const getMapMarkers = (state) => {
       tile: g.tile,
       // one unit of the stack: the map glides the banner from where it stood (marchGlide.js, I070)
       lead: g.units[0].id,
+      inCity: cityTiles.has(g.tile),
       regionId: g.regionId,
       ownerId: g.ownerId,
       own,
@@ -76,6 +82,12 @@ export const getMapMarkers = (state) => {
       domain: g.domain,
       ...(own ? {
         units: g.units.map((u) => u.id),
+        // the drawing order and the one unit whose model stands on the tile (tileStack.js)
+        stack: orderedStack(g.units).map((u) => u.id),
+        top: topUnit(orderedStack(g.units), selected?.tile === g.tile ? selected.unitId : null)?.id,
+        topClass: topUnit(orderedStack(g.units), selected?.tile === g.tile ? selected.unitId : null)?.classId,
+        civilians: g.domain === 'land' ? civilians.get(g.tile) || 0 : 0,
+        count: g.units.length + (g.domain === 'land' ? civilians.get(g.tile) || 0 : 0),
         men: Math.round(strength * MEN_PER_STRENGTH),
         mainClass: mainClass(g.units),
         navalLine: g.domain === 'naval' ? (g.units[0].navalLine || 'warship') : null,

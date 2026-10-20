@@ -10,7 +10,7 @@ import { REGIONS_DATA } from '../../data/regions';
 import { getMapMarkers } from '../../utils/mapMarkers';
 import { getAtWarNationIds } from '../../utils/mapRegionStyle';
 import { openBattleReport } from '../battle/battleReportEvents';
-import { ARMY_SPOT, unitPx } from './closeView/scale';
+import { armyBannerOffset, hexPxOf } from './closeView/scale';
 import { clusterBannerHtml, clusterScreenMarkers, MARKER_OFFSET, markerHtml, markerItems } from './mapBanners';
 
 export const FOREIGN_MIN_ZOOM = 2;
@@ -46,8 +46,7 @@ const Map2DMarkersOverlay = ({ projection, transform, width, height, onSelectReg
       const p = c && projection([c.lng, c.lat]);
       if (!p) return;
       // In the close view an army's banner becomes a small tag over its soldiers.
-      const s = unitPx(transform.k);
-      const [ox, oy] = close && m.kind === 'army' ? [s * ARMY_SPOT.x, s * ARMY_SPOT.y - s * 2.2 - 10] : MARKER_OFFSET[m.kind];
+      const [ox, oy] = close && m.kind === 'army' ? armyBannerOffset(hexPxOf(projection, transform.k), !!m.inCity) : MARKER_OFFSET[m.kind];
       const x = p[0] * transform.k + transform.x + ox;
       const y = p[1] * transform.k + transform.y + oy;
       if (x < -EDGE_PX || y < -EDGE_PX || x > width + EDGE_PX || y > height + EDGE_PX) return;

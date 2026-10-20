@@ -46,6 +46,8 @@ import MapLegend from '../globe/MapLegend';
 import { RegionInfoModal, ProvinceModal } from '../modals';
 import TileSheet from './TileSheet';
 import ArmySheet from './ArmySheet';
+import { stackOn } from './armySheetModel';
+import { orderedStack, unitAfterTap, cycleUnit } from './tileStack';
 import NationSheet from './NationSheet';
 import LensStrip from './LensStrip';
 import { LENSES } from './lenses';
@@ -85,6 +87,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const marching = !!marchCtx?.march && !marchCtx.march.dragging;
   const [selectedTile, setSelectedTile] = useState(null);
   const [selectedArmy, setSelectedArmy] = useState(null);
+  const [unitPick, setUnitPick] = useState(null); // { tile, unitId }: the unit of a tile's stack that shows (one model per tile, tileStack.js)
   const [selectedNation, setSelectedNation] = useState(null); // the nation sheet (NationSheet.jsx)
   const [lens, setLens] = useState('political'); // lenses.js; keys 1 to 7 on a keyboard
   const [lensOpen, setLensOpen] = useState(false); // the open lens list sits over the needs-you chips
@@ -160,7 +163,24 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   // On a tablet the city card stays open under a tile or army sheet (E2: two sheets stacked).
   const layoutMode = useLayoutMode();
   const stacking = layoutMode === 'tablet';
-  const onSelectArmy = (tile) => { if (marching) { if (tile != null) marchCtx.aimAt(tile); return; } setSelectedArmy(tile); setSelectedTile(null); setManageOpen(false); if (!stacking) selectRegion(null); };
+  // Tapping a tile's flag selects its top unit; tapping it again cycles to the next unit of the tile (Civilization).
+  const onSelectArmy = (tile) => {
+    if (marching) { if (tile != null) marchCtx.aimAt(tile); return; }
+    if (tile != null) {
+      const ordered = orderedStack(stackOn(stateRef.current, tile));
+      const same = selectedArmyRef.current === tile;
+      const id = unitAfterTap(ordered, same, unitPick?.tile === tile ? unitPick.unitId : null);
+      setUnitPick(id ? { tile, unitId: id } : null);
+    }
+    setSelectedArmy(tile); setSelectedTile(null); setManageOpen(false); if (!stacking) selectRegion(null);
+  };
+  // The sheet's prev and next arrows.
+  const cycleUnitPick = (dir) => {
+    if (selectedArmy == null) return;
+    const ordered = orderedStack(stackOn(stateRef.current, selectedArmy));
+    const next = cycleUnit(ordered, unitPick?.tile === selectedArmy ? unitPick.unitId : null, dir);
+    if (next) setUnitPick({ tile: selectedArmy, unitId: next.id });
+  };
   const onSelectRegion = (id) => { if (marching && id) marchCtx.aimAt(id); else { if (id) { setSelectedTile(null); setSelectedArmy(null); setSelectedNation(null); } selectRegion(id); } };
   // In march mode any tile (sea included, for a fleet) is the target; otherwise only land opens the tile sheet.
   const onSelectTile = (tile) => {
@@ -237,6 +257,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
             onSelectTile={onSelectTile}
             onSelectArmy={onSelectArmy}
             selectedArmy={selectedArmy}
+            selectedUnit={selectedArmy != null && unitPick?.tile === selectedArmy ? unitPick : null}
             lens={shownLens}
             settle={settleView}
           />
@@ -255,7 +276,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
       )}
       {/* Closing the site sheet keeps the settle mode (its bar stays): I086. */}
       {selectedTile != null && (stacking || !selectedRegion) && <TileSheet tile={selectedTile} onClose={() => setSelectedTile(null)} onSelectRegion={onSelectRegion} settleUnitId={settleUnitNow?.id || null} onSettle={startSettle} />}
-      {selectedArmy != null && (stacking || !selectedRegion) && selectedTile == null && <ArmySheet tile={selectedArmy} onClose={() => setSelectedArmy(null)} onSelectRegion={onSelectRegion} />}
+      {selectedArmy != null && (stacking || !selectedRegion) && selectedTile == null && <ArmySheet tile={selectedArmy} unitId={unitPick?.tile === selectedArmy ? unitPick.unitId : null} onCycleUnit={cycleUnitPick} onClose={() => setSelectedArmy(null)} onSelectRegion={onSelectRegion} />}
       {selectedNation && !selectedRegion && selectedTile == null && selectedArmy == null && <NationSheet nationId={selectedNation} onClose={() => setSelectedNation(null)} onSelectRegion={onSelectRegion} />}
       <div className={`absolute start-[calc(var(--city-rail-w,0px)+0.75rem)] ${lensOpen ? 'z-20' : 'z-10'} flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.75rem)] lg:bottom-3 pl:bottom-3 pl:start-[max(var(--safe-start),0.75rem)]`} data-map-hud="group">
         {miniOpen && <MapLegend />}
