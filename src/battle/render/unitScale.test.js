@@ -140,9 +140,9 @@ const MACHINES = [
   { name: 'modern-general', key: 'general', classId: 'cavalry', crew: 2, length: [2.2, 3], height: [1.5, 3.6] }, // command car: real 3.4 m, a whip mast
   { name: 'modern-raider', key: 'raider', classId: 'cavalry', crew: 1, length: [2.2, 3], height: [1.3, 2.2] }, // recon car: a real 3.4 m open car with a pintle gun
   // the present-day machines, renamed from modern-* (eight-ages plan U81)
-  { name: 'information-siege', key: 'siege', classId: 'siege', crew: 3, length: [4.7, 6], height: [1.5, 3.2] }, // 155 mm howitzer: real 8 m with trails
+  { name: 'information-siege', key: 'siege', classId: 'siege', crew: 1, length: [4.1, 5.6], height: [2.2, 3.8] }, // rocket artillery: a real 7 to 8 m launcher truck, the pod raised
   { name: 'information-cavalry', key: 'cavalry', classId: 'cavalry', crew: 0, length: [5.2, 7.2], height: [1.6, 2.8] }, // tank: real hull 7 m (9.5 m with the gun), 2.4 m to the roof (aerial above)
-  { name: 'information-support', key: 'support', classId: 'support', crew: 1, length: [4.1, 5.4], height: [2.2, 3.8] }, // AA truck: real 7 m, guns raised
+  { name: 'information-support', key: 'support', classId: 'support', crew: 1, length: [4.1, 5.6], height: [2.2, 3.8] }, // SAM battery: a real 7 to 8 m launcher truck, canisters raised
   { name: 'information-general', key: 'general', classId: 'cavalry', crew: 2, length: [2.2, 3], height: [1.5, 3.6] }, // command car: real 3.4 m, a whip mast
   { name: 'information-raider', key: 'raider', classId: 'cavalry', crew: 1, length: [3.1, 4.1], height: [1.3, 2.2] }, // technical: a real 5.3 m pickup
   // signature machines (a people's own unit in place of the base one)

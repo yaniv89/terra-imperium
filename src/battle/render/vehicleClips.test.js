@@ -11,10 +11,10 @@ import { Quaternion } from 'three';
 const UNITS = {
   // the present-day machines, renamed from modern-* (eight-ages plan U81, KTD15)
   'information-cavalry': { crew: 0, wheels: /^RoadWheel_/, footprint: [1.39, 3.45] },
-  'information-support': { crew: 1, wheels: /^Wheel_/, footprint: [1.44, 2.56] },
+  'information-support': { crew: 1, wheels: /^Wheel_/, footprint: [1.44, 2.96] }, // SAM battery (U82)
   'information-general': { crew: 2, wheels: /^Wheel_/, footprint: [0.89, 1.39], gun: false },
   'information-raider': { crew: 1, wheels: /^Wheel_/, footprint: [0.86, 1.97] },
-  'information-siege': { crew: 3, wheels: /^Wheel_/, footprint: [1.69, 2.92] },
+  'information-siege': { crew: 1, wheels: /^Wheel_/, footprint: [1.44, 2.96] }, // rocket artillery (U82)
   // the 20th-century Modern machines (build_modern20_*.py)
   'modern-cavalry': { crew: 0, wheels: /^RoadWheel_/, footprint: [1.3, 2.39] },
   'modern-support': { crew: 1, wheels: /^Wheel_/, footprint: [1.11, 2.26] },
@@ -78,7 +78,7 @@ describe.each(Object.entries(UNITS))('%s clips', (name, spec) => {
     expect(rigs.length).toBe(1 + spec.crew);
     expect(bones.has('Hull')).toBe(true);
     const wheels = spec.wheels ? [...bones.keys()].filter((n) => spec.wheels.test(n)) : [];
-    expect(wheels.length).toBeGreaterThanOrEqual(!spec.wheels ? 0 : ['modern-siege', 'information-siege', 'classical-siege', 'kingdoms-siege', 'gunpowder-siege'].includes(name) ? 2 : 4); // (the howitzer and the older machines have one axle; the ladder none)
+    expect(wheels.length).toBeGreaterThanOrEqual(!spec.wheels ? 0 : ['modern-siege', 'classical-siege', 'kingdoms-siege', 'gunpowder-siege'].includes(name) ? 2 : 4); // (the howitzer and the older machines have one axle; the ladder none)
     want.forEach((c) => {
       const clip = clips[c]; const info = opts.clips[c];
       const times = clip.tracks.reduce((m, t) => (t.times.length > m.length ? t.times : m), []);

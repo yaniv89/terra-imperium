@@ -9,8 +9,8 @@
     "emblem": "(^|\\s)Emblem(\\s|$)"
   },
   "footprint": [
-    1.69,
-    2.92
+    1.44,
+    2.96
   ],
   "clips": {
     "Idle": {
@@ -19,16 +19,16 @@
       "loop": true
     },
     "Move": {
-      "frames": 41,
+      "frames": 21,
       "fps": 20,
       "loop": true
     },
     "Fire": {
-      "frames": 40,
+      "frames": 30,
       "fps": 20,
       "loop": false,
       "events": {
-        "fire": 28
+        "fire": 8
       }
     },
     "Hit": {
