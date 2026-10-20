@@ -11,6 +11,7 @@ import { applyScenario } from './worldgen/emergentWorld';
 import { syncWorldRegistry } from './world/registry';
 import { queueItem, dequeueItem, moveQueueItem, itemKey, setFocus, toggleLock, canQueue, canFoundCity, addPeople, sizeToPeople } from './world/cities';
 import { quoteBuyTile, investInGrowth } from './cityEconomy';
+import { stonePhaseOf } from './stonePhase';
 import { isSettler, settlerPath, canSettle, foundOutpost, SETTLER_MOVES, setSettlerHold, disbandSettlers, isBand, canFoundVillage, foundVillage, withVillageLog } from './settlers';
 import { markTutorialStep } from './tutorial';
 import { answerDemand } from './aiAccords';
@@ -1949,7 +1950,7 @@ const reduceAction = (state, action) => {
       const type = GOVERNMENT_TYPES[typeId];
       const nation = state.nations[state.playerNationId];
       const costs = ACTION_COSTS.changeGovernmentType;
-      if (!type || !canChangeGovernmentType(nation, typeId, ageOf(state, state.playerNationId))) return state;
+      if (!type || !canChangeGovernmentType(nation, typeId, ageOf(state, state.playerNationId), stonePhaseOf(state, state.playerNationId))) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,

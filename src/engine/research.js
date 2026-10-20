@@ -25,7 +25,8 @@ import { LogTypes } from '../data/types';
 import { msg, thing, carry, people } from './messages';
 import { getModifier } from './modifiers/sheet';
 import { withDiffusion } from './techDiffusion';
-import { ageOf } from './nationState';
+import { ageOf, getResearched } from './nationState';
+import { WRITING_TECH, NO_WRITING_COST_MULT } from './stonePhase';
 import { awardEraLegacy } from './eraGoals';
 import { isIndependentNation } from '../data/independents';
 
@@ -62,7 +63,8 @@ export const getResearchCost = (state, nationId, techId) => {
   const base = RESEARCH_AGE_BASE[tech.ageId] ?? RESEARCH_AGE_BASE.modern;
   const speed = speedCostMult(state.gameSpeed, techAgeOf(state, nationId)); // the speed table (ages.js, KTD9): keyed by the paying nation's own age
   const mult = withDiffusion(state, nationId, techId, getModifier(state, nationId, 'national.researchCost').total);
-  return Math.max(1, Math.round(base * speed * (1 + mult)));
+  const writing = getResearched(state, nationId).includes(WRITING_TECH) ? 1 : NO_WRITING_COST_MULT; // stonePhase.js: no writing, half the science
+  return Math.max(1, Math.round(base * speed * (1 + mult) * writing));
 };
 
 /** The research window (eight-ages plan KTD4): a nation may start techs of its own age and the next. */

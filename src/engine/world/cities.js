@@ -348,7 +348,7 @@ export const cityYields = (city, tiles, world, worked, researched = [], ctx = {}
   const fields = city.underInvasion ? [] : worked;
   const sum = fields.reduce((acc, t) => {
     const y = yieldsOfTile(tiles, world, t, researched);
-    acc.food += y.food;
+    acc.food += y.food + (ctx.riverFood && tiles.rivers[t] ? ctx.riverFood : 0); // the Stone Age's first cities (stonePhase.js)
     if (!ring1 || ring1.has(t)) { acc.production += y.production; acc.gold += y.gold; }
     return acc;
   }, { ...centre });

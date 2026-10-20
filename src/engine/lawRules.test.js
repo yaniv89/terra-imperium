@@ -16,11 +16,11 @@ import { getTiles } from '../data/geo/tiles';
 import { peoplesWorld, rivalOf } from './testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
-const PEOPLES_WORLD = peoplesWorld({ seed: 5 });
+const PEOPLES_WORLD = peoplesWorld({ seed: 5, age: 'bronze' });
 const FR_ID = PEOPLES_WORLD.playerNationId;
 const DE_ID = rivalOf(PEOPLES_WORLD, 0);
 
-const base = () => peoplesWorld({ seed: 5 });
+const base = () => peoplesWorld({ seed: 5, age: 'bronze' });
 const withLaws = (state, laws, nationId = FR_ID) => ({ ...state, nations: { ...state.nations, [nationId]: { ...state.nations[nationId], laws: { ...state.nations[nationId].laws, ...laws } } } });
 
 describe('lawRulesOf', () => {

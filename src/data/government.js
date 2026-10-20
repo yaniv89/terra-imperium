@@ -24,9 +24,10 @@ import { getAgeIndex } from './ages';
 import { leansPositive } from './identity';
 
 export const GOVERNMENT_TYPES = {
-  tribal: { id: 'tribal', name: 'Tribal Council', minAgeId: 'bronze' },
-  monarchy: { id: 'monarchy', name: 'Monarchy', minAgeId: 'bronze' },
-  theocracy: { id: 'theocracy', name: 'Theocracy', minAgeId: 'bronze' },
+  // Stone Age villages are Tribal only; Monarchy and Theocracy open with the first cities (stonePhase.js).
+  tribal: { id: 'tribal', name: 'Tribal Council', minAgeId: 'stone' },
+  monarchy: { id: 'monarchy', name: 'Monarchy', minAgeId: 'stone', minPhase: 'cities' },
+  theocracy: { id: 'theocracy', name: 'Theocracy', minAgeId: 'stone', minPhase: 'cities' },
   republic: { id: 'republic', name: 'Republic', minAgeId: 'classical' },
   dictatorship: { id: 'dictatorship', name: 'Dictatorship', minAgeId: 'modern' }
 };
@@ -111,8 +112,10 @@ export const getGovernmentType = (id) => GOVERNMENT_TYPES[id] || null;
 // allows Theocracy") — every other type gates on age alone.
 const meetsIdentityGate = (typeId, identity) => typeId !== 'theocracy' || leansPositive(identity, 'secularism');
 
-export const getAvailableGovernmentTypes = (ageId, identity) =>
-  Object.values(GOVERNMENT_TYPES).filter((t) => getAgeIndex(t.minAgeId) <= getAgeIndex(ageId) && meetsIdentityGate(t.id, identity));
+// `phase`: the nation's Stone Age phase (stonePhase.js stonePhaseOf); a village has no use for a crown.
+const meetsPhase = (type, phase) => !(type.minPhase && phase === 'village');
+export const getAvailableGovernmentTypes = (ageId, identity, phase = null) =>
+  Object.values(GOVERNMENT_TYPES).filter((t) => getAgeIndex(t.minAgeId) <= getAgeIndex(ageId) && meetsIdentityGate(t.id, identity) && meetsPhase(t, phase));
 
 export const getReformChoices = (typeId, ageId) => GOVERNMENT_REFORMS[typeId]?.[ageId] || [];
 
@@ -132,10 +135,10 @@ export const getActiveReforms = (nation) => {
 export const getGovernmentReformEffectSum = (nation, key) =>
   getActiveReforms(nation).reduce((sum, reform) => sum + (reform.effects?.[key] || 0), 0);
 
-export const canChangeGovernmentType = (nation, newTypeId, nationAgeId) => {
+export const canChangeGovernmentType = (nation, newTypeId, nationAgeId, phase = null) => {
   const type = GOVERNMENT_TYPES[newTypeId];
   if (!type || nation?.government?.type === newTypeId) return false;
-  if (getAgeIndex(type.minAgeId) > getAgeIndex(nationAgeId)) return false;
+  if (getAgeIndex(type.minAgeId) > getAgeIndex(nationAgeId) || !meetsPhase(type, phase)) return false;
   return meetsIdentityGate(newTypeId, nation?.identity);
 };
 
