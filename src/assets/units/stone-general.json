@@ -1,0 +1,85 @@
+{
+  "enabled": true,
+  "quadruped": false,
+  "restClip": "^Idle$",
+  "triangleBudget": 3000,
+  "tags": {
+    "team": "(^|\\s)Team(\\s|$)",
+    "skin": "(^|\\s)Skin(\\s|$)",
+    "emblem": "(^|\\s)Emblem(\\s|$)"
+  },
+  "clips": {
+    "Idle": {
+      "frames": 41,
+      "fps": 20,
+      "loop": true
+    },
+    "IdleAlt": {
+      "frames": 41,
+      "fps": 20,
+      "loop": true
+    },
+    "Walk": {
+      "frames": 21,
+      "fps": 20,
+      "loop": true
+    },
+    "Run": {
+      "frames": 15,
+      "fps": 20,
+      "loop": true
+    },
+    "Retreat-run": {
+      "frames": 15,
+      "fps": 20,
+      "loop": true
+    },
+    "Attack": {
+      "frames": 21,
+      "fps": 20,
+      "loop": false,
+      "events": {
+        "contact": 11
+      }
+    },
+    "Attack2": {
+      "frames": 25,
+      "fps": 20,
+      "loop": false,
+      "events": {
+        "contact": 13
+      }
+    },
+    "Block": {
+      "frames": 20,
+      "fps": 20,
+      "loop": false
+    },
+    "Hit": {
+      "frames": 8,
+      "fps": 20,
+      "loop": false
+    },
+    "Death": {
+      "frames": 30,
+      "fps": 20,
+      "loop": false,
+      "events": {
+        "settle": 30
+      }
+    },
+    "DeathAlt": {
+      "frames": 30,
+      "fps": 20,
+      "loop": false,
+      "events": {
+        "settle": 30
+      }
+    },
+    "Cheer": {
+      "frames": 33,
+      "fps": 20,
+      "loop": true
+    }
+  }
+}
