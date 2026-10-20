@@ -11,7 +11,7 @@
 // node to the nearest drop-off, a wood and stone yard (or a food depot) goes up beside that node.
 import { distSq } from './fixed';
 import { Q, SIDE_ATTACKER } from './constants';
-import { placementBlock, population, housingCap, ecoAlive } from './economy';
+import { placementBlock, population, housingCap, ecoAlive, applyEcoOrder } from './economy';
 import { BUILDINGS, UNITS, RESOURCES, MILLI, costMilli, buildableFor, trainableRoles, POP_LIMIT, WORKER_MIX } from '../data/economy';
 
 // workers: laborers it keeps; prod: production buildings; towers: when defending; mix: the share of
@@ -61,6 +61,24 @@ const findSpot = (w, side, type, x, y, rMin = 4, rMax = 16) => {
     }
   }
   return null;
+};
+
+/** U24: every second, a side with auto rebuild on puts its oldest fallen drop-off back up at a spot
+ *  found the way the AI finds one. The build runs at once, from state alone, so a replay agrees. */
+export const autoRebuild = (w) => {
+  if (!w.eco || w.tick % 20) return;
+  [0, 1].forEach((side) => {
+    const lost = w.eco.lost[side]; const job = lost[0];
+    if (!job) return;
+    const hq = w.eco.buildings.find((b) => b.side === side && BUILDINGS[b.type].hq && ecoAlive(w, b));
+    const spot = hq && findSpot(w, side, job.type, job.x, job.y, 0, 8);
+    const squads = spot && w.squads.filter((q) => q.worker && q.side === side && q.alive && !q.fled && q.onField && q.job?.t !== 'build')
+      .sort((a, c) => distSq(a.x, a.y, job.x, job.y) - distSq(c.x, c.y, job.x, job.y) || a.idx - c.idx).slice(0, 2).map((q) => q.idx);
+    if (!squads?.length) return;
+    const before = w.eco.buildings.length;
+    applyEcoOrder(w, { side, type: 'build', squads, building: job.type, tx: spot.tx, ty: spot.ty });
+    if (w.eco.buildings.length > before) lost.shift(); // else it could not pay yet: try again next second
+  });
 };
 
 /** One economic think for `side` (tacticalAI.js calls it on the AI's own ticks). */

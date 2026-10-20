@@ -33,7 +33,7 @@ import {
   buildRateHalves, CANCEL_REFUND, REPAIR_HP_PER_SEC, REPAIR_RECENT_TICKS, REPAIR_RECENT_MULT_QUARTERS,
   BUILD_RADIUS_HQ, BUILD_RADIUS_OWN, QUEUE_MAX, LOOT_SHARE, CITY_BUILDING_LOOT, TRADE_GOLD_PER_SEC, TRADE_GOLD_MAX,
   AID_RADIUS, AID_HEAL_PER_SEC, HOUSE_HOUSING, HALL_HOUSING, BUILDINGS, UNITS, costMilli, costTotal, buildTicks, trainTicks,
-  trainableRoles, buildableFor, WORKER_MIX, RES_INDEX, CITY_REPAIR_STONE_PER_HP
+  trainableRoles, buildableFor, WORKER_PRESETS, RES_INDEX, CITY_REPAIR_STONE_PER_HP
 } from '../data/economy';
 
 export const START_WORKERS = 5;          // each side starts with a few laborers by its headquarters
@@ -87,6 +87,9 @@ export const initEconomy = (w) => {
     buildings: [],
     nextId: 0,
     trainedCount: [0, 0],
+    preset: ['balanced', 'balanced'], // U24: each side's worker mix (WORKER_PRESETS)
+    rebuild: [false, false], // U24: put a fallen drop-off back up (economyAI.js autoRebuild)
+    lost: [[], []], // U24: the drop-offs to put back, { type, x, y }
     stats: [0, 1].map(() => ({ gathered: RESOURCES.map(() => 0), spent: RESOURCES.map(() => 0), looted: 0, trained: {}, built: 0, lost: 0, workersLost: 0 }))
   };
   // The attacker's expedition camp (its footprint is already BUILDING in the setup's map).
@@ -175,12 +178,18 @@ const pickNode = (w, side, res, x, y, assigned, maxD = Infinity) => {
   return best;
 };
 
-// The resource furthest below its share of the side's laborers (WORKER_MIX; food first on ties).
-export const neediest = (w, side) => {
+const laborersOn = (w, side) => {
   const on = RESOURCES.map(() => 0); let total = 0;
   w.squads.forEach((q) => { if (q.worker && q.side === side && q.alive && q.job?.t === 'gather') { on[RES_INDEX[w.eco.nodes[q.job.node].res]] += 1; total += 1; } });
+  return { on, total };
+};
+
+// The resource furthest below its share of the side's laborers (its preset's mix; food first on ties).
+export const neediest = (w, side) => {
+  const { on, total } = laborersOn(w, side);
+  const mix = WORKER_PRESETS[w.eco.preset[side]];
   let best = 0; let bestGap = -Infinity;
-  RESOURCES.forEach((r, i) => { const gap = WORKER_MIX[r] * (total + 1) - on[i]; if (gap > bestGap) { bestGap = gap; best = i; } });
+  RESOURCES.forEach((r, i) => { const gap = mix[r] * (total + 1) - on[i]; if (gap > bestGap) { bestGap = gap; best = i; } });
   return RESOURCES[best];
 };
 
@@ -202,6 +211,19 @@ const autoGather = (w, q, assigned = assignedCounts(w), res = neediest(w, q.side
   if (ni < 0) { setJob(q, null); return; }
   assigned[ni] += 1;
   setJob(q, { t: 'gather', node: ni, phase: 0, drop: -1 });
+};
+
+// A new preset moves laborers off a resource that is over its share, newest first, to the neediest.
+const rebalance = (w, side) => {
+  const mix = WORKER_PRESETS[w.eco.preset[side]]; const assigned = assignedCounts(w);
+  const gatherers = w.squads.filter((q) => q.worker && q.side === side && q.alive && q.job?.t === 'gather');
+  for (let k = gatherers.length - 1; k >= 0; k--) {
+    const q = gatherers[k]; const { on, total } = laborersOn(w, side);
+    const res = w.eco.nodes[q.job.node].res; const to = neediest(w, side);
+    if (to === res || on[RES_INDEX[res]] <= mix[res] * total) continue;
+    assigned[q.job.node] -= 1;
+    autoGather(w, q, assigned, to);
+  }
 };
 
 // ---- placement ---------------------------------------------------------------------------------
@@ -323,6 +345,14 @@ export const applyEcoOrder = (w, o) => {
       b.rally = o.x == null ? null : { x: o.x, y: o.y };
       return true;
     }
+    case 'workerPreset':
+      w.eco.preset[side] = o.preset;
+      rebalance(w, side);
+      return true;
+    case 'autoRebuild':
+      w.eco.rebuild[side] = o.on;
+      if (!o.on) w.eco.lost[side].length = 0;
+      return true;
     case 'cancelBuild': {
       const b = w.eco.buildings[o.building];
       if (!b || b.side !== side || b.built || !b.alive) return true;
@@ -357,6 +387,8 @@ const removeBuilding = (w, b, ground) => {
 export const destroyEcoBuilding = (w, b, bySide) => {
   removeBuilding(w, b, TILE.RUBBLE);
   w.eco.stats[b.side].lost += 1;
+  const lost = w.eco.lost[b.side];
+  if (w.eco.rebuild[b.side] && b.built && !BUILDINGS[b.type].hq && BUILDINGS[b.type].dropoff && lost.length < 4) lost.push({ type: b.type, x: b.x, y: b.y });
   if (bySide !== b.side && bySide >= 0) {
     const loot = Math.floor(costTotal(BUILDINGS[b.type].cost || { wood: 400 }) * LOOT_SHARE) * MILLI;
     w.eco.stock[bySide][GOLD] += loot; w.eco.stats[bySide].looted += loot;
@@ -672,6 +704,7 @@ export const ecoView = (w, playerSide) => {
     // Where the population is (army, laborers, in training) and where the housing comes from.
     popSplit: { workers: workers.filter((q) => q.onField || q.enterTick >= 0).length, training: activeTraining(w, playerSide), army: population(w, playerSide) - activeTraining(w, playerSide) - workers.filter((q) => q.onField || q.enterTick >= 0).length },
     houses: eco.buildings.filter((b) => b.side === playerSide && b.type === 'house' && ready(w, b)).length,
+    preset: eco.preset[playerSide], autoRebuild: eco.rebuild[playerSide],
     idleWorkers: workers.filter((q) => !q.job || q.order.type !== 'work').map((q) => q.idx),
     buildings: eco.buildings.map((b) => {
       const alive = ecoAlive(w, b);

@@ -19,7 +19,7 @@
 //
 // Adding an order to the sim: add its row here in the same change (orderSchema.test.js fails when
 // applyOrder or applyEcoOrder handles a type this file does not know).
-import { BUILDINGS, UNITS } from '../data/economy';
+import { BUILDINGS, UNITS, WORKER_PRESETS } from '../data/economy';
 import { POWERS } from './effects';
 
 export const MAX_LOG_ORDERS = 20000;
@@ -62,7 +62,9 @@ export const ORDER_SCHEMA = {
   train: { req: { building: 'index', role: 'unit' }, opt: { count: 'count' } },
   cancelTrain: { req: { building: 'index' }, opt: { slot: 'int' } },
   rally: { req: { building: 'index' }, opt: { x: 'num', y: 'num' }, together: ['x', 'y'] }, // no point = clear the rally
-  cancelBuild: { req: { building: 'index' } }
+  cancelBuild: { req: { building: 'index' } },
+  workerPreset: { req: { preset: 'preset' } }, // U24: the laborers' share of food, wood, stone, gold
+  autoRebuild: { req: { on: 'flag' } } // U24: put a fallen drop-off back up
 };
 export const ORDER_TYPES = Object.keys(ORDER_SCHEMA);
 
@@ -77,6 +79,8 @@ const READ = {
   building: (v) => (typeof v === 'string' && Object.prototype.hasOwnProperty.call(BUILDINGS, v) ? v : REFUSED),
   unit: (v) => (typeof v === 'string' && Object.prototype.hasOwnProperty.call(UNITS, v) ? v : REFUSED),
   power: (v) => (typeof v === 'string' && Object.prototype.hasOwnProperty.call(POWERS, v) ? v : REFUSED),
+  preset: (v) => (typeof v === 'string' && Object.prototype.hasOwnProperty.call(WORKER_PRESETS, v) ? v : REFUSED),
+  flag: (v) => (v === true || v === false ? v : REFUSED),
   count: (v) => (Number.isInteger(v) ? Math.max(1, Math.min(5, v)) : REFUSED)
 };
 

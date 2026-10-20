@@ -14,7 +14,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Wheat, TreePine, Mountain, Coins, Package, Users, Home, Hammer, X, Flag, Hourglass, Castle, Landmark, DoorOpen, Gem, Shield, Info } from 'lucide-react';
 import GameIcon from '../ui/GameIcon';
-import { BUILDINGS, UNITS, RESOURCES, QUEUE_MAX, buildableFor, trainableRoles } from '../../battle/data/economy';
+import { BUILDINGS, UNITS, RESOURCES, QUEUE_MAX, WORKER_PRESETS, buildableFor, trainableRoles } from '../../battle/data/economy';
 import { t as tCore } from '../../i18n/core';
 import { useT } from '../../i18n/useT';
 import { ecoLabel, roleLabel, resourceWord } from './battleText';
@@ -74,6 +74,27 @@ export const HammerButton = ({ onClick, active = false, testId = 'battle-build' 
     className={cx('shrink-0 w-12 h-12 rounded-full shadow-lg flex items-center justify-center border', active ? 'bg-fa-raised border-transparent outline outline-2 outline-fa-text' : 'bg-fa-panel/95 border-fa-brass text-fa-brass')}>
     <Hammer className="w-6 h-6" aria-hidden="true" />
   </button>
+  );
+};
+
+/** U24: the laborers' mix (one tap cycles it) and auto rebuild, two 48 px buttons beside the hammer. */
+export const WorkerAutoButtons = ({ preset = 'balanced', autoRebuild = false, onPreset, onRebuild }) => {
+  const { t } = useT();
+  const ids = Object.keys(WORKER_PRESETS);
+  const next = ids[(ids.indexOf(preset) + 1) % ids.length];
+  return (
+    <>
+      <button type="button" onClick={() => onPreset(next)} aria-label={t('bt.eco.mix')} title={t('bt.eco.mixTitle')} data-testid="battle-worker-preset"
+        className="shrink-0 min-w-12 h-12 px-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-brass text-fa-brass shadow-lg flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold leading-none">
+        {RESOURCES.includes(preset) ? <ResIcon res={preset} size={18} /> : <Users className="w-[18px] h-[18px]" aria-hidden="true" />}
+        <span>{t(`bt.eco.mix.${preset}`)}</span>
+      </button>
+      <button type="button" onClick={() => onRebuild(!autoRebuild)} aria-pressed={autoRebuild} aria-label={t('bt.eco.autoRebuild')} title={t('bt.eco.autoRebuildTitle')} data-testid="battle-auto-rebuild"
+        className={cx('shrink-0 min-w-12 h-12 px-1.5 rounded-[10px] shadow-lg flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold leading-none border', autoRebuild ? 'bg-fa-raised border-transparent outline outline-2 outline-fa-text' : 'bg-fa-panel/95 border-fa-line text-fa-muted')}>
+        <Hammer className="w-[18px] h-[18px]" aria-hidden="true" />
+        <span>{t('bt.eco.autoRebuild')}</span>
+      </button>
+    </>
   );
 };
 

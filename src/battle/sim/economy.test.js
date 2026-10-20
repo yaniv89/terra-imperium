@@ -8,7 +8,10 @@ import { createWorld } from './world';
 import { step } from './step';
 import { worldHash } from './hash';
 import { toStrategicResult } from './result';
-import { housingCap, placementBlock, START_WORKERS, repairPerHp, ecoView, workCodes, workJobOf, workNodeOf, WORK_JOB } from './economy';
+import { runHeadless } from './headless';
+import { sanitizeOrderLog } from './replay';
+import { admitOrder } from './orderSchema';
+import { destroyEcoBuilding, housingCap, placementBlock, START_WORKERS, repairPerHp, ecoView, workCodes, workJobOf, workNodeOf, WORK_JOB } from './economy';
 import { BUILDINGS, MILLI, RES_INDEX, POP_LIMIT, CAMP_HOUSING, CAMP_HOUSING_PER_REGIMENT, START_STOCK, stockMult, TREE_WOOD, woodSlots } from '../data/economy';
 import { TILE } from '../setup/mapgen';
 import { SCATTER_SLIP, SCATTER_HQ_GAP } from '../setup/economySetup';
@@ -269,5 +272,54 @@ describe('battle economy', () => {
     expect(eco).toHaveLength(2);
     expect(eco[0]).toHaveProperty('gathered');
     expect(eco[0].housingCap).toBeGreaterThan(0);
+  });
+});
+
+describe('U24 worker presets and auto rebuild', () => {
+  const onRes = (w, side) => { const c = { food: 0, wood: 0, stone: 0, gold: 0 }; workersOf(w, side).forEach((q) => { if (q.job?.t === 'gather') c[w.eco.nodes[q.job.node].res] += 1; }); return c; };
+
+  it('a food preset moves the mix and balanced keeps the default', () => {
+    const w = createWorld(ecoSetup());
+    run(w, 40);
+    const before = onRes(w, 0);
+    run(w, 1, [{ side: 0, type: 'workerPreset', preset: 'food' }]);
+    expect(w.eco.preset).toEqual(['food', 'balanced']);
+    const after = onRes(w, 0);
+    expect(after.food).toBeGreaterThan(before.food);
+  });
+
+  it('a destroyed drop-off is rebuilt when asked, and left alone when not', () => {
+    const base = () => {
+      const w = createWorld(ecoSetup());
+      run(w, 1);
+      w.eco.stock[0][RES_INDEX.wood] += 500 * MILLI;
+      const spot = spotFor(w, 0, 'materialsYard');
+      run(w, 1, [{ side: 0, type: 'build', squads: workersOf(w, 0).map((q) => q.idx), building: 'materialsYard', ...spot }]);
+      run(w, 20 * 60);
+      return w;
+    };
+    const yards = (w) => w.eco.buildings.filter((b) => b.side === 0 && b.type === 'materialsYard' && b.alive).length;
+    [true, false].forEach((on) => {
+      const w = base();
+      expect(yards(w)).toBe(1);
+      run(w, 1, [{ side: 0, type: 'autoRebuild', on }]);
+      destroyEcoBuilding(w, w.eco.buildings.find((b) => b.type === 'materialsYard'), 1);
+      expect(yards(w)).toBe(0);
+      run(w, 20 * 5);
+      expect(yards(w)).toBe(on ? 1 : 0);
+    });
+  });
+
+  it('a replay with presets and auto rebuild verifies', () => {
+    const setup = ecoSetup();
+    const log = [{ side: 0, type: 'workerPreset', preset: 'wood', tick: 20, seq: 0 }, { side: 0, type: 'autoRebuild', on: true, tick: 40, seq: 1 }, { side: 0, type: 'workerPreset', preset: 'nope', tick: 60, seq: 2 }];
+    const clean = sanitizeOrderLog(log, 0);
+    expect(clean).toHaveLength(2);
+    const a = runHeadless(setup, { orders: clean, maxTicks: 400 });
+    const b = runHeadless(setup, { orders: clean, maxTicks: 400 });
+    expect(a.chain).toBe(b.chain);
+    expect(a.world.eco.preset[0]).toBe('wood');
+    expect(a.world.eco.rebuild[0]).toBe(true);
+    expect(admitOrder({ type: 'workerPreset', preset: 'nope' }, 0)).toBeNull();
   });
 });

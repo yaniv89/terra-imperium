@@ -28,7 +28,9 @@ const EXAMPLES = {
   train: { building: 2, role: 'infantry', count: 3 },
   cancelTrain: { building: 2, slot: 1 },
   rally: { building: 2, x: 700, y: 800 },
-  cancelBuild: { building: 3 }
+  cancelBuild: { building: 3 },
+  workerPreset: { preset: 'food' },
+  autoRebuild: { on: true }
 };
 
 const source = (file) => readFileSync(fileURLToPath(new URL(file, import.meta.url)), 'utf8');
