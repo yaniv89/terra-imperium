@@ -1181,7 +1181,7 @@ describe('resolveTurn national power (plan §M4)', () => {
     const base = withAllEventsFired(createInitialState({ playerNationId: 'fr', rngSeed: 1 }));
     const state = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, government: { type: 'monarchy', reforms: {} }, stability: 0 } } };
     const next = resolveTurn(state);
-    expect(next.nations.fr.ruler).toEqual(base.nations.fr.ruler);
+    expect({ ...next.nations.fr.ruler, decrees: undefined, decreeWait: undefined, decreeLog: undefined }).toEqual(base.nations.fr.ruler); // the decree bank moves (decrees.js)
     expect(next.nations.fr.stability).toBe(0);
     expect(next.nations.fr).not.toHaveProperty('heir');
     expect(next.nations.fr).not.toHaveProperty('estates');
