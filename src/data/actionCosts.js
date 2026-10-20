@@ -187,11 +187,11 @@ export const ARMY_MAINTENANCE_DEFAULT = 100;
 export const FORT_UPKEEP_GOLD_PER_FORT_LEVEL = 1;
 
 // Building upkeep (mobile audit H-13: 7,000 gold idle at T100, nothing to spend it on). The player's
-// cities pay BUILDING_UPKEEP_GOLD x (tier + 1) a turn for each standing building (tier 0 = 1g,
-// tier 1 = 2g, tier 2 = 3g...), so a fully built empire carries a real bill that grows with its tech
+// cities pay BUILDING_UPKEEP_GOLD x (tier + 1) a turn for each standing building, rounded down (tier 0 = 0.5g,
+// tier 1 = 1g, tier 2 = 1.5g...; halved from 1 until a playtest calibrates it), so a fully built empire carries a real bill that grows with its tech
 // instead of a hoard. The Defense line is left out (fort upkeep above). AI nations keep thin treasuries
 // already and pay none.
-export const BUILDING_UPKEEP_GOLD = 1;
+export const BUILDING_UPKEEP_GOLD = 0.5;
 
 // Loans (plan §M11). Requires the Banking Houses tech; before that the treasury simply can't go
 // negative (RESOURCE floor at 0 everywhere already), so actions just fail for lack of gold.

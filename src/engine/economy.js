@@ -33,7 +33,7 @@ export const buildingUpkeepOf = (state, regions, nationId) => {
       if (category !== 'defense' && tier >= 0) sum += BUILDING_UPKEEP_GOLD * (tier + 1);
     }
   }
-  return sum;
+  return Math.floor(sum);
 };
 
 export const clampMaintenance = (value) => Math.max(ARMY_MAINTENANCE_MIN, Math.min(ARMY_MAINTENANCE_MAX, value));
