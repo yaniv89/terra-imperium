@@ -71,7 +71,8 @@ import { applyPeace, getPeaceAcceptance } from './peace';
 import { levyUnit } from './aftermath';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { START_YEAR, END_YEAR, getCalendarAgeId, isAgeAtLeast } from '../data/ages';
+import { AGES, FIRST_AGE_ID, isAgeAtLeast } from '../data/ages';
+import { endingSignal } from './ending';
 import { ageOf } from './nationState';
 import { sideAgeOf } from './ageRefs';
 import { getRegionTerrain } from '../data/terrain';
@@ -156,8 +157,9 @@ const DEFAULT_PLAYER_NATION_ID = 'us';
 // and applyEventEffects.test.js build realistic states from it rather than hand-rolling partial
 // mocks that could silently drift from the real shape.
 export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, gameSpeed = 'normal', rngSeed, scenario, guided = false, fog = true } = {}) => {
-  const year = START_YEAR;
-  const age = getCalendarAgeId(year);
+  // Every nation starts in the first age by research (KTD1); the year is only its label (KTD3).
+  const age = FIRST_AGE_ID;
+  const year = AGES[age].startYear;
 
   // Cities and land come from the scenario (src/engine/worldgen/emergentWorld.js applies the
   // start on the tile grid at the end of this function); `regions` is empty until then.
@@ -349,8 +351,8 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // AI parity (plan §M16). Only non-player nations get these — the player keeps living on
       // state.resources/techTree/techAgeId (src/engine/nationState.js's own header explains why:
       // moving the player onto this shape too would touch every existing test and UI component that
-      // reads state.resources directly, for zero present benefit). tech.ageId starts equal to the
-      // calendar age, mirroring state.techAgeId's own seeding.
+      // reads state.resources directly, for zero present benefit). tech.ageId starts in the first
+      // age, as state.techAgeId does.
       ...(id !== playerNationId ? { economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 }, tech: { researched: [], ageId: age } } : {}),
       ...(data.kind ? { kind: data.kind } : {}) // an independent (phase W1, independents.js finalizes it)
     };
@@ -368,7 +370,6 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
 
     // Time
     year,
-    age,
     // The player's age: its research age (ageOf in nationState.js, eight-ages plan KTD1). RESEARCH_TECH
     // advances it once 6 of its current age's 10 techs are researched.
     techAgeId: age,
@@ -2854,14 +2855,14 @@ const reduceAction = (state, action) => {
       };
     }
 
-    // Plan §M18: "Continue playing after victory" — only valid for an AMBITION win reached BEFORE
-    // the calendar's own end (year < END_YEAR); the END_YEAR ranked ending (finalScore) is the
-    // real, final game-over and has nothing left to continue toward. Records the condition in
+    // Plan §M18: "Continue playing after victory" — only valid for an AMBITION win reached before
+    // the ending signal (ending.js: the turn limit or the Future's goal); the ranked ending
+    // (finalScore) is the real, final game-over and has nothing left to continue toward. Records the condition in
     // victoriesAchieved so checkVictoryConditions (still true every later turn, since the region/
     // GDP/streak/etc. threshold that was met usually stays met) doesn't immediately re-fire the
     // SAME victory the very next turn.
     case ActionTypes.CONTINUE_AFTER_VICTORY: {
-      if (state.gameStatus !== GameStatus.VICTORY || state.year >= END_YEAR) return state;
+      if (state.gameStatus !== GameStatus.VICTORY || state.ending || endingSignal(state)) return state;
       const conditionId = state.victoryConditionId;
       return {
         ...state,

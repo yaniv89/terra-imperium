@@ -111,7 +111,7 @@ describe('government change preview', () => {
   it('matches what the real action does, including the Authority 25 law line', () => {
     const base = fresh();
     const me = base.playerNationId;
-    const target = getAvailableGovernmentTypes(base.age, base.nations[me].identity).find((t) => t.id !== base.nations[me].government?.type);
+    const target = getAvailableGovernmentTypes(base.techAgeId, base.nations[me].identity).find((t) => t.id !== base.nations[me].government?.type);
     expect(target).toBeTruthy();
     let sawLock = false;
     for (const legitimacy of [0, 20, 35, 50, 70, 100]) {
@@ -134,7 +134,7 @@ describe('government change preview', () => {
     const s = fresh();
     const me = s.playerNationId;
     const poor = { ...s, resources: { ...s.resources, adm: 0 } };
-    const target = getAvailableGovernmentTypes(s.age, s.nations[me].identity).find((t) => t.id !== s.nations[me].government?.type);
+    const target = getAvailableGovernmentTypes(s.techAgeId, s.nations[me].identity).find((t) => t.id !== s.nations[me].government?.type);
     const pv = previewGovernmentChange(poor, target.id);
     expect(pv.ok).toBe(true);
     expect(pv.affordable).toBe(false);

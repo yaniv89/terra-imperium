@@ -577,7 +577,7 @@ describe('T9: commanded amphibious landing', () => {
   const T9 = (() => { const s0 = neighbourWorld({ player: 'ahhiyawa', seed: 1 }); return addCity(s0, GB_ID, { near: s0.nations[FR_ID].capitalRegionId }); })();
   const GB_TARGET = T9.cityId;
   const landingState = () => {
-    const s = { ...T9.state, age: 'modern' }; // a modern fleet's reach covers the other coast (bronze reaches one tile)
+    const s = { ...T9.state, techAgeId: 'modern' }; // a modern fleet's reach covers the other coast (bronze reaches one tile)
     const port = getNationCapital(FR_ID);
     const units = {
       fleet: { id: 'fleet', regionId: port, ownerId: FR_ID, domain: 'naval', classId: 'naval', strength: 1000, maxStrength: 1000, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, movesLeft: 1, transportCapacity: 2, embarkedOn: null },

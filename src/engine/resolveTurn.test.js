@@ -4,7 +4,9 @@ import { resolveTurn } from './resolveTurn';
 import { SUPPLY_MAX, SUPPLY_ENEMY_LOSS, SUPPLY_HOME_GAIN, STARVE_STRENGTH } from './supplyMeter';
 import { createInitialState, gameReducer } from '../context/GameContext';
 import { GameStatus, ActionTypes, LogTypes } from '../data/types';
-import { getYearsPerTurn, getCalendarAgeId, END_YEAR } from '../data/ages';
+import { speedTurnLimit } from '../data/ages';
+import { displayYear } from './displayYear';
+import { TECH_TREE } from '../data/techTree';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD } from '../data/rebellion';
 import { HISTORICAL_EVENTS, eventTechsNeeded } from '../data/events';
 import { getTechsForAge } from '../data/techTree';
@@ -87,41 +89,48 @@ describe('resolveTurn determinism', () => {
   });
 });
 
-describe('resolveTurn calendar advance', () => {
-  it('advances the year by the age/speed years-per-turn table', () => {
-    const state = createInitialState({ playerNationId: 'fr', gameSpeed: 'normal' });
-    const next = resolveTurn(state);
-    expect(next.year).toBe(state.year + getYearsPerTurn(state.age, 'normal'));
+describe('resolveTurn time: the year is a label, a turn is a turn (KTD3)', () => {
+  const bronze = Object.values(TECH_TREE).filter((t) => t.ageId === 'bronze').map((t) => t.id);
+  const withTechs = (state, ids) => ({ ...state, techTree: { ...state.techTree, ...Object.fromEntries(ids.map((id) => [id, { ...state.techTree[id], researched: true }])) } });
+
+  it('the label at 5 of 10 Bronze techs is 1400 BCE, at none 2000 BCE', () => {
+    const state = createInitialState({ playerNationId: 'fr', rngSeed: 5 });
+    expect(displayYear(state)).toBe(-2000);
+    expect(displayYear(withTechs(state, bronze.slice(0, 5)))).toBe(-1400);
   });
 
-  it('advances faster at Fast speed than Marathon, all else equal', () => {
-    const fast = resolveTurn(createInitialState({ playerNationId: 'fr', gameSpeed: 'fast' }));
-    const marathon = resolveTurn(createInitialState({ playerNationId: 'fr', gameSpeed: 'marathon' }));
-    expect(fast.year).toBeGreaterThan(marathon.year);
+  it('writes the label once a turn and never reads it: the same turn at any written year', () => {
+    const state = createInitialState({ playerNationId: 'fr', rngSeed: 5 });
+    const next = resolveTurn(state);
+    expect(next.year).toBe(displayYear(next));
+    const late = resolveTurn({ ...state, year: 1900 });
+    expect(late.year).toBe(next.year);
+    expect(late.turnNumber).toBe(next.turnNumber);
   });
 
-  it('recomputes age from the new calendar year', () => {
-    // Bronze -> Classical boundary is -800; jump the state right up to it.
-    const state = { ...createInitialState({ playerNationId: 'fr' }), year: -840, age: 'bronze' };
-    const next = resolveTurn(state);
-    expect(next.age).toBe(getCalendarAgeId(next.year));
-  });
+  it('the label never goes down over a run', () => {
+    let s = { ...createInitialState({ playerNationId: 'fr', rngSeed: 5 }), firedEvents: Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {}), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true }, research: { current: null, queue: [], progress: {}, auto: true, lastCompleted: null } };
+    let last = s.year;
+    for (let t = 0; t < 40 && s.gameStatus === GameStatus.ACTIVE; t++) {
+      if (s.pendingPeaceOffer) s = { ...s, pendingPeaceOffer: null };
+      s = resolveTurn(s);
+      if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null };
+      expect(s.year).toBeGreaterThanOrEqual(last);
+      last = s.year;
+    }
+  }, 120000);
 
-  it('logs a milestone the exact turn the calendar age changes (App.jsx turns this into the banner/globe pulse)', () => {
-    const state = { ...createInitialState({ playerNationId: 'fr' }), year: -800 - getYearsPerTurn('bronze', 'normal') + 5, age: 'bronze' }; // one turn short of the Classical Age at this speed
-    const next = resolveTurn(state);
-    expect(next.age).not.toBe(state.age);
-    const ageLog = next.logs.find(l => l.message.includes('new era dawns'));
-    expect(ageLog).toBeTruthy();
-    expect(ageLog.type).toBe(LogTypes.MILESTONE);
-    expect(ageLog.message).toContain('Classical Age');
-  });
-
-  it('logs nothing extra when the calendar age does not change this turn', () => {
-    const state = createInitialState({ playerNationId: 'fr' }); // fresh Bronze Age start, far from any boundary
-    const next = resolveTurn(state);
-    expect(next.age).toBe(state.age);
-    expect(next.logs.find(l => l.message.includes('new era dawns'))).toBeUndefined();
+  it('ends the game at the speed turn limit (923 on Normal), once', () => {
+    const state = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr', rngSeed: 5 }), turnNumber: 921 });
+    const before = resolveTurn(state);
+    expect(before.turnNumber).toBe(922);
+    expect(before.ending).toBeUndefined();
+    const end = resolveTurn(before);
+    expect(end.turnNumber).toBe(923);
+    expect(end.ending).toEqual({ reason: 'turnLimit' });
+    expect([GameStatus.VICTORY, GameStatus.COMPLETE]).toContain(end.gameStatus);
+    expect(end.nations.fr.eraGoals?.bronze).toBeDefined(); // the final age is scored
+    expect(resolveTurn(end)).toBe(end);
   });
 
   it('increments turnNumber', () => {
@@ -139,12 +148,11 @@ describe('resolveTurn resource income', () => {
     expect(next.resources.hr).toBeGreaterThan(state.resources.hr);
   });
 
-  it('unlocks a newly-available resource at 0 the turn its age arrives', () => {
-    // Classical unlocks Iron; start one tick before the boundary.
-    const state = { ...createInitialState({ playerNationId: 'fr' }), year: -820, age: 'bronze' };
+  it('unlocks a newly-available resource at 0 once the player reaches its age', () => {
+    // Classical unlocks Iron.
+    const state = createInitialState({ playerNationId: 'fr' });
     expect(state.resources.iron).toBeUndefined();
-    const next = resolveTurn(state);
-    expect(next.age).toBe('classical');
+    const next = resolveTurn({ ...state, techAgeId: 'classical' });
     expect(next.resources.iron).toBeDefined();
   });
 
@@ -893,17 +901,17 @@ describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-
 });
 
 describe('resolveTurn victory', () => {
-  // Plan §M18: reaching END_YEAR is no longer an automatic win — it's a RANKED ending
+  // Plan §M18: reaching the turn limit is no longer an automatic win — it's a RANKED ending
   // (src/engine/score.js): VICTORY only if the player leads the world, GameStatus.COMPLETE
   // (with finalRank) otherwise.
-  it('triggers a Score Victory at END_YEAR only when the player actually ranks #1', () => {
-    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), year: END_YEAR - 1 });
+  it('triggers a Score Victory at the turn limit only when the player actually ranks #1', () => {
+    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), turnNumber: speedTurnLimit('normal') - 1 });
     // Prestige alone won't do it here — processNationalPowerTurn's own decay/clamp runs earlier in
     // this same turn and would clamp any artificial value straight back into [-100, 100] before the
     // victory check ever reads it. 500 extra NON-CAPITAL regions is enough to lead the score table
     // outright while staying safely under every ambition's own threshold (domination 40% of
     // 4,482 regions, conqueror 25% of capitals, economicHegemony 45% of GDP) — this must resolve
-    // through the END_YEAR ranked step, not accidentally trip an ambition first.
+    // through the turn-limit ranked step, not accidentally trip an ambition first.
     // The Dawn world is 240 capitals: 50 of them (under the conqueror ambition's 25%) lead the
     // score table outright while staying under every ambition's threshold.
     const regions = { ...base.regions };
@@ -914,8 +922,8 @@ describe('resolveTurn victory', () => {
     expect(next.victoryConditionId).toBe('finalScore');
   });
 
-  it('ends as GameStatus.COMPLETE with a real finalRank when the player does NOT rank #1 at END_YEAR', () => {
-    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), year: END_YEAR - 1 });
+  it('ends as GameStatus.COMPLETE with a real finalRank when the player does NOT rank #1 at the turn limit', () => {
+    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), turnNumber: speedTurnLimit('normal') - 1 });
     const regions = {};
     Object.keys(base.regions).forEach((id) => { regions[id] = { ...base.regions[id], owner: id === cap('fr') ? 'fr' : 'de' }; });
     const next = resolveTurn({ ...base, regions });
@@ -924,7 +932,7 @@ describe('resolveTurn victory', () => {
   });
 
   it('does not check victory conditions while an event is pending', () => {
-    const state = { ...createInitialState({ playerNationId: 'fr' }), year: END_YEAR - 1, activeEventId: 'some_event' };
+    const state = { ...createInitialState({ playerNationId: 'fr' }), turnNumber: speedTurnLimit('normal') - 1, activeEventId: 'some_event' };
     // resolveTurn is a no-op while an event is pending (existing guard) — this just confirms
     // that guard still holds even when a victory condition would otherwise already be met.
     expect(resolveTurn(state)).toBe(state);
@@ -1226,7 +1234,7 @@ describe('resolveTurn disasters (plan §M15)', () => {
   const revolutionary = (meter) => {
     const base = withAllEventsFired(createInitialState({ playerNationId: 'fr', rngSeed: 2 }));
     const fr = { ...base.nations.fr, government: { type: 'monarchy', reforms: {} }, stability: -3, legitimacy: 10, disasters: { ...base.nations.fr.disasters, revolution: meter } };
-    return { ...base, year: 1950, age: 'modern', nations: { ...base.nations, fr } };
+    return { ...base, techAgeId: 'modern', nations: { ...base.nations, fr } };
   };
 
   it('grows the Revolution meter for a discredited Modern-age regime', () => {

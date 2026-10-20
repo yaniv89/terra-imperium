@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { resolveTurn } from './resolveTurn';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { getNationCapital } from '../data/regions';
-import { AGES } from '../data/ages';
+import { TECH_TREE } from '../data/techTree';
 import { addCities } from './testWorld';
 import { eraGoalProgress, playstyleValues, awardEraLegacy } from './eraGoals';
 import { ERA_LEGACY_TURNS, goalsForAge } from '../data/eraGoals';
@@ -58,15 +58,33 @@ describe('era goals', () => {
     expect(getModifier(withBonus, FR_ID, 'national.popGrowthBonus').total).toBeGreaterThanOrEqual(0.1);
   });
 
-  it('scores the ending age when the calendar turns', () => {
-    const lastYear = AGES.classical.startYear - 1;
+  // KTD7: a nation's era goals are scored when its OWN research age advances.
+  const bronze = Object.values(TECH_TREE).filter((t) => t.ageId === 'bronze').sort((x, y) => x.lineIndex - y.lineIndex || (x.id < y.id ? -1 : 1));
+  const firsts = bronze.filter((t) => t.lineIndex === 0).map((t) => t.id);
+  const sixth = bronze.find((t) => t.lineIndex === 1).id;
+
+  it('scores the age the player leaves when its research reaches the next one', () => {
     const { state: s4 } = addCities(S, FR_ID, 4, { near: getNationCapital(FR_ID) });
     const techTree = { ...s4.techTree };
-    Object.keys(techTree).slice(0, 4).forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
-    const eve = { ...s4, techTree, year: lastYear };
+    firsts.forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
+    const eve = { ...s4, techTree, research: { current: sixth, queue: [], progress: {}, auto: false, lastCompleted: null }, resources: { ...s4.resources, techPoints: 100000 } };
     const next = resolveTurn(eve);
-    expect(next.age).toBe('classical');
+    expect(next.techAgeId).toBe('classical');
     expect(next.nations[FR_ID].eraGoals.bronze).toBeDefined();
+    expect(next.nations[FR_ID].ageSince).toBe(eve.turnNumber + 1);
     expect(next.logs.some((l) => /Legacy of the|no legacy/.test(l.message))).toBe(true);
+    expect(next.logs.some((l) => /the first in the world/.test(l.message))).toBe(true);
   }, 30000);
+
+  it('an AI nation scores its own age when it advances, while the player has not', () => {
+    const ai = Object.keys(S.nations).sort().find((id) => id !== FR_ID && S.nations[id].economy && S.nations[id].kind !== 'independent');
+    const n = S.nations[ai];
+    const eve = { ...S, nations: { ...S.nations, [ai]: { ...n, tech: { researched: firsts, ageId: 'bronze' }, research: { current: sixth, queue: [], progress: {}, auto: true, lastCompleted: null }, economy: { ...n.economy, techPoints: 100000 } } } };
+    let s = eve;
+    for (let t = 0; t < 4 && !s.nations[ai].eraGoals?.bronze; t++) s = resolveTurn(s);
+    expect(s.nations[ai].tech.ageId).toBe('classical');
+    expect(s.nations[ai].eraGoals.bronze).toBeDefined();
+    expect(s.techAgeId).toBe('bronze');
+    expect(s.nations[FR_ID].eraGoals?.bronze).toBeUndefined();
+  }, 60000);
 });

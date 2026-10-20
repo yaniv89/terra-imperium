@@ -5,7 +5,7 @@
 // succession). A monarchy keeps its royal house's name; any other government gets a new one.
 // The government type only biases the new ruler's skills: a Theocracy favours ADM (rolls twice,
 // keeps the higher), a Dictatorship floors MIL at 3.
-import { getYearsPerTurn } from '../data/ages';
+import { speedCostMult, FIRST_AGE_ID } from '../data/ages';
 import { generateGivenName, givenNamePool, generateDynastyName } from '../data/names';
 import { POSITIVE_TRAIT_IDS, NEGATIVE_TRAIT_IDS, TRAITS } from '../data/traits';
 import { msg, sub, person, thing } from './messages';
@@ -33,12 +33,15 @@ const rollTraits = (rng) => {
   return traits;
 };
 
-// Turns span fewer real years the further into the game you are (src/data/ages.js): a reign of
-// 15-40 real years becomes however many TURNS that is at the current age and speed, clamped to 3-25.
+// A reign is counted in turns (no rule reads the year, eight-ages plan KTD3). A reign of 15-40 years
+// is REIGN_TURNS_PER_YEAR[age] reference turns a year (the pace the balance was tuned at: later ages
+// have more turns per span of history), times the speed's cost multiplier at the ruler's nation's
+// own age, clamped to 3-25 turns: the same reigns as before at every speed and age.
+export const REIGN_TURNS_PER_YEAR = { bronze: 1 / 40, classical: 1 / 20, kingdoms: 1 / 10, gunpowder: 1 / 4, modern: 1 / 2 };
 export const reignLengthTurns = (rng, age, gameSpeed) => {
-  const years = 15 + Math.floor(rng.next() * 26); // 15-40 real years
-  const yearsPerTurn = getYearsPerTurn(age, gameSpeed) || 1;
-  return Math.max(3, Math.min(25, Math.round(years / yearsPerTurn)));
+  const years = 15 + Math.floor(rng.next() * 26); // 15-40 years
+  const ageId = REIGN_TURNS_PER_YEAR[age] != null ? age : FIRST_AGE_ID;
+  return Math.max(3, Math.min(25, Math.round(years * REIGN_TURNS_PER_YEAR[ageId] * speedCostMult(gameSpeed, ageId))));
 };
 
 // The id comes from (nationId, turnNumber), never a mutable counter, so a replay reproduces it.

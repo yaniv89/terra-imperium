@@ -14,7 +14,8 @@
 // Both are cached on the state objects they read, like the diffusion index.
 import { AGE_ORDER, FIRST_AGE_ID, getAgeIndex } from '../data/ages';
 import { isIndependentNation } from '../data/independents';
-import { ageOf } from './nationState';
+import { ageOf, getResearched } from './nationState';
+import { labelYear } from './displayYear';
 import { economySizes } from './tradeValue';
 import { contactsOf } from './techDiffusion';
 
@@ -35,6 +36,19 @@ export const researchLeaderAge = (state) => {
   const ageId = AGE_ORDER[best] || FIRST_AGE_ID;
   leaderCache.set(nations, { regions: state.regions, techAgeId: state.techAgeId, ageId });
   return ageId;
+};
+
+/** The year label of the most advanced major with a city (displayYear.js labelYear over its own
+ * research): a wait owned by no nation (late peoples arriving) reads it, never the calendar. */
+export const researchLeaderYear = (state) => {
+  const sizes = economySizes(state);
+  let best = null;
+  Object.keys(state.nations || {}).forEach((id) => {
+    if (!isMajor(state.nations[id]) || !sizes.get(id)) return;
+    const y = labelYear(ageOf(state, id), getResearched(state, id));
+    if (best == null || y > best) best = y;
+  });
+  return best ?? labelYear(FIRST_AGE_ID, []);
 };
 
 /** The index of researchLeaderAge in AGE_ORDER. */

@@ -29,8 +29,8 @@ describe('nation overview model (W17)', () => {
     expect(m.score.rank).toBeGreaterThan(0);
     expect(m.era.goals).toHaveLength(5);
     expect(m.ages.map((a) => a.id)).toEqual(AGE_ORDER);
-    expect(m.ages.find((a) => a.current).id).toBe(s.age);
-    expect(m.nextAge.turns).toBeGreaterThan(0);
+    expect(m.ages.find((a) => a.current).id).toBe(s.techAgeId);
+    expect(m.nextAge.techs).toBeGreaterThan(0);
   });
 
   it('is null without a player nation', () => {

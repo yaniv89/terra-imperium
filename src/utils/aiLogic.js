@@ -39,6 +39,7 @@ import { getEffectiveMilitaryPower, canAffordAIRecruit, applyAIRecruitCost } fro
 import { warContagionMult } from '../engine/warContagion';
 import { warValue, WAR_COST } from '../engine/warOdds';
 import { msg, people } from '../engine/messages';
+import { ageOf } from '../engine/nationState';
 
 const DEFAULT_RNG = { next: () => Math.random() };
 const DEFAULT_DOCTRINE = DOCTRINES.attrition;
@@ -243,7 +244,8 @@ export const chooseAIRecruitRegion = (state, regions, nationId) => {
 // the nation's militaryStrength (already grown this turn by processAllAINations) and stops once a
 // nation holds its age's standing-unit cap (getAIMaxStandingUnits). Pure: returns new
 // `units`/`nations` maps rather than mutating the ones passed in, exactly like processAIWarDecisions.
-export const processAIRecruitment = (state, units, nations, regions, sortedByMilitary, ageId, rng) => {
+// Each nation recruits at its own age (ageOf, eight-ages plan KTD1).
+export const processAIRecruitment = (state, units, nations, regions, sortedByMilitary, rng) => {
   const nextUnits = { ...units };
   const nextNations = { ...nations };
   const logs = [];
@@ -257,6 +259,7 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
     // economy phase); a nation without one yet (a hand-built test fixture, mainly) falls back to the
     // original abstract-militaryStrength debit so this function still works standalone.
     const usesRealEconomy = !!nation.economy;
+    const ageId = ageOf(state, nationId);
     if (usesRealEconomy ? !canAffordAIRecruit(nation, state, ageId) : nation.militaryStrength < AI_RECRUIT_MILITARY_STRENGTH_COST) return;
     const standingCount = Object.values(nextUnits).filter(u => u.ownerId === nationId).length;
     if (standingCount >= getAIMaxStandingUnits(ageId)) return;

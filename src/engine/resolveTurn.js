@@ -24,7 +24,11 @@ import { invalidateRegionsCache } from '../data/regions';
 // infantry/armor/air model this replaced.
 
 import { GameStatus, LogTypes } from '../data/types';
-import { AGES, getCalendarAgeId, getYearsPerTurn, END_YEAR, speedCostMult, speedTrainMult, isAgeAtLeast } from '../data/ages';
+import { speedCostMult, speedTrainMult, isAgeAtLeast } from '../data/ages';
+import { displayYear } from './displayYear';
+import { endingSignal } from './ending';
+import { awardEraLegacy } from './eraGoals';
+import { independentAgeOf } from './ageRefs';
 import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent, noteEventFired } from '../data/proceduralEvents';
@@ -95,7 +99,6 @@ import { applySupplyMeter, SUPPLY_LINE_RINGS } from './supplyMeter';
 import { processSieges } from './sieges';
 import { opinionOf, opinionGivesCasusBelli } from './opinion';
 import { applyLoyalty } from './loyalty';
-import { awardEraLegacy } from './eraGoals';
 import { settleOpenCaptures } from './capture';
 import { processColonies } from './colonies';
 import { hasPerk } from '../data/promotions';
@@ -131,7 +134,7 @@ export const WAR_WEARINESS_SCALE = 40;
 // The cities phase: processCities over state.regions (every region is a city on the tile world),
 // then the legacy fields the rest of the engine reads are refreshed from the result (dev mirrors
 // the yields, population follows size) and finished units join state.units.
-const runCitiesPhase = (state, newAge, newTurnNumber) => {
+const runCitiesPhase = (state, newTurnNumber) => {
   if (!state.world) return { state, logs: [] };
   const tiles = getTiles();
   const luxuriesByNation = {};
@@ -151,7 +154,7 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
         luxuries: luxuriesByNation[nid] ? luxuriesByNation[nid].size : 0,
         greatProjects: state.greatProjects || {},
         // An independent's city: capped size, a small border, a garrison and buildings only (independents.js).
-        ...(isIndependent(state.nations, nid) ? independentCityCtx(state, nid, newAge) : {})
+        ...(isIndependent(state.nations, nid) ? independentCityCtx(state, nid, independentAgeOf(state, nid)) : {})
       });
     }
     return ctxCache.get(nid);
@@ -268,17 +271,12 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   let rng = createRng(state.rngSeed);
   const logs = [];
   // --- time ---
-  const newYear = state.year + getYearsPerTurn(state.age, state.gameSpeed);
-  const newAge = getCalendarAgeId(newYear);
+  // There is no calendar (eight-ages plan KTD3): a turn is a turn. The year is a display label from
+  // the player's progress through its age (displayYear.js), written once at the end of the turn;
+  // the logs of this turn carry the label the turn started with. No rule reads it.
+  const newYear = state.year ?? displayYear(state);
   const newTurnNumber = state.turnNumber + 1;
   marchLogs.forEach((l) => logs.push({ ...l, year: newYear }));
-  // The calendar age is a shared floor every nation crosses automatically (plan §2) — this is the
-  // one moment that actually happens to everyone, so it gets a log line the same turn it lands
-  // (the UI layer, App.jsx's GameLayout, is what turns this into the globe-wide banner/effect,
-  // since resolveTurn is pure and has no access to EffectsContext).
-  if (newAge !== state.age) {
-    logs.push({ year: newYear, ...msg('m.turn.newEra', { age: thing('age', newAge, AGES[newAge].name) }), type: LogTypes.MILESTONE });
-  }
 
   // Timed modifier expiry (plan §A.2) — runs right after the time step so an entry that expires
   // this turn no longer affects this turn's income/unrest/etc below. Nothing pushes an entry into
@@ -286,13 +284,6 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // will be the first real writer), so both calls are a same-reference no-op today.
   const modifierExpiredNations = { ...expireNationModifiers(state.nations, newTurnNumber) };
   const regionModifiers = expireRegionModifiers(state.regionModifiers, newTurnNumber);
-  // Era goals (plans/civ-map-rework.md C9.3, eraGoals.js): the ending age is scored for the player
-  // and a legacy carries into the new one.
-  if (newAge !== state.age && modifierExpiredNations[state.playerNationId]) {
-    const legacy = awardEraLegacy(state, modifierExpiredNations[state.playerNationId], state.age, newTurnNumber);
-    modifierExpiredNations[state.playerNationId] = legacy.nation;
-    if (legacy.log) logs.push({ year: newYear, ...carry(legacy.log), type: LogTypes.MILESTONE });
-  }
   mark('time');
 
   // --- sieges (plans/civ-map-rework.md D2, sieges.js): armies beside a city grind its walls and
@@ -312,14 +303,14 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // --- cities (plans/civ-map-rework.md C1, C2, B4): every city works its land, grows, builds and
   // extends its borders. Runs first so income reads this turn's yields (dev mirrors them) and
   // every later phase sees the new sizes and borders. Finished units are created here.
-  const cityTurn = runCitiesPhase(state, newAge, newTurnNumber);
+  const cityTurn = runCitiesPhase(state, newTurnNumber);
   state = cityTurn.state;
   cityTurn.logs.forEach((l) => logs.push({ year: newYear, ...carry(l), type: LogTypes.ACTION }));
   mark('cities');
 
   // --- income ---
   const income = calcIncome({ ...state, nations: modifierExpiredNations });
-  const resources = { ...createEmptyResourcePool(newAge), ...state.resources };
+  const resources = { ...createEmptyResourcePool(ageOf(state, state.playerNationId)), ...state.resources };
   Object.entries(income).forEach(([id, amount]) => { resources[id] = (resources[id] || 0) + amount; });
   logs.push({ year: newYear, ...msg('m.turn.income', { year: Math.round(newYear), gold: income.gold || 0 }), type: LogTypes.ACTION });
   // Army supplies (src/engine/supplies.js): foraged and manufactured from metal, eaten on campaign.
@@ -377,7 +368,9 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     return value;
   };
   const governView = { ...state, nations: modifierExpiredNations }; // one view for the governor lookups below
-  const peopleSpeedMult = speedCostMult(state.gameSpeed, newAge);
+  // Growth is paid at the city owner's own age (KTD9).
+  const growthMultOf = new Map();
+  const peopleSpeedMultOf = (owner) => { if (!growthMultOf.has(owner)) growthMultOf.set(owner, speedCostMult(state.gameSpeed, ageOf(state, owner))); return growthMultOf.get(owner); };
   Object.entries(regions).forEach(([id, region]) => {
     if (region.owner === null) return;
     const owner = modifierExpiredNations[region.owner];
@@ -405,7 +398,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     // (a hand-built test region) still runs the fallback logistic on its own levers.
     const devastation = decayDevastation(region.devastation);
     let currentPopulation;
-    if (region.size != null) currentPopulation = peopleOf(region, growthThreshold(region.size, peopleSpeedMult));
+    if (region.size != null) currentPopulation = peopleOf(region, growthThreshold(region.size, peopleSpeedMultOf(region.owner)));
     else {
       const modernBaseline = REGIONS_DATA[id]?.population || 0;
       // A devastated province (aftermath.js) grows more slowly while it recovers.
@@ -725,7 +718,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     }
   }
   Object.entries(nations).forEach(([nId, nation]) => {
-    const ruler = processReignEnd(nation, rng, { turnNumber: newTurnNumber, age: newAge, gameSpeed: state.gameSpeed });
+    const ruler = processReignEnd(nation, rng, { turnNumber: newTurnNumber, age: ageOf(state, nId), gameSpeed: state.gameSpeed });
     if (!ruler) return;
     // Plan §M18's "Dynasty" achievement ("the same royal house for 10 rulers"): counts consecutive
     // rulers of one house, reset the moment the house changes (any government but a monarchy rolls
@@ -781,12 +774,12 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // spirit, applied here even though this isn't a state.wars entry — see civilWar.js's own header on
   // why not).
   Object.entries(nations).forEach(([nId, nation]) => {
-    const { nation: afterDisasters, triggersCivilWar, logs: disasterLogs } = processDisastersTurn(nation, newAge);
+    const { nation: afterDisasters, triggersCivilWar, logs: disasterLogs } = processDisastersTurn(nation, ageOf(state, nId));
     if (nId === state.playerNationId) logs.push(...disasterLogs.map((l) => ({ year: newYear, ...l })));
     nations[nId] = afterDisasters;
 
     if (nation.civilWar?.active) {
-      const result = processCivilWarTurn({ ...state, age: newAge }, regions, units, nations[nId], nId, rng, newTurnNumber);
+      const result = processCivilWarTurn(state, regions, units, nations[nId], nId, rng, newTurnNumber);
       Object.assign(regions, result.regions);
       // Object.assign alone can only ADD/replace keys — insurgent stacks the civil war removed
       // (suppressed by an AI, or cleared when the insurgents win) must be deleted explicitly too.
@@ -1008,7 +1001,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // abstract militaryStrength growth into real, counterable units in state.units — recruiting
   // whatever class beats their most relevant rival's dominant class. Uses the calendar age, not a
   // per-nation tech age (AI nations don't track one independently). ---
-  const recruitment = processAIRecruitment({ ...state, nations, regions, units }, units, nations, regions, sortedByMilitary, newAge, rng);
+  const recruitment = processAIRecruitment({ ...state, nations, regions, units }, units, nations, regions, sortedByMilitary, rng);
   // Every unit raised this turn draws its men from its home province (aftermath.js).
   // (`regions` is this turn's own working copy, so each levy updates just its one province in place.)
   Object.values(recruitment.units).forEach((u) => {
@@ -1124,7 +1117,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // the armies where they now stand.
   {
     // In place: the turn's working regions, units and resources are written directly.
-    const indep = processIndependents({ ...state, turnNumber: newTurnNumber, year: newYear, age: newAge, regions, units, nations: nationsAfterWars, resources, wars }, { inPlace: true });
+    const indep = processIndependents({ ...state, turnNumber: newTurnNumber, year: newYear, regions, units, nations: nationsAfterWars, resources, wars }, { inPlace: true });
     if (indep) {
       nationsAfterWars = indep.nations;
       state = { ...state, world: indep.world, tributeDemands: indep.tributeDemands, indepStats: indep.indepStats, ...(indep.appliedBattleIds ? { appliedBattleIds: indep.appliedBattleIds } : {}) };
@@ -1142,7 +1135,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // itself moved in the operations above).
   {
     const stats0 = { ...(state.indepStats || {}), conquered: (state.indepStats?.conquered || 0) + independentsConquered };
-    const mi = processMajorsAndIndependents({ ...state, turnNumber: newTurnNumber, year: newYear, age: newAge, regions, units, nations: nationsAfterWars, resources, wars, indepStats: stats0 });
+    const mi = processMajorsAndIndependents({ ...state, turnNumber: newTurnNumber, year: newYear, regions, units, nations: nationsAfterWars, resources, wars, indepStats: stats0 });
     if (mi) {
       Object.keys(units).forEach((id) => { if (!mi.units[id]) delete units[id]; });
       Object.assign(units, mi.units);
@@ -1243,7 +1236,6 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     ...state,
     world: state.world,
     year: newYear,
-    age: newAge,
     turnNumber: newTurnNumber,
     resources,
     regions,
@@ -1311,7 +1303,20 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       const condition = VICTORY_CONDITIONS[conditionId];
       next = applyVictory(next, conditionId);
       next.logs = [...next.logs, { year: newYear, ...msg('m.turn.victory', { victory: thing('victory', conditionId, condition.name) }), type: LogTypes.MILESTONE }];
-    } else if (next.year >= END_YEAR) {
+    } else if (!next.ending && endingSignal(next)) {
+      // The one ending signal (ending.js): the speed's turn limit or the Future's final goal. It
+      // fires once: the ending it gives is kept on the state.
+      next = { ...next, ending: endingSignal(next) };
+      // The final age is scored once, for every major, when the game ends (KTD7).
+      const scoredNations = { ...next.nations };
+      Object.keys(scoredNations).sort().forEach((id) => {
+        const n = scoredNations[id];
+        if (!n || n.isEliminated || n.kind === 'independent') return;
+        const legacy = awardEraLegacy(next, n, ageOf(next, id), next.turnNumber);
+        scoredNations[id] = legacy.nation;
+        if (id === next.playerNationId && legacy.log) next.logs = [...next.logs, { year: newYear, ...carry(legacy.log), type: LogTypes.MILESTONE }];
+      });
+      next = { ...next, nations: scoredNations };
       const rank = getPlayerRank(next);
       if (rank === 1) {
         next = applyVictory(next, 'finalScore');
@@ -1328,6 +1333,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   mark('emergenceAndTerritory');
   // Research last, once this turn's science has been credited (src/engine/research.js).
   next = applyResearchTurn(next);
+  // The year label for the turn just resolved, from the player's research (the only writer).
+  next = { ...next, year: displayYear(next) };
   mark('research');
   next = normalizeUnitTiles(syncWorldRegistry(next));
   mark('registry');

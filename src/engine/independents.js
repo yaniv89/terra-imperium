@@ -39,6 +39,7 @@ import {
 } from '../data/independents';
 import { canFoundCity, foundCity, sizeToPeople } from './world/cities';
 import { capRaiders } from '../data/cityStates';
+import { researchLeaderYear } from './ageRefs';
 
 const MIX = 0x51ed270b; // the independents' roll: its own stream of the world seed
 
@@ -189,14 +190,16 @@ const fromTemplate = (state, fields) => {
 };
 
 /**
- * The late peoples arrive (independents 4.6, peoples 4.2): in the first turn at or after its year a
- * late people founds its capital as an independent, if its tile and the ring around it are nobody's
+ * The late peoples arrive (independents 4.6, peoples 4.2): in the first turn the research leader's year
+ * label (no calendar, KTD3) reaches its year, a late people founds its capital as an independent, if its tile and the ring around it are nobody's
  * and the settling rule allows a city there; otherwise its land was taken and it never comes.
  */
 export const processLateArrivals = (state) => {
   const pending = state.scenario?.lateArrivals;
   if (state.gameStatus !== 'ACTIVE' || !pending) return state;
-  const due = Object.keys(pending).filter((id) => pending[id] <= state.year).sort();
+  // Its year is read against the research leader's year label (ageRefs.js), never the calendar.
+  const leaderYear = researchLeaderYear(state);
+  const due = Object.keys(pending).filter((id) => pending[id] <= leaderYear).sort();
   if (!due.length) return state;
   const tiles = getTiles();
   let next = { ...state, scenario: { ...state.scenario, lateArrivals: { ...pending } } };

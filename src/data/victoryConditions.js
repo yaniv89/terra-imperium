@@ -6,7 +6,6 @@
 // here is additive and never requires touching resolveTurn.js, which just iterates this table.
 
 import { GameStatus } from './types';
-import { END_YEAR } from './ages';
 import { getCapital, getNationCapital } from './regions';
 import { FINAL_SPACE_MISSION_ID } from './spaceMissions';
 
@@ -113,7 +112,7 @@ export const VICTORY_CONDITIONS = {
     description: 'Complete the entire space mission ladder.',
     check: (state) => (state.completedMissions || []).includes(FINAL_SPACE_MISSION_ID)
   },
-  // Plan §M18: "Remove the free win. survival no longer grants VICTORY." — reaching END_YEAR is no
+  // Plan §M18: "Remove the free win. survival no longer grants VICTORY." — reaching the ending (src/engine/ending.js: the turn limit or the Future's goal) is no
   // longer a `check` in this table at all; it's handled as its own ranked step in resolveTurn.js
   // (src/engine/score.js), since "did the game end at the calendar limit" and "did THIS PARTICULAR
   // AMBITION'S threshold get met" are different enough shapes (one needs to rank against all 240
@@ -130,7 +129,7 @@ export const VICTORY_CONDITIONS = {
   finalScore: {
     id: 'finalScore',
     name: 'Score Victory',
-    description: `Lead your nation to the highest score in the world by ${END_YEAR}.`,
+    description: 'Lead your nation to the highest score in the world when the game ends.',
     check: () => false
   }
 };

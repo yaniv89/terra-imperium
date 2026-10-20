@@ -10,7 +10,7 @@ import { resolveTurn } from '../../../src/engine/resolveTurn';
 import { createInitialState, gameReducer } from '../../../src/context/GameContext';
 import { ActionTypes, GameStatus } from '../../../src/data/types';
 import { HISTORICAL_EVENTS } from '../../../src/data/events';
-import { getCalendarAgeId } from '../../../src/data/ages';
+import * as AGES from '../../../src/data/ages';
 
 const TURNS = Number(process.env.TURNS || 280);
 const EVERY = Number(process.env.EVERY || 20);
@@ -35,15 +35,16 @@ SEEDS.forEach((seed) => {
   it(`state hash seed ${seed}`, () => {
     let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, gameSpeed: SPEED }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
     s = { ...s, research: { ...s.research, auto: true } };
-    if (JUMP != null) s = { ...s, year: JUMP, age: getCalendarAgeId(JUMP) };
-    console.log(`HASH seed=${seed} turn=0 year=${s.year} age=${s.age} ${hash(s)}`);
+    // JUMP sets the calendar on an old engine (a base commit); the ages-by-tech engine has none.
+    if (JUMP != null) s = { ...s, year: JUMP, ...(AGES.getCalendarAgeId ? { age: AGES.getCalendarAgeId(JUMP) } : {}) };
+    console.log(`HASH seed=${seed} turn=0 year=${s.year} age=${s.age ?? s.techAgeId} ${hash(s)}`);
     for (let t = 1; t <= TURNS && s.gameStatus === GameStatus.ACTIVE; t++) {
       if (s.pendingPeaceOffer) s = gameReducer(s, { type: s.pendingPeaceOffer.terms?.length ? ActionTypes.REJECT_PENDING_PEACE : ActionTypes.ACCEPT_PENDING_PEACE });
       s = resolveTurn(s);
       if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null };
       if (s.activeEvent) s = { ...s, activeEvent: null };
       if (s.pendingDefense) s = { ...s, pendingDefense: null };
-      if (t % EVERY === 0 || t === TURNS) console.log(`HASH seed=${seed} turn=${t} year=${s.year} age=${s.age} ${hash(s)}`);
+      if (t % EVERY === 0 || t === TURNS) console.log(`HASH seed=${seed} turn=${t} year=${s.year} age=${s.age ?? s.techAgeId} ${hash(s)}`);
     }
   });
 });

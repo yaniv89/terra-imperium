@@ -194,7 +194,7 @@ export default {
   'victory.eventVictory': 'ניצחון',
   'victory.eventVictory.desc': 'נקודת מפנה מכרעת הבטיחה את ניצחון אומתך.',
   'victory.finalScore': 'ניצחון בנקודות',
-  'victory.finalScore.desc': 'להוביל את אומתך לניקוד הגבוה בעולם עד שנת 2300.',
+  'victory.finalScore.desc': 'להוביל את אומתך לניקוד הגבוה בעולם כשהמשחק מסתיים.',
 
   // space missions (space.<id>, space.<id>.desc), satellites (sat.<id>, .desc), missiles (missile.<id>)
   'space.sounding_rocket': 'רקטת מדידה',

@@ -20,6 +20,7 @@ export default {
   'm.world.boost': 'האצה: {boost} מקדם את {tech} ({pct}% מעלותו).',
   'm.world.researched': 'נחקר: {tech}.',
   'm.world.techAge': 'המומחיות של האימפריה שלך הגיעה ל{age}.',
+  'm.world.firstIntoAge': '{nation} נכנסת ל{age}, הראשונה בעולם.',
 
   'm.world.colonyFoundedYou': 'המתיישבים שלך ייסדו מושבה ב{region}{driveOut}.',
   'm.world.colonyFounded': 'המתיישבים של {nation} ייסדו מושבה ב{region}{driveOut}.',

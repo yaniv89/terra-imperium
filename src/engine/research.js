@@ -21,10 +21,12 @@ import { TECH_TREE, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../da
 import { AGES, AGE_ORDER, getAgeIndex, speedCostMult } from '../data/ages';
 import { DOCTRINE_TECH_CATEGORY_PRIORITY } from '../data/nations';
 import { LogTypes } from '../data/types';
-import { msg, thing } from './messages';
+import { msg, thing, carry, people } from './messages';
 import { getModifier } from './modifiers/sheet';
 import { withDiffusion } from './techDiffusion';
 import { ageOf } from './nationState';
+import { awardEraLegacy } from './eraGoals';
+import { isIndependentNation } from '../data/independents';
 
 // Science cost of one tech, by its age, at Normal speed. Calibrated with the balance-sim so a
 // typical nation researches about 6 to 8 of an age's 10 techs before the calendar age ends.
@@ -203,9 +205,29 @@ export const stepResearch = (state, nationId) => {
   return { research, stock, completed, techAgeId };
 };
 
+// A nation's own age advanced (KTD7): each age it left is scored for its era goals (a legacy), the
+// turn it entered the new age is kept (nation.ageSince), and the first major into an age is named
+// in the log. Returns the nation; pushes the player's lines into `logs`.
+const isMajorNation = (n) => !!n && !n.isEliminated && !isIndependentNation(n);
+const onAgeAdvance = (state, nation, fromAgeId, toAgeId, logs, world) => {
+  let n = nation;
+  for (let i = getAgeIndex(fromAgeId); i < getAgeIndex(toAgeId); i++) {
+    const legacy = awardEraLegacy(state, n, AGE_ORDER[i], state.turnNumber);
+    n = legacy.nation;
+    if (nation.id === state.playerNationId && legacy.log) logs.push({ year: state.year, ...carry(legacy.log), type: LogTypes.MILESTONE });
+  }
+  if (getAgeIndex(toAgeId) > world.top) {
+    world.top = getAgeIndex(toAgeId);
+    logs.push({ year: state.year, ...msg('m.world.firstIntoAge', { nation: people(nation.id, nation.name), age: thing('age', toAgeId, AGES[toAgeId]?.name) }), type: LogTypes.MILESTONE });
+  }
+  return { ...n, ageSince: state.turnNumber };
+};
+
 // Runs every nation's research for the turn (the player's and every AI nation with an economy).
 export const applyResearchTurn = (state) => {
   let next = state;
+  // The highest age any major holds before this turn's research: who passes it is first in the world.
+  const world = { top: Math.max(0, ...Object.keys(state.nations || {}).filter((id) => isMajorNation(state.nations[id])).map((id) => getAgeIndex(techAgeOf(state, id)))) };
   // Boosts from the map (boosts.js): every tech whose fact a nation has met gets its share first.
   const boostedPlayer = applyBoosts(state, state.playerNationId, researchOf(state, state.playerNationId), researchedSetOf(state, state.playerNationId));
   if (boostedPlayer.applied.length) {
@@ -218,8 +240,11 @@ export const applyResearchTurn = (state) => {
     p.completed.forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
     const logs = [...next.logs];
     p.completed.forEach((id) => logs.push({ year: state.year, ...msg('m.world.researched', { tech: thing('tech', id, TECH_TREE[id].name) }), type: LogTypes.TECH }));
-    if (p.techAgeId !== state.techAgeId) logs.push({ year: state.year, ...msg('m.world.techAge', { age: thing('age', p.techAgeId, AGES[p.techAgeId]?.name) }), type: LogTypes.MILESTONE });
+    const before = techAgeOf(state, state.playerNationId);
+    if (p.techAgeId !== before) logs.push({ year: state.year, ...msg('m.world.techAge', { age: thing('age', p.techAgeId, AGES[p.techAgeId]?.name) }), type: LogTypes.MILESTONE });
     next = { ...next, techTree, techAgeId: p.techAgeId, research: p.research, resources: { ...next.resources, techPoints: p.stock }, logs };
+    const me = next.nations?.[state.playerNationId];
+    if (p.techAgeId !== before && me) next = { ...next, nations: { ...next.nations, [state.playerNationId]: onAgeAdvance(next, me, before, p.techAgeId, logs, world) } };
   }
   // AI nations.
   let nations = null;
@@ -231,8 +256,13 @@ export const applyResearchTurn = (state) => {
     const r = stepResearch(boosted.applied.length ? { ...state, nations: { ...state.nations, [id]: { ...nation, research: boosted.research } } } : state, id);
     if (!r.completed.length && r.stock === nation.economy.techPoints && r.research.current === nation.research?.current) return;
     nations ||= { ...next.nations };
+    const advanced = r.techAgeId !== techAgeOf(state, id);
+    let logs = null;
+    if (advanced) { logs = [...next.logs]; }
+    const scored = advanced ? onAgeAdvance(state, nation, techAgeOf(state, id), r.techAgeId, logs, world) : nation;
+    if (logs && logs.length !== next.logs.length) next = { ...next, logs };
     nations[id] = {
-      ...nation,
+      ...scored,
       research: r.research,
       economy: { ...nation.economy, techPoints: r.stock },
       // The same researched list while nothing completed: its identity keys the tile-yield memos.
