@@ -7,11 +7,12 @@ import { createBattleLoop } from '../../worker/battleLoop';
 import { buildSetupFromArmies, commandedSetup } from '../../setup/buildBattleSetup';
 import { createRng } from '../../../utils/rng';
 import { Q } from '../constants';
+import { AGE_ORDER } from '../../../data/ages';
 import { placementBlock } from '../economy';
 import { deployZone } from '../world';
 
 const TERRAINS = ['plains', 'forest', 'hills', 'mixed', 'desert', 'mountains', 'urban', 'arctic'];
-const AGES = ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'];
+const AGES = AGE_ORDER;
 const CLASSES = ['infantry', 'infantry', 'ranged', 'cavalry', 'siege', 'support'];
 
 const army = (rng, prefix, n) => Array.from({ length: n }, (_, i) => ({

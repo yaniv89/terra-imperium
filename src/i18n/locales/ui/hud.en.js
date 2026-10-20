@@ -153,7 +153,7 @@ export default {
   'bt.hud.powersPaused': 'Powers, usable while paused',
   'bt.hud.yours': 'Yours:',
   'bt.hud.theirs': 'Theirs:',
-  'bt.hud.retreatHelp': 'Retreat asks once more. Your regiments leave by the nearest exit{siege}. Switch to Auto finishes this battle by the same rules, at once.',
+  'bt.hud.retreatHelp': 'Retreat asks once more. Your regiments leave by the nearest exit{siege}. Switch to Auto finishes this battle from where it stands, by the same rules, at once: the losses so far stand.',
   'bt.hud.siegeLifted': '; the siege is lifted',
   'bt.hud.pausedMenu': 'Paused: menu',
   'bt.hud.nukeTitle': 'Launch a nuclear strike?',

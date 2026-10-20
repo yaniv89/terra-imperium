@@ -6,6 +6,7 @@
 import { REGIONS_DATA } from './regions';
 import { getTiles } from './geo/tiles';
 import { kmPerRing, ringsForKm } from './geo/gridScale';
+import { agesFrom, LAST_AGE_ID } from './ages';
 
 export const NAVAL_REACH_KM = {
   bronze: 200,
@@ -14,7 +15,7 @@ export const NAVAL_REACH_KM = {
   gunpowder: 5000,
   modern: Infinity
 };
-const DEEP_OK_FROM = ['gunpowder', 'modern'];
+const DEEP_OK_FROM = agesFrom('gunpowder');
 
 export const isCoastal = (regionId) => !!REGIONS_DATA[regionId]?.isCoastal;
 
@@ -72,7 +73,7 @@ export const getSeaLanesWithinReach = (regionId, ageId) => {
   return out.sort((a, b) => a.km - b.km || (a.to < b.to ? -1 : 1));
 };
 
-export const getAllSeaLanes = (regionId) => getSeaLanesWithinReach(regionId, 'modern');
+export const getAllSeaLanes = (regionId) => getSeaLanesWithinReach(regionId, LAST_AGE_ID);
 
 export const isReachableBySea = (fromRegionId, toRegionId, ageId) => {
   const reach = seaReach(fromRegionId, ageId);

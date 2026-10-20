@@ -39,7 +39,9 @@ import { relocateLostCapital } from './conquest';
 import { LOYALTY_ON_FLIP } from './loyalty';
 import { canFight } from './hostility';
 import { tributePerTurn, TRIBUTE_INCOME_SHARE } from './tributePricing';
-import { nearestHeldCity, passableTile, unitTile } from './armies';
+import { nearestHeldCity, passableTile, unitTile, regionForTile } from './armies';
+
+const EJECT_RINGS = 12; // how far a driven-out army looks for open ground
 
 export const CAPTURE_CHOICES = ['conquer', 'raze', 'tributary', 'free'];
 export const CAPTURE_TRIBUTE_TURNS = 40;
@@ -147,24 +149,44 @@ export const captureOptions = (state, cap) => {
   return out;
 };
 
-// Moves the player's troops out of a city that leaves the player's hands: off the centre to a
-// neighbouring tile, based on the nearest city the player holds (writes into `units`).
+// Moves the player's troops out of a city that leaves the player's hands, and every other land army
+// of the player standing on that city's land (a siege camp): each goes to the nearest tile that is
+// wild or the player's own, found ring by ring over land the army can cross, so none is left on
+// land the new owner keeps shut (H-07). Their base becomes the nearest city the player holds.
 const stepOut = (state, units, cityId, nationId) => {
   const tiles = getTiles();
   const city = state.regions[cityId];
   const home = nearestHeldCity(state, cityId, nationId);
-  const isCentre = (t) => state.regions[state.world?.tileOwner?.[t]]?.tile === t;
+  const tileOwner = state.world?.tileOwner || {};
+  const isCentre = (t) => state.regions[tileOwner[t]]?.tile === t;
   const foreign = new Set(Object.values(state.units || {}).filter((u) => u.ownerId !== nationId).map((u) => unitTile(state, u)));
-  const ring = city.tile != null ? [...tiles.neighbors[city.tile]].filter((t) => passableTile(tiles, t) && !isCentre(t)).sort((a, b) => a - b) : [];
-  const to = ring.find((t) => !foreign.has(t)) ?? ring[0] ?? null;
-  troopsIn(state, cityId, nationId).forEach((u) => {
+  const onLand = (u) => u.domain !== 'naval' && !u.embarkedOn;
+  const here = new Set(troopsIn(state, cityId, nationId).map((u) => u.id));
+  Object.values(state.units || {}).forEach((u) => { if (u.ownerId === nationId && onLand(u) && tileOwner[unitTile(state, u)] === cityId) here.add(u.id); });
+  // The nearest tile, ring by ring from the city, that is free land or the player's own and holds no foreign army.
+  const free = (t) => passableTile(tiles, t) && !isCentre(t) && !foreign.has(t) && (tileOwner[t] == null || (tileOwner[t] !== cityId && state.regions[tileOwner[t]]?.owner === nationId));
+  let to = null;
+  if (city.tile != null) {
+    const seen = new Set([city.tile]);
+    let frontier = [city.tile];
+    for (let d = 0; d < EJECT_RINGS && to == null; d++) {
+      const next = [];
+      frontier.forEach((t) => tiles.neighbors[t].forEach((n) => { if (!seen.has(n)) { seen.add(n); next.push(n); } }));
+      next.sort((x, y) => x - y);
+      to = next.find(free) ?? null;
+      frontier = next.filter((t) => passableTile(tiles, t));
+    }
+  }
+  [...here].forEach((id) => {
+    const u = state.units[id];
     if (!home) { delete units[u.id]; return; }
-    const onCentre = u.domain !== 'naval' && !u.embarkedOn && unitTile(state, u) === city.tile;
+    const moves = onLand(u) && tileOwner[unitTile(state, u)] === cityId;
+    const tile = moves ? (to ?? state.regions[home]?.tile ?? u.tile) : u.tile;
     units[u.id] = {
       ...u,
-      regionId: u.regionId === cityId ? home : u.regionId,
+      regionId: moves ? regionForTile(state, tile, nationId, home) : (u.regionId === cityId ? home : u.regionId),
       ...(u.homeRegionId === cityId ? { homeRegionId: home } : {}),
-      ...(onCentre ? { tile: to ?? state.regions[home]?.tile ?? u.tile, route: null } : {})
+      ...(moves ? { tile, route: null } : {})
     };
   });
 };
@@ -217,7 +239,6 @@ export const resolveCapture = (state, captureId, choice) => {
   const regions = { ...state.regions };
   let nations = { ...state.nations };
   const units = { ...state.units };
-  stepOut(state, units, cap.cityId, cap.by);
   let line;
   const recipient = choice === 'free' ? liberationRecipient(state, cap) : null;
   if (recipient) {
@@ -249,6 +270,7 @@ export const resolveCapture = (state, captureId, choice) => {
       line = msg('m.battle.captureFree', { city: cityName, nation: people(id, nations[id].name) });
     }
   }
+  stepOut({ ...state, regions }, units, cap.cityId, cap.by); // after the hand-over, so the city no longer counts as the player's
   nations = relocateLostCapital(nations, regions, cap.by);
   return { ...base, regions, nations, units, logs: [...state.logs, log(line)] };
 };

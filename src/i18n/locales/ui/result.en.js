@@ -142,6 +142,7 @@ export default {
   'bt.rep.res.repelled': 'Repelled',
   'bt.rep.modeCommand': 'Command',
   'bt.rep.modeAuto': 'Auto',
+  'bt.rep.modeSwitched': 'Command, then Auto',
   'bt.rep.when': 'T{turn} · {year}',
   'bt.rep.fledField': ' Fled the field: {a} of yours, {b} of theirs.',
   'bt.rep.youAttacked': 'You attacked',

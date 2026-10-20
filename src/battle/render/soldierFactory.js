@@ -94,15 +94,15 @@ const LEG = { limb: LIMB.LEG_L, pivot: [HIP, 0] };
 const ARM_L = { limb: LIMB.ARM_L, pivot: [SHOULDER, 0] };
 const ARM_R = { limb: LIMB.ARM_R, pivot: [SHOULDER, 0] };
 
-const HELMETS = {
+export const HELMETS = {
   bronze: (y) => [part(dome(0.102), C.bronze, { at: [0, y, 0], scale: [1, 1.1, 1.1] })],
   classical: (y) => [part(dome(0.106), C.bronze, { at: [0, y, 0], scale: [1, 1, 1.1] }), part(oval(0.03, 0.11, 0.23), '#b3261e', { at: [0, y + 0.11, -0.01] }), ...[-1, 1].map(s => part(oval(0.025, 0.09, 0.07), C.bronze, { at: [s * 0.09, y - 0.04, 0.02] }))],
   kingdoms: (y) => [part(dome(0.106), C.steel, { at: [0, y, 0], scale: [1, 1.2, 1.1] }), part(box(0.018, 0.1, 0.015), C.steel, { at: [0, y - 0.04, 0.108] })],
   gunpowder: (y) => [part(cyl(0.1, 0.11, 0.2), C.black, { at: [0, y + 0.1, 0] }), part(cyl(0.13, 0.13, 0.02, 8), C.black, { at: [0, y + 0.0, 0.02] }), part(ball(0.025, 4, 3), C.gold, { at: [0, y + 0.13, 0.1] })],
   modern: (y) => [part(dome(0.114), C.darkOlive, { at: [0, y - 0.005, 0], scale: [1, 0.8, 1.1] })]
 };
-const BODY_CLOTH = { bronze: C.cloth, classical: C.leather, kingdoms: C.darkSteel, gunpowder: C.cloth, modern: C.olive };
-const LEG_CLOTH = { bronze: C.leather, classical: C.leather, kingdoms: C.darkSteel, gunpowder: C.cloth, modern: C.olive };
+export const BODY_CLOTH = { bronze: C.cloth, classical: C.leather, kingdoms: C.darkSteel, gunpowder: C.cloth, modern: C.olive };
+export const LEG_CLOTH = { bronze: C.leather, classical: C.leather, kingdoms: C.darkSteel, gunpowder: C.cloth, modern: C.olive };
 
 // A standing person: legs (two bones), torso in team colour, belt, head, age helmet, two arm bones.
 // `skin` picks one of four skin tones; `seat` lifts the whole figure (riders) and drops the legs.
@@ -246,7 +246,7 @@ const SHIPS = {
   modern: () => [...hull(3.2, 0.6, '#8b939c'), part(box(0.4, 0.4, 0.9), '#6e757d', { at: [0, 0.5, 0.2] }), part(cyl(0.03, 0.03, 0.8, 6), C.darkSteel, { at: [0, 0.9, 0.2] }), part(cyl(0.04, 0.05, 0.6, 6), C.darkSteel, { at: [0, 0.42, 1.0], rot: [Math.PI / 2, 0, 0] }), part(box(0.02, 0.12, 0.22), '#ffffff', { at: [0, 1.3, 0.31], team: 1 })]
 };
 
-const MODELS = {
+export const MODELS = {
   naval: SHIPS,
   infantry: {
     bronze: () => [...person('bronze'), ...spear(1.35), ...roundShield()],

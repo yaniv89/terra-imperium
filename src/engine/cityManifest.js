@@ -30,7 +30,7 @@
 import { buildTownManifest, citySeed, manifestHousing, isCivic } from '../data/townLayout';
 import { townTier } from '../data/townTiers';
 import { styleOfLand } from '../data/architecture';
-import { getEffectiveAgeId } from '../data/ages';
+import { getEffectiveAgeId, FIRST_AGE_ID } from '../data/ages';
 import { landOf } from './world/cultureZones';
 
 export const REPAIR_TURNS = 3;
@@ -50,7 +50,7 @@ export const cityManifestInput = (state, cityId) => {
   const region = state.regions?.[cityId];
   if (!region) return null;
   const owner = region.owner || region.colony?.ownerId || null;
-  const ageId = cityAgeOf(state, owner) || 'bronze';
+  const ageId = cityAgeOf(state, owner) || FIRST_AGE_ID;
   let landNation = null;
   if (region.tile != null) { try { landNation = landOf(region.tile, state.scenario?.sites); } catch { landNation = null; } }
   const tileOwner = state.world?.tileOwner || {};

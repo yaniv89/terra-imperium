@@ -11,7 +11,7 @@
 //          the age's base file; houses never cross ages (they must match the town kit's houses)
 //   kit    vegetation kits fall back along VEGETATION_FALLBACK to temperate
 //   bridge the age's bridge material, then the lighter ones (steel -> stone -> wood)
-import { AGE_ORDER } from '../../data/ages';
+import { AGE_ORDER, isAgeAtLeast } from '../../data/ages';
 import { styleChain } from '../../data/architecture';
 
 /** The seven vegetation kits (plan D9) and where each falls back to. */
@@ -75,7 +75,7 @@ export const createArtIndex = (files = {}) => {
     /** What workers carry (workerLoads.js): battle/props/worker-loads-modern.glb for a Modern side,
      * battle/props/worker-loads.glb for every other age and when the Modern file is missing. */
     workerLoads: (ageId = null) => {
-      for (const key of [...(ageId === 'modern' ? ['battle/props/worker-loads-modern.glb'] : []), 'battle/props/worker-loads.glb']) {
+      for (const key of [...(isAgeAtLeast(ageId, 'modern') ? ['battle/props/worker-loads-modern.glb'] : []), 'battle/props/worker-loads.glb']) {
         if (url(key)) return { url: url(key), key };
       }
       return null;

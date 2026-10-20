@@ -96,12 +96,16 @@ const FOLLOW_RATE = 4;
 // Notes about orders sit just above the bottom bar, inside the safe area.
 const NOTE_BOTTOM = 'calc(max(0.375rem, var(--sa-b, 0px)) + 3.75rem)';
 
-const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onCheckpoint, onFinish, onAbandon, onRetry = null, getCampaign = null, getReceipt = null, onEnded = null }) => {
+const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onCheckpoint, onFinish, onAbandon, onSwitchAuto = null, onRetry = null, getCampaign = null, getReceipt = null, onEnded = null }) => {
   useT(); // redraw the screen's own texts when the language changes
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
   const clientRef = useRef(null);
+  // Switch to Auto (H-01): Auto goes on from the battle as it stands. The worker is asked for its log
+  // and tick (battleLoop.js snapshot), which go to the campaign (battleSwitch.js replays them).
+  const switchRef = useRef({ asked: false, timer: null, checkpoint: resume?.log ? resume : null, to: null });
+  switchRef.current.to = onSwitchAuto;
   const audioRef = useRef(null);
   const soundOn = useAudioSettings().sound; // the one Sound switch (also in Settings)
   const frames = useRef({ prev: null, cur: null, arrival: 0 });
@@ -303,11 +307,17 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
             audio.setView(renderer.audioView());
             audio.events(m.events, m.view);
           } catch (err) { if (!f.fxWarned) { f.fxWarned = true; console.error('[battle] effects or sound failed', err); } }
-        } else if (m.type === 'checkpoint') onCheckpoint?.(m);
-        else if (m.type === 'ended') setEnded(m);
+        } else if (m.type === 'checkpoint') {
+          switchRef.current.checkpoint = m;
+          onCheckpoint?.(m);
+        } else if (m.type === 'snapshot') {
+          const sw = switchRef.current;
+          if (sw.asked && sw.to) { clearTimeout(sw.timer); sw.to(m); }
+        } else if (m.type === 'ended') setEnded(m);
         else if (m.type === 'ordersRefused') setRefused({ count: m.count, full: !!m.full });
         else if (m.type === 'resumeRejected') {
           // The saved checkpoint was not this battle's: it starts fresh, at deployment.
+          switchRef.current.checkpoint = null;
           startedRef.current = false; setStarted(false); setPaused(true);
           renderer.setDeployZone(deployZone({ map: setup.map }, playerSide), playerSide);
         } else if (m.type === 'error') {
@@ -894,6 +904,17 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const getRenderer = useCallback(() => rendererRef.current, []);
   const commandSelected = (type) => { const sel = [...selectedRef.current]; if (sel.length) send([{ type, squads: sel }]); setRadial(null); };
   const retreatAll = () => send([{ type: 'retreatAll' }]);
+  const switchToAuto = () => {
+    const sw = switchRef.current; const c = clientRef.current;
+    if (!sw.to || !c?.snapshot) { onAbandon?.(); return; }
+    if (sw.asked) return;
+    sw.asked = true;
+    c.pause();
+    c.snapshot();
+    // No answer from the sim (it stopped): the last checkpoint, never the start, when there is one.
+    sw.timer = setTimeout(() => { if (sw.checkpoint) sw.to(sw.checkpoint); else onAbandon?.(); }, 3000);
+  };
+  useEffect(() => () => clearTimeout(switchRef.current.timer), []);
   const focusKeep = () => { const k = setup.structures[0]; lookAt(k.x / Q, k.y / Q); };
   // The battle economy's actions.
   // `from`: 'sheet' (the build sheet: it comes back after) or 'panel' (a building's panel: the house
@@ -1099,7 +1120,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         selectedSquads={selectedSquads}
         onTogglePause={togglePause} onSpeed={changeSpeed} onArm={arm} onFormation={cycleFormation}
         onSelectClass={selectClass} onFindArmy={findArmy} onCommand={commandSelected}
-        onRetreatAll={retreatAll} onFocusKeep={focusKeep} onAbandon={onAbandon}
+        onRetreatAll={retreatAll} onFocusKeep={focusKeep} onAbandon={onAbandon ? switchToAuto : null}
         onPower={firePower} onAbility={triggerSquadAbility} abilities={selectedAbilities}
         onCancelArmed={() => disarm()}
         onObjective={showObjective}

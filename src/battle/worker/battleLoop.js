@@ -93,6 +93,9 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
       if (paused) postFrame(false, 1, [], true);
     },
     setPaused(p) { paused = p; last = null; },
+    // The battle as it stands, for "Switch to Auto" (src/engine/battleSwitch.js): the log so far and
+    // the tick and hash it reached. The reducer replays the log to this tick and Auto goes on from there.
+    snapshot() { post({ type: 'snapshot', tick: world.tick, hash: worldHash(world), chain: world.hashChain, log: [...log] }); },
     setSpeed(s) { speed = s; },
     frame(now) {
       if (finished) return;

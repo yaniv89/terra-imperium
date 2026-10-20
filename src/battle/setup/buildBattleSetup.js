@@ -30,6 +30,7 @@ import { getTechAgeId } from '../../engine/nationState';
 import { isRaidKind, queuedRaidArmies, raidSpecOf, raidBattleContext } from '../../engine/raidBattle';
 import { interceptArmies, interceptArgs } from '../../engine/aiLanding';
 import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from '../sim/constants';
+import { FIRST_AGE_ID } from '../../data/ages';
 
 // Bumped whenever the sim's rules change, so an old checkpoint restarts rather than replaying
 // under different rules (v2: garrisons, v3: the region's buildings on the battlefield, v4: the real
@@ -155,7 +156,7 @@ const placeBuildings = (map, list) => {
 // without a whole game state.
 export const buildSetupFromArmies = ({
   regionId, terrain, seed, attackerUnits, defenderUnits,
-  attackerAgeId = 'bronze', defenderAgeId = 'bronze', generals = {},
+  attackerAgeId = FIRST_AGE_ID, defenderAgeId = FIRST_AGE_ID, generals = {},
   fortLevel = 0, isCapital = false, infrastructure = 0, deposits = [],
   defenseReduction = 1, isAttackingFortification = fortLevel > 0, attackerPenaltyMultiplier = 1,
   attackerNationId = 'attacker', defenderNationId = 'defender',

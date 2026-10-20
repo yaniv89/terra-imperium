@@ -24,7 +24,7 @@ import { invalidateRegionsCache } from '../data/regions';
 // infantry/armor/air model this replaced.
 
 import { GameStatus, LogTypes } from '../data/types';
-import { AGES, getCalendarAgeId, getYearsPerTurn, END_YEAR, speedCostMult, speedTrainMult } from '../data/ages';
+import { AGES, getCalendarAgeId, getYearsPerTurn, END_YEAR, speedCostMult, speedTrainMult, isAgeAtLeast } from '../data/ages';
 import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent, noteEventFired } from '../data/proceduralEvents';
@@ -100,7 +100,7 @@ import { awardEraLegacy } from './eraGoals';
 import { settleOpenCaptures } from './capture';
 import { processColonies } from './colonies';
 import { hasPerk } from '../data/promotions';
-import { governorEffects, governorOf, pruneGovernors, generateGovernorCandidates, GOVERNOR_UNREST_MULT, GOVERNOR_REFRESH_TURNS } from './governors';
+import { governorEffects, governorOf, regroupGovernors, generateGovernorCandidates, GOVERNOR_UNREST_MULT, GOVERNOR_REFRESH_TURNS } from './governors';
 import { lawRulesOf } from './lawRules';
 import { advanceTradeDisruptions } from './tradeDisruptions';
 import { authorityRisksCivilWar } from './authority';
@@ -113,7 +113,7 @@ import { updateFog } from './fog';
 import { processAIMapOffers } from './mapTrade';
 import { continueExplorers, EXPLORER_STRENGTH } from './scouting';
 import { repairCityDamage } from './cityManifest';
-import { msg, carry, sub, people, cityRef, thing } from './messages';
+import { msg, carry, sub, people, cityRef, thing, person } from './messages';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -549,7 +549,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   const MORALE_RECOVERY_PER_TURN = 15;
   // Mechanised warfare runs on oil: modern tanks, aircraft and warships need a stock above zero.
   const FUEL_BURNING_CLASSES = new Set(['cavalry', 'air', 'naval']);
-  const playerOutOfOil = getEffectiveAgeId(newAge, state.techAgeId) === 'modern' && (resources.oil ?? 0) <= 0;
+  const playerOutOfOil = isAgeAtLeast(getEffectiveAgeId(newAge, state.techAgeId), 'modern') && (resources.oil ?? 0) <= 0;
   let groundedCount = 0;
   const ownerSupplyFlows = new Map();
   const unitsByOwnerAtStart = unitsByOwner(state.units); // one scan for every nation's supply flow
@@ -596,7 +596,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
 
     // Plan §M14: forcedMarch grants a second move; every other unit gets exactly one. With the oil
     // stock empty, the player's modern machines (tanks, aircraft, warships) stay where they are.
-    const outOfOil = isPlayer ? playerOutOfOil : getEffectiveAgeId(newAge, nation.tech?.ageId) === 'modern' && (nation.economy?.oil || 0) <= 0;
+    const outOfOil = isPlayer ? playerOutOfOil : isAgeAtLeast(getEffectiveAgeId(newAge, nation.tech?.ageId), 'modern') && (nation.economy?.oil || 0) <= 0;
     const grounded = outOfOil && FUEL_BURNING_CLASSES.has(u.classId);
     if (grounded && isPlayer) groundedCount += 1;
     const movesLeft = grounded ? 0 : 1 + (hasPerk(u, 'forcedMarch') ? 1 : 0);
@@ -712,7 +712,15 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   {
     const me = state.playerNationId;
     const view = { ...state, regions, nations };
-    Object.keys(nations).forEach((nId) => { const pruned = pruneGovernors(view, nations[nId]); if (pruned !== nations[nId]) nations[nId] = pruned; });
+    Object.keys(nations).forEach((nId) => {
+      const r = regroupGovernors(view, nations[nId]);
+      if (r.nation !== nations[nId]) nations[nId] = r.nation;
+      if (nId !== me) return;
+      r.changes.forEach((c) => {
+        const city = cityRef(c.kind === 'moved' ? c.to : c.city, regions[c.kind === 'moved' ? c.to : c.city]?.name || '');
+        logs.push({ year: newYear, ...msg(c.kind === 'moved' ? 'm.turn.governorMoved' : c.kind === 'merged' ? 'm.turn.governorMerged' : 'm.turn.governorLeft', { name: person(c.name), city }), type: LogTypes.EVENT });
+      });
+    });
     if (nations[me] && (newTurnNumber % GOVERNOR_REFRESH_TURNS === 1 || !nations[me].governorCandidates)) {
       nations[me] = { ...nations[me], governorCandidates: generateGovernorCandidates(me, `${state.rngSeed}|${newTurnNumber}`) };
     }

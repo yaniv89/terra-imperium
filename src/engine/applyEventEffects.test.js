@@ -239,3 +239,16 @@ describe('applyEventEffects', () => {
     });
   });
 });
+
+describe('controlPenalty (H-09)', () => {
+  it('lowers control in every city the player owns, occupied or not', () => {
+    const state = neighbourWorld();
+    const mine = Object.values(state.regions).filter((r) => r.owner === FR_ID);
+    expect(mine.length).toBeGreaterThan(0);
+    expect(mine.every((r) => !r.occupiedBy)).toBe(true);
+    const next = applyEventEffects(state, fixtureEvent('control_event', { controlPenalty: 20 }), 0);
+    mine.forEach((r) => expect(next.regions[r.id].control).toBe(Math.max(0, r.control - 20)));
+    const other = Object.values(state.regions).find((r) => r.owner !== FR_ID);
+    if (other) expect(next.regions[other.id].control).toBe(other.control);
+  });
+});

@@ -122,13 +122,33 @@ export const dismissGovernor = (nation, seatId) => {
   return { ...nation, governors };
 };
 
-/** Drops governors whose seat the nation no longer holds (a lost city). Same nation when nothing changed. */
-export const pruneGovernors = (state, nation) => {
-  if (!nation.governors || !Object.keys(nation.governors).length) return nation;
-  const seats = new Set(cityGroups(state, nation.id).map((g) => g.seat));
-  const kept = Object.fromEntries(Object.entries(nation.governors).filter(([seat]) => seats.has(seat)));
-  return Object.keys(kept).length === Object.keys(nation.governors).length ? nation : { ...nation, governors: kept };
+/**
+ * Keeps governors on the right seats after the city groups change (a founding or a loss re-anchors
+ * them). A governor whose old seat city is still held moves with it to the seat of the group it
+ * now belongs to (H-11); he leaves only when that city is lost or its new group already has a
+ * governor. Returns { nation, changes }, changes being [{ kind: 'moved' | 'left' | 'merged', name,
+ * seat (the old one), city (the city he sat in), to (the new seat, for 'moved') }] so the caller can log them.
+ */
+export const regroupGovernors = (state, nation) => {
+  if (!nation.governors || !Object.keys(nation.governors).length) return { nation, changes: [] };
+  const groups = cityGroups(state, nation.id);
+  const seats = new Set(groups.map((g) => g.seat));
+  const entries = Object.entries(nation.governors);
+  if (entries.every(([seat]) => seats.has(seat))) return { nation, changes: [] };
+  const kept = {};
+  entries.filter(([seat]) => seats.has(seat)).forEach(([seat, gov]) => { kept[seat] = gov; });
+  const changes = [];
+  entries.filter(([seat]) => !seats.has(seat)).forEach(([seat, gov]) => {
+    const group = groupOfCity(state, nation.id, seat);
+    if (!group) changes.push({ kind: 'left', name: gov.name, seat, city: seat });
+    else if (kept[group.seat]) changes.push({ kind: 'merged', name: gov.name, seat, city: seat });
+    else { kept[group.seat] = gov; changes.push({ kind: 'moved', name: gov.name, seat, city: seat, to: group.seat }); }
+  });
+  return { nation: { ...nation, governors: kept }, changes };
 };
+
+/** The nation after regroupGovernors (the nation unchanged when no governor had to move or leave). */
+export const pruneGovernors = (state, nation) => regroupGovernors(state, nation).nation;
 
 /** An AI nation seats its best candidate in every empty group at once (its court is abstract). */
 export const autoGovern = (state, nation, turn) => {

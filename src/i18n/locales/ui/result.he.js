@@ -142,6 +142,7 @@ export default {
   'bt.rep.res.repelled': 'נהדפנו',
   'bt.rep.modeCommand': 'פיקוד',
   'bt.rep.modeAuto': 'אוטומטי',
+  'bt.rep.modeSwitched': 'פיקוד, ואז אוטומטי',
   'bt.rep.when': 'ת׳{turn} · {year}',
   'bt.rep.fledField': ' ברחו מהשדה: {a} משלכם, {b} משלהם.',
   'bt.rep.youAttacked': 'תקפתם',

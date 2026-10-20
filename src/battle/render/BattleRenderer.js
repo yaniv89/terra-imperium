@@ -40,7 +40,7 @@ import { ProjectileArt } from '../art/projectiles';
 import { FxSprites } from '../art/fxSheets';
 import { orderRingState, recordOrderTarget, ORDER_RING_COLOR, MAX_ORDER_TARGETS } from './orderTarget';
 import { recordPendingMark, livePendingMarks } from './pendingMarks';
-import { getAgeIndex } from '../../data/ages';
+import { isAgeAtLeast } from '../../data/ages';
 import { peopleForNationId } from '../../data/peoples';
 import { signatureKey, baseClassOf, signatureUnitFor, rigFiguresOf } from '../../data/signatureUnits';
 import { lookKey, unitLookOf, LOOK_CLASS, findUnitModel, findSignatureModel, footprintOf, machineLayout } from './unitModels';
@@ -180,7 +180,7 @@ export const makeSplatDecal = ({ seed = 1, size = 64 } = {}) => {
 
 // Troops bleed; machines (siege engines, aircraft, modern tanks and AA batteries) burn and smoke.
 export const isOrganic = (classId, ageId) => !(classId === 'siege' || classId === 'air' || classId === 'naval'
-  || (ageId === 'modern' && (classId === 'cavalry' || classId === 'support')));
+  || (isAgeAtLeast(ageId, 'modern') && (classId === 'cavalry' || classId === 'support')));
 
 const BLOOD_COLORS = ['#7f1010', '#991b1b', '#5c0a0a'];
 const SPLAT_LIFE = 28;   // seconds a blood pool stays on the ground (it shrinks away over the last few)
@@ -596,7 +596,7 @@ export class BattleRenderer {
     // trees, rocks and tufts once it is in: same chunks, same instances, its geometry (vegetation.js).
     this.vegetation = new VegetationProps(this, propMeshes);
     // Houses: whitewashed or stone walls under a pitched roof, age-appropriate colours.
-    const modern = this.setup.sides[1].ageId === 'modern';
+    const modern = isAgeAtLeast(this.setup.sides[1].ageId, 'modern');
     const house = mergeGeometries([
       painted(new BoxGeometry(0.9, 0.7, 0.8).translate(0, 0.35, 0), modern ? '#b9b5ad' : '#d8cdb5'),
       painted(new ConeGeometry(0.72, 0.5, 4).rotateY(Math.PI / 4).scale(1, 1, 0.9).translate(0, 0.95, 0), modern ? '#5d6166' : '#9a4b32'),
@@ -610,7 +610,7 @@ export class BattleRenderer {
     this.structureMeshes = new Map();
     this.structureHolders = [];
     this.civicStructures = new CivicStructures(this);
-    const modern = this.setup.sides[1].ageId === 'modern';
+    const modern = isAgeAtLeast(this.setup.sides[1].ageId, 'modern');
     const merlons = (g, mat, radius, y, count, size = 0.22) => {
       for (let i = 0; i < count; i++) {
         const a = (i / count) * Math.PI * 2;
@@ -1112,7 +1112,7 @@ export class BattleRenderer {
         // who shot (the projectile art by class and age; a tower shoots with the defender's age)
         const shooter = e.type === 'towerShot' ? { classId: 'tower', ageId: this.setup.sides[1].ageId } : { classId: from?.classId, ageId: from?.ageId };
         if (from && to) this.fx.push({ kind: 'tracer', x0: from.x / Q, z0: from.y / Q, x1: to.x / Q, z1: to.y / Q, t: 0, life: 0.22, shooter });
-        if (from && e.type === 'shot' && getAgeIndex(shooter.ageId) >= getAgeIndex('gunpowder') && this.fxSprites.has('muzzle-flash')) this.fx.push({ kind: 'sprite', sheet: 'muzzle-flash', x: from.x / Q, z: from.y / Q, y: 0.5, t: 0, life: 0.15 });
+        if (from && e.type === 'shot' && isAgeAtLeast(shooter.ageId, 'gunpowder') && this.fxSprites.has('muzzle-flash')) this.fx.push({ kind: 'sprite', sheet: 'muzzle-flash', x: from.x / Q, z: from.y / Q, y: 0.5, t: 0, life: 0.15 });
       } else if (e.type === 'melee' && e.to !== undefined) {
         const to = view.squads[e.to];
         if (to && this.fxSprites.has('impact-sparks')) this.fx.push({ kind: 'sprite', sheet: 'impact-sparks', x: to.x / Q + (hash01(e.t * 7) - 0.5) * 0.6, z: to.y / Q + (hash01(e.t * 13) - 0.5) * 0.6, y: 0.4, t: 0, life: 0.35 });
@@ -1261,7 +1261,7 @@ export class BattleRenderer {
     // data/signatureUnits.js); drawing only, the squad's strength and combat stay the role's
     const rigFig = useSig ? rigFiguresOf(signatureUnitFor(people, s.ageId, s.classId)) : null;
     const layerKey = useSig ? sig : look && hasSoldierOverride(s.ageId, look) ? look : s.classId;
-    const baseSpacing = rigFig ? rigFig.spacing : stats.flying ? 1.4 : s.classId === 'naval' ? 2.2 : s.classId === 'siege' ? 1.5 : s.classId === 'cavalry' ? (s.ageId === 'modern' ? 1.3 : 0.95) : s.classId === 'support' ? (s.ageId === 'modern' ? 1.4 : 1.05) : 0.52;
+    const baseSpacing = rigFig ? rigFig.spacing : stats.flying ? 1.4 : s.classId === 'naval' ? 2.2 : s.classId === 'siege' ? 1.5 : s.classId === 'cavalry' ? (isAgeAtLeast(s.ageId, 'modern') ? 1.3 : 0.95) : s.classId === 'support' ? (isAgeAtLeast(s.ageId, 'modern') ? 1.4 : 1.05) : 0.52;
     // A machine at its true size beside its crew (unitModels.js machineLayout, MD09): spaced by its
     // own footprint, and only as many drawn as fit the squad's ground. Drawing only, like rigFig.
     const model = rigFig || stats.flying || s.classId === 'naval' || !hasSoldierOverride(s.ageId, layerKey) ? null

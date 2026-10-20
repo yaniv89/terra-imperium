@@ -132,6 +132,8 @@ export const recordBattleReport = (state, report, { attackers, defenders, before
   if (aux) entry.aux = aux;
   if (tactical?.reason) entry.reason = tactical.reason;
   if (tactical?.durationSec) entry.durationSec = tactical.durationSec;
+  // Commanded, then switched to Auto (battleSwitch.js): the second of the battle the switch came at.
+  if (tactical?.mode === 'switched') entry.switchedAtSec = tactical.switchedAtSec ?? 0;
   if (tactical?.verification?.status) entry.verification = tactical.verification.status;
   if (found?.length) entry.breaches = found.slice(0, 12);
   return {

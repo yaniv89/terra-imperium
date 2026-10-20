@@ -108,23 +108,24 @@ export const queuedCommandBlock = (state, def) => {
 };
 
 /** Fight one queued battle on Auto, whatever its kind. */
-export const resolveQueuedAuto = (state, defId) => {
+// `from` (battleSwitch.js): a commanded battle switched to Auto part-way; Auto goes on from there.
+export const resolveQueuedAuto = (state, defId, { from = null } = {}) => {
   const def = queuedBattles(state).find((d) => d.id === defId);
   if (!def) return state;
   const kind = queuedKind(def);
-  if (kind === 'defense') return resolveDefenseAuto(state, defId);
-  if (isRaidKind(kind)) return resolveRaidBattle(state, def, null, { mode: 'auto' });
-  if (kind === 'intercept') return resolveInterceptQueued(state, def);
-  if (kind === 'landing') return resolveLandingQueued(state, def);
+  if (kind === 'defense') return resolveDefenseAuto(state, defId, { from });
+  if (isRaidKind(kind)) return resolveRaidBattle(state, def, null, { mode: 'auto', from });
+  if (kind === 'intercept') return resolveInterceptQueued(state, def, null, { from });
+  if (kind === 'landing') return resolveLandingQueued(state, def, null, { from });
   const armies = queuedArmies(state, def);
   if (!armies) return drop(state, defId); // the armies moved, died or made peace: no battle
   const { actor, v } = armies;
   const opts = { attackerNationId: def.aggressorId, viewerId: state.playerNationId, id: def.id, defenseId: def.id, mode: 'auto', rngSeed: state.rngSeed };
   if (kind === 'naval') {
-    const battle = resolveAutoBattle(state, getFleetResolveArgs(v, getFleetBattleContext(actor, v)), { kind: 'naval' }, createRng(def.seed));
+    const battle = resolveAutoBattle(state, getFleetResolveArgs(v, getFleetBattleContext(actor, v)), { kind: 'naval', from }, createRng(def.seed));
     return applyFleetResult(state, v, battle, opts);
   }
-  const battle = resolveAutoBattle(state, getFieldResolveArgs(v, getFieldBattleContext(actor, v)), { kind: 'field', fromRegionId: def.fromRegionId }, createRng(def.seed));
+  const battle = resolveAutoBattle(state, getFieldResolveArgs(v, getFieldBattleContext(actor, v)), { kind: 'field', fromRegionId: def.fromRegionId, from }, createRng(def.seed));
   return applyFieldResult(state, v, battle, opts);
 };
 

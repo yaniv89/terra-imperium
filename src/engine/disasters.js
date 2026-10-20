@@ -13,13 +13,14 @@ import {
 } from '../data/actionCosts';
 import { getAvailableGovernmentTypes, resetReformsForType } from '../data/government';
 import { msg, people } from './messages';
+import { isAgeAtLeast } from '../data/ages';
 
 const nextProgress = (current, triggered) =>
   Math.max(0, Math.min(DISASTER_MAX_PROGRESS, (current || 0) + (triggered ? DISASTER_PROGRESS_STEP : -DISASTER_PROGRESS_STEP)));
 
 // A Modern-age nation at stability -2 or worse whose regime has lost its legitimacy.
 export const revolutionTriggered = (nation, ageId) =>
-  ageId === 'modern' && (nation.stability || 0) <= -2 && (nation.legitimacy ?? 50) < REVOLUTION_LEGITIMACY_THRESHOLD;
+  isAgeAtLeast(ageId, 'modern') && (nation.stability || 0) <= -2 && (nation.legitimacy ?? 50) < REVOLUTION_LEGITIMACY_THRESHOLD;
 
 // Plan: "Revolution (Modern)... at 100: government becomes Republic/Presidential or Dictatorship/
 // One-Party, and civil war." Monarchies/theocracies are overthrown into a republic; anything already

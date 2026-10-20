@@ -17,7 +17,7 @@ import { useGame } from '../../context/GameContext';
 import { formatMen, sidesFor, unitName } from './battleReportView';
 import { regimentName } from '../../data/regimentNames';
 import { menOf } from '../../engine/battleLedger';
-import { getEffectiveAgeId } from '../../data/ages';
+import { getEffectiveAgeId, FIRST_AGE_ID } from '../../data/ages';
 import { getTechAgeId } from '../../engine/nationState';
 import { Button, Chip, CloseButton } from '../ui/atlas';
 import { REPORT_FILTERS, fateRows, detailFor, filterReports, reportDetail, reportRow } from './battleReportsModel';
@@ -81,7 +81,7 @@ const StrengthChart = ({ entry }) => {
 const FATE_ICON = { held: ShieldCheck, pulledBack: Undo2, withdrew: ArrowLeftFromLine, escaped: Footprints, runDown: Crosshair, fellFighting: Skull, broke: Flag };
 const FATE_TONE = { good: 'text-fa-good', calm: 'text-fa-science', warn: 'text-fa-brass', bad: 'text-fa-danger-text' };
 
-const SideTable = ({ title, color, rows, nation, ageId = 'bronze' }) => {
+const SideTable = ({ title, color, rows, nation, ageId = FIRST_AGE_ID }) => {
   const { t } = useT();
   return (
   <div className="space-y-1 min-w-0" data-testid="battle-report-units">

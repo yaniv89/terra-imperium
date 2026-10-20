@@ -10,7 +10,7 @@
 //
 // Pure data and small pure functions: no engine imports, so diplomacy.js, aiLogic.js and the map
 // can all read `isIndependent` without an import cycle.
-import { AGE_ORDER } from './ages';
+import { AGE_ORDER, FIRST_AGE_ID } from './ages';
 
 export const INDEPENDENT_KIND = 'independent';
 
@@ -31,7 +31,7 @@ export const everyMajorThinks = (state) => state?.scenario?.mode === 'peoples' |
 /** An independent's city grows to 4 + the age's rank (Bronze 4 ... Modern 8), never past 9. */
 export const INDEPENDENT_SIZE_BASE = 4;
 export const INDEPENDENT_SIZE_MAX = 9;
-export const independentSizeCap = (ageId = 'bronze') => Math.min(INDEPENDENT_SIZE_MAX, INDEPENDENT_SIZE_BASE + Math.max(0, AGE_ORDER.indexOf(ageId)));
+export const independentSizeCap = (ageId = FIRST_AGE_ID) => Math.min(INDEPENDENT_SIZE_MAX, INDEPENDENT_SIZE_BASE + Math.max(0, AGE_ORDER.indexOf(ageId)));
 
 /** Its border reaches this far from the city (the plan's 2 rings at frequency 75, in km: master plan
  * section 3, "Distances"); about 3 rings at frequency 100. */
@@ -121,7 +121,7 @@ const capitalise = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
 /** An independent's shown name. `adjective`: the people's adjective ("Colchian"); `seaRaiders`: a
  * raiders people on a cold coast. */
-export const independentTitle = ({ adjective, cityName, personality = 'tribal', ageId = 'bronze', seaRaiders = false, freeCity = false }) => {
+export const independentTitle = ({ adjective, cityName, personality = 'tribal', ageId = FIRST_AGE_ID, seaRaiders = false, freeCity = false }) => {
   const band = AGE_BAND[ageId] || 'early';
   const form = freeCity ? FREE_CITY_FORMS[band] : (INDEPENDENT_TITLE_FORMS[personality === 'raiders' && seaRaiders ? 'seaRaiders' : personality] || INDEPENDENT_TITLE_FORMS.tribal)[band];
   return capitalise(form.replaceAll('{people}', adjective || cityName || 'Free').replaceAll('{city}', cityName || adjective || 'the city'));
@@ -228,7 +228,7 @@ export const TRIBUTE_STRENGTH_RATIO = 1.5;
 export const TRIBUTE_DEMAND_CHANCE = 0.15;
 export const TRIBUTE_DEMAND_COOLDOWN_REF_TURNS = 12; // reference turns between two demands to the same nation (ages.js speedTurns: 20 at Normal, as before)
 export const TRIBUTE_ANSWER_TURNS = 3;      // the player's answer; silence is a refusal
-export const tributeGold = (ageId = 'bronze') => 2 + Math.max(0, AGE_ORDER.indexOf(ageId));
+export const tributeGold = (ageId = FIRST_AGE_ID) => 2 + Math.max(0, AGE_ORDER.indexOf(ageId));
 
 /** Mercenaries (independents 5, master plan 6.7): mercantile and raiders independents sell bands
  * of one unit, MERC_STOCK at most, one more every MERC_RESTOCK_TURNS. A band costs mercPrice at
@@ -241,8 +241,8 @@ export const MERC_RESTOCK_TURNS = 10;
 export const MERC_CONTRACT_TURNS = 20;
 export const MERC_KM = 1224;
 export const MERC_MAX_GRUDGE = 50;
-export const mercPrice = (ageId = 'bronze') => 60 + 25 * Math.max(0, AGE_ORDER.indexOf(ageId));
-export const mercUpkeep = (ageId = 'bronze') => 3 + Math.max(0, AGE_ORDER.indexOf(ageId));
+export const mercPrice = (ageId = FIRST_AGE_ID) => 60 + 25 * Math.max(0, AGE_ORDER.indexOf(ageId));
+export const mercUpkeep = (ageId = FIRST_AGE_ID) => 3 + Math.max(0, AGE_ORDER.indexOf(ageId));
 /** The AI: a major at war with MERC_AI_GOLD_MULT x the price in gold hires a band, at most
  * MERC_AI_MAX at once, thinking every MERC_AI_PERIOD turns. Never at peace: bands bought by majors
  * that were raided tipped AI wars on weak neighbours in the balance-sim (3 of 8 seeds). */
@@ -331,7 +331,7 @@ export const TRADE_KM = 1224;
 export const TRADE_MAX_PARTNERS = 3;
 export const TRADE_MAX_GRUDGE = 30;
 export const TRADE_AI_CHANCE = 0.3;
-export const tradeGoldOf = (ageId = 'bronze') => 2 + Math.max(0, AGE_ORDER.indexOf(ageId));
+export const tradeGoldOf = (ageId = FIRST_AGE_ID) => 2 + Math.max(0, AGE_ORDER.indexOf(ageId));
 
 /** Razing (independents 5, decision 3): a captured city of any size loses RAZE_SIZE_PER_TURN size a
  * turn and is gone after size 1; while it burns it yields nothing and anyone who retakes it stops

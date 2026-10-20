@@ -71,7 +71,7 @@ import { applyPeace, getPeaceAcceptance } from './peace';
 import { levyUnit } from './aftermath';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { START_YEAR, END_YEAR, getCalendarAgeId, getEffectiveAgeId } from '../data/ages';
+import { START_YEAR, END_YEAR, getCalendarAgeId, getEffectiveAgeId, isAgeAtLeast } from '../data/ages';
 import { getRegionTerrain } from '../data/terrain';
 import { createEmptyResourcePool } from '../data/resources';
 import {
@@ -97,6 +97,7 @@ import {
   ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE, INTEL_DURATION_TURNS, MOVE_CAPITAL_FOREIGN_STABILITY_PENALTY, LIBERTY_DESIRE_INDEPENDENCE_THRESHOLD } from '../data/actionCosts';
 import { resolveTurn } from './resolveTurn';
 import { resolveAutoBattle } from './autoBattle';
+import { switchedBattleState } from './battleSwitch';
 import { applyBattleOutcome, makeBattleOutcome, battleIdOf } from './battleOutcome';
 import { cityMilitia, reinforcementSources } from './battleInputs';
 import { battleQueueBlocked, queuedKind, queuedArmies, queuedCommandBlock, resolveQueuedAuto, resolveAllQueuedAuto, drainAutoBattles, aggressorView } from './battleQueue';
@@ -776,7 +777,7 @@ const reduceAction = (state, action) => {
       const region = state.regions[regionId];
       const costs = ACTION_COSTS.buildClimateResilience;
       if (!region || region.owner !== state.playerNationId || (region.climateResilience || 0) >= CLIMATE_RESILIENCE_MAX) return state;
-      if (getEffectiveAgeId(state.age, state.techAgeId) !== 'modern') return state;
+      if (!isAgeAtLeast(getEffectiveAgeId(state.age, state.techAgeId), 'modern')) return state;
       if (!canAfford(state.resources, costs)) return state;
       const nextLevel = (region.climateResilience || 0) + 1;
       return {
@@ -790,7 +791,7 @@ const reduceAction = (state, action) => {
     case ActionTypes.CULTURAL_EXPORT: {
       const nation = state.nations[state.playerNationId];
       const costs = ACTION_COSTS.culturalExport;
-      if (getEffectiveAgeId(state.age, state.techAgeId) !== 'modern') return state;
+      if (!isAgeAtLeast(getEffectiveAgeId(state.age, state.techAgeId), 'modern')) return state;
       if (!canAfford(state.resources, costs)) return state;
       const nextInfluence = (nation.culturalInfluence || 0) + CULTURAL_EXPORT_INFLUENCE_GAIN;
       const nextNations = {
@@ -1748,28 +1749,33 @@ const reduceAction = (state, action) => {
       // "Auto-resolve instead": the same battle through the honest auto-resolve (autoBattle.js),
       // with the original units, the same inputs and the battle's own seed, under the pending
       // battle's id. The cost was already paid when it began, so it isn't charged again.
+      // `payload.switchAt` ({ log, tick, hash, setupKey, setupVersion }, battleLoop.js snapshot):
+      // the battle was commanded up to that tick, and Auto goes on from there, never from the start.
       const pb = state.pendingBattle;
       if (!pb) return state;
       // A battle the screen could not show (TacticalBattleHost): settled the same way, with a log
       // line saying why, so the player never wonders where the battle went.
       const reason = action.payload?.reason;
       if (reason) {
-        const settled = gameReducer(state, { type: ActionTypes.ABANDON_TACTICAL_BATTLE });
+        const settled = gameReducer(state, { type: ActionTypes.ABANDON_TACTICAL_BATTLE, payload: { switchAt: action.payload?.switchAt } });
         // DEF-01: the result itself says the player's Command became Auto, and why, not only the Log.
         const told = stampAutoBecause(state, settled, msg('m.act.autoBecause', { why: sub(ABANDON_REASONS[reason] ? `m.act.abandon.${reason}` : 'm.act.abandon.default') }));
         const where = cityOr(pb.targetRegionId, state.regions[pb.targetRegionId]?.name || REGIONS_DATA[pb.targetRegionId]?.name, 'm.act.theField');
         return { ...told, logs: [...settled.logs, { year: state.year, ...msg('m.act.settledOnAuto', { place: where, why: sub(ABANDON_REASONS[reason] ? `m.act.abandon.${reason}` : 'm.act.abandon.default') }), type: LogTypes.COMBAT }] };
       }
+      // H-01: switched to Auto part-way through a commanded battle, Auto goes on from the battle as it
+      // stood (battleSwitch.js: the log replayed to the switch; every Auto below gets it as spec.from).
+      const from = switchedBattleState(state, pb, action.payload?.switchAt);
       const cleared = { ...state, pendingBattle: null };
       const opts = { rngSeed: state.rngSeed, id: pb.id, mode: 'auto' };
       // A queued battle (a defence, or a field or sea battle the AI started): its own Auto.
-      if (pb.defenseId) return resolveQueuedAuto(cleared, pb.defenseId);
+      if (pb.defenseId) return resolveQueuedAuto(cleared, pb.defenseId, { from });
       if (pb.kind === 'naval') {
         const nv = validateFleetAttack(cleared, pb.fromTile, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
         if (!nv.ok) return cleared;
         const vv = { ...nv, attackerUnits: nv.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id)), defenderUnits: nv.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id)) };
         if (!vv.attackerUnits.length || !vv.defenderUnits.length) return cleared;
-        const battle = resolveAutoBattle(cleared, getFleetResolveArgs(vv, getFleetBattleContext(cleared, vv)), { kind: 'naval' }, createRng(pb.seed));
+        const battle = resolveAutoBattle(cleared, getFleetResolveArgs(vv, getFleetBattleContext(cleared, vv)), { kind: 'naval', from }, createRng(pb.seed));
         return applyFleetResult(cleared, vv, battle, opts);
       }
       if (pb.kind === 'field') {
@@ -1777,7 +1783,7 @@ const reduceAction = (state, action) => {
         if (!fv.ok) return cleared;
         const vv = { ...fv, attackerUnits: fv.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id)), defenderUnits: fv.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id)) };
         if (!vv.attackerUnits.length || !vv.defenderUnits.length) return cleared;
-        const battle = resolveAutoBattle(cleared, getFieldResolveArgs(vv, getFieldBattleContext(cleared, vv)), { kind: 'field', fromRegionId: pb.fromRegionId }, createRng(pb.seed));
+        const battle = resolveAutoBattle(cleared, getFieldResolveArgs(vv, getFieldBattleContext(cleared, vv)), { kind: 'field', fromRegionId: pb.fromRegionId, from }, createRng(pb.seed));
         return applyFieldResult(cleared, vv, battle, opts);
       }
       if (pb.kind === 'amphibious') {
@@ -1787,7 +1793,7 @@ const reduceAction = (state, action) => {
         const defenders = av.defenderLandUnits.filter((u) => pb.defenderUnitIds.includes(u.id));
         if (!attackers.length) return cleared;
         const actx = getAmphibiousBattleContext(cleared, av, defenders);
-        const battle = resolveAutoBattle(cleared, { attackerUnits: attackers, defenderUnits: defenders, ...actx }, { kind: 'landing', cityId: pb.targetRegionId, fromRegionId: pb.fromRegionId, militia: pb.militia }, createRng(pb.seed));
+        const battle = resolveAutoBattle(cleared, { attackerUnits: attackers, defenderUnits: defenders, ...actx }, { kind: 'landing', cityId: pb.targetRegionId, fromRegionId: pb.fromRegionId, militia: pb.militia, from }, createRng(pb.seed));
         return applyAmphibiousLanding(cleared, { navalUnitId: pb.navalUnitId, fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war: av.war, targetRegion: av.targetRegion, isDefended: defenders.length > 0 }, battle, { ...opts, militia: battle.inputs.militia });
       }
       const v = validateInvasion(cleared, pb.fromRegionId, pb.targetRegionId, { ignoreCost: true, ignoreBattleLocks: true });
@@ -1797,7 +1803,7 @@ const reduceAction = (state, action) => {
       if (!attackers.length) return cleared;
       const vv = { ...v, attackerUnits: attackers, defenderUnits: defenders };
       const ctx = getInvasionBattleContext(cleared, { targetRegionId: pb.targetRegionId, targetRegion: v.targetRegion, defenderUnits: defenders });
-      const battle = resolveAutoBattle(cleared, getResolveBattleArgs(vv, ctx), { kind: 'invasion', cityId: pb.targetRegionId, fromRegionId: pb.fromRegionId, militia: pb.militia }, createRng(pb.seed));
+      const battle = resolveAutoBattle(cleared, getResolveBattleArgs(vv, ctx), { kind: 'invasion', cityId: pb.targetRegionId, fromRegionId: pb.fromRegionId, militia: pb.militia, from }, createRng(pb.seed));
       return applyInvasionResult(cleared, { fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war: v.war, targetRegion: v.targetRegion, isDefended: ctx.isDefended }, battle, { ...opts, militia: battle.inputs.militia });
     }
 

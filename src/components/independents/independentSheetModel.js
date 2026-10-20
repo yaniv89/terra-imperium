@@ -41,6 +41,7 @@ import { wallsLabel } from '../battle/warModel';
 import { unitTile } from '../../engine/armies';
 import { shieldUrl, shieldColour } from './independentArt';
 import { cityStateViewOf } from './cityStateView';
+import { FIRST_AGE_ID } from '../../data/ages';
 
 /** Attitude words by value (the W08 meter): -100..100. */
 export const attitudeWord = (v) => t(`ind.att.${v >= JOIN_OPINION ? 'Devoted' : v >= JOIN_STRENGTH_OPINION ? 'Friendly' : v >= 10 ? 'Warm' : v > -20 ? 'Wary' : v > -50 ? 'Unfriendly' : 'Hostile'}`);
@@ -200,7 +201,7 @@ export const independentSheetModel = (state, indepId) => {
     mercs = {
       stock,
       offer: offer.ok ? {
-        unit: unitDisplayName(state.age || 'bronze', offer.classId), classId: offer.classId, price: offer.price, upkeep: offer.upkeep, turns: MERC_CONTRACT_TURNS,
+        unit: unitDisplayName(state.age || FIRST_AGE_ID, offer.classId), classId: offer.classId, price: offer.price, upkeep: offer.upkeep, turns: MERC_CONTRACT_TURNS,
         waitIn: state.regions[offer.cityId]?.name ? nameNow('city', null, state.regions[offer.cityId].name) : '', affordable: gold >= offer.price
       } : null,
       reason: offer.ok ? (gold < offer.price ? t('ind.merc.youNeed', { gold: offer.price, have: Math.floor(gold) }) : null) : reasonText(offer),

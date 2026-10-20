@@ -16,7 +16,7 @@
 //   Science   +patronScienceOf(age) research points
 //   Culture   +PATRON_PRESTIGE prestige (prestige fades 5% a turn, rounded down, so it settles near 40)
 // A gift (GIFT_GOLD) raises the attitude by its favour, so the player can buy a patronage.
-import { AGE_ORDER } from './ages';
+import { AGE_ORDER, FIRST_AGE_ID } from './ages';
 
 export const CITY_STATE_TYPE_IDS = ['trade', 'military', 'science', 'culture', 'raiders'];
 export const CITY_STATE_TYPES = {
@@ -36,9 +36,9 @@ export const PATRON_OPINION = 30;
 export const PATRON_PRESTIGE = 2;
 
 const rank = (ageId) => Math.max(0, AGE_ORDER.indexOf(ageId));
-export const patronGoldOf = (ageId = 'bronze') => 2 + rank(ageId);
-export const patronManpowerOf = (ageId = 'bronze') => 3 + 2 * rank(ageId);
-export const patronScienceOf = (ageId = 'bronze') => 1 + rank(ageId);
+export const patronGoldOf = (ageId = FIRST_AGE_ID) => 2 + rank(ageId);
+export const patronManpowerOf = (ageId = FIRST_AGE_ID) => 3 + 2 * rank(ageId);
+export const patronScienceOf = (ageId = FIRST_AGE_ID) => 1 + rank(ageId);
 
 // Deterministic 0..1 from a string (FNV-1a), the same roll as independents.js.
 const roll = (key) => {
@@ -59,7 +59,7 @@ export const cityStateTypeOf = (nation) => {
 };
 
 /** The bonus a patron of this type gets a turn: { gold, hr, techPoints, prestige } (zeros left out). */
-export const patronBonusOf = (type, ageId = 'bronze') => {
+export const patronBonusOf = (type, ageId = FIRST_AGE_ID) => {
   if (type === 'trade') return { gold: patronGoldOf(ageId) };
   if (type === 'military') return { hr: patronManpowerOf(ageId) };
   if (type === 'science') return { techPoints: patronScienceOf(ageId) };
@@ -68,7 +68,7 @@ export const patronBonusOf = (type, ageId = 'bronze') => {
 };
 
 /** "+3 gold a turn" (null for raiders). */
-export const patronBonusText = (type, ageId = 'bronze') => {
+export const patronBonusText = (type, ageId = FIRST_AGE_ID) => {
   const b = patronBonusOf(type, ageId);
   if (b.gold) return `+${b.gold} gold a turn`;
   if (b.hr) return `+${b.hr} manpower a turn`;

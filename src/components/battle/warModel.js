@@ -16,13 +16,14 @@ import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS, TICK_HZ } from '../../battle/
 import { wallsOf, siegeHpOf, siegeMaxHp } from '../../engine/sieges';
 import { canSeeRegionDetails, hasIntel } from '../../engine/intel';
 import { cityDefenseModel } from '../city/cityDefenseModel';
+import { FIRST_AGE_ID } from '../../data/ages';
 
 export const BATTLE_POP_LIMIT = POP_LIMIT;
 
 const men = (u) => Math.max(0, Math.round(u.strength || 0));
 
 /** One side of a battle as the war screens list it. `units` are macro units (militia flagged). */
-export const armyView = (units = [], { ageId = 'bronze', hiredCommanders = {} } = {}) => {
+export const armyView = (units = [], { ageId = FIRST_AGE_ID, hiredCommanders = {} } = {}) => {
   const by = new Map();
   units.forEach((u) => {
     const key = u.militia ? 'militia' : u.classId;
@@ -109,7 +110,7 @@ export const wallsLabel = (city) => {
  * siege regiment (if the age has one) and the battle's siege workshop (it can train them on the
  * field). Null when there is nothing to warn about.
  */
-export const siegeAdvice = ({ wallLevel = 0, units = [], ageId = 'bronze' }) => {
+export const siegeAdvice = ({ wallLevel = 0, units = [], ageId = FIRST_AGE_ID }) => {
   if (!(wallLevel > 0) || units.some((u) => u.classId === 'siege' && u.strength > 0)) return null;
   if (!trainableRoles(ageId).includes('siege')) return t('bt.war.siegeNoAge');
   return t('bt.war.siegeAdvice', { unit: unitDisplayName(ageId, 'siege') || t('bt.war.siegeEngines'), shop: ecoLabel('siegeWorkshop', ageId).toLowerCase() });

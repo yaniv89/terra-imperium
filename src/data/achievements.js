@@ -11,7 +11,7 @@
 // hasBeenBankrupt (src/engine/economy.js's applyBankruptcy), hasCededRegionInPeace
 // (src/engine/peace.js's applyPeace).
 import { GameStatus } from './types';
-import { getAgeIndex } from './ages';
+import { isAgeAtLeast } from './ages';
 import { getOwnedRegionIds } from './regions';
 import { GREAT_PROJECTS, getGreatProjectOwner } from './greatProjects';
 
@@ -68,7 +68,7 @@ export const ACHIEVEMENTS = {
     id: 'unbroken',
     name: 'Unbroken',
     description: 'Reach the Modern Age without ever ceding a region in a peace deal.',
-    check: (state) => getAgeIndex(state.age) >= getAgeIndex('modern') && !state.nations[state.playerNationId]?.hasCededRegionInPeace
+    check: (state) => isAgeAtLeast(state.age, 'modern') && !state.nations[state.playerNationId]?.hasCededRegionInPeace
   },
   survive_to_victory: {
     id: 'survive_to_victory',

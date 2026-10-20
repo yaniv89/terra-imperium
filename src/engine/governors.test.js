@@ -10,10 +10,10 @@ import { loyaltyTarget } from './loyalty';
 import { cityYields } from './world/cities';
 import { getTiles } from '../data/geo/tiles';
 import {
-  cityGroups, governorOf, governorChoices, assignGovernor, autoGovern, governorEffects, generateGovernorCandidates, pruneGovernors,
+  cityGroups, governorOf, governorChoices, assignGovernor, autoGovern, governorEffects, generateGovernorCandidates, pruneGovernors, regroupGovernors,
   GOVERNOR_GROUP_MAX, GOVERNOR_ASSIGN_TURNS, GOVERNOR_FOOD, GOVERNOR_CULTURE, GOVERNOR_LOYALTY, UNGOVERNED_LOYALTY, GOVERNOR_REFRESH_TURNS
 } from './governors';
-import { peoplesWorld, rivalOf } from './testWorld';
+import { peoplesWorld, rivalOf, addCities } from './testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
 const PEOPLES_WORLD = peoplesWorld({ seed: 3 });
@@ -85,5 +85,29 @@ describe('governors', () => {
     const lost = { ...s, regions: { ...s.regions, [getNationCapital(IN_ID)]: { ...s.regions[getNationCapital(IN_ID)], owner: PK_ID } }, nations: { ...s.nations, [IN_ID]: seated } };
     expect(pruneGovernors(lost, seated).governors[getNationCapital(IN_ID)]).toBeUndefined();
     expect(autoGovern(s, s.nations[PK_ID], s.turnNumber)).toBe(s.nations[PK_ID]);
+  });
+
+  it('a governor follows his city when the groups re-anchor, and every change is reported (H-11)', () => {
+    const s0 = quiet(peoplesWorld({ seed: 3 }));
+    const { state: s, cityIds } = addCities(s0, IN_ID, 3, { near: getNationCapital(IN_ID) });
+    const groups = cityGroups(s, IN_ID);
+    const cap = getNationCapital(IN_ID);
+    const inCapGroup = groups.find((g) => g.seat === cap).cities.find((c) => c !== cap);
+    expect(inCapGroup).toBeTruthy();
+    // He was seated when this city anchored a group of its own; a founding since folded it into the capital's group.
+    const gov = { id: 'g1', name: 'Omar', skill: 3, since: 1, ready: 2 };
+    const nation = { ...s.nations[IN_ID], governors: { [inCapGroup]: gov } };
+    const r = regroupGovernors(s, nation);
+    expect(r.nation.governors[cap]).toEqual(gov);
+    expect(r.nation.governors[inCapGroup]).toBeUndefined();
+    expect(r.changes).toHaveLength(1);
+    expect(r.changes[0]).toMatchObject({ kind: 'moved', name: 'Omar', seat: inCapGroup, to: cap });
+    expect(pruneGovernors(s, nation).governors[cap]).toEqual(gov);
+    // A lost seat city still ends the post, and says so.
+    const lost = { ...s, regions: { ...s.regions, [inCapGroup]: { ...s.regions[inCapGroup], owner: PK_ID } } };
+    const gone = regroupGovernors(lost, nation);
+    expect(Object.keys(gone.nation.governors)).toHaveLength(0);
+    expect(gone.changes[0]).toMatchObject({ kind: 'left', name: 'Omar' });
+    expect(cityIds.length).toBe(3);
   });
 });

@@ -11,6 +11,7 @@ import { fortRef, dressStructure, CivicStructures, palaceName } from '../art/str
 import { applyTownDamage } from '../../components/map/closeView/townDamage';
 import { kitGlb, parseGlbBytes } from '../../components/map/closeView/glbFixture';
 import { Q } from '../sim/constants';
+import { ART } from '../art/artFiles';
 
 const FILES = {
   'battle/city/walls-bronze.glb': [{ name: 'wall-straight', size: 1 }, { name: 'wall-straight-damaged', size: 1 }, { name: 'wall-straight-breached', size: 1 }, { name: 'gate-open', size: 1 }, { name: 'tower', size: 0.6 }],
@@ -228,5 +229,18 @@ describe('civic keeps and palaces', () => {
     const dressing = new CivicStructures(r, { art: createArtIndex({ 'battle/city/civic-bronze.glb': 'civic' }), load: () => new Promise((r) => { resolve = r; }) });
     dressing.add(r.structureMeshes.get('keep'), r.setup.structures[0], 'bronze'); dressing.dispose(); resolve(kit);
     await Promise.all(dressing.ready); expect(dressing.entries[0].kit).toBeNull(); expect(dressing.instances.stats().copies).toBe(0);
+  });
+});
+
+describe('the Stone city kit (eight-ages plan U88)', () => {
+  it('ships every city file Bronze has, read with only the age changed', () => {
+    expect(ART.walls('stone').key).toBe('battle/city/walls-stone.glb');
+    expect(ART.ruins('stone').key).toBe('battle/city/ruins-stone.glb');
+    expect(ART.fort('stone').key).toBe('battle/city/fort-stone.glb');
+    expect(ART.civic('stone', 'levant')).toMatchObject({ key: 'battle/city/civic-stone.glb', style: 'base' });
+    expect(ART.housesDamage('stone', 'europe')).toMatchObject({ key: 'battle/city/stone-houses-damage.glb', style: 'base' });
+    expect(ART.palaceDamage('stone', 'sinic')).toMatchObject({ key: 'battle/city/palace-damage-stone.glb', style: 'base' });
+    // Bronze still reads its own files
+    expect(ART.walls('bronze').key).toBe('battle/city/walls-bronze.glb');
   });
 });

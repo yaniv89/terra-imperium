@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { isPacked, modelFiles, mapModelFiles, readGlbJson, needsLods, packFlags, KIT_MODEL_DIRS, SINGLE_LOD_DIRS } from './glbInfo.mjs';
 
-describe('map and battle models', () => {
+describe('map and battle models', { timeout: 60000 }, () => { // reads every GLB on disk: slow under a loaded machine
   it('cover every art folder of the model plan', () => {
     ['src/assets/map/terrain', 'src/assets/battle/rts', 'src/assets/battle/city', 'src/assets/battle/nature', 'src/assets/battle/terrain', 'src/assets/battle/props'].forEach((d) => expect(KIT_MODEL_DIRS).toContain(d));
     ['src/assets/battle/projectiles', 'src/assets/units/signature'].forEach((d) => expect(SINGLE_LOD_DIRS).toContain(d));

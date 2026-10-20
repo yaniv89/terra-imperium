@@ -38,7 +38,7 @@ export default {
   'de.citySize': 'גודל העיר {v}',
   'de.cityLoyalty': 'נאמנות {v} בעיר',
   'de.controlMinus': 'שליטה {v}%',
-  'de.controlMinusTip': 'חל רק על אזורים שכרגע תפוסים בידי אחר',
+  'de.controlMinusTip': 'מפחית שליטה בכל הערים שלך',
   'de.fort': 'דרגת מצודה {v}',
   'de.fortTip': 'שינוי זמני בכל אזור שבשליטתכם',
   'de.capture': 'כיבוש: {places}',

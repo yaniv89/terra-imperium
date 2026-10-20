@@ -57,6 +57,7 @@ export default {
   'm.why.noSeaRouteAge': 'No sea route there before the Age of Gunpowder (the open ocean is closed).',
   'm.why.tooFarVoyage': 'Too far for one voyage.',
   'm.why.noCross': 'No army can cross that.',
+  'm.why.armyInClosed': 'This army stands on land that is closed to it, and every way out is shut too. It cannot march until that border opens.',
   'm.why.noLandRoute': 'No land route: this needs a fleet to carry the army.',
   'm.why.noAccess': 'No access to {nation}: declare war or form an alliance.',
   'm.why.tooFarMarch': 'Too far for one march: pick a closer place.',

@@ -1,3 +1,4 @@
+import { isAgeAtLeast } from '../../data/ages';
 // src/battle/art/workerLoads.js
 // What a battle worker carries (src/assets/battle/props/worker-loads.glb, built by
 // scripts/blender/build_worker_loads.py): which object of the kit stands for a resource, and where
@@ -13,7 +14,7 @@ export const PERSON_TILES = 0.95;
 export const WORKER_LOADS_KEY = 'battle/props/worker-loads.glb';
 export const WORKER_LOADS_MODERN_KEY = 'battle/props/worker-loads-modern.glb';
 /** The loads file for a side's age: Modern has its own, every other age (and an unknown one) the first set. */
-export const workerLoadsKey = (ageId) => (ageId === 'modern' ? WORKER_LOADS_MODERN_KEY : WORKER_LOADS_KEY);
+export const workerLoadsKey = (ageId) => (isAgeAtLeast(ageId, 'modern') ? WORKER_LOADS_MODERN_KEY : WORKER_LOADS_KEY);
 
 /** The object carried on the back, and the barrow that hauls it, per resource. */
 export const LOAD_OBJECTS = {

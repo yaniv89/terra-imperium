@@ -229,7 +229,7 @@ export const findTilePath = (state, from, to, nationId = state.playerNationId, {
       if (nd < (dist.get(n) ?? Infinity) - 1e-9) { dist.set(n, nd); prev.set(n, id); heapPush(heap, [nd + h(n), nd, n]); }
     }
   }
-  if (!dist.has(to)) return reasonOf('m.why.noLandRoute');
+  if (!dist.has(to)) return reasonOf(tileAccess(state, from, nationId) === 'closed' ? 'm.why.armyInClosed' : 'm.why.noLandRoute');
   const path = [to];
   while (path[0] !== from) path.unshift(prev.get(path[0]));
   if (path.length - 1 > maxSteps) return reasonOf('m.why.tooFarMarch');
