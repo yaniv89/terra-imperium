@@ -1,0 +1,959 @@
+{
+ "israel": {
+  "name": "David",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "ugarit": {
+  "name": "Niqmaddu",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "mari": {
+  "name": "Zimri-Lim",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "akkad": {
+  "name": "Sargon",
+  "gender": "m",
+  "epithet": null,
+  "titles": {
+   "tribal": "Lugal"
+  }
+ },
+ "elam": {
+  "name": "Shutruk-Nahhunte",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "media": {
+  "name": "Cyaxares",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "kanesh": {
+  "name": "Anitta",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "lydia": {
+  "name": "Gyges",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "phrygia": {
+  "name": "Midas",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "pontus": {
+  "name": "Mithridates",
+  "gender": "m",
+  "epithet": "Eupator",
+  "titles": null
+ },
+ "urartu": {
+  "name": "Argishti",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "colchis": {
+  "name": "Aeetes",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "aghvank": {
+  "name": "Vachagan",
+  "gender": "m",
+  "epithet": "the Pious",
+  "titles": null
+ },
+ "saba": {
+  "name": "Bilqis",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "kindah": {
+  "name": "Hujr",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "magan": {
+  "name": "Manium",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "dilmun": {
+  "name": "Rimum",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "qedar": {
+  "name": "Zabibe",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "nabataea": {
+  "name": "Aretas",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "kemet": {
+  "name": "Narmer",
+  "gender": "m",
+  "epithet": null,
+  "titles": {
+   "tribal": "Pharaoh",
+   "monarchy": "Pharaoh",
+   "theocracy": "Pharaoh"
+  }
+ },
+ "kerma": {
+  "name": "Nedjeh",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "alodia": {
+  "name": "Eusebios",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "libu": {
+  "name": "Meryey",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "cyrene": {
+  "name": "Battus",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "garamantes": {
+  "name": "Tin Hinan",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "numidia": {
+  "name": "Masinissa",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "mauretania": {
+  "name": "Juba",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "keftiu": {
+  "name": "Minos",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "ahhiyawa": {
+  "name": "Agamemnon",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "odrysia": {
+  "name": "Teres",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "illyria": {
+  "name": "Teuta",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "dacia": {
+  "name": "Burebista",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "rasenna": {
+  "name": "Porsenna",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "nuragi": {
+  "name": "Norax",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "tartessos": {
+  "name": "Arganthonios",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "celtiberia": {
+  "name": "Retogenes",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "lusitania": {
+  "name": "Viriathus",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "arverni": {
+  "name": "Vercingetorix",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "belgae": {
+  "name": "Commius",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "noricum": {
+  "name": "Voccio",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "marcomannia": {
+  "name": "Maroboduus",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "cherusci": {
+  "name": "Arminius",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "durotriges": {
+  "name": "Carvilios",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "brigantes": {
+  "name": "Cartimandua",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "ulaid": {
+  "name": "Conchobar",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "fortriu": {
+  "name": "Bridei",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "geats": {
+  "name": "Hygelac",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "rygir": {
+  "name": "Ragnvald",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "bosporan_kingdom": {
+  "name": "Spartokos",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "cucuteni": {
+  "name": "Dana",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "avaria": {
+  "name": "Bayan",
+  "gender": "m",
+  "epithet": null,
+  "titles": {
+   "tribal": "Khagan",
+   "monarchy": "Khagan"
+  }
+ },
+ "khazaria": {
+  "name": "Bulan",
+  "gender": "m",
+  "epithet": null,
+  "titles": {
+   "tribal": "Khagan",
+   "monarchy": "Khagan"
+  }
+ },
+ "sarmatians": {
+  "name": "Amage",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "oxus": {
+  "name": "Yima",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "parthava": {
+  "name": "Arsaces",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "bactria": {
+  "name": "Euthydemus",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "sogdia": {
+  "name": "Spitamenes",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "khwarazm": {
+  "name": "Afrig",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "wusun": {
+  "name": "Nandoumi",
+  "gender": "m",
+  "epithet": null,
+  "titles": {
+   "tribal": "Kunmo",
+   "monarchy": "Kunmo"
+  }
+ },
+ "andronovo": {
+  "name": "Vishtaspa",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "botai": {
+  "name": "Kulan",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "gokturk": {
+  "name": "Bumin",
+  "gender": "m",
+  "epithet": null,
+  "titles": {
+   "tribal": "Khagan",
+   "monarchy": "Khagan"
+  }
+ },
+ "xianbei": {
+  "name": "Tanshihuai",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "kroraina": {
+  "name": "Amgvaga",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "khotan": {
+  "name": "Vijaya Sambhava",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "zhangzhung": {
+  "name": "Ligmincha",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "yarlung": {
+  "name": "Nyatri Tsenpo",
+  "gender": "m",
+  "epithet": null,
+  "titles": {
+   "tribal": "Tsenpo",
+   "monarchy": "Tsenpo"
+  }
+ },
+ "meluhha": {
+  "name": "Sindhu",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "gandhara": {
+  "name": "Ambhi",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "saurashtra": {
+  "name": "Rudradaman",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "kuru": {
+  "name": "Parikshit",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "kosala": {
+  "name": "Prasenajit",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "magadha": {
+  "name": "Bimbisara",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "avanti": {
+  "name": "Pradyota",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "kalinga": {
+  "name": "Kharavela",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "satavahana": {
+  "name": "Simuka",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "pandya": {
+  "name": "Nedunchezhiyan",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "rajarata": {
+  "name": "Pandukabhaya",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "kamarupa": {
+  "name": "Bhaskaravarman",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "vanga": {
+  "name": "Shashanka",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "shang": {
+  "name": "Wu Ding",
+  "gender": "m",
+  "epithet": null,
+  "titles": {
+   "tribal": "Wang",
+   "monarchy": "Wang"
+  }
+ },
+ "zhou": {
+  "name": "Wen",
+  "gender": "m",
+  "epithet": null,
+  "titles": {
+   "tribal": "Wang",
+   "monarchy": "Wang"
+  }
+ },
+ "chu": {
+  "name": "Zhuang",
+  "gender": "m",
+  "epithet": null,
+  "titles": {
+   "tribal": "Wang",
+   "monarchy": "Wang"
+  }
+ },
+ "shu": {
+  "name": "Can Cong",
+  "gender": "m",
+  "epithet": null,
+  "titles": {
+   "tribal": "Wang",
+   "monarchy": "Wang"
+  }
+ },
+ "qi": {
+  "name": "Huan",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "yue": {
+  "name": "Goujian",
+  "gender": "m",
+  "epithet": null,
+  "titles": {
+   "tribal": "Wang",
+   "monarchy": "Wang"
+  }
+ },
+ "dian": {
+  "name": "Zhuang Qiao",
+  "gender": "m",
+  "epithet": null,
+  "titles": {
+   "tribal": "Wang",
+   "monarchy": "Wang"
+  }
+ },
+ "nanyue": {
+  "name": "Zhao Tuo",
+  "gender": "m",
+  "epithet": null,
+  "titles": {
+   "tribal": "Wu Di",
+   "monarchy": "Wu Di"
+  }
+ },
+ "buyeo": {
+  "name": "Haemosu",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "gojoseon": {
+  "name": "Dangun",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "baekje": {
+  "name": "Onjo",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "yamatai": {
+  "name": "Iyo",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "emishi": {
+  "name": "Aterui",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "van_lang": {
+  "name": "Hung Vuong",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "champa": {
+  "name": "Bhadravarman",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "funan": {
+  "name": "Liuye",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "pyu": {
+  "name": "Duttabaung",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "dvaravati": {
+  "name": "Chamadevi",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "srivijaya": {
+  "name": "Dapunta Hyang",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "tarumanagara": {
+  "name": "Purnawarman",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "medang": {
+  "name": "Sanjaya",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "kutai": {
+  "name": "Mulavarman",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "butuan": {
+  "name": "Kiling",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "tondo": {
+  "name": "Lakandula",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "tichitt": {
+  "name": "Maram",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "wagadu": {
+  "name": "Dinga",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "djenne_djeno": {
+  "name": "Tapama",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "kanem": {
+  "name": "Dugu",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "nok": {
+  "name": "Ayo",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "ife": {
+  "name": "Oduduwa",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "bono": {
+  "name": "Obunumankoma",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "d_mt": {
+  "name": "Waran Hawkat",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "punt": {
+  "name": "Ati",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "ajuran": {
+  "name": "Arraweelo",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "kilwa": {
+  "name": "Ali ibn al-Hasan",
+  "gender": "m",
+  "epithet": null,
+  "titles": {
+   "tribal": "Sultan",
+   "monarchy": "Sultan"
+  }
+ },
+ "kitara": {
+  "name": "Ndahura",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "engaruka": {
+  "name": "Naserian",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "luba": {
+  "name": "Kalala Ilunga",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "lunda": {
+  "name": "Lueji",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "ndongo": {
+  "name": "Ngola Kiluanje",
+  "gender": "m",
+  "epithet": null,
+  "titles": {
+   "tribal": "Ngola",
+   "monarchy": "Ngola"
+  }
+ },
+ "mapungubwe": {
+  "name": "Tafara",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "mutapa": {
+  "name": "Mutota",
+  "gender": "m",
+  "epithet": null,
+  "titles": {
+   "tribal": "Mwene",
+   "monarchy": "Mwene"
+  }
+ },
+ "merina": {
+  "name": "Andriamanelo",
+  "gender": "m",
+  "epithet": null,
+  "titles": {
+   "tribal": "Andriana",
+   "monarchy": "Andriana"
+  }
+ },
+ "khoekhoe": {
+  "name": "Autshumao",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "san": {
+  "name": "Gao",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "caral": {
+  "name": "Quilla",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "moche": {
+  "name": "Naymlap",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "wari": {
+  "name": "Kuntur",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "tiwanaku": {
+  "name": "Amaru",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "diaguita": {
+  "name": "Chalemin",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "muisca": {
+  "name": "Saguamanchica",
+  "gender": "m",
+  "epithet": null,
+  "titles": {
+   "tribal": "Zipa",
+   "monarchy": "Zipa"
+  }
+ },
+ "marajoara": {
+  "name": "Jaci",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "tupinamba": {
+  "name": "Cunhambebe",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "jaragua": {
+  "name": "Anacaona",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "kalinago": {
+  "name": "Tegremante",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "teotihuacan": {
+  "name": "Spearthrower Owl",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "zapotec": {
+  "name": "Cosijoeza",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "mutal": {
+  "name": "Jasaw Chan K'awiil",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "hopewell": {
+  "name": "Wabun",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "hohokam": {
+  "name": "Hakuk",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "chaco": {
+  "name": "Popé",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "calusa": {
+  "name": "Senquene",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "haida": {
+  "name": "Edenshaw",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "dorset": {
+  "name": "Nuka",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "lapita": {
+  "name": "Rata",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "wahgi": {
+  "name": "Ndika",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "gunditjmara": {
+  "name": "Kooyang",
+  "gender": "f",
+  "epithet": null,
+  "titles": null
+ },
+ "saudeleur": {
+  "name": "Isokelekel",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "latte_chiefs": {
+  "name": "Gadao",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ },
+ "bau": {
+  "name": "Cakobau",
+  "gender": "m",
+  "epithet": null,
+  "titles": null
+ }
+}
