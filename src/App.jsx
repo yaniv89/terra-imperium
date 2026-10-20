@@ -21,6 +21,7 @@ import WaitingChips from './components/ui/WaitingChips';
 import ConfirmDialog from './components/ui/ConfirmDialog';
 import { useAutoDismiss } from './hooks/useAutoDismiss';
 import FirstContactCard from './components/modals/FirstContactCard';
+import ConfirmActionDialog from './components/ui/ConfirmActionDialog';
 import { MapContainer } from './components/map';
 import { PanelDrawer, LogTrigger, LogDrawer } from './components/panels';
 import { EventModal, GameOverModal, AccountModal, ConflictChooserModal, OnboardingOverlay, AgeAdvanceBanner, NationEliminatedBanner, OldSaveNotice } from './components/modals';
@@ -311,6 +312,9 @@ const GameLayout = () => {
 
       {/* First contact with a people (W03). */}
       <FirstContactCard />
+
+      {/* The second tap for declaring war and changing a law (H-08). */}
+      <ConfirmActionDialog />
 
       {/* End Turn, bottom right (W02, W10). */}
       <TurnDock />

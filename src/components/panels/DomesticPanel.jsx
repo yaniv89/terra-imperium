@@ -47,6 +47,8 @@ import { authorityOf, AUTHORITY_NO_LAWS, AUTHORITY_CIVIL_WAR } from '../../engin
 import { lawRulesOf } from '../../engine/lawRules';
 import { previewGovernmentChange } from '../../engine/governmentPreview';
 import { openGovernmentChange } from './GovernmentChangeDialog';
+import { askConfirm } from '../ui/ConfirmActionDialog';
+import { changeLawConfirm } from '../ui/confirmSpecs';
 import { powerPoolsShort, POWER_POOL_HELP } from '../../data/powerPools';
 
 const DomesticPanel = () => {
@@ -354,8 +356,11 @@ const DomesticPanel = () => {
   const handleChangeLaw = (category, lawId) => {
     const costs = { adm: getLawChangeCost(state, state.playerNationId, category, lawId) };
     if (!canAfford(state.resources, costs)) return addLog(tNow('ri.notEnough'), 'action');
-    triggerEffect('change_law', { region: getNationCapital(state.playerNationId) });
-    dispatch({ type: ActionTypes.CHANGE_LAW, payload: { category, lawId } });
+    // Two taps: the card shows the cost and what the law does first (H-08).
+    askConfirm(changeLawConfirm(state, category, lawId, costs), () => {
+      triggerEffect('change_law', { region: getNationCapital(state.playerNationId) });
+      dispatch({ type: ActionTypes.CHANGE_LAW, payload: { category, lawId } });
+    });
   };
 
   const currentGovernmentType = GOVERNMENT_TYPES[playerNation?.government?.type];
