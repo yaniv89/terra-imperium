@@ -4,6 +4,7 @@ import { gameReducer, createInitialState } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { getNeighborIds, getTouchingIds } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
+import { tileAccess, findTilePath } from './armies';
 import { addCity, addCities } from './testWorld';
 import { applyBattleOutcome, makeBattleOutcome } from './battleOutcome';
 import { cityFell, pendingCapturesOf, captureOptions, resolveCapture, settleOpenCaptures, openCapture, CAPTURE_TRIBUTE_TURNS } from './capture';
@@ -151,6 +152,44 @@ describe('the peoples world: tributary and free', () => {
     expect(next.units.occ.tile).not.toBe(next.regions[cityId].tile);
     expect(next.regions[next.units.occ.regionId].owner).toBe(me);
     expect(auditGameState(next).filter((i) => i.severity === 'error' && /occ/.test(i.path || ''))).toEqual([]);
+  });
+
+  it('Make tributary: no army is left on the tributary land, so none is stuck (H-07)', () => {
+    const { s: s0, cityId, me } = taken();
+    const city = s0.regions[cityId];
+    // A second army camped on another tile of the city's land, as a siege army would be.
+    const camp = [...tiles.neighbors[city.tile]].find((t) => tiles.land[t] === 1 && s0.world.tileOwner[t] === cityId && t !== city.tile);
+    expect(camp).toBeDefined();
+    const s = { ...s0, units: { ...s0.units, camp: { ...unit('camp', cityId, me), tile: camp } } };
+    const next = gameReducer(s, { type: ActionTypes.RESOLVE_CAPTURE, payload: { captureId: s.pendingCaptures[0].id, choice: 'tributary' } });
+    ['occ', 'camp'].forEach((id) => {
+      const t = next.units[id].tile;
+      expect(tileAccess(next, t, me)).not.toBe('closed');
+      expect(next.world.tileOwner[t]).not.toBe(cityId);
+      // and it can march on (a route to a neighbouring tile exists)
+      const out = tiles.neighbors[t].find((n) => tiles.land[n] === 1 && n !== next.regions[cityId].tile && tileAccess(next, n, me) !== 'closed');
+      expect(out).toBeDefined();
+      expect(findTilePath(next, t, out, me).path).toBeDefined();
+    });
+  });
+
+  it('a march from land that is closed to the army says so, not that it needs a fleet (H-07)', () => {
+    const { s: s0, cityId, me } = taken();
+    const r = resolveCapture(s0, s0.pendingCaptures[0].id, 'tributary');
+    const start = r.regions[cityId].tile;
+    expect(tileAccess(r, start, me)).toBe('closed');
+    // the nearest land tile that is open to the player, found ring by ring
+    let seen = new Set([start]); let frontier = [start]; let goal = null;
+    for (let d = 0; d < 12 && goal == null; d++) {
+      const nextRing = [];
+      frontier.forEach((t) => tiles.neighbors[t].forEach((n) => { if (!seen.has(n)) { seen.add(n); nextRing.push(n); } }));
+      goal = nextRing.sort((x, y) => x - y).find((t) => tiles.land[t] === 1 && tileAccess(r, t, me) !== 'closed') ?? null;
+      frontier = nextRing;
+    }
+    expect(goal).not.toBeNull();
+    const res = findTilePath(r, start, goal, me);
+    expect(res.path).toBeUndefined();
+    expect(res.reasonMsg.key).toBe('m.why.armyInClosed');
   });
 
   it('Free: the city stands free and friendly, without tribute', () => {
