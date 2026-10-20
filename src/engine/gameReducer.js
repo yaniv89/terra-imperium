@@ -500,7 +500,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
   };
   // Fog of war (fog.js): each people knows its homeland; `fog: false` is the "explored world" option.
   const started = initFog(refreshPeopleNames(syncWorldRegistry(finalizeIndependents(withCityStates(applyScenario(initial, { ...scenario, seed: worldSeed, map: mapRecord, ...(startSites ? { sites: startSites } : {}) }), peoplesMode ? cityStates : null), { late: independentPick.late }))), { on: fog });
-  // The guided start (src/engine/tutorial.js): ten turns of prompts for a new player.
+  // The guided start (src/engine/tutorial.js): twenty-five turns of prompts for a new player.
   return guided ? { ...started, tutorial: { startTurn: started.turnNumber || 1, done: {}, ended: false } } : started;
 };
 

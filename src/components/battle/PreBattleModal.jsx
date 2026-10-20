@@ -174,7 +174,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
             <div className="grid grid-cols-2 gap-2">
               {w ? (
                 <>
-                  <Tile icon={Castle} label={t('bt.pre.walls')} title={w.level ? w.name : t('bt.war.noWalls')} testId="pre-battle-fort">{w.level ? w.hpText : t('bt.pre.openTown')}{m.fortTier > 0 ? t('bt.pre.fortLevel', { n: m.fortTier }) : ''}</Tile>
+                  <Tile icon={Castle} label={t('bt.pre.walls')} title={w.level ? w.name : t('bt.war.noWalls')} testId="pre-battle-fort">{w.level ? w.hpText : t('bt.war.openTown')}{m.fortTier > 0 ? t('bt.pre.fortLevel', { n: m.fortTier }) : ''}</Tile>
                   <Tile icon={Home} label={t('bt.pre.houses')} title={t('bt.pre.housesTitle', { n: w.houses, h: w.housing })} testId="pre-battle-houses">{t('bt.pre.housesRepaired')}</Tile>
                 </>
               ) : (

@@ -8,6 +8,8 @@ import React, { useState } from 'react';
 import { Target, Gift, Eye, Heart, Users, Crown, Ban, AlertTriangle, ChevronDown, ChevronUp, DoorOpen, Scale } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { Chip } from '../ui/atlas';
+import { askConfirm } from '../ui/ConfirmActionDialog';
+import { declareWarConfirm } from '../ui/confirmSpecs';
 import TopLayer from '../ui/TopLayer';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
 import { useEffects } from '../../context/EffectsContext';
@@ -266,7 +268,9 @@ export const NationCard = ({ nation, hideTitle = false }) => {
               looksDisabled={!canAfford(state.resources, declareWarCosts) || !!player.vassalOf}
               onClick={() => {
                 if (player.vassalOf) return addLog(t('nc.vassalNoWar'), 'action');
-                dispatchIfAffordable(ActionTypes.DECLARE_WAR, declareWarCosts);
+                if (!canAfford(state.resources, declareWarCosts)) return dispatchIfAffordable(ActionTypes.DECLARE_WAR, declareWarCosts);
+                // Two taps: the card shows the cost and the opinion hit first (H-08).
+                askConfirm(declareWarConfirm(state, nation.id), () => dispatchIfAffordable(ActionTypes.DECLARE_WAR, declareWarCosts));
                 return undefined;
               }} />
             {nation.hasMilitaryPact ? (

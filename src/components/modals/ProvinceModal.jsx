@@ -20,7 +20,7 @@ import { AlertTriangle } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
-import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
+import { useInteraction, useDismissOverlays, PRIORITY } from '../../hooks/useExclusivePanel';
 import { useReportInset } from '../../context/MapInsetsContext';
 import { REGIONS_DATA } from '../../data/regions';
 import { loyaltyOf, loyaltyTarget } from '../../engine/loyalty';
@@ -94,6 +94,7 @@ const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
   // would not leave room for the map (the interaction registry, useExclusivePanel.js). It does not
   // come back by itself: one close returns to the map (playtest audit I155).
   const panel = useInteraction('province', isShown && !isMobile, { kind: 'panel', priority: PRIORITY.panel, user: true });
+  useDismissOverlays(onClose, isShown);
   const tuckedAway = isShown && !isMobile && !panel.shown;
   useEffect(() => { if (tuckedAway) onClose(); }, [tuckedAway]); // eslint-disable-line react-hooks/exhaustive-deps
 

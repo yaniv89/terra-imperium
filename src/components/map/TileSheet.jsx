@@ -11,6 +11,7 @@ import { useT } from '../../i18n/useT';
 import { nameNow } from '../../i18n/names';
 import { terrainWord, tileResourceName, improvementName, districtName } from '../../i18n/gameText';
 import React, { useMemo, useRef } from 'react';
+import { useCornerSheet } from '../../hooks/useExclusivePanel';
 import { MapPin, Tent, Flag, Swords, Ban, AlertTriangle } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
@@ -29,6 +30,8 @@ import { enemyStackAt, validateFieldAttack } from '../../engine/fieldBattle';
 import PreBattleModal from '../battle/PreBattleModal';
 import { Button, CloseButton, Label, Stat } from '../ui/atlas';
 import { settleSiteModel } from './settleSiteModel';
+import { askConfirm } from '../ui/ConfirmActionDialog';
+import { declareWarConfirm } from '../ui/confirmSpecs';
 import { settlerStatus } from './settleRoutes';
 import { useReportInset } from '../../context/MapInsetsContext';
 
@@ -40,6 +43,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
   const [attackFrom, setAttackFrom] = React.useState(null);
   const [confirmDisband, setConfirmDisband] = React.useState(null); // a settler's id: "Send them home?"
   const isMobile = useIsMobile();
+  const corner = useCornerSheet('tile-sheet', tile != null, onClose); // one sheet at a time on a phone (H-18)
   // The map centres a site in the part of the screen this sheet leaves (MapInsetsContext): "Next
   // good site" never lands under it (playtest audit I088).
   const sheetRef = useRef(null);
@@ -50,7 +54,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
   const facts = useMemo(() => (tile == null ? null : tileFacts(tiles, tile, state.world?.tileState?.[tile])), [tile, tiles, state.world]);
   const settlers = useMemo(() => settlersOf(state.units, me), [state.units, me]);
   const site = useMemo(() => (facts?.land ? settleSiteModel(state, tile, ageId) : null), [state, tile, ageId, facts, lang]); // eslint-disable-line react-hooks/exhaustive-deps -- lang only words the site
-  if (tile == null || !facts) return null;
+  if (tile == null || !facts || !corner.shown) return null;
   const here = settlers.filter((u) => u.tile === tile);
   const coming = settlers.filter((u) => u.target === tile && u.tile !== tile);
   const idle = settlers.filter((u) => u.target == null && u.tile !== tile);
@@ -118,7 +122,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
       {foreignWar && (
         <div className="mb-2 space-y-1.5" data-testid="foreign-army-here">
           <div className="text-[13px] text-fa-enemy font-semibold">{t('mx.tile.foreignArmy', { name: foreignWar.shown, count: foreignHere.length })}</div>
-          <Button variant="danger" className="w-full" disabled={!foreignWar.enabled} onClick={() => dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: foreignWar.nationId } })} title={foreignWar.note} data-testid="tile-declare-war"><Swords className="w-4 h-4" /> {foreignWar.label}</Button>
+          <Button variant="danger" className="w-full" disabled={!foreignWar.enabled} onClick={() => askConfirm(declareWarConfirm(state, foreignWar.nationId), () => dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: foreignWar.nationId } }))} title={foreignWar.note} data-testid="tile-declare-war"><Swords className="w-4 h-4" /> {foreignWar.label}</Button>
         </div>
       )}
       {attackFrom && <PreBattleModal fromRegionId={attackFrom} tile={tile} onClose={() => setAttackFrom(null)} />}

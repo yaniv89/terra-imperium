@@ -21,6 +21,7 @@ import { endTurnButton, endTurnPress } from './endTurnModel';
 import { goToPrompt, goToBlocker, chipLabel } from './promptActions';
 import { prewarmTurnWorker, abandonTurnInWorker } from '../../services/turnClient';
 import IdleChip from './IdleChip';
+import { interactions, useOverlayOpen } from '../../hooks/useExclusivePanel';
 import { useT } from '../../i18n/useT';
 
 // "The world moves" longer than this offers to run the turn on this thread instead (an iPhone has
@@ -34,6 +35,9 @@ const TurnDock = () => {
   const { t, lang } = useT();
   const isMobile = useIsMobile();
   const [armed, setArmed] = useState(false);
+  // A sheet, the log or march mode is open: End Turn rides above the sheets, and a tap closes them
+  // all and then does what End Turn does (the first tap used to only close the overlay, H-17).
+  const overlayOpen = useOverlayOpen();
   // The turn worker loads its engine while the player looks at the map, not on the first End Turn
   // (seconds on a phone; turnClient.js).
   useEffect(() => { const t = setTimeout(prewarmTurnWorker, 1500); return () => clearTimeout(t); }, []);
@@ -53,6 +57,7 @@ const TurnDock = () => {
 
   const press = () => {
     const r = endTurnPress(state, { turnPending, armed });
+    if (!r.none) interactions.dismissOverlays();
     if (r.go) { goToBlocker(state, r.go); return; }
     if (r.arm) { setArmed(true); return; }
     if (r.end) { setArmed(false); advanceTurn(); }
@@ -75,7 +80,7 @@ const TurnDock = () => {
 
   return (
     <div data-testid="turn-dock" data-map-hud="group"
-      className={`fixed z-[21] flex flex-col items-end gap-2 pointer-events-none
+      className={`fixed ${overlayOpen ? 'z-[70]' : 'z-[21]'} flex flex-col items-end gap-2 pointer-events-none
         ${isMobile ? 'end-3 bottom-[calc(var(--panel-bar-height,4rem)+0.75rem)]' : 'end-[calc(var(--rail-w,0px)+0.75rem)] bottom-[max(env(safe-area-inset-bottom),0.75rem)]'}`}>
       {armed && hints.length > 0 && (
         <div className="pointer-events-auto fa-panel p-2 w-[min(17rem,60vw)] shadow-2xl" role="status" data-testid="end-turn-warnings">

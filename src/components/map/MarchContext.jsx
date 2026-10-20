@@ -8,6 +8,7 @@ import { useGame } from '../../context/GameContext';
 import { planMarch, marchingUnits } from '../../engine/routes';
 import { getMarchLines } from '../../utils/marchLines';
 import { START_MARCH } from './marchEvents';
+import { useDismissOverlays } from '../../hooks/useExclusivePanel';
 
 const MarchContext = createContext(null);
 export const useMarch = () => useContext(MarchContext);
@@ -34,6 +35,7 @@ export const MarchProvider = ({ children }) => {
   const aimAt = useCallback((target) => setMarch((m) => (m ? { ...m, target } : m)), []);
   const drop = useCallback((target) => setMarch((m) => (m ? { ...m, target, dragging: false } : m)), []);
   const cancel = useCallback(() => setMarch(null), []);
+  useDismissOverlays(cancel, !!march); // End Turn ends march mode too
 
   const value = useMemo(() => ({ march, plan, lines, begin, aimAt, drop, cancel }), [march, plan, lines, begin, aimAt, drop, cancel]);
   return <MarchContext.Provider value={value}>{children}</MarchContext.Provider>;

@@ -7,7 +7,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import LogConsole from './LogConsole';
-import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
+import { useInteraction, useDismissOverlays, PRIORITY } from '../../hooks/useExclusivePanel';
 import { t as tNow } from '../../i18n';
 import { useT } from '../../i18n/useT';
 
@@ -16,6 +16,7 @@ const LogDrawer = ({ open, onClose }) => {
   // A sheet the player opened: it takes the screen, and a decision card it covers waits as a chip
   // (useExclusivePanel.js).
   const turn = useInteraction('log', open, { priority: PRIORITY.sheet, user: true, label: tNow('wait.log') });
+  useDismissOverlays(onClose, open);
   if (!open || !turn.shown) return null;
 
   return (

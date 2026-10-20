@@ -71,6 +71,14 @@ describe('map camera targets', () => {
     expect(cameraTarget(null, [], opts)).toBeNull();
   });
 
+  it('skips a place on an unexplored tile (H-19): the camera never lands in black fog', () => {
+    const fogged = { ...state, fog: { on: true, explored: { akkad: { bytes: Uint8Array.of(0b001) } } } }; // only tile 0 explored
+    expect(cameraTarget(fogged, [{ tile: 1 }], opts)).toMatchObject({ from: 'capital' });
+    expect(cameraTarget(fogged, [{ regionId: 'memphis' }, { tile: 0 }], opts)).toMatchObject({ from: 'place', index: 1, lat: 32.5 });
+    expect(cameraTarget(fogged, [{ tile: 1 }], { ...opts, selectedArmyTile: 0 })).toMatchObject({ from: 'army' });
+    expect(cameraTarget({ ...fogged, fog: { ...fogged.fog, on: false } }, [{ tile: 1 }], opts)).toMatchObject({ from: 'place', lat: 30.8 });
+  });
+
   it('a battle is found by its battlefield tile, then the city fought for, then where it came from', () => {
     const r = { tile: null, targetRegionId: 'razed', fromRegionId: 'memphis' };
     expect(cameraTarget(state, battlePlaces(r), opts)).toMatchObject({ lat: 30.8, from: 'place', index: 2 });

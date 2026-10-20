@@ -23,7 +23,7 @@ import { Button, Label, SheetHeader, Segmented, Switch } from './atlas';
 import { useAudioSettings, setAudioSettings } from '../../audio/audioSettings';
 import { turnLogText } from '../../services/turnClient';
 import MapCard from './MapCard';
-import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
+import { useInteraction, useDismissOverlays, PRIORITY } from '../../hooks/useExclusivePanel';
 import { useT } from '../../i18n/useT';
 import LanguageSwitch from './LanguageSwitch';
 import FullscreenButton from './FullscreenButton';
@@ -68,6 +68,7 @@ const SettingsSheet = ({ open, onClose, onOpenAccount, onReset, cloudLabel }) =>
   // A sheet the player opened: it takes the screen, and a decision card it covers waits as a chip
   // (useExclusivePanel.js).
   const turn = useInteraction('settings', open, { priority: PRIORITY.sheet, user: true, label: t('menu.title') });
+  useDismissOverlays(onClose, open);
   if (!open || !turn.shown) return null;
   const bs = state.battleSettings || {};
   const setBattle = (patch) => dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: patch });

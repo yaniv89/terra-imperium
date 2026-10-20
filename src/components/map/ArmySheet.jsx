@@ -4,6 +4,7 @@
 // (march, cancel the route, rename the army, disband). A bottom sheet on a phone, a docked panel
 // on a wider screen, like the tile sheet.
 import React, { useMemo, useState } from 'react';
+import { useCornerSheet } from '../../hooks/useExclusivePanel';
 import { X, Flag, Shield, Pencil, Trash2, Flame, Award, Swords, Castle, Anchor, Compass } from 'lucide-react';
 import { menText } from '../../engine/battleLedger';
 import { useT } from '../../i18n/useT';
@@ -14,6 +15,8 @@ import { useGame } from '../../context/GameContext';
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { ActionTypes } from '../../data/types';
 import { startMarch } from './marchEvents';
+import { askConfirm } from '../ui/ConfirmActionDialog';
+import { declareWarConfirm } from '../ui/confirmSpecs';
 import { armySheetModel } from './armySheetModel';
 import { UnitIcon } from '../ui/icons';
 
@@ -21,11 +24,12 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
   const { state, dispatch } = useGame();
   const { t: tr, lang } = useT();
   const isMobile = useIsMobile();
+  const sheet = useCornerSheet('army-sheet', true, onClose); // one sheet at a time on a phone (H-18)
   const model = useMemo(() => armySheetModel(state, tile), [state, tile, lang]); // eslint-disable-line react-hooks/exhaustive-deps -- lang only words the sheet
   const [renaming, setRenaming] = useState(null);
   const [picked, setPicked] = useState(null); // unit ids chosen to march (null: the whole stack)
   const [attack, setAttack] = useState(null); // a target of the pre-battle modal
-  if (!model) return null;
+  if (!model || !sheet.shown) return null;
   const marching = picked ? model.unitIds.filter((id) => picked.has(id)) : model.unitIds;
   const togglePick = (id) => setPicked((p) => { const next = new Set(p || model.unitIds); if (next.has(id)) next.delete(id); else next.add(id); return next.size === model.unitIds.length ? null : next; });
   // The place the stack stands on (unitLocation.js whereLabel), never its base: "Army near Siwa".
@@ -115,7 +119,7 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
       {model.targets.length > 0 && (
         <div className="mt-2 space-y-1" data-testid="army-targets">
           {model.targets.map((t) => t.war ? (
-            <button key={`war:${t.tile}`} type="button" disabled={!t.war.enabled} onClick={() => dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: t.war.nationId } })} data-testid="army-declare-war" title={t.war.note} className="w-full min-h-[44px] rounded-lg bg-amber-800/70 hover:bg-amber-700 disabled:opacity-40 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5">
+            <button key={`war:${t.tile}`} type="button" disabled={!t.war.enabled} onClick={() => askConfirm(declareWarConfirm(state, t.war.nationId), () => dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: t.war.nationId } }))} data-testid="army-declare-war" title={t.war.note} className="w-full min-h-[44px] rounded-lg bg-amber-800/70 hover:bg-amber-700 disabled:opacity-40 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5">
               <Swords className="w-3.5 h-3.5" /> {t.war.label} ({Object.entries(t.war.costs).map(([k, v]) => `${v} ${lang === 'he' ? tOr(`res.${k}`, k.toUpperCase()) : k.toUpperCase()}`).join(', ')})
             </button>
           ) : (

@@ -1,5 +1,5 @@
 // src/engine/tutorial.js
-// The guided Dawn start as Egypt (plans/civ-map-rework.md E9): ten turns of "next" prompts, no
+// The guided Dawn start as Egypt (plans/civ-map-rework.md E9): twenty-five turns of "next" prompts, no
 // modal lectures. `state.tutorial` exists only in a guided game: { startTurn, done: { stepId:
 // turn }, ended }. Each step has a predicate read from the state; a step the UI must witness
 // (opening a nation sheet) is marked by the reducer (MARK_TUTORIAL_STEP). resolveTurn records
@@ -17,7 +17,9 @@ const guideText = (id, field, fallback) => (hasKey('prompt.guide.' + id + '.' + 
 // guide reads only the player's own state, so it works in a legacy world too (as Egypt).
 export const TUTORIAL_NATION = 'kemet';
 export const TUTORIAL_WORLD_SIZE = 'standard';
-export const TUTORIAL_TURNS = 10;
+// 25, not 10: Settlers take 7 or more turns to train and walk, so a player who follows the first
+// step still has the guide left for the other five (mobile audit H-22: it expired at 1/6).
+export const TUTORIAL_TURNS = 25;
 export const TUTORIAL_TECH = 'infrastructure_irrigation_canals';
 
 const mine = (state) => Object.values(state.regions || {}).filter((c) => c.owner === state.playerNationId);
