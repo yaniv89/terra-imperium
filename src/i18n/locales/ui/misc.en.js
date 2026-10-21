@@ -50,6 +50,8 @@ export default {
   'td.gain.loyal': 'a loyal city (loyalty {n})',
   'onb.1.title': 'Welcome to Terra Imperium',
   'onb.1.body': 'You lead one nation, on one real Earth, from the Stone Age to the Modern Age. Every other country plays the same game you do — its own economy, government, army, and diplomacy — build, conquer, or outlast them all.',
+  'onb.7.title': 'Begin as a band',
+  'onb.7.body': 'No city yet: you lead a band of wanderers with Hunters to guard it. Tap the band, pick a site near home and found your first village. Then research Agriculture, meet your neighbours and grow into a Stone Circle people.',
   'onb.2.title': 'ADM / DIP / MIL Power',
   'onb.2.body': 'Gold and Manpower fund your economy and army; three power pools — Administrative, Diplomatic, and Military — fund everything else: development, laws, research, and diplomacy. Every pool refills slowly each turn, so spend it deliberately.',
   'onb.3.title': 'Stability & Authority',

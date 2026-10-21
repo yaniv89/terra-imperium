@@ -8,22 +8,22 @@
 // player reaches it unaided.
 import { describe, it, expect } from 'vitest';
 import { resolveTurn } from './resolveTurn';
-import { createInitialState, gameReducer } from '../context/GameContext';
+import { gameReducer } from '../context/GameContext';
+import { peoplesWorld, rivalOf } from './testWorld';
 import { ActionTypes, GameStatus } from '../data/types';
 import { speedTurnLimit } from '../data/ages';
 import { DOMINATION_CAPITAL_SHARE } from '../data/victoryConditions';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { advanceCampaign } from '../../scripts/simulate.mjs';
 import { assertGameState } from './stateAudit';
-import { getNationCapital } from '../data/regions';
 
 const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {});
 
 // Isolates every test below from the scripted/procedural event pipeline, exactly like
 // aiQualityBenchmark.test.js's freshWorld: a pending event makes resolveTurn a no-op, which would
 // silently stall a long run rather than exercise the victory/space-race machinery under test.
-const freshWorld = (playerNationId = 'fr') => ({
-  ...createInitialState({ playerNationId, rngSeed: 7 }),
+const freshWorld = () => ({
+  ...peoplesWorld({ seed: 7 }),
   firedEvents,
   proceduralEventCooldown: 999999,
   // A queued defense battle also pauses resolveTurn; a passive player lets them auto-resolve.
@@ -61,7 +61,7 @@ describe('endgame reachability: the game always resolves to a definite outcome b
     expect(state.turnNumber).toBeLessThanOrEqual(speedTurnLimit(state.gameSpeed) + 3);
     if (state.gameStatus === GameStatus.COMPLETE) expect(state.ending).toEqual({ reason: 'turnLimit' });
     if (state.gameStatus === GameStatus.COMPLETE) {
-      expect(state.finalRank, 'a nation that never acted should not rank #1 against 239 real AI economies').toBeGreaterThan(1);
+      expect(state.finalRank, 'a nation that never acted should not rank #1 against the AI economies').toBeGreaterThan(1);
     }
   }, 900000); // up to 1,200 whole-world turns at about 100 ms each (plan J3): real wall-clock room
 });
@@ -72,7 +72,7 @@ describe('endgame reachability: each victory condition fires when its real thres
     const others = Object.keys(state.nations).filter((id) => id !== state.playerNationId);
     const regions = { ...state.regions };
     const needed = Math.ceil(others.length * DOMINATION_CAPITAL_SHARE) + 1;
-    others.slice(0, needed).forEach((id) => { const cap = getNationCapital(id); if (cap) regions[cap] = { ...regions[cap], owner: state.playerNationId }; });
+    others.slice(0, needed).forEach((id) => { const cap = state.nations[id].capitalRegionId; if (cap) regions[cap] = { ...regions[cap], owner: state.playerNationId }; });
     const next = resolveTurn({ ...state, regions });
     expect(next.gameStatus).toBe(GameStatus.VICTORY);
     expect(next.victoryConditionId).toBe('domination');
@@ -85,7 +85,7 @@ describe('endgame reachability: defeat and bankruptcy are achievable (plan §M15
     const state = freshWorld();
     const regions = { ...state.regions };
     Object.keys(regions).forEach((id) => {
-      if (regions[id].owner === state.playerNationId) regions[id] = { ...regions[id], owner: 'de' };
+      if (regions[id].owner === state.playerNationId) regions[id] = { ...regions[id], owner: rivalOf(state) };
     });
     const next = resolveTurn({ ...state, regions });
     expect(next.gameStatus).toBe(GameStatus.DEFEAT);

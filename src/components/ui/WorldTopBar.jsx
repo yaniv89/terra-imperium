@@ -18,12 +18,13 @@ import { openNationOverview, openTurnReport } from './uiEvents';
 import { topBarModel } from './topBarModel';
 import { Shield, signed } from './atlas';
 import ResourceBar from './ResourceBar';
-import { CULTURE_HELP } from '../../data/powerPools';
+import { CULTURE_HELP } from '../../data/cultureHelp';
 import { useT } from '../../i18n/useT';
 
 const GoldIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--fa-brass)" strokeWidth="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v8M9.5 10.5h5" /></svg>;
 const FoodIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--fa-food)" strokeWidth="1.8" aria-hidden="true"><path d="M12 21V8M12 8c0-3 2-5 5-5 0 3-2 5-5 5zM12 12c0-3-2-5-5-5 0 3 2 5 5 5zM12 16c0-3 2-5 5-5 0 3-2 5-5 5z" /></svg>;
 const ScienceIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--fa-science)" strokeWidth="1.8" aria-hidden="true"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3" /></svg>;
+const DecreeIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--fa-brass)" strokeWidth="1.8" aria-hidden="true"><path d="M8 4h9a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H8M8 4a2 2 0 0 0-2 2v10a4 4 0 0 0 4 4M8 4v12M11 9h5M11 13h5" /></svg>;
 const CultureIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--fa-indep)" strokeWidth="1.8" aria-hidden="true"><path d="M4 20h16M6 20V10M10 20V10M14 20V10M18 20V10M3 10l9-6 9 6z" /></svg>;
 
 // the change a turn; nothing for none (a 0 reads as noise beside the number)
@@ -110,6 +111,9 @@ const WorldTopBar = () => {
             <ScienceIcon /><span className="fa-num text-[12px]">{m.science.perTurn}</span>
             <span className={`text-[11px] truncate max-w-[10rem] ${m.science.current ? 'text-fa-muted' : 'text-fa-brass font-semibold'}`}>{m.science.label}</span>
           </BarItem>
+          <BarItem label={t('topbar.decreeAria', { value: m.decrees.value, cap: m.decrees.cap })} onClick={() => toggle('decrees')} expanded={open === 'decrees'} testId="top-bar-decrees">
+            <DecreeIcon /><span className="fa-num text-[12px]">{m.decrees.value}/{m.decrees.cap}</span>
+          </BarItem>
           <BarItem label={t('topbar.cultureAria', { n: m.culture.perTurn })} onClick={() => toggle('culture')} expanded={open === 'culture'} testId="top-bar-culture">
             <CultureIcon /><span className="fa-num text-[12px]">{m.culture.perTurn}</span>
           </BarItem>
@@ -138,6 +142,13 @@ const WorldTopBar = () => {
       )}
       {open === 'food' && <Reasons title={t('topbar.foodTitle')} rows={m.food.reasons} total={m.food.perTurn} unit="" onClose={close}
         footer={<p className="mt-2 text-[11px] text-fa-muted">{t('topbar.foodNote', { value: m.food.value })}</p>} />}
+      {open === 'decrees' && <Reasons title={t('topbar.decreeTitle', { value: m.decrees.value, cap: m.decrees.cap })} rows={m.decrees.reasons} total={null} unit="" onClose={close}
+        footer={(
+          <div className="mt-2 pt-2 border-t border-fa-line space-y-1 text-[11px] text-fa-muted">
+            {m.decrees.costs.map((c) => <p key={c.n}>{t('topbar.decreeCost', { n: c.n, list: c.labels.join(t('chip.listSep')) })}</p>)}
+            <p>{t('topbar.decreeHow', { below: m.decrees.below, cap: m.decrees.cap })}</p>
+          </div>
+        )} />}
       {open === 'culture' && <Reasons title={t('topbar.cultureTitle')} rows={m.culture.reasons} total={m.culture.perTurn} unit="" onClose={close}
         footer={<p className="mt-2 text-[11px] text-fa-muted">{CULTURE_HELP.earns} {CULTURE_HELP.spends}</p>} />}
     </header>

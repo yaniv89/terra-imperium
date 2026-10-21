@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { ageOf, ageIndexOf } from './nationState';
-import { createInitialState } from './gameReducer';
+import { peoplesWorld, rivalOf } from './testWorld';
 import { resolveTurn } from './resolveTurn';
-import { applyScenario } from './worldgen/emergentWorld';
 import { FIRST_AGE_ID, getAgeIndex } from '../data/ages';
 import { HISTORICAL_EVENTS } from '../data/events';
 
@@ -36,14 +35,14 @@ describe('ageOf', () => {
   });
 
   it('a Modern era fixture is still Modern after one resolveTurn', () => {
-    const base = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
-    let s = applyScenario(base, { mode: 'full', start: 'modern' });
-    expect(ageOf(s, 'fr')).toBe('modern');
-    const ai = Object.keys(s.nations).find((id) => id !== 'fr');
+    let s = peoplesWorld({ seed: 7, age: 'modern' });
+    const me = s.playerNationId;
+    expect(ageOf(s, me)).toBe('modern');
+    const ai = rivalOf(s);
     expect(ageOf(s, ai)).toBe('modern');
     s = { ...s, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
     s = resolveTurn(s);
-    expect(ageOf(s, 'fr')).toBe('modern');
+    expect(ageOf(s, me)).toBe('modern');
     expect(ageOf(s, ai)).toBe('modern');
   }, 60000);
 });

@@ -2,7 +2,7 @@
 // Whole-world headless game: TURNS turns of all 240 nations from fixed SEEDS, a passive player who
 // accepts free white peaces and refuses anything that costs. Prints one STATS line per checkpoint
 // and a final SUMMARY JSON line per seed, so two commits can be compared number for number.
-//   TURNS=150 SEEDS=11,12 EVERY=50 PLAYER=fr npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/balance-sim
+//   TURNS=150 SEEDS=11,12 EVERY=50 PLAYER=akkad npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/balance-sim
 import { it } from 'vitest';
 import { resolveTurn } from '../../../src/engine/resolveTurn';
 import { createInitialState, gameReducer } from '../../../src/context/GameContext';
@@ -34,7 +34,7 @@ const LEGACY = Object.values(import.meta.glob('../../../src/engine/legacy.js', {
 const countLand = () => { const t = getTiles(); let n = 0; for (let i = 0; i < t.count; i++) if (t.land[i] === 1) n += 1; return n; };
 let LAND_TILES = countLand();
 // MAP=generated plays each seed on a generated world (plans/MAP-VARIATIONS-PLAN.md 8.2): the map
-// seed is the game seed, LAND (default 30) the land share; it forces SCENARIO=peoples.
+// seed is the game seed, LAND (default 30) the land share; it plays on a generated map.
 const MAP = process.env.MAP || 'earth';
 const MAP_LAND = Number(process.env.LAND || 30);
 // SHAPE (continents, pangaea, archipelago, islands, inland) and GENVER (the generator version, default the current one).
@@ -44,12 +44,9 @@ const MAP_VERSION = process.env.GENVER ? Number(process.env.GENVER) : undefined;
 const TURNS = Number(process.env.TURNS || 150);
 const EVERY = Number(process.env.EVERY || 50);
 const SEEDS = String(process.env.SEEDS || '11').split(',').map(Number);
-const PLAYER = process.env.PLAYER || 'fr';
-// SCENARIO=emergent starts the 'emergent civilizations' world (free frontier land, 45 nations).
-// SCENARIO=peoples starts a new game's world (phase W0: majors drawn from the 150-people pool,
-// SIZE=small|standard|large, the world seed = the seed); PLAYER may be a people id or an old
-// country id (mapped through LEGACY_NATION_IDS: au is the Gunditjmara).
-const SCENARIO = process.env.SCENARIO || 'full';
+const PLAYER = process.env.PLAYER || 'akkad';
+// Every run is a new game's peoples world (majors drawn from the 150-people pool; SIZE=small|standard|large,
+// the world seed = the seed); PLAYER is a people id.
 const SIZE = process.env.SIZE || 'standard';
 // POLICY=passive (default, the old harness) | scripted (answers every blocker and queues what an AI
 // would build in the player's idle cities and sends its settlers to the best site; scripts/campaignTelemetry.mjs). DEMANDS=refuse (default) |
@@ -123,6 +120,24 @@ const ambitionStats = (s) => {
     ambitionsPerMajorAge: +(ai.reduce((a, n) => a + rate(n), 0) / Math.max(1, ai.length)).toFixed(2),
     playerAmbitionsPerAge: me?.ambitions ? +rate(me).toFixed(2) : null
   };
+};
+
+// AMB_DETAIL=1: per template and age, offers made, completed, and the turns each took from its offer
+// (turns <= 1 = met at once). The historical ambitions are grouped as 'historical'.
+const trackAmbitions = (s, t, seen) => {
+  Object.values(s.nations).forEach((n) => (n.ambitions?.offers || []).forEach((o) => {
+    const key = `${n.id}|${n.ambitions.ageId}|${o.id}`;
+    const e = (seen[key] ||= { id: o.id.endsWith('Ambition') ? 'historical' : o.id, age: n.ambitions.ageId, from: t, turns: null, player: n.id === s.playerNationId });
+    if (o.done && e.turns == null) e.turns = t - e.from + 1;
+  }));
+};
+const ambitionDetail = (seen) => {
+  const out = {};
+  Object.values(seen).forEach((e) => {
+    const k = `${e.id}@${e.age}`; const r = (out[k] ||= { offered: 0, done: 0, instant: 0, turns: [] });
+    r.offered += 1; if (e.turns != null) { r.done += 1; r.turns.push(e.turns); if (e.turns <= 1) r.instant += 1; }
+  });
+  return Object.fromEntries(Object.entries(out).map(([k, r]) => [k, { offered: r.offered, done: r.done, instant: r.instant, medianTurns: r.turns.sort((a, b) => a - b)[r.turns.length >> 1] ?? null }]));
 };
 
 const snapshot = (s, t, counters, ms, lives, telemetry) => {
@@ -220,7 +235,7 @@ SEEDS.forEach((seed) => {
   it(`world seed ${seed}`, () => {
     let map = null; let mapReport = null;
     if (MAP === 'generated') { const w = installGeneratedWorld({ seed, generatorVersion: MAP_VERSION, params: { land: MAP_LAND, shape: MAP_SHAPE } }); map = w.spec; mapReport = w.report; LAND_TILES = countLand(); }
-    const scenario = SCENARIO === 'emergent' ? { scenario: { mode: 'emergent' } } : (SCENARIO === 'peoples' || map) ? { scenario: { mode: 'peoples', size: SIZE, seed, ...(map ? { map } : {}), ...(process.env.INDEPENDENTS === '0' ? { independents: false } : {}) } } : {};
+    const scenario = { scenario: { mode: 'peoples', size: SIZE, seed, ...(map ? { map } : {}), ...(process.env.INDEPENDENTS === '0' ? { independents: false } : {}) } };
     if (mapReport) console.log(`MAP seed=${seed} hash=${mapReport.worldHash} continents=${mapReport.continents} startMin=${mapReport.startMin} startMedian=${mapReport.startMedian} startSpread=${mapReport.startSpread.toFixed(3)} repairs=${mapReport.startRepairs}`);
     let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, ...scenario, ...(SPEED ? { gameSpeed: SPEED } : {}) }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
     if (OUT_DIR) fs.mkdirSync(OUT_DIR, { recursive: true });
@@ -236,6 +251,7 @@ SEEDS.forEach((seed) => {
     const lives = []; const open = {};
     Object.values(s.nations).forEach((n) => { if (!n.isEliminated) { open[n.id] = { born: 0, died: null }; lives.push(open[n.id]); } });
     let leader = null;
+    const ambSeen = {};
     let inWar = new Set(Object.values(s.nations).filter((n) => n.civilWar?.active).map((n) => n.id));
     let last;
     let owners = Object.fromEntries(Object.values(s.regions).map((r) => [r.id, r.owner]));
@@ -310,6 +326,7 @@ SEEDS.forEach((seed) => {
         }
       });
       leader = top;
+      if (process.env.AMB_DETAIL) trackAmbitions(s, t, ambSeen);
       if (t % EVERY === 0 || t === TURNS || s.gameStatus !== GameStatus.ACTIVE) {
         // The game ending early (a passive France falls to a siege around turn 100) still prints a
         // final snapshot with its real status, not the last round number's.
@@ -324,6 +341,7 @@ SEEDS.forEach((seed) => {
     const km = kaplanMeier(lives, checkpoints());
     const survival = Object.fromEntries(checkpoints().map((c) => [`survivalT${c}`, +km.at[c].toFixed(3)]));
     console.log(`SUMMARY ${JSON.stringify({ seed, policy: POLICY, ...last, ...survival, medianNationLife: km.median })}`);
+    if (process.env.AMB_DETAIL) console.log(`AMB ${JSON.stringify({ seed, detail: ambitionDetail(ambSeen), player: Object.values(ambSeen).filter((e) => e.player).map((e) => `${e.id}@${e.age}:${e.turns ?? '-'}`) })}`);
     if (traceStream != null) fs.closeSync(traceStream);
     if (OUT_DIR) {
       const rep = telemetry.report(s);

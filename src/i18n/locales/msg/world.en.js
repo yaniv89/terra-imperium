@@ -72,6 +72,4 @@ export default {
   // the tutorial (tutorial.js) and old saves (saveMigrations.js)
   'm.world.tutorialDone': 'The guide ends: every step done. Egypt is yours.',
   'm.world.tutorialEnds': 'The guide ends after {turns} turns with {done} of {total} steps done. The next prompt keeps pointing at what wants a decision.',
-  'm.world.mapSimplified': 'The map was simplified: small provinces were merged into larger regions ({from} provinces became {to} regions).{split}',
-  'm.world.mapSplitOwners': ' {n} merged regions had more than one owner and went to the one holding most of their people.',
 };

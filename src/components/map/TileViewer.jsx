@@ -12,7 +12,10 @@ import { loadTiles } from '../../data/geo/tiles';
 import { hexSizeVsF75 } from '../../data/geo/gridScale';
 import { buildTerritories, buildBorders, buildHexMesh, cellFeature } from '../../data/geo/tileGeometry';
 import { buildScenarioStarts, SCENARIOS, SCENARIO_IDS, DEFAULT_SCENARIO_ID } from '../../data/scenarios';
-import { WORLD_NATIONS } from '../../data/worldNations';
+import countriesMeta from '../../data/geo/countries-meta.json';
+
+// The prototype's owners are modern country ids: a stable colour per id, the name from the geo data.
+const countryColor = (id) => `hsl(${[...String(id)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7)}, 55%, 45%)`;
 import { loadLandFeatures } from '../../data/geo/loadWorldFeatures';
 import { worldRasterUrl, worldRasterSizeFor, withAlpha } from '../../data/geo/worldRaster';
 
@@ -122,7 +125,7 @@ const TileViewer = () => {
               {rasterRect && <image href={worldRasterUrl(worldRasterSizeFor(width, height))} x={rasterRect.x} y={rasterRect.y} width={rasterRect.width} height={rasterRect.height} preserveAspectRatio="none" />}
               <g clipPath={landPath ? 'url(#land-clip)' : undefined} data-testid="territories">
                 {territoryPaths.map(({ owner, d }) => d && (
-                  <path key={owner} d={d} fill={withAlpha(WORLD_NATIONS[owner]?.color || '#888888', POLITICAL_ALPHA)} stroke="none" />
+                  <path key={owner} d={d} fill={withAlpha(countryColor(owner), POLITICAL_ALPHA)} stroke="none" />
                 ))}
                 {borderPath && <path d={borderPath} fill="none" stroke="rgba(10,10,20,0.75)" strokeWidth={1.2 / k} strokeLinejoin="round" strokeLinecap="round" />}
               </g>
@@ -136,9 +139,9 @@ const TileViewer = () => {
                 const r = (i === 0 ? 4 + size * 0.5 : 3 + size * 0.4) / Math.sqrt(k);
                 return (
                   <g key={`${nationId}-${tile}`} transform={`translate(${x},${y})`} pointerEvents="none">
-                    <circle r={r} fill={i === 0 ? '#f8fafc' : '#e2e8f0'} stroke={WORLD_NATIONS[nationId]?.color || '#000'} strokeWidth={2 / Math.sqrt(k)} />
-                    {i === 0 && <circle r={r * 0.35} fill={WORLD_NATIONS[nationId]?.color || '#000'} />}
-                    {k >= 4 && <text y={-r - 2 / k} textAnchor="middle" fontSize={11 / k} fill="#fff" stroke="rgba(0,0,0,0.7)" strokeWidth={2.5 / k} paintOrder="stroke">{i === 0 ? (WORLD_NATIONS[nationId]?.name || nationId) : (tiles.names[tile] || '')}</text>}
+                    <circle r={r} fill={i === 0 ? '#f8fafc' : '#e2e8f0'} stroke={countryColor(nationId)} strokeWidth={2 / Math.sqrt(k)} />
+                    {i === 0 && <circle r={r * 0.35} fill={countryColor(nationId)} />}
+                    {k >= 4 && <text y={-r - 2 / k} textAnchor="middle" fontSize={11 / k} fill="#fff" stroke="rgba(0,0,0,0.7)" strokeWidth={2.5 / k} paintOrder="stroke">{i === 0 ? (countriesMeta[nationId]?.name || nationId) : (tiles.names[tile] || '')}</text>}
                   </g>
                 );
               }))}
@@ -153,8 +156,8 @@ const TileViewer = () => {
             <div>{sel.terrain}{sel.relief !== 'flat' ? `, ${sel.relief}` : ''}{sel.feature !== 'none' ? `, ${sel.feature}` : ''}</div>
             {sel.climate && <div>Climate {sel.climate} · {sel.elevation} m</div>}
             {sel.river && <div>River: {sel.river}</div>}
-            {sel.country && <div>Modern country: {WORLD_NATIONS[sel.country]?.name || sel.country}</div>}
-            {sel.owner && <div>Claimed by {WORLD_NATIONS[sel.owner]?.name || sel.owner}</div>}
+            {sel.country && <div>Modern country: {countriesMeta[sel.country]?.name || sel.country}</div>}
+            {sel.owner && <div>Claimed by {countriesMeta[sel.owner]?.name || sel.owner}</div>}
           </div>
         )}
       </div>

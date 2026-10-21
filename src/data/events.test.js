@@ -4,7 +4,7 @@ import { START_YEAR, END_YEAR, AGE_ORDER, AGES } from './ages';
 import { getTechsForAge } from './techTree';
 import { EVENT_CHAINS } from './eventChains';
 import { REGIONS_DATA, getNationCapital } from './regions';
-import { WORLD_NATIONS } from './worldNations';
+import countriesMeta from './geo/countries-meta.json';
 
 // World events (plan §9.5 Layer 1) fire for anyone; curated national flavor (Layer 3) only fires
 // for its own specific nationId. Several invariants below only make sense for one or the other.
@@ -269,7 +269,7 @@ describe('HISTORICAL_EVENTS data integrity', () => {
         nationArrayFields.forEach(field => {
           if (!effects[field]) return;
           const ids = Array.isArray(effects[field]) ? effects[field] : [effects[field]];
-          ids.forEach(id => expect(WORLD_NATIONS[id], `${event.id}'s ${field} references unknown nation "${id}"`).toBeDefined());
+          ids.forEach(id => expect(countriesMeta[id], `${event.id}'s ${field} references unknown nation "${id}"`).toBeDefined());
         });
         regionArrayFields.forEach(field => {
           if (!effects[field]) return;
@@ -282,7 +282,7 @@ describe('HISTORICAL_EVENTS data integrity', () => {
         });
         if (effects.nationHostility) {
           Object.keys(effects.nationHostility).forEach(id =>
-            expect(WORLD_NATIONS[id], `${event.id}'s nationHostility references unknown nation "${id}"`).toBeDefined());
+            expect(countriesMeta[id], `${event.id}'s nationHostility references unknown nation "${id}"`).toBeDefined());
         }
       });
     });

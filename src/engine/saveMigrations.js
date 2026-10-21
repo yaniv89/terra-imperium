@@ -14,11 +14,8 @@
 //   load, after any numbered migrations, so a save from a build that's only a few commits behind
 //   (no migration needed yet) still gets any new field for free.
 import { createInitialState } from './gameReducer';
-import { getNationCapital, REGIONS_DATA } from '../data/regions';
-import { conquerRegion } from './conquest';
 import { initFog, reviveFog, repairOwnMemory } from './fog';
 import { keepWorldRegistry } from './world/registry';
-import { msg, sub } from './messages';
 import { AGES, AGE_ORDER, FIRST_AGE_ID, LAST_AGE_ID, getAgeIndex } from '../data/ages';
 import { TECH_TREE } from '../data/techTree';
 import { withAgesResearched, inResearchWindow } from './research';
@@ -47,206 +44,6 @@ export const OLDEST_LOADABLE_SAVE_VERSION = 10;
 // The first version of the tile world: older saves are the province map ('tooOld'), newer ones up
 // to OLDEST_LOADABLE_SAVE_VERSION a coarser hex grid ('oldGrid').
 export const FIRST_TILE_SAVE_VERSION = 7;
-
-// M2 replaced the single `resources.actionPoints` pool (and the separate `diplomacyPoints`
-// currency) with three power pools, `adm`/`dip`/`mil` — plain backfill can't invent this
-// conversion since it only fills keys that are MISSING, and it would otherwise hand a v1 save
-// fresh-game defaults (3 each) for a currency the player may have banked a large amount of.
-// Old base was 5/turn banked to a 2x cap (10); new base is 3/turn per pool banked to 2x (6) — the
-// ratio 3/5 carries a banked balance over proportionally rather than resetting it to the new
-// base. diplomacyPoints folds into dip on top, 1:1, matching how the two currencies now share one
-// pool going forward.
-const migrate1to2 = (state) => {
-  // Bug fix: saves were written with an envelope version of 1 long after the state moved to the
-  // power pools, so this migration ran on EVERY load of a current save and zeroed ADM/DIP/MIL (and
-  // their per-turn income). A state that already has the pools and no actionPoints is not a v1
-  // save, whatever its envelope says — pass it through untouched.
-  const r = state.resources || {};
-  if (r.actionPoints === undefined && Number.isFinite(r.adm) && Number.isFinite(r.dip) && Number.isFinite(r.mil)) return state;
-  // eslint-disable-next-line no-unused-vars -- destructured only to omit it from restResources; the new maxAdm/maxDip/maxMil below replace it
-  const { actionPoints, maxActionPoints, diplomacyPoints, ...restResources } = state.resources || {};
-  const perPool = Math.max(0, Math.round((actionPoints || 0) * 3 / 5));
-  return {
-    ...state,
-    resources: {
-      ...restResources,
-      adm: perPool,
-      mil: perPool,
-      dip: perPool + (diplomacyPoints || 0),
-      maxAdm: perPool,
-      maxMil: perPool,
-      maxDip: perPool
-    }
-  };
-};
-
-// M8 replaced the flat 10-id `nation.government` string with `{ type, reforms }` (plain backfill
-// can't invent this — a string isn't a plain object, so deepFillMissing would otherwise silently
-// discard which government the nation had adopted and hand it a fresh `tribal` default instead, see
-// backfillDefaults' NATION_IDENTITY_KEYS comment on exactly this failure mode) and replaced the
-// shared `policies[]` slot pool with `laws`/`lawCooldowns` (new keys plain backfill handles fine on
-// its own, since they're entirely ABSENT rather than reshaped — only `government`'s reshape and
-// `policies`' removal need a real conversion here).
-const GOVERNMENT_TYPE_MIGRATION = {
-  tribal: 'tribal', monarchy: 'monarchy', feudal: 'monarchy', empire: 'monarchy',
-  absolutist: 'monarchy', constitutional: 'monarchy',
-  republic: 'republic', democracy: 'republic', federation: 'republic',
-  autocracy: 'dictatorship'
-};
-
-const migrate2to3 = (state) => {
-  const nations = {};
-  Object.entries(state.nations || {}).forEach(([id, nation]) => {
-    // eslint-disable-next-line no-unused-vars -- destructured only to omit the deleted field
-    const { policies, ...rest } = nation;
-    const oldGovernmentId = typeof nation.government === 'string' ? nation.government : null;
-    nations[id] = { ...rest, government: { type: GOVERNMENT_TYPE_MIGRATION[oldGovernmentId] || 'tribal', reforms: {} } };
-  });
-  // Refund the player's spent ADM for every repealed policy (plan §M8.2's own migration note),
-  // matching CHANGE_LAW/ENACT_GOVERNMENT_REFORM's 80-100 ADM price range rather than the old flat
-  // gold cost policies used to have.
-  const playerPolicyCount = (state.nations?.[state.playerNationId]?.policies || []).length;
-  const resources = playerPolicyCount ? { ...state.resources, adm: (state.resources?.adm || 0) + playerPolicyCount * 80 } : state.resources;
-  return { ...state, nations, resources };
-};
-
-// M10 replaced the old flat, globally-unique `wondersBuilt`/`nation.wonders[]` with Great Projects
-// (src/data/greatProjects.js), whose ownership is derived from the site region's owner rather than
-// stored — see that file's header comment. Each old wonder maps to its matching project at tier 1,
-// sited at the builder's own capital (plan's own migration note); `getNationCapital` is the same
-// static-REGIONS_DATA lookup gameReducer.js already uses elsewhere, independent of who owns that
-// region NOW, matching "where they built it" rather than "who holds it today".
-const WONDER_TO_PROJECT = {
-  pyramids: 'great_pyramids',
-  greatLibrary: 'great_library',
-  grandBazaar: 'grand_bazaar',
-  royalObservatory: 'royal_observatory',
-  spaceProgram: 'space_program'
-};
-
-const migrate3to4 = (state) => {
-  const greatProjects = { ...state.greatProjects };
-  const nations = {};
-  Object.entries(state.nations || {}).forEach(([id, nation]) => {
-    const { wonders, ...rest } = nation;
-    (wonders || []).forEach((wonderId) => {
-      const projectId = WONDER_TO_PROJECT[wonderId];
-      if (!projectId || greatProjects[projectId]) return; // already claimed — wondersBuilt was global-unique, so this is only a defensive guard
-      const regionId = getNationCapital(id);
-      if (regionId) greatProjects[projectId] = { regionId, tier: 1 };
-    });
-    nations[id] = rest;
-  });
-  // eslint-disable-next-line no-unused-vars -- destructured only to omit the deleted top-level field
-  const { wondersBuilt, ...restState } = state;
-  return { ...restState, nations, greatProjects };
-};
-
-// v5: land is taken by force now (src/engine/conquest.js) — a region won in battle changes owner on
-// the spot instead of sitting "occupied" until a peace deal. An occupation in a war that is still
-// running becomes the conquest it would have been; anything else (a civil war's insurgent, a stale
-// marker from a war that already ended) is left alone.
-const migrate4to5 = (state) => {
-  let regions = state.regions;
-  let nations = state.nations;
-  const liveWars = (state.wars || []).filter((w) => w.active);
-  Object.values(state.regions).forEach((region) => {
-    const taker = region.occupiedBy;
-    if (!taker || taker === region.owner) return;
-    const war = liveWars.find((w) => (w.aggressor === taker && w.enemy === region.owner) || (w.enemy === taker && w.aggressor === region.owner));
-    if (!war || !nations[taker]) return;
-    ({ regions, nations } = conquerRegion({ regions, nations, turnNumber: state.turnNumber }, region.id, taker, war));
-  });
-  // Battle settings split in v5: the old single `defaultMode: 'auto'` also silently skipped the
-  // choice for the player's OWN attacks (the "manual battle disappeared" report). Everyone starts
-  // v5 being asked; auto-resolving enemy assaults is now its own explicit `autoDefend` opt-in.
-  const battleSettings = { defaultMode: 'ask', autoDefend: false };
-  return { ...state, regions, nations, battleSettings };
-};
-
-// v6: the balanced map (scripts/geo/build-balanced-regions.mjs). 2,454 of the 4,482 admin-1
-// provinces were merged into larger regions of the same country (REGION_MERGE: old id -> new id).
-// Each new region is combined from its old members: the owner and other single values from the
-// most populous member, population and development summed, control/unrest/devastation weighted
-// by population, built levels and buildings at the best member's tier, flags OR-ed. Every other
-// mention of an old id anywhere in the save (units, wars, battles, capitals, reports) is renamed,
-// and each nation's starting province count (the overextension reference) shrinks in proportion.
-const SUMMED = new Set(['currentPopulation']);
-const WEIGHTED = new Set(['control', 'unrest', 'devastation']);
-const MAXED = new Set(['currentInfrastructure', 'defenseLevel', 'climateResilience', 'lastAttackedTurn', 'integratingUntil', 'lastBattleTurn']);
-const ORED = new Set(['underInvasion']);
-
-export const combineRegions = (newId, members) => {
-  if (members.length === 1) return { ...members[0], id: newId };
-  const pop = (r) => Math.max(0, r.currentPopulation || 0);
-  const dominant = [...members].sort((a, b) => pop(b) - pop(a) || (a.id < b.id ? -1 : 1))[0];
-  const totalPop = members.reduce((sum, r) => sum + pop(r), 0);
-  const out = { ...dominant, id: newId };
-  Object.keys(dominant).forEach((key) => {
-    const values = members.map((r) => r[key]).filter((v) => v !== undefined && v !== null);
-    if (SUMMED.has(key)) out[key] = values.reduce((a, b) => a + b, 0);
-    else if (WEIGHTED.has(key)) out[key] = totalPop > 0 ? members.reduce((sum, r) => sum + (r[key] || 0) * pop(r), 0) / totalPop : values.reduce((a, b) => a + b, 0) / Math.max(1, values.length);
-    else if (MAXED.has(key)) out[key] = Math.max(...values);
-    else if (ORED.has(key)) out[key] = values.some(Boolean);
-  });
-  if (dominant.dev) {
-    out.dev = {};
-    members.forEach((r) => Object.entries(r.dev || {}).forEach(([k, v]) => { out.dev[k] = (out.dev[k] || 0) + (v || 0); }));
-  }
-  if (dominant.buildings) {
-    const categories = {};
-    const extraction = {};
-    members.forEach((r) => {
-      Object.entries(r.buildings?.categories || {}).forEach(([k, tier]) => { categories[k] = Math.max(categories[k] ?? -1, tier); });
-      Object.entries(r.buildings?.extraction || {}).forEach(([k, on]) => { extraction[k] = !!(extraction[k] || on); });
-    });
-    out.buildings = { ...dominant.buildings, categories, extraction };
-  }
-  return out;
-};
-
-const renameIds = (value, map) => {
-  if (typeof value === 'string') return map[value] || value;
-  if (Array.isArray(value)) return value.map((v) => renameIds(v, map));
-  if (isPlainObject(value)) {
-    const out = {};
-    Object.entries(value).forEach(([k, v]) => {
-      const key = map[k] || k;
-      if (key in out) return; // two old ids now one: keep the first entry
-      out[key] = renameIds(v, map);
-    });
-    return out;
-  }
-  return value;
-};
-
-const migrate5to6 = (state) => {
-  const map = {}; // the region merge table is gone with the tile world; this step is unreachable
-  const groups = {};
-  Object.entries(state.regions || {}).forEach(([oldId, region]) => {
-    (groups[map[oldId] || oldId] ||= []).push({ ...region, id: region.id || oldId });
-  });
-  const regions = {};
-  let splitOwners = 0;
-  Object.entries(groups).forEach(([newId, members]) => {
-    if (new Set(members.map((m) => m.owner)).size > 1) splitOwners += 1;
-    regions[newId] = combineRegions(newId, members);
-  });
-  // Starting province counts: new count / old count per start owner.
-  const newCount = {}; const mergedAway = {};
-  Object.values(REGIONS_DATA).forEach((r) => { newCount[r.startOwner] = (newCount[r.startOwner] || 0) + 1; });
-  Object.values(map).forEach((newId) => { const o = REGIONS_DATA[newId]?.startOwner; if (o) mergedAway[o] = (mergedAway[o] || 0) + 1; });
-  const { regions: _old, logs = [], ...rest } = state; // eslint-disable-line no-unused-vars
-  const renamed = renameIds(rest, map);
-  const nations = {};
-  Object.entries(renamed.nations || {}).forEach(([id, n]) => {
-    const before = (newCount[id] || 0) + (mergedAway[id] || 0);
-    const ratio = before > 0 ? (newCount[id] || 0) / before : 1;
-    nations[id] = typeof n.startRegionCount === 'number' && ratio < 1 ? { ...n, startRegionCount: Math.max(1, Math.round(n.startRegionCount * ratio)) } : n;
-  });
-  const note = { year: state.year, type: 'event', ...msg('m.world.mapSimplified', { from: Object.keys(state.regions || {}).length, to: Object.keys(regions).length, split: splitOwners ? sub('m.world.mapSplitOwners', { n: splitOwners }) : '' }) };
-  return { ...renamed, nations, regions, logs: [...logs, note] };
-};
 
 // v11: succession and the noble estates were removed (master plan decision 37). A nation drops its
 // heir, estates, crown land and estate cooldowns; its ruler drops the consort (and the claim or
@@ -434,9 +231,9 @@ export const migrate18to19 = (state) => {
   return { ...state, nations, resources: dropPools(state.resources) };
 };
 
-// Versions 6 to 9 are never migrated (an older grid, a clean break: OLDEST_LOADABLE_SAVE_VERSION).
+// Versions 1 to 9 are never migrated (the province map or an older grid, a clean break: OLDEST_LOADABLE_SAVE_VERSION).
 
-const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6, 10: migrate10to11, 11: migrate11to12, 12: migrate12to13, 13: migrate13to14, 14: migrate14to15, 15: migrate15to16, 16: migrate16to17, 17: migrate17to18, 18: migrate18to19 };
+const MIGRATIONS = { 10: migrate10to11, 11: migrate11to12, 12: migrate12to13, 13: migrate13to14, 14: migrate14to15, 15: migrate15to16, 16: migrate16to17, 17: migrate17to18, 18: migrate18to19 };
 
 // Plain objects only: the fog's packed arrays (TileBits, TileInts) are class instances and are
 // never merged key by key.

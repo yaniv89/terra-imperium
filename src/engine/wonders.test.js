@@ -2,11 +2,11 @@
 import { describe, it, expect } from 'vitest';
 import { productionCost } from './world/cities';
 import { speedCostMult } from '../data/ages';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
+import { peoplesWorld, majorIds, rivalOf, cap } from './testWorld';
 import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
-import { getNationCapital } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
 import { tileFacts } from '../data/tileYields';
 import { GREAT_PROJECTS, getGreatProjectOwner } from '../data/greatProjects';
@@ -18,44 +18,42 @@ const play = (s) => { let x = s; if (x.pendingPeaceOffer) x = gameReducer(x, { t
 describe('wonders as tiles', () => {
   it('every project has a tile rule; sites are border tiles that fit', () => {
     Object.keys(GREAT_PROJECTS).forEach((id) => expect(WONDER_TILE_RULE[id]).toBeTruthy());
-    const s = createInitialState({ playerNationId: 'eg', rngSeed: 3 });
-    const cap = s.regions[getNationCapital('eg')];
+    const s = peoplesWorld({ player: 'kemet', seed: 3, age: 'bronze' });
+    const home = s.regions[cap('kemet')];
     const tiles = getTiles();
-    const sites = wonderSites(s, cap, 'great_pyramids');
-    sites.forEach((t) => { expect(cap.tiles).toContain(t); expect(t).not.toBe(cap.tile); expect(wonderTileRule('great_pyramids').ok(tileFacts(tiles, t, {}))).toBe(true); });
+    const sites = wonderSites(s, home, 'great_pyramids');
+    sites.forEach((t) => { expect(home.tiles).toContain(t); expect(t).not.toBe(home.tile); expect(wonderTileRule('great_pyramids').ok(tileFacts(tiles, t, {}))).toBe(true); });
     expect(wonderCost(1)).toBe(4 * WONDER_PRODUCTION_PER_TURN);
   });
 
   it('each Stone wonder can be queued at some capital', () => {
-    const ids = ['eg', 'fr', 'cn', 'in', 'gb', 'de', 'ir', 'br'];
+    const s = peoplesWorld({ seed: 3 });
+    const ids = majorIds(s);
     ['stonehenge', 'catalhoyuk', 'walls_of_jericho', 'white_temple_of_uruk'].forEach((pid) => {
       expect(GREAT_PROJECTS[pid].ageId).toBe('stone');
-      const ok = ids.some((n) => {
-        const s = createInitialState({ playerNationId: n, rngSeed: 3 });
-        return canQueueWonder(s, s.regions[getNationCapital(n)], pid, 1).ok;
-      });
+      const ok = ids.some((n) => canQueueWonder(s, s.regions[cap(n)], pid, 1, n).ok);
       expect(ok, pid).toBe(true);
     });
   });
 
   it('a capital queues the Pyramids on a desert tile, builds them from production, gains prestige, and raises the tier on the same tile', () => {
-    let s = quiet(createInitialState({ playerNationId: 'eg', rngSeed: 3 }));
-    const capId = getNationCapital('eg');
-    const cap = s.regions[capId];
-    const can = canQueueWonder(s, cap, 'great_pyramids', 1);
-    if (!can.ok) { expect(can.reason).toMatch(/desert|rule/); return; } // Egypt's start has no desert in its first ring on this seed
-    expect(wonderOptions(s, cap).some((w) => w.projectId === 'great_pyramids')).toBe(true);
+    let s = quiet(peoplesWorld({ player: 'kemet', seed: 3, age: 'bronze' }));
+    const capId = cap('kemet');
+    const home = s.regions[capId];
+    const can = canQueueWonder(s, home, 'great_pyramids', 1);
+    if (!can.ok) { expect(can.reason).toMatch(/desert|rule/); return; } // Kemet's start has no desert in its first ring on this seed
+    expect(wonderOptions(s, home).some((w) => w.projectId === 'great_pyramids')).toBe(true);
     s = gameReducer(s, { type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId: capId, item: { kind: 'wonder', projectId: 'great_pyramids', tier: 1 } } });
     expect(s.regions[capId].production.current).toMatchObject({ kind: 'wonder', projectId: 'great_pyramids', tier: 1, tile: can.tile });
     expect(canQueueWonder(s, s.regions[capId], 'great_pyramids', 1).reason).toMatch(/queue/);
-    const prestige = s.nations.eg.prestige || 0;
+    const prestige = s.nations.kemet.prestige || 0;
     s = { ...s, regions: { ...s.regions, [capId]: { ...s.regions[capId], production: { ...s.regions[capId].production, progress: 10000 } } } };
     s = play(s);
     expect(s.greatProjects.great_pyramids).toEqual({ regionId: capId, tier: 1, tile: can.tile });
     expect(s.world.tileState[can.tile].wonder).toBe('great_pyramids');
-    expect(getGreatProjectOwner(s, 'great_pyramids')).toBe('eg');
-    expect(s.nations.eg.prestige).toBeGreaterThan(prestige);
-    expect(s.nations.eg.ruler.decreeLog.filter((e) => e.deed === 'wonder' && e.detail === 'great_pyramids')).toHaveLength(1); // a wonder is a deed (decrees.js)
+    expect(getGreatProjectOwner(s, 'great_pyramids')).toBe('kemet');
+    expect(s.nations.kemet.prestige).toBeGreaterThan(prestige);
+    expect(s.nations.kemet.ruler.decreeLog.filter((e) => e.deed === 'wonder' && e.detail === 'great_pyramids')).toHaveLength(1); // a wonder is a deed (decrees.js)
     expect(s.logs.some((l) => /Pyramids .*stands at/.test(l.message))).toBe(true);
     const up = canQueueWonder(s, s.regions[capId], 'great_pyramids', 2);
     expect(up).toMatchObject({ ok: true, tile: can.tile });
@@ -66,12 +64,14 @@ describe('wonders as tiles', () => {
 
 describe('AI wonders (plan C9)', () => {
   it('an AI city may queue a wonder as its owner and never as the player', async () => {
-    const s = createInitialState({ playerNationId: 'fr', rngSeed: 3 });
-    const giza = s.regions[getNationCapital('eg')];
+    const s = peoplesWorld({ seed: 3, age: 'bronze' });
+    const builder = majorIds(s).slice(1).find((n) => canQueueWonder(s, s.regions[cap(n)], 'great_pyramids', 1, n).ok); // a rival whose capital has desert in its border
+    expect(builder).toBeTruthy();
+    const giza = s.regions[cap(builder)];
     expect(canQueueWonder(s, giza, 'great_pyramids').ok).toBe(false);
-    const can = canQueueWonder(s, giza, 'great_pyramids', 1, 'eg');
+    const can = canQueueWonder(s, giza, 'great_pyramids', 1, builder);
     expect(can.ok).toBe(true);
-    expect(wonderOptions(s, giza, 'eg').some((o) => o.projectId === 'great_pyramids')).toBe(true);
+    expect(wonderOptions(s, giza, builder).some((o) => o.projectId === 'great_pyramids')).toBe(true);
     const { chooseProduction, WONDER_MIN_PRODUCTION, WONDER_THINK_PERIOD } = await import('./aiProduction');
     const rich = { ...giza, lastYields: { ...(giza.lastYields || {}), production: WONDER_MIN_PRODUCTION * 3 }, buildings: { ...giza.buildings, categories: Object.fromEntries(['food', 'economy', 'culture', 'science', 'industry', 'military', 'logistics', 'defense', 'naval'].map((c) => [c, 9])) }, production: { current: null, queue: [], progress: 0 } };
     const turn = [...Array(WONDER_THINK_PERIOD).keys()].find((t) => (t + rich.tile) % WONDER_THINK_PERIOD === 0);
@@ -82,24 +82,25 @@ describe('AI wonders (plan C9)', () => {
     expect(chooseProduction({ ...s, regions: { ...s.regions, [giza.id]: rich } }, rich, { ...ctx, turnNumber: turn + 1 })?.kind).not.toBe('wonder');
   });
   it('a wonder built elsewhere is dropped from a queue with its production banked, and a same-turn race goes to the first city', () => {
-    const s0 = quiet(createInitialState({ playerNationId: 'fr', rngSeed: 3 }));
-    const paris = s0.regions[getNationCapital('fr')];
+    const s0 = quiet(peoplesWorld({ seed: 3, age: 'classical' }));
+    const rival = rivalOf(s0);
+    const paris = s0.regions[cap(s0.playerNationId)];
     const site = wonderSites(s0, paris, 'colosseum')[0] ?? wonderSites(s0, paris, 'great_pyramids')[0];
     const projectId = wonderSites(s0, paris, 'colosseum')[0] != null ? 'colosseum' : 'great_pyramids';
     const cost = wonderCost(1);
-    const due = productionCost({ kind: 'wonder', cost }, { speedMult: speedCostMult(s0.gameSpeed, 'classical') }); // what the queue charges at this speed (ages.js speed table)
-    const queued = { ...paris, production: { current: { kind: 'wonder', projectId, tier: 1, tile: site, cost }, queue: [], progress: due - 1 } };
-    const elsewhere = { ...s0, age: 'classical', regions: { ...s0.regions, [paris.id]: queued }, greatProjects: { [projectId]: { regionId: getNationCapital('de'), tier: 1, tile: null } } };
+    const due = productionCost({ kind: 'wonder', cost }, { ageId: 'classical', speedMult: speedCostMult(s0.gameSpeed, 'classical') }); // what the queue charges at this speed (ages.js speed table)
+    const queued = { ...paris, production: { current: { kind: 'wonder', projectId, tier: 1, tile: site, cost }, queue: [], progress: due } };
+    const elsewhere = { ...s0, regions: { ...s0.regions, [paris.id]: queued }, greatProjects: { [projectId]: { regionId: cap(rival), tier: 1, tile: null } } };
     const next = play(elsewhere);
-    expect(next.greatProjects[projectId].regionId).toBe(getNationCapital('de'));
+    expect(next.greatProjects[projectId].regionId).toBe(cap(rival));
     expect(next.regions[paris.id].production.current).toBeNull();
     expect(next.regions[paris.id].production.progress).toBe(50); // banked, then capped as an idle city's bank
     expect(next.world.tileState[site]?.wonder).toBeUndefined();
     // The race: two cities complete the same wonder this turn; the lower id keeps it.
-    const berlin = s0.regions[getNationCapital('de')];
+    const berlin = s0.regions[cap(rival)];
     const bSite = wonderSites(s0, berlin, projectId)[0];
     if (bSite == null) return;
-    const both = { ...s0, age: 'classical', regions: { ...s0.regions, [paris.id]: queued, [berlin.id]: { ...berlin, production: { current: { kind: 'wonder', projectId, tier: 1, tile: bSite, cost }, queue: [], progress: due } } } };
+    const both = { ...s0, regions: { ...s0.regions, [paris.id]: queued, [berlin.id]: { ...berlin, production: { current: { kind: 'wonder', projectId, tier: 1, tile: bSite, cost }, queue: [], progress: due } } } };
     const raced = play(both);
     const winner = [paris.id, berlin.id].sort()[0];
     expect(raced.greatProjects[projectId].regionId).toBe(winner);

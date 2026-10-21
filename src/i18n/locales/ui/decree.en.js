@@ -1,0 +1,28 @@
+// src/i18n/locales/ui/decree.en.js
+// UI text: the ruler's decrees (differentiation plan U9, U10): the deeds that earn one, the acts that spend one, the top bar sheet.
+export default {
+  'decree.deed.ambition': 'Ambition fulfilled',
+  'decree.deed.warWon': 'War won',
+  'decree.deed.eraGoal': 'Era goal met',
+  'decree.deed.wonder': 'Wonder completed',
+  'decree.deed.trickle': 'Quiet years at court',
+  'decree.deed.doctrine': 'Starting doctrine',
+  'decree.act.declareWarJustified': 'Declare a justified war',
+  'decree.act.demand': 'Make a demand',
+  'decree.act.fabricateClaim': 'Fabricate a claim',
+  'decree.act.militaryAlliance': 'Form a military alliance',
+  'decree.act.proposeMarriage': 'Propose a royal marriage',
+  'decree.act.vassalize': 'Make a vassal',
+  'decree.act.annexVassal': 'Annex a vassal',
+  'decree.act.changeGovernmentType': 'Change the government',
+  'decree.act.enactGovernmentReform': 'Enact a government reform',
+  'decree.act.moveCapital': 'Move the capital',
+  'decree.act.shiftIdentity': 'Shift the national identity',
+  'decree.act.changeLaw': 'Change a law',
+  'decree.act.increaseStability': 'Raise stability',
+  'decree.act.reshapeRuler': 'Reshape the ruler',
+  'topbar.decreeAria': 'Decrees {value} of {cap}. Tap for why, and what they buy',
+  'topbar.decreeTitle': 'Decrees {value} of {cap}',
+  'topbar.decreeHow': 'Decrees come from deeds: a war won, an era goal, a wonder, an ambition. A quiet court adds one now and then, only while you hold fewer than {below}. The bank holds {cap}.',
+  'topbar.decreeCost': 'Costs {n}: {list}.',
+};

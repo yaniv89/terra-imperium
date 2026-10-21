@@ -29,6 +29,8 @@ import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { BOOSTS } from '../data/boosts';
 import { PEOPLES_LIST } from '../data/peoples';
+import { AMBITION_TEMPLATES } from '../data/ambitions';
+import { HISTORICAL_AMBITIONS } from '../data/ambitionsByPeople';
 import { GOVERNMENT_TITLES, titleFor } from '../data/nationTitles';
 import { HE_PERSONS } from './locales/data/he.names';
 
@@ -70,6 +72,9 @@ describe('Hebrew game data covers every id', () => {
     Object.entries(UNIT_ROSTER).forEach(([age, classes]) => Object.keys(classes).forEach((c) => need(`unit.${age}.${c}`)));
     Object.keys(NAVAL_LINES).forEach((line) => { need(`naval.${line}`); need(`naval.${line}.role`); Object.keys(NAVAL_LINES[line].names).forEach((age) => need(`navalship.${line}.${age}`)); });
     Object.keys(SIGNATURE_UNITS).forEach((id) => need(`sig.${id}`));
+  });
+  it('ambitions: every template and every historical one', () => {
+    [...Object.keys(AMBITION_TEMPLATES), ...Object.values(HISTORICAL_AMBITIONS).map((a) => a.id)].forEach((id) => { need(`ambition.${id}`); expect(he[`ambition.${id}`], id).not.toMatch(LATIN); });
   });
   it('events: every historical event, chain event and procedural template', () => {
     [...Object.values(HISTORICAL_EVENTS), ...Object.values(EVENT_CHAINS)].forEach((e) => {

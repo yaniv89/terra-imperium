@@ -7,7 +7,7 @@ import { getCapital } from '../data/regions';
 
 // CB09 I122: a major at peace sends one scout to the nearest land it has not explored.
 describe('aiScouting', () => {
-  const base = createInitialState({ playerNationId: 'au', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11 } });
+  const base = createInitialState({ playerNationId: 'gunditjmara', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11 } });
   const major = Object.values(base.nations).find((n) => !n.isPlayer && !isIndependentNation(n) && Object.values(base.units).some((u) => u.ownerId === n.id && u.domain === 'land' && u.classId !== 'settler'));
   const cap = base.regions[getCapital(base, major.id)];
   // Two units in the capital so one can go.

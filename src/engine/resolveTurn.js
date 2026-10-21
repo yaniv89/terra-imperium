@@ -2,7 +2,6 @@ import { applyArmyDesertion, DESERTION_SHARE, DESERTION_MORALE } from './armyDes
 import { processAIAccords } from './aiAccords';
 import { advanceTutorial } from './tutorial';
 export { DESERTION_SHARE, DESERTION_MORALE, DESERTION_DISBAND_BELOW } from './armyDesertion';
-import { processEmergence } from './emergence';
 import { processLateArrivals, independentCityCtx } from './independents';
 import { forageCtx } from '../data/hearths';
 import { updateCamps } from './tribalCamps';
@@ -1274,8 +1273,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   }
   mark('victory');
 
-  next = reconcileTerritory(processColonies(processLateArrivals(processEmergence(next))));
-  mark('emergenceAndTerritory');
+  next = reconcileTerritory(processColonies(processLateArrivals(next)));
+  mark('territory');
   // Research last, once this turn's science has been credited (src/engine/research.js).
   next = applyResearchTurn(next);
   // The year label for the turn just resolved, from the player's research (the only writer).

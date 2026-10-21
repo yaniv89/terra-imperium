@@ -1,7 +1,6 @@
 // src/data/geo/cityFeatures.test.js
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../../engine/gameReducer';
-import { getNationCapital } from '../regions';
+import { peoplesWorld } from '../../engine/testWorld';
 import { loadLandFeatures } from './loadWorldFeatures';
 import { geoArea } from 'd3-geo';
 import { getCityFeatures, getNationTerritories, clipStats, cityAtLatLon, cityLatLon, getHexMesh } from './cityFeatures';
@@ -10,7 +9,7 @@ const ringArea = (ring) => { let a = 0; for (let i = 0, j = ring.length - 1; i <
 const area = (f) => f.geometry.coordinates.reduce((s, poly) => s + ringArea(poly[0]) - poly.slice(1).reduce((h, r) => h + ringArea(r), 0), 0);
 
 describe('city features from state', () => {
-  const state = createInitialState({ playerNationId: 'fr', rngSeed: 1 });
+  const state = peoplesWorld({ seed: 1 });
 
   it('gives every city a territory keyed by its id, cached by ownership identity', () => {
     const features = getCityFeatures(state);
@@ -23,13 +22,12 @@ describe('city features from state', () => {
     const land = await loadLandFeatures();
     const raw = Object.fromEntries(getCityFeatures(state).map((f) => [f.id, f]));
     const clipped = Object.fromEntries(getCityFeatures(state, land).map((f) => [f.id, f]));
-    // Tokyo's ring reaches into the Pacific: the clipped land is smaller than the hex blob.
-    const tokyo = getNationCapital('jp');
-    expect(area(clipped[tokyo])).toBeLessThan(area(raw[tokyo]) * 0.9);
-    expect(area(clipped[tokyo])).toBeGreaterThan(0);
-    // Every city keeps a territory, Malé (a one-tile island the coastline data is too coarse for) included.
+    // A coastal city's ring reaches into the sea: its clipped land is smaller than the hex blob.
+    const ids = Object.keys(raw);
+    expect(ids.some((id) => area(clipped[id]) < area(raw[id]) * 0.9)).toBe(true);
+    ids.forEach((id) => expect(area(clipped[id])).toBeGreaterThan(0));
+    // Every city keeps a territory, however small an island it sits on.
     expect(Object.keys(clipped).length).toBe(Object.keys(raw).length);
-    expect(clipped[getNationCapital('mv')]).toBeDefined();
     // d3 winding: every territory is a small patch of the sphere, never its complement.
     Object.values(clipped).forEach((f) => expect(geoArea(f), f.id).toBeLessThan(0.05));
     expect(getCityFeatures(state, land)).toBe(getCityFeatures(state, land));
@@ -37,10 +35,10 @@ describe('city features from state', () => {
 
   it('clips every territory to the coast without falling back to hex shapes', async () => {
     const land = await loadLandFeatures();
-    [['fr', 1], ['eg', 7], ['ru', 3]].forEach(([playerNationId, rngSeed]) => {
+    [['akkad', 1], ['shang', 7], ['caral', 3]].forEach(([player, seed]) => {
       clipStats.fallbacks = 0;
-      getCityFeatures(createInitialState({ playerNationId, rngSeed }), land);
-      expect(clipStats.fallbacks, `${playerNationId} ${rngSeed}`).toBe(0);
+      getCityFeatures(peoplesWorld({ player, seed }), land);
+      expect(clipStats.fallbacks, `${player} ${seed}`).toBe(0);
     });
   }, 60000);
 
@@ -53,9 +51,9 @@ describe('city features from state', () => {
   });
 
   it('finds the city under a point and the hex mesh over land', () => {
-    const paris = getNationCapital('fr');
-    const { lat, lng } = cityLatLon(state, paris);
-    expect(cityAtLatLon(state, lat, lng)).toBe(paris);
+    const home = state.nations[state.playerNationId].capitalRegionId;
+    const { lat, lng } = cityLatLon(state, home);
+    expect(cityAtLatLon(state, lat, lng)).toBe(home);
     expect(cityAtLatLon(state, 0, -30)).toBeNull(); // the Atlantic
     expect(getHexMesh().coordinates.length).toBeGreaterThan(10000);
   });

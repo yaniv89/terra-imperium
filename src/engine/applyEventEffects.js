@@ -5,7 +5,6 @@
 
 import { RelationStatus, LogTypes } from '../data/types';
 import { REGIONS_DATA } from '../data/regions';
-import { WORLD_NATIONS as NATIONS_DATA } from '../data/worldNations';
 import { RESOURCE_IDS } from '../data/resources';
 import { declareWar, isWarBetween, isAtWarWithPlayer, refreshWarFlags } from './diplomacy';
 import { clampStability, clampLegitimacy, clampPrestige } from './nationalPower';
@@ -20,7 +19,7 @@ import { grantRenown } from './renown';
 
 // The resources an option lacks, as a list of names ("gold, hr").
 const shortfallList = (ids) => ids.map((id) => thing('resource', id, id)).reduce((acc, r) => (acc === '' ? r : sub('m.world.listMore', { a: acc, b: r })), '');
-const nationRef = (next, nId) => people(nId, next.nations[nId]?.name || NATIONS_DATA[nId]?.name || nId);
+const nationRef = (next, nId) => people(nId, next.nations[nId]?.name || nId);
 
 // Plan §M17: "defenseBonus becomes a timed fort modifier" — the old value (0.05-0.1, meant as a
 // percentage under the pre-M6 combat model) is scaled onto the modifier engine's FLAT

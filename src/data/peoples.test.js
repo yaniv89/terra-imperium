@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PEOPLES, PEOPLES_LIST, PEOPLE_IDS, PINNED_PEOPLE_IDS, LEGACY_NATION_IDS, PEOPLE_REGIONS, peopleForNationId, countryOfNation, modernLandLine } from './peoples';
+import { PEOPLES, PEOPLES_LIST, PEOPLE_IDS, PINNED_PEOPLE_IDS, PEOPLE_REGIONS, countryOfNation, modernLandLine } from './peoples';
 import { getTiles } from './geo/tiles';
 import { spacedApart } from './scenarios';
 import { STYLE_NATIONS, STYLE_FALLBACK } from './architecture';
@@ -83,18 +83,6 @@ describe('the peoples pool (phase W0)', () => {
   it('every people has its own colour', () => {
     expect(new Set(PEOPLES_LIST.map((p) => p.color)).size).toBe(150);
     PEOPLES_LIST.forEach((p) => expect(p.color).toMatch(/^#[0-9a-f]{6}$/));
-  });
-
-  it('LEGACY_NATION_IDS maps every old country to a people of its land (or the nearest one)', () => {
-    const tiles = getTiles();
-    Object.keys(tiles.capitals).filter((id) => tiles.capitals[id] != null).forEach((id) => expect(PEOPLES[LEGACY_NATION_IDS[id]], id).toBeDefined());
-    expect(LEGACY_NATION_IDS.eg).toBe('kemet');
-    expect(LEGACY_NATION_IDS.il).toBe('israel');
-    expect(LEGACY_NATION_IDS.iq).toBe('akkad');
-    expect(PEOPLES[LEGACY_NATION_IDS.fr].land).toBe('fr');
-    expect(peopleForNationId('akkad')).toBe('akkad');
-    expect(peopleForNationId('eg')).toBe('kemet');
-    expect(peopleForNationId('nowhere')).toBeNull();
   });
 
   it('country tables read a people through its modern land', () => {

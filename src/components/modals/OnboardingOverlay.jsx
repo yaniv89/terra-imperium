@@ -7,7 +7,7 @@
 // system to build on, and a wrong reference to a moved element would be a worse failure mode
 // (pointing at nothing) than a plain, centered explanation card.
 import React, { useState } from 'react';
-import { Globe2, ScrollText, Landmark, Hammer, Swords, Trophy, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Globe2, Tent, ScrollText, Landmark, Hammer, Swords, Trophy, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useT } from '../../i18n/useT';
 
 // Plan §M21: rewritten to reflect the Paradox Overhaul (M1-M19), which replaced almost everything
@@ -17,7 +17,7 @@ import { useT } from '../../i18n/useT';
 // Triangle / "Diplomacy Has Teeth" military-counters card was dropped to make room for them — the
 // Military tab still shows each unit's counters directly, so a dedicated intro card for it is lower
 // priority than the mechanics that have no in-game explanation at all otherwise.
-const STEPS = [Globe2, ScrollText, Landmark, Hammer, Swords, Trophy].map((icon, i) => ({ icon, id: i + 1 })); // text: onb.<id>.title / onb.<id>.body
+const STEPS = [[Globe2, 1], [Tent, 7], [ScrollText, 2], [Landmark, 3], [Hammer, 4], [Swords, 5], [Trophy, 6]].map(([icon, id]) => ({ icon, id })); // text: onb.<id>.title / onb.<id>.body (7: the band start)
 
 const OnboardingOverlay = ({ onComplete }) => {
   const { t } = useT();

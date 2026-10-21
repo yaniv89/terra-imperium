@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { migrateSave, saveProblem, SAVE_PROBLEM_TEXT, backfillDefaults, CURRENT_SAVE_VERSION, OLDEST_LOADABLE_SAVE_VERSION } from './saveMigrations';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
 import { peoplesWorld } from './testWorld';
 import { ActionTypes } from '../data/types';
 import saveV1Fixture from './__fixtures__/save-v1.json';
@@ -20,7 +20,8 @@ const collectNumericLeaves = (value, out = []) => {
 
 describe('backfillDefaults', () => {
   it('refuses a save of the retired 240-country world, keeping it out of the game', () => {
-    const legacy = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+    // A legacy-shaped save: the same state without the peoples scenario the old 240-country start never had.
+    const { scenario, ...legacy } = peoplesWorld({ independents: true }); // eslint-disable-line no-unused-vars
     expect(migrateSave({ version: CURRENT_SAVE_VERSION, state: legacy })).toBeNull();
     expect(saveProblem({ version: CURRENT_SAVE_VERSION, state: legacy })).toBe('legacyWorld');
     expect(saveProblem({ version: CURRENT_SAVE_VERSION, state: peoplesWorld({ independents: true }) })).toBeNull();

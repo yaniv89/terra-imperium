@@ -13,5 +13,7 @@ import pnl1 from './ui/pnl1.en';
 import pnl2 from './ui/pnl2.en';
 import mapx from './ui/mapx.en';
 import misc2 from './ui/misc2.en';
+import decree from './ui/decree.en';
+import ruler from './ui/ruler.en';
 
-export default { ...hud, ...result, ...pre, ...left, ...nation, ...ind, ...misc, ...region, ...city, ...pnl1, ...pnl2, ...mapx, ...misc2 };
+export default { ...hud, ...result, ...pre, ...left, ...nation, ...ind, ...misc, ...region, ...city, ...pnl1, ...pnl2, ...mapx, ...misc2, ...decree, ...ruler };

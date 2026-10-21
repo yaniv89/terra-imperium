@@ -1,6 +1,7 @@
 // src/engine/mapTrade.test.js (playtest audit I116)
 import { describe, it, expect } from 'vitest';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
+import { peoplesWorld, rivalOf } from './testWorld';
 import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
@@ -15,11 +16,13 @@ import { AI_ACCORD_PERIOD } from './aiAccords';
 import { GAVE_US_MAP } from '../data/opinion';
 
 const quiet = (s) => ({ ...s, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { defaultMode: 'auto', autoDefend: true } });
-const S0 = quiet(createInitialState({ playerNationId: 'fr', rngSeed: 7 }));
-const S = { ...S0, resources: { ...S0.resources, gold: 5000, dip: 200 } };
-const me = 'fr';
-// A met people whose map and ours each hold something new for the other.
-const partner = metNations(S, me).filter((id) => mapGain(S, id, me).value >= 100 && mapGain(S, me, id).value >= 100).sort()[0];
+const S0 = quiet(peoplesWorld({ seed: 7 }));
+const me = S0.playerNationId;
+const partner = rivalOf(S0);
+// The peoples start has met nobody: the player and the first rival have met, and each holds its own homeland map (something new for the other).
+const met = { ...S0.fog.met, [me]: { ...S0.fog.met?.[me], [partner]: 1 }, [partner]: { ...S0.fog.met?.[partner], [me]: 1 } };
+const S = { ...S0, fog: { ...S0.fog, met }, resources: { ...S0.resources, gold: 5000, dip: 200 } };
+if (!(mapGain(S, partner, me).value >= 100 && mapGain(S, me, partner).value >= 100)) throw new Error('mapTrade fixture: the pair has nothing to trade');
 const withNation = (s, id, patch) => ({ ...s, nations: { ...s.nations, [id]: { ...s.nations[id], ...patch } } });
 const warWith = (s, id) => ({ ...s, wars: [...(s.wars || []), { id: 'w-test', aggressor: me, enemy: id, active: true, score: 0, startTurn: s.turnNumber }] });
 
@@ -41,7 +44,7 @@ describe('map trading: the quote', () => {
     const cold = withNation(S, partner, { hostility: 100 });
     expect(opinionOf(cold, partner, me)).toBeLessThan(-10);
     expect(mapTradeQuote(cold, partner).ok).toBe(false);
-    const open = createInitialState({ playerNationId: me, rngSeed: 7, fog: false });
+    const open = peoplesWorld({ seed: 7, fog: false });
     expect(mapTradeQuote(open, partner).ok).toBe(false);
   });
 

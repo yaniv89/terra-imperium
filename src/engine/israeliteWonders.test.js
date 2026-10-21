@@ -3,11 +3,12 @@
 // Masada (Classical) are built only by a city on Israel's land, on a tile of that land, and act on
 // their own city: culture and loyalty, siege HP and fort level.
 import { describe, it, expect } from 'vitest';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
+import { peoplesWorld, rivalOf, cap, cloneWorld } from './testWorld';
+import { syncWorldRegistry } from './world/registry';
 import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
-import { getNationCapital } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
 import { tileFacts } from '../data/tileYields';
 import { GREAT_PROJECTS, getGreatProjectOwner, cityWonderLines, cityWonderTotal } from '../data/greatProjects';
@@ -18,8 +19,17 @@ import { getRegionModifier, getRegionModifierTotals } from './modifiers/sheet';
 
 const quiet = (s) => ({ ...s, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
 const play = (s) => { let x = s; if (x.pendingPeaceOffer) x = gameReducer(x, { type: ActionTypes.ACCEPT_PENDING_PEACE }); x = resolveTurn(x); return x.activeProceduralEvent ? { ...x, activeProceduralEvent: null } : x; };
-const israel = () => quiet(createInitialState({ playerNationId: 'il', rngSeed: 3 }));
-const JER = () => getNationCapital('il');
+const JER = () => cap('israel');
+// The Earth map puts Jerusalem's centre on a tile of the West Bank ('ps'), not of 'il' (engine gap,
+// reported). The fixture stands the city's centre on a tile of Israel's land inside its border.
+const israel = (age = 'bronze') => {
+  const s = cloneWorld(quiet(peoplesWorld({ player: 'israel', seed: 3, age })));
+  const tiles = getTiles();
+  const jer = s.regions[JER()];
+  jer.tile = jer.tiles.filter((t) => tiles.countryOf(t) === 'il' && tiles.terrainOf(t) !== 'desert').pop();
+  syncWorldRegistry(s);
+  return s;
+};
 
 describe("Israel's national wonders: the data", () => {
   it('are sized like the other wonders of their age', () => {
@@ -52,7 +62,7 @@ describe("Israel's national wonders: who may build them", () => {
     expect(tiles.countryOf(temple.tile)).toBe('il');
     expect(tileFacts(tiles, temple.tile, {}).relief).toBe('hills');
     expect(canQueueWonder(s, jer, 'masada', 1).reason).toMatch(/classical/);
-    const classical = { ...s, techAgeId: 'classical' };
+    const classical = israel('classical');
     const masada = canQueueWonder(classical, jer, 'masada', 1);
     expect(masada.ok).toBe(true);
     expect(tiles.countryOf(masada.tile)).toBe('il');
@@ -66,21 +76,21 @@ describe("Israel's national wonders: who may build them", () => {
   });
 
   it("no city off Israel's land may build them, whoever owns it; a conqueror of Jerusalem may", () => {
-    const eg = quiet(createInitialState({ playerNationId: 'eg', rngSeed: 3 }));
-    const s = { ...eg, techAgeId: 'classical', nations: { ...eg.nations, il: { ...eg.nations.il, tech: { ...eg.nations.il?.tech, ageId: 'classical' } } } };
-    const cairo = s.regions[getNationCapital('eg')];
-    expect(canQueueWonder(s, cairo, 'solomons_temple', 1).reason).toMatch(/Israel's land/);
-    expect(canQueueWonder(s, cairo, 'masada', 1).reason).toMatch(/Israel's land/);
-    expect(wonderOptions(s, cairo).some((w) => GREAT_PROJECTS[w.projectId].national)).toBe(false);
+    const s = israel('classical');
+    const rival = rivalOf(s);
+    const cairo = s.regions[cap(rival)];
+    expect(canQueueWonder(s, cairo, 'solomons_temple', 1, rival).reason).toMatch(/Israel's land/);
+    expect(canQueueWonder(s, cairo, 'masada', 1, rival).reason).toMatch(/Israel's land/);
+    expect(wonderOptions(s, cairo, rival).some((w) => GREAT_PROJECTS[w.projectId].national)).toBe(false);
     // Israel itself cannot raise them in a city it holds elsewhere
-    expect(canQueueWonder(s, { ...cairo, owner: 'il' }, 'masada', 1, 'il').ok).toBe(false);
+    expect(canQueueWonder(s, { ...cairo, owner: 'israel' }, 'masada', 1, 'israel').ok).toBe(false);
     // the rule is the land: Egypt holding Jerusalem may build there
-    const taken = { ...s.regions[JER()], owner: 'eg' };
-    expect(canQueueWonder(s, taken, 'solomons_temple', 1).ok).toBe(true);
+    const taken = { ...s.regions[JER()], owner: rival };
+    expect(canQueueWonder(s, taken, 'solomons_temple', 1, rival).ok).toBe(true);
     // and the AI builds them as the owner of the city, never as the player
     const jer = s.regions[JER()];
-    expect(canQueueWonder(s, jer, 'solomons_temple', 1).reason).toMatch(/Not your city/);
-    expect(canQueueWonder(s, jer, 'solomons_temple', 1, 'il').ok).toBe(true);
+    expect(canQueueWonder(s, jer, 'solomons_temple', 1, rival).reason).toMatch(/Not your city/);
+    expect(canQueueWonder(s, jer, 'solomons_temple', 1, 'israel').ok).toBe(true);
   });
 });
 
@@ -91,13 +101,13 @@ describe("Israel's national wonders: building them", () => {
     const can = canQueueWonder(s, s.regions[id], 'solomons_temple', 1);
     s = gameReducer(s, { type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId: id, item: { kind: 'wonder', projectId: 'solomons_temple', tier: 1 } } });
     expect(s.regions[id].production.current).toMatchObject({ kind: 'wonder', projectId: 'solomons_temple', tier: 1, tile: can.tile, cost: wonderCost(1) });
-    const prestige = s.nations.il.prestige || 0;
+    const prestige = s.nations.israel.prestige || 0;
     s = { ...s, regions: { ...s.regions, [id]: { ...s.regions[id], production: { ...s.regions[id].production, progress: 10000 } } } };
     s = play(s);
     expect(s.greatProjects.solomons_temple).toEqual({ regionId: id, tier: 1, tile: can.tile });
     expect(s.world.tileState[can.tile].wonder).toBe('solomons_temple');
-    expect(getGreatProjectOwner(s, 'solomons_temple')).toBe('il');
-    expect(s.nations.il.prestige).toBe(prestige + 10);
+    expect(getGreatProjectOwner(s, 'solomons_temple')).toBe('israel');
+    expect(s.nations.israel.prestige).toBe(prestige + 10);
     expect(s.logs.some((l) => /Solomon's Temple \(tier 1\) stands at/.test(l.message))).toBe(true);
     expect(canQueueWonder(s, s.regions[id], 'solomons_temple', 2)).toMatchObject({ ok: true, tile: can.tile });
   });
@@ -125,7 +135,7 @@ describe("Israel's national wonders: their effects on their own city", () => {
   });
 
   it('Masada raises its walls’ siege HP and its fort level against assaults', () => {
-    const s = { ...israel(), techAgeId: 'classical' };
+    const s = israel('classical');
     const id = JER();
     const city = s.regions[id];
     const gp = (tier) => ({ masada: { regionId: id, tier, tile: canQueueWonder(s, city, 'masada', 1).tile } });

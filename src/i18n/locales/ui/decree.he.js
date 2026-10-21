@@ -1,0 +1,28 @@
+// src/i18n/locales/ui/decree.he.js
+// UI text: the ruler's decrees (differentiation plan U9, U10): the deeds that earn one, the acts that spend one, the top bar sheet.
+export default {
+  'decree.deed.ambition': 'שאיפה התגשמה',
+  'decree.deed.warWon': 'מלחמה נוצחה',
+  'decree.deed.eraGoal': 'יעד העידן הושג',
+  'decree.deed.wonder': 'פלא הושלם',
+  'decree.deed.trickle': 'שנים שקטות בחצר',
+  'decree.deed.doctrine': 'דוקטרינת פתיחה',
+  'decree.act.declareWarJustified': 'הכרזת מלחמה מוצדקת',
+  'decree.act.demand': 'הצגת דרישה',
+  'decree.act.fabricateClaim': 'יצירת תביעה',
+  'decree.act.militaryAlliance': 'כריתת ברית צבאית',
+  'decree.act.proposeMarriage': 'הצעת נישואים מלכותיים',
+  'decree.act.vassalize': 'הפיכת מדינה לווסלית',
+  'decree.act.annexVassal': 'סיפוח ווסל',
+  'decree.act.changeGovernmentType': 'החלפת הממשל',
+  'decree.act.enactGovernmentReform': 'חקיקת רפורמה בממשל',
+  'decree.act.moveCapital': 'העברת הבירה',
+  'decree.act.shiftIdentity': 'שינוי הזהות הלאומית',
+  'decree.act.changeLaw': 'שינוי חוק',
+  'decree.act.increaseStability': 'חיזוק היציבות',
+  'decree.act.reshapeRuler': 'עיצוב מחדש של השליט',
+  'topbar.decreeAria': 'צווים {value} מתוך {cap}. לחצו לראות למה, ועל מה הם יוצאים',
+  'topbar.decreeTitle': 'צווים {value} מתוך {cap}',
+  'topbar.decreeHow': 'צווים נצברים ממעשים: מלחמה שנוצחה, יעד עידן, פלא, שאיפה. חצר שקטה מוסיפה צו מדי פעם, רק כשיש לכם פחות מ־{below}. הבנק מחזיק עד {cap}.',
+  'topbar.decreeCost': 'עולה {n}: {list}.',
+};

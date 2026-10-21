@@ -4,8 +4,7 @@
 // over the real grid, with the cheapest roads there are (0.2 a step with every road tech), where
 // the old guess (km / 170 x 0.5, up to 0.33 a step) overestimated.
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from './gameReducer';
-import { getNationCapital } from '../data/regions';
+import { peoplesWorld } from './testWorld';
 import { getTiles } from '../data/geo/tiles';
 import { findTilePath, tileAccess, tileStepCost, passableTile, cheapestStep, ENEMY_PATH_PENALTY } from './armies';
 import { findSeaPath, seaPassable, fleetAge } from './fleets';
@@ -44,10 +43,11 @@ const dijkstra = (state, from, to, nationId, researched) => {
 };
 
 describe('A* on land finds the cheapest path', () => {
-  const base = createInitialState({ playerNationId: 'in', rngSeed: 3 });
-  const home = base.regions[getNationCapital('in')].tile;
+  const base = peoplesWorld({ seed: 3 });
+  const P = base.playerNationId;
+  const home = base.regions[base.nations[P].capitalRegionId].tile;
   const area = landAround(home, 9);
-  // Roads on about a third of the land around New Delhi.
+  // Roads on about a third of the land around the capital.
   const tileState = { ...(base.world.tileState || {}) };
   area.forEach((t, i) => { if (i % 3 === 0) tileState[t] = { ...(tileState[t] || {}), road: true }; });
   const state = { ...base, units: {}, world: { ...base.world, tileState } };
@@ -63,8 +63,8 @@ describe('A* on land finds the cheapest path', () => {
     it(`matches Dijkstra on ${targets.length} routes (${label})`, () => {
       expect(targets.length).toBeGreaterThan(10);
       targets.forEach((to) => {
-        const r = findTilePath(state, home, to, 'in', { researched });
-        const best = dijkstra(state, home, to, 'in', researched);
+        const r = findTilePath(state, home, to, P, { researched });
+        const best = dijkstra(state, home, to, P, researched);
         if (best === Infinity) { expect(r.path).toBeUndefined(); return; }
         expect(r.cost).toBeCloseTo(best, 9);
       });
@@ -73,9 +73,11 @@ describe('A* on land finds the cheapest path', () => {
 });
 
 describe('A* at sea finds the shortest voyage', () => {
-  const state = (() => { const s = createInitialState({ playerNationId: 'gb', rngSeed: 3 }); return { ...s, units: {} }; })();
-  const ageId = fleetAge(state, 'gb');
-  const start = tiles.capitals.gb;
+  // A coastal people (the small world's sea people stand in for Britain).
+  const state = { ...peoplesWorld({ seed: 3, player: 'brigantes' }), units: {} };
+  const B = state.playerNationId;
+  const ageId = fleetAge(state, B);
+  const start = state.regions[state.nations[B].capitalRegionId].tile;
   // Open water near Britain the fleet may sail, by BFS hop count from one start tile.
   const water = (() => {
     const near = []; const seen = new Set([start]); let frontier = [start];
@@ -102,7 +104,7 @@ describe('A* at sea finds the shortest voyage', () => {
     let checked = 0;
     [...hopsFrom.keys()].sort((a, b) => a - b).filter((_, i) => i % 7 === 3).slice(0, 30).forEach((to) => {
       if (to === from) return;
-      const r = findSeaPath(state, from, to, 'gb');
+      const r = findSeaPath(state, from, to, B);
       if (!r.path) return;
       expect(r.cost).toBe(hopsFrom.get(to));
       checked += 1;

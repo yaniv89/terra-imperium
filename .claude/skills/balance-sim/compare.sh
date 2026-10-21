@@ -3,7 +3,7 @@
 #   .claude/skills/balance-sim/compare.sh <base-ref> [TURNS] [SEEDS]
 # SEEDS is a list (11,12,13) or a range (11-18). Every (side, seed) runs as its own vitest process,
 # JOBS at a time (default: the number of cores), so 8 seeds cost about what 2 did on 4 cores.
-# Env passed through: PLAYER (default au), EVERY, SCENARIO, POLICY, DEMANDS, SPEED, JOBS, AT (extra checkpoint turns to
+# Env passed through: PLAYER (default akkad), EVERY, POLICY, DEMANDS, SPEED, JOBS, AT (extra checkpoint turns to
 # compare, e.g. AT=50,100). Prints both sides' SUMMARY lines per seed (the old output), then the
 # paired table: mean difference, 95% interval, * where the interval excludes 0.
 # Logs stay in $OUT (default: a temp dir) for pairedCompare.mjs reruns with --turn or --all.
@@ -11,7 +11,7 @@ set -euo pipefail
 BASE=${1:?usage: compare.sh <base-ref> [TURNS] [SEEDS]}
 TURNS=${2:-150}; SEEDS=${3:-11,12}
 if [[ $SEEDS =~ ^([0-9]+)-([0-9]+)$ ]]; then SEEDS=$(seq -s, "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"); fi
-export TURNS PLAYER=${PLAYER:-au} EVERY=${EVERY:-50} SCENARIO=${SCENARIO:-full}
+export TURNS PLAYER=${PLAYER:-akkad} EVERY=${EVERY:-50}
 JOBS=${JOBS:-$(nproc 2>/dev/null || echo 2)}
 ROOT=$(git rev-parse --show-toplevel)
 TMP=$(mktemp -d); WT=$TMP/base; OUT=${OUT:-$TMP/logs}; mkdir -p "$OUT"

@@ -77,7 +77,7 @@ describe('countries tier', () => {
 describe('subregions tier', () => {
   it('has a plausible number of admin-1 divisions worldwide', () => {
     const count = Object.keys(subregionsMeta).length;
-    // Balanced regions: over-split countries merged (build-balanced-regions.mjs).
+    // Balanced regions: over-split countries merged (the retired balanced-regions build).
     expect(count).toBeGreaterThan(2000);
     expect(count).toBeLessThan(2100);
     expect(count).toBeLessThan(5000);
