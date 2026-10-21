@@ -295,7 +295,7 @@ export const gatherForPlan = (state, nationId, plan, committed) => {
   const next = { ...state, units: { ...state.units } };
   const stacks = new Map();
   for (const u of Object.values(next.units)) {
-    if (u.ownerId !== nationId || u.domain !== 'land' || u.classId === 'settler' || u.embarkedOn || !(u.strength > 0) || u.indepOp || u.scout || u.route?.length || committed.has(u.id) || isUnitInBattle(next, u.id)) continue;
+    if (u.ownerId !== nationId || u.domain !== 'land' || u.classId === 'settler' || u.classId === 'air' || u.embarkedOn || !(u.strength > 0) || u.indepOp || u.scout || u.route?.length || committed.has(u.id) || isUnitInBattle(next, u.id)) continue;
     const key = `${u.regionId}|${unitTile(next, u)}`;
     const l = stacks.get(key); if (l) l.push(u); else stacks.set(key, [u]);
   }
@@ -363,7 +363,7 @@ export const processAIOperations = (state, rng) => {
     const tiles = getTiles();
     const stacks = new Map();
     for (const u of Object.values(next.units)) {
-      if (u.ownerId !== nationId || u.domain !== 'land' || u.classId === 'settler' || u.embarkedOn || u.strength <= 0 || u.indepOp || isUnitInBattle(next, u.id)) continue;
+      if (u.ownerId !== nationId || u.domain !== 'land' || u.classId === 'settler' || u.classId === 'air' || u.embarkedOn || u.strength <= 0 || u.indepOp || isUnitInBattle(next, u.id)) continue;
       // Stacks by tile: an army on the road stands apart from the garrison of its base.
       const key = `${u.regionId}|${unitTile(next, u)}`;
       const stack = stacks.get(key) || []; stack.push(u); stacks.set(key, stack);
