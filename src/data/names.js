@@ -49,7 +49,7 @@ const NAME_POOLS = {
 };
 
 // A curated (not exhaustive) map of the country ids this codebase's regions/nations data actually
-// uses (see src/data/worldNations.js's countriesMeta) to one of the pools above. Anything not
+// uses (see src/data/peopleNation.js's countriesMeta) to one of the pools above. Anything not
 // listed here falls back to 'generic' in getCultureGroup below.
 const COUNTRY_TO_GROUP = {
   fr: 'western_european', de: 'western_european', gb: 'western_european', be: 'western_european',

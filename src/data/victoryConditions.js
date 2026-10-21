@@ -51,7 +51,7 @@ export const DIPLOMATIC_LEADERSHIP_SHARE = 0.5;
 export const DIPLOMATIC_LEADERSHIP_STREAK_TURNS = 20;
 
 // Genuine engagement only (a trade agreement or a military pact the player actually formed) — NOT
-// low hostility on its own. Every nation starts at hostility 5 (src/data/worldNations.js), so a
+// low hostility on its own. Every nation starts at hostility 5 (src/data/peopleNation.js), so a
 // mere "not hostile" bar would make this trivially true for the whole passive world by default,
 // turning "Diplomatic Victory" into an accidental win a few turns into any peaceful game rather
 // than the real, deliberate leadership the plan describes.

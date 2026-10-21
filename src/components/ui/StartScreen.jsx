@@ -14,7 +14,7 @@
 // `scenario.seed`; the game state keeps it, so a save or a replay rebuilds the same world.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Search, BookOpen, ArrowRight, ArrowLeft, Shuffle, Check, Pencil } from 'lucide-react';
-import { GAME_SPEEDS } from '../../data/ages';
+import { GAME_SPEEDS, START_YEAR } from '../../data/ages';
 import { DIFFICULTIES } from '../../data/difficulty';
 import { PEOPLES, MAJOR_PEOPLES_LIST, PEOPLE_REGION_GROUPS } from '../../data/peoples';
 import { WORLD_SIZES, WORLD_SIZE_IDS, DEFAULT_WORLD_SIZE, CITY_STATE_DENSITIES, DEFAULT_CITY_STATES, START_MIN_GAP_KM, cityStateCount } from '../../data/worldSizes';
@@ -417,7 +417,7 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
       <section className={`${scrollBox} flex flex-col gap-1.5`} aria-label={t('start.yourPeople')}>
         {peopleCard}
         <p className="text-[12px] text-fa-muted leading-snug px-1 flex items-center gap-2 flex-wrap">
-          <span>{t('start.dawn', { year: year(-2000) })}</span>
+          <span>{t('start.dawn', { year: year(START_YEAR) })}</span>
           <button type="button" className="fa-btn fa-btn-ghost !min-h-[40px] !px-2" onClick={() => go(0)} data-testid="change-people">{t('start.changePeople')}</button>
         </p>
       </section>
@@ -444,7 +444,7 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
       <header className={`flex items-center gap-3 pt-[max(0.25rem,env(safe-area-inset-top))] pb-1 shrink-0 ${frame}`}>
         {onBackToTitle && <button type="button" onClick={onBackToTitle} className="fa-btn fa-btn-ghost shrink-0 !min-h-[44px] !px-2" data-testid="start-back-to-title"><ArrowLeft className="rtl:-scale-x-100 w-4 h-4" aria-hidden="true" />{t('start.titleBack')}</button>}
         <h1 className="fa-heading text-[19px] shrink-0">{t('start.title')}</h1>
-        {!phone && <span className="text-[13px] text-fa-muted truncate">{t('start.dawn', { year: year(-2000) })}</span>}
+        {!phone && <span className="text-[13px] text-fa-muted truncate">{t('start.dawn', { year: year(START_YEAR) })}</span>}
         <StepIndicator step={step} onGo={go} compact={phone} />
         <LanguageSwitch compact className="ms-auto shrink-0" />
       </header>

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createInitialState } from '../../engine/gameReducer';
 import { declareWar } from '../../engine/diplomacy';
 import { topBarModel, yearLabel, scienceLabel } from './topBarModel';
+import { grantDecree, spendDecree } from '../../engine/decrees';
 
 const base = createInitialState({ playerNationId: 'akkad', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11 } });
 
@@ -38,5 +39,19 @@ describe('the world top bar (U1, plans/UI-DESIGN.md section 2)', () => {
     expect(scienceLabel(null)).toBe('Choose research');
     expect(scienceLabel({ tech: { name: 'Bronze Working' }, finishesIn: 3 })).toBe('Bronze Working 3t');
     expect(scienceLabel({ tech: { name: 'Writing' }, finishesIn: Infinity })).toBe('Writing ?t');
+  });
+});
+
+describe('the decrees on the top bar (U9)', () => {
+  it('reads the bank, the cap, the reasons newest first and what the acts cost', () => {
+    const me = base.playerNationId;
+    const n = base.nations[me];
+    const s = { ...base, nations: { ...base.nations, [me]: grantDecree(spendDecree(grantDecree({ ...n, ruler: { ...n.ruler, decrees: 0, decreeLog: [] } }, 'warWon', 4, 'Elam'), 'changeLaw', 5), 'wonder', 6) } };
+    const d = topBarModel(s).decrees;
+    expect(d).toMatchObject({ value: 1, cap: 3 });
+    expect(d.reasons.map((r) => [r.label, r.value])).toEqual([['Wonder completed', 1], ['Change a law', -1], ['War won: Elam', 1]]);
+    expect(d.costs[0]).toMatchObject({ n: 2, labels: ['Change the government'] });
+    expect(d.costs[1].n).toBe(1);
+    expect(d.costs[1].labels).toContain('Make a vassal');
   });
 });

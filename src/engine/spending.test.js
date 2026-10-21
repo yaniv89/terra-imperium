@@ -1,10 +1,10 @@
 // Lane CB04 (playtest audits I019, I021, I024, X24): what gold buys, priced in one place.
 import { describe, it, expect, vi } from 'vitest';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
+import { peoplesWorld, rivalOf, cap, addCities } from './testWorld';
 import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
-import { getNationCapital } from '../data/regions';
 import { speedCostMult, speedTrainMult, TRAIN_SPEED_SHARE } from '../data/ages';
 import { productionCost, queueItem, dequeueItem, itemProgress } from './world/cities';
 import { queueView, investInGrowth, growthView, GROWTH_BUY_SHARE } from './cityEconomy';
@@ -17,9 +17,9 @@ import { speedTurns } from '../data/ages';
 vi.setConfig({ testTimeout: 180000 }); // whole-world turns
 
 const quiet = (s) => ({ ...s, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
-const fresh = (seed = 5, extra = {}) => quiet(createInitialState({ playerNationId: 'fr', rngSeed: seed, ...extra }));
+const fresh = (seed = 5) => quiet(peoplesWorld({ seed }));
 const turn = (s) => { let n = resolveTurn(s); if (n.pendingPeaceOffer) n = gameReducer(n, { type: ActionTypes.REJECT_PENDING_PEACE }); return n; };
-const paris = () => getNationCapital('fr');
+const paris = () => cap(peoplesWorld({ seed: 5 }).playerNationId);
 const patch = (s, id, over) => ({ ...s, regions: { ...s.regions, [id]: { ...s.regions[id], ...over } } });
 const withGold = (s, gold) => ({ ...s, resources: { ...s.resources, gold } });
 const GRANARY = { kind: 'building', category: 'food', tier: 0 };
@@ -164,17 +164,17 @@ describe('standing works and growth follow age, speed and level (I021)', () => {
 
 describe('a rich AI treasury buys in more than one city a think (I017, lane W6)', () => {
   it('rushes up to AI_MAX_RUSHES_PER_THINK cities while the gold stays over AI_EXTRA_RUSH_GOLD', async () => {
-    const { addCities } = await import('./testWorld');
     const { processAIEconomyTurn, AI_MAX_RUSHES_PER_THINK } = await import('./aiEconomy');
     const base = fresh(7);
-    const { state, cityIds } = addCities(base, 'de', 3, { loose: true });
-    const ids = [state.nations.de.capitalRegionId, ...cityIds];
+    const de = rivalOf(base); // an AI people
+    const { state, cityIds } = addCities(base, de, 3, { loose: true });
+    const ids = [state.nations[de].capitalRegionId, ...cityIds];
     const regions = { ...state.regions };
     ids.forEach((id) => { regions[id] = { ...regions[id], size: 4, lastYields: { production: 2 }, production: { current: { kind: 'building', category: 'economy', tier: 0 }, queue: [], progress: 0 } }; });
-    const nations = { ...state.nations, de: { ...state.nations.de, isAtWar: false, stability: 1, economy: { ...state.nations.de.economy, gold: 100000, adm: 0, dip: 0, mil: 0 } } };
+    const nations = { ...state.nations, [de]: { ...state.nations[de], isAtWar: false, stability: 1, economy: { ...state.nations[de].economy, gold: 100000, adm: 0, dip: 0, mil: 0 } } };
     const s = { ...state, regions, nations };
     const work = { ...s.regions };
-    processAIEconomyTurn(s, work, 'de');
+    processAIEconomyTurn(s, work, de);
     const rushed = ids.filter((id) => work[id].rush);
     expect(rushed.length).toBeGreaterThan(1);
     expect(rushed.length).toBeLessThanOrEqual(AI_MAX_RUSHES_PER_THINK);

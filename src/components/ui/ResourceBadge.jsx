@@ -80,7 +80,6 @@ const ResourceBadge = ({
   type,
   value,
   maxValue = null,
-  perTurn = null, // shown as a small "+N" after the banked value
   expanded = false,
   onClick = null,
   showLabel = false,
@@ -94,11 +93,7 @@ const ResourceBadge = ({
   const description = tx(`res.${type}.desc`, null);
 
   const Icon = config.icon;
-  // Power pools (perTurn set) show their exact banked amount — they bank into the thousands, and an
-  // abbreviated "1.2K ADM" would hide whether a 1,250-ADM action is actually affordable.
-  const displayValue = maxValue !== null
-    ? `${value}/${maxValue}`
-    : (perTurn !== null && typeof value === 'number' ? String(Math.floor(value)) : (typeof value === 'number' ? formatNumber(value) : value));
+  const displayValue = maxValue !== null ? `${value}/${maxValue}` : (typeof value === 'number' ? formatNumber(value) : value);
 
   const sizeClasses = {
     small: 'px-1.5 py-0.5 text-xs gap-1',
@@ -125,7 +120,7 @@ const ResourceBadge = ({
           disabled:cursor-default
         `}
       >
-        {/* Gold and the metals have delivered art (src/data/icons.js); the abstract pools keep lucide.
+        {/* Gold and the metals have delivered art (src/data/icons.js); the abstract stores keep lucide.
             The art draws a little larger than the glyph so it reads at phone size. */}
         <span className={`${config.color} inline-flex`}>
           <GameIcon url={resourceIconUrl(type)} size={iconSizes[size] + 4} title={label} fallback={<Icon size={iconSizes[size]} />} />
@@ -133,9 +128,6 @@ const ResourceBadge = ({
         <span className="font-mono font-semibold text-fa-text">
           {displayValue}
         </span>
-        {perTurn !== null && (
-          <span className="font-mono text-[10px] text-fa-good">+{perTurn}</span>
-        )}
         {(expanded || showLabel) && (
           <span className="text-fa-muted ms-1 text-xs">
             {label}

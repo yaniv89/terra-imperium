@@ -2,15 +2,6 @@
 // UI text: pnl2 (phase H5). Plural forms use .one / .two / .other with { count }.
 export default {
   'p2.act.cost': 'Cost: {cost}',
-  'p2.cu.gold': 'Gold',
-  'p2.cu.adm': 'ADM',
-  'p2.cu.dip': 'DIP',
-  'p2.cu.mil': 'MIL',
-  'p2.cw.adm': 'administrative power',
-  'p2.cw.dip': 'diplomatic power',
-  'p2.cw.mil': 'military power',
-  'p2.cw.techPoints': 'science',
-  'p2.cw.gold': 'gold',
   'p2.log.noRes': 'Not enough resources',
   'p2.bt.map': 'Map',
   'p2.lens.yields': 'yields',
@@ -66,6 +57,7 @@ export default {
   'p2.era.met': 'Met {met} of the {needed} needed. Then each met goal gives its legacy for {turns} turns.',
   'p2.era.legacy': 'Legacy: {bonus}',
   'p2.as.title': '{name}: {known} of {total} techs known',
+  'p2.jump.to': 'Go to {name} in the web',
   'p2.ageShort.stone': 'Stone',
   'p2.ageShort.bronze': 'Bronze',
   'p2.ageShort.classical': 'Classical',

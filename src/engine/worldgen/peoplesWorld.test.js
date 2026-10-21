@@ -93,12 +93,6 @@ describe('a new game in a peoples world', () => {
     expect(state.nations.israel.name).toBe('Kingdom of Israel');
   });
 
-  it('an old country id for the player maps to the people of its land', () => {
-    const s = createInitialState({ playerNationId: 'eg', rngSeed: 3, scenario: { mode: 'peoples', size: 'small', seed: 3 } });
-    expect(s.playerNationId).toBe('kemet');
-    expect(s.nations.kemet.isPlayer).toBe(true);
-  });
-
   it('the world seed changes the world; the same seed rebuilds it', () => {
     const a = createInitialState({ playerNationId: 'akkad', rngSeed: 5, scenario: { mode: 'peoples', size: 'small', seed: 5 } });
     const b = createInitialState({ playerNationId: 'akkad', rngSeed: 5, scenario: { mode: 'peoples', size: 'small', seed: 5 } });

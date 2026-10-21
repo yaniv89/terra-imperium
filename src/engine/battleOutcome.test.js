@@ -2,11 +2,11 @@
 // The one battle outcome service (battleOutcome.js): idempotence, and one test per row of
 // plans/MASTER-PLAN.md 6.7 (the "Prisoners" item is dropped: units lost are gone).
 import { describe, it, expect } from 'vitest';
-import { gameReducer, createInitialState, sanitizeTacticalResult } from './gameReducer';
+import { gameReducer, sanitizeTacticalResult } from './gameReducer';
 import { ActionTypes } from '../data/types';
-import { getNeighborIds, getTouchingIds, getNationCapital } from '../data/regions';
+import { getTouchingIds } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
-import { addCity, addCities } from './testWorld';
+import { addCity, addCities, borderPair, cap, neighbourWorld, peoplesWorld, rivalOf } from './testWorld';
 import { applyBattleOutcome, makeBattleOutcome, isBattleApplied, APPLIED_MEMORY, BATTLE_MARK_TURNS, XP_WIN, dispositionOf } from './battleOutcome';
 import { battleInputs, cityMilitia, wallsHpRatio, batteredReduction, reinforcementSources, alliesOf, STARVED_MORALE_LOSS, STARVED_SUPPLY, PLAGUE_MORALE_LOSS, SUPPLY_MORALE_LOSS } from './battleInputs';
 import { resolveAutoBattle, autoDispositions } from './autoBattle';
@@ -32,31 +32,32 @@ import { syncWorldRegistry } from './world/registry';
 
 const tiles = getTiles();
 
-// France attacks a neighbouring city (tacticalBattle.test.js's world).
+// The player attacks a neighbouring people's city (tacticalBattle.test.js's world). Bronze: the units and rules below need it.
 const WORLD = (() => {
-  const first = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'fr');
-  const target = getTouchingIds(first.cityId).find((id) => first.state.regions[id].owner !== 'fr') || getNeighborIds(first.cityId).find((id) => first.state.regions[id].owner !== 'fr');
-  const near = addCity(first.state, 'fr', { near: target });
-  const AGG = near.state.regions[target].owner;
+  const base = neighbourWorld({ rivals: 1, seed: 1, age: 'bronze' });
+  const P = base.playerNationId;
+  const AGG = rivalOf(base);
+  const [FR, target] = borderPair(base, P, AGG);
+  const near = addCity(base, P, { near: target });
   const grown = addCities(near.state, AGG, 3);
-  return { state: grown.state, FR: first.cityId, T: target, FR_NEAR: near.cityId, AGG };
+  return { state: grown.state, FR, T: target, FR_NEAR: near.cityId, AGG, P };
 })();
-const { FR, T, AGG } = WORLD;
+const { FR, T, AGG, P } = WORLD;
 const GATE = getTouchingIds(FR).includes(T) ? null : tiles.neighbors[WORLD.state.regions[T].tile].find((n) => tiles.land[n] === 1);
 const unit = (id, regionId, ownerId, classId = 'infantry', strength = 1000, extra = {}) => ({
   id, regionId, ownerId, domain: 'land', classId, strength, maxStrength: 1000, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, movesLeft: 1,
   ...(regionId === FR && GATE != null ? { tile: GATE } : {}), ...extra
 });
-const war = (s) => ({ ...s, nations: { ...s.nations, fr: { ...s.nations.fr, isAtWar: true }, [AGG]: { ...s.nations[AGG], isAtWar: true } }, resources: { ...s.resources, gold: 100000, hr: 100000, mil: 500, adm: 500, dip: 500 }, wars: [...s.wars, { id: 'war_t', aggressor: 'fr', enemy: AGG, active: true, goalAchieved: false, startYear: s.year, startTurn: s.turnNumber, cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'destroy_military', threshold: 1 } }] });
+const war = (s) => ({ ...s, nations: { ...s.nations, [P]: { ...s.nations[P], isAtWar: true }, [AGG]: { ...s.nations[AGG], isAtWar: true } }, resources: { ...s.resources, gold: 100000, hr: 100000, mil: 500, adm: 500, dip: 500 }, wars: [...s.wars, { id: 'war_t', aggressor: P, enemy: AGG, active: true, goalAchieved: false, startYear: s.year, startTurn: s.turnNumber, cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'destroy_military', threshold: 1 } }] });
 // The registry (neighbours, touching lands) follows the last synced world: each fixture syncs its own.
 const armies = (extra = {}) => {
   const s = war(syncWorldRegistry(WORLD.state));
-  return { ...s, units: { a1: unit('a1', FR, 'fr'), a2: unit('a2', FR, 'fr', 'cavalry'), a3: unit('a3', FR, 'fr', 'ranged'), d1: unit('d1', T, AGG), d2: unit('d2', T, AGG, 'ranged', 800), ...extra } };
+  return { ...s, units: { a1: unit('a1', FR, P), a2: unit('a2', FR, P, 'cavalry'), a3: unit('a3', FR, P, 'ranged'), d1: unit('d1', T, AGG), d2: unit('d2', T, AGG, 'ranged', 800), ...extra } };
 };
 const scoreOf = (s) => s.wars.find((w) => w.id === 'war_t').battleScore;
 // An invasion outcome by hand: `att`/`def` map ids to strength after the battle.
 const invasion = (s, outcome, att, def, meta = {}) => makeBattleOutcome({
-  id: meta.id || 'op1', kind: 'invasion', mode: meta.mode || 'auto', warId: 'war_t', attackerNationId: 'fr', defenderNationId: AGG,
+  id: meta.id || 'op1', kind: 'invasion', mode: meta.mode || 'auto', warId: 'war_t', attackerNationId: P, defenderNationId: AGG,
   fromRegionId: FR, regionId: T, tile: s.regions[T].tile, isDefended: true, ...meta
 }, {
   outcome,
@@ -65,24 +66,25 @@ const invasion = (s, outcome, att, def, meta = {}) => makeBattleOutcome({
   report: { deployedAttackerIds: Object.keys(att), deployedDefenderIds: Object.keys(def), ...(meta.tactical ? { tactical: meta.tactical } : {}) }
 });
 
-// Two free adjacent land tiles near Delhi for field battles (fieldBattle.test.js).
+// Two free adjacent land tiles near the player's capital for field battles (fieldBattle.test.js).
 const FIELD = (() => {
-  const s0 = createInitialState({ playerNationId: 'in', rngSeed: 3 });
+  const s0 = peoplesWorld({ seed: 3, age: 'bronze' });
   const S = { ...s0, units: {}, resources: { ...s0.resources, mil: 100, gold: 1000 } };
-  const IN = getNationCapital('in');
+  const ME = s0.playerNationId; const FOE = rivalOf(s0);
+  const IN = cap(ME);
   const seen = new Set([S.regions[IN].tile]); let f = [S.regions[IN].tile];
   for (let d = 0; d < 8; d++) {
     const n = []; f.forEach((t) => tiles.neighbors[t].forEach((x) => { if (!seen.has(x)) { seen.add(x); n.push(x); } })); f = n.sort((a, b) => a - b);
-    for (const t of f) { if (tiles.land[t] !== 1 || S.world.tileOwner[t]) continue; const o = tiles.neighbors[t].find((x) => tiles.land[x] === 1 && !S.world.tileOwner[x] && x !== t); if (o != null) return { S, IN, PK: getNationCapital('pk'), ours: t, theirs: o }; }
+    for (const t of f) { if (tiles.land[t] !== 1 || S.world.tileOwner[t]) continue; const o = tiles.neighbors[t].find((x) => tiles.land[x] === 1 && !S.world.tileOwner[x] && x !== t); if (o != null) return { S, IN, PK: cap(FOE), ME, FOE, ours: t, theirs: o }; }
   }
   throw new Error('no free pair');
 })();
 const fieldState = (extra = []) => {
-  const { IN, PK, ours, theirs } = FIELD;
+  const { IN, PK, ours, theirs, ME, FOE } = FIELD;
   const S = syncWorldRegistry(FIELD.S);
-  const u = (id, regionId, x = {}) => ({ id, ownerId: 'in', regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, embarkedOn: null, promotions: [], xp: 0, ...x });
-  const units = Object.fromEntries([u('a', IN, { tile: ours }), u('b', IN, { tile: ours, classId: 'cavalry' }), u('e', PK, { ownerId: 'pk', tile: theirs }), ...extra.map((x) => u(x.id, x.regionId || IN, x))].map((x) => [x.id, x]));
-  return { ...S, units, wars: [...S.wars, { id: 'w-f', aggressor: 'in', enemy: 'pk', active: true, startYear: S.year, battleScore: 0 }], nations: { ...S.nations, in: { ...S.nations.in, isAtWar: true }, pk: { ...S.nations.pk, isAtWar: true } } };
+  const u = (id, regionId, x = {}) => ({ id, ownerId: ME, regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, embarkedOn: null, promotions: [], xp: 0, ...x });
+  const units = Object.fromEntries([u('a', IN, { tile: ours }), u('b', IN, { tile: ours, classId: 'cavalry' }), u('e', PK, { ownerId: FOE, tile: theirs }), ...extra.map((x) => u(x.id, x.regionId || IN, x))].map((x) => [x.id, x]));
+  return { ...S, units, wars: [...S.wars, { id: 'w-f', aggressor: ME, enemy: FOE, active: true, startYear: S.year, battleScore: 0 }], nations: { ...S.nations, [ME]: { ...S.nations[ME], isAtWar: true }, [FOE]: { ...S.nations[FOE], isAtWar: true } } };
 };
 
 describe("the winner's renown (differentiation plan U11)", () => {
@@ -94,7 +96,7 @@ describe("the winner's renown (differentiation plan U11)", () => {
     expect(r.deeds[0]).toMatchObject({ id: 'battleWon', turn: s.turnNumber });
     expect(r.renown).toBeGreaterThan(s.nations[AGG].ruler.renown || 0);
     expect(applyBattleOutcome(once, o)).toBe(once);
-    expect(once.nations.fr.ruler.renown || 0).toBe(s.nations.fr.ruler.renown || 0);
+    expect(once.nations[P].ruler.renown || 0).toBe(s.nations[P].ruler.renown || 0);
   });
 });
 
@@ -106,16 +108,16 @@ describe('a Stone raid (eight-ages plan U32)', () => {
     expect(next.regions[T].owner).toBe(AGG);
     expect(next.resources.gold).toBeGreaterThan(s.resources.gold);
     expect(next.nations[AGG].economy.gold).toBeLessThan(500);
-    expect(next.nations[AGG].raidedBy.fr).toBe(s.turnNumber);
+    expect(next.nations[AGG].raidedBy[P]).toBe(s.turnNumber);
     expect(next.logs.some((l) => /looted/.test(l.message))).toBe(true);
     // the same battle past the village phase takes the city
-    expect(applyBattleOutcome(s0, invasion(s0, 'attacker', { a1: 900 }, { d1: 0, d2: 0 }, { decisive: true })).regions[T].owner).toBe('fr');
+    expect(applyBattleOutcome(s0, invasion(s0, 'attacker', { a1: 900 }, { d1: 0, d2: 0 }, { decisive: true })).regions[T].owner).toBe(P);
   });
 });
 
 describe('the report line tells what happened to the garrison (LOGIC-02)', () => {
   const garrisonBattle = (s, defStrength, id) => {
-    const o = makeBattleOutcome({ id, kind: 'invasion', mode: 'auto', warId: 'war_t', attackerNationId: 'fr', defenderNationId: AGG, viewerId: 'fr', fromRegionId: FR, regionId: T, tile: s.regions[T].tile, isDefended: true }, {
+    const o = makeBattleOutcome({ id, kind: 'invasion', mode: 'auto', warId: 'war_t', attackerNationId: P, defenderNationId: AGG, viewerId: P, fromRegionId: FR, regionId: T, tile: s.regions[T].tile, isDefended: true }, {
       outcome: 'attacker', attackerUnits: [{ ...s.units.a1, strength: 900 }],
       defenderUnits: [{ ...s.units.d1, strength: defStrength }], report: { garrisonFirst: true }
     });
@@ -169,12 +171,12 @@ describe('master plan 6.7, row by row', () => {
     const wasCapital = s.nations[AGG].capitalRegionId === T;
     const after = applyBattleOutcome(s, invasion(s, 'attacker', { a1: 900, a2: 800, a3: 900 }, { d1: 0, d2: 0 }));
     const city = after.regions[T];
-    expect(city.owner).toBe('fr');
+    expect(city.owner).toBe(P);
     expect(city.control).toBe(CONQUEST_CONTROL);
     expect(city.unrest).toBeGreaterThanOrEqual(CONQUEST_MIN_UNREST);
     expect(city.loyalty).toBe(LOYALTY_ON_CONQUEST);
     expect(city.conquest).toMatchObject({ warId: 'war_t', from: AGG });
-    expect(Object.values(after.nations).some((n) => (n.ae?.fr || 0) > 0)).toBe(true);
+    expect(Object.values(after.nations).some((n) => (n.ae?.[P] || 0) > 0)).toBe(true);
     if (wasCapital) expect(after.nations[AGG].capitalRegionId).not.toBe(T);
     expect(after.units.a1.regionId).toBe(T);
     expect(after.units.d1).toBeUndefined();
@@ -188,16 +190,16 @@ describe('master plan 6.7, row by row', () => {
     expect(ranged.regions[T].owner).toBe(AGG);
     expect(ranged.regions[T].control).toBe(SIEGE_CAPTURE_CONTROL_THRESHOLD);
     const melee = applyBattleOutcome(low, invasion(low, 'attacker', { a1: 800, a2: 0, a3: 900 }, { d1: 500, d2: 400 }, { id: 'op2' }));
-    expect(melee.regions[T].owner).toBe('fr');
+    expect(melee.regions[T].owner).toBe(P);
     // Decision 40: a won city battle takes the city (capture.js cityFell). Whether the militia still
     // standing means the battle is not won is the battle's own rule (its outcome), not a grind here.
     const mil = cityMilitia(s, T);
     expect(mil.length).toBeGreaterThan(0);
-    const militiaStands = applyBattleOutcome(s, makeBattleOutcome({ id: 'op3', kind: 'invasion', warId: 'war_t', attackerNationId: 'fr', defenderNationId: AGG, fromRegionId: FR, regionId: T, isDefended: true, militia: mil }, {
+    const militiaStands = applyBattleOutcome(s, makeBattleOutcome({ id: 'op3', kind: 'invasion', warId: 'war_t', attackerNationId: P, defenderNationId: AGG, fromRegionId: FR, regionId: T, isDefended: true, militia: mil }, {
       outcome: 'attacker', attackerUnits: [{ ...s.units.a1, strength: 900 }], defenderUnits: [{ ...s.units.d1, strength: 0 }, { ...mil[0], strength: 100 }], report: {}
     }));
-    expect(militiaStands.regions[T].owner).toBe('fr');
-    const held = applyBattleOutcome(s, makeBattleOutcome({ id: 'op4', kind: 'invasion', warId: 'war_t', attackerNationId: 'fr', defenderNationId: AGG, fromRegionId: FR, regionId: T, isDefended: true, militia: mil }, {
+    expect(militiaStands.regions[T].owner).toBe(P);
+    const held = applyBattleOutcome(s, makeBattleOutcome({ id: 'op4', kind: 'invasion', warId: 'war_t', attackerNationId: P, defenderNationId: AGG, fromRegionId: FR, regionId: T, isDefended: true, militia: mil }, {
       outcome: 'defender', attackerUnits: [{ ...s.units.a1, strength: 900 }], defenderUnits: [{ ...s.units.d1, strength: 0 }, { ...mil[0], strength: 100 }], report: {}
     }));
     expect(held.regions[T].owner).toBe(AGG);
@@ -243,7 +245,7 @@ describe('master plan 6.7, row by row', () => {
     const s = armies();
     // Five aircraft based in the second French city, in range of the target (airPower.js).
     const base = s.regions[WORLD.FR_NEAR].tile;
-    const air = Object.fromEntries([0, 1, 2, 3, 4].map((i) => [`air${i}`, { ...unit(`air${i}`, WORLD.FR_NEAR, 'fr', 'air'), tile: base }]));
+    const air = Object.fromEntries([0, 1, 2, 3, 4].map((i) => [`air${i}`, { ...unit(`air${i}`, WORLD.FR_NEAR, P, 'air'), tile: base }]));
     const aa = { aa1: unit('aa1', T, AGG, 'support'), aa2: unit('aa2', T, AGG, 'support') };
     const t = { ...s, units: { ...s.units, ...air, ...aa } };
     const v = validateInvasion(t, FR, T);
@@ -255,7 +257,7 @@ describe('master plan 6.7, row by row', () => {
 
   it('9 encirclement: a starved city starts with less morale and food', () => {
     const s = armies();
-    const starved = { ...s, regions: { ...s.regions, [T]: { ...s.regions[T], siege: { hp: 100, maxHp: 400, by: 'fr', encircled: true, starving: 2, startedTurn: 1 } } } };
+    const starved = { ...s, regions: { ...s.regions, [T]: { ...s.regions[T], siege: { hp: 100, maxHp: 400, by: P, encircled: true, starving: 2, startedTurn: 1 } } } };
     const fed = battleInputs(s, { attackerUnits: [s.units.a1], defenderUnits: [s.units.d1], cityId: T, fromRegionId: FR });
     const hungry = battleInputs(starved, { attackerUnits: [s.units.a1], defenderUnits: [s.units.d1], cityId: T, fromRegionId: FR });
     expect(hungry.defenderUnits[0].morale).toBe(100 - STARVED_MORALE_LOSS);
@@ -273,7 +275,7 @@ describe('master plan 6.7, row by row', () => {
     const city = { ...s.regions[T], buildings: { ...(s.regions[T].buildings || {}), categories: { ...(s.regions[T].buildings?.categories || {}), defense: 1 } } };
     const gp = { masada: { regionId: T, tier: 2 } };
     expect(siegeMaxHp(city, gp)).toBeGreaterThan(siegeMaxHp(city, null));
-    const sieged = { ...s, greatProjects: gp, regions: { ...s.regions, [T]: { ...city, siege: { hp: 300, by: 'fr', encircled: false, starving: 0, startedTurn: 1 } } } };
+    const sieged = { ...s, greatProjects: gp, regions: { ...s.regions, [T]: { ...city, siege: { hp: 300, by: P, encircled: false, starving: 0, startedTurn: 1 } } } };
     const ratio = wallsHpRatio(sieged, sieged.regions[T]);
     expect(ratio).toBeCloseTo(300 / siegeMaxHp(city, gp), 6);
     expect(tileContextOf(sieged, city.tile, { city: sieged.regions[T] }).hpRatio).toBeCloseTo(ratio, 6);
@@ -293,7 +295,7 @@ describe('master plan 6.7, row by row', () => {
   });
 
   it('12 supply: a hungry army starts with less morale and a smaller stockpile', () => {
-    const s = armies({ a1: unit('a1', FR, 'fr', 'infantry', 1000, { supply: 20 }), a2: unit('a2', FR, 'fr', 'cavalry', 1000, { supply: 20 }), a3: unit('a3', FR, 'fr', 'ranged', 1000, { supply: 20 }) });
+    const s = armies({ a1: unit('a1', FR, P, 'infantry', 1000, { supply: 20 }), a2: unit('a2', FR, P, 'cavalry', 1000, { supply: 20 }), a3: unit('a3', FR, P, 'ranged', 1000, { supply: 20 }) });
     const ins = battleInputs(s, { attackerUnits: [s.units.a1], defenderUnits: [s.units.d1], cityId: T, fromRegionId: FR });
     expect(ins.attackerUnits[0].morale).toBe(100 - Math.round(SUPPLY_MORALE_LOSS * 0.8));
     expect(ins.economyInputs.supply[0]).toBeCloseTo(0.2, 6);
@@ -337,24 +339,24 @@ describe('master plan 6.7, row by row', () => {
       t = applyBattleOutcome(t, invasion(t, 'attacker', { a1: 900 }, { d1: 500 }, { id: `w${i}`, isDefended: true }));
       t = { ...t, regions: { ...t.regions, [T]: s.regions[T] }, units: { ...t.units, d1: s.units.d1 } };
     }
-    expect(t.nations.fr.battleStats.won).toBe(3);
+    expect(t.nations[P].battleStats.won).toBe(3);
     expect(t.nations[AGG].battleStats.lost).toBe(3);
-    expect(nationFacts(t, 'fr').battlesWon).toBe(3);
+    expect(nationFacts(t, P).battlesWon).toBe(3);
   });
 
   it('16 allies and vassals stand by as reinforcements', () => {
     const s = armies();
-    const ally = Object.keys(s.nations).find((id) => id !== 'fr' && id !== AGG && !s.nations[id].isEliminated);
+    const ally = Object.keys(s.nations).find((id) => id !== P && id !== AGG && !s.nations[id].isEliminated);
     const centre = s.regions[T].tile;
     const near = tiles.neighbors[centre].find((t) => tiles.land[t] === 1 && t !== GATE);
     const withAlly = {
       ...s,
-      nations: { ...s.nations, [ally]: { ...s.nations[ally], vassalOf: 'fr' } },
+      nations: { ...s.nations, [ally]: { ...s.nations[ally], vassalOf: P } },
       wars: [...s.wars, { id: 'war_v', aggressor: ally, enemy: AGG, active: true, battleScore: 0 }],
       units: { ...s.units, v1: { ...unit('v1', s.nations[ally].capitalRegionId, ally), tile: near } }
     };
-    expect(alliesOf(withAlly, 'fr', AGG)).toEqual([ally]);
-    const sources = reinforcementSources(withAlly, T, 'fr', AGG, [FR]);
+    expect(alliesOf(withAlly, P, AGG)).toEqual([ally]);
+    const sources = reinforcementSources(withAlly, T, P, AGG, [FR]);
     expect(sources.some((src) => src.nationId === ally && src.unitIds.includes('v1'))).toBe(true);
     const began = gameReducer(withAlly, { type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: { fromRegionId: FR, targetRegionId: T } });
     expect(began.pendingBattle.attackerReinforcements.some((src) => src.unitIds.includes('v1'))).toBe(true);
@@ -362,7 +364,7 @@ describe('master plan 6.7, row by row', () => {
 
   it('17 rebels are fought through the same service', () => {
     const s = armies();
-    const own = { ...s, units: { ...s.units, r1: unit('r1', FR, REBEL_OWNER_ID, 'infantry', 300), g1: { ...unit('g1', FR, 'fr'), tile: s.regions[FR].tile } } };
+    const own = { ...s, units: { ...s.units, r1: unit('r1', FR, REBEL_OWNER_ID, 'infantry', 300), g1: { ...unit('g1', FR, P), tile: s.regions[FR].tile } } };
     const after = gameReducer(own, { type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: FR } });
     expect(after.battleReports[0].kind).toBe('rebellion');
     expect(after.battleReports[0].name).toBeTruthy();
@@ -373,7 +375,7 @@ describe('master plan 6.7, row by row', () => {
   it('18 bankruptcy desertion comes before the setup: the battle reads the deserted strength', () => {
     const s = armies();
     const units = { ...s.units };
-    applyArmyDesertion(units, 'fr');
+    applyArmyDesertion(units, P);
     const poor = { ...s, units };
     const began = gameReducer(poor, { type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: { fromRegionId: FR, targetRegionId: T } });
     const setup = buildInvasionSetup(began, began.pendingBattle);
@@ -394,12 +396,12 @@ describe('master plan 6.7, row by row', () => {
     const auto = resolveAutoBattle(s, getResolveBattleArgs(validateInvasion(s, FR, T), getInvasionBattleContext(s, { targetRegionId: T, targetRegion: s.regions[T], defenderUnits: [s.units.d1, s.units.d2] })), { kind: 'invasion', cityId: T, fromRegionId: FR }, createRng(5));
     expect(auto.defenderUnits.filter((u) => u.militia).length).toBe(mil.length);
     // Militia losses are the city's people; they never enter state.units.
-    const after = applyBattleOutcome(s, makeBattleOutcome({ id: 'm1', kind: 'invasion', warId: 'war_t', attackerNationId: 'fr', defenderNationId: AGG, fromRegionId: FR, regionId: T, isDefended: true, militia: mil }, auto));
+    const after = applyBattleOutcome(s, makeBattleOutcome({ id: 'm1', kind: 'invasion', warId: 'war_t', attackerNationId: P, defenderNationId: AGG, fromRegionId: FR, regionId: T, isDefended: true, militia: mil }, auto));
     expect(Object.keys(after.units).some((id) => id.startsWith('mil_'))).toBe(false);
     // Withdrawal (defense.js) is kept: the player's garrison gives up its city for morale and men.
-    const p = createInitialState({ playerNationId: 'fr', rngSeed: 4 });
-    const second = addCity(p, 'fr', { near: p.nations.fr.capitalRegionId });
-    const def = { ...second.state, units: { g: { ...unit('g', second.cityId, 'fr'), tile: second.state.regions[second.cityId].tile } }, wars: [{ id: 'wd', aggressor: AGG, enemy: 'fr', active: true, battleScore: 0 }] };
+    const p = peoplesWorld({ seed: 4, age: 'bronze' });
+    const second = addCity(p, P, { near: p.nations[P].capitalRegionId });
+    const def = { ...second.state, units: { g: { ...unit('g', second.cityId, P), tile: second.state.regions[second.cityId].tile } }, wars: [{ id: 'wd', aggressor: AGG, enemy: P, active: true, battleScore: 0 }] };
     const record = createDefenseRecord(def, { war: def.wars[0], regionId: second.cityId, aggressorShare: 0.5, seed: 9, index: 1 });
     const queued = { ...def, pendingDefenses: [record] };
     const w = applyDefenseWithdrawal(queued, record.id);
@@ -422,7 +424,7 @@ describe('master plan 6.7, row by row', () => {
     const f = fieldState();
     const v = validateFieldAttack(f, FIELD.IN, FIELD.theirs);
     const after = applyFieldResult(f, v, { outcome: 'attacker', attackerUnits: v.attackerUnits.map((u) => ({ ...u, strength: 800 })), defenderUnits: v.defenderUnits.map((u) => ({ ...u, strength: 300, routed: true })), report: {} }, { rngSeed: 1 });
-    expect(after.nations.pk.warExhaustion || 0).toBeGreaterThan(f.nations.pk.warExhaustion || 0);
+    expect(after.nations[FIELD.FOE].warExhaustion || 0).toBeGreaterThan(f.nations[FIELD.FOE].warExhaustion || 0);
     const anchor = after.battleReports[0].targetRegionId;
     expect(after.regions[anchor].devastation || 0).toBeGreaterThan(f.regions[anchor]?.devastation || 0);
   });
@@ -439,7 +441,7 @@ describe('master plan 6.7, row by row', () => {
 
 describe('decisive field battles (master plan 6.9)', () => {
   it('the loser\'s units on the field are destroyed, those that left by an exit step back a tile; the winner gains XP', () => {
-    const f = fieldState([{ id: 'e2', regionId: FIELD.PK, ownerId: 'pk', tile: FIELD.theirs }]);
+    const f = fieldState([{ id: 'e2', regionId: FIELD.PK, ownerId: FIELD.FOE, tile: FIELD.theirs }]);
     const v = validateFieldAttack(f, FIELD.IN, FIELD.theirs);
     const after = applyFieldResult(f, v, {
       outcome: 'attacker',

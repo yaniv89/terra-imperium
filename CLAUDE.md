@@ -1,6 +1,6 @@
 # Terra Imperium
 
-A grand-strategy game on a real Earth globe, 2000 BCE to 2300 CE, any of 240 nations, with
+A grand-strategy game on a real Earth globe, 2000 BCE to 2300 CE, any of 150 peoples, with
 real-time tactical battles. React 18 + Vite, three.js, Vitest, Playwright, Capacitor for mobile.
 The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and deployed by .github/workflows/deploy-cloudflare.yml on every push to main. docs/ only holds a redirect from the old GitHub Pages address.
 
@@ -29,7 +29,7 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   war decisions). Balance harness: scripts/simulate.mjs.
 - Modifiers: src/engine/modifiers/ (`getModifier` = full sheet; `getNationBonusTotal` = static only).
 - Ages: `src/data/ages.js` is the one age registry (`AGE_ORDER`, `FIRST_AGE_ID`, `LAST_AGE_ID`, `isAgeAtLeast`, `isAgeBefore`, `agesFrom`, `nextAgeId`, `formatYear`, `artAgeFor`, per-age `power` and `unitCostMult`); never write a literal age check. Ages by tech (plans/2026-10-20-001-feat-eight-ages-plan.md, phase A): a nation's age is its research age only, read through `ageOf(state, id)` (src/engine/nationState.js); there is no world age and no `state.age` (an independent reads its strongest known major's age, `sideAgeOf` / `independentAgeOf`, and waits run at `waitAgeOf`: src/engine/ageRefs.js); no rule reads `state.year` (a label from src/engine/displayYear.js; ruleYearPurity.test.js); speed is `speedCostMult(speed, payer's age)` and the game ends on `endingSignal` (src/engine/ending.js: the speed's turn limit or the Future's goal).
-- `src/data/`: static game data (2,028 balanced regions, nations, techTree, buildings, resources).
+- `src/data/`: static game data (peoples, nations, techTree, buildings, resources).
 - New map (plans/civ-map-rework.md, in progress on the features branch): `src/data/geo/tiles.json`
   is a frequency-100 geodesic hex grid (100,002 cells, 29,250 land, about 77 km between neighbours; plans/math/grid-f100.md) built by `npm run build:tiles`
   from Natural Earth, Köppen climate and terrain tiles (`npm run fetch:tiles` first, raw data is
@@ -103,13 +103,9 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   pool (src/data/peoples.js, built facts in src/data/geo/peopleCapitals.json via
   `npm run build:peoples`), world sizes in src/data/worldSizes.js, the pick in
   src/engine/worldgen/peoplesWorld.js. Nation ids are people slugs (`akkad`, `israel`);
-  `LEGACY_NATION_IDS` maps old country ids. `createInitialState` without a scenario still builds
-  the legacy 240-country world (tests, old saves). Titles, regiment numbers: src/engine/peopleNames.js;
+  `createInitialState` builds only peoples worlds (the old 240-country world is retired; its saves are kept but refused with the old-version notice). Titles, regiment numbers: src/engine/peopleNames.js;
   battle names: src/engine/battleNames.js.
-- Map data (current game): `scripts/geo/build-balanced-regions.mjs` merges the 4,482 real admin-1 provinces
-  (kept in scripts/geo/source/) into 2,028 evenly sized regions, then `build-world-regions.mjs`
-  and `build-region-coordinates.mjs` rebuild the game data. `regionMerge.json` maps old ids to
-  new ones (used by the v6 save migration); a region's `includes` lists its member provinces.
+- Map data: the old balanced-regions pipeline (2,028 merged provinces) is retired; `src/data/regions.js` and `regionCoordinates.js` are views over the city registry. `subregions-*.json` stay as runtime map features.
 - `src/battle/`: the tactical RTS. `sim/` is an integer fixed-point 20 Hz deterministic sim
   driven only by orders, run in a Web Worker (`worker/`); `render/` is the three.js battlefield;
   `setup/` builds a battle from macro armies. UI in src/components/battle/.

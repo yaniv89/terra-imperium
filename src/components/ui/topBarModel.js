@@ -11,6 +11,8 @@ import { nameNow } from '../../i18n/names';
 import { techName } from '../../i18n/gameText';
 import { ageProgress } from './ageProgress';
 import { shortAge } from '../panels/researchSheetModel';
+import { decreesOf, decreeCap } from '../../engine/decrees';
+import { DECREE_ACTS, DECREE_TRICKLE_BELOW } from '../../data/decrees';
 
 export const EXPENSE_IDS = ['armyUpkeep', 'marchingUpkeep', 'navyUpkeep', 'fortUpkeep', 'buildingUpkeep', 'advisorSalaries', 'loanInterest'];
 /** The expense line's name in the current language (an unknown id is spelled out from its camel case). */
@@ -26,6 +28,23 @@ export const scienceLabel = (current, status = null) => {
   if (current.gate) return tNow('research.shortWaits', { name: techName(current.tech.id, current.tech.name), gate: current.gate.label });
   const t = current.finishesIn === Infinity ? '?' : current.finishesIn;
   return tNow('research.shortTurns', { name: techName(current.tech.id, current.tech.name), n: t });
+};
+
+/** The ruler's decrees: banked, the cap, why each recent one came or went (newest first), and what the acts cost. */
+export const decreeView = (nation) => {
+  const costs = {};
+  Object.entries(DECREE_ACTS).forEach(([id, a]) => { (costs[a.decrees] ||= []).push(tNow(`decree.act.${id}`)); });
+  return {
+    value: decreesOf(nation),
+    cap: decreeCap(nation),
+    below: DECREE_TRICKLE_BELOW,
+    reasons: (nation.ruler?.decreeLog || []).map((e, i) => ({
+      id: `${e.turn}-${i}`,
+      label: `${tNow(e.deed ? `decree.deed.${e.deed}` : `decree.act.${e.act}`)}${e.detail ? `: ${e.detail}` : ''}`,
+      value: e.n
+    })),
+    costs: Object.entries(costs).sort(([a], [b]) => b - a).map(([n, labels]) => ({ n: Number(n), labels }))
+  };
 };
 
 export const topBarModel = (state) => {
@@ -62,6 +81,7 @@ export const topBarModel = (state) => {
       label: scienceLabel(research.current, research.status),
       bank: research.bank
     },
+    decrees: decreeView(nation),
     culture: {
       perTurn: round1(cities.reduce((s, c) => s + (c.lastYields?.culture || 0), 0)),
       reasons: cultureRows

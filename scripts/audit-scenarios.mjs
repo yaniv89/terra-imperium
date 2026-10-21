@@ -7,16 +7,12 @@ const count=process.argv.includes('--long')?150:10;
 const results=[];
 const option=name=>process.argv.find(a=>a.startsWith(name+'='))?.split('=')[1];
 const seeds=option('--seed')?[Number(option('--seed'))]:[7,4242,2026];
-const modes=option('--mode')?[option('--mode')==='full'?'full':Number(option('--mode'))]:['full',15,30,45,60,75];
+const modes=option('--mode')?[option('--mode')]:['small','standard','large'];
 for(const seed of seeds)for(const mode of modes){
- let s=e.createInitialState({playerNationId:'fr',rngSeed:seed,scenario:mode==='full'?{mode:'full'}:{mode:'emergent',nationCount:mode,seed}});
+ let s=e.createInitialState({playerNationId:'akkad',rngSeed:seed,scenario:{mode:'peoples',size:mode,seed}});
  s={...s,firedEvents:Object.fromEntries(Object.keys(e.HISTORICAL_EVENTS).map(id=>[id,true])),proceduralEventCooldown:999999,battleSettings:{defaultMode:'ask',autoDefend:true}};
  const times=[],first=s.turnNumber;let changes=0,shortages=0,idle=0;
  for(let i=0;i<count&&s.gameStatus==='ACTIVE';i++){
-  if(mode!=='full'){
-   const target=Object.values(s.regions).filter(r=>r.owner==='fr').flatMap(r=>e.getNeighborIds(r.id)).find(id=>s.regions[id]?.owner===null);
-   if(target)s=e.gameReducer(s,{type:e.ActionTypes.FRONTIER_EXPEDITION,payload:{targetRegionId:target}});
-  }
   const before=s,start=performance.now();s=advanceCampaign(e,s);times.push(performance.now()-start);
   changes+=Object.values(s.regions).filter(r=>before.regions[r.id]?.owner!==r.owner).length;
   shortages+=Object.values(s.nations).filter(n=>n.isAtWar&&(n.economy?.supplies || 0)<=0).length;

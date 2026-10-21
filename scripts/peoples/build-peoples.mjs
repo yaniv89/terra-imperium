@@ -7,8 +7,6 @@
 //   colors    { [peopleId]: '#rrggbb' }  a palette of 150 colours, given out greedily so that
 //             capitals within NEIGHBOUR_KM of each other get colours far apart (CIE76 delta E);
 //             the smallest such difference is printed.
-//   legacy    { [countryId]: peopleId }  LEGACY_NATION_IDS: the heaviest people whose land is that
-//             country (nearest the country's capital on ties), else the people nearest its capital.
 // Run after build:tiles whenever the pool or the grid changes:  npm run build:peoples
 // The game modules use extensionless imports, so they are loaded through Vite's SSR loader.
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -114,22 +112,11 @@ try {
     if (!worst || d < worst.d) worst = { d, pair: `${p.id}-${q}` };
   }));
 
-  // 4. Legacy ids.
-  const legacy = {};
-  Object.keys(tiles.capitals).sort().forEach((cid) => {
-    const home = tiles.capitals[cid];
-    if (home == null) return;
-    const own = PEOPLES_LIST.filter((p) => p.land === cid);
-    const pool = own.length ? own : PEOPLES_LIST;
-    const best = [...pool].sort((a, b) => (own.length ? b.weightValue - a.weightValue : 0) || km(home, capitals[a.id]) - km(home, capitals[b.id]) || (a.id < b.id ? -1 : 1))[0];
-    legacy[cid] = best.id;
-  });
-
   const sorted = (o) => Object.fromEntries(Object.keys(o).sort().map((k) => [k, o[k]]));
   const previous = (() => { try { return readFileSync(outFile, 'utf8'); } catch { return ''; } })();
-  const text = `${JSON.stringify({ capitals: sorted(capitals), colors: sorted(colors), legacy: sorted(legacy) }, null, 1)}\n`;
+  const text = `${JSON.stringify({ capitals: sorted(capitals), colors: sorted(colors) }, null, 1)}\n`;
   writeFileSync(outFile, text);
-  console.log(`peopleCapitals.json: ${Object.keys(capitals).length} capitals, ${Object.keys(legacy).length} legacy ids${previous === text ? ' (unchanged)' : ''}`);
+  console.log(`peopleCapitals.json: ${Object.keys(capitals).length} capitals${previous === text ? ' (unchanged)' : ''}`);
   snapNotes.forEach((n) => console.log(`  snap: ${n}`));
   nudges.forEach((n) => console.log(`  nudge: ${n}`));
   console.log(`  closest colours within ${CONTRAST_KM} km: delta E ${worst ? worst.d.toFixed(1) : '-'} (${worst?.pair || ''})`);

@@ -1,9 +1,7 @@
 // src/i18n/locales/ui/nation.he.js
 // UI text: nation (phase H5). Plural forms use .one / .two / .other with { count }.
 export default {
-  'nc.unit.gold': 'זהב',
-  'nc.unit.decrees': 'צווים',
-  'nc.shortfallItem': '{n} {unit} (יש {have})',
+  'nc.shortfallItem': '{cost} (יש {have})',
   'nc.notEnough': 'אין מספיק משאבים — נדרש {list}',
   'nc.notEnoughNeed': 'אין מספיק משאבים: נדרש {list}',
   'nc.cantAnnex': 'עוד אי אפשר לספח: זמין בתור {n}',

@@ -14,6 +14,13 @@ const panel = (html, id) => {
 };
 
 describe('the start screen in steps (W01, plans/UI-DESIGN.md section 8)', () => {
+  it('names the Stone Age start: 5000 BCE and one band, no era picker (U42)', () => {
+    const html = render();
+    expect(html).toContain('5000 BCE');
+    expect(html).toContain('One band each');
+    expect(html).not.toContain('2000 BCE');
+  });
+
   it('opens on step 1 with the people, every other step mounted but hidden', () => {
     const html = render();
     expect(html).toContain('data-step="people"');

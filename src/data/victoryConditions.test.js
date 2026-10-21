@@ -87,7 +87,7 @@ describe('diplomatic', () => {
 
 describe('isDiplomaticallyAligned', () => {
   it('requires genuine engagement (trade or alliance), not just low hostility', () => {
-    // Every real nation starts at hostility 5 (worldNations.js) — this must NOT count as aligned
+    // Every real nation starts at hostility 5 (peopleNation.js) — this must NOT count as aligned
     // on its own, or every game would win a Diplomatic Victory by turn ~20 for free.
     expect(isDiplomaticallyAligned({ hostility: 5 })).toBe(false);
     expect(isDiplomaticallyAligned({ hostility: 0 })).toBe(false);

@@ -2,9 +2,9 @@
 // assaults (workers, a camp, houses, production, towers), on the master plan's clocks (6.1: a sally
 // 15 minutes, a landing as a city assault, 30).
 import { describe, it, expect } from 'vitest';
-import { createInitialState, gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
+import { peoplesWorld, rivalOf, cap, cloneWorld, majorIds } from './testWorld';
 import { ActionTypes } from '../data/types';
-import { getNationCapital } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
 import { createRng } from '../utils/rng';
@@ -20,19 +20,20 @@ const mk = (p, cls) => cls.map((classId, i) => ({ id: `${p}${i}`, classId, stren
 
 describe('a sally is a full base-building battle', () => {
   it('the AI garrison sallies against the player\'s besiegers: camp and engines, workers, the field clock', () => {
-    const IN = getNationCapital('in'); const PK = getNationCapital('pk');
-    const s0 = syncWorldRegistry(createInitialState({ playerNationId: 'in', rngSeed: 3 }));
+    const s0 = syncWorldRegistry(peoplesWorld({ seed: 3 }));
+    const ME = s0.playerNationId; const FOE = rivalOf(s0);
+    const IN = cap(ME); const PK = cap(FOE);
     const city = s0.regions[PK];
     const ring = tiles.neighbors[city.tile].filter((t) => tiles.land[t] === 1)[0];
-    const u = (id, regionId, extra) => ({ id, ownerId: 'in', regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, embarkedOn: null, promotions: [], xp: 0, ...extra });
+    const u = (id, regionId, extra) => ({ id, ownerId: ME, regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, embarkedOn: null, promotions: [], xp: 0, ...extra });
     const s = {
-      ...s0, units: { a0: u('a0', IN, { tile: ring, strength: 300 }), g1: u('g1', PK, { ownerId: 'pk', tile: city.tile }), g2: u('g2', PK, { ownerId: 'pk', tile: city.tile }) },
-      wars: [...s0.wars, { id: 'w-f', aggressor: 'in', enemy: 'pk', active: true, startYear: s0.year, battleScore: 0 }],
-      nations: { ...s0.nations, in: { ...s0.nations.in, isAtWar: true }, pk: { ...s0.nations.pk, isAtWar: true } },
-      regions: { ...s0.regions, [PK]: { ...city, siege: { hp: 100, maxHp: 200, by: 'in', startedTurn: 1, encircled: false, starving: 0 } } },
+      ...s0, units: { a0: u('a0', IN, { tile: ring, strength: 300 }), g1: u('g1', PK, { ownerId: FOE, tile: city.tile }), g2: u('g2', PK, { ownerId: FOE, tile: city.tile }) },
+      wars: [...s0.wars, { id: 'w-f', aggressor: ME, enemy: FOE, active: true, startYear: s0.year, battleScore: 0 }],
+      nations: { ...s0.nations, [ME]: { ...s0.nations[ME], isAtWar: true }, [FOE]: { ...s0.nations[FOE], isAtWar: true } },
+      regions: { ...s0.regions, [PK]: { ...city, siege: { hp: 100, maxHp: 200, by: ME, startedTurn: 1, encircled: false, starving: 0 } } },
       pendingDefenses: []
     };
-    const q = aiSally(s, 'pk', createRng(5));
+    const q = aiSally(s, FOE, createRng(5));
     const began = gameReducer(q, { type: ActionTypes.BEGIN_DEFENSE_BATTLE, payload: { defenseId: q.pendingDefenses[0].id } });
     const setup = buildInvasionSetup(began, began.pendingBattle);
     expect(setup.battleType).toBe('sally');
@@ -53,15 +54,20 @@ describe('a sally is a full base-building battle', () => {
 
 describe('a landing is a full base-building battle, on the city assault\'s clock', () => {
   it('the AI lands on the player\'s coast: the real town, the camp on the beach, workers, 30 minutes', () => {
-    const s = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+    // A rival with a port the player's coast can be reached from by sea.
+    const base = peoplesWorld({ player: 'keftiu', seed: 7 }); // an island people with a coast
+    const ME = base.playerNationId;
+    const reach = (AI) => { const ports = Object.keys(base.regions).filter((r) => base.regions[r].owner === AI && isCoastal(r)); for (const port of ports) { const t = Object.keys(base.regions).find((r) => base.regions[r].owner === ME && isCoastal(r) && isReachableBySea(port, r, 'modern')); if (t) return { port, target: t }; } return null; };
+    const AI = majorIds(base).slice(1).find((id) => reach(id));
+    expect(AI, 'a rival that can land on the player coast').toBeTruthy();
+    const { port, target } = reach(AI);
+    const s = cloneWorld(base);
     s.techAgeId = 'modern';
-    const port = Object.keys(s.regions).find((r) => s.regions[r].owner === 'gb' && isCoastal(r));
-    const target = Object.keys(s.regions).find((r) => s.regions[r].owner === 'fr' && isCoastal(r) && isReachableBySea(port, r, s.techAgeId));
-    s.wars = [{ id: 'island', aggressor: 'gb', enemy: 'fr', active: true, startYear: s.year, battleScore: 0 }];
-    s.nations.gb = { ...s.nations.gb, isAtWar: true, economy: { gold: 1000, hr: 1000, mil: 100, adm: 100 }, tech: { ageId: 'modern', researched: [] } };
-    s.nations.fr = { ...s.nations.fr, isAtWar: true };
+    s.wars = [{ id: 'island', aggressor: AI, enemy: ME, active: true, startYear: s.year, battleScore: 0 }];
+    s.nations[AI] = { ...s.nations[AI], isAtWar: true, economy: { gold: 1000, hr: 1000, mil: 100, adm: 100 }, tech: { ageId: 'modern', researched: [] } };
+    s.nations[ME] = { ...s.nations[ME], isAtWar: true };
     const land = (id, owner, regionId) => ({ id, ownerId: owner, regionId, homeRegionId: regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, promotions: [], xp: 0 });
-    s.units = { fleet: { id: 'fleet', ownerId: 'gb', regionId: port, domain: 'naval', classId: 'naval', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, transportCapacity: 2, promotions: [] }, army: land('army', 'gb', port), army2: land('army2', 'gb', port), guard: land('guard', 'fr', target) };
+    s.units = { fleet: { id: 'fleet', ownerId: AI, regionId: port, domain: 'naval', classId: 'naval', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, transportCapacity: 2, promotions: [] }, army: land('army', AI, port), army2: land('army2', AI, port), guard: land('guard', ME, target) };
     s.pendingDefenses = [];
     const q = processAINavalOperations(s);
     const began = gameReducer(q, { type: ActionTypes.BEGIN_DEFENSE_BATTLE, payload: { defenseId: q.pendingDefenses.find((d) => d.kind === 'landing').id } });

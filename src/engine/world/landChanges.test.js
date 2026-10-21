@@ -2,16 +2,17 @@
 // keeps tile ids turns land into water (a strait opens) or water into land, a save's cities,
 // roads and units on those tiles are moved or cleared. Version 9 used it; version 10 (the
 // frequency-100 grid) is a clean break, so the test builds its own change list on the shipped
-// grid: a coast tile beside the Finnish capital plays a tile that "became water".
+// grid: a coast tile beside a coastal capital (Yamatai's) plays a tile that "became water".
 import { describe, it, expect } from 'vitest';
-import { createInitialState } from '../gameReducer';
+import { peoplesWorld } from '../testWorld';
 import { applyLandChanges } from './landChanges';
 import { getTiles } from '../../data/geo/tiles';
 import { auditGameState } from '../stateAudit';
 
 const tiles = getTiles();
-const fresh = createInitialState({ playerNationId: 'fi', rngSeed: 21 });
-const [cityId, city] = Object.entries(fresh.regions).find(([, r]) => r.owner === 'fi' && r.isCapital);
+const fresh = peoplesWorld({ player: 'yamatai', seed: 21 });
+const me = fresh.playerNationId;
+const [cityId, city] = Object.entries(fresh.regions).find(([, r]) => r.owner === me && r.isCapital);
 // a sea tile next to the capital's land (the old centre) and a land tile of its own (where an old
 // save's fleet sat)
 const OLD_CENTRE = city.tiles.flatMap((t) => tiles.neighbors[t]).find((n) => tiles.land[n] !== 1 && tiles.terrainOf(n) === 'coast');
@@ -23,10 +24,10 @@ const CHANGES = { toWater: [OLD_CENTRE], toLand: [NOW_LAND] };
 const oldSave = () => {
   const tileOwner = { ...fresh.world.tileOwner, [OLD_CENTRE]: cityId };
   const units = { ...fresh.units };
-  const fiUnits = Object.values(units).filter((u) => u.ownerId === 'fi');
-  const army = fiUnits.find((u) => u.domain !== 'naval');
+  const myUnits = Object.values(units).filter((u) => u.ownerId === me);
+  const army = myUnits.find((u) => u.domain !== 'naval');
   if (army) units[army.id] = { ...army, tile: OLD_CENTRE };
-  units.fleet_test = { ...(army || fiUnits[0]), id: 'fleet_test', domain: 'naval', classId: army?.classId, tile: NOW_LAND, regionId: cityId };
+  units.fleet_test = { ...(army || myUnits[0]), id: 'fleet_test', domain: 'naval', classId: army?.classId, tile: NOW_LAND, regionId: cityId };
   return {
     ...fresh,
     units,
@@ -62,7 +63,7 @@ describe('land changes after a grid rebuild', () => {
   });
 
   it('changes nothing in a save that has nothing on the changed tiles', () => {
-    const other = createInitialState({ playerNationId: 'fr', rngSeed: 22 });
+    const other = peoplesWorld({ seed: 22 });
     expect(applyLandChanges(other, CHANGES, tiles)).toBe(other);
   });
 });

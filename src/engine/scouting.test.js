@@ -12,7 +12,7 @@ import { orderExplore, explorePath, EXPLORER_STRENGTH } from './scouting';
 import { buildOptions } from '../components/city/cityBuildModel';
 import { armyStatus } from './standingOrders';
 
-const base = createInitialState({ playerNationId: 'au', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11 } });
+const base = createInitialState({ playerNationId: 'gunditjmara', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11 } });
 const me = base.playerNationId;
 const cap = base.regions[getCapital(base, me)];
 const scout = { id: 'scout_1', ownerId: me, regionId: cap.id, homeRegionId: cap.id, tile: cap.tile, domain: 'land', classId: 'support', explorer: true, strength: EXPLORER_STRENGTH, maxStrength: EXPLORER_STRENGTH, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null };

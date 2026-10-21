@@ -119,7 +119,7 @@ export const DOCTRINE_TECH_CATEGORY_PRIORITY = {
 // directly rather than inventing a second, parallel taxonomy) gets a short, flavor-appropriate pool
 // instead of the full 9; 'generic' keeps the full spread, since that's the catch-all for every
 // nation outside the curated pools. Starting size folds in as a coarse bucket mixed into the hash
-// input (worldNations.js's doctrineForCountry), so two nations in the same culture group but very
+// input (peopleNation.js's doctrineForCountry), so two nations in the same culture group but very
 // different sizes don't always land on the same doctrine.
 export const DOCTRINE_BY_CULTURE_GROUP = {
   western_european: ['merchant', 'cautious', 'defender'],
