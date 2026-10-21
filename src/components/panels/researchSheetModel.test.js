@@ -68,5 +68,6 @@ describe('what a tech unlocks (tech unlocks row)', () => {
   it('names the units and buildings a tech opens', () => {
     expect(techUnlocks('infrastructure_the_wheel')).toEqual(['Chariots', 'Trail Cairns']);
     expect(techUnlocks('military_standing_armies')).toEqual(expect.arrayContaining(['Dragoons', 'Riflemen', 'Military Academy']));
+    expect(techUnlocks('economy_agriculture')).toContain('Farm');
   });
 });
