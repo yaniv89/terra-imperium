@@ -9,7 +9,7 @@ import { buildTownManifest } from '../../data/townLayout';
 import { TEMPLATES } from '../../battle/setup/mapgen';
 import { tileContextOf } from '../../battle/setup/tileContext';
 import { getTiles } from '../../data/geo/tiles';
-import { AGE_ORDER, isAgeAtLeast, isAgeBefore } from '../../data/ages';
+import { AGE_ORDER, FIRST_AGE_ID, isAgeAtLeast, isAgeBefore } from '../../data/ages';
 import { getAvailableClasses } from '../../data/unitClasses';
 import { makeBenchSetup } from '../../battle/bench/benchScenario';
 import { sandboxTileOptions } from './sandboxTile';
@@ -60,6 +60,7 @@ const GENERALS = {
 
 // The powers a sandbox army of that age would bring (the campaign derives these from real assets).
 const sandboxPowers = (ageId, units) => {
+  if (ageId === FIRST_AGE_ID) return [{ id: 'rallyCry', label: 'War Cry' }, { id: 'ambush' }]; // as invasion.js getBattlePowers
   const out = [{ id: 'rallyCry' }];
   if (isAgeBefore(ageId, 'gunpowder')) out.push({ id: 'arrowStorm' });
   if (isAgeAtLeast(ageId, 'gunpowder') && units.some((u) => u.classId === 'siege')) out.push({ id: 'artilleryBarrage' });

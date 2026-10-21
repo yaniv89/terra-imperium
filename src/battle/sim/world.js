@@ -12,6 +12,7 @@ import { tileOf, walkableGoal } from './pathing';
 import { initEconomy } from './economy';
 import { reserveEntryMult } from './buildings';
 import { emptyLosses } from './losses';
+import { guardClassOf } from '../../data/unitClasses';
 
 const tileCenter = (t) => t * Q + (Q >> 1);
 
@@ -270,7 +271,7 @@ const spawnGenerals = (w) => {
       ? placed.filter((q) => Math.abs(Math.floor(q.x / Q) - genX) < LINE_SPACING).reduce((m, q) => Math.max(m, Math.abs(Math.floor(q.y / Q) - midY)), 0)
       : 0;
     ids.forEach((cid, i) => {
-      const unit = { id: `gen_${cid}`, classId: 'cavalry', strength: GENERAL_GUARD, maxStrength: GENERAL_GUARD, morale: 100, promotions: [], commanderId: cid, domain: 'land' };
+      const unit = { id: `gen_${cid}`, classId: guardClassOf(s.ageId), strength: GENERAL_GUARD, maxStrength: GENERAL_GUARD, morale: 100, promotions: [], commanderId: cid, domain: 'land' };
       const q = makeSquad(w, unit, side, s.ageId, w.squads.length);
       q.isGeneral = cid; q.eco = 'general';
       q.x = tileCenter(genX);

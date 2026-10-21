@@ -31,6 +31,7 @@
 import { TILE, isPassable, reachable } from './mapgen';
 import { manifestHousing } from '../../data/townLayout';
 import { Q, secondsToTicks } from '../sim/constants';
+import { FIRST_AGE_ID, nextAgeId } from '../../data/ages';
 
 export const CITY_TILES_PER_UNIT = 2.75;
 // Material by the age the city is built in (world plan 10: mud brick 1, masonry 1.4, concrete 2).
@@ -267,7 +268,9 @@ export const placeCity = ({ map, manifest, damage = null, fortLevel = 0, keepStr
     structures,
     city: {
       cityId: manifest.cityId, townKey: manifest.townKey, ageId: manifest.ageId, tierId: manifest.tierId, style: manifest.style,
-      scale: S, housingCap: manifestHousing(manifest, ruined), structureCount: structures.length - 1
+      scale: S, housingCap: manifestHousing(manifest, ruined), structureCount: structures.length - 1,
+      // a Stone town's ring is an earth bank and stakes (walls-stone.glb); the Walls of Jericho make it the next age's stone wall
+      wallAgeId: manifest.ageId === FIRST_AGE_ID && manifest.structures.some((s) => s.projectId === 'walls_of_jericho') ? nextAgeId(FIRST_AGE_ID) : manifest.ageId
     }
   };
 };

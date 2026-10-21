@@ -54,15 +54,18 @@ const abilityBlockedReason = (w, q, id) => {
   return null;
 };
 
+// Ambush (a general's ability, or the Stone commander power): the side's squads around (x, y) hide
+// until `until` and strike their first blow at AMBUSH_FIRST_STRIKE (shooting gives them away).
+const hideAround = (w, side, x, y, radius, until) => w.squads.forEach((o) => {
+  if (o.side === side && isFighting(o) && distSq(o.x, o.y, x, y) <= radius * radius) { o.hiddenUntil = until; o.ambushReady = true; }
+});
+
 export const activateAbility = (w, q, id) => {
   if (!q || !isFighting(q) || q.routed || abilityBlockedReason(w, q, id)) return false;
   const a = ABILITIES[id];
   q.cooldowns = { ...(q.cooldowns || {}), [id]: w.tick + a.cooldown };
-  if (id === 'ambush') {
-    w.squads.forEach((o) => {
-      if (o.side === q.side && isFighting(o) && distSq(o.x, o.y, q.x, q.y) <= a.radius * a.radius) { o.hiddenUntil = w.tick + a.duration; o.ambushReady = true; }
-    });
-  } else {
+  if (id === 'ambush') hideAround(w, q.side, q.x, q.y, a.radius, w.tick + a.duration);
+  else {
     w.effects.push({ side: q.side, kind: a.kind, value: a.value, sourceIdx: q.idx, radius: a.radius, until: w.tick + a.duration, ability: id });
   }
   w.events.push({ t: w.tick, type: 'ability', id: q.idx, ability: id });
@@ -119,7 +122,8 @@ export const updateEffects = (w) => {
 
 // ---- commander powers ----------------------------------------------------------------------
 export const POWERS = {
-  rallyCry: { label: 'Rally Cry', cost: 120, cooldown: S(90) },
+  rallyCry: { label: 'Rally Cry', cost: 120, cooldown: S(90) }, // Stone calls it War Cry (invasion.js getBattlePowers)
+  ambush: { label: 'Ambush', cost: 100, cooldown: S(90), hide: { radius: 6 * Q, duration: S(60) } }, // Stone (U39), aimed at your own troops
   arrowStorm: { label: 'Arrow Storm', cost: 150, cooldown: S(60), impacts: 6, spread: 3 * Q, every: 10, radius: Math.round(1.5 * Q), damage: 45, structureMult: 0.5, delay: 10 },
   artilleryBarrage: { label: 'Artillery Barrage', cost: 250, cooldown: S(75), impacts: 8, spread: 4 * Q, every: 10, radius: Math.round(1.8 * Q), damage: 90, structureMult: 3, delay: 20 },
   airStrike: { label: 'Air Strike', cost: 300, cooldown: S(90), impacts: 8, line: true, every: 4, radius: Math.round(1.4 * Q), damage: 120, structureMult: 2, delay: 40 },
@@ -155,6 +159,7 @@ export const firePower = (w, side, id, x, y) => {
     });
     return true;
   }
+  if (p.hide) { hideAround(w, side, Math.round(x), Math.round(y), p.hide.radius, w.tick + p.hide.duration); return true; }
   const maxX = p.reachFrac ? Math.floor(w.map.w * p.reachFrac) * Q : w.map.w * Q - 1;
   const cx = Math.max(0, Math.min(maxX, Math.round(x))); const cy = Math.max(0, Math.min(w.map.h * Q - 1, Math.round(y)));
   for (let i = 0; i < p.impacts; i++) {

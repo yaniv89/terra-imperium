@@ -11,7 +11,7 @@
 import { withAirSupport } from './airPower';
 import { REGIONS_DATA, getNeighborIds, getTouchingIds } from '../data/regions';
 import { getRegionTerrain } from '../data/terrain';
-import { isAgeAtLeast, isAgeBefore } from '../data/ages';
+import { FIRST_AGE_ID, isAgeAtLeast, isAgeBefore } from '../data/ages';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { canAfford } from '../utils/helpers';
 import { isWarBetween } from './diplomacy';
@@ -59,6 +59,7 @@ export const getReinforcementSources = (state, targetRegionId, nationId, exclude
 // plan §8.8): everyone can rally; the arrow storm belongs to the early ages; artillery needs a
 // siege unit in the fight; an air strike needs aircraft.
 export const getBattlePowers = (state, nationId, ageId, units = []) => {
+  if (ageId === FIRST_AGE_ID) return [{ id: 'rallyCry', label: 'War Cry' }, { id: 'ambush' }]; // Stone (U39): no massed archery yet
   const out = [{ id: 'rallyCry' }];
   if (isAgeBefore(ageId, 'gunpowder')) out.push({ id: 'arrowStorm' });
   if (isAgeAtLeast(ageId, 'gunpowder') && units.some((u) => u.classId === 'siege')) out.push({ id: 'artilleryBarrage' });

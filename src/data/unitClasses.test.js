@@ -107,7 +107,7 @@ describe('getSiegeMultiplier', () => {
 describe('UNIT_ROSTER data integrity', () => {
   it('every age has an entry for every one of its ages\' core classes', () => {
     AGE_ORDER.forEach(ageId => {
-      ['infantry', 'cavalry', 'ranged', 'siege', 'naval'].forEach(classId => {
+      ['infantry', 'cavalry', 'ranged', 'siege', 'naval'].filter((c) => !(ageId === 'stone' && c === 'cavalry')).forEach(classId => { // no Stone horses (U37)
         expect(UNIT_ROSTER[ageId][classId], `${ageId}/${classId}`).toBeDefined();
       });
     });

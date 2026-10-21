@@ -74,7 +74,8 @@ import { FIRST_AGE_ID } from '../../data/ages';
 // v16: playtest 4 P4-H4: two squads walking into each other slide past instead of locking, an
 // attack-moving squad turns on a tower that shoots it, and an assault goes on to base buildings
 // near the attack-move's goal or the building that fell (CONTINUE_NEAR 18 tiles).
-export const SETUP_VERSION = 17; // v17: H-25, an oasis field is drawn as desert ground (the combat terrain stays)
+// v17: H-25, an oasis field is drawn as desert ground (the combat terrain stays).
+export const SETUP_VERSION = 18; // v18: Stone battles (eight ages U37 to U40): guard on foot, Stone stats, powers and fields
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
 
@@ -186,7 +187,10 @@ export const buildSetupFromArmies = ({
   const raiding = RAID_TYPES.has(type);
   const realCity = !naval && type !== 'sally' && type !== 'raid' && cityManifest?.structures?.length ? cityManifest : null;
   const ground = tileContext?.oasis && terrain === 'mixed' ? 'desert' : terrain; // what the field looks like
-  const map = generateMap({ regionId, terrain: ground, combatWidth, pointCount: naval ? 0 : deposits.length, roads: 1 + (infrastructure >= 5 ? 1 : 0) + (infrastructure >= 8 ? 1 : 0) + (tileContext?.roads || 0), landing, tileContext, naval, ...(realCity ? { keepInset: cityKeepInset(realCity) } : {}) });
+  // The ground is the defender's: Stone land has no roads and more wood (U40).
+  const wild = defenderAgeId === FIRST_AGE_ID;
+  const roads = wild ? 0 : 1 + (infrastructure >= 5 ? 1 : 0) + (infrastructure >= 8 ? 1 : 0) + (tileContext?.roads || 0);
+  const map = generateMap({ regionId, terrain: ground, combatWidth, pointCount: naval ? 0 : deposits.length, roads, landing, tileContext, naval, wild, ...(realCity ? { keepInset: cityKeepInset(realCity) } : {}) });
   // A siege in progress (sieges.js) has already battered the walls: the keep starts at that HP.
   // A sea battle has one structure: the defender's anchorage, an unwalled keep the AI steers for and the renderer leaves out.
   let cityInfo = null;

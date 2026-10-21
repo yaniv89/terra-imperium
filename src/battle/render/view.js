@@ -43,7 +43,7 @@ const makeView = (w, pendingOrders, playerSide, includeFog, work) => ({
   fog: includeFog && w.fog ? w.fog[playerSide].slice() : null,
   powers: (w.setup.powers?.[playerSide] || []).map((p) => {
     const st = powerState(w, playerSide, p.id);
-    return { id: p.id, label: POWERS[p.id]?.label || p.id, cost: st.cost, usesLeft: st.usesLeft, readyIn: Math.max(0, st.readyAt - w.tick), targeted: !!POWERS[p.id]?.impacts };
+    return { id: p.id, label: p.label || POWERS[p.id]?.label || p.id, cost: st.cost, usesLeft: st.usesLeft, readyIn: Math.max(0, st.readyAt - w.tick), targeted: !!(POWERS[p.id]?.impacts || POWERS[p.id]?.hide) };
   }),
   squads: w.squads.map((q) => ({
     ...clipFieldsOf(q, q.side === playerSide || canSeeSquad(w, playerSide, q), work),
