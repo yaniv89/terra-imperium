@@ -14,7 +14,8 @@ concurrency:
 jobs:
   verify:
     # Scheduled runs always use the default branch; a manual run is allowed from main only.
-    if: github.ref == 'refs/heads/main'
+    # Skipped until the U36 deploy sets the SUPABASE_URL variable (plans/U36-DEPLOY.md).
+    if: github.ref == 'refs/heads/main' && vars.SUPABASE_URL != ''
     runs-on: ubuntu-latest
     timeout-minutes: 14
     steps:

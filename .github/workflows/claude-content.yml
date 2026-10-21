@@ -58,7 +58,8 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: claude-content-${{ inputs.job }}
+  # One queue per job and persona: GitHub keeps one waiting run per group and cancels the rest.
+  group: claude-content-${{ inputs.job }}-${{ inputs.persona }}
   cancel-in-progress: false
 jobs:
   run:
