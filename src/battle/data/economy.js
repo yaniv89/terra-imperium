@@ -194,6 +194,12 @@ const NAMES = {
     camp: 'Headquarters', hall: 'Command Post', house: 'Housing Block', foodDepot: 'Supply Depot', materialsYard: 'Logistics Yard', tradePost: 'Market',
     farm: 'Agri-Plant', mine: 'Mine', barracks: 'Barracks', range: 'Firing Range', stable: 'Motor Pool', siegeWorkshop: 'Artillery Park',
     aidPost: 'Field Hospital', tower: 'Radar Tower', worker: 'Engineer'
+  },
+  // Future (Appendix C, U66)
+  future: {
+    camp: 'Command Nexus', hall: 'Nexus Hall', house: 'Hab Module', foodDepot: 'Ration Store', materialsYard: 'Fabricator Yard', tradePost: 'Exchange',
+    farm: 'Hydroponics', mine: 'Extractor', barracks: 'Exo Bay', range: 'Range', stable: 'Hover Bay', siegeWorkshop: 'Siege Foundry',
+    aidPost: 'Med Bay', tower: 'Sensor Pylon', worker: 'Engineer'
   }
 };
 export const ecoName = (id, ageId) => NAMES[ageId]?.[id] || NAMES.default[id] || id;

@@ -6,7 +6,7 @@
 // land in <outDir>/results.jsonl and the job writes its review files next to them.
 //   node scripts/ai/<job>.mjs --dry-run           request count and cost estimate, no network, no key
 //   node scripts/ai/<job>.mjs --limit 5           a small trial run
-//   node scripts/ai/<job>.mjs --max-usd 10        refuse to start if the worst case costs more
+//   node scripts/ai/<job>.mjs --max-usd 12        refuse to start if the worst case costs more
 import { build } from 'esbuild';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -111,7 +111,7 @@ export const resultJson = (r) => {
 export const parseArgs = (argv) => {
   const val = (flag, dflt) => { const i = argv.indexOf(flag); return i >= 0 ? argv[i + 1] : dflt; };
   const limit = Number(val('--limit', 0)) || 0;
-  const maxUsd = Number(val('--max-usd', 10));
+  const maxUsd = Number(val('--max-usd', 12));
   if (!(maxUsd > 0)) throw new Error('--max-usd must be a positive number');
   return { dryRun: argv.includes('--dry-run'), limit, maxUsd };
 };

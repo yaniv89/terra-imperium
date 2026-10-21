@@ -33,7 +33,9 @@ const CATEGORY_LINES = {
     { name: 'Feudal Levies', age: 'kingdoms' }, { name: 'Plate Armor', age: 'kingdoms' },
     { name: 'Gunpowder Weapons', age: 'gunpowder' }, { name: 'Standing Armies', age: 'gunpowder' },
     { name: 'Mechanized Warfare', age: 'modern' }, { name: 'Combined Arms', age: 'modern' },
-    { name: 'Precision Guidance', age: 'information' }, { name: 'Unmanned Systems', age: 'information' }
+    { name: 'Precision Guidance', age: 'information' }, { name: 'Unmanned Systems', age: 'information' },
+    { name: 'Powered Exoskeletons', age: 'future' }, { name: 'Directed Energy', age: 'future' },
+    { name: 'Autonomous Warfare', age: 'future', outsideThreshold: true }
   ],
   [TechCategories.ECONOMY]: [
     { name: 'Agriculture', age: 'stone' }, { name: 'Animal Husbandry', age: 'stone' },
@@ -42,7 +44,8 @@ const CATEGORY_LINES = {
     { name: 'Guild Charters', age: 'kingdoms' }, { name: 'Banking Houses', age: 'kingdoms' },
     { name: 'Joint-Stock Companies', age: 'gunpowder' }, { name: 'Colonial Trade', age: 'gunpowder' },
     { name: 'Industrial Capital', age: 'modern' }, { name: 'Mass Production', age: 'modern' },
-    { name: 'Global Markets', age: 'information' }, { name: 'Digital Economy', age: 'information' }
+    { name: 'Global Markets', age: 'information' }, { name: 'Digital Economy', age: 'information' },
+    { name: 'Automated Industry', age: 'future' }, { name: 'Post-Scarcity Fabrication', age: 'future' }
   ],
   [TechCategories.INFRASTRUCTURE]: [
     { name: 'Pottery', age: 'stone' }, { name: 'The Wheel', age: 'stone' },
@@ -51,7 +54,8 @@ const CATEGORY_LINES = {
     { name: 'Stone Bridges', age: 'kingdoms' }, { name: 'Postal Relay', age: 'kingdoms' },
     { name: 'Canal Locks', age: 'gunpowder' }, { name: 'Turnpike Roads', age: 'gunpowder' },
     { name: 'Rail Networks', age: 'modern' }, { name: 'Highway Systems', age: 'modern' },
-    { name: 'Telecom Networks', age: 'information' }, { name: 'Smart Grids', age: 'information' }
+    { name: 'Telecom Networks', age: 'information' }, { name: 'Smart Grids', age: 'information' },
+    { name: 'Fusion Power', age: 'future' }, { name: 'Orbital Infrastructure', age: 'future' }
   ],
   [TechCategories.GOVERNANCE]: [
     { name: 'Chiefdoms', age: 'stone' }, { name: 'Sacred Kingship', age: 'stone' },
@@ -60,7 +64,10 @@ const CATEGORY_LINES = {
     { name: 'Feudal Charters', age: 'kingdoms' }, { name: 'Royal Chancery', age: 'kingdoms' },
     { name: 'Bureaucratic Reform', age: 'gunpowder' }, { name: 'Constitutional Law', age: 'gunpowder' },
     { name: 'Civil Service', age: 'modern' }, { name: 'Mass Politics', age: 'modern' },
-    { name: 'Digital Administration', age: 'information' }, { name: 'Global Institutions', age: 'information' }
+    { name: 'Digital Administration', age: 'information' }, { name: 'Global Institutions', age: 'information' },
+    { name: 'Algorithmic Governance', age: 'future' }, { name: 'Planetary Federation', age: 'future' },
+    // Repeatable (research.js): never marked researched; each completion counts in research.futureTechs.
+    { name: 'Future Tech', age: 'future', outsideThreshold: true, repeatable: true }
   ],
   [TechCategories.SCIENCE]: [
     { name: 'Star Lore', age: 'stone' }, { name: 'Proto-Writing', age: 'stone' },
@@ -69,7 +76,9 @@ const CATEGORY_LINES = {
     { name: 'Scholastic Method', age: 'kingdoms' }, { name: 'Optics', age: 'kingdoms' },
     { name: 'Scientific Method', age: 'gunpowder' }, { name: 'Calculus', age: 'gunpowder' },
     { name: 'Nuclear Physics', age: 'modern' }, { name: 'Computing', age: 'modern' },
-    { name: 'Genomics', age: 'information' }, { name: 'Artificial Intelligence', age: 'information' }
+    { name: 'Genomics', age: 'information' }, { name: 'Artificial Intelligence', age: 'information' },
+    { name: 'Quantum Computing', age: 'future' }, { name: 'Synthetic Biology', age: 'future' },
+    { name: 'Machine Consciousness', age: 'future', outsideThreshold: true }
   ]
 };
 
@@ -132,7 +141,20 @@ const TECH_EFFECTS = {
   'Digital Economy': { goldMult: 0.15 },
   'Telecom Networks': { opinion: 2 },
   'Global Institutions': { opinion: 2 },
-  'Artificial Intelligence': { techPointsMult: 0.25, researchCost: -0.10 }
+  'Artificial Intelligence': { techPointsMult: 0.25, researchCost: -0.10 },
+  // Future (eight-ages plan U65, effects from plans/eras-origins-and-future.md 5.4; admBonus maps
+  // to decreePace per KTD20). Directed Energy, Fusion Power, Orbital Infrastructure and Planetary
+  // Federation pay through what they unlock (U69, U71). Until the robot variants (U67) and the
+  // Planetary Council (U71) exist, the robot techs and Planetary Federation carry a small effect.
+  'Powered Exoskeletons': { hrMult: -0.2 }, // fewer, stronger soldiers
+  'Automated Industry': { goldMult: 0.25 }, // the automation meter comes with U70
+  'Post-Scarcity Fabrication': { goldMult: 0.25, stabilityBonus: 1 },
+  'Algorithmic Governance': { decreePace: 1, developmentCost: -0.25 },
+  'Quantum Computing': { techPointsMult: 0.30 },
+  'Synthetic Biology': { popGrowthBonus: 0.003 },
+  'Planetary Federation': { opinion: 2 },
+  'Autonomous Warfare': { hrMult: 0.1 }, // machines fill the ranks; U67 turns the roster into robots
+  'Machine Consciousness': { techPointsMult: 0.1 }
 };
 
 const slug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
@@ -162,17 +184,21 @@ export const CROSS_PREREQUISITES = {
   'Provincial Administration': ['Paved Roads'],
   'Constitutional Law': ['Scientific Method'],
   'Digital Administration': ['Computing'],
-  'Scholastic Method': ['Scribal Bureaucracy']
+  'Scholastic Method': ['Scribal Bureaucracy'],
+  'Automated Industry': ['Artificial Intelligence'],
+  'Fusion Power': ['Nuclear Physics'],
+  'Autonomous Warfare': ['Artificial Intelligence'],
+  'Future Tech': ['Autonomous Warfare', 'Machine Consciousness']
 };
 const idOfName = (name) => { for (const [category, entries] of Object.entries(CATEGORY_LINES)) if (entries.some((e) => e.name === name)) return `${category}_${slug(name)}`; throw new Error(`Unknown tech ${name}`); };
 const crossPrerequisites = (name) => (CROSS_PREREQUISITES[name] || []).map(idOfName);
 
 // The old techPoints cost kept on each tech as data (research.js prices techs by age instead).
-const LEGACY_TECH_POINTS_BY_AGE = { stone: 5, bronze: 10, classical: 25, kingdoms: 40, gunpowder: 55, modern: 70, information: 85 };
+const LEGACY_TECH_POINTS_BY_AGE = { stone: 5, bronze: 10, classical: 25, kingdoms: 40, gunpowder: 55, modern: 70, information: 85, future: 100 };
 
 const buildLine = (category, entries) => {
   const techs = {};
-  entries.forEach(({ name, age: ageId }, i) => {
+  entries.forEach(({ name, age: ageId, outsideThreshold = false, repeatable = false }, i) => {
     const id = `${category}_${slug(name)}`;
     const previousId = i === 0 ? null : `${category}_${slug(entries[i - 1].name)}`;
     techs[id] = {
@@ -190,7 +216,10 @@ const buildLine = (category, entries) => {
       // computed separately (getTechPowerCost) since which POOL applies depends on category, not
       // a fixed resource key this object could name directly.
       cost: { techPoints: LEGACY_TECH_POINTS_BY_AGE[ageId] },
-      effects: TECH_EFFECTS[name] || {}
+      effects: TECH_EFFECTS[name] || {},
+      // Not one of the age's 10 (the robot techs and Future Tech): no age threshold, no year label.
+      ...(outsideThreshold ? { outsideThreshold } : {}),
+      ...(repeatable ? { repeatable } : {})
     };
   });
   return techs;
@@ -205,7 +234,8 @@ export const TECH_TREE = Object.entries(CATEGORY_LINES).reduce((acc, [category, 
 // falling behind in one line doesn't lock out the reward from the other four.
 export const TECH_AGE_ADVANCEMENT_THRESHOLD = 6;
 
-export const getTechsForAge = (ageId) => Object.values(TECH_TREE).filter((t) => t.ageId === ageId);
+/** The age's 10 base techs (the threshold and the year label count these; outsideThreshold techs are left out). */
+export const getTechsForAge = (ageId) => Object.values(TECH_TREE).filter((t) => t.ageId === ageId && !t.outsideThreshold);
 
 // Get tech by category
 export const getTechsByCategory = () => {

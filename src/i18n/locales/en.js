@@ -21,7 +21,7 @@ export default {
   'time.monthsAgo.other': '{count} months ago',
 
   'title.name': 'Terra Imperium',
-  'title.tagline': 'A grand strategy game on the real Earth, 5000 BCE to 2300 CE.',
+  'title.tagline': 'A grand strategy game on the real Earth, 5000 BCE to 2500 CE.',
   'title.lastGame': 'Your last game',
   'title.continue': 'Continue',
   'title.newGame': 'New game',
@@ -567,6 +567,7 @@ export default {
   'age.gunpowder': 'Age of Gunpowder',
   'age.modern': 'Modern Age',
   'age.information': 'Information Age',
+  'age.future': 'Future Age',
 
   // ---- tab rail, resources, map card (H2) ----
   'rail.panels': 'Panels',
@@ -753,7 +754,7 @@ export default {
   'legacy.noParts': 'No points yet. Meet era goals and fulfil ambitions.',
   'legacy.rivals': 'Top rivals',
   'legacy.end.turnLimit': 'The game ran out of time.',
-  'legacy.end.futureGoal': '{name} reached the Future.',
+  'legacy.end.futureGoal': '{name} completed the Future Age.',
   'legacy.notYet': 'Not yet',
   'legacy.difficulty': 'Difficulty (takes effect on your next game)',
   'legacy.active': '(active)',

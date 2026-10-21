@@ -24,7 +24,7 @@ export default {
   'time.monthsAgo.other': 'לפני {count} חודשים',
 
   'title.name': 'טרה אימפריום',
-  'title.tagline': 'משחק אסטרטגיה גדול על כדור הארץ האמיתי, מ־5000 לפנה״ס עד 2300 לספירה.',
+  'title.tagline': 'משחק אסטרטגיה גדול על כדור הארץ האמיתי, מ־5000 לפנה״ס עד 2500 לספירה.',
   'title.lastGame': 'המשחק האחרון שלך',
   'title.continue': 'המשך',
   'title.newGame': 'משחק חדש',
@@ -569,6 +569,7 @@ export default {
   'age.gunpowder': 'תקופת אבק השריפה',
   'age.modern': 'העת החדשה',
   'age.information': 'עידן המידע',
+  'age.future': 'עידן העתיד',
 
   // ---- tab rail, resources, map card (H2) ----
   'rail.panels': 'לוחות',
@@ -755,7 +756,7 @@ export default {
   'legacy.noParts': 'אין נקודות עדיין. עמדו ביעדי תקופה והגשימו שאיפות.',
   'legacy.rivals': 'היריבות המובילות',
   'legacy.end.turnLimit': 'זמן המשחק נגמר.',
-  'legacy.end.futureGoal': '{name} הגיעה לעתיד.',
+  'legacy.end.futureGoal': '{name} השלימה את עידן העתיד.',
   'legacy.notYet': 'עדיין לא',
   'legacy.difficulty': 'רמת קושי (תיכנס לתוקף במשחק הבא)',
   'legacy.active': '(פעיל)',

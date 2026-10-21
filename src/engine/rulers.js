@@ -70,7 +70,8 @@ export const virtueBlock = (state, nationId, virtueId) => {
   if (!ruler || !virtue) return 'No such virtue';
   const taken = ruler.traits || [];
   if (taken.includes(virtueId)) return 'Already taken';
-  if (ageIndexOf(state, nationId) < tierAgeIndex(virtue.tier, AGE_ORDER.length)) return 'Opens in a later age';
+  // Virtue tiers spread over the historical ages; the Future opens no new tier.
+  if (ageIndexOf(state, nationId) < tierAgeIndex(virtue.tier, AGE_ORDER.length - 1)) return 'Opens in a later age';
   if (virtue.tier > 1 && !taken.includes(virtueAt(virtue.branch, virtue.tier - 1)?.id)) return 'Needs the tier before it';
   if (virtue.tier === CAPSTONE_TIER && taken.some((id) => VIRTUES[id]?.tier === CAPSTONE_TIER)) return 'One capstone only';
   if (rulerPoints(ruler).virtue < virtue.cost) return 'Not enough virtue points';

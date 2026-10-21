@@ -31,7 +31,8 @@ export const WONDER_TILE_RULE = {
   space_program: 'flat', international_exchange: 'any', atomic_research_center: 'any',
   stonehenge: 'flat', catalhoyuk: 'flat', walls_of_jericho: 'river', white_temple_of_uruk: 'any',
   solomons_temple: 'hills', masada: 'desert',
-  world_wide_web: 'any', large_hadron_collider: 'flat', global_seed_vault: 'hills'
+  world_wide_web: 'any', large_hadron_collider: 'flat', global_seed_vault: 'hills',
+  space_elevator: 'flat', mars_colony: 'any', arcology_prime: 'any'
 };
 
 export const wonderTileRule = (projectId) => WONDER_TILE_RULES[WONDER_TILE_RULE[projectId] || 'any'];

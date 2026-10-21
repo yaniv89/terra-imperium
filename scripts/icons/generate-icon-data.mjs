@@ -42,20 +42,21 @@ const UNIT_ICONS = {
   kingdoms: { infantry: 'pikeman', cavalry: 'mounted-knight', ranged: 'crossbow', siege: 'trebuchet', naval: 'drakkar', support: 'toolbox' },
   gunpowder: { infantry: 'musket', cavalry: 'saber-and-pistol', ranged: 'crossed-pistols', siege: 'cannon', naval: 'galleon', support: 'dynamite' },
   modern: { infantry: 'rifle', cavalry: 'battle-tank', ranged: 'machine-gun', siege: 'artillery-shell', naval: 'battleship', air: 'jet-fighter', support: 'anti-aircraft-gun' },
-  information: { infantry: 'kevlar-vest', cavalry: 'tank', ranged: 'missile-launcher', siege: 'missile-pod', naval: 'battleship', air: 'delivery-drone', support: 'radar-sweep' }
+  information: { infantry: 'kevlar-vest', cavalry: 'tank', ranged: 'missile-launcher', siege: 'missile-pod', naval: 'battleship', air: 'delivery-drone', support: 'radar-sweep' },
+  future: { infantry: 'space-suit', cavalry: 'spaceship', ranged: 'laser-precision', siege: 'plasma-bolt', naval: 'submarine-missile', air: 'nano-bot', support: 'energy-shield' }
 };
 
 const BUILDING_ICONS = {
-  food: { stone: 'dig-hole', bronze: 'wheat', classical: 'aqueduct', kingdoms: 'windmill', gunpowder: 'granary', modern: 'farm-tractor', information: 'greenhouse' },
-  economy: { classical: 'trade', kingdoms: 'coins-pile', gunpowder: 'bank', modern: 'banknote', information: 'cpu' },
-  military: { stone: 'stone-axe', bronze: 'battle-axe', classical: 'spartan-helmet', gunpowder: 'crossed-sabres', modern: 'brodie-helmet', information: 'radar-dish' },
-  defense: { stone: 'spiky-pit', bronze: 'stone-wall', classical: 'roman-shield', gunpowder: 'defensive-wall', information: 'bunker' },
-  science: { stone: 'stone-tablet', classical: 'scroll-unfurled', kingdoms: 'open-book', gunpowder: 'bubbling-flask', modern: 'observatory', information: 'server-rack' },
-  industry: { classical: 'anvil', gunpowder: 'factory', modern: 'factory-arm', information: 'robot-grab' },
-  culture: { stone: 'menhir', bronze: 'egyptian-temple', classical: 'greek-temple', kingdoms: 'saint-basil-cathedral', modern: 'theater-curtains', information: 'tv' },
-  naval: { stone: 'canoe', classical: 'wooden-pier', kingdoms: 'harbor-dock', gunpowder: 'anchor', modern: 'cargo-ship', information: 'delivery-drone' },
-  logistics: { stone: 'stone-stack', bronze: 'old-wagon', kingdoms: 'mine-wagon', modern: 'forklift', information: 'cargo-crate' },
-  energy: { gunpowder: 'coal-wagon', modern: 'power-generator', information: 'power-lightning' } // Oil and Nuclear Plant share Modern's
+  food: { stone: 'dig-hole', bronze: 'wheat', classical: 'aqueduct', kingdoms: 'windmill', gunpowder: 'granary', modern: 'farm-tractor', information: 'greenhouse', future: 'dna2' },
+  economy: { classical: 'trade', kingdoms: 'coins-pile', gunpowder: 'bank', modern: 'banknote', information: 'cpu', future: 'processor' },
+  military: { stone: 'stone-axe', bronze: 'battle-axe', classical: 'spartan-helmet', gunpowder: 'crossed-sabres', modern: 'brodie-helmet', information: 'radar-dish', future: 'mecha-head' },
+  defense: { stone: 'spiky-pit', bronze: 'stone-wall', classical: 'roman-shield', gunpowder: 'defensive-wall', information: 'bunker', future: 'lightning-dome' },
+  science: { stone: 'stone-tablet', classical: 'scroll-unfurled', kingdoms: 'open-book', gunpowder: 'bubbling-flask', modern: 'observatory', information: 'server-rack', future: 'circuitry' },
+  industry: { classical: 'anvil', gunpowder: 'factory', modern: 'factory-arm', information: 'robot-grab', future: 'mechanical-arm' },
+  culture: { stone: 'menhir', bronze: 'egyptian-temple', classical: 'greek-temple', kingdoms: 'saint-basil-cathedral', modern: 'theater-curtains', information: 'tv', future: 'habitat-dome' },
+  naval: { stone: 'canoe', classical: 'wooden-pier', kingdoms: 'harbor-dock', gunpowder: 'anchor', modern: 'cargo-ship', information: 'delivery-drone', future: 'mini-submarine' },
+  logistics: { stone: 'stone-stack', bronze: 'old-wagon', kingdoms: 'mine-wagon', modern: 'forklift', information: 'cargo-crate', future: 'subway-train' },
+  energy: { gunpowder: 'coal-wagon', modern: 'power-generator', information: 'power-lightning', future: 'sun' } // Oil and Nuclear Plant share Modern's
 };
 
 const EXTRACTION_ICONS = { copper: 'ore', iron: 'minerals', oil: 'oil-rig' };
@@ -169,6 +170,8 @@ ${Object.entries(ages).map(([ageId, iconName]) => `    ${ageId}: ${quote(getPath
 export const EXTRACTION_ICON_PATHS = {
 ${Object.entries(EXTRACTION_ICONS).map(([resourceId, iconName]) => `  ${resourceId}: ${quote(getPath(iconName))} /* game-icons.net: ${iconName} */`).join(',\n')}
 };
+// shortcut: the Rare Metal Mine (U56) borrows the ore glyph until it has its own.
+EXTRACTION_ICON_PATHS.rareMetals = EXTRACTION_ICON_PATHS.copper;
 
 export const getBuildingIconPath = (categoryId, ageId) => BUILDING_ICON_PATHS[categoryId]?.[ageId] || null;
 export const getExtractionIconPath = (resourceId) => EXTRACTION_ICON_PATHS[resourceId] || null;

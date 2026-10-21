@@ -1,11 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { endingSignal, finalGoalTechs, FINAL_GOAL_AGE_ID } from './ending';
-import { AGES } from '../data/ages';
-import { getTechsForAge } from '../data/techTree';
+import { getTechsForAge, TECH_TREE } from '../data/techTree';
 
 // Eight-ages plan U11 (KTD3): one ending signal, the turn limit or the Future's final goal.
 const base = { playerNationId: 'p', gameSpeed: 'normal', turnNumber: 10, techTree: {}, nations: { p: { id: 'p' }, a: { id: 'a', tech: { researched: [] } }, b: { id: 'b', tech: { researched: [] } } } };
-const goal = getTechsForAge('modern').map((t) => t.id); // a stand-in final goal until the Future age exists
+const goal = finalGoalTechs();
 
 describe('endingSignal', () => {
   it('is null mid-game and turnLimit at exactly 923 on Normal', () => {
@@ -24,10 +23,15 @@ describe('endingSignal', () => {
     expect(endingSignal(player, { goalTechs: goal })).toEqual({ reason: 'futureGoal', nationId: 'p' });
   });
 
-  it('has no final goal while the Future age does not exist', () => {
-    expect(AGES[FINAL_GOAL_AGE_ID]).toBeUndefined();
-    expect(finalGoalTechs()).toEqual([]);
-    const all = { ...base, nations: { ...base.nations, a: { id: 'a', tech: { researched: goal } } } };
-    expect(endingSignal(all)).toBeNull();
+  it('the final goal is every Future tech with both robot techs, not the repeatable Future Tech (U64)', () => {
+    expect(FINAL_GOAL_AGE_ID).toBe('future');
+    expect(goal).toHaveLength(12);
+    expect(goal).toEqual(expect.arrayContaining([...getTechsForAge('future').map((t) => t.id), 'military_autonomous_warfare', 'science_machine_consciousness']));
+    expect(goal).not.toContain('governance_future_tech');
+    expect(TECH_TREE.governance_future_tech.repeatable).toBe(true);
+    const tenOnly = { ...base, nations: { ...base.nations, a: { id: 'a', tech: { researched: getTechsForAge('future').map((t) => t.id) } } } };
+    expect(endingSignal(tenOnly)).toBeNull(); // the ten base techs are not enough
+    const both = { ...base, nations: { ...base.nations, a: { id: 'a', tech: { researched: goal } }, b: { id: 'b', tech: { researched: goal } } } };
+    expect(endingSignal(both)).toEqual({ reason: 'futureGoal', nationId: 'a' }); // the first nation only
   });
 });

@@ -43,9 +43,7 @@ const ROSTER_CLASSES = ['infantry', 'cavalry', 'ranged', 'siege', 'naval'];
 const ROSTER_OPT_OUT = { 'stone cavalry': 'no horses before the Bronze Age (U37): the guard goes on foot, unitClasses.js guardClassOf' };
 
 /** Problems with one table: an age it lacks (and has no opt-out reason for) or a key that is no age. */
-// shortcut: U79's art fallbacks name 'future' before Phase E registers it (U64); drop this when it does.
-const PENDING_AGES = ['future'];
-const isKnown = (k) => AGE_ORDER.includes(k) || PENDING_AGES.includes(k);
+const isKnown = (k) => AGE_ORDER.includes(k);
 
 export const tableProblems = (name, keys, optOut = {}) => {
   const have = new Set(keys);
@@ -80,7 +78,7 @@ const KEYED = [
 // Opt-outs: table name -> { age: reason }.
 const OPT_OUT = {
   'government reform tiers': { information: 'U55 adds the Information reforms' },
-  'age icon': { information: 'the icon is held art on claude/art-information' }
+  'age icon': { information: 'the icon is held art on claude/art-information', future: 'the icon is held art on claude/art-future' }
 };
 
 // Tables that cover only some ages by design: unknown keys are still rejected. [keys, reason].

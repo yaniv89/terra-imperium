@@ -43,7 +43,7 @@ describe('AI content jobs (dry run, no network)', () => {
       expect(r.params.max_tokens).toBe(job.maxTokens);
       expect(r.params.output_config.format.type).toBe('json_schema');
     });
-    expect(est.worstUsd).toBeLessThanOrEqual(10); // each full run fits the default guard
+    expect(est.worstUsd).toBeLessThanOrEqual(12); // each full run fits the default guard
     const out = JSON.stringify(requests) + lines.join('\n');
     expect(out).not.toContain(SECRET);
     expect(out).not.toMatch(/sk-ant-|x-api-key/);

@@ -79,13 +79,18 @@ describe('canStartTech (generic gating, against a fixture table)', () => {
 });
 
 describe('real TECH_TREE content integrity', () => {
-  it('has exactly 10 techs per age', () => {
-    expect(Object.keys(TECH_TREE).length).toBe(AGE_ORDER.length * 10);
+  const base = () => Object.values(TECH_TREE).filter((t) => !t.outsideThreshold);
+  it('has exactly 10 techs per age, plus the two robot techs and Future Tech outside the threshold (U65)', () => {
+    expect(base().length).toBe(AGE_ORDER.length * 10);
+    const extra = Object.values(TECH_TREE).filter((t) => t.outsideThreshold);
+    expect(extra.map((t) => t.id).sort()).toEqual(['governance_future_tech', 'military_autonomous_warfare', 'science_machine_consciousness']);
+    extra.forEach((t) => expect(t.ageId).toBe('future'));
+    expect(extra.filter((t) => t.repeatable).map((t) => t.id)).toEqual(['governance_future_tech']);
   });
 
   it('has exactly 10 techs per category, 2 per age', () => {
     Object.values(TechCategories).forEach(category => {
-      const techs = Object.values(TECH_TREE).filter(t => t.category === category);
+      const techs = base().filter(t => t.category === category);
       expect(techs.length, category).toBe(AGE_ORDER.length * 2);
       AGE_ORDER.forEach(ageId => {
         expect(techs.filter(t => t.ageId === ageId).length, `${category}/${ageId}`).toBe(2);
@@ -135,7 +140,8 @@ describe('real TECH_TREE content integrity', () => {
       const chain = Object.values(TECH_TREE)
         .filter(t => t.category === category)
         .sort((a, b) => a.lineIndex - b.lineIndex);
-      chain.forEach((t, i) => { expect(t.lineIndex).toBe(i); expect(t.ageId).toBe(AGE_ORDER[Math.floor(i / 2)]); });
+      chain.forEach((t, i) => { expect(t.lineIndex).toBe(i); expect(t.ageId).toBe(t.outsideThreshold ? 'future' : AGE_ORDER[Math.floor(i / 2)]); });
+      expect(chain.slice(AGE_ORDER.length * 2).every((t) => t.outsideThreshold), `${category}: extras come last`).toBe(true);
     });
   });
 
@@ -172,8 +178,9 @@ describe('getTechsByCategory', () => {
   it('groups every real tech under its category, in line order', () => {
     const categories = getTechsByCategory();
     Object.values(TechCategories).forEach(category => {
-      expect(categories[category].techs.length).toBe(AGE_ORDER.length * 2);
-      expect(categories[category].techs.map(t => t.lineIndex)).toEqual(AGE_ORDER.flatMap((_, i) => [2 * i, 2 * i + 1]));
+      const techs = categories[category].techs.filter((t) => !t.outsideThreshold);
+      expect(techs.length).toBe(AGE_ORDER.length * 2);
+      expect(techs.map(t => t.lineIndex)).toEqual(AGE_ORDER.flatMap((_, i) => [2 * i, 2 * i + 1]));
     });
   });
 });
@@ -191,12 +198,13 @@ describe('techGraph (the research web view)', () => {
     thin.edges.forEach((e) => expect(e.x2 > e.x1 || (e.x1 === e.x2 && e.y1 !== e.y2)).toBe(true));
   });
 
-  it('lays out one row per line, two columns per age, with one edge per prerequisite and the cross edges marked', () => {
+  it('lays out one row per line, two columns per age (three in the Future), with one edge per prerequisite and the cross edges marked', () => {
     const state = peoplesWorld({ seed: 11 });
     const graph = techGraph(state);
-    expect(graph.nodes.length).toBe(AGE_ORDER.length * 10);
+    expect(graph.nodes.length).toBe(Object.keys(TECH_TREE).length);
     expect(graph.rows.length).toBe(Object.values(TechCategories).length);
-    expect(new Set(graph.nodes.map((n) => n.col)).size).toBe(AGE_ORDER.length * 2);
+    expect(new Set(graph.nodes.map((n) => n.col)).size).toBe(AGE_ORDER.length * 2 + 1);
+    expect(graph.ages[AGE_ORDER.length - 1].width).toBe(3 * GRAPH_COL_W);
     const prereqCount = Object.values(TECH_TREE).reduce((n, t) => n + t.prerequisites.length, 0);
     expect(graph.edges.length).toBe(prereqCount);
     const crossCount = Object.values(CROSS_PREREQUISITES).reduce((n, list) => n + list.length, 0);

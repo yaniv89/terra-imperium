@@ -64,6 +64,13 @@ export default {
   'unit.information.naval': 'משחתת טילים',
   'unit.information.air': 'רחפני תקיפה',
   'unit.information.support': 'סוללת טילי נ"מ',
+  'unit.future.infantry': 'חי"ר בשלד חיצוני',
+  'unit.future.cavalry': 'טנקי ריחוף',
+  'unit.future.ranged': 'צוותי רובי מסילה',
+  'unit.future.siege': 'ארטילריית פלזמה',
+  'unit.future.naval': 'סיירת רובי מסילה',
+  'unit.future.air': 'נחיל רחפנים',
+  'unit.future.support': 'מקרן מגן',
 
   // naval lines (naval.<line>, naval.<line>.role, navalship.<line>.<ageId>)
   'naval.warship': 'ספינת מלחמה',
@@ -81,6 +88,7 @@ export default {
   'navalship.warship.gunpowder': 'פריגטה',
   'navalship.warship.modern': 'משחתת',
   'navalship.warship.information': 'משחתת טילים',
+  'navalship.warship.future': 'סיירת רובי מסילה',
   'navalship.transport.stone': 'סירות גזע',
   'navalship.transport.bronze': 'ספינה ארוכה',
   'navalship.transport.classical': 'ספינה ארוכה',
@@ -88,6 +96,7 @@ export default {
   'navalship.transport.gunpowder': 'גליאון',
   'navalship.transport.modern': 'ספינת נחיתה',
   'navalship.transport.information': 'ספינת תקיפה אמפיבית',
+  'navalship.transport.future': 'ספינת ריחוף להובלה',
   'navalship.raider.stone': 'קאנו פשיטה',
   'navalship.raider.bronze': 'ביריאמה',
   'navalship.raider.classical': 'ביריאמה',
@@ -95,6 +104,7 @@ export default {
   'navalship.raider.gunpowder': 'קורסאר מורשה',
   'navalship.raider.modern': 'צוללת',
   'navalship.raider.information': 'צוללת תקיפה',
+  'navalship.raider.future': 'צוללת חמקנית',
   'navalship.carrier.stone': 'נושאת מטוסים',
   'navalship.carrier.bronze': 'נושאת מטוסים',
   'navalship.carrier.classical': 'נושאת מטוסים',
@@ -102,6 +112,7 @@ export default {
   'navalship.carrier.gunpowder': 'נושאת מטוסים',
   'navalship.carrier.modern': 'נושאת מטוסים',
   'navalship.carrier.information': 'נושאת מטוסי-על',
+  'navalship.carrier.future': 'נושאת רחפנים',
 
   // signature units (sig.<peopleId>)
   'sig.israel': 'טנק הקרב המרכזי מרכבה',

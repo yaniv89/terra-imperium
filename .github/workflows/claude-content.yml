@@ -26,7 +26,7 @@ on:
       max_usd:
         description: Refuse to start if the worst-case cost is over this many dollars
         required: false
-        default: '10'
+        default: '12'
       cards_ref:
         description: fact-check only, the git ref whose plans/ai-output/event-cards/cards.json is checked
         required: false

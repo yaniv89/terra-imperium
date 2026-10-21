@@ -30,7 +30,9 @@ export const GOVERNMENT_TYPES = {
   republic: { id: 'republic', name: 'Republic', minAgeId: 'classical' },
   dictatorship: { id: 'dictatorship', name: 'Dictatorship', minAgeId: 'modern' },
   // Eight-ages plan U55: rule by experts and their machines.
-  technocracy: { id: 'technocracy', name: 'Technocracy', minAgeId: 'information', requiresTech: 'science_artificial_intelligence' }
+  technocracy: { id: 'technocracy', name: 'Technocracy', minAgeId: 'information', requiresTech: 'science_artificial_intelligence' },
+  // Eight-ages plan U69: the firms run the state.
+  corporate: { id: 'corporate', name: 'Corporate State', minAgeId: 'future', requiresTech: 'economy_automated_industry' }
 };
 
 export const GOVERNMENT_REFORMS = {
@@ -45,6 +47,9 @@ export const GOVERNMENT_REFORMS = {
     ],
     information: [
       { id: 'networked_clans', name: 'Networked Clans', description: 'The clans keep in touch across the land: -1 unrest; +1 loyalty in every city.', effects: { stabilityBonus: 1 }, rules: { loyaltyBonus: 1 } }
+    ],
+    future: [
+      { id: 'kinship_habitats', name: 'Kinship Habitats', description: 'Each clan keeps its own habitat: +2 loyalty in every city; +0.1% pop growth.', effects: { popGrowthBonus: 0.001 }, rules: { loyaltyBonus: 2 } }
     ]
   },
   monarchy: {
@@ -74,6 +79,9 @@ export const GOVERNMENT_REFORMS = {
     ],
     information: [
       { id: 'ceremonial_crown', name: 'Ceremonial Crown', description: 'The crown reigns and the cabinet rules: -1 unrest; +10% tax.', effects: { stabilityBonus: 1, goldMult: 0.1 } }
+    ],
+    future: [
+      { id: 'heritage_throne', name: 'Heritage Throne', description: 'An old crown over a new world: -1 unrest; +2 opinion with every nation.', effects: { stabilityBonus: 1, opinion: 2 } }
     ]
   },
   theocracy: {
@@ -99,6 +107,9 @@ export const GOVERNMENT_REFORMS = {
     ],
     information: [
       { id: 'broadcast_ministry', name: 'Broadcast Ministry', description: 'Sermons reach every screen: -1 unrest; +2 opinion with every nation.', effects: { stabilityBonus: 1, opinion: 2 } }
+    ],
+    future: [
+      { id: 'orbital_sanctuaries', name: 'Orbital Sanctuaries', description: 'Shrines above the sky: -2 unrest.', effects: { stabilityBonus: 2 } }
     ]
   },
   republic: {
@@ -120,6 +131,9 @@ export const GOVERNMENT_REFORMS = {
     ],
     information: [
       { id: 'digital_democracy', name: 'Digital Democracy', description: 'Citizens vote and petition online: +4 opinion with every nation; -1 unrest.', effects: { opinion: 4, stabilityBonus: 1 } }
+    ],
+    future: [
+      { id: 'direct_democracy', name: 'Direct Democracy', description: 'Every citizen votes on every law: -2 unrest; +2 opinion with every nation.', effects: { stabilityBonus: 2, opinion: 2 } }
     ]
   },
   dictatorship: {
@@ -129,11 +143,23 @@ export const GOVERNMENT_REFORMS = {
     ],
     information: [
       { id: 'surveillance_state', name: 'Surveillance State', description: 'Cameras on every street: +3 loyalty in every city; +2 unrest.', effects: { stabilityBonus: -2 }, rules: { loyaltyBonus: 3 } }
+    ],
+    future: [
+      { id: 'predictive_policing', name: 'Predictive Policing', description: 'Machines flag dissent before it starts: +4 loyalty in every city; +1 unrest.', effects: { stabilityBonus: -1 }, rules: { loyaltyBonus: 4 } }
     ]
   },
   technocracy: {
     information: [
       { id: 'expert_ministries', name: 'Expert Ministries', description: 'Scientists run the ministries: +15% tech point income; decrees come faster.', effects: { techPointsMult: 0.15, decreePace: 1 } }
+    ],
+    future: [
+      { id: 'ai_stewardship', name: 'AI Stewardship', description: 'Machine minds plan the economy: +20% tech point income; +10% income.', effects: { techPointsMult: 0.2, goldMult: 0.1 } }
+    ]
+  },
+  corporate: {
+    future: [
+      { id: 'charter_cities', name: 'Charter Cities', description: 'Firms run their own cities: +25% income; +1 unrest.', effects: { goldMult: 0.25, stabilityBonus: -1 } },
+      { id: 'shareholder_council', name: 'Shareholder Council', description: 'The board sits as the cabinet: +15% income; decrees come faster.', effects: { goldMult: 0.15, decreePace: 1 } }
     ]
   }
 };

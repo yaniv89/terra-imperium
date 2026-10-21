@@ -58,6 +58,19 @@ AGE_OVERRIDES.information = {
   air: { speed: T(5.5), range: 5 * Q, attackTicks: S(1.0), soldiers: 6, moraleLoss: 1.25 },
   support: { ...AGE_OVERRIDES.modern.support, range: 10 * Q }
 };
+// Future (U66): shields soak hits first and come back out of combat (`shield`, percent of full
+// strength, sim/combat.js); Hover Tanks ignore the ground's drag (`hover`, sim/movement.js);
+// Railgun Teams' shots go through to the squad behind (`pierce`, percent); Plasma Artillery and the
+// Shield Projector's point-defence lasers are beams (`beam`: drawn as a line, no projectile).
+AGE_OVERRIDES.future = {
+  ...AGE_OVERRIDES.information,
+  infantry: { ...AGE_OVERRIDES.information.infantry, speed: T(2.0), shield: 20 },
+  cavalry: { ...AGE_OVERRIDES.information.cavalry, speed: T(3.6), hover: true, shield: 20 },
+  ranged: { range: 10 * Q, attackTicks: S(2.2), pierce: 30 },
+  siege: { beam: true },
+  air: { ...AGE_OVERRIDES.information.air, soldiers: 8 },
+  support: { ...AGE_OVERRIDES.information.support, beam: true, shield: 40 }
+};
 
 export const getBattleStats = (classId, ageId) => ({ ...(CLASS_BASE[classId] || CLASS_BASE.infantry), ...(AGE_OVERRIDES[ageId]?.[classId] || {}) });
 
@@ -74,7 +87,8 @@ export const NAVAL_LINE_STATS = {
     kingdoms: { ...SHIP, speed: T(2.0), range: 3 * Q, sight: 9, attackTicks: S(1.4), melee: false },
     gunpowder: { ...SHIP, speed: T(2.4), range: 6 * Q, sight: 10, attackTicks: S(2.0), melee: false },
     modern: { ...SHIP, speed: T(4.0), range: 10 * Q, sight: 12, attackTicks: S(1.6), melee: false },
-    information: { ...SHIP, speed: T(4.0), range: 10 * Q, sight: 12, attackTicks: S(1.6), melee: false }
+    information: { ...SHIP, speed: T(4.0), range: 10 * Q, sight: 12, attackTicks: S(1.6), melee: false },
+    future: { ...SHIP, speed: T(4.0), range: 10 * Q, sight: 12, attackTicks: S(1.6), melee: false }
   },
   transport: {
     stone: { ...SHIP, speed: T(1.6), range: MELEE_REACH, sight: 6, attackTicks: S(1.5), melee: true },
@@ -83,7 +97,8 @@ export const NAVAL_LINE_STATS = {
     kingdoms: { ...SHIP, speed: T(1.8), range: 2 * Q, sight: 8, attackTicks: S(1.6), melee: false },
     gunpowder: { ...SHIP, speed: T(2.0), range: 4 * Q, sight: 8, attackTicks: S(2.4), melee: false },
     modern: { ...SHIP, speed: T(3.0), range: 5 * Q, sight: 9, attackTicks: S(2.0), melee: false },
-    information: { ...SHIP, speed: T(3.0), range: 5 * Q, sight: 9, attackTicks: S(2.0), melee: false }
+    information: { ...SHIP, speed: T(3.0), range: 5 * Q, sight: 9, attackTicks: S(2.0), melee: false },
+    future: { ...SHIP, speed: T(3.0), range: 5 * Q, sight: 9, attackTicks: S(2.0), melee: false }
   },
   raider: {
     stone: { ...SHIP, speed: T(2.4), range: MELEE_REACH, sight: 9, attackTicks: S(1.2), melee: true },
@@ -92,11 +107,13 @@ export const NAVAL_LINE_STATS = {
     kingdoms: { ...SHIP, speed: T(2.6), range: 3 * Q, sight: 11, attackTicks: S(1.3), melee: false },
     gunpowder: { ...SHIP, speed: T(3.0), range: 5 * Q, sight: 12, attackTicks: S(1.8), melee: false },
     modern: { ...SHIP, speed: T(3.4), range: 8 * Q, sight: 13, attackTicks: S(2.2), melee: false },
-    information: { ...SHIP, speed: T(3.4), range: 8 * Q, sight: 13, attackTicks: S(2.2), melee: false }
+    information: { ...SHIP, speed: T(3.4), range: 8 * Q, sight: 13, attackTicks: S(2.2), melee: false },
+    future: { ...SHIP, speed: T(3.4), range: 8 * Q, sight: 13, attackTicks: S(2.2), melee: false }
   },
   carrier: {
     modern: { ...SHIP, speed: T(3.0), range: 11 * Q, sight: 14, attackTicks: S(2.4), melee: false },
-    information: { ...SHIP, speed: T(3.0), range: 11 * Q, sight: 14, attackTicks: S(2.4), melee: false }
+    information: { ...SHIP, speed: T(3.0), range: 11 * Q, sight: 14, attackTicks: S(2.4), melee: false },
+    future: { ...SHIP, speed: T(3.0), range: 11 * Q, sight: 14, attackTicks: S(2.4), melee: false }
   }
 };
 /** The stats of a ship squad: its line's entry for the age, else the nearest earlier age's. */

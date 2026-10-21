@@ -30,7 +30,7 @@ describe('tech map effects', () => {
     Object.values(BUILDING_CATEGORIES).forEach((cat) => cat.tiers.forEach((t) => { if (t.requiresTech) unlocks.add(t.requiresTech); }));
     Object.values(IMPROVEMENTS).forEach((imp) => { if (imp.requiresTech) unlocks.add(imp.requiresTech); Object.keys(imp.upgrades || {}).forEach((t) => unlocks.add(t)); });
     Object.values(UNIT_CLASSES).forEach((u) => { if (u.requiresTech) unlocks.add(u.requiresTech); });
-    const idle = Object.values(TECH_TREE).filter((t) => !TECH_MAP_EFFECTS[t.id] && !Object.keys(t.effects || {}).length && !unlocks.has(t.id)).map((t) => t.id);
+    const idle = Object.values(TECH_TREE).filter((t) => !t.repeatable && !TECH_MAP_EFFECTS[t.id] && !Object.keys(t.effects || {}).length && !unlocks.has(t.id)).map((t) => t.id);
     expect(idle).toEqual([]);
     Object.keys(TECH_MAP_EFFECTS).forEach((id) => { expect(TECH_TREE[id]).toBeDefined(); expect(mapEffectLabel(id)).toBeTruthy(); });
   });

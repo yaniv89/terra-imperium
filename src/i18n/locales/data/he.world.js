@@ -52,6 +52,12 @@ export default {
   'gp.large_hadron_collider.desc': 'נבנה במחוז עם מרכז מחשבי-על. +10/20/30% הכנסת נקודות טכנולוגיה.',
   'gp.global_seed_vault': 'כספת הזרעים העולמית',
   'gp.global_seed_vault.desc': 'נבנה בבירה שלך. +0.1/0.2/0.3% גידול אוכלוסייה, במקום הגנה מרעב.',
+  'gp.space_elevator': 'מעלית החלל',
+  'gp.space_elevator.desc': 'נבנה במחוז עם נפחיית ננו. מסלול זול לסחר: +10/20/30% הכנסה.',
+  'gp.mars_colony': 'המושבה במאדים',
+  'gp.mars_colony.desc': 'נבנה בבירה שלך. +5/10/15% הכנסה ו-+5/10/15% הכנסת נקודות טכנולוגיה.',
+  'gp.arcology_prime': 'הארקולוגיה הראשית',
+  'gp.arcology_prime.desc': 'נבנה במחוז עם מרחב מגורים משותף. -1/2/3 אי שקט בכל מקום; +0.1% גידול אוכלוסייה.',
 
   // research boosts (boost.<techId>): how to get the boost
   'boost.military_hunting_bands': 'להחזיק יער או גבעות',
@@ -124,6 +130,19 @@ export default {
   'boost.governance_global_institutions': 'לבנות 4 פלאים',
   'boost.science_nuclear_physics': 'להחזיק אורניום',
   'boost.science_artificial_intelligence': 'להחזיק 10 מבני מדע',
+  'boost.military_powered_exoskeletons': 'לנצח ב-15 קרבות',
+  'boost.military_directed_energy': 'להחזיק מתכות נדירות ולנצח ב-20 קרבות',
+  'boost.military_autonomous_warfare': 'לנצח ב-25 קרבות',
+  'boost.economy_automated_industry': 'להחזיק מתכות נדירות ולשלוט ב-15 ערים',
+  'boost.economy_post_scarcity_fabrication': 'לשלוט ב-20 ערים',
+  'boost.infrastructure_fusion_power': 'להחזיק אורניום ו-12 מבני מדע',
+  'boost.infrastructure_orbital_infrastructure': 'לבנות 6 פלאים',
+  'boost.governance_algorithmic_governance': 'להגדיל עיר לגודל 24',
+  'boost.governance_planetary_federation': 'להחזיק הסכם סחר ולבנות 5 פלאים',
+  'boost.governance_future_tech': 'לבנות 8 פלאים',
+  'boost.science_quantum_computing': 'להחזיק 14 מבני מדע',
+  'boost.science_synthetic_biology': 'להגדיל עיר לגודל 28',
+  'boost.science_machine_consciousness': 'להחזיק 18 מבני מדע',
 
   // era goals (playstyle.<id>, goalunit.<id>, goalnext.<id>, goalbonus.<id>)
   'playstyle.expand': 'התרחבות',
@@ -218,7 +237,7 @@ export default {
   'victory.domination': 'ניצחון שליטה',
   'victory.domination.desc': 'להחזיק את בירותיהן של לפחות 25% מהאומות האחרות בעולם.',
   'victory.finalScore': 'ניצחון מורשת',
-  'victory.finalScore.desc': 'להוביל את העולם במורשת כשהמשחק מסתיים.',
+  'victory.finalScore.desc': 'להוביל את העולם במורשת כשהמשחק מסתיים: במגבלת התורות, או כשאומה משלימה את עידן העתיד.',
 
   // tax rates (tax.<id>, tax.<id>.desc), difficulties (diff.<id>, .desc), identity axes
   'tax.low': 'מסים נמוכים',

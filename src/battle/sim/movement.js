@@ -63,7 +63,7 @@ export const stepToward = (w, q, gx, gy, cacheKey = null) => {
   let speed = Math.max(1, Math.round(q.stats.speed * speedMult(w, q)));
   let wx = gx; let wy = gy;
   if (!q.stats.flying) {
-    speed = Math.max(1, Math.trunc((speed * 8) / (TILE_COST[w.map.tiles[tileOf(w.map, q.x, q.y)]] || 8)));
+    if (!q.stats.hover) speed = Math.max(1, Math.trunc((speed * 8) / (TILE_COST[w.map.tiles[tileOf(w.map, q.x, q.y)]] || 8))); // hover hulls ignore the ground's drag (U66)
     if (!lineClear(w.map, q.x, q.y, gx, gy)) {
       const field = cacheKey ? getFlowField(w, tileOf(w.map, gx, gy), cacheKey, 96, q.side) : getFlowField(w, tileOf(w.map, gx, gy), undefined, undefined, q.side);
       const wp = nextWaypoint(w, field, q.x, q.y);

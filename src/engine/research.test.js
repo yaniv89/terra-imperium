@@ -4,7 +4,9 @@ import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { TECH_TREE } from '../data/techTree';
-import { applyResearchTurn, getResearchCost, getResearchPath, stepResearch, suggestTechs, canStartTech, FIRST_TECH_COST_MULT } from './research';
+import { applyResearchTurn, getResearchCost, getResearchPath, stepResearch, suggestTechs, canStartTech, FIRST_TECH_COST_MULT, withTechsResearched, FUTURE_TECH_COST_GROWTH } from './research';
+import { ageOf, getResearched } from './nationState';
+import { labelYear } from './displayYear';
 import { peoplesWorld, rivalOf } from './testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
@@ -142,5 +144,36 @@ describe('the first tech (U47)', () => {
     const full = getResearchCost(known, me, b);
     expect(first).toBeLessThan(full);
     expect(first).toBeCloseTo(full * FIRST_TECH_COST_MULT, -1);
+  });
+});
+
+describe('the Future (U64, U65)', () => {
+  const futureIds = Object.values(TECH_TREE).filter((t) => t.ageId === 'future' && !t.outsideThreshold).map((t) => t.id);
+  const allButFutureTech = Object.keys(TECH_TREE).filter((id) => !TECH_TREE[id].repeatable);
+  const inFuture = (ids) => withTechsResearched(fresh(), FR_ID, ids);
+
+  it('the age threshold and the year label count the 10 base techs; 2500 only with all ten', () => {
+    const before = Object.keys(TECH_TREE).filter((id) => TECH_TREE[id].ageId !== 'future');
+    const s = inFuture([...before, 'military_autonomous_warfare', 'science_machine_consciousness']);
+    expect(ageOf(s, FR_ID)).toBe('future');
+    expect(labelYear('future', getResearched(s, FR_ID))).toBe(2100); // robot techs move no label
+    expect(labelYear('future', [...futureIds.slice(1)])).toBeLessThan(2500);
+    expect(labelYear('future', futureIds)).toBe(2500);
+  });
+
+  it('Future Tech repeats, never marked researched, each one dearer', () => {
+    let s = withStock(inFuture(allButFutureTech), 0);
+    const id = 'governance_future_tech';
+    const first = getResearchCost(s, FR_ID, id);
+    expect(canStartTech(id, new Set(getResearched(s, FR_ID)), 'future').ok).toBe(true);
+    expect(canStartTech(id, new Set(allButFutureTech.filter((t) => t !== 'economy_automated_industry')), 'future').ok).toBe(false); // after the last Future tech only
+    s = { ...withStock(s, first * 2.5 + 1), research: { ...s.research, current: id, queue: [] } };
+    const step = stepResearch(s, FR_ID);
+    expect(step.completed).toEqual([id, id]);
+    expect(step.research.futureTechs).toBe(2);
+    expect(getResearchCost({ ...s, research: step.research }, FR_ID, id)).toBe(Math.round(first * (1 + 2 * FUTURE_TECH_COST_GROWTH)));
+    const next = applyResearchTurn(s);
+    expect(next.techTree[id]?.researched).toBeFalsy();
+    expect(next.research.futureTechs).toBe(2);
   });
 });

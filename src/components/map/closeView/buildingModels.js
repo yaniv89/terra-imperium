@@ -13,15 +13,15 @@ import { BUILDING_CATEGORIES } from '../../../data/buildings';
 // The model id of each building tier, by category, in tier order. Defense has none: its tiers are
 // the wall rings of the shared file.
 export const BUILDING_MODEL_IDS = {
-  food: ['storage_pits', 'granary', 'irrigation', 'farm_estate', 'crop_rotation_farm', 'mechanized_farm', 'vertical_farm'],
-  economy: ['market', 'bazaar', 'bank', 'stock_exchange', 'tech_hub'],
-  military: ['warrior_lodge', 'barracks', 'drill_yard', 'military_academy', 'war_college', 'simulation_center'],
-  science: ['tablet_house', 'library', 'scriptorium', 'university', 'research_lab', 'supercomputer_center'],
-  industry: ['workshop', 'manufactory', 'factory', 'automated_plant'],
-  culture: ['stone_circle', 'shrine', 'temple', 'cathedral', 'civic_center', 'media_center'],
-  naval: ['canoe_landing', 'harbor', 'shipyard', 'naval_base', 'carrier_dock', 'drone_port'],
-  logistics: ['trail_cairns', 'road_post', 'highway', 'rail_depot', 'logistics_hub'],
-  energy: ['coal_plant', 'oil_plant', 'nuclear_plant', 'power_grid']
+  food: ['storage_pits', 'granary', 'irrigation', 'farm_estate', 'crop_rotation_farm', 'mechanized_farm', 'vertical_farm', 'synthesis_vats'],
+  economy: ['market', 'bazaar', 'bank', 'stock_exchange', 'tech_hub', 'fabrication_hub'],
+  military: ['warrior_lodge', 'barracks', 'drill_yard', 'military_academy', 'war_college', 'simulation_center', 'exo_armory'],
+  science: ['tablet_house', 'library', 'scriptorium', 'university', 'research_lab', 'supercomputer_center', 'quantum_lab'],
+  industry: ['workshop', 'manufactory', 'factory', 'automated_plant', 'nanoforge'],
+  culture: ['stone_circle', 'shrine', 'temple', 'cathedral', 'civic_center', 'media_center', 'habitat_commons'],
+  naval: ['canoe_landing', 'harbor', 'shipyard', 'naval_base', 'carrier_dock', 'drone_port', 'submersible_pens'],
+  logistics: ['trail_cairns', 'road_post', 'highway', 'rail_depot', 'logistics_hub', 'maglev_terminal'],
+  energy: ['coal_plant', 'oil_plant', 'nuclear_plant', 'power_grid', 'fusion_reactor']
 };
 export const EXTRACTION_MODEL_IDS = { copper: 'copper_mine', iron: 'iron_foundry', oil: 'oil_well' };
 const EXTRACTION_AGE = { copper: 'bronze', iron: 'kingdoms', oil: 'modern' };

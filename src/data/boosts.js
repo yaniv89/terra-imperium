@@ -80,5 +80,19 @@ export const BOOSTS = {
   governance_mass_politics: { label: 'Grow a city to size 12', check: (f) => f.maxSize >= 12 },
   governance_global_institutions: { label: 'Build 4 wonders', check: (f) => f.wonders >= 4 },
   science_nuclear_physics: { label: 'Own uranium', check: (f) => f.resources.has('uranium') },
-  science_artificial_intelligence: { label: 'Own 10 science buildings', check: (f) => f.scienceBuildings >= 10 }
+  science_artificial_intelligence: { label: 'Own 10 science buildings', check: (f) => f.scienceBuildings >= 10 },
+  // Future (U65), on existing facts.
+  military_powered_exoskeletons: { label: 'Win 15 battles', check: (f) => (f.battlesWon || 0) >= 15 },
+  military_directed_energy: { label: 'Own rare metals and win 20 battles', check: (f) => f.resources.has('rareMetals') && (f.battlesWon || 0) >= 20 },
+  military_autonomous_warfare: { label: 'Win 25 battles', check: (f) => (f.battlesWon || 0) >= 25 },
+  economy_automated_industry: { label: 'Own rare metals and rule 15 cities', check: (f) => f.resources.has('rareMetals') && f.cities >= 15 },
+  economy_post_scarcity_fabrication: { label: 'Rule 20 cities', check: (f) => f.cities >= 20 },
+  infrastructure_fusion_power: { label: 'Own uranium and 12 science buildings', check: (f) => f.resources.has('uranium') && f.scienceBuildings >= 12 },
+  infrastructure_orbital_infrastructure: { label: 'Build 6 wonders', check: (f) => f.wonders >= 6 },
+  governance_algorithmic_governance: { label: 'Grow a city to size 24', check: (f) => f.maxSize >= 24 },
+  governance_planetary_federation: { label: 'Hold a trade agreement and build 5 wonders', check: (f) => f.trade && f.wonders >= 5 },
+  governance_future_tech: { label: 'Build 8 wonders', check: (f) => f.wonders >= 8 },
+  science_quantum_computing: { label: 'Own 14 science buildings', check: (f) => f.scienceBuildings >= 14 },
+  science_synthetic_biology: { label: 'Grow a city to size 28', check: (f) => f.maxSize >= 28 },
+  science_machine_consciousness: { label: 'Own 18 science buildings', check: (f) => f.scienceBuildings >= 18 }
 };

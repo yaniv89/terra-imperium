@@ -77,8 +77,14 @@ describe('getAvailableGovernmentTypes', () => {
   });
 
   it('offers every type once its minimum age and tech are reached', () => {
-    expect(getAvailableGovernmentTypes('information', { secularism: 50 }, null, ['science_artificial_intelligence']).map((t) => t.id).sort())
+    expect(getAvailableGovernmentTypes('future', { secularism: 50 }, null, ['science_artificial_intelligence', 'economy_automated_industry']).map((t) => t.id).sort())
       .toEqual(Object.keys(GOVERNMENT_TYPES).sort());
+  });
+
+  it('the Corporate State needs the Future and Automated Industry (U69)', () => {
+    expect(getAvailableGovernmentTypes('information', {}, null, ['economy_automated_industry']).map((t) => t.id)).not.toContain('corporate');
+    expect(getAvailableGovernmentTypes('future', {}).map((t) => t.id)).not.toContain('corporate');
+    expect(getAvailableGovernmentTypes('future', {}, null, ['economy_automated_industry']).map((t) => t.id)).toContain('corporate');
   });
 
   it('Technocracy needs the Information age and Artificial Intelligence', () => {
@@ -91,8 +97,9 @@ describe('getAvailableGovernmentTypes', () => {
     expect(canChangeGovernmentType(tribal, 'technocracy', 'information', null, ai)).toBe(true);
   });
 
-  it('every type has an Information reform tier', () => {
-    Object.keys(GOVERNMENT_TYPES).forEach((id) => expect(getReformChoices(id, 'information').length, id).toBeGreaterThan(0));
+  it('every type open by the Information age has an Information reform tier, and every type a Future one', () => {
+    Object.keys(GOVERNMENT_TYPES).filter((id) => GOVERNMENT_TYPES[id].minAgeId !== 'future').forEach((id) => expect(getReformChoices(id, 'information').length, id).toBeGreaterThan(0));
+    Object.keys(GOVERNMENT_TYPES).forEach((id) => expect(getReformChoices(id, 'future').length, id).toBeGreaterThan(0));
   });
 });
 

@@ -28,10 +28,13 @@ const NO_ART = {
   buildings: ['cathedral', // not in the delivery yet: the line's old silhouette stays
     // Information tiers and the Energy line (eight ages U51): no art made yet
     'vertical_farm', 'tech_hub', 'simulation_center', 'supercomputer_center', 'automated_plant', 'media_center', 'drone_port', 'logistics_hub',
-    'coal_plant', 'oil_plant', 'nuclear_plant', 'power_grid'],
+    'coal_plant', 'oil_plant', 'nuclear_plant', 'power_grid',
+    // Future tiers (U69): no art made yet
+    'synthesis_vats', 'fabrication_hub', 'exo_armory', 'quantum_lab', 'nanoforge', 'habitat_commons', 'submersible_pens', 'maglev_terminal', 'fusion_reactor'],
   units: ['naval'], // drawn by its line (ships)
   wonders: ['solomons_temple', 'masada', // scenario wonders outside art spec section 5: lucide glyphs
-    'world_wide_web', 'large_hadron_collider', 'global_seed_vault'] // Information: no icon art yet (their models are held art)
+    'world_wide_web', 'large_hadron_collider', 'global_seed_vault', // Information: no icon art yet (their models are held art)
+    'space_elevator', 'mars_colony', 'arcology_prime'] // Future: the same (U92)
 };
 
 describe('icon index', () => {

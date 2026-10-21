@@ -61,7 +61,7 @@ export default {
   'onb.5.title': 'War & Peace',
   'onb.5.body': 'Wars need a real justification and are won on war score, not instant conquest — occupy what you\'re fighting for, then dictate peace terms at the table. Push too far and a coalition may form against you.',
   'onb.6.title': 'Ambitions & Score',
-  'onb.6.body': 'Ambitions like Domination, Economic Hegemony, or the Space Race are optional early wins — clear one and you can keep playing. Otherwise, the game ends in 2300 and ranks you against the world\'s strongest nations. Good luck.',
+  'onb.6.body': 'Domination is an optional early win: clear it and you can keep playing. Otherwise the game ends at its turn limit, or when a nation completes the Future Age, and ranks you against the world\'s strongest nations. Good luck.',
   'onb.skip': 'Skip',
   'onb.start': 'Start Playing',
   'onb.next': 'Next',
