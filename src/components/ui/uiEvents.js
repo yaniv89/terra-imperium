@@ -36,3 +36,7 @@ let reportShown = false;
 /** TurnReportSheet tells the rest of the UI when it opens and closes. */
 export const setTurnReportShown = (shown) => { reportShown = !!shown; fire(TURN_REPORT_SHOWN, reportShown); };
 export const isTurnReportShown = () => reportShown;
+
+export const OPEN_GLOSSARY = 'ti:open-glossary';
+/** The glossary entry of a people, city, tech or unit (U30). */
+export const openGlossary = (kind, id) => fire(OPEN_GLOSSARY, { kind, id });
