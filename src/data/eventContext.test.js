@@ -33,7 +33,7 @@ describe('procedural events: context and cooldowns', () => {
 
   it('rests a template, its family and its city after it fires, and the rest scales with the speed table', () => {
     const state = { ...peoplesWorld({ seed: 5 }), turnNumber: 40 };
-    const first = run(state, 10)[0];
+    const first = run(state, 10).find((e) => !e.templateId.startsWith('deck_')); // a story opener never repeats
     expect(first).toBeTruthy();
     const history = noteEventFired({}, first, 40);
     expect(history[`t:${first.templateId}`]).toBe(40);

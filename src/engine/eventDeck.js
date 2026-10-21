@@ -7,13 +7,14 @@
 //   link    a follow-up (data/eventChains.js), only fired by a link: an option's
 //           effects.spawnFollowUp, due a delay in reference turns later, with the city it bound
 //   draw    a procedural card (data/proceduralEvents.js): `requires`, a city subject drawn from
-//           `subjects.city`, a weight, and cooldowns per card, family and city
+//           `subjects.city`, a weight, and cooldowns per card, family and city (`once`: a story's opener, never twice)
 // A turn shows at most one: a due story first, then a due link, then sometimes a draw. Memory sits
 // in state.firedEvents (stories and links), state.pendingEventChains (links waiting) and
 // state.eventHistory (draw cooldowns). Pure; draws use the turn's seeded rng.
 import { HISTORICAL_EVENTS, ageIdOfYear, eventTechsNeeded } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { PROCEDURAL_TEMPLATES } from '../data/proceduralEvents';
+import { DECK_DRAWS, DECK_LINKS } from '../data/eventDeck/index';
 import { getAgeIndex, speedCostMult } from '../data/ages';
 import { countryOfNation } from '../data/peoples';
 import { factContext, predicateMet } from './predicates';
@@ -41,8 +42,8 @@ export const storyCard = (e) => {
 /** Every card by id: stories, links and draws. */
 export const CARDS = Object.fromEntries([
   ...Object.values(HISTORICAL_EVENTS).map((e) => [e.id, storyCard(e)]),
-  ...Object.values(EVENT_CHAINS).map((e) => [e.id, { ...e, kind: 'link' }]),
-  ...PROCEDURAL_TEMPLATES.map((t) => [t.id, { ...t, kind: 'draw' }])
+  ...Object.values({ ...EVENT_CHAINS, ...DECK_LINKS }).map((e) => [e.id, { ...e, kind: 'link' }]),
+  ...[...PROCEDURAL_TEMPLATES, ...DECK_DRAWS].map((t) => [t.id, { ...t, kind: 'draw' }])
 ]);
 const DRAWS = Object.values(CARDS).filter((c) => c.kind === 'draw');
 
@@ -81,7 +82,7 @@ export const noteEventFired = (history, event, turnNumber) => ({
 export const drawCard = (state, rng) => {
   const ctx = factContext(state, state.playerNationId);
   const eligible = DRAWS
-    .filter((t) => !onCooldown(state, `t:${t.id}`, 'template') && !onCooldown(state, `f:${t.family}`, 'family') && (!t.requires || predicateMet(t.requires, ctx)))
+    .filter((t) => !(t.once && state.eventHistory?.[`t:${t.id}`] != null) && !onCooldown(state, `t:${t.id}`, 'template') && !onCooldown(state, `f:${t.family}`, 'family') && (!t.requires || predicateMet(t.requires, ctx)))
     .map((t) => ({ t, cities: t.subjects?.city ? t.subjects.city(state).filter((c) => !onCooldown(state, `c:${c.id}`, 'city')) : null }))
     .filter(({ cities }) => !cities || cities.length > 0);
   if (eligible.length === 0) return null;
