@@ -663,8 +663,8 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
     if (item.kind === 'building') {
       buildings = { ...buildings, categories: { ...buildings.categories, [item.category]: item.tier } };
       logs.push(msg('m.city.completesBuilding', { city: cityRef(c.id, c.name), building: thing('building', `${item.category}.${item.tier}`, BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || item.category) }));
-      // The line's district stands on a tile of the border from its first tier (districts.js).
-      if (DISTRICTS[item.category] && !hasDistrict(w, next, item.category)) {
+      // The line's district stands on a tile of the border from its first tier after the Stone tier (districts.js).
+      if (DISTRICTS[item.category] && BUILDING_CATEGORIES[item.category].tiers[item.tier]?.age !== FIRST_AGE_ID && !hasDistrict(w, next, item.category)) {
         const site = districtSite(tiles, w, next, item.category);
         if (site != null) { w = writeTileState(w, site, districtEntry(w.tileState[site], item.category), inPlace); logs.push(msg('m.city.district', { city: cityRef(c.id, c.name), district: thing('district', item.category, DISTRICTS[item.category].name) })); }
       }

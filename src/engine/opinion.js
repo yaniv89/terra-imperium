@@ -25,9 +25,12 @@ import {
   OPINION_MIN, OPINION_MAX, OPINION_BASELINE, GRUDGE_PER_HOSTILITY, BORDER_FREE_TILES, BORDER_PER_TILE, BORDER_MAX, BORDER_TILE_KM, SETTLED_NEAR_KM, SETTLED_NEAR,
   HOLDS_MY_CULTURE, CLAIM_ON_MY_CITY, TRADE_ROUTE, TRADE_MAX, ALLIANCE, OPEN_BORDERS, DEFENSIVE_PACT, ROYAL_MARRIAGE, SAME_IDENTITY_AXIS, BROKEN_TRUCE, AE_FREE, AE_PER_POINT, DIPLOMAT_AT_COURT, RIVAL, VASSAL_OF_YOU,
   WAR_ROLL_OPINION_CEILING, WAR_ROLL_OPINION_SPAN, CASUS_BELLI_OPINION, RAIDED_US, PAYS_US_TRIBUTE, MET_OUR_DEMAND,
-  INDEP_FAVOUR_PER_POINT, INDEP_KIN, INDEP_CULTURE_SCALE, INDEP_GRUDGE_PER_POINT, TRADES_WITH_US, TRIBUTARY, RAZED_OUR_KIN
+  INDEP_FAVOUR_PER_POINT, INDEP_KIN, INDEP_CULTURE_SCALE, INDEP_GRUDGE_PER_POINT, TRADES_WITH_US, TRIBUTARY, RAZED_OUR_KIN,
+  MET_RECENTLY, BORDER_STELE, BROKE_STELE
 } from '../data/opinion';
 import { kinThemeOf } from '../data/peoples';
+import { ageOf } from './nationState';
+import { FIRST_AGE_ID } from '../data/ages';
 import { GAVE_US_MAP, SWAPPED_MAPS, SHARED_MAP_FADE_TURNS } from '../data/opinion';
 
 // Phase W3: what an independent `A` adds to its view of major `b` (independents 4.5 and 5): the
@@ -178,6 +181,12 @@ export const opinionReasons = (state, a, b = state.playerNationId) => {
   // A demand of A's that B met (accords.js grantDemand): A thinks better of B while the truce it bought lasts.
   const met = A.demandMet?.[b];
   if (met && met.until >= (state.turnNumber || 0)) out.push({ id: 'metDemand', label: met.kind === 'tribute' ? 'Paid the tribute we demanded' : 'Yielded to our demand', value: MET_OUR_DEMAND, detail: `until turn ${met.until}` });
+  // Stone diplomacy (eight-ages plan U32): first contact, the Border Stele (accords.js), a broken stele.
+  const turn = state.turnNumber || 0;
+  const metTurn = state.fog?.met?.[a]?.[b];
+  if (metTurn != null && MET_RECENTLY - (turn - metTurn) > 0 && ageOf(state, a) === FIRST_AGE_ID) out.push({ id: 'metRecently', label: 'Met us recently', value: MET_RECENTLY - (turn - metTurn) });
+  if ((A.steles?.[b] || 0) > turn) out.push({ id: 'stele', label: 'Border stele', value: BORDER_STELE, detail: `until turn ${A.steles[b]}` });
+  if (B.brokeSteleTurn != null && BROKE_STELE + (turn - B.brokeSteleTurn) < 0) out.push({ id: 'brokeStele', label: 'Broke a border stele', value: BROKE_STELE + (turn - B.brokeSteleTurn) });
   // Independents (phase W2, raids.js): raids fade one point a turn; tribute warms its receiver.
   const raided = A.raidedBy?.[b];
   if (raided != null && RAIDED_US + ((state.turnNumber || 0) - raided) < 0) out.push({ id: 'raidedUs', label: 'Raided us', value: RAIDED_US + ((state.turnNumber || 0) - raided) });

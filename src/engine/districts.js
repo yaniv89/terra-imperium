@@ -1,6 +1,6 @@
 // src/engine/districts.js
 // Districts as tiles (plans/civ-map-rework.md B3, C1 and C3.4): a city's Science, Culture and
-// Economy lines stand on a tile of its border once their first tier is built, and the tile
+// Economy lines stand on a tile of its border once their first tier after the Stone tier is built, and the tile
 // pays by what is around it, Civ VI's adjacency:
 //   science  Campus          +DISTRICT_BASE science, +1 per mountain beside it (max 2), +1 on a river
 //   culture  Temple Quarter  +DISTRICT_BASE culture, +1 per wonder beside it, +1 beside the centre

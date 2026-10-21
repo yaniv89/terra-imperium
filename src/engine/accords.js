@@ -83,6 +83,29 @@ export const DEMANDS = {
   stopSettling: { label: 'Demand they stop settling near you', base: 5, hostility: 5 }
 };
 
+// The Border Stele (eight-ages plan U32, 2026-10-03 plan 9.2): the first treaty. Two peoples fix their
+// border for STELE_REF_TURNS reference turns at the older age of the pair (KTD7); a war between them
+// breaks it (diplomacy.js declareWar) and every people thinks worse of the breaker (opinion.js
+// BROKE_STELE). The proposer must be past the village phase (stonePhase.js canAnnex); the AI agrees
+// at STELE_OPINION and never declares war on a stele partner (aiLogic.js).
+export const STELE_REF_TURNS = 50;
+export const STELE_OPINION = 0;
+export const steleTurns = (state, a, b) => speedTurns(STELE_REF_TURNS, state?.gameSpeed, waitAgeOf(state, a, b));
+export const hasStele = (state, a, b) => (state.nations?.[a]?.steles?.[b] || 0) > (state.turnNumber || 0);
+/** Would `nationId` raise a stele with the player today? */
+export const steleAcceptance = (state, nationId) => {
+  const opinion = opinionOf(state, nationId);
+  const atWar = (state.wars || []).some((w) => w.active && ((w.aggressor === nationId && w.enemy === state.playerNationId) || (w.enemy === nationId && w.aggressor === state.playerNationId)));
+  return { accepted: !atWar && opinion >= STELE_OPINION, opinion, needed: STELE_OPINION, atWar };
+};
+const withStele = (nation, otherId, until) => {
+  const steles = { ...(nation.steles || {}) };
+  if (until) steles[otherId] = until; else delete steles[otherId];
+  return { ...nation, steles };
+};
+/** Both records with the stele raised until `until`, or taken down (until null). */
+export const setStele = (nations, a, b, until) => ({ ...nations, [a]: withStele(nations[a], b, until), [b]: withStele(nations[b], a, until) });
+
 export const hasOpenBorders = (state, a, b) => !!state.nations?.[a]?.openBordersWith?.[b] || !!state.nations?.[b]?.openBordersWith?.[a];
 
 /** Would `nationId` open its borders to the player today? */

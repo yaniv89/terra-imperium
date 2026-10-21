@@ -69,6 +69,7 @@ import { ringsAround } from './world/cities';
 import { transferRegion } from './regionTransfer';
 import { burnCities, aiWantsRaze, startRazing } from './razing';
 import { processPatrons } from './cityStates';
+import { canAnnex } from './stonePhase';
 
 const COURT_MAX_GRUDGE = 20;
 const COURT_MAX_TURNS = 40;
@@ -412,7 +413,7 @@ const majorTurn = (w, majorId, ctx) => {
       const theirs = indepStrength(w.view, c.id);
       if (near >= DEMAND_TRIBUTE_RATIO * Math.max(1, theirs) && demandTributeOf(w, majorId, c.id, near, theirs)) return;
     }
-    if (runaway || aeHeld >= CONQUER_AE_LIMIT) continue;
+    if (runaway || aeHeld >= CONQUER_AE_LIMIT || !canAnnex(w.view, majorId)) continue; // a village people takes no city (stonePhase.js)
     if (hashRoll(`${majorId}|${c.id}|${w.turn}|conquer`) >= CONQUER_CHANCE) continue;
     const garrison = Math.max(1, garrisonOf(ctx.byTile, c.id, c.city));
     const spare = spareArmies(w, majorId, c.city.tile, forceReach);

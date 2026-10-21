@@ -25,7 +25,7 @@ import { BUILDING_MODEL_IDS } from '../components/map/closeView/buildingModels';
 
 // Ids with no delivered art, on purpose: each falls back to its old glyph (src/components/ui/icons.jsx).
 const NO_ART = {
-  buildings: ['cathedral'], // not in the delivery yet: the culture line's old silhouette stays
+  buildings: ['cathedral', 'storage_pits', 'warrior_lodge', 'tablet_house', 'stone_circle', 'canoe_landing', 'trail_cairns'], // not in the delivery yet: the line's old silhouette stays
   units: ['naval'], // drawn by its line (ships)
   wonders: ['solomons_temple', 'masada', 'stonehenge', 'catalhoyuk', 'walls_of_jericho', 'white_temple_of_uruk'] // scenario wonders outside art spec section 5, and the Stone wonders until their icons arrive: lucide glyphs
 };
@@ -57,7 +57,7 @@ describe('icon index', () => {
       else expect(buildingIconUrl(cat, i), `${cat} ${i} ${id}`).toBeTruthy();
     }));
     Object.keys(EXTRACTION_BUILDINGS).forEach((id) => expect(extractionIconUrl(id), id).toBeTruthy());
-    expect(buildingIconUrlForAge('food', 'gunpowder')).toBe(buildingIconUrl('food', 3));
+    expect(buildingIconUrlForAge('food', 'gunpowder')).toBe(buildingIconUrl('food', 4));
     expect(buildingIconUrlForAge('economy', 'bronze')).toBeNull();
   });
 

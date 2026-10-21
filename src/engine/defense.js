@@ -21,6 +21,7 @@ import { createRng } from '../utils/rng';
 import { resolveAutoBattle } from './autoBattle';
 import { recordBattle } from './diplomacy';
 import { ageOf } from './nationState';
+import { canAnnex } from './stonePhase';
 import { sideAgeOf } from './ageRefs';
 import { getRegionModifier } from './modifiers/sheet';
 import { unitsWithinRings, nearestHeldCity, REINFORCE_RINGS } from './armies';
@@ -264,7 +265,7 @@ export const applyDefenseWithdrawal = (state, defId) => {
   const war = state.wars.find((w) => w.id === def.warId && w.active);
   const region = state.regions[def.regionId];
   const cleared = removeDefense(state, def.id);
-  if (!war || !region || region.owner !== state.playerNationId || region.occupiedBy) return { ok: true, state: cleared };
+  if (!war || !region || region.owner !== state.playerNationId || region.occupiedBy || !canAnnex(state, def.aggressorId)) return { ok: true, state: cleared };
   const fallback = getWithdrawalTarget(state, def.regionId);
   if (!fallback) return { ok: false, reason: 'nowhere', state };
   const units = { ...state.units };

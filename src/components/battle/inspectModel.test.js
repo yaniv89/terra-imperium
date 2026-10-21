@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { inspectInfo, buildBlock, buildDetail } from './inspectModel';
 
-const setup = { sides: [{ ageId: 'bronze' }, { ageId: 'bronze' }], city: null, structures: [{ kind: 'keep', damage: 10 }, { kind: 'tower' }, { kind: 'building', category: 'culture', tier: 1, name: 'Temple' }] };
+const setup = { sides: [{ ageId: 'bronze' }, { ageId: 'bronze' }], city: null, structures: [{ kind: 'keep', damage: 10 }, { kind: 'tower' }, { kind: 'building', category: 'culture', tier: 2, name: 'Temple' }] };
 const hud = {
   structures: [
     { kind: 'keep', hp: 2000, maxHp: 3000, alive: true, garrison: 1, garrisonSlots: 3 },

@@ -11,7 +11,7 @@ import { applyScenario } from './worldgen/emergentWorld';
 import { syncWorldRegistry } from './world/registry';
 import { queueItem, dequeueItem, moveQueueItem, itemKey, setFocus, toggleLock, canQueue, canFoundCity, addPeople, sizeToPeople } from './world/cities';
 import { quoteBuyTile, investInGrowth } from './cityEconomy';
-import { stonePhaseOf } from './stonePhase';
+import { stonePhaseOf, canAnnex } from './stonePhase';
 import { placeCamps, resolveCamp } from './tribalCamps';
 import { isSettler, settlerPath, canSettle, foundOutpost, SETTLER_MOVES, setSettlerHold, disbandSettlers, isBand, canFoundVillage, foundVillage, withVillageLog } from './settlers';
 import { markTutorialStep } from './tutorial';
@@ -32,7 +32,7 @@ import { msg, carry, sub, people, cityRef, person, place, thing } from './messag
 // gameReducer(state, action) -> next state, exactly once, with no other path to mutate state.
 // GameContext.jsx re-exports both `createInitialState` and `gameReducer` from here so every
 // existing import site (`from '../context/GameContext'`) keeps working unchanged.
-import { GameStatus, ActionTypes, RelationStatus, LogTypes, TechCategories } from '../data/types';
+import { GameStatus, ActionTypes, RelationStatus, LogTypes, TechCategories, ACTION_AGE_GATES } from '../data/types';
 import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, getNationCapital, getCapital, getBorderingNationIds } from '../data/regions';
 import { WORLD_NATIONS, peopleNationRecord } from '../data/worldNations';
 import { peopleForNationId } from '../data/peoples';
@@ -72,7 +72,7 @@ import { applyPeace, getPeaceAcceptance } from './peace';
 import { levyUnit } from './aftermath';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { AGES, FIRST_AGE_ID, isAgeAtLeast } from '../data/ages';
+import { AGES, FIRST_AGE_ID, isAgeAtLeast, isAgeBefore } from '../data/ages';
 import { endingSignal } from './ending';
 import { ageOf } from './nationState';
 import { sideAgeOf } from './ageRefs';
@@ -132,7 +132,7 @@ import { canAfford, applyCosts, BASE_POWER_PER_TURN } from '../utils/helpers';
 import { TAX_RATE_IDS, DEFAULT_TAX_RATE, TAX_RATE_CHANGE_COOLDOWN_TURNS } from '../data/taxRates';
 import { getLoanCapacity, getLoanInterestRate, getLoanSize, clampMaintenance, getRecruitUnitCost, hasBankingHouses } from './economy';
 import { canFabricateClaim, claimableCities, startClaim, CLAIM_FABRICATE_TURNS } from './claims';
-import { hasOpenBorders, openBordersAcceptance, setOpenBorders, applyDemand, DEMANDS } from './accords';
+import { hasOpenBorders, openBordersAcceptance, setOpenBorders, applyDemand, DEMANDS, hasStele, steleAcceptance, steleTurns, setStele } from './accords';
 import { turnBlockers } from './turnBlockers';
 import { cityGroups, governorChoices, assignGovernor, dismissGovernor, GOVERNOR_ASSIGN_TURNS } from './governors';
 import { validateTemplate, saveTemplate, deleteTemplate, templatesOf, armyOrder } from './armyTemplates';
@@ -2295,6 +2295,26 @@ const reduceAction = (state, action) => {
       };
     }
 
+    case ActionTypes.PROPOSE_STELE: {
+      // The Border Stele (accords.js): past the village phase; the AI agrees at STELE_OPINION; the offer costs either way.
+      const { nationId } = action.payload;
+      const target = state.nations[nationId];
+      const costs = ACTION_COSTS.borderStele;
+      const me = state.playerNationId;
+      if (!target || target.isEliminated || nationId === me || isIndependentNation(target) || hasStele(state, me, nationId)) return state;
+      if (!canAnnex(state, me)) return reject(state, msg('m.act.no.steleVillage'));
+      if (!canAfford(state.resources, costs)) return state;
+      const answer = steleAcceptance(state, nationId);
+      const resources = applyCosts(state.resources, costs);
+      if (!answer.accepted) return { ...state, resources, logs: [...state.logs, { year: state.year, ...msg('m.act.steleRefused', { nation: people(nationId, target.name), opinion: answer.opinion, needed: answer.needed, war: answer.atWar ? sub('m.act.andAtWar') : '' }), type: LogTypes.DIPLOMACY }] };
+      const turns = steleTurns(state, me, nationId);
+      return {
+        ...state, resources,
+        nations: setStele(state.nations, me, nationId, (state.turnNumber || 0) + turns),
+        logs: [...state.logs, { year: state.year, ...msg('m.act.steleRaised', { nation: people(nationId, target.name), turns }), type: LogTypes.DIPLOMACY }]
+      };
+    }
+
     case ActionTypes.CLOSE_BORDERS: {
       const { nationId } = action.payload;
       if (!state.nations[nationId] || !hasOpenBorders(state, state.playerNationId, nationId)) return state;
@@ -3088,7 +3108,7 @@ export { migrateSave, CURRENT_SAVE_VERSION } from './saveMigrations';
 const CONTACT_ACTIONS = new Set([
   ActionTypes.DECLARE_WAR, ActionTypes.FABRICATE_CLAIM, ActionTypes.TRADE_AGREEMENT, ActionTypes.OPEN_BORDERS,
   ActionTypes.DEMAND, ActionTypes.MILITARY_ALLIANCE, ActionTypes.GIFT_BRIBE, ActionTypes.ESPIONAGE,
-  ActionTypes.RIVAL_NATION, ActionTypes.PROPOSE_MARRIAGE, ActionTypes.INSULT, ActionTypes.ASSIGN_DIPLOMAT, ActionTypes.VASSALIZE
+  ActionTypes.RIVAL_NATION, ActionTypes.PROPOSE_MARRIAGE, ActionTypes.INSULT, ActionTypes.ASSIGN_DIPLOMAT, ActionTypes.VASSALIZE, ActionTypes.PROPOSE_STELE
 ]);
 // Actions after which the player's own sight is refreshed at once (an army moved, a city rose):
 // exploring and meeting peoples happen as you move, not only at the end of the turn.
@@ -3105,6 +3125,11 @@ export const gameReducer = (state, action) => {
   const target = action?.payload?.nationId;
   if (CONTACT_ACTIONS.has(action?.type) && target && state.nations?.[target] && !hasMet(state, state.playerNationId, target)) {
     return reject(state, msg('m.act.no.notMet'));
+  }
+  const gate = ACTION_AGE_GATES[action?.type];
+  if (gate) {
+    const age = ageOf(state, state.playerNationId);
+    if ((gate.minAge && isAgeBefore(age, gate.minAge)) || (gate.maxAge && isAgeBefore(gate.maxAge, age))) return reject(state, msg('m.act.no.notThisAge'));
   }
   let next = reduceAction(state, action);
   // The battle queue fights itself on Auto (battleSettings.autoDefend) once no event, peace offer

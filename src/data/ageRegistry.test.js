@@ -73,7 +73,6 @@ const KEYED = [
 
 // Opt-outs: table name -> { age: reason }.
 const OPT_OUT = {
-  'building tiers': { stone: 'Stone building tiers come in U28' }
 };
 
 // Tables that cover only some ages by design: unknown keys are still rejected. [keys, reason].

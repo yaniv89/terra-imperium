@@ -25,7 +25,7 @@ describe('city rail model', () => {
     const withYields = { ...s, regions: { ...s.regions, [paris]: { ...s.regions[paris], lastYields: { food: 4, production: 5, gold: 2 }, food: 0 }, [added.cityId]: { ...second, size: 12, tiles: [second.tile], locked: [], lastYields: { food: 9, production: 1, gold: 0 }, unrest: 60, siege: { hp: 10 } } } };
     const rows = cityRailModel(withYields);
     expect(rows.map((r) => r.id)).toEqual([paris, added.cityId]); // the capital leads
-    expect(rows[0]).toMatchObject({ capital: true, building: 'Granary', idle: false, starving: false, restless: false });
+    expect(rows[0]).toMatchObject({ capital: true, building: 'Storage Pits', idle: false, starving: false, restless: false });
     expect(rows[0].buildTurns).toBeGreaterThan(0);
     expect(rows[0].buildShare).toBe(0); // nothing built yet: an empty production bar
     expect(rows[1].buildShare).toBeNull();

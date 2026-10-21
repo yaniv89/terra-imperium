@@ -47,12 +47,12 @@ describe('building models: picking', () => {
   });
 
   it('ranks the highest tiers first and counts the mines', () => {
-    const region = { buildings: { ...cats({ food: 0, science: 1, culture: 0, economy: 0 }), extraction: { copper: true, iron: false, oil: false } } };
+    const region = { buildings: { ...cats({ food: 1, science: 2, culture: 1, economy: 0 }), extraction: { copper: true, iron: false, oil: false } } };
     expect(builtModels(region).map((b) => b.id)).toEqual(['scriptorium', 'market', 'shrine', 'granary', 'copper_mine']);
   });
 
   it('shows only buildings with a file, at most the cap for the town size', () => {
-    const region = { buildings: { ...cats({ food: 0, culture: 0, economy: 0, science: 0, military: 0 }), extraction: { copper: true, iron: false, oil: false } } };
+    const region = { buildings: { ...cats({ food: 1, culture: 1, economy: 0, science: 1, military: 1 }), extraction: { copper: true, iron: false, oil: false } } };
     const il = pickBuildingModels(region, 'israelite', 'big', INDEX);
     expect(il.map((b) => b.id)).toEqual(['library', 'market', 'shrine', 'barracks']);
     expect(il.find((b) => b.id === 'shrine').url).toBe('u/shrine-levant.glb');
@@ -84,12 +84,12 @@ describe('building models: picking', () => {
       'workshop', 'manufactory', 'factory', 'shrine', 'temple', 'cathedral', 'civic_center', 'harbor', 'shipyard', 'naval_base', 'carrier_dock',
       'road_post', 'highway', 'rail_depot', 'copper_mine', 'iron_foundry'].forEach((id) => expect(base.has(id), id).toBe(true));
     // any land without its own file draws the base landmark
-    const region = { buildings: cats({ economy: 2, industry: 2, culture: 1 }) };
+    const region = { buildings: cats({ economy: 2, industry: 2, culture: 2 }) };
     expect(pickBuildingModels(region, 'europe', 'big').map((p) => p.id)).toEqual(['factory', 'bank', 'temple']);
   });
 
   it('finds the shipped Israelite files for Israelite land only', () => {
-    const region = { buildings: cats({ food: 0, culture: 0 }) };
+    const region = { buildings: cats({ food: 1, culture: 1 }) };
     const il = pickBuildingModels(region, styleOfLand('il', 'bronze'), 'small');
     il.forEach((p) => expect(p.url).toMatch(/-israelite/));
     if (fs.existsSync('src/assets/map/buildings/granary-israelite.glb')) expect(il.map((p) => p.id)).toEqual(['shrine', 'granary']);

@@ -66,17 +66,17 @@ export const iconIds = (group) => Object.keys(URLS[group] || {});
 
 // Building tiers: the art id of each tier of src/data/buildings.js, by category in tier order
 // (the same ids as the close view's landmark models). Defense tiers have no icon by design: they
-// are the town's wall ring, not a landmark, and keep the category glyph. Cathedral has no art yet.
+// are the town's wall ring, not a landmark, and keep the category glyph. Cathedral and the Stone tiers have no art yet.
 export const BUILDING_ICON_IDS = {
-  food: ['granary', 'irrigation', 'farm_estate', 'crop_rotation_farm', 'mechanized_farm'],
+  food: ['storage_pits', 'granary', 'irrigation', 'farm_estate', 'crop_rotation_farm', 'mechanized_farm'],
   economy: ['market', 'bazaar', 'bank', 'stock_exchange'],
-  military: ['barracks', 'drill_yard', 'military_academy', 'war_college'],
-  defense: [null, null, null, null],
-  science: ['library', 'scriptorium', 'university', 'research_lab'],
+  military: ['warrior_lodge', 'barracks', 'drill_yard', 'military_academy', 'war_college'],
+  defense: [null, null, null, null, null],
+  science: ['tablet_house', 'library', 'scriptorium', 'university', 'research_lab'],
   industry: ['workshop', 'manufactory', 'factory'],
-  culture: ['shrine', 'temple', 'cathedral', 'civic_center'],
-  naval: ['harbor', 'shipyard', 'naval_base', 'carrier_dock'],
-  logistics: ['road_post', 'highway', 'rail_depot']
+  culture: ['stone_circle', 'shrine', 'temple', 'cathedral', 'civic_center'],
+  naval: ['canoe_landing', 'harbor', 'shipyard', 'naval_base', 'carrier_dock'],
+  logistics: ['trail_cairns', 'road_post', 'highway', 'rail_depot']
 };
 export const EXTRACTION_ICON_IDS = { copper: 'copper_mine', iron: 'iron_foundry', oil: 'oil_well' };
 

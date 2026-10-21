@@ -77,7 +77,7 @@ describe('cities on the grid', () => {
     city = queueItem(city, { kind: 'improvement', improvement: 'farm', tile: farmTile });
     city = queueItem(city, { kind: 'settler' });
     const cost = productionCost({ kind: 'building', category: 'food', tier: 0 });
-    expect(cost).toBe(48);
+    expect(cost).toBe(24); // the Storage Pits: 30 x 0.8
     let turns = 0; let built = false; let settled = null;
     while (turns < 60 && !settled) {
       const r = processCity(world, tiles, city, ctx()); world = r.world; city = r.city; turns++;

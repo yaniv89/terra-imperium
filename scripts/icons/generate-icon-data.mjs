@@ -45,15 +45,15 @@ const UNIT_ICONS = {
 };
 
 const BUILDING_ICONS = {
-  food: { bronze: 'wheat', classical: 'aqueduct', kingdoms: 'windmill', gunpowder: 'granary', modern: 'farm-tractor' },
+  food: { stone: 'dig-hole', bronze: 'wheat', classical: 'aqueduct', kingdoms: 'windmill', gunpowder: 'granary', modern: 'farm-tractor' },
   economy: { classical: 'trade', kingdoms: 'coins-pile', gunpowder: 'bank', modern: 'banknote' },
-  military: { bronze: 'battle-axe', classical: 'spartan-helmet', gunpowder: 'crossed-sabres', modern: 'brodie-helmet' },
-  defense: { bronze: 'stone-wall', classical: 'roman-shield', gunpowder: 'defensive-wall', modern: 'bunker' },
-  science: { classical: 'scroll-unfurled', kingdoms: 'open-book', gunpowder: 'bubbling-flask', modern: 'observatory' },
+  military: { stone: 'stone-axe', bronze: 'battle-axe', classical: 'spartan-helmet', gunpowder: 'crossed-sabres', modern: 'brodie-helmet' },
+  defense: { stone: 'spiky-pit', bronze: 'stone-wall', classical: 'roman-shield', gunpowder: 'defensive-wall', modern: 'bunker' },
+  science: { stone: 'stone-tablet', classical: 'scroll-unfurled', kingdoms: 'open-book', gunpowder: 'bubbling-flask', modern: 'observatory' },
   industry: { classical: 'anvil', gunpowder: 'factory', modern: 'factory-arm' },
-  culture: { bronze: 'egyptian-temple', classical: 'greek-temple', kingdoms: 'saint-basil-cathedral', modern: 'theater-curtains' },
-  naval: { classical: 'wooden-pier', kingdoms: 'harbor-dock', gunpowder: 'anchor', modern: 'cargo-ship' },
-  logistics: { bronze: 'old-wagon', kingdoms: 'mine-wagon', modern: 'forklift' }
+  culture: { stone: 'menhir', bronze: 'egyptian-temple', classical: 'greek-temple', kingdoms: 'saint-basil-cathedral', modern: 'theater-curtains' },
+  naval: { stone: 'canoe', classical: 'wooden-pier', kingdoms: 'harbor-dock', gunpowder: 'anchor', modern: 'cargo-ship' },
+  logistics: { stone: 'stone-stack', bronze: 'old-wagon', kingdoms: 'mine-wagon', modern: 'forklift' }
 };
 
 const EXTRACTION_ICONS = { copper: 'ore', iron: 'minerals', oil: 'oil-rig' };

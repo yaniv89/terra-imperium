@@ -15,7 +15,7 @@ import {
 import { neighbourWorld, rivalOf } from './testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
-const PEOPLES_WORLD = neighbourWorld({ seed: 4 });
+const PEOPLES_WORLD = neighbourWorld({ seed: 3, age: 'bronze' });
 const IN_ID = PEOPLES_WORLD.playerNationId;
 const PK_ID = rivalOf(PEOPLES_WORLD, 0);
 
@@ -28,7 +28,7 @@ const play = (s) => {
 };
 
 describe('claims on cities', () => {
-  const S = quiet(neighbourWorld({ seed: 4 }));
+  const S = quiet(neighbourWorld({ seed: 3, age: 'bronze' }));
 
   it('a claim needs a city of another nation within reach of the border, and the nearest one is offered first', () => {
     const sites = claimableCities(S, IN_ID);

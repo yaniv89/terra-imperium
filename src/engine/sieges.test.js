@@ -34,8 +34,9 @@ describe('walls and HP', () => {
     const city = S.regions[PK];
     expect(wallsOf(city)).toBe(0);
     expect(siegeMaxHp(city)).toBe(Math.round(SIEGE_HP_BASE * (1 + city.size / 10)));
-    const walled = { ...city, buildings: { ...city.buildings, categories: { ...city.buildings.categories, defense: 1 } } };
+    const walled = { ...city, buildings: { ...city.buildings, categories: { ...city.buildings.categories, defense: 2 } } };
     expect(wallsOf(walled)).toBe(2);
+    expect(wallsOf({ ...city, buildings: { categories: { defense: 0 } } })).toBe(1); // the Earthwork Ditch
     expect(siegeMaxHp(walled)).toBe(Math.round(SIEGE_HP_BASE * 3 * (1 + city.size / 10)));
     expect(wallsOf({ ...city, buildings: { categories: { defense: 3 } } })).toBe(3);
   });
@@ -67,7 +68,7 @@ describe('a siege', () => {
     expect(regions[PK].siege.by).toBe(IN_ID);
     expect(r1.logs.some((l) => l.nationId === PK_ID && /under siege/.test(l.message))).toBe(true);
     // Walls regen: a Stone Walls city takes less.
-    const walledRegions = { ...war.regions, [PK]: { ...city, buildings: { ...city.buildings, categories: { ...city.buildings.categories, defense: 1 } } } };
+    const walledRegions = { ...war.regions, [PK]: { ...city, buildings: { ...city.buildings, categories: { ...city.buildings.categories, defense: 2 } } } };
     processSieges(war, walledRegions, war.units, { turn: 2 });
     expect(siegeMaxHp(walledRegions[PK]) - walledRegions[PK].siege.hp).toBe(SIEGE_STRENGTH_OTHER + SIEGE_STRENGTH_SIEGE - WALL_REGEN * 2);
     // Lifted: it heals a tenth a turn and the record goes once full.

@@ -31,7 +31,8 @@ const maintenanceOf = (nation) => nation.armyMaintenance ?? ARMY_MAINTENANCE_DEF
  */
 export const aiBudgetStep = (state, nationId, income, ownedUnits, inBattle = () => false) => {
   let nation = state.nations[nationId];
-  const gold = nation.economy?.gold || 0;
+  // The treasury before this turn's income (already credited): savings cover a deficit only if they carry it through this turn too.
+  const gold = (nation.economy?.gold || 0) - (income?.gold || 0);
   const balanceWith = (n) => calcNationBalance({ ...state, nations: { ...state.nations, [nationId]: n } }, nationId, income, ownedUnits);
   let balance = balanceWith(nation);
   const disband = [];

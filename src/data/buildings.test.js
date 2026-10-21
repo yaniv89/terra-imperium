@@ -13,7 +13,7 @@ import {
   getUsedBuildingSlots,
   BUILDING_SLOTS_CAP
 } from './buildings';
-import { AGE_ORDER, getAgeIndex } from './ages';
+import { AGE_ORDER, getAgeIndex, FIRST_AGE_ID } from './ages';
 import { TECH_TREE } from './techTree';
 
 const NO_TECHS = new Set();
@@ -48,15 +48,16 @@ describe('BUILDING_CATEGORIES data integrity', () => {
 // always buildable; every other tier needs its specific tech researched.
 describe('canBuildTier', () => {
   it('allows a tier-1 with no requiresTech, with no techs researched at all', () => {
-    expect(canBuildTier('food', NO_TECHS, 0)).toBe(true); // Granary
-    expect(canBuildTier('military', NO_TECHS, 0)).toBe(true); // Barracks
-    expect(canBuildTier('defense', NO_TECHS, 0)).toBe(true); // Palisade
-    expect(canBuildTier('culture', NO_TECHS, 0)).toBe(true); // Shrine
-    expect(canBuildTier('logistics', NO_TECHS, 0)).toBe(true); // Road Post
+    expect(canBuildTier('food', NO_TECHS, 0)).toBe(true); // Storage Pits
+    expect(canBuildTier('food', NO_TECHS, 1)).toBe(true); // Granary
+    expect(canBuildTier('military', NO_TECHS, 1)).toBe(true); // Barracks
+    expect(canBuildTier('defense', NO_TECHS, 1)).toBe(true); // Palisade
+    expect(canBuildTier('culture', NO_TECHS, 1)).toBe(true); // Shrine
+    expect(canBuildTier('logistics', NO_TECHS, 1)).toBe(true); // Road Post
   });
 
   it('rejects a gated tier with no techs researched', () => {
-    expect(canBuildTier('food', NO_TECHS, 1)).toBe(false); // Irrigation needs Aqueducts
+    expect(canBuildTier('food', NO_TECHS, 2)).toBe(false); // Irrigation needs Aqueducts
   });
 
   it('rejects a category whose tier-1 itself requires a tech (Economy/Science/Industry/Naval have none free)', () => {
@@ -64,16 +65,16 @@ describe('canBuildTier', () => {
   });
 
   it('allows a gated tier once its specific tech is researched', () => {
-    expect(canBuildTier('food', new Set(['infrastructure_aqueducts']), 1)).toBe(true);
+    expect(canBuildTier('food', new Set(['infrastructure_aqueducts']), 2)).toBe(true);
   });
 
   it('does not accept an unrelated researched tech as satisfying the gate', () => {
-    expect(canBuildTier('food', new Set(['military_bronze_casting']), 1)).toBe(false);
+    expect(canBuildTier('food', new Set(['military_bronze_casting']), 2)).toBe(false);
   });
 
   it('accepts a plain object of researched ids (state.techTree\'s own shape), not just a Set', () => {
-    expect(canBuildTier('food', { infrastructure_aqueducts: true }, 1)).toBe(true);
-    expect(canBuildTier('food', {}, 1)).toBe(false);
+    expect(canBuildTier('food', { infrastructure_aqueducts: true }, 2)).toBe(true);
+    expect(canBuildTier('food', {}, 2)).toBe(false);
   });
 
   it('rejects a tier that does not exist', () => {
@@ -98,8 +99,8 @@ describe('maxBuildableTierIndex', () => {
     expect(maxBuildableTierIndex('economy', NO_TECHS)).toBe(-1);
   });
 
-  it('returns 0 for a category whose tier-1 is free, with no techs researched', () => {
-    expect(maxBuildableTierIndex('food', NO_TECHS)).toBe(0);
+  it('returns the last free tier of a category, with no techs researched', () => {
+    expect(maxBuildableTierIndex('food', NO_TECHS)).toBe(1); // Storage Pits and the Granary are free
   });
 
   it('advances as more of the category\'s own techs are researched', () => {
@@ -130,6 +131,15 @@ describe('getBuildingTierCost', () => {
     const base = getBuildingTierCost('military', 0, 0);
     const discounted = getBuildingTierCost('military', 0, -0.15);
     expect(discounted).toBeLessThan(base);
+  });
+
+  it('starts each line with a Stone tier and keeps the costs of a line without one', () => {
+    ['food', 'military', 'defense', 'culture', 'logistics', 'naval', 'science'].forEach((id) => expect(BUILDING_CATEGORIES[id].tiers[0].age, id).toBe(FIRST_AGE_ID));
+    expect(getBuildingTierCost('food', 1)).toBe(48); // the Granary: 60 x 0.8, as before the Stone tier
+    expect(getBuildingTierCost('economy', 0)).toBe(66); // the Market: 60 x 1.1, no Stone tier
+    Object.entries(BUILDING_CATEGORIES).forEach(([id, c]) => c.tiers.forEach((_, i) => {
+      if (i > 0) expect(getBuildingTierCost(id, i), `${id} ${i}`).toBeGreaterThan(getBuildingTierCost(id, i - 1));
+    }));
   });
 
   it('returns null for a tier index beyond any category\'s length', () => {
@@ -169,7 +179,8 @@ describe('getBuildingSlots / getUsedBuildingSlots', () => {
 
 describe('getCategoryTierName', () => {
   it('returns the correct name for a real tier', () => {
-    expect(getCategoryTierName('food', 0)).toBe('Granary');
+    expect(getCategoryTierName('food', 0)).toBe('Storage Pits');
+    expect(getCategoryTierName('food', 1)).toBe('Granary');
   });
 
   it('returns null for an out-of-range tier or unknown category', () => {

@@ -17,7 +17,7 @@
 // Resource extraction (Copper Mine / Iron Foundry / Oil Well) is a separate, per-resource
 // mechanic — see src/data/deposits.js and the Develop Resource Site action — since a region can
 // hold more than one of those at once, unlike every category here.
-import { getAgeIndex } from './ages';
+import { getAgeIndex, FIRST_AGE_ID } from './ages';
 import { t } from '../i18n/core';
 
 export const BUILDING_CATEGORIES = {
@@ -30,6 +30,7 @@ export const BUILDING_CATEGORIES = {
     // 0.80%/turn) exactly, so re-deriving it through the modifier engine would only add risk for
     // no behavior change.
     tiers: [
+      { age: 'stone', name: 'Storage Pits', requiresTech: null },
       { age: 'bronze', name: 'Granary', requiresTech: null },
       { age: 'classical', name: 'Irrigation', requiresTech: 'infrastructure_aqueducts' },
       { age: 'kingdoms', name: 'Farm Estate', requiresTech: 'governance_feudal_charters' },
@@ -54,6 +55,7 @@ export const BUILDING_CATEGORIES = {
     label: 'Military',
     costMult: 1.0,
     tiers: [
+      { age: 'stone', name: 'Warrior Lodge', requiresTech: null, effects: { 'local.manpower': 0.10, 'local.flatManpower': 2 } },
       { age: 'bronze', name: 'Barracks', requiresTech: null, effects: { 'local.manpower': 0.20, 'local.flatManpower': 3 } },
       { age: 'classical', name: 'Drill Yard', requiresTech: 'military_iron_weapons', effects: { 'local.manpower': 0.35, 'local.flatManpower': 5 } },
       { age: 'gunpowder', name: 'Military Academy', requiresTech: 'military_standing_armies', effects: { 'local.manpower': 0.50, 'local.flatManpower': 8 } },
@@ -64,6 +66,7 @@ export const BUILDING_CATEGORIES = {
     label: 'Defense',
     costMult: 1.4,
     tiers: [
+      { age: 'stone', name: 'Earthwork Ditch', requiresTech: null, effects: { 'local.fortLevel': 0.5 } },
       { age: 'bronze', name: 'Palisade', requiresTech: null, effects: { 'local.fortLevel': 1 } },
       { age: 'classical', name: 'Stone Walls', requiresTech: 'military_siege_engineering', effects: { 'local.fortLevel': 2 } },
       { age: 'gunpowder', name: 'Star Fort', requiresTech: 'military_gunpowder_weapons', effects: { 'local.fortLevel': 4 } },
@@ -74,6 +77,7 @@ export const BUILDING_CATEGORIES = {
     label: 'Science',
     costMult: 1.1,
     tiers: [
+      { age: 'stone', name: 'Tablet House', requiresTech: 'science_proto_writing', effects: { 'local.techPoints': 0.5 } },
       { age: 'classical', name: 'Library', requiresTech: 'science_natural_philosophy', effects: { 'local.techPoints': 2 } },
       { age: 'kingdoms', name: 'Scriptorium', requiresTech: 'governance_royal_chancery', effects: { 'local.techPoints': 4 } },
       { age: 'gunpowder', name: 'University', requiresTech: 'science_scientific_method', effects: { 'local.techPoints': 6 } },
@@ -95,6 +99,7 @@ export const BUILDING_CATEGORIES = {
     label: 'Culture & Order',
     costMult: 0.9,
     tiers: [
+      { age: 'stone', name: 'Stone Circle', requiresTech: null, effects: { 'local.stabilityBonus': 0.5 } },
       { age: 'bronze', name: 'Shrine', requiresTech: null, effects: { 'local.stabilityBonus': 1 } },
       { age: 'classical', name: 'Temple', requiresTech: 'governance_civic_assemblies', effects: { 'local.stabilityBonus': 1.5 } },
       { age: 'kingdoms', name: 'Cathedral / Mosque', requiresTech: 'science_scholastic_method', effects: { 'local.stabilityBonus': 2 } },
@@ -106,6 +111,7 @@ export const BUILDING_CATEGORIES = {
     costMult: 1.3,
     coastalOnly: true,
     tiers: [
+      { age: 'stone', name: 'Canoe Landing', requiresTech: null, effects: { 'local.tradeIncome': 0.5 } },
       { age: 'classical', name: 'Harbor', requiresTech: 'economy_silk_road_trade', effects: { 'local.tradeIncome': 1 } },
       { age: 'kingdoms', name: 'Shipyard', requiresTech: 'science_optics', effects: { 'local.tradeIncome': 2 } },
       { age: 'gunpowder', name: 'Naval Base', requiresTech: 'economy_colonial_trade', effects: { 'local.tradeIncome': 3 } },
@@ -116,6 +122,7 @@ export const BUILDING_CATEGORIES = {
     label: 'Logistics',
     costMult: 1.0,
     tiers: [
+      { age: 'stone', name: 'Trail Cairns', requiresTech: null, effects: { 'local.supplyRange': 0.5 } },
       { age: 'bronze', name: 'Road Post', requiresTech: null, effects: { 'local.supplyRange': 1 } },
       { age: 'kingdoms', name: 'Highway', requiresTech: 'infrastructure_stone_bridges', effects: { 'local.supplyRange': 2 } },
       { age: 'modern', name: 'Rail Depot', requiresTech: 'infrastructure_rail_networks', effects: { 'local.supplyRange': 3 } }
@@ -159,16 +166,17 @@ export const maxBuildableTierIndex = (categoryId, researchedTechIds) => {
 
 export const getCategoryTierName = (categoryId, tierIndex) => BUILDING_CATEGORIES[categoryId]?.tiers[tierIndex]?.name || null;
 
-// Plan §M6.1's own per-tier-index base cost table (before category multiplier), one entry per
-// possible tier index across every category (the longest line, Food, has 5 tiers).
-const BASE_TIER_COST = [60, 120, 220, 360, 550];
+// Plan §M6.1's own base cost table (before category multiplier), one entry per rank. A Stone tier
+// (eight-ages plan U28, KTD11) is rank 0, so a line without one starts at rank 1 and keeps its costs.
+const BASE_TIER_COST = [30, 60, 120, 220, 360, 550];
+const tierRank = (category, tierIndex) => tierIndex + (category.tiers[0].age === FIRST_AGE_ID ? 0 : 1);
 
 // Gold cost to build/upgrade to `tierIndex` in `categoryId`, before national.buildingCost (e.g.
 // the Architect ruler trait, M3).
 export const getBuildingTierCost = (categoryId, tierIndex, buildingCostMult = 0) => {
   const category = BUILDING_CATEGORIES[categoryId];
-  const base = BASE_TIER_COST[tierIndex];
-  if (!category || base === undefined) return null;
+  if (!category?.tiers[tierIndex]) return null;
+  const base = BASE_TIER_COST[tierRank(category, tierIndex)];
   return Math.round(base * category.costMult * (1 + buildingCostMult));
 };
 

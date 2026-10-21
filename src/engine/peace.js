@@ -19,6 +19,7 @@ import { aeMultFor, claimOn } from './claims';
 import { addNationModifier } from './modifiers/timed';
 import { warOdds, exposure, prizeOf, DECISIVE } from './warOdds';
 import { getPool } from './nationState';
+import { canAnnex } from './stonePhase';
 import { clampPrestige, clampStability } from './nationalPower';
 import {
   FORCED_VASSALIZE_MIN_MAX_PEACE_COST, CAPITAL_LOST_IN_PEACE_STABILITY_PENALTY
@@ -48,6 +49,7 @@ export const getTermCost = (state, war, offererId, term) => {
     case 'cede': {
       const region = state.regions[term.regionId];
       if (!region || region.owner !== recipientId) return Infinity; // can only cede what the recipient still owns
+      if (!canAnnex(state, offererId)) return Infinity; // a Stone raid takes no city (stonePhase.js)
       const isClaimedOrGoal = war.cb === 'claim' || (war.goal?.type === 'capture_region' && war.goal.regionId === term.regionId) || !!claimOn(state, offererId, region);
       return Math.max(CEDE_MIN_COST, Math.round((100 * getTotalDev(region) / recipientTotalDev) * (isClaimedOrGoal ? 0.5 : 1)));
     }

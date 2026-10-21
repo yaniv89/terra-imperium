@@ -20,11 +20,11 @@ import {
 import { neighbourWorld } from './testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
-const PEOPLES_WORLD = neighbourWorld({ seed: 1 });
+const PEOPLES_WORLD = neighbourWorld({ seed: 1, age: 'bronze' });
 const FR_ID = PEOPLES_WORLD.playerNationId;
 
 const WORLD = (() => {
-  const first = addCity(neighbourWorld({ seed: 1 }), FR_ID);
+  const first = addCity(neighbourWorld({ seed: 1, age: 'bronze' }), FR_ID);
   const target = getTouchingIds(first.cityId).find((id) => first.state.regions[id].owner !== FR_ID) || getNeighborIds(first.cityId).find((id) => first.state.regions[id].owner !== FR_ID);
   const near = addCity(first.state, FR_ID, { near: target });
   const AGG = near.state.regions[target].owner;

@@ -22,13 +22,13 @@ describe('districts as tiles (plan C3.4)', () => {
     const score = (t) => adjacencyOf(tiles, world, t, 'science', city) * 10 + (tiles.neighbors[city.tile].includes(t) ? 1 : 0);
     city.tiles.filter((t) => t !== city.tile && tiles.land[t] === 1 && tiles.reliefOf(t) !== 'mountains').forEach((t) => expect(score(t)).toBeLessThanOrEqual(score(site)));
     const before = cityYields(city, tiles, world, allocateTiles(city, tiles, world, []), []).science;
-    city = { ...city, buildings: { ...city.buildings, categories: { ...city.buildings.categories, science: -1 } } };
-    city = queueItem(city, { kind: 'building', category: 'science', tier: 0 });
-    const cost = productionCost({ kind: 'building', category: 'science', tier: 0 });
+    city = { ...city, buildings: { ...city.buildings, categories: { ...city.buildings.categories, science: 0 } } }; // the Stone Tablet House lays out no Campus
+    city = queueItem(city, { kind: 'building', category: 'science', tier: 1 });
+    const cost = productionCost({ kind: 'building', category: 'science', tier: 1 });
     city = { ...city, production: { ...city.production, progress: cost } };
     const r = processCity(world, tiles, city, ctx());
     world = r.world; city = r.city;
-    expect(city.buildings.categories.science).toBe(0);
+    expect(city.buildings.categories.science).toBe(1);
     expect(world.tileState[site]?.district).toBe('science');
     expect(r.logs.some((l) => /Campus/.test(l.message))).toBe(true);
     const ds = districtsOf(tiles, world, city);
@@ -37,7 +37,7 @@ describe('districts as tiles (plan C3.4)', () => {
     const after = cityYields(city, tiles, world, allocateTiles(city, tiles, world, []), []).science;
     expect(after - before).toBeCloseTo(ds[0].amount + 2, 5); // the Library's own +2 tech points and the Campus
     // A second tier adds no second Campus; the tile takes no improvement.
-    city = queueItem({ ...city, buildings: { ...city.buildings, categories: { ...city.buildings.categories, science: 0 } } }, { kind: 'building', category: 'science', tier: 1 });
+    city = queueItem({ ...city, buildings: { ...city.buildings, categories: { ...city.buildings.categories, science: 1 } } }, { kind: 'building', category: 'science', tier: 2 });
     city = { ...city, production: { ...city.production, progress: productionCost({ kind: 'building', category: 'science', tier: 1 }) } };
     const r2 = processCity(world, tiles, city, ctx({ researched: ['governance_royal_chancery'] }));
     expect(districtsOf(tiles, r2.world, r2.city).length).toBe(1);

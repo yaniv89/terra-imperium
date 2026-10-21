@@ -119,6 +119,7 @@ export const ACTION_SOUNDS = {
   [T.REJECT_PENDING_PEACE]: 'ui-close',
   [T.TRADE_AGREEMENT]: 'trade-route',
   [T.OPEN_BORDERS]: 'pact-signed',
+  [T.PROPOSE_STELE]: 'pact-signed',
   [T.CLOSE_BORDERS]: 'ui-close',
   [T.DEMAND]: 'ui-confirm',
   [T.MILITARY_ALLIANCE]: 'pact-signed',

@@ -224,17 +224,17 @@ describe('Domestic tab actions', () => {
 
     it('is a no-op for a tier gated by a tech that is not researched', () => {
       const state = richState();
-      const tier0 = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } });
-      // Irrigation (tier 1) requires infrastructure_aqueducts — not researched.
+      const tier0 = gameReducer(gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } }), { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } }); // Storage Pits, then the Granary
+      // Irrigation (tier 2) requires infrastructure_aqueducts — not researched.
       expect(gameReducer(tier0, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } })).toBe(tier0);
     });
 
     it('builds a gated tier once its specific tech is researched', () => {
       const base = richState();
-      const tier0 = gameReducer(base, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } });
+      const tier0 = gameReducer(gameReducer(base, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } }), { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } }); // Storage Pits, then the Granary
       const withTech = { ...tier0, techTree: { ...tier0.techTree, infrastructure_aqueducts: { ...tier0.techTree.infrastructure_aqueducts, researched: true } } };
       const tier1 = gameReducer(withTech, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } });
-      expect(tier1.regions[cap('fr')].buildings.categories.food).toBe(1); // Irrigation
+      expect(tier1.regions[cap('fr')].buildings.categories.food).toBe(2); // Irrigation
     });
 
     it('is a no-op for a category whose own tier-1 requires a tech (e.g. Economy needs Minted Coinage)', () => {
@@ -258,12 +258,13 @@ describe('Domestic tab actions', () => {
       state = { ...state, regions: { ...state.regions, [cap('fr')]: { ...state.regions[cap('fr')], dev: Object.fromEntries(Object.keys(capDev).map((k) => [k, 0])) } } };
       state = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } }); // slot 1/2
       state = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'military' } }); // slot 2/2
+      state = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'military' } }); // the Warrior Lodge, then the Barracks
       expect(gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'defense' } })).toBe(state); // no free slot for a THIRD category
       const upgraded = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'military' } }); // Drill Yard needs Iron Weapons though
       expect(upgraded).toBe(state); // rejected by the tech gate, not the (already-passing) slot check
       const withTech = { ...state, techTree: { ...state.techTree, military_iron_weapons: { ...state.techTree.military_iron_weapons, researched: true } } };
       const upgradedForReal = gameReducer(withTech, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'military' } });
-      expect(upgradedForReal.regions[cap('fr')].buildings.categories.military).toBe(1); // upgrading is free of slots
+      expect(upgradedForReal.regions[cap('fr')].buildings.categories.military).toBe(2); // upgrading is free of slots
     });
 
     it('is a no-op when unaffordable', () => {

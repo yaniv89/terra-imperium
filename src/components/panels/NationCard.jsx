@@ -5,7 +5,7 @@
 // main actions as tiles that say before you try whether they would accept or refuse (and why, in
 // one line under them), and the long tail of secondary actions behind "More actions".
 import React, { useState } from 'react';
-import { Target, Gift, Eye, Heart, Users, Crown, Ban, AlertTriangle, ChevronDown, ChevronUp, DoorOpen, Scale } from 'lucide-react';
+import { Target, Gift, Eye, Heart, Users, Crown, Ban, AlertTriangle, ChevronDown, ChevronUp, DoorOpen, Scale, Milestone } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { Chip } from '../ui/atlas';
 import { askConfirm } from '../ui/ConfirmActionDialog';
@@ -14,7 +14,7 @@ import TopLayer from '../ui/TopLayer';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
 import { useEffects } from '../../context/EffectsContext';
 import { WORLD_NATIONS } from '../../data/worldNations';
-import { ActionTypes } from '../../data/types';
+import { ActionTypes, ACTION_AGE_GATES } from '../../data/types';
 import {
   ACTION_COSTS, SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, ESPIONAGE_SUCCESS_CHANCE, INTEL_DURATION_TURNS, ESPIONAGE_TECH_POINTS_STOLEN,
   MAX_RIVALS, VASSALIZE_HOSTILITY_CEILING, VASSALIZE_STRENGTH_RATIO, VASSAL_ANNEX_COOLDOWN_TURNS, VASSAL_ANNEX_DIP_PER_DEV
@@ -27,7 +27,9 @@ import { hasIntel } from '../../engine/intel';
 import { opinionOf, opinionBreakdown } from '../../engine/opinion';
 import { getEffectiveMilitaryPower } from '../../engine/aiEconomy';
 import { claimsAgainst, claimableCities, CLAIM_FABRICATE_TURNS, CLAIM_RANGE_RINGS } from '../../engine/claims';
-import { hasOpenBorders, openBordersAcceptance, demandAcceptance, DEMANDS } from '../../engine/accords';
+import { hasOpenBorders, openBordersAcceptance, demandAcceptance, DEMANDS, hasStele, steleAcceptance } from '../../engine/accords';
+import { canAnnex as pastVillage } from '../../engine/stonePhase';
+import { isAgeBefore } from '../../data/ages';
 import { tradeRouteStatus } from '../../engine/tradeDisruptions';
 import MapTradeBox from './MapTradeBox';
 import { t as tNow, hasKey } from '../../i18n/core';
@@ -65,6 +67,7 @@ const DIPLOMACY_EFFECT_BY_ACTION = {
   [ActionTypes.DECLARE_WAR]: 'declare_war',
   [ActionTypes.SUE_FOR_PEACE]: 'sue_for_peace',
   [ActionTypes.TRADE_AGREEMENT]: 'trade_agreement',
+  [ActionTypes.PROPOSE_STELE]: 'border_stele',
   [ActionTypes.GIFT_BRIBE]: 'gift_bribe',
   [ActionTypes.FABRICATE_CLAIM]: 'fabricate_claim',
   [ActionTypes.MILITARY_ALLIANCE]: 'military_alliance',
@@ -169,7 +172,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
   const opinion = opinionOf(state, nation.id);
   const breakdown = opinionBreakdown(state, nation.id);
   const allianceAnswer = allianceAcceptanceScore >= 0;
-  const tradeBlock = nation.hasTradeAgreement ? null : nation.isAtWar ? t('nc.tradeBlockWar') : activeTradePactCount >= tradePactCapacity ? t('nc.tradeBlockFull', { a: activeTradePactCount, b: tradePactCapacity }) : null;
+  const tradeBlock = nation.hasTradeAgreement ? null : isAgeBefore(ageOf(state, player.id), ACTION_AGE_GATES[ActionTypes.TRADE_AGREEMENT].minAge) ? t('m.why.notThisAge') : nation.isAtWar ? t('nc.tradeBlockWar') : activeTradePactCount >= tradePactCapacity ? t('nc.tradeBlockFull', { a: activeTradePactCount, b: tradePactCapacity }) : null;
   const tribute = demandAcceptance(state, nation.id, 'tribute');
   const tributeReason = tribute.reason ? reasonText(tribute) : null;
   const borders = openBordersAcceptance(state, nation.id);
@@ -331,6 +334,15 @@ export const NationCard = ({ nation, hideTitle = false }) => {
           {bordersOpen
             ? <IconButton icon={DoorOpen} label={t('nc.closeBorders')} title={t('nc.closeBordersTitle')} onClick={() => dispatch({ type: ActionTypes.CLOSE_BORDERS, payload: { nationId: nation.id } })} />
             : <IconButton icon={DoorOpen} label={t('nc.openBordersLabel', { cost: formatCost(ACTION_COSTS.openBorders), refuse: borders.accepted ? '' : t('nc.wouldRefuseShort') })} title={borders.accepted ? t('nc.openBordersAccept') : t('nc.openBordersRefuse', { opinion: borders.opinion, needed: borders.needed, war: borders.atWar ? t('nc.andAtWar') : '' })} disabled={!canAfford(state.resources, ACTION_COSTS.openBorders)} onClick={() => dispatchIfAffordable(ActionTypes.OPEN_BORDERS, ACTION_COSTS.openBorders)} />}
+          {hasStele(state, player.id, nation.id)
+            ? <IconButton icon={Milestone} label={t('nc.steleStands', { turn: player.steles[nation.id] })} title={t('nc.steleTitle')} disabled onClick={() => {}} />
+            : (() => {
+              const stele = steleAcceptance(state, nation.id);
+              const village = !pastVillage(state, player.id);
+              return <IconButton icon={Milestone} label={t('nc.stele', { cost: formatCost(ACTION_COSTS.borderStele), refuse: stele.accepted ? '' : t('nc.wouldRefuseShort') })}
+                title={village ? t('nc.steleVillage') : stele.accepted ? t('nc.steleTitle') : t('nc.openBordersRefuse', { opinion: stele.opinion, needed: stele.needed, war: stele.atWar ? t('nc.andAtWar') : '' })}
+                disabled={village || !canAfford(state.resources, ACTION_COSTS.borderStele)} onClick={() => dispatchIfAffordable(ActionTypes.PROPOSE_STELE, ACTION_COSTS.borderStele)} />;
+            })()}
           {Object.keys(DEMANDS).filter((kind) => kind !== 'tribute').map((kind) => {
             const claimed = kind === 'city' ? claimsAgainst(state, player.id, nation.id).filter((c) => nation.capitalRegionId !== c.id)[0] : null;
             if (kind === 'city' && !claimed) return null;

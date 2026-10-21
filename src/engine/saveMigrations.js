@@ -41,7 +41,7 @@ import { PEOPLES } from '../data/peoples';
 // migrate10to11). Version 12 adds fog of war (src/engine/fog.js: explored maps, contacts, the
 // last-seen picture, arrays saved run-length encoded); a save from before it loads and starts its
 // fog from where its cities stand now (migrate11to12). A version 10 save runs both steps.
-export const CURRENT_SAVE_VERSION = 17;
+export const CURRENT_SAVE_VERSION = 18;
 export const OLDEST_LOADABLE_SAVE_VERSION = 10;
 // The first version of the tile world: older saves are the province map ('tooOld'), newer ones up
 // to OLDEST_LOADABLE_SAVE_VERSION a coarser hex grid ('oldGrid').
@@ -387,9 +387,37 @@ export const migrate15to16 = (state) => ({
 // stays what it was (withAgesResearched never lowers an age).
 export const migrate16to17 = (state) => Object.keys(state.nations || {}).sort().reduce((s, id) => (id === s.playerNationId || s.nations[id]?.tech ? withAgesResearched(s, id, ageOf(s, id)) : s), state);
 
+// v18: seven building lines gain a Stone tier at index 0 (eight-ages plan U28, KTD11), so every saved
+// tier of those lines moves up one: in cities, in their production orders and stored progress, and in
+// the player's memory of cities seen. An unbuilt line (-1) stays unbuilt.
+const STONE_TIER_LINES = new Set(['food', 'military', 'defense', 'culture', 'logistics', 'naval', 'science']);
+const shiftCategories = (categories) => (categories
+  ? Object.fromEntries(Object.entries(categories).map(([c, tier]) => [c, STONE_TIER_LINES.has(c) && tier >= 0 ? tier + 1 : tier]))
+  : categories);
+const shiftBuildings = (b) => (b?.categories ? { ...b, categories: shiftCategories(b.categories) } : b);
+const shiftItem = (item) => (item?.kind === 'building' && STONE_TIER_LINES.has(item.category) ? { ...item, tier: item.tier + 1 } : item);
+const shiftKey = (key) => {
+  const [kind, c, tier] = key.split(':');
+  return kind === 'building' && STONE_TIER_LINES.has(c) ? `building:${c}:${Number(tier) + 1}` : key;
+};
+const shiftProduction = (p) => (p ? {
+  ...p,
+  current: shiftItem(p.current),
+  queue: (p.queue || []).map(shiftItem),
+  ...(p.stored ? { stored: Object.fromEntries(Object.entries(p.stored).map(([k, v]) => [shiftKey(k), v])) } : {})
+} : p);
+export const migrate17to18 = (state) => {
+  const regions = Object.fromEntries(Object.entries(state.regions || {}).map(([id, r]) => [id, {
+    ...r, buildings: shiftBuildings(r.buildings), ...(r.production ? { production: shiftProduction(r.production) } : {})
+  }]));
+  const seen = state.fog?.seen?.cities;
+  const fog = seen ? { ...state.fog, seen: { ...state.fog.seen, cities: Object.fromEntries(Object.entries(seen).map(([id, c]) => [id, { ...c, buildings: shiftBuildings(c.buildings) }])) } } : state.fog;
+  return { ...state, regions, ...(fog ? { fog } : {}) };
+};
+
 // Versions 6 to 9 are never migrated (an older grid, a clean break: OLDEST_LOADABLE_SAVE_VERSION).
 
-const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6, 10: migrate10to11, 11: migrate11to12, 12: migrate12to13, 13: migrate13to14, 14: migrate14to15, 15: migrate15to16, 16: migrate16to17 };
+const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6, 10: migrate10to11, 11: migrate11to12, 12: migrate12to13, 13: migrate13to14, 14: migrate14to15, 15: migrate15to16, 16: migrate16to17, 17: migrate17to18 };
 
 // Plain objects only: the fog's packed arrays (TileBits, TileInts) are class instances and are
 // never merged key by key.

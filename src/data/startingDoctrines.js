@@ -59,7 +59,7 @@ export const STARTING_DOCTRINES = {
       if (!region) return state;
       const categories = region.buildings?.categories || {};
       if ((categories.culture ?? -1) !== -1) return state; // already built there — no free upgrade, no downgrade
-      return { ...state, regions: { ...state.regions, [capitalId]: { ...region, buildings: { ...region.buildings, categories: { ...categories, culture: 0 } } } } };
+      return { ...state, regions: { ...state.regions, [capitalId]: { ...region, buildings: { ...region.buildings, categories: { ...categories, culture: 1 } } } } }; // 1: the Shrine, after the Stone Circle
     }
   },
   // The one doctrine whose reward needs the rng applyStartingDoctrine threads through (a named

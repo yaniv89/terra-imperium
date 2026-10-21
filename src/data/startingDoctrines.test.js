@@ -56,15 +56,15 @@ describe('applyStartingDoctrine', () => {
     expect(next.nations[FR].legitimacy).toBe((state.nations[FR].legitimacy ?? 50) + 5);
   });
 
-  it('master_builder grants a free tier-0 Culture building in the capital, once', () => {
+  it('master_builder grants a free Shrine (Culture tier 1, after the Stone Circle) in the capital, once', () => {
     const state = peoplesWorld();
     const capitalId = getCapital(state, FR);
     const next = applyStartingDoctrine(state, 'master_builder');
-    expect(next.regions[capitalId].buildings.categories.culture).toBe(0);
+    expect(next.regions[capitalId].buildings.categories.culture).toBe(1);
 
     // Applying it again to a state that already has one is a no-op, not a second free grant.
     const again = applyStartingDoctrine(next, 'master_builder');
-    expect(again.regions[capitalId].buildings.categories.culture).toBe(0);
+    expect(again.regions[capitalId].buildings.categories.culture).toBe(1);
   });
 
   it('seasoned_court grants a real, named level-2 advisor in the ADM slot, deterministically from the state\'s own rngSeed', () => {
