@@ -25,7 +25,7 @@ import { BUILDING_MODEL_IDS } from '../components/map/closeView/buildingModels';
 
 // Ids with no delivered art, on purpose: each falls back to its old glyph (src/components/ui/icons.jsx).
 const NO_ART = {
-  buildings: ['cathedral', 'storage_pits', 'warrior_lodge', 'tablet_house', 'stone_circle', 'canoe_landing', 'trail_cairns'], // not in the delivery yet: the line's old silhouette stays
+  buildings: ['cathedral'], // not in the delivery yet: the line's old silhouette stays
   units: ['naval'], // drawn by its line (ships)
   wonders: ['solomons_temple', 'masada'] // scenario wonders outside art spec section 5: lucide glyphs
 };
