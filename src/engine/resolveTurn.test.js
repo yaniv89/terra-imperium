@@ -5,7 +5,7 @@ import { SUPPLY_MAX, SUPPLY_ENEMY_LOSS, SUPPLY_HOME_GAIN, STARVE_STRENGTH } from
 import { gameReducer } from '../context/GameContext';
 import { GameStatus, ActionTypes, LogTypes } from '../data/types';
 import { speedTurnLimit } from '../data/ages';
-import { displayYear } from './displayYear';
+import { displayYear, labelYear } from './displayYear';
 import { TECH_TREE } from '../data/techTree';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD } from '../data/rebellion';
 import { HISTORICAL_EVENTS, eventTechsNeeded } from '../data/events';
@@ -15,7 +15,7 @@ import { countryOfNation } from '../data/peoples';
 import { speedTurns } from '../data/ages';
 import { ageOf } from './nationState';
 import { applyEventEffects } from './applyEventEffects';
-import { withAgesResearched } from './research';
+import { withAgesResearched, getResearchCost } from './research';
 import { peoplesWorld, rivalOf, neighbourWorld, borderPair, cloneWorld } from './testWorld';
 import { syncWorldRegistry } from './world/registry';
 import { UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
@@ -99,12 +99,30 @@ describe('resolveTurn determinism', () => {
 
 describe('resolveTurn time: the year is a label, a turn is a turn (KTD3)', () => {
   const bronze = Object.values(TECH_TREE).filter((t) => t.ageId === 'bronze').map((t) => t.id);
-  const withTechs = (state, ids) => ({ ...state, techTree: { ...state.techTree, ...Object.fromEntries(ids.map((id) => [id, { ...state.techTree[id], researched: true }])) } });
 
-  it('the label at 5 of 10 Bronze techs is 1400 BCE, at none 2000 BCE', () => {
-    const state = withAgesResearched(world(5), P, 'bronze'); // a Bronze Age start: the Stone techs are known
-    expect(displayYear(state)).toBe(-2000);
-    expect(displayYear(withTechs(state, bronze.slice(0, 5)))).toBe(-1400);
+  const ids = (age, n) => getTechsForAge(age).slice(0, n).map((t) => t.id);
+  it('the label runs over the 6 techs to the next age: 3 of 6 Bronze is 1400 BCE, none 2000 BCE', () => {
+    expect(labelYear('bronze', ids('stone', 6))).toBe(-2000);
+    expect(labelYear('bronze', [...ids('stone', 6), ...ids('bronze', 3)])).toBe(-1400);
+  });
+
+  it('the label meets the next age with no jump (follow-up 18)', () => {
+    const classical6 = [...ids('stone', 10), ...ids('bronze', 10), ...ids('classical', 6)];
+    expect(labelYear('classical', classical6)).toBe(500);
+    expect(labelYear('kingdoms', classical6)).toBe(500);
+  });
+
+  it('the last age\'s leftovers move the label too: all 10 Stone techs and no Bronze is 4 of 10 steps', () => {
+    expect(labelYear('bronze', ids('stone', 10))).toBe(-1520);
+    expect(labelYear('bronze', [...ids('stone', 10), ...ids('bronze', 6)])).toBe(-800);
+  });
+
+  it('the label moves inside a tech by its share done (follow-up 18)', () => {
+    const state = withAgesResearched(world(5), P, 'bronze'); // a Bronze Age start: all Stone techs known
+    const tech = bronze[0];
+    const half = getResearchCost(state, P, tech) / 2;
+    expect(displayYear(state)).toBe(-1520);
+    expect(displayYear({ ...state, research: { ...state.research, current: tech, progress: { [tech]: half } } })).toBe(-1460);
   });
 
   it('writes the label once a turn and never reads it: the same turn at any written year', () => {
@@ -124,6 +142,7 @@ describe('resolveTurn time: the year is a label, a turn is a turn (KTD3)', () =>
       s = resolveTurn(s);
       if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null };
       expect(s.year).toBeGreaterThanOrEqual(last);
+      if (t > 0) expect(s.year - last).toBeLessThanOrEqual(500); // at most one Stone tech's step (3000 years / 6); turn 1 leaves the -5000 start for the hearth's Agriculture
       last = s.year;
     }
   }, 120000);

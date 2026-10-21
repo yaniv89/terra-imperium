@@ -234,7 +234,7 @@ describe('migrateSave v13 to v14: ages by tech without demotion', () => {
     expect(loaded.state.research.current).toBeNull();
     expect(loaded.state.research.queue).not.toContain(outOfWindow);
     expect(loaded.state.research.queue).toContain(ids('gunpowder')[0]);
-    expect(loaded.state.year).toBe(900); // Kingdoms, 4 of its 10 techs: 500 + 1000 x 0.4
+    expect(loaded.state.year).toBe(1167); // Kingdoms, 4 of the 6 techs to the next age: 500 + 1000 x 4/6
   });
 
   it('a current save loads with its ages unchanged', () => {

@@ -156,7 +156,7 @@ describe('the Future (U64, U65)', () => {
     const before = Object.keys(TECH_TREE).filter((id) => TECH_TREE[id].ageId !== 'future');
     const s = inFuture([...before, 'military_autonomous_warfare', 'science_machine_consciousness']);
     expect(ageOf(s, FR_ID)).toBe('future');
-    expect(labelYear('future', getResearched(s, FR_ID))).toBe(2100); // robot techs move no label
+    expect(labelYear('future', getResearched(s, FR_ID))).toBe(labelYear('future', before)); // robot techs move no label
     expect(labelYear('future', [...futureIds.slice(1)])).toBeLessThan(2500);
     expect(labelYear('future', futureIds)).toBe(2500);
   });
