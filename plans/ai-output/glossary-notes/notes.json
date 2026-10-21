@@ -1,0 +1,1805 @@
+{
+  "missing": [],
+  "notes": {
+    "israel": {
+      "note": {
+        "en": "The Kingdom of Israel is the name given in the Hebrew Bible to the Israelite monarchy that arose in the southern Levant in the early first millennium BCE. Tradition names David as its great king, who is said to have united the tribes. It is remembered above all for its role in the origins of the Hebrew Bible and Jewish tradition.",
+        "he": "ממלכת ישראל היא השם שנתן המקרא לממלכה הישראלית שקמה בדרום הלבנט בראשית האלף הראשון לפנה\"ס. המסורת מייחדת את דוד כמלך הגדול שאיחד, לפי המסופר, את השבטים. היא נזכרת בראש ובראשונה בשל תפקידה בראשית המקרא והמסורת היהודית."
+      },
+      "founded": {
+        "en": "According to biblical tradition, David made Jerusalem the royal seat of Israel, around 1000 BCE.",
+        "he": "לפי המסורת המקראית, דוד עשה את ירושלים לבירת ישראל, בסביבות שנת 1000 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "Hebrew Bible, Tel Dan inscription, debated archaeology of Jerusalem"
+    },
+    "ugarit": {
+      "note": {
+        "en": "Ugarit was a Late Bronze Age city-kingdom on the Syrian coast, where a Northwest Semitic language was spoken. It was a busy trading port between Egypt, Anatolia and Mesopotamia. It is remembered for its archives, which include mythological texts and an early alphabet written in cuneiform, and it was destroyed around 1200 BCE.",
+        "he": "אוגרית הייתה ממלכת עיר מתקופת הברונזה המאוחרת בחוף סוריה, שבה דיברו שפה מערבית־שמית. היא הייתה נמל מסחרי סואן בין מצרים, אנטוליה ומסופוטמיה. היא נודעת בארכיונים שלה, ובהם טקסטים מיתולוגיים ואלפבית קדום הכתוב בכתב יתדות, והושמדה בסביבות 1200 לפנה\"ס."
+      },
+      "founded": {
+        "en": "Historically, the Ugaritians centred their kingdom on the city of Ugarit, which was settled far earlier, and Niqmaddu is the name of a king attested there.",
+        "he": "מבחינה היסטורית, ממלכת אוגרית התרכזה בעיר אוגרית, שהייתה מיושבת זמן רב קודם לכן, וניקמדו הוא שם של מלך המעיד עליו התיעוד שם."
+      },
+      "uncertain": true,
+      "basis": "Ugaritic tablets, excavations at Ras Shamra"
+    },
+    "mari": {
+      "note": {
+        "en": "Mari was a Bronze Age city-state on the middle Euphrates in what is now Syria. It flourished in the early second millennium BCE under kings such as Zimri-Lim. It is remembered for its palace and the thousands of cuneiform letters found there, and Hammurabi of Babylon destroyed it around 1761 BCE.",
+        "he": "מארי הייתה עיר־מדינה מתקופת הברונזה על הפרת התיכון, בסוריה של ימינו. היא שגשגה בראשית האלף השני לפנה\"ס תחת מלכים כמו זימרי־לים. היא נודעת בארמונה ובאלפי מכתבי יתדות שנמצאו בו, וחמורבי מלך בבל החריב אותה בסביבות 1761 לפנה\"ס."
+      },
+      "founded": {
+        "en": "Historically, Mari was founded as a city at Tell Hariri, around 2900 BCE, and served as its own first seat.",
+        "he": "מבחינה היסטורית, מארי נוסדה כעיר בתל חרירי, בסביבות 2900 לפנה\"ס, ושימשה מושב ראשון לעצמה."
+      },
+      "uncertain": false,
+      "basis": "cuneiform royal archives, excavations at Tell Hariri"
+    },
+    "akkad": {
+      "note": {
+        "en": "The Akkadians were a Semitic-speaking people of central Mesopotamia who built the first well-attested empire, in the 24th and 23rd centuries BCE. Sargon is the best-known ruler. They are remembered for spreading the Akkadian language, which became the common tongue of the region for centuries.",
+        "he": "האכדים היו עם דובר שפה שמית במסופוטמיה המרכזית שבנה את האימפריה המתועדת הראשונה, במאות ה־24 וה־23 לפנה\"ס. סרגון הוא השליט הידוע ביותר. הם נזכרים בהפצת השפה האכדית, שהפכה לשפה משותפת באזור במשך מאות שנים."
+      },
+      "founded": {
+        "en": "Historically, the Akkadians made Kish their first seat, around 2300 BCE, before Sargon founded the city of Akkad.",
+        "he": "מבחינה היסטורית, האכדים עשו את כיש למושבם הראשון, בסביבות 2300 לפנה\"ס, לפני שסרגון ייסד את העיר אכד."
+      },
+      "uncertain": true,
+      "basis": "cuneiform royal inscriptions, Sumerian King List; the city of Akkad is not located"
+    },
+    "elam": {
+      "note": {
+        "en": "Elam was an ancient civilisation in southwestern Iran with its own language, attested from the third millennium BCE. It was often a rival of Mesopotamian powers. It is remembered for its long history, its Linear Elamite and cuneiform writing, and for raiding Babylon under kings such as Shutruk-Nahhunte in the 12th century BCE.",
+        "he": "עילם הייתה תרבות עתיקה בדרום מערב איראן, בעלת שפה משלה, המתועדת מן האלף השלישי לפנה\"ס. היא הייתה לא פעם יריבה של מעצמות מסופוטמיה. היא נודעת בהיסטוריה הארוכה שלה, בכתב העילמי הליניארי ובכתב היתדות, ובפשיטות על בבל תחת מלכים כמו שוטרוק־נחונטה במאה ה־12 לפנה\"ס."
+      },
+      "founded": {
+        "en": "Historically, the Elamites are thought to have centred their early realm on Anshan, around 2500 BCE, though Susa was also a major centre.",
+        "he": "מבחינה היסטורית, העילמים ככל הנראה ריכזו את ממלכתם הקדומה באנשאן, בסביבות 2500 לפנה\"ס, אף שגם שושן הייתה מרכז חשוב."
+      },
+      "uncertain": true,
+      "basis": "Elamite and Mesopotamian inscriptions, excavations at Susa and Tal-e Malyan"
+    },
+    "media": {
+      "note": {
+        "en": "The Medes were an Iranian-speaking people of northwestern Iran, who rose in the 7th century BCE. Tradition names Cyaxares as the king who helped destroy the Assyrian Empire around 612 BCE. They are remembered as predecessors of the Persian Achaemenid Empire.",
+        "he": "המדים היו עם דובר איראנית בצפון מערב איראן, שעלה במאה ה־7 לפנה\"ס. המסורת מזכירה את קיאקסרס כמלך שסייע להשמיד את האימפריה האשורית בסביבות 612 לפנה\"ס. הם נזכרים כקודמיה של האימפריה האחמנית הפרסית."
+      },
+      "founded": {
+        "en": "According to Herodotus, the Medes made Hagmatana their capital, around 700 BCE.",
+        "he": "לפי הרודוטוס, המדים עשו את אחמתא לבירתם, בסביבות 700 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "Assyrian and Babylonian records, Herodotus, limited Median archaeology at Hamadan"
+    },
+    "kanesh": {
+      "note": {
+        "en": "Kanesh was a city in central Anatolia, and its lower town hosted a trading colony of Assyrian merchants in the early second millennium BCE. It is remembered for thousands of cuneiform tablets recording this trade. Anitta, a king known from a later Hittite text, is said to have taken the city.",
+        "he": "קאנש הייתה עיר באנטוליה המרכזית, ובעיר התחתית שלה שכנה מושבת סוחרים אשוריים בראשית האלף השני לפנה\"ס. היא נודעת באלפי לוחות יתדות המתעדים את המסחר הזה. אניטה, מלך הידוע מטקסט חתי מאוחר, כבש לפי הכתוב את העיר."
+      },
+      "founded": {
+        "en": "Historically, Kanesh was settled long before the merchants arrived, and it is thought to have been an important city by about 2000 BCE.",
+        "he": "מבחינה היסטורית, קאנש יושבה זמן רב לפני בוא הסוחרים, וכנראה הייתה עיר חשובה בסביבות 2000 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "Old Assyrian cuneiform tablets, excavations at Kültepe, Anitta text"
+    },
+    "lydia": {
+      "note": {
+        "en": "Lydia was a kingdom in western Anatolia that flourished in the 7th and 6th centuries BCE. Gyges is named as the founder of its Mermnad dynasty. It is remembered for among the earliest coinage and for King Croesus, whose realm fell to Persia around 546 BCE.",
+        "he": "לודיה הייתה ממלכה במערב אנטוליה שפרחה במאות ה־7 וה־6 לפנה\"ס. גיגס מוזכר כמייסד שושלת המרמנאדים. היא נודעת במטבעות מן הקדומים ביותר ובמלך קרויסוס, שממלכתו נפלה לפרסים בסביבות 546 לפנה\"ס."
+      },
+      "founded": {
+        "en": "Historically, the Lydians made Sardis their capital, and the city was a royal seat by about 680 BCE.",
+        "he": "מבחינה היסטורית, הלודים עשו את סרדיס לבירתם, והעיר הייתה מושב מלכותי בסביבות 680 לפנה\"ס."
+      },
+      "uncertain": false,
+      "basis": "Herodotus, Assyrian records, excavations at Sardis"
+    },
+    "phrygia": {
+      "note": {
+        "en": "The Phrygians were a people of central and western Anatolia who rose after the fall of the Hittite Empire, and their kingdom peaked in the 8th century BCE. They are remembered for the legendary King Midas and for the Gordian Knot. Their kingdom fell to the Cimmerians around 695 BCE.",
+        "he": "הפריגים היו עם באנטוליה המרכזית והמערבית שעלה לאחר נפילת האימפריה החתית, וממלכתם הגיעה לשיאה במאה ה־8 לפנה\"ס. הם נזכרים במלך האגדי מידס ובקשר הגורדי. ממלכתם נפלה לקימרים בסביבות 695 לפנה\"ס."
+      },
+      "founded": {
+        "en": "Historically, the Phrygians made Gordion their capital, and it is thought to have been a major centre by about 900 BCE.",
+        "he": "מבחינה היסטורית, הפריגים עשו את גורדיון לבירתם, והיא כנראה הייתה מרכז חשוב בסביבות 900 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "Assyrian records, Greek tradition, excavations at Gordion"
+    },
+    "pontus": {
+      "note": {
+        "en": "Pontus was a Hellenistic kingdom on the southern coast of the Black Sea, with a Persian-descended dynasty, active from the 4th century BCE. Mithridates VI Eupator is its best-known ruler. He fought three wars against Rome before his death in 63 BCE.",
+        "he": "פונטוס הייתה ממלכה הלניסטית בחוף הדרומי של הים השחור, בשלטון שושלת ממוצא פרסי, שפעלה מן המאה ה־4 לפנה\"ס. מיתרידטס השישי אופטור הוא שליטה הידוע ביותר. הוא נלחם שלוש מלחמות ברומא עד מותו ב־63 לפנה\"ס."
+      },
+      "founded": {
+        "en": "Historically, Sinope was a Greek colony on the Black Sea, and it became the royal seat of the Pontic kings around 183 BCE.",
+        "he": "מבחינה היסטורית, סינופה הייתה מושבה יוונית על הים השחור, והפכה למושב מלכי פונטוס בסביבות 183 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "Greek and Roman historians, coins, inscriptions"
+    },
+    "urartu": {
+      "note": {
+        "en": "Urartu was an Iron Age kingdom in the Armenian highlands around Lake Van, attested from the 9th century BCE. It is known mainly from Assyrian accounts and its own cuneiform inscriptions, and for its fortresses and irrigation works. It fell in the early 6th century BCE. Argishti was the name of several of its kings.",
+        "he": "אוררטו הייתה ממלכה מתקופת הברזל בהרי ארמניה, סביב אגם ואן, המתועדת מן המאה ה-9 לפני הספירה. היא מוכרת בעיקר מתיאורים אשוריים ומכתובות היתדות שלה, ונודעה במבצריה ובעבודות ההשקיה שלה. היא קרסה בתחילת המאה ה-6 לפני הספירה. ארגישטי היה שמם של כמה ממלכיה."
+      },
+      "founded": {
+        "en": "Historically, the Urartians made Tushpa, near modern Van, their main seat, around the 9th century BCE.",
+        "he": "מבחינה היסטורית, בני אוררטו עשו את טושפה, סמוך לוואן של ימינו, למושבם העיקרי, בסביבות המאה ה-9 לפני הספירה."
+      },
+      "uncertain": false,
+      "basis": "Urartian and Assyrian royal inscriptions, excavations at Van Fortress and Toprakkale"
+    },
+    "colchis": {
+      "note": {
+        "en": "Colchis was an ancient region and kingdom on the eastern Black Sea coast, in what is now western Georgia. Greek authors described it as a land rich in gold and linked it to the myth of the Argonauts. Its history is known mostly from Greek writers and archaeology.",
+        "he": "קולחיס הייתה אזור וממלכה עתיקים בחוף המזרחי של הים השחור, במערב גאורגיה של ימינו. סופרים יוונים תיארו אותה כארץ עשירה בזהב וקשרו אותה לאגדת הארגונאוטים. תולדותיה ידועות בעיקר מכתבים יווניים וממחקר ארכאולוגי."
+      },
+      "founded": {
+        "en": "Phasis is traditionally named as a Greek foundation on the Colchian coast, and it is thought to date to around the 6th century BCE.",
+        "he": "פאסיס נזכרת במסורת כיישוב יווני בחוף קולחיס, ונהוג להניח שהוקמה בסביבות המאה ה-6 לפני הספירה."
+      },
+      "uncertain": true,
+      "basis": "Greek literary sources, archaeology in western Georgia; Aeetes is a mythical king"
+    },
+    "aghvank": {
+      "note": {
+        "en": "Aghvank, known to the Greeks as Caucasian Albania, was a kingdom in the eastern Caucasus, in what is now Azerbaijan and southern Dagestan. Its people were a group of tribes, and the state adopted Christianity in the 4th century CE. Vachagan the Pious ruled in the late 5th century CE and is remembered for promoting the church.",
+        "he": "אגוואנק, שהיוונים כינו אלבניה הקווקזית, הייתה ממלכה בקווקז המזרחי, באזרבייג'ן של ימינו ובדרום דגסטן. תושביה היו קבוצת שבטים, והממלכה קיבלה את הנצרות במאה ה-4 לספירה. ואצ'גן ישל סוף המאה ה-5 לספירה, ונזכר בשל תמיכתו בכנסייה."
+      },
+      "founded": {
+        "en": "Historically, the Aghvans are thought to have had Kabalak as an early seat, though its role in the earliest period is uncertain.",
+        "he": "מבחינה היסטורית, סבורים כי קבלק הייתה מושב קדום של בני אגוואנק, אך תפקידה בתקופה הראשונה אינו ברור."
+      },
+      "uncertain": true,
+      "basis": "Greek and Roman geographers, Armenian chronicles, excavations in Azerbaijan"
+    },
+    "saba": {
+      "note": {
+        "en": "Saba was a South Arabian kingdom in what is now Yemen, active from about the early first millennium BCE. It grew rich on the incense trade and built the Marib dam. Bilqis is the Queen of Sheba of Arabic tradition, and her historicity is not established.",
+        "he": "שבא הייתה ממלכה בדרום ערב, בתימן של ימינו, שפעלה מראשית האלף הראשון לפני הספירה לערך. היא התעשרה מסחר הלבונה ובנתה את סכר מארב. בלקיס היא מלכת שבא במסורת הערבית, ואין ודאות שהייתה דמות היסטורית."
+      },
+      "founded": {
+        "en": "Historically, the Sabaeans made Maryab (Marib) their capital, and it is thought to have been a center by the early first millennium BCE.",
+        "he": "מבחינה היסטורית, בני שבא עשו את מריאב (מארב) לבירתם, ונהוג להניח שהייתה מרכז כבר בראשית האלף הראשון לפני הספירה."
+      },
+      "uncertain": true,
+      "basis": "Sabaean inscriptions, excavations at Marib; the ruler is legendary"
+    },
+    "kindah": {
+      "note": {
+        "en": "Kindah was an Arab tribal confederation of central Arabia, prominent in the 5th and 6th centuries CE. It was allied with the Himyarites and was known for its poetry and warrior chiefs. Hujr is named in Arabic tradition as an early chief of the line.",
+        "he": "כינדה הייתה קונפדרציה שבטית ערבית במרכז ערב, בולטת במאות ה-5 וה-6 לספירה. היא הייתה בעלת ברית של בני חמיר ונודעה בשירתה ובמנהיגיה הלוחמים. חוג'ר נזכר במסורת הערבית כאחד מראשי השושלת הקדומים."
+      },
+      "founded": {
+        "en": "Historically, the Kindites are thought to have used Qaryat al-Faw as an early center, around the 1st to 4th centuries CE.",
+        "he": "מבחינה היסטורית, סבורים שבני כינדה השתמשו בקריאת אל-פאו כמרכז קדום, בין המאה ה-1 למאה ה-4 לספירה לערך."
+      },
+      "uncertain": true,
+      "basis": "South Arabian inscriptions, Arabic oral tradition, excavations at Qaryat al-Faw"
+    },
+    "magan": {
+      "note": {
+        "en": "Magan was a land known from Mesopotamian texts of the third millennium BCE as a source of copper and diorite. It is generally identified with the Oman peninsula and nearby lands. Its identification with particular sites remains debated.",
+        "he": "מגן הייתה ארץ הידועה מטקסטים מסופוטמיים של האלף השלישי לפני הספירה כמקור לנחושת ולדיוריט. מזהים אותה בדרך כלל עם חצי האי עומאן והסביבה. הזיהוי עם אתרים מסוימים עדיין שנוי במחלוקת."
+      },
+      "founded": {
+        "en": "Bat is thought to have been an early center of the Magan culture, around 2500 BCE.",
+        "he": "סבורים כי בת הייתה מרכז קדום של תרבות מגן, בסביבות 2500 לפני הספירה."
+      },
+      "uncertain": true,
+      "basis": "Sumerian and Akkadian texts, excavations at Bat and Hili; Manium is known only from Akkadian sources"
+    },
+    "dilmun": {
+      "note": {
+        "en": "Dilmun was a trading civilization of the Persian Gulf, centered on Bahrain, attested from the late 3rd millennium BCE. Mesopotamian texts describe it as a hub of the copper and pearl trade. It declined in the first millennium BCE.",
+        "he": "דילמון הייתה תרבות סוחרים במפרץ הפרסי, שמרכזה בבחרין, המתועדת מסוף האלף השלישי לפני הספירה. טקסטים מסופוטמיים מתארים אותה כמרכז של סחר בנחושת ובפנינים. היא דעכה באלף הראשון לפני הספירה."
+      },
+      "founded": {
+        "en": "Historically, the Dilmunites made Qal'at al-Bahrain their main settlement, from around 2200 BCE.",
+        "he": "מבחינה היסטורית, בני דילמון עשו את קלעת אל-בחרין ליישובם העיקרי, מסביבות 2200 לפני הספירה."
+      },
+      "uncertain": true,
+      "basis": "cuneiform texts, Danish and French excavations at Qal'at al-Bahrain; the ruler is poorly attested"
+    },
+    "qedar": {
+      "note": {
+        "en": "Qedar was a northern Arabian tribal group attested in Assyrian and biblical sources from the 8th century BCE. Its people controlled caravan routes and were at times in conflict with Assyria. Zabibe is named in Assyrian records as a queen of the Arabs.",
+        "he": "קדר הייתה קבוצה שבטית בצפון ערב, המתועדת במקורות אשוריים ומקראיים מן המאה ה-8 לפני הספירה. אנשיה שלטו בנתיבי שיירות ובמקרים מסוימים התנגשו באשור. זביבה נזכרת ברשומות אשוריות כמלכת הערבים."
+      },
+      "founded": {
+        "en": "Adumattu (Dumat al-Jandal) is thought to have been a principal Qedarite center, around the 8th century BCE.",
+        "he": "סבורים שאדומטו (דומת אל-ג'נדל) הייתה מרכז מרכזי של קדר, בסביבות המאה ה-8 לפני הספירה."
+      },
+      "uncertain": true,
+      "basis": "Assyrian royal inscriptions, Hebrew Bible, excavations at Dumat al-Jandal"
+    },
+    "nabataea": {
+      "note": {
+        "en": "The Nabataeans were an Arab people who built a trading kingdom in what is now Jordan, the Negev and northwest Arabia. They are remembered for Petra, rock-cut architecture and water management. Rome annexed the kingdom in 106 CE. Several kings were named Aretas.",
+        "he": "הנבטים היו עם ערבי שהקים ממלכת סחר בירדן של ימינו, בנגב ובצפון מערב ערב. הם זכורים בזכות פטרה, אדריכלות חצובה בסלע וניהול מים. רומא סיפחה את הממלכה בשנת 106 לספירה. כמה ממלכיהם נקראו חרתת."
+      },
+      "founded": {
+        "en": "Hegra is a major Nabataean city, but Petra is generally seen as the earlier capital, so its role as a first seat is uncertain; it flourished by about the 1st century BCE.",
+        "he": "חגרה היא עיר נבטית חשובה, אך פטרה נחשבת בדרך כלל לבירה הקדומה יותר, ולכן תפקידה כמושב ראשון אינו ודאי; היא שגשגה עד המאה ה-1 לפני הספירה לערך."
+      },
+      "uncertain": true,
+      "basis": "Nabataean inscriptions, Greek and Roman authors, excavations at Hegra and Petra"
+    },
+    "kemet": {
+      "note": {
+        "en": "Kemet is the ancient Egyptian name for Egypt, the civilization of the Nile valley. Its kingdom is generally held to have been unified around 3100 BCE, and it is remembered for pyramids, hieroglyphic writing and monumental temples. Narmer is often regarded as the king of this unification, though this is debated.",
+        "he": "כמת הוא השם המצרי הקדום למצרים, תרבות עמק הנילוס. מקובל שהממלכה אוחדה בסביבות 3100 לפני הספירה, והיא זכורה בזכות הפירמידות, הכתב ההירוגליפי והמקדשים המונומנטליים. נרמר נחשב לעתים קרובות למלך האיחוד, אף שהדבר שנוי במחלוקת."
+      },
+      "founded": {
+        "en": "Historically, the Egyptians are thought to have made Men-nefer (Memphis) their first capital, around 3100 BCE.",
+        "he": "מבחינה היסטורית, סבורים שהמצרים עשו את מן-נפר (מנפיס) לבירתם הראשונה, בסביבות 3100 לפני הספירה."
+      },
+      "uncertain": true,
+      "basis": "Narmer Palette, archaeology of Abydos and Hierakonpolis, later Egyptian king lists"
+    },
+    "kerma": {
+      "note": {
+        "en": "The Kerman culture flourished in Upper Nubia, in what is now Sudan, from roughly 2500 to 1500 BCE. It is known for its large mud-brick religious buildings, its monumental tombs and its rivalry with Egypt. Nedjeh is the name of a Nubian ruler attested in Egyptian sources, and the game uses it for the Kerman line.",
+        "he": "תרבות כרמה שגשגה בנוביה העליונה, בשטחה של סודאן של ימינו, בערך בין 2500 ל־1500 לפנה\"ס. היא ידועה במבני פולחן גדולים מלבנים, בקברים מונומנטליים ובמתחרותה עם מצרים. נג'ה הוא שמו של שליט נובי המוזכר במקורות מצריים, והמשחק משתמש בו לשושלת כרמה."
+      },
+      "founded": {
+        "en": "Historically, the Kerman state is thought to have centered on the town of Kerma from around 2500 BCE.",
+        "he": "מבחינה היסטורית, מניחים שהמדינה הכרמית התרכזה בעיר כרמה החל בסביבות 2500 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "excavations at Kerma, Egyptian inscriptions; the Kerman ruler's name and identity are uncertain"
+    },
+    "alodia": {
+      "note": {
+        "en": "Alodia was a Christian kingdom in central Sudan, around the confluence of the Blue and White Nile. It lasted from about the 6th century CE until roughly 1500. Its rulers and churches are known mainly from outside accounts and archaeology, and Eusebios is a ruler named in a surviving source.",
+        "he": "אלודיה הייתה ממלכה נוצרית במרכז סודאן, באזור מפגש הנילוס הכחול והלבן. היא התקיימה מן המאה ה־6 לספירה בקירוב ועד בערך 1500. שליטיה וכנסיותיה מוכרים בעיקר מתיאורים חיצוניים ומהארכאולוגיה, ואוסביוס הוא שליט הנזכר במקור ששרד."
+      },
+      "founded": {
+        "en": "Historically, Alodia is thought to have made Soba its capital, from around the 6th century CE.",
+        "he": "מבחינה היסטורית, מניחים שאלודיה קבעה את בירתה בסובה, החל מהמאה ה־6 לספירה בקירוב."
+      },
+      "uncertain": true,
+      "basis": "Byzantine and Arabic accounts, excavations at Soba; thinly attested"
+    },
+    "libu": {
+      "note": {
+        "en": "The Libu were a Libyan people west of Egypt, named in Egyptian records from the late 2nd millennium BCE. They fought Egypt under Merneptah and Ramesses III, and later Libyan chiefs ruled Egypt as pharaohs. Meryey is named in Egyptian inscriptions as a Libu leader.",
+        "he": "הלבו היו עם לוב ממערב למצרים, הנזכר ברישומים מצריים מסוף האלף השני לפנה\"ס. הם נלחמו במצרים בימי מרנפתח ורעמסס השלישי, ובהמשך שליטים לובים משלו במצרים כפרעונים. מריי נזכר בכתובות מצריות כמנהיג הלבו."
+      },
+      "founded": {
+        "en": "The Libu had no known capital; the game places their first seat at Siwa, which is an assumption.",
+        "he": "לא ידועה לבו בירה; המשחק מציב את מושבם הראשון בסיווה, וזוהי הנחה."
+      },
+      "uncertain": true,
+      "basis": "Egyptian royal inscriptions and temple reliefs; no Libu city is securely attested"
+    },
+    "cyrene": {
+      "note": {
+        "en": "Cyrene was a Greek colony in eastern Libya, settled from the island of Thera. It became a wealthy city known for exporting silphium, and for its philosophers and physicians. Battus is named by Herodotus as its founder.",
+        "he": "קירנה הייתה מושבה יוונית במזרח לוב, שיושבה מהאי תרה. היא הפכה לעיר עשירה הידועה בייצוא סילפיון, ובפילוסופים וברופאים שלה. הרודוטוס מציין את בטוס כמייסדה."
+      },
+      "founded": {
+        "en": "Historically, settlers from Thera founded Cyrene around 631 BCE, according to tradition.",
+        "he": "מבחינה היסטורית, מתיישבים מתרה ייסדו את קירנה בסביבות 631 לפנה\"ס, לפי המסורת."
+      },
+      "uncertain": false,
+      "basis": "Herodotus, inscriptions, excavations at Cyrene"
+    },
+    "garamantes": {
+      "note": {
+        "en": "The Garamantes were a Saharan people of southwestern Libya, active from about the 1st millennium BCE to the 7th century CE. They are remembered for irrigating the desert with underground channels and for trading across the Sahara. Tin Hinan is a Tuareg ancestral queen of later tradition, not a known Garamantian ruler.",
+        "he": "הגרמנטס היו עם סהרני בדרום מערב לוב, שפעל מן האלף הראשון לפנה\"ס ועד המאה ה־7 לספירה. הם ידועים בהשקיית המדבר בתעלות תת־קרקעיות ובסחר חוצה סהרה. טין הינאן היא מלכה אגדית של המסורת הטוארגית המאוחרת, ולא שליט גרמנטי ידוע."
+      },
+      "founded": {
+        "en": "Historically, the Garamantes are thought to have made Garama their capital, with the town growing from around the 1st millennium BCE.",
+        "he": "מבחינה היסטורית, מניחים שהגרמנטס עשו את גראמה לבירתם, והעיר צמחה מן האלף הראשון לפנה\"ס בקירוב."
+      },
+      "uncertain": true,
+      "basis": "Greek and Roman writers, excavations at Jarma; the game's ruler is legendary"
+    },
+    "numidia": {
+      "note": {
+        "en": "Numidia was a Berber kingdom in what is now Algeria and Tunisia, prominent from the late 3rd century BCE. It allied with Rome against Carthage and was later absorbed by Rome. Masinissa united the Numidians and ruled from about 202 to 148 BCE.",
+        "he": "נומידיה הייתה ממלכה ברברית בשטחן של אלג'יריה וטוניסיה של היום, בולטת מסוף המאה ה־3 לפנה\"ס. היא נתמכה ברומא נגד קרתגו ובהמשך נבלעה בה. מסיניסה איחד את הנומידים ושלט בערך בין 202 ל־148 לפנה\"ס."
+      },
+      "founded": {
+        "en": "Historically, the Numidian kings made Cirta their capital, from around 203 BCE under Masinissa's rival Syphax's fall.",
+        "he": "מבחינה היסטורית, מלכי נומידיה קבעו את בירתם בקירטה, בערך מ־203 לפנה\"ס, לאחר נפילת סיפקס יריבו של מסיניסה."
+      },
+      "uncertain": false,
+      "basis": "Livy, Polybius, inscriptions, excavations at Constantine"
+    },
+    "mauretania": {
+      "note": {
+        "en": "Mauretania was a Berber kingdom in what is now Morocco and western Algeria. It became a Roman client state in the late 1st century BCE. Juba II ruled it from about 25 BCE to 23 CE and was known as a scholar and writer.",
+        "he": "מאוריטניה הייתה ממלכה ברברית בשטחן של מרוקו ומערב אלג'יריה של היום. היא הפכה למדינת חסות רומית בסוף המאה ה־1 לפנה\"ס. יובא השני שלט בה בערך בין 25 לפנה\"ס ל־23 לספירה ונודע כחכם וכסופר."
+      },
+      "founded": {
+        "en": "Volubilis is known as an important Mauretanian town; the game uses it as the first seat, which is an approximation, since the royal capital under Juba II was Iol Caesarea.",
+        "he": "וולוביליס מוכרת כעיר חשובה במאוריטניה; המשחק משתמש בה כמושב הראשון, וזו קירוב, שכן בירת המלך בימי יובא השני הייתה איול קיסריה."
+      },
+      "uncertain": true,
+      "basis": "Roman writers, inscriptions, excavations at Volubilis; the first city is a game choice"
+    },
+    "keftiu": {
+      "note": {
+        "en": "Keftiu is the Egyptian name for a land and people in the Aegean, usually identified with Minoan Crete. The Minoans built palace centers and traded widely in the Bronze Age, c. 2000 to 1450 BCE. Minos is a legendary king from later Greek tradition, not attested in Minoan sources.",
+        "he": "כפתור הוא השם המצרי לארץ ולעם באגאי, המזוהים בדרך כלל עם כרתים המינואית. המינואים בנו מרכזי ארמונות וסחרו רבות בתקופת הברונזה, בערך בין 2000 ל־1450 לפנה\"ס. מינוס הוא מלך אגדי מהמסורת היוונית המאוחרת, ואינו מתועד במקורות מינואיים."
+      },
+      "founded": {
+        "en": "Historically, the first palace at Knossos is thought to have been built around 1900 BCE.",
+        "he": "מבחינה היסטורית, מניחים שהארמון הראשון בקנוסוס נבנה בסביבות 1900 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "Egyptian tomb paintings, excavations at Knossos; Minoan writing is undeciphered and the ruler is legendary"
+    },
+    "ahhiyawa": {
+      "note": {
+        "en": "Ahhiyawa is a land named in Hittite texts of the 14th to 13th centuries BCE, often thought to refer to the Mycenaean Greeks. The Mycenaeans built fortified palace centers and used the Linear B script. Agamemnon is a legendary king from Homer, and cannot be tied to any attested ruler.",
+        "he": "אחיאווה היא ארץ הנזכרת בטקסטים חיתיים מהמאות ה־14 עד ה־13 לפנה\"ס, ולעתים קרובות סבורים שהכוונה ליוונים המיקנים. המיקנים בנו מרכזי ארמונות מבוצרים והשתמשו בכתב לינארי ב'. אגממנון הוא מלך אגדי מהומרוס, ואי אפשר לקשור אותו לשליט מתועד."
+      },
+      "founded": {
+        "en": "Historically, Mycenae is thought to have risen as a major center from around 1600 BCE.",
+        "he": "מבחינה היסטורית, מניחים שמיקנה התעצמה כמרכז חשוב החל בסביבות 1600 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "Hittite tablets, Linear B tablets, excavations at Mycenae; the identification and the ruler are debated"
+    },
+    "odrysia": {
+      "note": {
+        "en": "The Odrysian kingdom was the main Thracian state, in what is now Bulgaria, from the 5th century BCE to the 1st century CE. It united many Thracian tribes and was known for its wealth and horsemen. Teres is named by Thucydides as its founder.",
+        "he": "ממלכת אודריסיה הייתה המדינה התראקית המרכזית, בשטחה של בולגריה של היום, מהמאה ה־5 לפנה\"ס ועד המאה ה־1 לספירה. היא איחדה שבטים תראקיים רבים ונודעה בעושרה וברוכביה. תוקידידס מציין את טרס כמייסדה."
+      },
+      "founded": {
+        "en": "Seuthopolis was founded by the Odrysian king Seuthes III around 300 BCE, which is later than the kingdom's origin under Teres.",
+        "he": "סאותופוליס נוסדה בידי המלך האודריסי סאותס השלישי בסביבות 300 לפנה\"ס, כלומר אחרי ראשית הממלכה בימי טרס."
+      },
+      "uncertain": true,
+      "basis": "Thucydides, Herodotus, excavations at Seuthopolis; the city postdates the founder Teres"
+    },
+    "illyria": {
+      "note": {
+        "en": "The Illyrians were a group of related peoples and kingdoms along the eastern Adriatic coast and its hinterland. Greek and Roman writers describe them as seafarers and raiders. Queen Teuta, who ruled in the 230s BCE, is remembered because her conflict with Rome led to the first Illyrian War.",
+        "he": "האילירים היו קבוצת עמים וממלכות קרובים לאורך החוף המזרחי של הים האדריאטי ובעורפו. סופרים יוונים ורומאים מתארים אותם כימאים וכשודדי ים. המלכה טאוטה, ששלטה בשנות ה-230 לפני הספירה, נזכרת בזכות הסכסוך שלה עם רומא, שהוביל למלחמה האילירית הראשונה."
+      },
+      "founded": {
+        "en": "Historically, the Illyrian kingdom of the Ardiaei and later the Labeatae is associated with Scodra, which became a royal seat by about the 3rd century BCE.",
+        "he": "מבחינה היסטורית, ממלכת הארדיאים ולאחר מכן הלבאטים קשורה לסקודרה, שהפכה למושב מלכותי עד המאה ה-3 לפני הספירה לערך."
+      },
+      "uncertain": true,
+      "basis": "Greek and Roman accounts such as Polybius and Appian, excavations at Shkodër"
+    },
+    "dacia": {
+      "note": {
+        "en": "The Dacians were a Thracian-related people living in the Carpathian region and along the lower Danube, in what is now Romania. Under Burebista, in the 1st century BCE, they formed a large realm that alarmed Rome. They are also remembered for their hilltop fortresses and for their wars against Trajan.",
+        "he": "הדקים היו עם קרוב לתראקים שחי באזור הקרפטים ולאורך הדנובה התחתונה, בשטחה של רומניה כיום. תחת בורביסטה, במאה ה-1 לפני הספירה, הם יצרו ממלכה גדולה שהדאיגה את רומא. הם נזכרים גם בזכות מצודות ההר שלהם ומלחמותיהם בטריאנוס."
+      },
+      "founded": {
+        "en": "Historically, the Dacians made Sarmizegetusa their chief centre, which flourished from about the 1st century BCE.",
+        "he": "מבחינה היסטורית, הדקים עשו את סרמיזגטוסה למרכזם הראשי, והיא שגשגה החל מהמאה ה-1 לפני הספירה לערך."
+      },
+      "uncertain": false,
+      "basis": "Greek and Roman writers, excavations of the Orăștie Mountains fortresses"
+    },
+    "rasenna": {
+      "note": {
+        "en": "The Rasenna is the name the Etruscans are reported to have used for themselves. They lived in central Italy, between the Arno and the Tiber, from roughly the 8th century BCE until absorbed by Rome. They are remembered for their city-states, metalwork, tomb painting and influence on early Rome.",
+        "he": "ראסנה הוא השם שהאטרוסקים, לפי המקורות, קראו לעצמם. הם חיו במרכז איטליה, בין נהר ארנו לנהר הטיבר, מהמאה ה-8 לפני הספירה לערך ועד שנטמעו ברומא. הם נזכרים בזכות ערי המדינה שלהם, עבודות המתכת, ציורי הקברים והשפעתם על רומא הקדומה."
+      },
+      "founded": {
+        "en": "Historically, Velzna, later called Volsinii, is counted among the major Etruscan cities, though which city came first is not known.",
+        "he": "מבחינה היסטורית, וולזנה, שנקראה לימים וולסיניי, נמנית עם הערים האטרוסקיות החשובות, אך אין ידוע איזו עיר קדמה לאחרות."
+      },
+      "uncertain": true,
+      "basis": "Etruscan inscriptions, tomb excavations, Greek and Roman writers; Porsenna is known mainly from Roman tradition, probably of Clusium"
+    },
+    "nuragi": {
+      "note": {
+        "en": "The Nuragic people lived on Sardinia from the Bronze Age, from about the 18th century BCE, and are named after their stone towers called nuraghi. Their language and social order are poorly known because they left no deciphered writing. Norax is a figure of later Greek and Roman legend, not a documented ruler.",
+        "he": "בני התרבות הנוראגית חיו בסרדיניה מתקופת הברונזה, מהמאה ה-18 לפני הספירה לערך, ונקראו על שם מגדלי האבן שלהם, הנוראגים. שפתם וסדרם החברתי ידועים מעט, כי לא הותירו כתב מפוענח. נוראקס הוא דמות מאגדות יווניות ורומיות מאוחרות ולא שליט מתועד."
+      },
+      "founded": {
+        "en": "The nuraghe complex at Barumini is thought to have begun around the 15th century BCE, and it is the best-known Nuragic site rather than a proven first city.",
+        "he": "מתחם הנוראגה בברומיני החל כנראה סביב המאה ה-15 לפני הספירה, והוא האתר הנוראגי המוכר ביותר ולא עיר ראשונה מוכחת."
+      },
+      "uncertain": true,
+      "basis": "archaeology of nuraghi, Sardinian bronze figurines, later classical legends"
+    },
+    "tartessos": {
+      "note": {
+        "en": "Tartessos was a culture in south-western Iberia, near the Guadalquivir valley, known from about the 9th to the 6th century BCE. Greek and biblical-era sources link it to silver and metal trade. Arganthonios, said by Herodotus to have reigned for eighty years, is its best-known king.",
+        "he": "טרטסוס הייתה תרבות בדרום-מערב חצי האי האיברי, באזור עמק הגוואדלקוויר, הידועה מהמאה ה-9 עד המאה ה-6 לפני הספירה לערך. מקורות יווניים ומקראיים קושרים אותה לסחר בכסף ובמתכות. ארגנתוניוס, שלפי הרודוטוס שלט שמונים שנה, הוא מלכה הידוע ביותר."
+      },
+      "founded": {
+        "en": "Historically, the city of Tartessos is mentioned by ancient writers, but its site has never been securely identified.",
+        "he": "מבחינה היסטורית, העיר טרטסוס מוזכרת אצל סופרים קדומים, אך מיקומה לא זוהה מעולם בוודאות."
+      },
+      "uncertain": true,
+      "basis": "Herodotus and other Greek texts, Phoenician contacts, finds such as the Carambolo treasure"
+    },
+    "celtiberia": {
+      "note": {
+        "en": "The Celtiberians lived in the central Iberian highlands and spoke a Celtic language. They resisted Roman conquest in the 2nd century BCE. They are remembered chiefly for the long siege of Numantia, which ended in 133 BCE.",
+        "he": "הקלטיברים חיו ברמות מרכז חצי האי האיברי ודיברו שפה קלטית. הם התנגדו לכיבוש הרומי במאה ה-2 לפני הספירה. הם נזכרים בעיקר בזכות המצור הארוך על נומנטיה, שהסתיים ב-133 לפני הספירה."
+      },
+      "founded": {
+        "en": "Historically, Numantia was a Celtiberian town on the upper Douro, and it is thought to have grown in the centuries before the Roman wars.",
+        "he": "מבחינה היסטורית, נומנטיה הייתה עיר קלטיברית על נהר הדואֶרו העליון, ונראה שצמחה במאות שלפני המלחמות ברומאים."
+      },
+      "uncertain": true,
+      "basis": "Roman historians such as Appian, excavations at Numantia, Celtiberian inscriptions; Retogenes is known as a leader at Caraunius and tied only loosely to Numantia"
+    },
+    "lusitania": {
+      "note": {
+        "en": "The Lusitanians were a people of western Iberia, in parts of present-day Portugal and Spain. In the 2nd century BCE they fought Rome under Viriathus, who led them from about 147 BCE until his murder in 139 BCE. They are remembered for this guerrilla resistance.",
+        "he": "הלוסיטנים היו עם במערב חצי האי האיברי, בחלקים של פורטוגל וספרד של ימינו. במאה ה-2 לפני הספירה הם נלחמו ברומא בהנהגת ויריאתוס, שהנהיג אותם מכ-147 לפני הספירה ועד שנרצח ב-139. הם נזכרים בזכות ההתנגדות הגרילה הזאת."
+      },
+      "founded": {
+        "en": "Conimbriga is a settlement in the Lusitanian area occupied from the Iron Age, but it is not known to have been their first seat.",
+        "he": "קוניםבריגה היא יישוב באזור הלוסיטני שהיה מיושב מתקופת הברזל, אך לא ידוע שהייתה מושבם הראשון."
+      },
+      "uncertain": true,
+      "basis": "Roman historians, excavations at Conimbriga"
+    },
+    "arverni": {
+      "note": {
+        "en": "The Arverni were a Gaulish people of the Auvergne in central France. They were powerful in the 2nd century BCE until defeated by Rome. Vercingetorix, an Arvernian, led the Gallic revolt against Caesar in 52 BCE.",
+        "he": "הארברנים היו שבט גאלי מאוברן שבמרכז צרפת. הם היו חזקים במאה ה-2 לפני הספירה עד שהובסו בידי רומא. ורקינגטוריקס, מבני השבט, הנהיג את המרד הגאלי נגד קיסר בשנת 52 לפני הספירה."
+      },
+      "founded": {
+        "en": "Historically, Gergovia was an Arvernian hilltop town, where Vercingetorix defeated Caesar in 52 BCE.",
+        "he": "מבחינה היסטורית, גרגוביה הייתה עיר הר של הארברנים, ושם ניצח ורקינגטוריקס את קיסר בשנת 52 לפני הספירה."
+      },
+      "uncertain": true,
+      "basis": "Caesar's Gallic War, excavations near Clermont-Ferrand; the founding date is unknown"
+    },
+    "belgae": {
+      "note": {
+        "en": "The Belgae were a group of Gaulish and Germanic-influenced tribes in northern Gaul. Caesar described them as the bravest of the Gauls and fought them in 57 BCE. They are remembered for this resistance and for giving their name to Belgium.",
+        "he": "הבלגים היו קבוצת שבטים בצפון גאליה, בהשפעה גאלית וגרמאנית. קיסר תיאר אותם כאמיצים שבגאלים ולחם בהם ב-57 לפני הספירה. הם נזכרים בזכות ההתנגדות הזאת ובכך ששמם ניתן לבלגיה."
+      },
+      "founded": {
+        "en": "Durocortorum was the town of the Remi, a Belgic tribe, and is the later Reims; it is not known to be the first seat of the Belgae as a whole.",
+        "he": "דורוקורטורום הייתה עיר הרמי, שבט בלגי, והיא ריימס של ימינו; לא ידוע שהייתה המושב הראשון של הבלגים כולם."
+      },
+      "uncertain": true,
+      "basis": "Caesar's Gallic War, archaeology of northern Gaul; Commius is known as king of the Atrebates, not of all Belgae"
+    },
+    "noricum": {
+      "note": {
+        "en": "Noricum was a Celtic kingdom in the eastern Alps, in present-day Austria and Slovenia, from about the 2nd century BCE. It traded iron with Rome and was made a Roman province around 16 BCE. It is remembered for its iron and for its alliance with Rome.",
+        "he": "נוריקום הייתה ממלכה קלטית באלפים המזרחיים, באוסטריה ובסלובניה של ימינו, מהמאה ה-2 לפני הספירה לערך. היא סחרה ברזל עם רומא והפכה לפרובינקיה רומית בסביבות 16 לפני הספירה. היא נזכרת בזכות הברזל שלה ובברית עם רומא."
+      },
+      "founded": {
+        "en": "Noreia is named by ancient writers as a chief town of the Taurisci, but its location is still debated.",
+        "he": "נוריאה מוזכרת אצל סופרים קדומים כעיר ראשית של הטאוריסקים, אך מיקומה עדיין שנוי במחלוקת."
+      },
+      "uncertain": true,
+      "basis": "Roman writers such as Strabo and Caesar, finds at the Magdalensberg; Voccio is known only from Caesar's mention"
+    },
+    "marcomannia": {
+      "note": {
+        "en": "The Marcomanni were a Germanic people who, under Maroboduus, built a kingdom in Bohemia in the decades around the turn of the era. They are remembered for their rivalry with Rome and for the Marcomannic Wars of the 2nd century CE.",
+        "he": "המרקומני היו עם גרמני שבראשות מרובודוס הקים ממלכה בבוהמיה בעשורים שסביב תחילת הספירה. הם זכורים בעיקר בשל יריבותם עם רומא ומלחמות המרקומני במאה השנייה לספירה."
+      },
+      "founded": {
+        "en": "Historically, Maroboduus is thought to have made Marobudum his seat, around 9 BCE, though its exact site is unknown.",
+        "he": "על פי המסורת ההיסטורית, מרובודוס עשוי היה לקבוע את מושבו במרובודום, בסביבות 9 לפנה\"ס, אך מיקומה המדויק אינו ידוע."
+      },
+      "uncertain": true,
+      "basis": "Roman writers such as Tacitus and Velleius Paterculus; the site of Marobudum is debated"
+    },
+    "cherusci": {
+      "note": {
+        "en": "The Cherusci were a Germanic people living between the Weser and the Elbe in the early Roman period. They are remembered for Arminius, who led an alliance that destroyed three Roman legions in the Teutoburg Forest in 9 CE.",
+        "he": "הצ'רוסקים היו עם גרמני שישב בין הוזר לאלבה בתקופה הרומית הקדומה. הם זכורים בזכות ארמיניוס, שהוביל ברית שהשמידה שלוש לגיונות רומיים ביער טויטובורג בשנת 9 לספירה."
+      },
+      "founded": {
+        "en": "Tulifurdum is named in ancient sources as a place in Cheruscan lands, and its exact site and role are uncertain.",
+        "he": "טוליפורדום מוזכרת במקורות עתיקים כמקום בארצות הצ'רוסקים, ומיקומה המדויק ותפקידה אינם ודאיים."
+      },
+      "uncertain": true,
+      "basis": "Roman historians such as Tacitus and Cassius Dio; archaeology of the Teutoburg Forest battle"
+    },
+    "durotriges": {
+      "note": {
+        "en": "The Durotriges were a Celtic-speaking people of south-western Britain in the late Iron Age and early Roman period. They are known for their hillforts, their distinctive coinage and their resistance to the Roman conquest after 43 CE.",
+        "he": "הדורוטריגס היו עם דובר קלטית בדרום מערב בריטניה בסוף תקופת הברזל ובראשית התקופה הרומית. הם ידועים במבצרי הגבעה שלהם, במטבעות הייחודיים ובהתנגדותם לכיבוש הרומי אחרי שנת 43 לספירה."
+      },
+      "founded": {
+        "en": "Maiden Castle, a large hillfort in Dorset, was occupied long before the Durotriges, and it became a main centre of the people in the Iron Age.",
+        "he": "מיידן קאסל, מבצר גבעה גדול בדורסט, היה מיושב זמן רב לפני הדורוטריגס, והפך למרכז עיקרי של העם בתקופת הברזל."
+      },
+      "uncertain": true,
+      "basis": "excavations at Maiden Castle and coin finds; no ruler named Carvilios is securely attested, so the game's ruler is uncertain"
+    },
+    "brigantes": {
+      "note": {
+        "en": "The Brigantes were a large Celtic people of northern Britain in the Iron Age and Roman period. They are remembered for Queen Cartimandua, who ruled as a client of Rome in the mid 1st century CE.",
+        "he": "הבריגנטס היו עם קלטי גדול בצפון בריטניה בתקופת הברזל ובתקופה הרומית. הם זכורים בזכות המלכה קרטימנדואה, ששלטה כבת חסות של רומא באמצע המאה הראשונה לספירה."
+      },
+      "founded": {
+        "en": "Historically, the Brigantes are thought to have had a major centre at Stanwick in North Yorkshire, in the 1st century CE.",
+        "he": "על פי המסורת ההיסטורית, הבריגנטס החזיקו כנראה במרכז חשוב בסטנוויק שבצפון יורקשייר, במאה הראשונה לספירה."
+      },
+      "uncertain": true,
+      "basis": "Tacitus, and excavations at Stanwick; the tribe's political unity is debated"
+    },
+    "ulaid": {
+      "note": {
+        "en": "The Ulaid were a people of north-eastern Ireland, and their name survives in the name Ulster. Early Irish tales, such as the Ulster Cycle, present them as a warrior kingdom, but these stories were written down centuries later.",
+        "he": "האולייד היו עם בצפון מזרח אירלנד, ושמם נשמר בשם אלסטר. סיפורים אירים קדומים, כמו מחזור אלסטר, מציגים אותם כממלכת לוחמים, אך סיפורים אלה נכתבו מאות שנים מאוחר יותר."
+      },
+      "founded": {
+        "en": "According to tradition, the Ulaid had their royal seat at Emain Macha, near Armagh, which is identified with the site of Navan Fort.",
+        "he": "לפי המסורת, מושב המלוכה של האולייד היה באמין מאחה, ליד ארמה, והוא מזוהה עם אתר נבן פורט."
+      },
+      "uncertain": true,
+      "basis": "early Irish literature and excavations at Navan Fort; Conchobar is a legendary figure"
+    },
+    "fortriu": {
+      "note": {
+        "en": "Fortriu was a Pictish kingdom in northern Scotland, attested from the 4th century CE onward. It is remembered for King Bridei son of Bili, who defeated the Northumbrians at Nechtansmere in 685.",
+        "he": "פורטריו הייתה ממלכה פיקטית בצפון סקוטלנד, המתועדת מהמאה הרביעית לספירה ואילך. היא זכורה בזכות המלך ברידי בן בילי, שהביס את הנורת'ומבראים בנכטנסמיר בשנת 685."
+      },
+      "founded": {
+        "en": "Burghead, a coastal fort on the Moray Firth, is thought to have been a major Pictish centre around the 6th century CE.",
+        "he": "בורגהד, מבצר חוף במפרץ מורי, נחשב כמרכז פיקטי חשוב בסביבות המאה השישית לספירה."
+      },
+      "uncertain": true,
+      "basis": "Irish and Northumbrian chronicles, Pictish stones and excavations at Burghead; the exact location of Fortriu is debated"
+    },
+    "geats": {
+      "note": {
+        "en": "The Geats were a North Germanic people of southern Sweden, known mainly from Old English and Scandinavian sources. They are best known from the poem Beowulf, in which Hygelac is their king.",
+        "he": "הגאטס היו עם צפון גרמני בדרום שוודיה, המוכר בעיקר ממקורות באנגלית עתיקה ובסקנדינבית. הם מפורסמים בעיקר משירת בייווולף, שבה היגלק הוא מלכם."
+      },
+      "founded": {
+        "en": "Skara in Västergötland is thought to have been a Geatish centre, though the link to the Geats in the early Middle Ages is uncertain.",
+        "he": "סקארה שבווסטרגוטלנד נחשבת כמרכז של הגאטס, אף שהקשר לגאטס בראשית ימי הביניים אינו ודאי."
+      },
+      "uncertain": true,
+      "basis": "Beowulf, Gregory of Tours on a raid by Hygelac, and Scandinavian tradition"
+    },
+    "rygir": {
+      "note": {
+        "en": "The Rygir were a people of Rogaland in south-western Norway, recorded in sources from late antiquity. Their name is thought to survive in Rogaland, and they appear in later Norse tradition.",
+        "he": "הריגיר היו עם ברוגלנד שבדרום מערב נורווגיה, המוזכר במקורות מסוף העת העתיקה. סבורים ששמם נשמר בשם רוגלנד, והם מופיעים במסורת הנורדית המאוחרת."
+      },
+      "founded": {
+        "en": "Avaldsnes on Karmøy is thought to have been a royal seat in the region, with finds dating from roughly the early centuries CE.",
+        "he": "אבלדסנס שבאי קרמיה נחשבת כמושב מלכותי באזור, עם ממצאים מהמאות הראשונות לספירה בקירוב."
+      },
+      "uncertain": true,
+      "basis": "Jordanes, Norse sagas and excavations at Avaldsnes; the ruler Ragnvald is not securely attested"
+    },
+    "bosporan_kingdom": {
+      "note": {
+        "en": "The Bosporan Kingdom was a Greek-Scythian state around the Cimmerian Bosporus, on the Crimean and Taman peninsulas. It lasted from the 5th century BCE into late antiquity and supplied grain to the Greek world.",
+        "he": "ממלכת בוספורוס הייתה מדינה יוונית-סקיתית סביב הבוספורוס הקימרי, בחצי האי קרים ובחצי האי תמן. היא התקיימה מהמאה החמישית לפנה\"ס ועד העת העתיקה המאוחרת וסיפקה תבואה לעולם היווני."
+      },
+      "founded": {
+        "en": "Historically, Panticapaeum was a Milesian colony from the 6th century BCE, and Spartokos is the first ruler of the dynasty that took power there around 438 BCE.",
+        "he": "על פי המסורת ההיסטורית, פנטיקפאון הייתה מושבה מילטית מהמאה השישית לפנה\"ס, וספרטוקוס הוא ראשון השליטים בשושלת שעלתה לשלטון שם בסביבות 438 לפנה\"ס."
+      },
+      "uncertain": false,
+      "basis": "Greek historians, inscriptions, coins and excavations at Kerch"
+    },
+    "cucuteni": {
+      "note": {
+        "en": "The Cucuteni, or Cucuteni-Trypillia, culture was a Neolithic and Copper Age culture of eastern Romania, Moldova and Ukraine, from roughly 5000 to 3000 BCE. It is known for painted pottery and very large settlements.",
+        "he": "תרבות קוקוטני, או קוקוטני-טריפיליה, הייתה תרבות מהתקופה הנאוליתית ומתקופת הנחושת במזרח רומניה, מולדובה ואוקראינה, בערך בין 5000 ל-3000 לפנה\"ס. היא ידועה בכלי חרס צבועים ובהתנחלויות גדולות מאוד."
+      },
+      "founded": {
+        "en": "Talianki is a very large Trypillian settlement site in Ukraine, dated to around 3800 to 3700 BCE, and it was not necessarily the first.",
+        "he": "טליאנקי היא אתר התנחלות טריפילי גדול מאוד באוקראינה, המתוארך לסביבות 3800 עד 3700 לפנה\"ס, ולאו דווקא הראשון."
+      },
+      "uncertain": true,
+      "basis": "archaeology and radiocarbon dating; no written sources exist, so the ruler Dana is legendary and invented for the game"
+    },
+    "avaria": {
+      "note": {
+        "en": "The Avars were a nomadic confederation that appeared in eastern Europe in the 560s CE and settled in the Carpathian Basin. They dominated much of the region for over two centuries and raided and besieged Byzantine lands, including Constantinople in 626. Their power was broken by Frankish campaigns under Charlemagne in the 790s.",
+        "he": "האווארים היו קונפדרציה נוודית שהופיעה במזרח אירופה בשנות ה-560 לספירה והתיישבה באגן הקרפטים. הם שלטו באזור במשך יותר ממאתיים שנה, פשטו על שטחים ביזנטיים וצרו על קונסטנטינופול בשנת 626. כוחם נשבר במסעות פרנקיים בימי קרל הגדול בשנות ה-790."
+      },
+      "founded": {
+        "en": "Historically, the Avars are thought to have made Hring, their fortified ring-shaped camp, their seat in the Carpathian Basin in the late 6th century CE.",
+        "he": "מבחינה היסטורית, מקובל להניח שהאווארים עשו את הרינג, מחנה מבוצר בצורת טבעת, למושבם באגן הקרפטים בסוף המאה ה-6 לספירה."
+      },
+      "uncertain": true,
+      "basis": "Byzantine and Frankish chronicles, Avar-period cemeteries; Hring is known only from later Frankish accounts and its location is unknown; Bayan is attested as khagan but his city is debated.}"
+    },
+    "khazaria": {
+      "note": {
+        "en": "The Khazars were a Turkic people who built a khaganate north of the Caucasus and around the lower Volga and Don from the mid-7th century CE. They controlled trade routes between the steppe, Byzantium and the Islamic world. Their ruling elite is reported to have adopted Judaism, probably in the 8th or 9th century.",
+        "he": "הכוזרים היו עם טורקי שהקים ח'אקנות מצפון לקווקז ובאזור הוולגה והדון התחתונים מאמצע המאה ה-7 לספירה. הם שלטו בנתיבי המסחר בין הערבה, ביזנטיון והעולם האסלאמי. על פי הדיווחים, האליטה השלטת שלהם אימצה את היהדות, כנראה במאה ה-8 או ה-9."
+      },
+      "founded": {
+        "en": "Historically, the Khazars made Atil on the lower Volga their capital, probably in the 8th century CE.",
+        "he": "מבחינה היסטורית, הכוזרים עשו את אטיל שעל הוולגה התחתונה לבירתם, כנראה במאה ה-8 לספירה."
+      },
+      "uncertain": true,
+      "basis": "Arabic, Byzantine and Hebrew sources, the Khazar Correspondence, excavations in the Volga delta; Atil has not been securely located and Bulan is semi-legendary.}"
+    },
+    "sarmatians": {
+      "note": {
+        "en": "The Sarmatians were Iranian-speaking nomadic peoples of the Eurasian steppe, known from about the 4th century BCE. They spread west from the Don and Ural region toward the Danube and fought Greeks, Scythians and Romans. They are noted for heavy cavalry and for the prominent role of women in their burials.",
+        "he": "הסרמטים היו עמים נוודים דוברי איראנית בערבות אירואסיה, הידועים מסביבות המאה ה-4 לפנה״ס. הם התפשטו מאזור הדון והאורל מערבה לכיוון הדנובה ולחמו ביוונים, בסקיתים וברומאים. הם ידועים בפרשים הכבדים שלהם ובמעמדן הבולט של נשים בקבורות."
+      },
+      "founded": {
+        "en": "The Sarmatians are traditionally linked with Uspe as a first seat, but the site is poorly attested and no date can be given with confidence.",
+        "he": "הסרמטים קשורים באופן מסורתי לאוספה כמושב ראשון, אך האתר מתועד בצורה דלה ואין אפשרות לתארך אותו בביטחון."
+      },
+      "uncertain": true,
+      "basis": "Greek and Roman writers, kurgan burials; Uspe and Amage are known from thin or legendary accounts.}"
+    },
+    "oxus": {
+      "note": {
+        "en": "The Oxus civilization, also called the Bactria-Margiana Archaeological Complex, flourished in the oases of Central Asia in the late 3rd and early 2nd millennium BCE. Its people built fortified settlements with monumental buildings and practiced irrigated farming. Its real name and language are unknown.",
+        "he": "תרבות האוקסוס, הנקראת גם מתחם בקטריה-מרגיאנה, שגשגה בנאות המדבר של מרכז אסיה בסוף האלף ה-3 ובתחילת האלף ה-2 לפנה״ס. אנשיה בנו יישובים מבוצרים עם מבנים מונומנטליים ועסקו בחקלאות מושקית. שמה האמיתי ושפתה אינם ידועים."
+      },
+      "founded": {
+        "en": "Gonur in the Murghab delta is thought to have been a leading center of this culture, from around 2300 BCE.",
+        "he": "גונור בדלתת המורגאב נחשבת למרכז מוביל של תרבות זו, מסביבות 2300 לפנה״ס."
+      },
+      "uncertain": true,
+      "basis": "excavations at Gonur Depe; no written records, so Yima, a figure of Iranian myth, is legendary.}"
+    },
+    "parthava": {
+      "note": {
+        "en": "The Parthians were an Iranian people from the region southeast of the Caspian Sea who founded the Arsacid dynasty in the 3rd century BCE. They built an empire stretching from Mesopotamia to eastern Iran and held off Rome for centuries. The dynasty fell to the Sasanians in 224 CE.",
+        "he": "הפרתים היו עם איראני מהאזור שמדרום-מזרח לים הכספי, שהקים את שושלת הארשקים במאה ה-3 לפנה״ס. הם בנו אימפריה שהשתרעה ממסופוטמיה ועד מזרח איראן ועמדו מול רומא במשך מאות שנים. השושלת נפלה בידי הסאסאנים בשנת 224 לספירה."
+      },
+      "founded": {
+        "en": "Historically, the Parthians are thought to have made Nisa their early royal seat, in the mid-3rd century BCE.",
+        "he": "מבחינה היסטורית, מקובל להניח שהפרתים עשו את ניסה למושב המלכות הקדום שלהם, באמצע המאה ה-3 לפנה״ס."
+      },
+      "uncertain": true,
+      "basis": "Greek and Roman historians, coins, Nisa ostraca and excavations; the founding date and Arsaces' origins are debated.}"
+    },
+    "bactria": {
+      "note": {
+        "en": "Bactria was a region of northern Afghanistan and neighboring lands, part of the Achaemenid empire and later conquered by Alexander. After about 250 BCE it became the Greco-Bactrian kingdom, which ruled under Greek kings and later expanded into northwestern India. Nomadic groups ended Greek rule there around 130 BCE.",
+        "he": "בקטריה הייתה אזור בצפון אפגניסטן ובארצות הסמוכות, חלק מהאימפריה האחמנית ולאחר מכן נכבשה בידי אלכסנדר. אחרי כ-250 לפנה״ס הפכה לממלכה היוונית-בקטרית בראשות מלכים יוונים, שהתרחבה אחר כך לצפון-מערב הודו. קבוצות נוודים סיימו את השלטון היווני שם בסביבות 130 לפנה״ס."
+      },
+      "founded": {
+        "en": "Historically, Bactra was the main city of Bactria, and the Greco-Bactrian kings ruled from it from about the mid-3rd century BCE.",
+        "he": "מבחינה היסטורית, בקטרה הייתה העיר המרכזית של בקטריה, ומלכי בקטריה היוונית שלטו ממנה מאמצע המאה ה-3 לפנה״ס בקירוב."
+      },
+      "uncertain": false,
+      "basis": "Greek and Chinese sources, Greco-Bactrian coins, excavations at Balkh and Ai Khanoum.}"
+    },
+    "sogdia": {
+      "note": {
+        "en": "The Sogdians were an Iranian-speaking people of the Zeravshan and Kashka Darya valleys. Under Achaemenid and later rulers they resisted Alexander in 329 to 327 BCE, and in later centuries they became the main merchants of the Silk Road. Their language served as a lingua franca of Central Asian trade.",
+        "he": "הסוגדים היו עם דובר איראנית בעמקי זרפשאן וקשקה דריה. הם התנגדו לאלכסנדר בשנים 329 עד 327 לפנה״ס, ובמאות מאוחרות יותר היו הסוחרים המרכזיים של דרך המשי. שפתם שימשה שפה משותפת למסחר במרכז אסיה."
+      },
+      "founded": {
+        "en": "Historically, the Sogdians made Marakanda, later Samarkand, a principal city, and it is attested by the time of Alexander in 329 BCE.",
+        "he": "מבחינה היסטורית, הסוגדים עשו את מרקנדה, היא סמרקנד של המאוחר, לעיר מרכזית, והיא מתועדת בימי אלכסנדר בשנת 329 לפנה״ס."
+      },
+      "uncertain": false,
+      "basis": "Greek historians of Alexander, Sogdian documents and murals, excavations at Afrasiab.}"
+    },
+    "khwarazm": {
+      "note": {
+        "en": "Khwarazm was an oasis region along the lower Amu Darya, south of the Aral Sea. It was a satrapy of the Achaemenid empire and later the home of local dynasties and, much later, a powerful medieval state. Its scholars, such as al-Biruni, are remembered in the Islamic world.",
+        "he": "חורזם הייתה אזור נאות לאורך האמו דריה התחתונה, דרומית לים אראל. היא הייתה סטרפיה באימפריה האחמנית ואחר כך מושב שושלות מקומיות, ובמאות מאוחרות יותר מדינה חזקה בימי הביניים. חכמיה, כמו אל-בירוני, זכורים בעולם האסלאמי."
+      },
+      "founded": {
+        "en": "Kath is thought to have been the capital of Khwarazm under the Afrighid dynasty, from about the 4th century CE, though earlier centers existed.",
+        "he": "מקובל להניח שקאת הייתה בירת חורזם בימי שושלת האפריגים, מסביבות המאה ה-4 לספירה, אף שהיו קודם לכן מרכזים אחרים."
+      },
+      "uncertain": true,
+      "basis": "Arabic and Persian sources such as al-Biruni, excavations in the Khorezm oasis; early dating is debated.}"
+    },
+    "wusun": {
+      "note": {
+        "en": "The Wusun were a nomadic people of the Ili valley and Tian Shan region, known mainly from Chinese records of the 2nd century BCE onward. They allied with Han China against the Xiongnu and exchanged marriage ties with the Han court. Their origin and language are debated.",
+        "he": "הווסון היו עם נוודי בעמק אילי ובאזור הרי טיאן שאן, הידוע בעיקר מתיעוד סיני מהמאה ה-2 לפנה״ס ואילך. הם נקשרו בברית עם סין ההאנית נגד הסיונגנו וקיימו קשרי נישואין עם החצר ההאנית. מוצאם ושפתם שנויים במחלוקת."
+      },
+      "founded": {
+        "en": "Chigu, known from Chinese sources as the Wusun royal residence near Issyk-Kul, is thought to have been their seat around the 2nd century BCE.",
+        "he": "צ'יגו, הידועה ממקורות סיניים כמקום מושבם של מלכי הווסון ליד איסיק-קול, נחשבת מושבם בסביבות המאה ה-2 לפנה״ס."
+      },
+      "uncertain": true,
+      "basis": "Chinese dynastic histories such as the Book of Han; Chigu has not been securely located and the game's ruler is a rendering of a title.}"
+    },
+    "andronovo": {
+      "note": {
+        "en": "The Andronovo culture was a Bronze Age complex of the Eurasian steppe, dated roughly 2000 to 900 BCE, spread from the southern Urals into Kazakhstan and Siberia. Its people herded livestock, used chariots and bronze metallurgy, and are often linked to early Indo-Iranian speakers. The name is modern, taken from a village where graves were found.",
+        "he": "תרבות אנדרונובו הייתה מתחם של תקופת הברונזה בערבות אירואסיה, שתוארך בערך ל-2000 עד 900 לפנה״ס, והתפשטה מהאורל הדרומי לקזחסטן ולסיביר. אנשיה גידלו בעלי חיים, השתמשו במרכבות ובמתכות ברונזה ולעיתים קרובות מקשרים אותם לדוברי הודו-איראנית קדומים. השם מודרני ולקוח מכפר שבו נמצאו קברים."
+      },
+      "founded": {
+        "en": "The fortified settlement of Arkaim in the southern Urals is thought to date to around 1800 BCE and is often associated with this culture, though the link is debated.",
+        "he": "היישוב המבוצר ארקאים באורל הדרומי מתוארך כנראה לסביבות 1800 לפנה״ס ולעיתים קרובות מקשרים אותו לתרבות זו, אף שהקשר שנוי במחלוקת."
+      },
+      "uncertain": true,
+      "basis": "excavations of settlements and kurgans such as Arkaim; no written records, so Vishtaspa, a figure of Avestan tradition, is legendary.}"
+    },
+    "botai": {
+      "note": {
+        "en": "The Botai were a Copper Age culture of the northern Kazakh steppe, active in the fourth millennium BCE. They are remembered for hunting and herding horses on a large scale. Whether they truly domesticated horses for riding or only for meat and milk has been debated.",
+        "he": "הבוטאי היו תרבות של תקופת הנחושת בערבות צפון קזחסטן, שפעלה באלף הרביעי לפנה\"ס. הם ידועים בציד סוסים ובגידולם בהיקף רחב. נחלקו הדעות אם אילפו סוסים גם לרכיבה או רק לבשר ולחלב."
+      },
+      "founded": {
+        "en": "The Botai settlement in northern Kazakhstan is thought to have been their main site, occupied from c. 3700 BCE.",
+        "he": "היישוב בוטאי בצפון קזחסטן נחשב לאתר המרכזי שלהם, ומיושב מכ-3700 לפנה\"ס בקירוב."
+      },
+      "uncertain": true,
+      "basis": "excavations at Botai, horse bone and pottery residue analysis; no written sources, ruler Kulan is invented"
+    },
+    "gokturk": {
+      "note": {
+        "en": "The Gokturks were a Turkic people who built a steppe empire across Mongolia and Central Asia from the mid-sixth century CE. They overthrew the Rouran and later split into eastern and western khaganates. They left the oldest known writing in a Turkic language, the Orkhon inscriptions.",
+        "he": "הגוקטורק היו עם טורקי שהקים אימפריית ערבות במונגוליה ובמרכז אסיה מאמצע המאה ה-6 לספירה. הם הפילו את הרואראן ובהמשך התפצלו לקגנאט מזרחי ומערבי. הם השאירו את הכתבים העתיקים ביותר הידועים בשפה טורקית, כתובות אורחון."
+      },
+      "founded": {
+        "en": "Historically, the Gokturks under Bumin are thought to have centered their power on the Ötüken region, around 552 CE.",
+        "he": "מקובל לראות את אזור אוטוקן כמרכז כוחם של הגוקטורק בימי בומין, בסביבות 552 לספירה."
+      },
+      "uncertain": false,
+      "basis": "Orkhon inscriptions, Chinese dynastic histories, Byzantine accounts"
+    },
+    "xianbei": {
+      "note": {
+        "en": "The Xianbei were a nomadic confederation of the eastern steppe, known from Chinese sources from the first century CE. Under Tanshihuai in the second century they controlled much of Mongolia. Later Xianbei groups founded states in northern China, including the Northern Wei.",
+        "he": "השיינביי היו קונפדרציה נוודית של הערבה המזרחית, הידועה ממקורות סיניים מהמאה ה-1 לספירה. בימי טנשיהואי, במאה ה-2, שלטו בחלקים נרחבים ממונגוליה. קבוצות שיינביי מאוחרות הקימו מדינות בצפון סין, ובהן הוואי הצפונית."
+      },
+      "founded": {
+        "en": "The Xianbei are thought to have first gathered in the Xilin Gol area, though no fixed capital is securely attested.",
+        "he": "מקובל להניח שהשיינביי התגבשו תחילה באזור שילין גול, אך בירה קבועה לא מתועדת בוודאות."
+      },
+      "uncertain": true,
+      "basis": "Chinese histories such as the Book of the Later Han, some archaeology; no Xianbei texts"
+    },
+    "kroraina": {
+      "note": {
+        "en": "Kroraina was an oasis kingdom on the northeastern edge of the Taklamakan Desert, attested from the first century BCE to the fourth century CE. Its people used the Gandhari language in Kharosthi script. It was later abandoned, probably as water supplies failed.",
+        "he": "קרוראינה הייתה ממלכת נווה מדבר בקצה הצפון-מזרחי של מדבר טקלמאקאן, המתועדת מהמאה ה-1 לפנה\"ס עד המאה ה-4 לספירה. תושביה השתמשו בשפה הגנדהארית בכתב כרושתי. היא ננטשה בהמשך, כנראה עקב מחסור במים."
+      },
+      "founded": {
+        "en": "Historically, the Krorainans are thought to have had Loulan as their main seat, in the first century BCE.",
+        "he": "מקובל להניח שלולאן הייתה מרכזה של קרוראינה, במאה ה-1 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "Kharosthi documents from Niya and Loulan, Chinese chronicles; the ruler Amgvaga is known only from a few documents"
+    },
+    "khotan": {
+      "note": {
+        "en": "Khotan was a Buddhist oasis kingdom on the southern Silk Road, flourishing from about the third century BCE to the eleventh century CE. It was known for jade, silk and a rich Buddhist scholarship. Its people spoke Khotanese, an Iranian language.",
+        "he": "כוטן הייתה ממלכה בודהיסטית בנווה מדבר בדרך המשי הדרומית, שפרחה מכ-300 לפנה\"ס עד המאה ה-11 לספירה. היא ידועה ביַשפה, במשי ובלימוד בודהיסטי עשיר. תושביה דיברו כוטנית, שפה איראנית."
+      },
+      "founded": {
+        "en": "Historically, Yotkan is thought to have been the early capital of Khotan, in the last centuries BCE.",
+        "he": "מקובל להניח שיוטקן הייתה בירתה הקדומה של כוטן, במאות האחרונות לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "Khotanese manuscripts, Chinese pilgrim accounts, Yotkan excavations; early kings are partly legendary"
+    },
+    "zhangzhung": {
+      "note": {
+        "en": "Zhangzhung was an ancient culture of western Tibet, centered near Mount Kailash. Tibetan tradition holds that it was a kingdom later absorbed by the Tibetan Empire in the seventh century CE. It is remembered as the source of the Bon religion.",
+        "he": "ז'אנג ז'ונג הייתה תרבות עתיקה במערב טיבט, סביב הר קאילש. המסורת הטיבטית מספרת על ממלכה שנספחה לאימפריה הטיבטית במאה ה-7 לספירה. היא נזכרת כמקור דת הבון."
+      },
+      "founded": {
+        "en": "Tradition places its capital at Khyunglung, the Silver Palace, but its date and exact site are not firmly known.",
+        "he": "המסורת מציבה את בירתה בקיונגלונג, ארמון הכסף, אך תאריכה ומיקומה המדויק אינם ידועים בוודאות."
+      },
+      "uncertain": true,
+      "basis": "Tibetan Bon traditions, Dunhuang manuscripts, survey of sites in Ngari; ruler Ligmincha is traditional"
+    },
+    "yarlung": {
+      "note": {
+        "en": "The Yarlung were the ruling clan of the Yarlung Valley in southern Tibet. From the early seventh century CE their kings united the plateau and founded the Tibetan Empire. They are remembered for adopting Buddhism and for campaigns in Central Asia.",
+        "he": "היארלונג היו שבט השליטים של עמק יארלונג בדרום טיבט. מראשית המאה ה-7 לספירה איחדו מלכיהם את הרמה והקימו את האימפריה הטיבטית. הם נזכרים בקבלת הבודהיזם ובמסעות צבאיים במרכז אסיה."
+      },
+      "founded": {
+        "en": "Tradition says Nyatri Tsenpo, a legendary first king, built Yumbulagang, though the dating is uncertain.",
+        "he": "לפי המסורת ניאטרי צנפו, מלך אגדי ראשון, בנה את יומבולאגאנג, אך התיארוך אינו בטוח."
+      },
+      "uncertain": true,
+      "basis": "Tibetan chronicles, Dunhuang documents, Tang histories; the ruler is legendary"
+    },
+    "meluhha": {
+      "note": {
+        "en": "Meluhha is the name given in Mesopotamian texts to a distant land, widely identified with the Indus Valley civilization of the third millennium BCE. That civilization built planned cities and used a script that remains undeciphered. It traded with Mesopotamia in beads and other goods.",
+        "he": "מלוחה הוא השם שבו נקראה בטקסטים מסופוטמיים ארץ רחוקה, המזוהה בדרך כלל עם תרבות עמק האינדוס של האלף השלישי לפנה\"ס. תרבות זו בנתה ערים מתוכננות והשתמשה בכתב שטרם פוענח. היא סחרה עם מסופוטמיה בחרוזים ובסחורות אחרות."
+      },
+      "founded": {
+        "en": "Harappa is thought to have been an early urban center, with its mature phase from c. 2600 BCE.",
+        "he": "הרפה נחשבת למרכז עירוני קדום, ושלב הפריחה שלה החל בכ-2600 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "excavations at Harappa, Akkadian texts naming Meluhha; script undeciphered, ruler Sindhu is invented"
+    },
+    "gandhara": {
+      "note": {
+        "en": "Gandhara was a region of the Peshawar valley and Taxila area, known from the first millennium BCE. It was ruled in turn by the Achaemenids, Mauryas, Greeks, Kushans and others. It is remembered for Greco-Buddhist art.",
+        "he": "גנדהארה הייתה אזור בעמק פשוואר וסביבות טקסילה, הידוע מהאלף הראשון לפנה\"ס. היא נשלטה בזה אחר זה בידי האחמנים, המאורים, היוונים, הקושאנים ואחרים. היא ידועה באמנות היוונית-בודהיסטית."
+      },
+      "founded": {
+        "en": "Historically, Takshashila was a leading Gandharan city, attested by the sixth century BCE.",
+        "he": "טקסילה הייתה עיר מרכזית בגנדהארה, והיא מתועדת כבר במאה ה-6 לפנה\"ס."
+      },
+      "uncertain": false,
+      "basis": "excavations at Taxila, Achaemenid inscriptions, Greek accounts of Alexander; Ambhi appears in Greek sources"
+    },
+    "saurashtra": {
+      "note": {
+        "en": "Saurashtra is the peninsula of western India, home to late Harappan settlements and later to the Western Kshatrapas. Rudradaman I ruled in the second century CE and left the Junagadh rock inscription. It is one of the earliest long Sanskrit inscriptions.",
+        "he": "סאוראשטרה היא חצי האי במערב הודו, שבו היו יישובים הרפאיים מאוחרים ובהמשך שלטו הקשטרפים המערביים. רודרדמן הראשון שלט במאה ה-2 לספירה והותיר את כתובת הסלע של ג'ונאגאד, אחת הכתובות הארוכות הקדומות בסנסקריט."
+      },
+      "founded": {
+        "en": "Lothal is thought to have been a port settlement of the Harappan period, around 2400 BCE, long before Rudradaman.",
+        "he": "לותל נחשבת ליישוב נמל מהתקופה ההרפאית, בסביבות 2400 לפנה\"ס, זמן רב לפני רודרדמן."
+      },
+      "uncertain": true,
+      "basis": "excavations at Lothal, Junagadh inscription; the people and the city belong to different eras"
+    },
+    "kuru": {
+      "note": {
+        "en": "The Kuru were a Vedic-era tribal union in the Ganges-Yamuna region of northern India, prominent in the early first millennium BCE. They are remembered for consolidating Vedic ritual and compiling hymns, and for the Kuru-Pandava conflict at the heart of the Mahabharata. Parikshit is known mainly from Vedic texts and tradition.",
+        "he": "הקורו היו איחוד שבטי מהתקופה הוודית באזור הגנגס והיאמונה בצפון הודו, בולט בראשית האלף הראשון לפני הספירה. הם זכורים כמי ששימרו וריכזו את הפולחן והמזמורים הוודיים, ובשל הסכסוך בין הקורו לפנדווה שבלב המהבהרטה. פריקשית מוכר בעיקר מהטקסטים הוודיים ומן המסורת."
+      },
+      "founded": {
+        "en": "Tradition holds that the Kuru made Hastinapura their seat, perhaps around 900 to 800 BCE.",
+        "he": "המסורת מספרת שהקורו קבעו את מושבם בהסטינאפורה, אולי בסביבות 900 עד 800 לפני הספירה."
+      },
+      "uncertain": true,
+      "basis": "Vedic texts, the Mahabharata tradition, excavations at Hastinapur"
+    },
+    "kosala": {
+      "note": {
+        "en": "Kosala was a major kingdom of the middle Ganges plain in the 6th and 5th centuries BCE, counted among the sixteen mahajanapadas. It is remembered as the homeland of Rama in tradition and as a kingdom closely linked to the Buddha. Prasenajit, a contemporary of the Buddha, ruled it before it fell to Magadha.",
+        "he": "קוסלה הייתה ממלכה חשובה במישור הגנגס התיכון במאות ה-6 וה-5 לפני הספירה, ונמנתה עם שישה עשר המהג'נפדות. היא זכורה במסורת כמולדתו של רמה וכממלכה הקשורה קשר הדוק לבודהה. פרסנג'יט, בן זמנו של בודהה, שלט בה לפני שנפלה בידי מגדה."
+      },
+      "founded": {
+        "en": "Historically, the Kosalans made Shravasti their principal seat, by about the 6th century BCE.",
+        "he": "מבחינה היסטורית, בני קוסלה קבעו את שראוואסטי כמושבם העיקרי, עד המאה ה-6 לפני הספירה לערך."
+      },
+      "uncertain": false,
+      "basis": "Buddhist and Jain texts, Puranas, excavations at Sahet-Mahet"
+    },
+    "magadha": {
+      "note": {
+        "en": "Magadha was a kingdom of the lower Ganges plain in present-day Bihar that rose to dominance from the 6th century BCE. It is remembered as the core of the later Maurya Empire and as a setting of the Buddha's and Mahavira's teaching. Bimbisara is its first well-attested king.",
+        "he": "מגדה הייתה ממלכה במישור הגנגס התחתון, בביהאר של ימינו, שעלתה לעוצמה מהמאה ה-6 לפני הספירה. היא זכורה כליבה של אימפריית מאוריה המאוחרת וכזירת פעילותם של בודהה ושל מהאווירה. בימבישארה הוא המלך הראשון שלו עדויות טובות."
+      },
+      "founded": {
+        "en": "Historically, the Magadhans made Rajagriha their early capital, by about the 6th century BCE.",
+        "he": "מבחינה היסטורית, בני מגדה קבעו את רג'גריהה כבירתם המוקדמת, עד המאה ה-6 לפני הספירה לערך."
+      },
+      "uncertain": false,
+      "basis": "Buddhist and Jain texts, Puranas, excavations at Rajgir"
+    },
+    "avanti": {
+      "note": {
+        "en": "Avanti was a kingdom of western Malwa in central India, one of the sixteen mahajanapadas of the 6th century BCE. It was a rival of Magadha and a center of early Buddhism in the west before Magadha absorbed it. Pradyota is known from Buddhist and Puranic traditions.",
+        "he": "אוואנטי הייתה ממלכה במאלווה המערבית שבמרכז הודו, אחת משישה עשר המהג'נפדות של המאה ה-6 לפני הספירה. היא התחרתה במגדה והייתה מרכז בודהיזם קדום במערב, עד שמגדה סיפחה אותה. פראדיוטה מוכר מן המסורות הבודהיסטיות והפורניות."
+      },
+      "founded": {
+        "en": "Historically, the Avantians are associated with Ujjayini as a capital, by about the 6th century BCE.",
+        "he": "מבחינה היסטורית, בני אוואנטי קשורים לאוג'יין כבירה, עד המאה ה-6 לפני הספירה לערך."
+      },
+      "uncertain": false,
+      "basis": "Buddhist texts, Puranas, excavations at Ujjain"
+    },
+    "kalinga": {
+      "note": {
+        "en": "Kalinga was a region and kingdom on the eastern coast of India, in present-day Odisha. It is remembered for its conquest by Ashoka around 261 BCE and for the later king Kharavela, known from the Hathigumpha inscription. The dating of Kharavela is debated, usually placed in the 1st century BCE.",
+        "he": "קלינגה הייתה אזור וממלכה בחוף המזרחי של הודו, באודישה של ימינו. היא זכורה בשל כיבושה בידי אשוקה בסביבות 261 לפני הספירה ובשל המלך המאוחר כארוולה, המוכר מכתובת האת'יגומפה. תיארוכו של כארוולה שנוי במחלוקת, ולרוב הוא מוצב במאה ה-1 לפני הספירה."
+      },
+      "founded": {
+        "en": "Historically, the Kalingans are linked to Tosali as an administrative center, around the 3rd century BCE.",
+        "he": "מבחינה היסטורית, בני קלינגה קשורים לטוסלי כמרכז מינהלי, בסביבות המאה ה-3 לפני הספירה."
+      },
+      "uncertain": true,
+      "basis": "Ashokan edicts, the Hathigumpha inscription, excavations at Sisupalgarh"
+    },
+    "satavahana": {
+      "note": {
+        "en": "The Satavahanas ruled much of the Deccan plateau from roughly the 1st century BCE to the 3rd century CE. They are remembered for trade with the Roman world, Buddhist patronage and Prakrit coinage and inscriptions. Simuka is named as the founder in inscriptions and the Puranas, though his dates are uncertain.",
+        "he": "הסטוואהנה שלטו בחלקים נרחבים של רמת הדקאן מהמאה ה-1 לפני הספירה בקירוב ועד המאה ה-3 לספירה. הם זכורים בשל סחר עם העולם הרומי, תמיכה בבודהיזם ומטבעות וכתובות בפראקריט. סימוקה מופיע ככותב השושלת בכתובות ובפורנות, אך תאריכיו אינם ודאיים."
+      },
+      "founded": {
+        "en": "Historically, the Satavahanas are associated with Pratishthana as an early seat, perhaps around the 1st century BCE.",
+        "he": "מבחינה היסטורית, הסטוואהנה קשורים לפרטישטהנה כמושב מוקדם, אולי בסביבות המאה ה-1 לפני הספירה."
+      },
+      "uncertain": true,
+      "basis": "Nanaghat inscription, coins, Puranas, excavations at Paithan"
+    },
+    "pandya": {
+      "note": {
+        "en": "The Pandyas were a Tamil dynasty of the far south of India, attested from the late first millennium BCE. They are remembered for Madurai's Sangam literature, pearl fisheries and trade with Rome. Nedunchezhiyan is a king praised in Sangam poems, and his exact dates are uncertain.",
+        "he": "הפנדיה היו שושלת טמילית בדרום הרחוק של הודו, המתועדת מסוף האלף הראשון לפני הספירה. הם זכורים בשל ספרות הסנגאם של מדורי, דיג הפנינים והסחר עם רומא. נדונצ'זיאן הוא מלך שהשירים של הסנגאם מהללים, ותאריכיו המדויקים אינם ידועים."
+      },
+      "founded": {
+        "en": "Historically, the Pandyas made Madurai their capital, attested by about the 3rd century BCE.",
+        "he": "מבחינה היסטורית, הפנדיה קבעו את מדורי כבירתם, כפי שמעידים מקורות עד המאה ה-3 לפני הספירה לערך."
+      },
+      "uncertain": true,
+      "basis": "Sangam poetry, Ashokan edicts, Greek and Roman accounts, Tamil-Brahmi inscriptions"
+    },
+    "rajarata": {
+      "note": {
+        "en": "Rajarata, the \"King's Country\", was the northern-central region of Sri Lanka and the heartland of the early Sinhalese kingdom. It is remembered for its irrigation works and as an early center of Theravada Buddhism. Pandukabhaya is known from the Sri Lankan chronicles and may be partly legendary.",
+        "he": "ראג'רטה, \"ארץ המלך\", הייתה האזור הצפוני-מרכזי של סרי לנקה וליבת הממלכה הסינהלית הקדומה. היא זכורה בשל מפעלי ההשקיה שלה וכמרכז קדום של בודהיזם תרוואדה. פנדוקאבהיה מוכר מכרוניקות סרי לנקה וייתכן שחלק מסיפורו אגדי."
+      },
+      "founded": {
+        "en": "According to the chronicles, Pandukabhaya made Anuradhapura his capital, traditionally around the 4th century BCE.",
+        "he": "לפי הכרוניקות, פנדוקאבהיה קבע את אנורדהפורה כבירתו, במסורת בסביבות המאה ה-4 לפני הספירה."
+      },
+      "uncertain": true,
+      "basis": "Mahavamsa and Dipavamsa chronicles, excavations at Anuradhapura"
+    },
+    "kamarupa": {
+      "note": {
+        "en": "Kamarupa was an early kingdom in the Brahmaputra valley of present-day Assam, attested from about the 4th century CE. It is remembered for its long dynastic rule and as a link between South and Southeast Asia. Bhaskaravarman, a 7th-century king, is known from inscriptions and from the Chinese pilgrim Xuanzang.",
+        "he": "קמרופה הייתה ממלכה קדומה בעמק הברהמפוטרה באסאם של ימינו, המתועדת מהמאה ה-4 לספירה בקירוב. היא זכורה בשל שלטון שושלתי ממושך וכחוליית קשר בין דרום אסיה למזרח אסיה הדרומי. בהאסקרוורמן, מלך מהמאה ה-7, מוכר מכתובות ומדברי הנזיר הסיני שואנזאנג."
+      },
+      "founded": {
+        "en": "Historically, the Kamarupans made Pragjyotishpura their capital, by about the 4th century CE.",
+        "he": "מבחינה היסטורית, בני קמרופה קבעו את פראגג'יוטישפורה כבירתם, עד המאה ה-4 לספירה לערך."
+      },
+      "uncertain": false,
+      "basis": "copper-plate inscriptions, Allahabad pillar inscription, Xuanzang's account"
+    },
+    "vanga": {
+      "note": {
+        "en": "Vanga, or Bengal's early kingdom, lay in the Ganges delta of present-day eastern India and Bangladesh. It is mentioned in epic and Buddhist texts, and gained prominence under Shashanka in the early 7th century CE. Shashanka is remembered as a king of Gauda who opposed Harsha.",
+        "he": "ונגה, הממלכה הקדומה של בנגל, שכנה בדלתת הגנגס, במזרח הודו ובבנגלדש של ימינו. היא מוזכרת בטקסטים אפיים ובודהיסטיים, והגיעה לבולטות בימי ששנקה בראשית המאה ה-7 לספירה. ששנקה זכור כמלך גאודה שהתנגד להרשה."
+      },
+      "founded": {
+        "en": "Historically, Vanga is associated with Chandraketugarh as an early urban center, possibly from around the 3rd century BCE.",
+        "he": "מבחינה היסטורית, ונגה קשורה לצ'נדרקטוגר כמרכז עירוני קדום, אולי מסביבות המאה ה-3 לפני הספירה."
+      },
+      "uncertain": true,
+      "basis": "epic and Buddhist texts, terracottas and excavations at Chandraketugarh, Shashanka's inscriptions and coins"
+    },
+    "shang": {
+      "note": {
+        "en": "The Shang were a Bronze Age dynasty that ruled the middle Yellow River plain in the second millennium BCE. They are remembered for oracle bone inscriptions, the earliest substantial Chinese writing, and for fine ritual bronzes. Wu Ding is the best documented of their kings.",
+        "he": "השאנג היו שושלת של תקופת הברונזה ששלטה בסביבת אמצע הנהר הצהוב באלף השני לפנה\"ס. הם זכורים בזכות כתובות עצמות הניבוי, הכתב הסיני המשמעותי הקדום ביותר, ובזכות כלי טקס מפוארים מברונזה. וו דינג הוא המלך המתועד ביותר שלהם."
+      },
+      "founded": {
+        "en": "Historically, the Shang are associated with Yin, near modern Anyang, as their late capital from around 1300 BCE.",
+        "he": "מבחינה היסטורית, השאנג קשורים ליין, סמוך לאניאנג של ימינו, כבירתם המאוחרת מסביבות 1300 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "oracle bone inscriptions, excavations at Yinxu, later Han historians; Yin was a late capital, not the first"
+    },
+    "zhou": {
+      "note": {
+        "en": "The Zhou overthrew the Shang around 1046 BCE, traditionally, and ruled a loose realm of vassal states for centuries. They are remembered for the doctrine of the Mandate of Heaven and for an age that later produced Confucian and other philosophies. King Wen is honored as the dynasty's founding figure, though his son King Wu conquered the Shang.",
+        "he": "הג'ואו הדיחו את השאנג בסביבות 1046 לפנה\"ס לפי המסורת, ושלטו מאות שנים בממלכה רופפת של מדינות vassal כפופות. הם זכורים בזכות תפיסת המנדט השמימי ובזכות תקופה שבה התפתחו לאחר מכן הקונפוציאניזם ותורות אחרות. ון נחשב לדמות המייסדת של השושלת, אך בנו, המלך וו, הוא שכבש את השאנג."
+      },
+      "founded": {
+        "en": "Historically, the Zhou made Haojing, near modern Xi'an, their royal seat, around 1046 BCE.",
+        "he": "מבחינה היסטורית, הג'ואו קבעו את האוג'ינג, סמוך לשיאן של ימינו, כמושב המלוכה שלהם, בסביבות 1046 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "bronze inscriptions, excavations in the Wei River valley, later texts such as the Records of the Grand Historian; exact dates debated"
+    },
+    "chu": {
+      "note": {
+        "en": "Chu was a large state in the middle Yangtze region, active from the early first millennium BCE until its conquest by Qin in 223 BCE. It is remembered for a distinct southern culture, lacquerware, silk manuscripts and the poetry of the Chuci. Zhuang is generally identified with King Zhuang, who ruled in the 7th century BCE.",
+        "he": "צ'ו הייתה מדינה גדולה באזור אמצע היאנגצה, שפעלה מראשית האלף הראשון לפנה\"ס ועד כיבושה בידי צ'ין ב-223 לפנה\"ס. היא זכורה בזכות תרבות דרומית ייחודית, כלי לכה, כתבי יד על משי ושירת הצ'וצ'י. ז'ואנג מזוהה בדרך כלל עם המלך ז'ואנג, ששלט במאה ה-7 לפנה\"ס."
+      },
+      "founded": {
+        "en": "Historically, Chu is thought to have had Ying as its capital from around 689 BCE, though its earlier centers are poorly known.",
+        "he": "מבחינה היסטורית, סבורים שליינג הייתה בירת צ'ו מסביבות 689 לפנה\"ס, אך מרכזיה הקדומים יותר אינם ידועים היטב."
+      },
+      "uncertain": true,
+      "basis": "excavated tombs, bamboo and silk manuscripts, Zuozhuan and Records of the Grand Historian; early centers unclear"
+    },
+    "shu": {
+      "note": {
+        "en": "Shu was a Bronze Age culture and later kingdom in the Sichuan basin, conquered by Qin in 316 BCE. It is remembered for the striking bronzes found at Sanxingdui, including masks and a tall figure. Can Cong appears only in later legend as an early king, so the ruler is not historically attested.",
+        "he": "שו הייתה תרבות של תקופת הברונזה ובהמשך ממלכה באגן סצ'ואן, שנכבשה בידי צ'ין ב-316 לפנה\"ס. היא זכורה בזכות ממצאי הברונזה יוצאי הדופן מסאנשינגדוי, ובהם מסכות ופסל גבוה. צאן צונג מופיע רק באגדות מאוחרות כמלך קדום, ולכן השליט אינו מתועד היסטורית."
+      },
+      "founded": {
+        "en": "Historically, the Sanxingdui site is thought to have been a major center of this culture from around 1600 BCE, though its link to the later Shu kingdom is debated.",
+        "he": "מבחינה היסטורית, סבורים שאתר סאנשינגדוי היה מרכז מרכזי של תרבות זו מסביבות 1600 לפנה\"ס, אך הקשר שלו לממלכת שו המאוחרת שנוי במחלוקת."
+      },
+      "uncertain": true,
+      "basis": "excavations at Sanxingdui and Jinsha, later Chinese chronicles; no contemporary written records"
+    },
+    "qi": {
+      "note": {
+        "en": "Qi was a powerful state in the Shandong region, founded in the early Zhou period and ended by Qin in 221 BCE. It is remembered for its wealth from salt and iron and for the Jixia Academy of scholars. Duke Huan, who reigned in the 7th century BCE, became the first of the hegemons of the Spring and Autumn period.",
+        "he": "צ'י הייתה מדינה חזקה באזור שאנדונג, שנוסדה בראשית תקופת ג'ואו ושוסלה בידי צ'ין ב-221 לפנה\"ס. היא זכורה בזכות עושרה ממלח וברזל ובזכות אקדמיית ג'יאשיה של חכמים. הדוכס הואן, ששלט במאה ה-7 לפנה\"ס, היה הראשון בין ההגמונים של תקופת האביב והסתיו."
+      },
+      "founded": {
+        "en": "Historically, the Qi made Linzi their capital, a move traditionally dated to around the 9th century BCE; an earlier seat at Yingqiu is also reported.",
+        "he": "מבחינה היסטורית, הצ'י קבעו את לינזי כבירתם, מעבר שמתוארך במסורת למאה ה-9 לפנה\"ס לערך; מדווח גם על מושב קדום יותר ביינגצ'יו."
+      },
+      "uncertain": true,
+      "basis": "Zuozhuan, Records of the Grand Historian, excavations at Linzi; early capital history is uncertain"
+    },
+    "yue": {
+      "note": {
+        "en": "Yue was a state in the lower Yangtze and Zhejiang region, prominent from the 6th century BCE until Chu defeated it around 334 BCE. It is remembered for fine swords and for its long rivalry with the state of Wu. Goujian defeated Wu in 473 BCE after earlier defeat, and his story became a famous tale of perseverance.",
+        "he": "יואה הייתה מדינה באזור דלתת היאנגצה וג'ג'יאנג, בולטת מהמאה ה-6 לפנה\"ס ועד שצ'ו הביסה אותה בסביבות 334 לפנה\"ס. היא זכורה בזכות חרבות משובחות ובזכות יריבותה הארוכה עם מדינת וו. גוג'יאן הביס את וו ב-473 לפנה\"ס לאחר תבוסה קודמת, וסיפורו הפך לסיפור מפורסם על התמדה."
+      },
+      "founded": {
+        "en": "Historically, Yue is associated with Kuaiji as its center, though it is thought to have been made the capital only under Goujian, in the early 5th century BCE.",
+        "he": "מבחינה היסטורית, יואה קשורה לקואייג'י כמרכזה, אך סבורים שהיא נעשתה בירה רק בימי גוג'יאן, בראשית המאה ה-5 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "Zuozhuan, Records of the Grand Historian, Yue Jue Shu, excavated swords; origins and first seat debated"
+    },
+    "dian": {
+      "note": {
+        "en": "Dian was a bronze-working kingdom around Lake Dian in Yunnan, flourishing from about the 4th century BCE until the Han took control in 109 BCE. It is remembered for cowrie shell containers and bronze drums with scenes of daily life. Zhuang Qiao is known from Chinese sources as a Chu general said to have founded the kingdom, a story that is uncertain.",
+        "he": "דיאן הייתה ממלכה של עובדי ברונזה סביב אגם דיאן ביונאן, שפרחה מהמאה ה-4 לפנה\"ס לערך ועד שההאן השתלטו עליה ב-109 לפנה\"ס. היא זכורה בזכות כלי אחסון לצדפות קאורי ותופי ברונזה עם תיאורי חיי יומיום. ז'ואנג צ'יאו מוכר ממקורות סיניים כגנרל של צ'ו שלפי המסופר ייסד את הממלכה, סיפור שאינו ודאי."
+      },
+      "founded": {
+        "en": "Historically, the Dian are thought to have had a center near Jinning, by Lake Dian, where the royal tombs of Shizhaishan were found.",
+        "he": "מבחינה היסטורית, סבורים שלדיאן היה מרכז סמוך לג'ינינג, לחוף אגם דיאן, שם נמצאו קברי המלוכה של שיז'איישאן."
+      },
+      "uncertain": true,
+      "basis": "excavations at Shizhaishan, Records of the Grand Historian; the founding account is uncertain"
+    },
+    "nanyue": {
+      "note": {
+        "en": "Nanyue was a kingdom in the far south of China and northern Vietnam, founded around 204 BCE and annexed by Han in 111 BCE. It is remembered for ruling a mixed Chinese and local population and for the rich tomb of its second king, Zhao Mo. Zhao Tuo, a former Qin official, was its founder and long-lived first ruler.",
+        "he": "ננייה הייתה ממלכה בדרום הרחוק של סין ובצפון וייטנאם, שנוסדה בסביבות 204 לפנה\"ס וצורפה להאן ב-111 לפנה\"ס. היא זכורה בשל שלטונה על אוכלוסייה מעורבת של סינים ותושבים מקומיים ובשל קברו העשיר של מלכה השני, ז'או מו. ז'או טו, לשעבר פקיד של צ'ין, היה מייסדה ושליטה הראשון, שחי שנים רבות."
+      },
+      "founded": {
+        "en": "Historically, Nanyue made Panyu, modern Guangzhou, its capital from around 204 BCE.",
+        "he": "מבחינה היסטורית, ננייה קבעה את פאניו, גואנגג'ואו של ימינו, כבירתה מסביבות 204 לפנה\"ס."
+      },
+      "uncertain": false,
+      "basis": "Records of the Grand Historian, excavation of the Nanyue king's tomb in Guangzhou"
+    },
+    "buyeo": {
+      "note": {
+        "en": "Buyeo was a state of Manchuria and the northern Korean Peninsula region, attested in Chinese sources from about the 1st century BCE until the late 5th century CE. It is remembered as a source of founding legends for later Korean kingdoms such as Goguryeo and Baekje. Haemosu appears only in legend as a heavenly figure, so the ruler is not historical.",
+        "he": "בויאו הייתה מדינה במנצ'וריה ובאזור צפון חצי האי הקוריאני, המתועדת במקורות סיניים מהמאה ה-1 לפנה\"ס לערך ועד סוף המאה ה-5 לספירה. היא זכורה כמקור לאגדות ייסוד של ממלכות קוריאניות מאוחרות כמו גוגוריאו ובקצ'ה. הימוסו מופיע רק באגדה כדמות שמימית, ולכן השליט אינו היסטורי."
+      },
+      "founded": {
+        "en": "Historically, the Buyeo are thought to have had an early center in the Songhua River region of Jilin, though the exact site is uncertain.",
+        "he": "מבחינה היסטורית, סבורים שלבויאו היה מרכז קדום באזור נהר סונגהואה שבג'ילין, אך האתר המדויק אינו ודאי."
+      },
+      "uncertain": true,
+      "basis": "Chinese chronicles such as the Sanguozhi, Korean legends, limited excavations; city and ruler uncertain"
+    },
+    "gojoseon": {
+      "note": {
+        "en": "Gojoseon is the earliest state tradition of the Korean Peninsula and southern Manchuria, attested in Chinese texts from about the 4th century BCE and ended by Han conquest in 108 BCE. It is remembered in Korean tradition as the first Korean kingdom, said to be founded by Dangun. Jun was a ruler of the later period who is said to have been overthrown by Wi Man.",
+        "he": "גוג'וסון היא מסורת המדינה הקדומה ביותר בחצי האי הקוריאני ובדרום מנצ'וריה, המתועדת בטקסטים סיניים מהמאה ה-4 לפנה\"ס לערך ושהסתיימה בכיבוש האן ב-108 לפנה\"ס. במסורת הקוריאנית היא זכורה כממלכה הקוריאנית הראשונה, שלפי המסופר ייסד דנגון. ג'ון היה שליט מהתקופה המאוחרת שהודח, לפי המסופר, בידי ווי מן."
+      },
+      "founded": {
+        "en": "Historically, Gojoseon is thought to have centered on Wanggeom-seong, usually placed near Pyongyang, but its location and early history are debated.",
+        "he": "מבחינה היסטורית, סבורים שגוג'וסון התרכזה בוואנגגום-סונג, המוצבת בדרך כלל סמוך לפיונגיאנג, אך מיקומה והיסטוריה הקדומה שנויים במחלוקת."
+      },
+      "uncertain": true,
+      "basis": "Chinese chronicles, Korean traditions such as the Samguk Yusa, limited archaeology; early history and capital debated"
+    },
+    "baekje": {
+      "note": {
+        "en": "Baekje was one of the Three Kingdoms of Korea, based in the southwest of the peninsula. It is remembered for its maritime trade, its Buddhist art and its cultural influence on early Japan. It fell to Silla and Tang China in 660 CE.",
+        "he": "בקג'ה הייתה אחת משלוש הממלכות של קוריאה, ושכנה בדרום מערב חצי האי. היא נזכרת בזכות סחר הים שלה, אמנותה הבודהיסטית והשפעתה התרבותית על יפן הקדומה. היא נפלה לידי סילה וסין של שושלת טאנג בשנת 660 לספירה."
+      },
+      "founded": {
+        "en": "Traditionally, Baekje is said to have been founded by Onjo in the region of Wiryeseong around 18 BCE, while Ungjin became its capital only in 475 CE.",
+        "he": "לפי המסורת, בקג'ה נוסדה בידי אונג'ו באזור וירישונג בסביבות 18 לפנה\"ס, ואילו אונגג'ין הפכה לבירתה רק בשנת 475 לספירה."
+      },
+      "uncertain": true,
+      "basis": "Samguk Sagi, Chinese chronicles, tombs and excavations at Gongju and Buyeo; Onjo is semi-legendary and Ungjin was not the first capital"
+    },
+    "yamatai": {
+      "note": {
+        "en": "Yamatai was a polity in the Japanese archipelago described in Chinese sources of the 3rd century CE. It was reportedly led by the queen Himiko after a period of war. Its exact location is unknown.",
+        "he": "יאמאטאי הייתה ישות מדינית באיי יפן שתוארה במקורות סיניים מהמאה ה-3 לספירה. לפי המקורות עמדה בראשה המלכה הימיקו לאחר תקופת מלחמות. מיקומה המדויק אינו ידוע."
+      },
+      "founded": {
+        "en": "The site of Makimuku, in Nara, is thought by some scholars to have been the seat of Yamatai around the 3rd century CE.",
+        "he": "חוקרים מסוימים סבורים שאתר מאקימוקו שבנארה היה מושבה של יאמאטאי בסביבות המאה ה-3 לספירה."
+      },
+      "uncertain": true,
+      "basis": "Chinese Records of the Three Kingdoms (Wei Zhi) and excavations at Makimuku; the ruler appears in sources as Himiko, and Iyo was her successor"
+    },
+    "emishi": {
+      "note": {
+        "en": "The Emishi were peoples of northern Honshu who resisted the expanding Yamato state from about the 7th to the 9th century CE. They are remembered for their horse-riding warriors and for prolonged frontier wars. Their ethnic and linguistic identity is still debated.",
+        "he": "האמישי היו עמים בצפון הונשו שהתנגדו למדינת יאמאטו המתרחבת מהמאה ה-7 בקירוב ועד המאה ה-9 לספירה. הם נזכרים בזכות לוחמיהם הרכובים על סוסים ובזכות מלחמות הגבול הממושכות. זהותם האתנית והלשונית שנויה במחלוקת."
+      },
+      "founded": {
+        "en": "Isawa, in modern Iwate, is associated with the Emishi leader Aterui, who fought the imperial army in the late 8th century CE.",
+        "he": "איסווה שבאיוואטה של ימינו קשורה למנהיג האמישי אתרוי, שנלחם בצבא הקיסרי בסוף המאה ה-8 לספירה."
+      },
+      "uncertain": true,
+      "basis": "Japanese court chronicles such as the Shoku Nihongi, written by their enemies, and archaeology of northern Honshu; Isawa as a first city is an assumption"
+    },
+    "van_lang": {
+      "note": {
+        "en": "Van Lang is the name given in Vietnamese tradition to an early state of the Red River delta, linked to the Dong Son culture. It is remembered as the first Vietnamese polity, ruled by the Hung kings. Its historical reality is debated.",
+        "he": "ואן לאנג הוא השם שהמסורת הווייטנאמית נותנת למדינה קדומה בדלתת הנהר האדום, הקשורה לתרבות דונג סון. היא נזכרת כראשונה בממלכות וייטנאם, בשלטון מלכי הונג. קיומה ההיסטורי שנוי במחלוקת."
+      },
+      "founded": {
+        "en": "According to tradition, the Hung kings made Phong Chau their seat, in a period placed roughly in the first millennium BCE.",
+        "he": "לפי המסורת, מלכי הונג קבעו את מושבם בפונג צ'או, בתקופה המוצבת בערך באלף הראשון לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "later Vietnamese chronicles and legends, plus Dong Son bronze drums and excavations; the Hung Vuong are legendary"
+    },
+    "champa": {
+      "note": {
+        "en": "Champa was a group of Austronesian-speaking Cham polities along the coast of central and southern Vietnam, from about the 2nd to the 17th century CE. The Cham are remembered for their Hindu and later Buddhist brick temples and for maritime trade. They often fought Vietnamese and Khmer neighbors.",
+        "he": "צ'מפה הייתה קבוצת ישויות מדיניות צ'אמיות דוברות אוסטרונזית לאורך חופי מרכז וייטנאם ודרומה, מהמאה ה-2 בקירוב ועד המאה ה-17 לספירה. הצ'אמים נזכרים בזכות מקדשי הלבנים ההינדיים ולימים הבודהיסטיים שלהם ובזכות סחר הים. הם נלחמו תכופות בשכניהם הווייטנאמים והחמרים."
+      },
+      "founded": {
+        "en": "Simhapura, near modern Tra Kieu, is thought to have been an early Cham capital, around the 4th century CE, in the time of Bhadravarman.",
+        "he": "סימהפורה, סמוך לטרה קיו של ימינו, נחשבת לבירה צ'אמית קדומה, בסביבות המאה ה-4 לספירה, בימי בהדרווארמן."
+      },
+      "uncertain": true,
+      "basis": "Sanskrit and Cham inscriptions, Chinese records and excavations at Tra Kieu and My Son"
+    },
+    "funan": {
+      "note": {
+        "en": "Funan is the Chinese name for an early state of the Mekong delta, active roughly from the 1st to the 6th century CE. It is remembered as a trading power linked to Indian Ocean commerce and to the spread of Indian religion and script. Its own name and political structure are poorly known.",
+        "he": "פונן הוא השם הסיני למדינה קדומה בדלתת המקונג, שפעלה בערך מהמאה ה-1 ועד המאה ה-6 לספירה. היא נזכרת כמעצמת סחר שקשורה למסחר באוקיינוס ההודי ולהפצת הדת והכתב ההודיים. שמה העצמי ומבנה השלטון שלה אינם ידועים היטב."
+      },
+      "founded": {
+        "en": "Vyadhapura is thought to have been an early capital of Funan, though its exact site is uncertain; the ruler Liuye appears only in Chinese accounts.",
+        "he": "וייאדהפורה נחשבת לבירה קדומה של פונן, אך מיקומה המדויק אינו ודאי; השליט ליו־יה מופיע רק בתיאורים סיניים."
+      },
+      "uncertain": true,
+      "basis": "Chinese envoy reports, Sanskrit inscriptions and excavations at Oc Eo"
+    },
+    "pyu": {
+      "note": {
+        "en": "The Pyu were a Tibeto-Burman-speaking people who built walled city-states in the Irrawaddy valley, from about the 1st century BCE to the 9th century CE. They are remembered for their Buddhist culture, silver coinage and brick stupas. Their cities fell to Nanzhao attacks and the rise of the Burmans.",
+        "he": "הפיו היו עם דובר טיבטו־בורמזית שבנה ערי מדינה מוקפות חומה בעמק האיראוואדי, מהמאה ה-1 לפנה\"ס בקירוב ועד המאה ה-9 לספירה. הם נזכרים בזכות תרבותם הבודהיסטית, מטבעות הכסף והסטופות מלבנים. עריהם נפלו בהתקפות נאנז'או ובעליית הבורמנים."
+      },
+      "founded": {
+        "en": "Sri Ksetra is thought to have been a major Pyu city from about the 5th century CE, though the founder Duttabaung is known from legend and later chronicles.",
+        "he": "סרי קשטרה נחשבת לעיר פיו חשובה מהמאה ה-5 לספירה בקירוב, אך מייסדה דוטאבאונג מוכר מאגדות וממקורות מאוחרים."
+      },
+      "uncertain": true,
+      "basis": "excavations at Sri Ksetra, Pyu inscriptions, Chinese Tang records and later Burmese chronicles"
+    },
+    "dvaravati": {
+      "note": {
+        "en": "Dvaravati was a Buddhist Mon-speaking culture of the Chao Phraya basin, flourishing from about the 6th to the 11th century CE. It is remembered for its Buddhist sculpture, Dharma wheels and moated towns. It is better known from archaeology than from texts, and its political unity is debated.",
+        "he": "דוארוואטי הייתה תרבות בודהיסטית דוברת מון באגן צ'או פראיה, שפרחה מהמאה ה-6 ועד המאה ה-11 לספירה בקירוב. היא נזכרת בזכות פיסול בודהיסטי, גלגלי דהרמה וערים מוקפות תעלות. היא מוכרת יותר מממצאים ארכאולוגיים מאשר מכתבים, ואחדותה המדינית שנויה במחלוקת."
+      },
+      "founded": {
+        "en": "Nakhon Pathom is thought to have been one of the main early centers of Dvaravati, from around the 6th century CE. Chamadevi belongs to later Mon tradition, associated with Haripunchai.",
+        "he": "נאקון פאתום נחשבת לאחד המרכזים הקדומים העיקריים של דוארוואטי, מהמאה ה-6 לספירה בקירוב. צ'אמאדווי שייכת למסורת מונית מאוחרת, הקשורה להריפונצ'אי."
+      },
+      "uncertain": true,
+      "basis": "excavations, Mon inscriptions, Chinese pilgrim accounts and Buddhist art; the ruler is legendary"
+    },
+    "srivijaya": {
+      "note": {
+        "en": "Srivijaya was a maritime Malay power based on Sumatra, active from about the 7th to the 13th century CE. It controlled trade through the Straits of Malacca and was a center of Buddhist learning. Its power declined after Chola raids and the rise of rivals.",
+        "he": "סריוויג'איה הייתה מעצמה ימית מלאית שמרכזה בסומטרה, ופעלה מהמאה ה-7 ועד המאה ה-13 לספירה בקירוב. היא שלטה בסחר במצרי מלאקה והייתה מרכז ללימוד בודהיסטי. כוחה ירד לאחר פשיטות הצ'ולה ועליית יריבים."
+      },
+      "founded": {
+        "en": "The Kedukan Bukit inscription of 683 CE records Dapunta Hyang leading a expedition, and Palembang is thought to have been the early seat of Srivijaya.",
+        "he": "כתובת קדוקאן בוקיט משנת 683 לספירה מזכירה את דפונטה היאנג כמוביל מסע, ופלמבאנג נחשבת למושבה הקדום של סריוויג'איה."
+      },
+      "uncertain": true,
+      "basis": "Old Malay inscriptions of 683 to 686 CE, Chinese pilgrim accounts such as Yijing, and limited excavations at Palembang"
+    },
+    "tarumanagara": {
+      "note": {
+        "en": "Tarumanagara was a Hindu kingdom of western Java, active in the 4th and 5th centuries CE. It is known mainly from a handful of Sanskrit rock inscriptions. They record irrigation works and the king Purnawarman.",
+        "he": "טרומנגרה הייתה ממלכה הינדואיסטית במערב ג'אווה, שפעלה במאות ה-4 וה-5 לספירה. היא ידועה בעיקר מקומץ כתובות סלע בסנסקריט. הן מתעדות עבודות השקיה ואת המלך פורנווארמן."
+      },
+      "founded": {
+        "en": "Sundapura is thought to have been a capital of Tarumanagara, but its exact site and date of founding are unknown.",
+        "he": "סונדאפורה נחשבת לבירה של טרומנגרה, אך מיקומה המדויק ותאריך הקמתה אינם ידועים."
+      },
+      "uncertain": true,
+      "basis": "Sanskrit rock inscriptions such as Ciaruteun and Tugu, and Chinese records"
+    },
+    "medang": {
+      "note": {
+        "en": "Medang was a Javanese Hindu-Buddhist kingdom that arose in central Java in the early 8th century CE. It is remembered for the Sanjaya dynasty and for the temple building of the Dieng plateau and the Prambanan plain, with Borobudur built under the related Shailendra dynasty.",
+        "he": "מדאנג הייתה ממלכה יאוואנית הינדית-בודהיסטית שקמה במרכז יאווה בראשית המאה ה-8 לספירה. היא נזכרת בזכות שושלת סנג'איה ובזכות הקמת המקדשים בהרי דיינג ובמישור פרמבנן, ואילו בורובודור נבנה בימי שושלת שיילנדרה הקשורה אליה."
+      },
+      "founded": {
+        "en": "Historically, Medang is thought to have had its first seat at Mataram in central Java, in the early 8th century CE.",
+        "he": "מדאנג, כך מקובל להניח, ישבה לראשונה במטרם שבמרכז יאווה, בראשית המאה ה-8 לספירה."
+      },
+      "uncertain": true,
+      "basis": "Canggal inscription of 732 CE, later Javanese inscriptions, temple remains in central Java"
+    },
+    "kutai": {
+      "note": {
+        "en": "Kutai, often called Kutai Martadipura, is regarded as one of the earliest Hindu kingdoms of Indonesia, in eastern Borneo around the 4th to 5th century CE. It is known from seven Sanskrit-inscribed stone pillars, the yupa, which record the gifts of King Mulavarman.",
+        "he": "קוטאי, המכונה לעיתים קוטאי מרטדיפורה, נחשבת לאחת הממלכות ההינדיות הקדומות ביותר באינדונזיה, במזרח בורנאו בסביבות המאה ה-4 עד ה-5 לספירה. היא ידועה משבעה עמודי אבן עם כתובות בסנסקריט, הקרויים יופה, המתעדים את מתנותיו של המלך מולווארמן."
+      },
+      "founded": {
+        "en": "Historically, Kutai is thought to have had its first seat near Muara Kaman, around the 4th century CE.",
+        "he": "קוטאי, כך מקובל להניח, ישבה לראשונה בסמוך למוארה קמאן, בסביבות המאה ה-4 לספירה."
+      },
+      "uncertain": true,
+      "basis": "seven Sanskrit yupa inscriptions found near Muara Kaman, palaeographic dating"
+    },
+    "butuan": {
+      "note": {
+        "en": "Butuan was an early trading polity on the Agusan River in northeastern Mindanao, active from roughly the 10th to the 13th century CE. It is remembered for its goldwork and for sending missions to Song China, recorded in 1001 CE.",
+        "he": "בוטואן הייתה ישות מסחרית קדומה לחוף נהר אגוסאן בצפון-מזרח מינדנאו, שפעלה בערך מהמאה ה-10 עד המאה ה-13 לספירה. היא נזכרת בזכות עבודות הזהב שלה ובזכות שליחויות לסין של שושלת סונג, שתועדו בשנת 1001 לספירה."
+      },
+      "founded": {
+        "en": "Historically, the people of Butuan are thought to have had their main settlement at Butuan on the Agusan River, with settlement there dating well before the 10th century CE.",
+        "he": "אנשי בוטואן, כך מקובל להניח, ישבו בעיקר בבוטואן שעל נהר אגוסאן, ויישוב במקום קדם בהרבה למאה ה-10 לספירה."
+      },
+      "uncertain": true,
+      "basis": "Chinese Song records, excavated balanghai boats, archaeological finds of gold and ceramics; the ruler Kiling appears in the Chinese record and is only thinly attested"
+    },
+    "tondo": {
+      "note": {
+        "en": "Tondo was a densely settled trading polity on Manila Bay in Luzon, attested from about 900 CE and flourishing before Spanish arrival in the 16th century. It is remembered for its trade with China and for its rulers, among them Lakandula, who faced the Spanish in 1570 to 1571.",
+        "he": "טונדו הייתה ישות מסחרית צפופת אוכלוסין במפרץ מנילה שבלוזון, המתועדת מכ-900 לספירה ושגשגה לפני בוא הספרדים במאה ה-16. היא נזכרת בזכות מסחרה עם סין ובזכות שליטיה, ובהם לקנדולה, שעמד מול הספרדים בשנים 1570 עד 1571."
+      },
+      "founded": {
+        "en": "Historically, Tondo is thought to have been centred on the settlement of Tondo on the Pasig River delta, by about 900 CE.",
+        "he": "טונדו, כך מקובל להניח, התמקדה ביישוב טונדו בדלתת נהר פסיג, כבר בסביבות שנת 900 לספירה."
+      },
+      "uncertain": true,
+      "basis": "Laguna Copperplate Inscription of 900 CE, Chinese trade records, Spanish colonial accounts; Lakandula belongs to a much later period than the founding"
+    },
+    "tichitt": {
+      "note": {
+        "en": "The Tichitt tradition was a Late Stone Age culture of the Tichitt-Walata region of southern Mauritania, active from about 2000 to 300 BCE. It is remembered for hundreds of stone-walled settlements, among the earliest in West Africa, and for early cultivation of pearl millet.",
+        "he": "תרבות טיצ'יט הייתה תרבות של סוף תקופת האבן באזור טיצ'יט-ואלאטה שבדרום מאוריטניה, שפעלה בערך בין 2000 ל-300 לפנה\"ס. היא נזכרת בזכות מאות יישובים מוקפי חומות אבן, מהקדומים במערב אפריקה, ובזכות גידול מוקדם של דחן הפנינה."
+      },
+      "founded": {
+        "en": "Historically, the Tichitt people are thought to have settled along the Dhar Tichitt escarpment, from about 2000 BCE.",
+        "he": "אנשי טיצ'יט, כך מקובל להניח, התיישבו לאורך מצוק דהאר טיצ'יט החל מכ-2000 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "archaeological survey and excavation of stone settlements; no written sources, so the name Maram and any ruler are not historically attested"
+    },
+    "wagadu": {
+      "note": {
+        "en": "Wagadu, known to outsiders as Ghana, was a Soninke state of the Sahel in what is now southeastern Mauritania and Mali. It is thought to have emerged by about the 6th to 8th century CE and became known for its gold trade across the Sahara before declining in the 11th to 13th century.",
+        "he": "וגדו, הידועה לזרים בשם גאנה, הייתה מדינה סונינקית בסאהל, בשטחן של דרום-מזרח מאוריטניה ומאלי של ימינו. מקובל להניח שקמה בין המאה ה-6 למאה ה-8 לספירה, התפרסמה בסחר הזהב שלה דרך הסהרה, ודעכה בין המאה ה-11 למאה ה-13."
+      },
+      "founded": {
+        "en": "Historically, Wagadu is thought to have had its capital at Koumbi Saleh, though the site's early dates are uncertain.",
+        "he": "וגדו, כך מקובל להניח, ישבה בבירתה קומבי סאלח, אך תאריכיו הקדומים של האתר אינם ודאיים."
+      },
+      "uncertain": true,
+      "basis": "Arabic geographers such as al-Bakri, oral tradition, excavations at Koumbi Saleh; Dinga is a legendary figure"
+    },
+    "djenne_djeno": {
+      "note": {
+        "en": "Djenné-Djeno was an urban settlement complex in the inland Niger Delta of Mali, occupied from about 250 BCE to about 1400 CE. It is remembered as one of the oldest known towns in sub-Saharan Africa, with iron working, trade and dense settlement.",
+        "he": "ג'נה-ג'נו הייתה מכלול יישובים עירוני בדלתה הפנימית של הניז'ר במאלי, שיושב מכ-250 לפנה\"ס ועד כ-1400 לספירה. היא נזכרת כאחת הערים הקדומות ביותר הידועות באפריקה שמדרום לסהרה, עם עיבוד ברזל, מסחר ויישוב צפוף."
+      },
+      "founded": {
+        "en": "Historically, the settlement at Djenné-Djeno is thought to have begun around 250 BCE.",
+        "he": "היישוב בג'נה-ג'נו, כך מקובל להניח, החל בסביבות 250 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "excavations by Susan and Roderick McIntosh; no written records, and Tapama is a figure of later oral tradition at Djenné"
+    },
+    "kanem": {
+      "note": {
+        "en": "Kanem was a state east and north of Lake Chad, which is thought to have formed around the 8th century CE under the Zaghawa and later the Sayfawa dynasty. It is remembered for its control of trans-Saharan routes and for early adoption of Islam, later merging into Kanem-Bornu.",
+        "he": "כאנם הייתה מדינה ממזרח ומצפון לאגם צ'אד, שמקובל להניח כי נוצרה בסביבות המאה ה-8 לספירה תחת הזגאוה ולאחר מכן שושלת סיפאווה. היא נזכרת בשליטתה בנתיבי הסחר שחוצים את הסהרה ובקבלה מוקדמת של האסלאם, ובהמשך התמזגה בממלכת כאנם-בורנו."
+      },
+      "founded": {
+        "en": "Historically, Kanem is thought to have had its first seat at Njimi, though the date and the site's exact location are uncertain.",
+        "he": "כאנם, כך מקובל להניח, ישבה לראשונה בנג'ימי, אך התאריך והמיקום המדויק של האתר אינם ודאיים."
+      },
+      "uncertain": true,
+      "basis": "Arabic geographers, the Girgam royal chronicle, oral tradition; Dugu is the traditional first Sayfawa king"
+    },
+    "nok": {
+      "note": {
+        "en": "The Nok culture flourished in central Nigeria from about 1500 BCE to about 300 CE. It is remembered for its terracotta sculptures, among the oldest in sub-Saharan Africa, and for early iron smelting.",
+        "he": "תרבות נוק שגשגה במרכז ניגריה מכ-1500 לפנה\"ס ועד כ-300 לספירה. היא נזכרת בפסלי החרס שלה, מהקדומים באפריקה שמדרום לסהרה, ובתנורי ברזל מוקדמים."
+      },
+      "founded": {
+        "en": "Historically, the Nok culture is thought to have arisen around the village of Nok, from which it takes its name, by about 1500 BCE.",
+        "he": "תרבות נוק, כך מקובל להניח, התפתחה סביב הכפר נוק, שממנו נטלה את שמה, כבר בסביבות 1500 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "archaeological excavation and terracotta finds, radiocarbon dating; no written sources, so the ruler Ayo and the people's own name are unknown"
+    },
+    "ife": {
+      "note": {
+        "en": "Ife was a Yoruba city-state in southwestern Nigeria, with urban settlement from about the 11th century CE. It is remembered as the spiritual centre of the Yoruba and for its naturalistic bronze and terracotta heads of the 12th to 15th century.",
+        "he": "איפה הייתה עיר-מדינה יורובית בדרום-מערב ניגריה, עם יישוב עירוני מכ-המאה ה-11 לספירה. היא נזכרת כמרכז הרוחני של היורובה ובראשי הברונזה וחרס הטרקוטה הריאליסטיים שלה מהמאות ה-12 עד ה-15."
+      },
+      "founded": {
+        "en": "Historically, the Ife people are thought to have made Ile-Ife their first seat, with urban growth from around the 11th century CE.",
+        "he": "אנשי איפה, כך מקובל להניח, ישבו לראשונה באיל-איפה, והעיר החלה לצמוח בסביבות המאה ה-11 לספירה."
+      },
+      "uncertain": true,
+      "basis": "excavations at Ile-Ife, bronze and terracotta heads, Yoruba oral tradition; Luwoo is a figure of tradition, not firmly dated"
+    },
+    "bono": {
+      "note": {
+        "en": "The Bono were an Akan people of the forest-savanna edge in what is now central Ghana. Their state, often called Bono or Bono Manso, is thought to have emerged around the 14th century CE and grew rich on the gold trade and on trade northward across the Sahara. Its later fame rests largely on oral tradition.",
+        "he": "בונו היו עם אקאני בקצה אזור היער והסוואנה במה שהוא כיום מרכז גאנה. מדינתם, המכונה לעיתים בונו או בונו מנסו, צמחה לפי ההערכה סביב המאה ה-14 לספירה, והתעשרה מסחר בזהב וממסחר צפונה דרך הסהרה. תהילתה המאוחרת נשענת במידה רבה על מסורת בעל פה."
+      },
+      "founded": {
+        "en": "Historically, the Bono are thought to have made Bono Manso their first seat, around the 14th century CE.",
+        "he": "מבחינה היסטורית, הבונו ככל הנראה קבעו את בונו מנסו כמושבם הראשון, סביב המאה ה-14 לספירה."
+      },
+      "uncertain": true,
+      "basis": "oral traditions, excavations at Bono Manso, Akan historical studies; ruler Obunumankoma is traditional and not securely historical"
+    },
+    "d_mt": {
+      "note": {
+        "en": "D'mt was a kingdom in the northern Ethiopian highlands and Eritrea, active in the first half of the first millennium BCE. Its inscriptions use a script related to South Arabian, and its temple culture shows contact across the Red Sea. It is remembered as an early state that preceded Aksum.",
+        "he": "דמט הייתה ממלכה ברמות צפון אתיופיה ובאריתריאה, שפעלה במחצית הראשונה של האלף הראשון לפנה\"ס. כתובותיה משתמשות בכתב הקרוב לדרום ערבית, ותרבות המקדשים שלה מעידה על קשרים מעבר לים סוף. היא נזכרת כמדינה קדומה שקדמה לאקסום."
+      },
+      "founded": {
+        "en": "Historically, D'mt is thought to have centred on Yeha, with its great temple dated to roughly the 7th to 5th century BCE.",
+        "he": "מבחינה היסטורית, מרכזה של דמט היה ככל הנראה ייהא, ומקדשה הגדול מתוארך בקירוב למאות ה-7 עד ה-5 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "Sabaean-style inscriptions, excavations at Yeha; the ruler Waran Hawkat is known only from sparse inscriptions"
+    },
+    "punt": {
+      "note": {
+        "en": "Punt was a trading land known from Egyptian records, which describe expeditions there for incense, gold, ebony and other goods. Its exact location is debated, with proposals centred on the Horn of Africa and the southern Red Sea coast. It is best remembered through the reliefs of Queen Hatshepsut's expedition, around 1470 BCE.",
+        "he": "פונט הייתה ארץ סחר הידועה מתיעוד מצרי, המתאר משלחות אליה להבאת קטורת, זהב, הובנה וסחורות נוספות. מיקומה המדויק שנוי במחלוקת, והצעות החוקרים מתמקדות בקרן אפריקה ובחוף הדרומי של ים סוף. היא זכורה בעיקר מתבליטי משלחתה של המלכה חטשפסות, בסביבות 1470 לפנה\"ס."
+      },
+      "founded": {
+        "en": "Historically, the game places the Puntites first at Opone, though the real location of Punt and of any city there is uncertain.",
+        "he": "מבחינה היסטורית, המשחק ממקם את אנשי פונט תחילה באופונה, אף שמיקומה האמיתי של פונט ושל כל עיר בה אינו ודאי."
+      },
+      "uncertain": true,
+      "basis": "Egyptian reliefs and texts, notably Deir el-Bahari; the ruler Ati appears in Egyptian depictions, and Opone is a later trading port, so the link is uncertain"
+    },
+    "ajuran": {
+      "note": {
+        "en": "The Ajuran Sultanate was a Somali state in the Horn of Africa, flourishing from about the 13th to the 17th century CE. It controlled trade along the southern Somali coast and the interior, and is remembered for its wells, fortifications and coastal ports. Arraweelo is a figure of Somali legend rather than a documented ruler.",
+        "he": "סולטנות אג'ורן הייתה מדינה סומלית בקרן אפריקה, שפרחה מהמאה ה-13 לערך ועד המאה ה-17 לספירה. היא שלטה במסחר לאורך החוף הדרומי של סומליה ובפנים הארץ, ונזכרת בבארותיה, במבצריה ובנמליה. ארוויילו היא דמות מהאגדה הסומלית ולא שליטה מתועדת."
+      },
+      "founded": {
+        "en": "Historically, the Ajuran are thought to have held Merca as an early coastal centre, around the 13th century CE.",
+        "he": "מבחינה היסטורית, האג'ורן החזיקו ככל הנראה במרקה כמרכז חוף מוקדם, סביב המאה ה-13 לספירה."
+      },
+      "uncertain": true,
+      "basis": "Somali oral tradition, Arabic and Portuguese accounts, surviving architecture; the ruler is legendary"
+    },
+    "kilwa": {
+      "note": {
+        "en": "Kilwa was a Swahili city-state on the coast of present-day Tanzania. It rose to prominence in the 12th to 15th centuries CE by controlling the gold trade from Sofala. It is remembered for its coral-stone architecture, such as the Husuni Kubwa palace, and its own coinage.",
+        "he": "קילווה הייתה עיר-מדינה סווהילית בחוף טנזניה של ימינו. היא עלתה לגדולה במאות ה-12 עד ה-15 לספירה בזכות שליטה במסחר הזהב מסופאלה. היא נזכרת באדריכלות אבן האלמוגים שלה, כמו ארמון חוסוני קוּבווה, ובמטבעות שהטביעה."
+      },
+      "founded": {
+        "en": "Historically, Kilwa Kisiwani is thought to have become a major seat around the 10th to 12th century CE, according to the Kilwa Chronicle and excavation.",
+        "he": "מבחינה היסטורית, קילווה קיסיוואני הפכה ככל הנראה למושב חשוב בין המאות ה-10 וה-12 לספירה, לפי כרוניקת קילווה והחפירות."
+      },
+      "uncertain": true,
+      "basis": "Kilwa Chronicle, excavations at Kilwa Kisiwani, coin finds; early dating is debated"
+    },
+    "kitara": {
+      "note": {
+        "en": "Kitara is the name given in oral tradition to an early state in the lake region of present-day Uganda. Traditions credit the Chwezi dynasty with founding it, perhaps around the 14th or 15th century CE. Historians debate whether it existed as a single empire.",
+        "he": "קיטרה הוא השם שמסורת בעל פה נותנת למדינה קדומה באזור האגמים באוגנדה של ימינו. המסורות מייחסות את ייסודה לשושלת צ'וזי, אולי סביב המאה ה-14 או ה-15 לספירה. היסטוריונים חלוקים אם התקיימה כאימפריה אחת."
+      },
+      "founded": {
+        "en": "Historically, Bigo is thought to have been a major earthwork centre of the Kitara tradition, around the 14th to 15th century CE.",
+        "he": "מבחינה היסטורית, ביגו הייתה ככל הנראה מרכז עבודות עפר חשוב במסורת קיטרה, סביב המאות ה-14 עד ה-15 לספירה."
+      },
+      "uncertain": true,
+      "basis": "oral traditions, excavations at Bigo bya Mugenyi; the ruler Ndahura is legendary"
+    },
+    "engaruka": {
+      "note": {
+        "en": "Engaruka is an archaeological site in northern Tanzania, with stone-walled villages and extensive irrigated terraces. It is thought to have flourished from roughly the 15th to the 18th century CE. The identity and language of its builders are unknown.",
+        "he": "אנגרוקה הוא אתר ארכאולוגי בצפון טנזניה, ובו כפרים בנויי אבן ומדרגות חקלאיות מושקות נרחבות. ההערכה היא שהוא פרח בערך מהמאה ה-15 ועד המאה ה-18 לספירה. זהותם ולשונם של בוניו אינן ידועות."
+      },
+      "founded": {
+        "en": "Historically, the Engaruka people are thought to have settled at Engaruka itself, around the 15th century CE.",
+        "he": "מבחינה היסטורית, אנשי אנגרוקה התיישבו ככל הנראה באנגרוקה עצמה, סביב המאה ה-15 לספירה."
+      },
+      "uncertain": true,
+      "basis": "excavations and surveys of the stone ruins and irrigation works; no written sources, and the ruler Naserian is not historically attested"
+    },
+    "luba": {
+      "note": {
+        "en": "The Luba were a Bantu-speaking people of the Upemba basin in the south of the present Democratic Republic of the Congo. Their kingdom is thought to have formed between the 15th and 17th centuries CE. It is remembered for sacred kingship and for lukasa memory boards used to record history.",
+        "he": "הלובה היו עם דובר בנטו באגן אופמבה בדרום הרפובליקה הדמוקרטית של קונגו. ממלכתם התגבשה ככל הנראה בין המאות ה-15 וה-17 לספירה. היא נזכרת במלוכה קדושה ובלוחות הזיכרון לוקאסה ששימשו לתיעוד ההיסטוריה."
+      },
+      "founded": {
+        "en": "Historically, the Luba are thought to have made Kabongo a royal seat, though the dating of the kingdom's origins is debated.",
+        "he": "מבחינה היסטורית, הלובה קבעו ככל הנראה את קבונגו כמושב מלכותי, אך תיארוך ראשית הממלכה שנוי במחלוקת."
+      },
+      "uncertain": true,
+      "basis": "oral traditions, excavations in the Upemba depression, ethnography; Kalala Ilunga is a traditional figure"
+    },
+    "lunda": {
+      "note": {
+        "en": "The Lunda were a Central African people whose kingdom arose in the Kasai and Katanga region, probably in the 16th or 17th century CE. Tradition says it grew out of Luba political ideas through the marriage of Lueji and the hunter Chibinda Ilunga. It later expanded trade and rule across a wide area.",
+        "he": "הלונדה היו עם מרכז-אפריקאי שממלכתו קמה באזור קסאי וקטנגה, כנראה במאה ה-16 או ה-17 לספירה. לפי המסורת היא צמחה מרעיונות פוליטיים של הלובה, בנישואי לואג'י והצייד צ'יבינדה אילונגה. בהמשך הרחיבה את המסחר והשלטון על שטח נרחב."
+      },
+      "founded": {
+        "en": "Historically, the Lunda are thought to have centred their kingdom on Musumba, around the 16th or 17th century CE.",
+        "he": "מבחינה היסטורית, הלונדה ביססו ככל הנראה את ממלכתם במוסומבה, סביב המאה ה-16 או ה-17 לספירה."
+      },
+      "uncertain": true,
+      "basis": "oral traditions, Portuguese accounts, ethnography; Lueji is a traditional figure"
+    },
+    "ndongo": {
+      "note": {
+        "en": "Ndongo was a Kimbundu kingdom in the highlands of present-day Angola, which emerged in the 16th century CE. It is known for its resistance to Portuguese expansion, especially under Queen Nzinga in the 17th century. Its rulers bore the title ngola, from which Angola takes its name.",
+        "he": "נדונגו הייתה ממלכה קימבונדית ברמות אנגולה של ימינו, שקמה במאה ה-16 לספירה. היא ידועה בהתנגדותה להתפשטות הפורטוגלית, בעיקר בימי המלכה נזינגה במאה ה-17. שליטיה נשאו את התואר נגולה, שממנו נגזר שמה של אנגולה."
+      },
+      "founded": {
+        "en": "Historically, the Ndongo are thought to have made Kabasa their royal seat, in the 16th century CE.",
+        "he": "מבחינה היסטורית, אנשי נדונגו קבעו ככל הנראה את קבאסה כמושב מלכותי, במאה ה-16 לספירה."
+      },
+      "uncertain": true,
+      "basis": "Portuguese records, oral traditions; early history and the first ruler Ngola Kiluanje's dates are only partly documented"
+    },
+    "mapungubwe": {
+      "note": {
+        "en": "The Mapungubwe kingdom flourished in the Limpopo valley, in what is now South Africa, between about 1075 and 1220 CE. It is remembered for its stratified society, its trade in gold and ivory with the Indian Ocean coast, and the gold objects found in elite burials, including a small gold rhinoceros. The game's ruler, Tafara, is not known from the sources.",
+        "he": "ממלכת מפונגובווה שגשגה בעמק הלימפופו, בשטחה של דרום אפריקה של ימינו, בין כ-1075 לכ-1220 לספירה. היא ידועה בחברה המרובדת שלה, בסחר בזהב ובשנהב עם חוף האוקיינוס ההודי ובחפצי הזהב שנמצאו בקברי האליטה, ובהם קרנף זעיר מזהב. השליט במשחק, טאפארה, אינו מוכר מן המקורות."
+      },
+      "founded": {
+        "en": "Historically, the Mapungubwe made Mapungubwe Hill their royal seat, around 1075 CE.",
+        "he": "מבחינה היסטורית, בני מפונגובווה הקימו את מושב המלוכה שלהם בגבעת מפונגובווה, בסביבות 1075 לספירה."
+      },
+      "uncertain": true,
+      "basis": "archaeological excavations at Mapungubwe Hill and K2, burial goods, radiocarbon dating; the ruler is not attested by name and is likely invented for the game"
+    },
+    "mutapa": {
+      "note": {
+        "en": "The Mutapa state arose on the Zimbabwe plateau in the 15th century and expanded into the Zambezi valley. It controlled gold and ivory trade with Swahili and, later, Portuguese merchants. Oral tradition names Mutota as its founder.",
+        "he": "מדינת מוטפה קמה ברמת זימבבואה במאה ה-15 והתפשטה אל עמק הזמבזי. היא שלטה בסחר בזהב ובשנהב עם סוחרים סוואהילים ובהמשך עם פורטוגלים. המסורת בעל פה מציינת את מוטוטה כמייסדה."
+      },
+      "founded": {
+        "en": "According to tradition, the Mutapa first ruled from Zvongombe, in the Zambezi region, in the early 15th century CE.",
+        "he": "לפי המסורת, בני מוטפה שלטו תחילה מזבונגומבה שבאזור הזמבזי, בראשית המאה ה-15 לספירה."
+      },
+      "uncertain": true,
+      "basis": "oral traditions, Portuguese accounts from the 16th century, limited archaeology; early dates and the first seat are debated"
+    },
+    "merina": {
+      "note": {
+        "en": "The Merina are a people of the central highlands of Madagascar, whose ancestors spoke an Austronesian language and are thought to have come from Southeast Asia over many centuries. They built a kingdom in the highlands, which grew strong in the 18th and 19th centuries and ruled much of the island. They are remembered for rice terracing and for the kingdom of Imerina.",
+        "he": "המרינה הם עם מההרים המרכזיים של מדגסקר, שאבותיהם דיברו שפה אוסטרונזית ונחשבים כמי שהגיעו מדרום-מזרח אסיה לאורך מאות שנים. הם הקימו ממלכה בהרים, שהתחזקה במאות ה-18 וה-19 ושלטה בחלק גדול מהאי. הם ידועים בטרסות אורז ובממלכת אימרינה."
+      },
+      "founded": {
+        "en": "Historically, the Merina are said to have made Ambohimanga a royal centre under Andriamanelo, around the 16th century CE.",
+        "he": "מבחינה היסטורית, מסופר כי המרינה הפכו את אמבוהימנגה למרכז מלוכני בימי אנדריאמנלו, בסביבות המאה ה-16 לספירה."
+      },
+      "uncertain": true,
+      "basis": "oral histories (tantara), linguistics, archaeology of the highlands; early rulers and dates are poorly attested"
+    },
+    "khoekhoe": {
+      "note": {
+        "en": "The Khoekhoe were pastoralist peoples of southern Africa who spoke Khoe languages and herded cattle and sheep. They lived along the Cape coast when Europeans arrived in the 15th and 16th centuries. They are remembered for their herding economy and their long conflict and trade with Dutch settlers.",
+        "he": "הקויקוי היו עמי רועים בדרום אפריקה שדיברו שפות קוי וגידלו בקר וצאן. הם חיו לאורך חוף הקייפ כשהגיעו האירופים במאות ה-15 וה-16. הם ידועים בכלכלת הרעייה שלהם ובסכסוך ובסחר ארוכי שנים עם המתיישבים ההולנדים."
+      },
+      "founded": {
+        "en": "The Khoekhoe are associated with Camissa, the place of fresh water at the foot of Table Mountain, though no founding date is known.",
+        "he": "הקויקוי קשורים לקמיסה, מקום המים המתוקים למרגלות הר השולחן, אך מועד ייסוד אינו ידוע."
+      },
+      "uncertain": true,
+      "basis": "European travel accounts, linguistics, archaeology of herding in the Cape; Camissa as a first city is a modern association"
+    },
+    "san": {
+      "note": {
+        "en": "The San are hunter-gatherer peoples of southern Africa, with some of the longest continuous presence of any human population in the region. They are remembered for their rock art, their Khoisan click languages and their deep knowledge of the environment. They never formed a single state.",
+        "he": "הסאן הם עמי ציידים-לקטים של דרום אפריקה, ובין אוכלוסיות האדם עם הרציפות הארוכה ביותר באזור. הם ידועים באמנות הסלעים שלהם, בשפות הנקישה ובידע העמוק שלהם על הסביבה. הם מעולם לא הקימו מדינה אחת."
+      },
+      "founded": {
+        "en": "The San are linked to Tsodilo, a hill with thousands of rock paintings, used for many thousands of years.",
+        "he": "הסאן קשורים לצודילו, גבעה עם אלפי ציורי סלע, ששימשה אלפי שנים."
+      },
+      "uncertain": true,
+      "basis": "rock art and excavations at Tsodilo, genetic studies, ethnography; no founding date or ruler applies, and Gao is likely invented"
+    },
+    "caral": {
+      "note": {
+        "en": "Caral was a large settlement of the Norte Chico civilization in the Supe valley of Peru. It is dated to roughly 3000 to 1800 BCE, making it among the oldest urban centres in the Americas. It is remembered for its monumental platform mounds and sunken circular plazas.",
+        "he": "קראל הייתה יישוב גדול של תרבות נורטה צ'יקו בעמק סופה שבפרו. היא מתוארכת בקירוב ל-3000 עד 1800 לפנה\"ס, ומנויה בין המרכזים העירוניים הקדומים ביותר ביבשת אמריקה. היא ידועה בגבעות המדרגות המונומנטליות ובכיכרות העגולות השקועות."
+      },
+      "founded": {
+        "en": "Historically, Caral was occupied from around 2600 BCE, and is the seat of the people of the same name.",
+        "he": "מבחינה היסטורית, קראל יושבה מסביבות 2600 לפנה\"ס, והיא מושב העם הנושא את שמה."
+      },
+      "uncertain": true,
+      "basis": "excavations at Caral, radiocarbon dating; no writing survives, so rulers such as Quilla are unknown"
+    },
+    "moche": {
+      "note": {
+        "en": "The Moche lived on the northern coast of Peru from about 100 to 800 CE. They are remembered for irrigation agriculture, large adobe temples and fine ceramics and metalwork, including the tombs at Sipán. The ruler Naymlap comes from a later legend of the Lambayeque region.",
+        "he": "בני מוצ'ה חיו בחוף הצפוני של פרו בין כ-100 לכ-800 לספירה. הם ידועים בחקלאות השקיה, במקדשי לבני בוץ גדולים ובקדרות ובצורפות משובחות, ובהן הקברים בסיפאן. השליט נאימלאפ מופיע באגדה מאוחרת מאזור למבייקה."
+      },
+      "founded": {
+        "en": "The Moche are thought to have centred on Huaca del Sol, around 200 CE.",
+        "he": "סבורים כי בני מוצ'ה התרכזו בהואקה דל סול, בסביבות 200 לספירה."
+      },
+      "uncertain": true,
+      "basis": "excavations at Huaca del Sol, Sipán and Huacas de Moche, iconography on ceramics; the ruler is legendary"
+    },
+    "wari": {
+      "note": {
+        "en": "The Wari were an Andean civilization of the central highlands of Peru, flourishing from about 600 to 1000 CE. They built administrative centres and roads across a wide area and are remembered as an early expansive state. Their name for themselves is unknown.",
+        "he": "בני ווארי היו תרבות אנדית של הרמה המרכזית בפרו, ששגשגה בין כ-600 לכ-1000 לספירה. הם בנו מרכזים מנהליים ודרכים על פני שטח רחב ומוכרים כמדינה מתפשטת מוקדמת. שמם העצמי אינו ידוע."
+      },
+      "founded": {
+        "en": "Historically, the Wari made Huari, near modern Ayacucho, their capital, around 600 CE.",
+        "he": "מבחינה היסטורית, בני ווארי הפכו את הוארי, ליד אייאקוצ'ו של ימינו, לבירתם, בסביבות 600 לספירה."
+      },
+      "uncertain": true,
+      "basis": "excavations at Huari and Pikillacta, textiles and ceramics; no writing, so the ruler Kuntur is not historical"
+    },
+    "tiwanaku": {
+      "note": {
+        "en": "Tiwanaku was a civilization near Lake Titicaca in what is now Bolivia, active from about 500 to 1000 CE. It is remembered for its stone monuments such as the Gate of the Sun and for raised-field farming. Its influence reached across much of the southern Andes.",
+        "he": "טיוואנאקו הייתה תרבות סמוך לאגם טיטיקקה בבוליביה של ימינו, שפעלה בין כ-500 לכ-1000 לספירה. היא ידועה במונומנטים מאבן כמו שער השמש ובחקלאות בשדות מוגבהים. השפעתה הגיעה לחלקים נרחבים בדרום האנדים."
+      },
+      "founded": {
+        "en": "Historically, Tiwanaku became a major centre, around 500 CE, on the site of earlier settlement.",
+        "he": "מבחינה היסטורית, טיוואנאקו הפכה למרכז מרכזי בסביבות 500 לספירה, באתר של יישוב קדום יותר."
+      },
+      "uncertain": true,
+      "basis": "excavations at Tiwanaku, monumental architecture, radiocarbon dating; no writing, so the ruler Amaru is not historical"
+    },
+    "diaguita": {
+      "note": {
+        "en": "The Diaguita were farming peoples of the northwest of Argentina and the north of Chile, known from about 1000 CE until the Spanish conquest. They grew maize and kept llamas, and are remembered for painted pottery and for resisting Spanish rule in the Calchaquí valleys. Chalemin is a name tied to this resistance period.",
+        "he": "הדיאגיטה היו עמי חקלאים בצפון-מערב ארגנטינה ובצפון צ'ילה, המוכרים מכ-1000 לספירה ועד הכיבוש הספרדי. הם גידלו תירס ולמות, והם ידועים בקדרות מצוירת ובהתנגדותם לשלטון הספרדי בעמקי קלצ'קי. צ'אלמין הוא שם הקשור לתקופת ההתנגדות."
+      },
+      "founded": {
+        "en": "The Diaguita are associated with the Calchaquí valleys, though no founding city or date is firmly known.",
+        "he": "הדיאגיטה קשורים לעמקי קלצ'קי, אך עיר ייסוד או מועד ודאי אינם ידועים."
+      },
+      "uncertain": true,
+      "basis": "archaeology, Spanish colonial records; the Diaguita were a group of related peoples rather than one state, and the first city is a game convention"
+    },
+    "muisca": {
+      "note": {
+        "en": "The Muisca were a Chibcha-speaking people of the Andean highlands of central Colombia, organized in chiefdoms, with the zipa of Bacatá and the zaque of Hunza the best known. They are remembered for salt production, gold work and the Lake Guatavita ritual linked to the El Dorado legend. Spanish conquerors under Jiménez de Quesada reached them in 1537.",
+        "he": "המויסקה היו עם דובר צ'יבצ'ה ברמות האנדים במרכז קולומביה, שהתארגן בנסיכויות, ובהן הזיפה של בקטה והסאקה של הונזה היו הידועים ביותר. הם נזכרים בשל הפקת מלח, צורפות זהב וטקס אגם גואטביטה הקשור לאגדת אל דוראדו. הכובשים הספרדים בהנהגת חימנס דה קסאדה הגיעו אליהם ב-1537."
+      },
+      "founded": {
+        "en": "Historically, the Muisca are thought to have made Bacatá, near modern Bogotá, a principal seat of their southern chiefdom, though the date of its founding is not known.",
+        "he": "מקובל להניח שהמויסקה עשו את בקטה, סמוך לבוגוטה של היום, מושב מרכזי של נסיכותם הדרומית, אך מועד ייסודה אינו ידוע."
+      },
+      "uncertain": true,
+      "basis": "Spanish chronicles, archaeology of the Altiplano Cundiboyacense, gold and ceramic finds. The ruler Saguamanchica is known mainly from colonial accounts.}"
+    },
+    "marajoara": {
+      "note": {
+        "en": "The Marajoara culture flourished on Marajó Island at the mouth of the Amazon, roughly between 400 and 1400 CE. It is remembered for elaborately painted and incised ceramics and for large earthen mounds. Its political structure and even its own name are not recorded.",
+        "he": "תרבות המרג'ואארה פרחה באי מרג'ו בפתחו של האמזונאס, בערך בין 400 ל-1400 לספירה. היא נזכרת בשל כלי חרס מעוטרים בצבע ובחריטה ובשל תלי אדמה גדולים. מבנה השלטון שלה ואפילו שמה העצמי אינם ידועים."
+      },
+      "founded": {
+        "en": "Historically, the Marajoara are thought to have settled on Marajó Island, though no specific first city or founding date is known.",
+        "he": "מקובל להניח שהמרג'ואארה התיישבו באי מרג'ו, אך אין ידוע שום מרכז ראשון מסוים או מועד ייסוד."
+      },
+      "uncertain": true,
+      "basis": "archaeological excavations of mound sites and ceramics; the ruler Jaci is legendary or invented for the game}"
+    },
+    "tupinamba": {
+      "note": {
+        "en": "The Tupinambá were Tupi-speaking peoples who lived along much of the Brazilian coast at the time of European contact in the 1500s. They lived in large villages of communal houses and are remembered for their resistance to the Portuguese and for their alliance with the French. Cunhambebe was a leader of the Tamoio Confederation in the 1550s.",
+        "he": "הטופינמבה היו עמים דוברי טופי שישבו לאורך חלקים נרחבים מחוף ברזיל בעת המגע עם האירופים במאה ה-16. הם חיו בכפרים גדולים של בתים משותפים ונזכרים בשל התנגדותם לפורטוגלים ובריתם עם הצרפתים. קוניאמבבה היה מנהיג קונפדרציית התמויו בשנות ה-50 של המאה ה-16."
+      },
+      "founded": {
+        "en": "Historically, the Tupinambá are thought to have settled around Guanabara Bay, the site of modern Rio de Janeiro, before the 1500s, though the date is uncertain.",
+        "he": "מקובל להניח שהטופינמבה התיישבו סביב מפרץ גואנבארה, אתר ריו דה ז'ניירו של היום, לפני המאה ה-16, אך המועד אינו ודאי."
+      },
+      "uncertain": true,
+      "basis": "European accounts by Staden, Thevet and Léry, plus archaeology of Tupi-Guarani sites"
+    },
+    "jaragua": {
+      "note": {
+        "en": "Jaragua was one of the chiefdoms of Taíno Hispaniola, in the southwest of the island, now Haiti. It was ruled at the time of the Spanish arrival by the cacica Anacaona, who was widow of the Maguana chief Caonabo. She was executed by the Spanish governor Ovando around 1503.",
+        "he": "חרגואה הייתה אחת מנסיכויות הטאינו באיספניולה, בדרום מערב האי, בהאיטי של היום. בעת בוא הספרדים שלטה בה הקסיקה אנאקאונה, אלמנתו של קאונאבו, מנהיג מגואנה. המושל הספרדי אובנדו הוציא אותה להורג בסביבות 1503."
+      },
+      "founded": {
+        "en": "Historically, the Taíno of Jaragua are thought to have had their chief seat near the western end of Hispaniola, but the exact site and founding date are unknown.",
+        "he": "מקובל להניח שבני הטאינו של חרגואה קבעו את מושב הנסיך סמוך לקצהו המערבי של האי, אך האתר המדויק ומועד הייסוד אינם ידועים."
+      },
+      "uncertain": true,
+      "basis": "Spanish chronicles such as Las Casas and Oviedo; little archaeology"
+    },
+    "kalinago": {
+      "note": {
+        "en": "The Kalinago, also called Island Caribs, lived in the Lesser Antilles and are thought to have expanded there from the mainland before the European arrival. They are remembered for seafaring and for long resisting European colonization. Dominica remains home to a Kalinago territory.",
+        "he": "הקלינאגו, המכונים גם קריבים של האיים, חיו באנטילים הקטנים ומקובל להניח שהתפשטו אליהם מהיבשת לפני בוא האירופים. הם נזכרים בשל ימאות ובשל התנגדות ארוכה לקולוניזציה אירופית. בדומיניקה קיים עד היום טריטוריה של הקלינאגו."
+      },
+      "founded": {
+        "en": "Historically, the Kalinago are thought to have settled Dominica, which they called Waitukubuli, around 1200 CE, though the date is debated.",
+        "he": "מקובל להניח שהקלינאגו התיישבו בדומיניקה, שאותה כינו ויטוקובולי, בסביבות 1200 לספירה, אך המועד שנוי במחלוקת."
+      },
+      "uncertain": true,
+      "basis": "European colonial accounts, archaeology of the Lesser Antilles; the ruler Tegremante is thinly attested"
+    },
+    "teotihuacan": {
+      "note": {
+        "en": "Teotihuacan was a great city of the Valley of Mexico that flourished roughly from the 1st to the 6th century CE and may have held over 100,000 people. It is remembered for the Pyramids of the Sun and Moon, its grid plan and its wide influence, including at Maya cities. Its own language and rulers are poorly known.",
+        "he": "טאוטיוואקאן הייתה עיר גדולה בעמק מקסיקו שפרחה בערך מהמאה הראשונה עד המאה השישית לספירה ואולי חיו בה למעלה ממאה אלף איש. היא נזכרת בשל פירמידות השמש והירח, תוכנית הרחובות המסודרת והשפעתה הרחבה, ובכלל זה על ערי המאיה. שפתה ושליטיה כמעט אינם ידועים."
+      },
+      "founded": {
+        "en": "Historically, Teotihuacan is thought to have grown into a major city around the 1st century BCE or CE, in the highland valley northeast of modern Mexico City.",
+        "he": "מקובל להניח שטאוטיוואקאן גדלה לעיר מרכזית בסביבות המאה הראשונה לפני הספירה או לספירה, בעמק ההרים מצפון מזרח למקסיקו סיטי של היום."
+      },
+      "uncertain": true,
+      "basis": "excavations at Teotihuacan and Maya inscriptions naming Spearthrower Owl, a figure whose exact role is debated"
+    },
+    "zapotec": {
+      "note": {
+        "en": "The Zapotec were a people of the Oaxaca valleys in southern Mexico, with one of the earliest writing systems in Mesoamerica. They are remembered for Monte Albán, their hilltop capital, and for tombs and urns. Cosijoeza was a Zapotec ruler of the late 15th and early 16th century.",
+        "he": "הזאפוטקים היו עם של עמקי אוואחאקה בדרום מקסיקו, ולהם אחת ממערכות הכתב הקדומות במסואמריקה. הם נזכרים בשל מונטה אלבאן, בירתם שעל הגבעה, ובשל קברים וכדים. קוסיחואסה היה שליט זאפוטקי בסוף המאה ה-15 ובראשית ה-16."
+      },
+      "founded": {
+        "en": "Historically, the Zapotec made Monte Albán their first great seat, around 500 BCE.",
+        "he": "מונטה אלבאן הייתה מושבם הגדול הראשון של הזאפוטקים, בסביבות 500 לפני הספירה."
+      },
+      "uncertain": false,
+      "basis": "excavations at Monte Albán, Zapotec inscriptions, Spanish colonial records"
+    },
+    "mutal": {
+      "note": {
+        "en": "Mutal, known today as Tikal, was a major Maya city-state in the Petén lowlands of Guatemala. It is remembered for its tall temple pyramids, its long rivalry with Calakmul and its inscriptions. Jasaw Chan K'awiil I ruled from 682 CE and defeated Calakmul in 695.",
+        "he": "מוטל, הידועה היום כטיקל, הייתה עיר מדינה מרכזית של המאיה בשפלת פטן שבגואטמלה. היא נזכרת בשל פירמידות המקדש הגבוהות, יריבותה הממושכת עם קלקמול וכתובותיה. ג'אסאו צ'אן קאוויל הראשון שלט מ-682 לספירה והביס את קלקמול ב-695."
+      },
+      "founded": {
+        "en": "Historically, Mutal is thought to have been settled by around 800 BCE and to have become a royal seat by the 1st century CE.",
+        "he": "מקובל להניח שמוטל יושבה עד כ-800 לפני הספירה והפכה למושב מלכותי עד המאה הראשונה לספירה."
+      },
+      "uncertain": false,
+      "basis": "Maya hieroglyphic inscriptions and excavations at Tikal"
+    },
+    "hopewell": {
+      "note": {
+        "en": "The Hopewell tradition was a network of Indigenous cultures of the Ohio Valley and nearby regions, active roughly from 200 BCE to 500 CE. It is remembered for large earthwork enclosures and burial mounds, and for exchange of materials such as copper and obsidian over great distances. It was not a single state, and the people's own names are unknown.",
+        "he": "מסורת הופוול הייתה רשת של תרבויות ילידיות בעמק אוהיו ובאזורים סמוכים, שפעלה בערך בין 200 לפני הספירה ל-500 לספירה. היא נזכרת בשל מערכי סוללות עפר גדולים וגבעות קבורה ובשל חילופי חומרים כמו נחושת ואובסידיאן למרחקים גדולים. היא לא הייתה מדינה אחת ושמות בניה אינם ידועים."
+      },
+      "founded": {
+        "en": "Historically, the Hopewell are associated with the Chillicothe area of Ohio, where major earthworks were built, around 100 BCE.",
+        "he": "הופוול קשורים לאזור צ'יליקות'י באוהיו, שבו נבנו סוללות עפר חשובות, בסביבות 100 לפני הספירה."
+      },
+      "uncertain": true,
+      "basis": "archaeological excavation of earthworks and mounds; the ruler Wabun is legendary or invented for the game"
+    },
+    "hohokam": {
+      "note": {
+        "en": "The Hohokam were a desert people of southern Arizona, active roughly from 300 to 1450 CE. They are remembered for extensive irrigation canals in the Salt and Gila river valleys, for ball courts and for shell etching. Their own name and political structure are unknown, as Hohokam is an O'odham word applied by archaeologists.",
+        "he": "ההוהוקאם היו עם מדבר בדרום אריזונה, שפעל בערך בין 300 ל-1450 לספירה. הם נזכרים בשל תעלות השקיה נרחבות בעמקי נהרות סולט וגילה, מגרשי כדור וחריטה על צדפים. שמם ומבנה שלטונם אינם ידועים, שכן הוהוקאם הוא מונח אופודמי שאימצו הארכיאולוגים."
+      },
+      "founded": {
+        "en": "Historically, the Hohokam are thought to have settled Snaketown on the Gila River around 300 CE, though the dating is debated.",
+        "he": "מקובל להניח שההוהוקאם התיישבו בסנייקטאון על נהר גילה בסביבות 300 לספירה, אך התיארוך שנוי במחלוקת."
+      },
+      "uncertain": true,
+      "basis": "excavations at Snaketown and canal surveys; the ruler Hakuk is legendary or invented for the game"
+    },
+    "chaco": {
+      "note": {
+        "en": "The Chacoan people were ancestral Puebloan communities of Chaco Canyon in the American Southwest. From about the 9th to the 12th century CE they built large stone \"great houses\" aligned with the sun and moon, linked by a network of roads. They are remembered for this monumental architecture and for their wide trade, including goods from Mesoamerica.",
+        "he": "אנשי צ'אקו היו קהילות פואבלואיות קדומות בקניון צ'אקו שבדרום מערב ארצות הברית. מן המאה ה-9 ועד המאה ה-12 לספירה בערך הם בנו \"בתים גדולים\" מאבן, מכוונים לשמש ולירח ומחוברים ברשת דרכים. הם זכורים בזכות הארכיטקטורה המונומנטלית ובזכות סחר רחב, שכלל סחורות ממסואמריקה."
+      },
+      "founded": {
+        "en": "Historically, the Chacoans built Pueblo Bonito, their largest great house, with construction beginning around 850 CE.",
+        "he": "מבחינה היסטורית, אנשי צ'אקו בנו את פואבלו בוניטו, הבית הגדול ביותר שלהם, והבנייה החלה בסביבות שנת 850 לספירה."
+      },
+      "uncertain": true,
+      "basis": "excavations and tree-ring dating at Chaco Canyon; the ruler Sun Watcher is a game invention, not a known individual"
+    },
+    "calusa": {
+      "note": {
+        "en": "The Calusa were a native people of the southwest coast of Florida. They lived from fishing and shellfish rather than farming, and built large shell mounds and canals. They were ruled by a paramount chief and resisted Spanish contact in the 16th century.",
+        "he": "הקלוסה היו עם ילידי בחוף הדרום מערבי של פלורידה. הם חיו מדיג ומרכיכות ולא מחקלאות, ובנו תלי צדפים גדולים ותעלות. בראשם עמד ראש שבט עליון, והם התנגדו למגע עם הספרדים במאה ה-16."
+      },
+      "founded": {
+        "en": "Historically, the Calusa are associated with Calos, the seat of their paramount chief near Mound Key, described by the Spanish in the 16th century.",
+        "he": "מבחינה היסטורית, הקלוסה קשורים לקלוס, מושבו של ראש השבט העליון ליד מאונד קי, כפי שתיארו הספרדים במאה ה-16."
+      },
+      "uncertain": true,
+      "basis": "Spanish accounts and excavations at Mound Key; the early history and the chief Senquene are poorly documented"
+    },
+    "haida": {
+      "note": {
+        "en": "The Haida are an Indigenous people of Haida Gwaii, off the northern Pacific coast of Canada. They are remembered for monumental cedar totem poles, large plank houses, ocean-going canoes and a rich clan-based society. Their art is among the best known of the Northwest Coast.",
+        "he": "ההיידה הם עם ילידי של האיים היידה גוואי, מול החוף הצפוני של האוקיינוס השקט בקנדה. הם זכורים בזכות עמודי טוטם גבוהים מארז, בתי קרשים גדולים, סירות ים וחברה עשירה המבוססת על שבטים. האמנות שלהם מן המפורסמות בחוף הצפון מערבי."
+      },
+      "founded": {
+        "en": "Historically, the Haida are associated with Kiusta, a village on the north coast of Haida Gwaii that is thought to have been occupied for many centuries.",
+        "he": "מבחינה היסטורית, ההיידה קשורים לקיוסטה, כפר בחוף הצפוני של היידה גוואי שנחשב כמי שיושב במשך מאות שנים רבות."
+      },
+      "uncertain": true,
+      "basis": "archaeology and oral tradition; Koyah is a known chief of the late 18th century, so the game's choice of ruler is later than the first city"
+    },
+    "dorset": {
+      "note": {
+        "en": "The Dorset culture, or Paleo-Inuit, lived across the Canadian Arctic and Greenland from about 500 BCE to about 1500 CE. They hunted sea mammals and made fine small carvings of ivory and bone. They are thought to have been replaced by the ancestors of the Inuit.",
+        "he": "תרבות דורסט, או הפליאו-אינואיטים, חיה ברחבי הארקטי הקנדי וגרינלנד מכ-500 לפנה\"ס ועד כ-1500 לספירה. הם צדו יונקי ים ויצרו גילופים קטנים ועדינים משן ומעצם. הם נחשבים כמי שהוחלפו בידי אבות האינואיטים."
+      },
+      "founded": {
+        "en": "Historically, the Dorset are thought to have settled around Igloolik, a site with many Dorset remains, from about 500 BCE.",
+        "he": "מבחינה היסטורית, מקובל כי בני דורסט התיישבו באזור איגלולי, אתר עם שרידי דורסט רבים, החל בסביבות 500 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "archaeological sites in Arctic Canada; no written sources, and the ruler Nuka is not historically known"
+    },
+    "lapita": {
+      "note": {
+        "en": "The Lapita were seafaring people who spread from the Bismarck Archipelago into the Pacific from about 1600 BCE. They are known for pottery stamped with intricate patterns and for settling remote islands such as Fiji, Tonga and Samoa. They are regarded as ancestors of the Polynesians.",
+        "he": "בני לפיטה היו אנשי ים שהתפשטו מארכיפלג ביסמרק אל האוקיינוס השקט מכ-1600 לפנה\"ס. הם מוכרים בזכות כלי חרס מוטבעים בדוגמאות מורכבות ובזכות ההתיישבות באיים רחוקים כמו פיג'י, טונגה וסמואה. הם נחשבים לאבות הפולינזים."
+      },
+      "founded": {
+        "en": "Historically, the Lapita are linked to Talepakemalai, a pile-dwelling site in the Mussau Islands dated to about 1600 BCE.",
+        "he": "מבחינה היסטורית, בני לפיטה קשורים לטלפקמלאי, אתר בתי כלונסאות באיי מוסאו, המתוארך לכ-1600 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "Lapita pottery, excavations and radiocarbon dating; Rata is a figure of later Polynesian legend, not a documented ruler"
+    },
+    "wahgi": {
+      "note": {
+        "en": "The Wahgi are highland people of Papua New Guinea. The Wahgi Valley holds evidence of some of the earliest agriculture in the world, with drainage ditches at Kuk dated to about 7000 BCE or later. Their descendants still farm there today.",
+        "he": "הוואהגי הם עם הרמה של פפואה גינאה החדשה. בעמק וואהגי יש עדויות לאחת החקלאויות הקדומות בעולם, עם תעלות ניקוז בקוק המתוארכות לכ-7000 לפנה\"ס ואילך. צאצאיהם עדיין מעבדים את האדמה שם."
+      },
+      "founded": {
+        "en": "Historically, the Wahgi are associated with Kuk, a swamp site where farming is thought to have begun around 7000 BCE.",
+        "he": "מבחינה היסטורית, הוואהגי קשורים לקוק, אתר ביצה שבו החקלאות החלה, כך מקובל, בסביבות 7000 לפנה\"ס."
+      },
+      "uncertain": true,
+      "basis": "excavations and dating at Kuk Swamp; the link to a Wahgi people and the ruler Ndika are not documented"
+    },
+    "gunditjmara": {
+      "note": {
+        "en": "The Gunditjmara are an Aboriginal people of southwestern Victoria, Australia. They built an extensive system of channels and weirs to trap and farm eels, and lived in stone houses. The Budj Bim landscape is a World Heritage site for this work.",
+        "he": "הגונדיצ'מרה הם עם אבוריג'יני מדרום מערב ויקטוריה באוסטרליה. הם בנו מערכת רחבה של תעלות וסכרים ללכידה וגידול של צלופחים, וחיו בבתי אבן. נוף בודג' בים הוא אתר מורשת עולמית בשל עבודה זו."
+      },
+      "founded": {
+        "en": "Historically, the Gunditjmara are associated with Budj Bim, where the eel traps are thought to be many thousands of years old.",
+        "he": "מבחינה היסטורית, הגונדיצ'מרה קשורים לבודג' בים, שבו מלכודות הצלופחים נחשבות לבנות אלפי שנים רבות."
+      },
+      "uncertain": true,
+      "basis": "archaeology at Budj Bim, Aboriginal oral tradition and dating of the lava flow; the ruler is a game invention"
+    },
+    "saudeleur": {
+      "note": {
+        "en": "The Saudeleur dynasty ruled Pohnpei in Micronesia, according to oral tradition, until about the 1600s. They are remembered for Nan Madol, a city of artificial islets built of basalt and coral. Tradition says they were overthrown by Isokelekel.",
+        "he": "שושלת סאודלור שלטה בפונפיי שבמיקרונזיה, לפי המסורת בעל פה, עד כמאה ה-17. היא זכורה בזכות נאן מדול, עיר של איים מלאכותיים שנבנו מבזלת ואלמוגים. לפי המסורת הודח השלטון בידי איסוקלקל."
+      },
+      "founded": {
+        "en": "Historically, the Saudeleur are said to have made Nan Madol on Pohnpei their seat, with building thought to have begun around 1100 CE.",
+        "he": "מבחינה היסטורית, הסאודלור ישבו, לפי המסורת, בנאן מדול שבפונפיי, והבנייה החלה כנראה בסביבות 1100 לספירה."
+      },
+      "uncertain": true,
+      "basis": "oral tradition and excavations at Nan Madol; the rulers are semi-legendary"
+    },
+    "latte_chiefs": {
+      "note": {
+        "en": "The Latte chiefs were leaders of the Chamorro people of the Mariana Islands. From about 800 CE they raised stone pillars called latte as foundations for their houses. They are remembered for these stones and for their voyaging.",
+        "he": "ראשי הלאטה היו מנהיגי עם הצ'אמורו באיי מריאנה. מכ-800 לספירה הם הציבו עמודי אבן הנקראים לאטה כיסודות לבתיהם. הם זכורים בזכות האבנים האלה ובזכות הניווט בים."
+      },
+      "founded": {
+        "en": "Historically, the Latte culture is thought to have arisen on Guam, called Guåhan, around 800 CE.",
+        "he": "מבחינה היסטורית, תרבות הלאטה צמחה כנראה בגואם, גואהאן, בסביבות 800 לספירה."
+      },
+      "uncertain": true,
+      "basis": "latte stone sites, excavations and Spanish accounts; Gadao is a figure of Chamorro legend"
+    },
+    "bau": {
+      "note": {
+        "en": "Bau is a small island off Viti Levu in Fiji. It became the seat of a powerful chiefdom whose rulers dominated much of the archipelago in the 19th century. Its best known ruler was Cakobau, who ceded Fiji to Britain in 1874.",
+        "he": "באו הוא אי קטן ליד ויטי לבו בפיג'י. הוא הפך למושב של נסיכות חזקה, ששליטיה שלטו בחלק גדול מהארכיפלג במאה ה-19. שליטו המפורסם ביותר היה תקומבאו, שמסר את פיג'י לבריטניה ב-1874."
+      },
+      "founded": {
+        "en": "Historically, the island of Bau has been settled since about 1000 BCE, though its rise as a chiefly seat came much later.",
+        "he": "מבחינה היסטורית, האי באו מיושב מכ-1000 לפנה\"ס, אף שעלייתו כמושב נסיכותי הייתה מאוחרת בהרבה."
+      },
+      "uncertain": true,
+      "basis": "archaeology of Fiji, oral tradition and 19th century European records; the early dating is debated"
+    }
+  }
+}
