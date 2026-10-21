@@ -29,6 +29,7 @@ import { ageOf, getResearched } from './nationState';
 import { WRITING_TECH, NO_WRITING_COST_MULT } from './stonePhase';
 import { awardEraLegacy } from './eraGoals';
 import { isIndependentNation } from '../data/independents';
+import { AGRICULTURE_TECH } from '../data/hearths';
 
 // Science cost of one tech, by its age, before the speed multiplier. With no calendar and no year
 // gate (eight-ages plan KTD4) these alone pace the ages, calibrated with the balance-sim (U17,
@@ -100,15 +101,16 @@ export const getResearchPath = (techId, researched) => {
 };
 
 // The techs an advisor (or the AI) would pick, best first: startable now, the earliest age first (a
-// nation finishes its own age before reaching ahead), then the doctrine's line priority, then the
-// line's order, then the id, so the pick is deterministic.
+// nation finishes its own age before reaching ahead), Agriculture before anything else for a people
+// that forages (outside a hearth, hearths.js; eight-ages plan U36), then the doctrine's line
+// priority, then the line's order, then the id, so the pick is deterministic.
 export const suggestTechs = (state, nationId, count = 3, researched = researchedSetOf(state, nationId), ageId = techAgeOf(state, nationId)) => {
   const doctrine = state.nations[nationId]?.doctrine;
   const priority = DOCTRINE_TECH_CATEGORY_PRIORITY[doctrine] || [];
   const rank = (cat) => { const i = priority.indexOf(cat); return i === -1 ? 99 : i; };
   return Object.values(TECH_TREE)
     .filter((t) => canStartTech(t.id, researched, ageId).ok)
-    .sort((a, b) => getAgeIndex(a.ageId) - getAgeIndex(b.ageId) || rank(a.category) - rank(b.category) || a.lineIndex - b.lineIndex || (a.id < b.id ? -1 : 1))
+    .sort((a, b) => getAgeIndex(a.ageId) - getAgeIndex(b.ageId) || (b.id === AGRICULTURE_TECH) - (a.id === AGRICULTURE_TECH) || rank(a.category) - rank(b.category) || a.lineIndex - b.lineIndex || (a.id < b.id ? -1 : 1))
     .slice(0, count)
     .map((t) => t.id);
 };

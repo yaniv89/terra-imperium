@@ -204,11 +204,11 @@ describe('processAIWarDecisions', () => {
       us: { id: 'us', name: 'United States', isPlayer: true, isAtWar: false, militaryStrength: 5000 },
       de: {
         id: 'de', name: 'Germany', isPlayer: false, isAtWar: false, hostility: 90, hostilityFloor: 0,
-        doctrine: 'conqueror', militaryStrength: 5000, ...nationOverrides.de
+        doctrine: 'conqueror', militaryStrength: 5000, tech: { researched: [], ageId: 'bronze' }, ...nationOverrides.de
       },
-      fr: { id: 'fr', name: 'France', isPlayer: false, isAtWar: false, hostility: 10, militaryStrength: 2000, ...nationOverrides.fr },
-      be: { id: 'be', name: 'Belgium', isPlayer: false, isAtWar: false, hostility: 10, militaryStrength: 500, ...nationOverrides.be },
-      at: { id: 'at', name: 'Austria', isPlayer: false, isAtWar: false, hostility: 10, militaryStrength: 3000, ...nationOverrides.at },
+      fr: { id: 'fr', name: 'France', isPlayer: false, isAtWar: false, hostility: 10, militaryStrength: 2000, tech: { researched: [], ageId: 'bronze' }, ...nationOverrides.fr },
+      be: { id: 'be', name: 'Belgium', isPlayer: false, isAtWar: false, hostility: 10, militaryStrength: 500, tech: { researched: [], ageId: 'bronze' }, ...nationOverrides.be },
+      at: { id: 'at', name: 'Austria', isPlayer: false, isAtWar: false, hostility: 10, militaryStrength: 3000, tech: { researched: [], ageId: 'bronze' }, ...nationOverrides.at },
       ...padding
     },
     // assignDefaultWarGoal (src/engine/diplomacy.js) needs a regions map to look for a

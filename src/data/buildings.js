@@ -77,7 +77,7 @@ export const BUILDING_CATEGORIES = {
     label: 'Science',
     costMult: 1.1,
     tiers: [
-      { age: 'stone', name: 'Tablet House', requiresTech: 'science_proto_writing', effects: { 'local.techPoints': 1 } },
+      { age: 'stone', name: 'Tablet House', requiresTech: 'science_proto_writing', effects: { 'local.techPoints': 0.5 } },
       { age: 'classical', name: 'Library', requiresTech: 'science_natural_philosophy', effects: { 'local.techPoints': 2 } },
       { age: 'kingdoms', name: 'Scriptorium', requiresTech: 'governance_royal_chancery', effects: { 'local.techPoints': 4 } },
       { age: 'gunpowder', name: 'University', requiresTech: 'science_scientific_method', effects: { 'local.techPoints': 6 } },

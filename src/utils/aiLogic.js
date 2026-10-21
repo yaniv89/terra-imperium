@@ -30,6 +30,7 @@ import { hasMet } from '../engine/fog';
 import { declareWar, isInTruce, hasActiveWarBetween, hasCasusBelli } from '../engine/diplomacy';
 import { claimsOf, claimsInProgressOf, claimableCities, startClaim } from '../engine/claims';
 import { hasOpenDemand, hasStele } from '../engine/accords';
+import { canAnnex } from '../engine/stonePhase';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { UNIT_CLASSES, UNIT_CLASS_IDS, getAvailableClasses } from '../data/unitClasses';
 import { AE_COALITION_ROLL_SCALE, AE_COALITION_ROLL_CAP } from '../data/actionCosts';
@@ -303,6 +304,7 @@ export const rankWarTargets = (state, nationId, candidates) => {
 // A peace (or a truce bought with tribute) is remembered AI_PEACE_MEMORY_TURNS past the truce's end
 // (truces hold their expiry turn, diplomacy.js setTruce); in that time the AI picks other targets.
 export const AI_PEACE_MEMORY_TURNS = 20;
+export const RAID_STRENGTH_RATIO = 2;
 export const recentlyAtPeace = (state, nationId, otherId) => {
   const until = state.nations[nationId]?.truces?.[otherId];
   return until != null && state.turnNumber < until + AI_PEACE_MEMORY_TURNS;
@@ -319,6 +321,8 @@ const pickWarTarget = (state, nationId, preferredTargetId = null, excludeId = nu
       && !hasOpenDemand(state, nationId, id)
       // Nor a Border Stele partner: the AI keeps its treaty (accords.js).
       && !hasStele(state, nationId, id)
+      // A village people raids only a neighbour it outnumbers RAID_STRENGTH_RATIO to 1.
+      && (canAnnex(state, nationId) || getEffectiveMilitaryPower(state, nationId) >= RAID_STRENGTH_RATIO * getEffectiveMilitaryPower(state, id))
       // Nor one it made peace with lately: the truce's end is not the next war's start (CB09).
       // (a coalition's strike on the runaway leader honours only the truce itself).
       && (id === memoryExempt || !recentlyAtPeace(state, nationId, id))
@@ -359,7 +363,8 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     const nation = currentNations[nationId];
     if (!nation || nation.isPlayer || nation.isEliminated || draggedIn.has(nationId)) return;
     const fronts = countActiveWars(currentWars, nationId);
-    if (fronts >= MAX_AI_WARS) return;
+    // A village people raids one neighbour at a time (stonePhase.js canAnnex, eight-ages plan U36).
+    if (fronts >= (canAnnex(state, nationId) ? MAX_AI_WARS : 1)) return;
     // Plan §M12: a vassal "can't declare wars except independence". Once its liberty desire is
     // past the threshold (src/engine/vassals.js reads it from the overlord's real weakness), it may
     // issue its ultimatum and fight for freedom — more likely the further past it is and the more

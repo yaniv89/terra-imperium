@@ -70,7 +70,7 @@ describe('building effect text is the effect the turn applies', () => {
     expect(seen['food:0'].text).toBe('+1 food, +1 housing'); // no `effects` entry in the data at all
     expect(seen['culture:0'].deltas).toMatchObject({ culture: 2, amenities: 1, unrest: -0.5 }); // the Stone Circle
     expect(seen['defense:0'].deltas).toMatchObject({ walls: 1, fort: 0.5, upkeep: 0.5 }); // the Earthwork Ditch
-    expect(seen['science:0'].deltas.science).toBeGreaterThanOrEqual(2);
+    expect(seen['science:0'].deltas.science).toBeGreaterThanOrEqual(1); // the Tablet House: 0.5 science, paid twice (the city's and the realm's)
     expect(seen['logistics:0'].text).toBe(NO_EFFECT_TEXT); // local.supplyRange has no reader
     expect(seen['military:0'].deltas.manpower).toBeGreaterThan(0);
   });

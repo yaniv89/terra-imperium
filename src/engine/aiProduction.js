@@ -23,7 +23,7 @@
 //             `indepGoal.kind === 'muster'`) trains up to its muster cap at MUSTER_UNIT_UTILITY;
 //             a major with a war plan (warPlans.js, at war or arming) trains up to the plan's `cap`
 //             (a strike stack plus home garrisons, what its budget carries): a siege engine first
-//             when the target has walls and it has none, archers up to PLAN_RANGED_SHARE, then foot
+//             when the target has walls and it has none; in peace or war, archers up to RANGED_SHARE, then foot
 // Nothing scores: nothing is queued (production is banked by the queue's overflow).
 // Ripples: AI expansion fills the map over the ages (C7's 50% of land by 500 CE target), AI
 // buildings feed the same yields the player's do, and AI armies come from the same cities.
@@ -74,7 +74,7 @@ export const MUSTER_UNIT_UTILITY = 1.6; // a major mustering against an independ
 // Improvements are cheap (2 to 3 turns of IMPROVEMENT_COST_PER_TURN), so this is a short detour.
 export const RESOURCE_IMPROVEMENT_UTILITY = { luxury: 1.3, strategic: 1.2, bonus: 1.0 };
 export const UNWORKED_IMPROVEMENT_MULT = 0.6;
-export const PLAN_RANGED_SHARE = 0.25; // under a war plan (warPlans.js) about a quarter of the army are archers
+export const RANGED_SHARE = 0.25; // about a quarter of an army are archers: one per three foot (eight-ages plan U36)
 /** The building lines in the order a doctrine builds them, every line once (the template). */
 export const buildingOrder = (doctrine) => { const liked = DOCTRINE_BUILDING_PRIORITY[doctrine] || []; return [...liked.filter((c) => BUILDING_PRIORITY.includes(c)), ...BUILDING_PRIORITY.filter((c) => !liked.includes(c))]; };
 export const BUILDING_PRIORITY = ['food', 'economy', 'culture', 'science', 'industry', 'military', 'logistics', 'defense', 'naval']; // 'logistics' is the category id (buildings.js); it was listed as 'infrastructure' and the AI never built a Road Post from the template
@@ -220,7 +220,7 @@ export const chooseProduction = (state, city, ctx) => {
   const goal = independent ? null : state.nations?.[nationId]?.indepGoal;
   const muster = goal?.kind === 'muster' ? goal.need || 0 : 0;
   // A war plan (warPlans.js, lane W5: at war or arming) trains toward its army cap, with a siege
-  // engine for a walled target and a share of archers (PLAN_RANGED_SHARE) beside the foot.
+  // engine for a walled target; every major keeps a share of archers (RANGED_SHARE) beside the foot.
   const plan = independent ? null : state.nations?.[nationId]?.warPlan;
   const unitCap = independent ? ctx.garrisonTarget + (ctx.raidReserve || 0) : Math.max(ctx.citiesOwned * UNITS_PER_CITY, muster ? goal.cap || 0 : 0, plan?.cap || 0);
   const classes = getAvailableClasses(ctx.ageId);
@@ -233,7 +233,7 @@ export const chooseProduction = (state, city, ctx) => {
     if (score > bestScore) {
       const options = [];
       if (plan && plan.siege && !(counts.siege > 0) && classes.includes('siege')) options.push('siege');
-      if (plan && classes.includes('ranged') && (counts.ranged || 0) < PLAN_RANGED_SHARE * (counts.landUnits + 1)) options.push('ranged');
+      if (!independent && classes.includes('ranged') && (counts.ranged || 0) < RANGED_SHARE * (counts.landUnits + 1)) options.push('ranged');
       options.push(mounted ? 'cavalry' : 'infantry');
       for (const classId of options) {
         const item = { kind: 'unit', classId };

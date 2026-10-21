@@ -27,6 +27,16 @@ describe('aiBudgetStep (I124)', () => {
     expect(r.disband).toEqual([]);
   });
 
+  it('counts this turn\'s income once: the gold it just earned is no saving (a Stone village went bankrupt on it)', () => {
+    const units = Array.from({ length: 12 }, (_, i) => unit(`u${i}`, 1000 - i));
+    const s = world({ economy: { gold: 25 } }, units); // nothing saved, 25 earned this turn, half pay 30
+    const r = aiBudgetStep(s, 'x', { gold: 25 }, units);
+    expect(r.disband.length).toBeGreaterThan(0);
+    const after = settleAIUpkeep({ ...s, nations: { x: r.nation } }, 'x', { gold: 25 }, units.filter((u) => !r.disband.includes(u.id)));
+    expect(after.loans || []).toEqual([]); // paid from this turn's income, no debt
+    expect(after.lastBankruptcyTurn).toBeUndefined();
+  });
+
   it('cuts pay first, then disbands the weakest units, keeping a standing force', () => {
     const units = [unit('a', 900), unit('b', 300), unit('c', 600), unit('s', 1000, { classId: 'settler' })];
     const s = world({ economy: { gold: 0 } }, units);
