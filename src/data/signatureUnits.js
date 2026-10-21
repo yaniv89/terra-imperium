@@ -166,6 +166,51 @@ export const SIGNATURE_UNITS = Object.freeze({
   bau: { ageId: 'gunpowder', classId: 'infantry', model: 'bau', rig: 'person', name: 'Bau war-club warriors' }
 });
 
+/** The 40 late signature units (eight-ages plan U85, the art of U86: scripts/blender/build_signature_late.py),
+ * a people's second signature beside its early one: { '<people>-<age>': entry }, drawing only like the table above. */
+export const LATE_SIGNATURE_UNITS = Object.freeze({
+  'tartessos-information': { peopleId: 'tartessos', ageId: 'information', classId: 'infantry', model: 'tartessos-information', rig: 'person', name: 'Spanish mountain infantry' },
+  'ulaid-information': { peopleId: 'ulaid', ageId: 'information', classId: 'infantry', model: 'ulaid-information', rig: 'person', name: 'Irish ranger company' },
+  'kemet-information': { peopleId: 'kemet', ageId: 'information', classId: 'infantry', model: 'kemet-information', rig: 'person', name: 'Egyptian paratroopers' },
+  'lusitania-information': { peopleId: 'lusitania', ageId: 'information', classId: 'infantry', model: 'lusitania-information', rig: 'person', name: 'Portuguese commandos' },
+  'wahgi-information': { peopleId: 'wahgi', ageId: 'information', classId: 'infantry', model: 'wahgi-information', rig: 'person', name: 'Papua New Guinea light infantry' },
+  'tondo-information': { peopleId: 'tondo', ageId: 'information', classId: 'infantry', model: 'tondo-information', rig: 'person', name: 'Philippine scout rangers' },
+  'gunditjmara-information': { peopleId: 'gunditjmara', ageId: 'information', classId: 'infantry', model: 'gunditjmara-information', rig: 'person', name: 'Australian Indigenous surveillance patrol' },
+  'bau-information': { peopleId: 'bau', ageId: 'information', classId: 'infantry', model: 'bau-information', rig: 'person', name: 'Fijian infantry' },
+  'dvaravati-information': { peopleId: 'dvaravati', ageId: 'information', classId: 'infantry', model: 'dvaravati-information', rig: 'person', name: 'Royal Thai marines' },
+  'muisca-information': { peopleId: 'muisca', ageId: 'information', classId: 'support', model: 'muisca-information', rig: 'person', name: 'Colombian demining engineers' },
+  'teotihuacan-information': { peopleId: 'teotihuacan', ageId: 'information', classId: 'support', model: 'teotihuacan-information', rig: 'person', name: 'Mexican disaster-relief engineers' },
+  'yamatai-information': { peopleId: 'yamatai', ageId: 'information', classId: 'cavalry', model: 'yamatai-information', rig: 'tank', name: 'Japanese armoured regiment' },
+  'kuru-information': { peopleId: 'kuru', ageId: 'information', classId: 'cavalry', model: 'kuru-information', rig: 'tank', name: 'Indian armoured regiment' },
+  'cherusci-information': { peopleId: 'cherusci', ageId: 'information', classId: 'cavalry', model: 'cherusci-information', rig: 'tank', name: 'German panzer battalion' },
+  'brigantes-information': { peopleId: 'brigantes', ageId: 'information', classId: 'cavalry', model: 'brigantes-information', rig: 'tank', name: 'British armoured regiment' },
+  'hopewell-information': { peopleId: 'hopewell', ageId: 'information', classId: 'cavalry', model: 'hopewell-information', rig: 'tank', name: 'American armoured cavalry' },
+  'gojoseon-information': { peopleId: 'gojoseon', ageId: 'information', classId: 'siege', model: 'gojoseon-information', rig: 'tank', name: 'Korean self-propelled artillery' },
+  'rasenna-information': { peopleId: 'rasenna', ageId: 'information', classId: 'cavalry', model: 'rasenna-information', rig: 'tank', name: 'Italian wheeled tank destroyers' },
+  'khoekhoe-information': { peopleId: 'khoekhoe', ageId: 'information', classId: 'cavalry', model: 'khoekhoe-information', rig: 'tank', name: 'Southern African armoured cars' },
+  'tupinamba-information': { peopleId: 'tupinamba', ageId: 'information', classId: 'siege', model: 'tupinamba-information', rig: 'tank', name: 'Brazilian rocket artillery' },
+  'zhou-information': { peopleId: 'zhou', ageId: 'information', classId: 'support', model: 'zhou-information', rig: 'tank', name: 'Chinese air-defence missile battery' },
+  'diaguita-information': { peopleId: 'diaguita', ageId: 'information', classId: 'siege', model: 'diaguita-information', rig: 'tank', name: 'Andean mule-borne mountain artillery' },
+  'geats-information': { peopleId: 'geats', ageId: 'information', classId: 'air', model: 'geats-information', rig: 'frame', name: 'Swedish multirole fighters' },
+  'arverni-information': { peopleId: 'arverni', ageId: 'information', classId: 'air', model: 'arverni-information', rig: 'frame', name: 'French attack helicopter squadron' },
+  'akkad-future': { peopleId: 'akkad', ageId: 'future', classId: 'infantry', model: 'akkad-future', rig: 'person', name: 'Lugal exo-guard' },
+  'yamatai-future': { peopleId: 'yamatai', ageId: 'future', classId: 'infantry', model: 'yamatai-future', rig: 'person', name: 'Ashigaru exo-infantry' },
+  'nok-future': { peopleId: 'nok', ageId: 'future', classId: 'infantry', model: 'nok-future', rig: 'person', name: 'Nok terracotta exo-guard' },
+  'saudeleur-future': { peopleId: 'saudeleur', ageId: 'future', classId: 'support', model: 'saudeleur-future', rig: 'person', name: 'Nan Madol shield wall' },
+  'kuru-future': { peopleId: 'kuru', ageId: 'future', classId: 'ranged', model: 'kuru-future', rig: 'person', name: 'Agni railgun teams' },
+  'chaco-future': { peopleId: 'chaco', ageId: 'future', classId: 'ranged', model: 'chaco-future', rig: 'person', name: 'Skywatch railgunners' },
+  'cucuteni-future': { peopleId: 'cucuteni', ageId: 'future', classId: 'ranged', model: 'cucuteni-future', rig: 'person', name: 'Trypillian sentinel teams' },
+  'kemet-future': { peopleId: 'kemet', ageId: 'future', classId: 'cavalry', model: 'kemet-future', rig: 'tank', name: 'Horus hover chariots' },
+  'punt-future': { peopleId: 'punt', ageId: 'future', classId: 'cavalry', model: 'punt-future', rig: 'tank', name: 'Incense-coast hover raiders' },
+  'lapita-future': { peopleId: 'lapita', ageId: 'future', classId: 'cavalry', model: 'lapita-future', rig: 'tank', name: 'Wave-skimmer hover craft' },
+  'botai-future': { peopleId: 'botai', ageId: 'future', classId: 'cavalry', model: 'botai-future', rig: 'tank', name: 'Steppe hover cavalry' },
+  'mapungubwe-future': { peopleId: 'mapungubwe', ageId: 'future', classId: 'cavalry', model: 'mapungubwe-future', rig: 'horse', name: 'Golden-rhino walkers' },
+  'shang-future': { peopleId: 'shang', ageId: 'future', classId: 'air', model: 'shang-future', rig: 'frame', name: 'Bronze-dragon drone swarm' },
+  'caral-future': { peopleId: 'caral', ageId: 'future', classId: 'air', model: 'caral-future', rig: 'frame', name: 'Condor hunter drones' },
+  'saba-future': { peopleId: 'saba', ageId: 'future', classId: 'siege', model: 'saba-future', rig: 'tank', name: 'Sun-lance artillery' },
+  'arverni-future': { peopleId: 'arverni', ageId: 'future', classId: 'support', model: 'arverni-future', rig: 'tank', name: 'Oak-shield projectors' }
+});
+
 /** Rigs whose figure is carried by four legs (the battle shader's trot). */
 export const QUADRUPED_RIGS = ['horse', 'camel', 'elephant', 'chariot-light', 'chariot-heavy', 'ox'];
 
@@ -179,7 +224,9 @@ export const rigFiguresOf = (entry) => (entry ? RIG_FIGURES[entry.rig] || null :
 /** The people's signature unit when it is this age and role, else null. */
 export const signatureUnitFor = (peopleId, ageId, classId, table = SIGNATURE_UNITS) => {
   const e = peopleId ? table[peopleId] : null;
-  return e && e.ageId === ageId && e.classId === classId ? e : null;
+  if (e && e.ageId === ageId && e.classId === classId) return e;
+  const late = peopleId ? LATE_SIGNATURE_UNITS[`${peopleId}-${ageId}`] : null;
+  return late && late.classId === classId ? late : null;
 };
 
 /** The soldier layer key a signature unit draws under (beside the base `classId`). */

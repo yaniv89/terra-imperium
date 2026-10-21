@@ -1,13 +1,13 @@
 {
   "enabled": true,
   "quadruped": false,
+  "restClip": "^Idle$",
   "triangleBudget": 3000,
   "tags": {
     "team": "(^|\\s)Team(\\s|$)",
     "skin": "(^|\\s)Skin(\\s|$)",
     "emblem": "(^|\\s)Emblem(\\s|$)"
   },
-  "restClip": "^Idle$",
   "clips": {
     "Idle": {
       "frames": 41,
@@ -35,12 +35,12 @@
       "loop": true
     },
     "Aim-fire-reload": {
-      "frames": 40,
+      "frames": 50,
       "fps": 20,
       "loop": false,
       "events": {
-        "fire": 8,
-        "reloaded": 32
+        "fire": 10,
+        "reloaded": 40
       }
     },
     "Melee-fallback": {

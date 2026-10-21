@@ -26,7 +26,7 @@ const UNITS = {
   'classical-infantry': 'melee', 'classical-ranged': 'bow', 'classical-mercenary': 'melee', 'classical-support': 'support',
   'kingdoms-infantry': 'melee', 'kingdoms-ranged': 'bow', 'kingdoms-mercenary': 'melee', 'kingdoms-support': 'support',
   'gunpowder-infantry': 'gun', 'gunpowder-ranged': 'gun', 'gunpowder-mercenary': 'gun', 'gunpowder-support': 'support',
-  'modern-infantry': 'gun', 'modern-mercenary': 'gun',
+  'modern-infantry': 'gun', 'modern-mercenary': 'gun', 'information-infantry': 'gun', 'information-mercenary': 'gun', 'future-infantry': 'gun', 'future-mercenary': 'gun', 'future-robot-infantry': 'gun', 'future-robot-ranged': 'gun',
   // the Stone Age (eight-ages plan U80): the chief and the shaman are foot figures on the melee set
   'stone-infantry': 'melee', 'stone-ranged': 'bow', 'stone-mercenary': 'melee', 'stone-raider': 'melee', 'stone-general': 'melee', 'stone-support': 'melee'
 };

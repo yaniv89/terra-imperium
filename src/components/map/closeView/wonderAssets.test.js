@@ -44,10 +44,11 @@ describe('wonder models in the close view', () => {
   const DIR = 'src/assets/map/wonders';
   const SHIPPED = fs.readdirSync(DIR).filter((f) => f.endsWith('.glb')).map((f) => f.replace('.glb', ''));
   it('ships one file per wonder of the game, and none for an unknown id', () => {
-    expect(SHIPPED.filter((id) => !GREAT_PROJECT_IDS.includes(id))).toEqual([]);
-    // Information's and the Future's models are held art (claude/art-information, claude/art-future, U92) until they merge
-    const HELD = ['world_wide_web', 'large_hadron_collider', 'global_seed_vault', 'space_elevator', 'mars_colony', 'arcology_prime'];
-    expect(GREAT_PROJECT_IDS.filter((id) => !SHIPPED.includes(id) && !HELD.includes(id))).toEqual([]);
+    // the eight-ages plan's ten wonder models (U92) come ahead of their data (U29, U51, U69): their ids are fixed there
+    const PLANNED = ['stonehenge', 'catalhoyuk', 'walls_of_jericho', 'white_temple_of_uruk', 'world_wide_web', 'large_hadron_collider',
+      'global_seed_vault', 'space_elevator', 'mars_colony', 'arcology_prime'];
+    expect(SHIPPED.filter((id) => !GREAT_PROJECT_IDS.includes(id) && !PLANNED.includes(id))).toEqual([]);
+    expect(GREAT_PROJECT_IDS.filter((id) => !SHIPPED.includes(id))).toEqual([]);
   });
 
   it('each file holds tier1, tier2 and tier3 with three levels of detail, in the map materials only', () => {

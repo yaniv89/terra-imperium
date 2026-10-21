@@ -9,8 +9,8 @@
     "emblem": "(^|\\s)Emblem(\\s|$)"
   },
   "footprint": [
-    1.69,
-    2.92
+    1.82,
+    2.64
   ],
   "clips": {
     "Idle": {
