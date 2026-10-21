@@ -755,7 +755,9 @@ describe('resolveTurn AI war declarations', () => {
     // of the real wiring, not a probability estimate — aiLogic.test.js covers the exact odds).
     // Waits for a war DE itself declared: with multi-front wars another nation may declare on DE
     // first, which makes it isAtWar without it having declared anything. Fixed seed: reproducible.
-    const base = world(2024);
+    // R1 starts in the Bronze Age: a Stone people cannot take cities before Agriculture and Chiefdoms (U32),
+    // and since U47's slower Stone research the default world may not get there within 300 turns.
+    const base = withAgesResearched(world(2024), R1, 'bronze');
     let state = withAllEventsFired({
       ...base,
       // The floor keeps hostility at 100 (it would otherwise decay a point a turn and take the
