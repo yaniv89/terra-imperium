@@ -13,6 +13,7 @@ import { leansPositive, leansNegative } from '../../data/identity';
 import { TECH_TREE } from '../../data/techTree';
 import { AGES } from '../../data/ages';
 import { getCostString } from '../../utils/helpers';
+import { canPay, walletOf } from '../../utils/costs';
 
 /** ADM / DIP / MIL in the current language (the shell table's res.adm, res.dip, res.mil). */
 export const poolLabel = (pool) => tNow(`res.${pool}`);
@@ -121,3 +122,6 @@ export const shortfallLine = (wallet, cost) => Object.entries(cost || {})
   .filter(([key, amount]) => amount > 0 && (wallet[key] || 0) < amount)
   .map(([key, amount]) => tNow('nc.shortfallItem', { cost: getCostString({ [key]: amount }), have: Math.floor(wallet[key] || 0) }))
   .join(', ');
+
+/** Why a button with `cost` is blocked, or null when the player can pay (the `why` of WhyTip.jsx). */
+export const payWhy = (state, cost) => (canPay(state, cost) ? null : tNow('nc.notEnoughNeed', { list: shortfallLine(walletOf(state), cost) }));

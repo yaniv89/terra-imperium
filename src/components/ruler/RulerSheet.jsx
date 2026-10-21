@@ -8,7 +8,9 @@ import { Plus, Check, Lock } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { useT } from '../../i18n/useT';
-import { dataText, getLanguage } from '../../i18n/core';
+import { dataText, getLanguage, ageName } from '../../i18n/core';
+import { askConfirm } from '../ui/ConfirmActionDialog';
+import { virtueConfirm } from '../ui/confirmSpecs';
 import { nameNow } from '../../i18n/names';
 import { rulerSheetModel } from './rulerSheetModel';
 import { rulerPortrait } from './rulerPortrait';
@@ -40,7 +42,8 @@ const RulerSheet = () => {
   const nation = state.nations[m.nationId];
   const vName = (v) => dataText(`virtue.${v.id}`, v.name);
   const sel = picked && m.branches.flatMap((b) => b.cells).find((c) => c.id === picked);
-  const take = (id) => { dispatch({ type: ActionTypes.TAKE_RULER_VIRTUE, payload: { virtueId: id } }); setPicked(null); };
+  // Two taps: the confirm card shows the cost in virtue points and what is left (playtest issue 10).
+  const take = (id) => askConfirm(virtueConfirm(state, id), () => { dispatch({ type: ActionTypes.TAKE_RULER_VIRTUE, payload: { virtueId: id } }); setPicked(null); });
   const raise = (attr) => dispatch({ type: ActionTypes.RAISE_RULER_ATTRIBUTE, payload: { attr } });
 
   return (
@@ -123,7 +126,7 @@ const RulerSheet = () => {
                 <div>{dataText(`virtue.${sel.id}.text`, sel.virtue.text)}</div>
                 {sel.virtue.drawback && <div className="text-fa-muted">{t('ruler.drawback', { text: dataText(`virtue.${sel.id}.drawback`, sel.virtue.drawback) })}</div>}
                 {sel.state === 'open' && <button type="button" onClick={() => take(sel.id)} className="fa-btn fa-btn-primary mt-1.5 min-h-[44px]">{t('ruler.take', { name: vName(sel.virtue), cost: sel.virtue.cost })}</button>}
-                {sel.state !== 'open' && sel.state !== 'taken' && <div className="text-fa-muted mt-1">{t(`ruler.block.${sel.block}`)}</div>}
+                {sel.state !== 'open' && sel.state !== 'taken' && <div className="text-fa-muted mt-1" data-testid="ruler-virtue-block">{sel.opensAge ? t('ruler.opensIn', { age: ageName(sel.opensAge) }) : t(`ruler.block.${sel.block}`)}</div>}
               </>
             ) : <span className="text-fa-muted">{t('ruler.pickVirtue')}</span>}
           </div>

@@ -5,7 +5,9 @@
 // templateId, name, composition, built }`): the city builds the missing units one by one at
 // each class's own cost (cities.js), every unit carries `army: { id, name }` as it appears on
 // the city tile, and the order leaves the queue when the last piece is done. Pure.
-import { getUnlockedClasses, UNIT_CLASSES } from '../data/unitClasses';
+import { getUnlockedClasses, getAvailableClasses, unitUnlockTech, UNIT_CLASSES } from '../data/unitClasses';
+import { TECH_TREE } from '../data/techTree';
+import { reasonOf, thing } from './messages';
 
 export const DEFAULT_TEMPLATES = [
   { id: 'tpl_legion', name: 'Legion', composition: { infantry: 2, ranged: 1, cavalry: 1 } },
@@ -36,8 +38,10 @@ export const validateTemplate = (template, ageId, researched) => {
   if (size > TEMPLATE_MAX_UNITS) return { ok: false, reason: `At most ${TEMPLATE_MAX_UNITS} units.` };
   const available = new Set(getUnlockedClasses(ageId, researched));
   const missing = Object.keys(comp).filter((c) => (comp[c] | 0) > 0 && !available.has(c));
-  if (missing.length) return { ok: false, reason: `${missing.map((c) => UNIT_CLASSES[c]?.name || c).join(', ')} not available yet.` }; // the class here: the roster has no name for it in this age, or its tech is not researched
-  return { ok: true };
+  if (!missing.length) return { ok: true };
+  // The reason names the first tech the template waits for (this age's unit of that class needs it), or the age.
+  const tech = missing.map((c) => (getAvailableClasses(ageId).includes(c) ? unitUnlockTech(ageId, c) : null)).find(Boolean);
+  return { ok: false, ...(tech ? reasonOf('m.why.templateTech', { tech: thing('tech', tech, TECH_TREE[tech]?.name || tech) }) : reasonOf('m.why.templateAge')) };
 };
 
 /** The production item for a template, ordered in `city` at `turn`. */

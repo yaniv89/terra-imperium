@@ -4,7 +4,7 @@
 // the opinion of you with its reasons on tap and a bar centred on zero, the treaties as chips, the
 // main actions as tiles that say before you try whether they would accept or refuse (and why, in
 // one line under them), and the long tail of secondary actions behind "More actions".
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Target, Gift, Eye, Heart, Users, Crown, Ban, AlertTriangle, ChevronDown, ChevronUp, DoorOpen, Scale, Milestone, MapPin, Flag } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { Chip } from '../ui/atlas';
@@ -97,9 +97,13 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
   const { triggerEffect } = useEffects();
   const [expanded, setExpanded] = useState(false);
   const [peaceOpen, setPeaceOpen] = useState(false);
+  // A blocked tap says why on the card itself (and in the log): phones have no hover, and the log is out of sight.
+  const [notice, setNotice] = useState(null);
+  const say = (text) => { setNotice(text); addLog(text, 'action'); };
+  useEffect(() => { if (!notice) return undefined; const id = setTimeout(() => setNotice(null), 6000); return () => clearTimeout(id); }, [notice]);
 
   const dispatchIfAffordable = (type, costs, extra = {}) => {
-    if (!canPay(state, costs)) return addLog(t('nc.notEnough', { list: shortfallLine(walletOf(state), costs) }), 'action');
+    if (!canPay(state, costs)) return say(t('nc.notEnough', { list: shortfallLine(walletOf(state), costs) }));
     const effectType = DIPLOMACY_EFFECT_BY_ACTION[type];
     if (effectType) triggerEffect(effectType, { from: getNationCapital(state.playerNationId), to: getNationCapital(nation.id) });
     dispatch({ type, payload: { nationId: nation.id, ...extra } });
@@ -261,8 +265,8 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
           <>
             <Tile label={t('nc.annex', { n: annexCost.decrees })} sub={canAnnex ? t('nc.annexSub') : t('nc.fromTurn', { n: (nation.vassalizedTurn || 0) + VASSAL_ANNEX_COOLDOWN_TURNS })} looksDisabled={!canAnnex || !canPay(state, annexCost)}
               onClick={() => {
-                if (!canAnnex) return addLog(t('nc.cantAnnex', { n: (nation.vassalizedTurn || 0) + VASSAL_ANNEX_COOLDOWN_TURNS }), 'action');
-                if (!canPay(state, annexCost)) return addLog(t('nc.notEnoughNeed', { list: shortfallLine(walletOf(state), annexCost) }), 'action');
+                if (!canAnnex) return say(t('nc.cantAnnex', { n: (nation.vassalizedTurn || 0) + VASSAL_ANNEX_COOLDOWN_TURNS }));
+                if (!canPay(state, annexCost)) return say(t('nc.notEnoughNeed', { list: shortfallLine(walletOf(state), annexCost) }));
                 dispatch({ type: ActionTypes.ANNEX_VASSAL, payload: { nationId: nation.id } });
                 return undefined;
               }} />
@@ -281,7 +285,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
               sub={t('nc.declareSub', { cause: justified ? t('nc.cause') : t('nc.noCause'), cost: costLine(declareWarCosts), fighting: theirOtherEnemies.length ? t('nc.alreadyFighting', { list: theirOtherEnemies.join(', ') }) : '' })}
               looksDisabled={!canPay(state, declareWarCosts) || !!player.vassalOf}
               onClick={() => {
-                if (player.vassalOf) return addLog(t('nc.vassalNoWar'), 'action');
+                if (player.vassalOf) return say(t('nc.vassalNoWar'));
                 if (!canPay(state, declareWarCosts)) return dispatchIfAffordable(ActionTypes.DECLARE_WAR, declareWarCosts);
                 // Two taps: the card shows the cost and the opinion hit first (H-08).
                 askConfirm(declareWarConfirm(state, nation.id), () => dispatchIfAffordable(ActionTypes.DECLARE_WAR, declareWarCosts));
@@ -292,7 +296,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
             ) : (
               <Tile label={t('nc.offerPact')} sub={allianceAnswer ? t('nc.wouldAcceptCost', { cost: costLine(ACTION_COSTS.militaryAlliance) }) : t('nc.wouldRefuse')} refuse={!allianceAnswer} looksDisabled={!canPay(state, ACTION_COSTS.militaryAlliance)}
                 onClick={() => {
-                  if (!allianceAnswer) return addLog(t('nc.noAlliance', { name: nameNow('people', nation.id, nation.name) }), 'action');
+                  if (!allianceAnswer) return say(t('nc.noAlliance', { name: nameNow('people', nation.id, nation.name) }));
                   dispatchIfAffordable(ActionTypes.MILITARY_ALLIANCE, ACTION_COSTS.militaryAlliance);
                   return undefined;
                 }} />
@@ -300,19 +304,20 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
             {!nation.hasTradeAgreement && (
               <Tile label={t('nc.trade')} sub={tradeBlock || t('nc.tradeSub', { cost: costLine(ACTION_COSTS.tradeAgreement), a: activeTradePactCount, b: tradePactCapacity })} refuse={!!tradeBlock} looksDisabled={!canPay(state, ACTION_COSTS.tradeAgreement)}
                 onClick={() => {
-                  if (nation.isAtWar) return addLog(t('nc.atWarNoTrade', { name: nameNow('people', nation.id, nation.name) }), 'action');
-                  if (activeTradePactCount >= tradePactCapacity) return addLog(t('nc.tradeCapacity', { a: activeTradePactCount, b: tradePactCapacity }), 'action');
+                  if (nation.isAtWar) return say(t('nc.atWarNoTrade', { name: nameNow('people', nation.id, nation.name) }));
+                  if (activeTradePactCount >= tradePactCapacity) return say(t('nc.tradeCapacity', { a: activeTradePactCount, b: tradePactCapacity }));
                   dispatchIfAffordable(ActionTypes.TRADE_AGREEMENT, ACTION_COSTS.tradeAgreement);
                   return undefined;
                 }} />
             )}
             <Tile label={t('nc.demandTribute')} sub={tributeReason || (tribute.accepted ? t('nc.wouldYieldCost', { cost: costLine(ACTION_COSTS.demand) }) : t('nc.wouldRefuseCause'))} refuse={!tribute.accepted}
               looksDisabled={!!tribute.reason || !canPay(state, ACTION_COSTS.demand)}
-              onClick={() => (tribute.reason ? addLog(tributeReason, 'action') : dispatchIfAffordable(ActionTypes.DEMAND, ACTION_COSTS.demand, { kind: 'tribute', cityId: null }))} />
+              onClick={() => (tribute.reason ? say(tributeReason) : dispatchIfAffordable(ActionTypes.DEMAND, ACTION_COSTS.demand, { kind: 'tribute', cityId: null }))} />
           </>
         )}
       </div>
 
+      {notice && <div role="status" className="flex items-start gap-2 rounded-lg border border-fa-danger/60 bg-fa-ink/40 px-2.5 py-2 text-[12px]" data-testid="action-blocked-reason"><Ban className="w-3.5 h-3.5 mt-0.5 text-fa-danger-text shrink-0" aria-hidden="true" /><span>{notice}</span></div>}
       {refusal && <div className="flex items-start gap-2 rounded-lg border border-fa-line bg-fa-ink/40 px-2.5 py-2 text-[12px]" data-testid="refusal-reason"><Ban className="w-3.5 h-3.5 mt-0.5 text-fa-danger-text shrink-0" aria-hidden="true" /><span>{refusal}</span></div>}
 
       {hasSecondary && <MapTradeBox nation={nation} />}
@@ -334,7 +339,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
                 label={site ? t('nc.fabricate', { name: nameNow('city', null, site.city.name), cost: costLine(ACTION_COSTS.fabricateClaim) }) : t('nc.fabricateNone')}
                 title={site ? t('nc.fabricateTitle', { name: nameNow('city', null, site.city.name), n: CLAIM_FABRICATE_TURNS }) : t('nc.fabricateNeed', { n: CLAIM_RANGE_RINGS })}
                 disabled={!site || !canPay(state, ACTION_COSTS.fabricateClaim)}
-                onClick={() => site && dispatchIfAffordable(ActionTypes.FABRICATE_CLAIM, ACTION_COSTS.fabricateClaim, { cityId: site.city.id })}
+                onClick={() => (site ? dispatchIfAffordable(ActionTypes.FABRICATE_CLAIM, ACTION_COSTS.fabricateClaim, { cityId: site.city.id }) : say(t('nc.fabricateNeed', { n: CLAIM_RANGE_RINGS })))}
               />
             );
           })()}
@@ -342,13 +347,13 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
             ? <IconButton icon={DoorOpen} label={t('nc.closeBorders')} title={t('nc.closeBordersTitle')} onClick={() => dispatch({ type: ActionTypes.CLOSE_BORDERS, payload: { nationId: nation.id } })} />
             : <IconButton icon={DoorOpen} label={t('nc.openBordersLabel', { cost: costLine(ACTION_COSTS.openBorders), refuse: borders.accepted ? '' : t('nc.wouldRefuseShort') })} title={borders.accepted ? t('nc.openBordersAccept') : t('nc.openBordersRefuse', { opinion: borders.opinion, needed: borders.needed, war: borders.atWar ? t('nc.andAtWar') : '' })} disabled={!canPay(state, ACTION_COSTS.openBorders)} onClick={() => dispatchIfAffordable(ActionTypes.OPEN_BORDERS, ACTION_COSTS.openBorders)} />}
           {hasStele(state, player.id, nation.id)
-            ? <IconButton icon={Milestone} label={t('nc.steleStands', { turn: player.steles[nation.id] })} title={t('nc.steleTitle')} disabled onClick={() => {}} />
+            ? <IconButton icon={Milestone} label={t('nc.steleStands', { turn: player.steles[nation.id] })} title={t('nc.steleTitle')} disabled onClick={() => say(t('nc.steleTitle'))} />
             : (() => {
               const stele = steleAcceptance(state, nation.id);
               const village = !pastVillage(state, player.id);
               return <IconButton icon={Milestone} label={t('nc.stele', { cost: costLine(ACTION_COSTS.borderStele), refuse: stele.accepted ? '' : t('nc.wouldRefuseShort') })}
                 title={village ? t('nc.steleVillage') : stele.accepted ? t('nc.steleTitle') : t('nc.openBordersRefuse', { opinion: stele.opinion, needed: stele.needed, war: stele.atWar ? t('nc.andAtWar') : '' })}
-                disabled={village || !canPay(state, ACTION_COSTS.borderStele)} onClick={() => dispatchIfAffordable(ActionTypes.PROPOSE_STELE, ACTION_COSTS.borderStele)} />;
+                disabled={village || !canPay(state, ACTION_COSTS.borderStele)} onClick={() => (village ? say(t('nc.steleVillage')) : dispatchIfAffordable(ActionTypes.PROPOSE_STELE, ACTION_COSTS.borderStele))} />;
             })()}
           {Object.keys(DEMANDS).filter((kind) => kind !== 'tribute').map((kind) => {
             const claimed = kind === 'city' ? claimsAgainst(state, player.id, nation.id).filter((c) => nation.capitalRegionId !== c.id)[0] : null;
@@ -358,7 +363,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
               <IconButton key={kind} icon={Scale} label={t('nc.demandLine', { label: kind === 'city' ? t('nc.demandCity', { name: nameNow('city', null, claimed.name) }) : t(`nc.demandLabel.${kind}`), cost: costLine(ACTION_COSTS.demand), tail: answer.reason ? '' : answer.accepted ? t('nc.wouldYield') : t('nc.wouldRefuseShort') })}
                 title={answer.reason ? reasonText(answer) : t('nc.demandTitleScore', { verdict: answer.accepted ? t('nc.demandTitleYield') : t('nc.demandTitleRefuse'), score: answer.score, ratio: answer.ratio, opinion: answer.opinion })}
                 disabled={!!answer.reason || !canPay(state, ACTION_COSTS.demand)}
-                onClick={() => dispatchIfAffordable(ActionTypes.DEMAND, ACTION_COSTS.demand, { kind, cityId: claimed?.id || null })} />
+                onClick={() => (answer.reason ? say(reasonText(answer)) : dispatchIfAffordable(ActionTypes.DEMAND, ACTION_COSTS.demand, { kind, cityId: claimed?.id || null }))} />
             );
           })}
           <IconButton icon={Gift} label={t('nc.gift', { cost: costLine(ACTION_COSTS.giftBribe) })} title={t('nc.giftTitle')} disabled={!canPay(state, ACTION_COSTS.giftBribe)} onClick={() => dispatchIfAffordable(ActionTypes.GIFT_BRIBE, ACTION_COSTS.giftBribe)} />
@@ -370,8 +375,8 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
             title={isRival ? t('nc.unrivalTitle') : t('nc.rivalTitle')}
             disabled={!isRival && ((player.rivals || []).length >= MAX_RIVALS || !bordersPlayer)}
             onClick={() => {
-              if (!isRival && !bordersPlayer) return addLog(t('nc.noBorderRival', { name: nameNow('people', nation.id, nation.name) }), 'action');
-              if (!isRival && (player.rivals || []).length >= MAX_RIVALS) return addLog(t('nc.haveRivals', { n: MAX_RIVALS }), 'action');
+              if (!isRival && !bordersPlayer) return say(t('nc.noBorderRival', { name: nameNow('people', nation.id, nation.name) }));
+              if (!isRival && (player.rivals || []).length >= MAX_RIVALS) return say(t('nc.haveRivals', { n: MAX_RIVALS }));
               dispatchIfAffordable(isRival ? ActionTypes.UNRIVAL_NATION : ActionTypes.RIVAL_NATION, {});
               return undefined;
             }} />
@@ -383,7 +388,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
               title={t('nc.assignTitle', { a: (player.diplomatTasks || []).length, b: player.diplomats || 0 })}
               disabled={!canAssignDiplomat || !canPay(state, ACTION_COSTS.assignDiplomat)}
               onClick={() => {
-                if (!canAssignDiplomat) return addLog(t('nc.noDiplomats', { a: (player.diplomatTasks || []).length, b: player.diplomats || 0 }), 'action');
+                if (!canAssignDiplomat) return say(t('nc.noDiplomats', { a: (player.diplomatTasks || []).length, b: player.diplomats || 0 }));
                 dispatchIfAffordable(ActionTypes.ASSIGN_DIPLOMAT, ACTION_COSTS.assignDiplomat);
                 return undefined;
               }} />

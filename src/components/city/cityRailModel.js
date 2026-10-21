@@ -15,6 +15,7 @@ import { GREAT_PROJECTS } from '../../data/greatProjects';
 import { NAVAL_LINES } from '../../data/navalLines';
 import { cityLive, growthView, queueView } from '../../engine/cityEconomy';
 import { templateName } from './cityBuildModel';
+import { reasonText } from '../../i18n/messageText';
 import { UNREST_PROMPT } from '../ui/nextPromptModel';
 import { t as tNow } from '../../i18n/core';
 import { ageOf } from '../../engine/nationState';
@@ -48,11 +49,13 @@ export const cityRailModel = (state) => {
     const first = item ? queueView(state, c.id, live)[0] : null;
     const cost = first ? first.cost : 0;
     // An army order shows the turns to its next unit, as its label names that unit.
-    const buildTurns = first ? first.pieceTurns ?? first.turns : null;
+    // A held order (settlers below size 2, a unit waiting for its tech) says why instead (orderWait).
+    const buildWait = first?.wait ? reasonText(first.wait) : null;
+    const buildTurns = first && !buildWait ? first.pieceTurns ?? first.turns : null;
     return {
       id: c.id, name: c.name, size: c.size, capital: c.id === capital, outpost: !!c.outpost,
       growthTurns, starving: growth.state === 'starving',
-      building: shortItemLabel(item, tiles, ageId), buildTurns, idle: !item && !c.outpost,
+      building: shortItemLabel(item, tiles, ageId), buildTurns, buildWait, idle: !item && !c.outpost,
       // the thin production bar under the city (W02): how far the current item is
       buildShare: item && cost > 0 ? Math.min(1, (c.production?.progress || 0) / cost) : null,
       unrest: Math.round(c.unrest || 0), restless: (c.unrest || 0) >= UNREST_PROMPT,

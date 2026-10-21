@@ -3,7 +3,8 @@
 // engine/rulers.js: the header (level, renown bar, points, decrees), the six attribute rows, the
 // Virtue tree (taken / open / too dear / locked), the ambitions of the age and the last deeds.
 import { rulerLevel, renownForLevel, MAX_RULER_LEVEL, attributeCost } from '../../data/rulers';
-import { BRANCHES, TIERS, virtueAt } from '../../data/rulerVirtues';
+import { BRANCHES, TIERS, virtueAt, tierAgeIndex } from '../../data/rulerVirtues';
+import { AGE_ORDER } from '../../data/ages';
 import { ATTRIBUTES, rulerPoints, raiseBlock, virtueBlock, attributeCap, freeReshape } from '../../engine/rulers';
 import { decreesOf, decreeCap } from '../../engine/decrees';
 import { ambitionDef } from '../../engine/ambitions';
@@ -19,7 +20,9 @@ const treeCell = (state, id, virtue) => {
   const taken = ruler.traits.includes(virtue.id);
   const block = taken ? null : virtueBlock(state, id, virtue.id);
   const locked = block === 'Opens in a later age' || block === 'Needs the tier before it' || block === 'One capstone only';
-  return { id: virtue.id, virtue, state: taken ? 'taken' : !block ? 'open' : locked ? 'locked' : 'dear', block };
+  // A tier locked by age names the age that opens it (rulers.js virtueBlock reads the same index).
+  const opensAge = block === 'Opens in a later age' ? AGE_ORDER[tierAgeIndex(virtue.tier, AGE_ORDER.length - 1)] : null;
+  return { id: virtue.id, virtue, state: taken ? 'taken' : !block ? 'open' : locked ? 'locked' : 'dear', block, opensAge };
 };
 
 export const rulerSheetModel = (state) => {

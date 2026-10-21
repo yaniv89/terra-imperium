@@ -256,7 +256,7 @@ export const pillageTarget = (state, tile, units) => {
 };
 
 const ATTACK_REASON = { no_war: 'not at war', no_moves: 'no moves left', cost: 'cannot afford the attack', no_units: 'no unit beside it', not_adjacent: 'not beside it' };
-const reasonOfAttack = (code) => (ATTACK_REASON[code] ? t(`mx.army.why.${code}`) : code);
+export const reasonOfAttack = (code) => (ATTACK_REASON[code] ? t(`mx.army.why.${code}`) : code);
 const foeName = (state, ownerId, fallback) => (state.nations[ownerId] ? nameNow('people', ownerId, state.nations[ownerId].name) : fallback);
 
 /** What the stack can attack from here: enemy stacks and enemy cities on the tiles around.

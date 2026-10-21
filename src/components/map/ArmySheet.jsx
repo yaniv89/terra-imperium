@@ -20,6 +20,7 @@ import { declareWarConfirm } from '../ui/confirmSpecs';
 import { armySheetModel } from './armySheetModel';
 import { orderedStack, topUnit } from './tileStack';
 import { UnitIcon } from '../ui/icons';
+import { useWhy } from '../ui/WhyTip';
 import { ageOf } from '../../engine/nationState';
 
 const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectRegion }) => {
@@ -35,6 +36,7 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
   const [renaming, setRenaming] = useState(null);
   const [picked, setPicked] = useState(null); // unit ids chosen to march (null: the whole stack)
   const [attack, setAttack] = useState(null); // a target of the pre-battle modal
+  const [why, whyBubble] = useWhy(); // a greyed button says why on tap
   if (!model || !sheet.shown) return null;
   const marching = picked ? model.unitIds.filter((id) => picked.has(id)) : model.unitIds;
   const togglePick = (id) => setPicked((p) => { const next = new Set(p || model.unitIds); if (next.has(id)) next.delete(id); else next.add(id); return next.size === model.unitIds.length ? null : next; });
@@ -88,7 +90,7 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
       ))}
       {model.upgradeAll && (
         <div className="mb-2">
-          <button type="button" disabled={!model.upgradeAll.ok} onClick={() => dispatch({ type: ActionTypes.UPGRADE_UNIT, payload: { unitIds: model.unitIds } })} data-testid="army-upgrade-all" className="w-full min-h-[40px] rounded-lg bg-amber-700/70 hover:bg-amber-600 disabled:opacity-50 text-fa-text text-xs font-semibold">{tr('mx.army.upgradeAll', { count: model.upgradeAll.count, gold: model.upgradeAll.gold })}</button>
+          <button type="button" {...why(!model.upgradeAll.ok, model.upgradeAll.why, () => dispatch({ type: ActionTypes.UPGRADE_UNIT, payload: { unitIds: model.unitIds } }))} data-testid="army-upgrade-all" className="w-full min-h-[40px] rounded-lg bg-amber-700/70 hover:bg-amber-600 disabled:opacity-50 aria-disabled:opacity-50 text-fa-text text-xs font-semibold">{tr('mx.army.upgradeAll', { count: model.upgradeAll.count, gold: model.upgradeAll.gold })}</button>
           {model.upgradeAll.why && <div className="text-[10px] text-fa-muted mt-0.5">{model.upgradeAll.why}</div>}
         </div>
       )}
@@ -115,7 +117,7 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
                   {u.air && <button type="button" onClick={() => dispatch({ type: ActionTypes.SET_AIR_PATROL, payload: { unitIds: [u.id], patrol: !u.patrol } })} data-testid="army-patrol" className={`mt-1 px-2 min-h-[32px] rounded text-[11px] ${u.patrol ? 'bg-sky-700/70 text-fa-text' : 'bg-fa-hover text-fa-text hover:bg-fa-line'}`} title={tr('mx.army.patrolTitle')}>{u.patrol ? tr('mx.army.onPatrol') : tr('mx.army.patrol')}</button>}
                   {u.upgrade && (
                     <div className="mt-1" data-testid="army-upgrade">
-                      <button type="button" disabled={!u.upgrade.ok} onClick={() => dispatch({ type: ActionTypes.UPGRADE_UNIT, payload: { unitIds: [u.id] } })} className="px-2 min-h-[32px] rounded text-[11px] font-semibold bg-amber-700/70 hover:bg-amber-600 disabled:opacity-50 disabled:hover:bg-amber-700/70 text-fa-text">{tr('mx.army.upgrade', { name: u.upgrade.to, gold: u.upgrade.gold })}</button>
+                      <button type="button" {...why(!u.upgrade.ok, u.upgrade.why, () => dispatch({ type: ActionTypes.UPGRADE_UNIT, payload: { unitIds: [u.id] } }))} className="px-2 min-h-[32px] rounded text-[11px] font-semibold bg-amber-700/70 hover:bg-amber-600 disabled:opacity-50 aria-disabled:opacity-50 disabled:hover:bg-amber-700/70 text-fa-text">{tr('mx.army.upgrade', { name: u.upgrade.to, gold: u.upgrade.gold })}</button>
                       {u.upgrade.why && <span className="ms-1.5 text-[10px] text-fa-muted">{u.upgrade.why}</span>}
                     </div>
                   )}
@@ -160,11 +162,11 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
       {model.targets.length > 0 && (
         <div className="mt-2 space-y-1" data-testid="army-targets">
           {model.targets.map((t) => t.war ? (
-            <button key={`war:${t.tile}`} type="button" disabled={!t.war.enabled} onClick={() => askConfirm(declareWarConfirm(state, t.war.nationId), () => dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: t.war.nationId } }))} data-testid="army-declare-war" title={t.war.note} className="w-full min-h-[44px] rounded-lg bg-amber-800/70 hover:bg-amber-700 disabled:opacity-40 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5">
+            <button key={`war:${t.tile}`} type="button" {...why(!t.war.enabled, t.war.why, () => askConfirm(declareWarConfirm(state, t.war.nationId), () => dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: t.war.nationId } })))} data-testid="army-declare-war" title={t.war.note} className="w-full min-h-[44px] rounded-lg bg-amber-800/70 hover:bg-amber-700 disabled:opacity-40 aria-disabled:opacity-40 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5">
               <Swords className="w-3.5 h-3.5" /> {t.war.label} ({Object.entries(t.war.costs).map(([k, v]) => `${v} ${lang === 'he' ? tOr(`res.${k}`, k.toUpperCase()) : k.toUpperCase()}`).join(', ')})
             </button>
           ) : (
-            <button key={`${t.kind}:${t.tile}`} type="button" disabled={!t.ok} onClick={() => setAttack(t)} data-testid={`army-attack-${t.kind}`} title={t.ok ? (t.kind === 'city' ? tr('mx.army.assaultTitle') : t.kind === 'fleet' ? tr('mx.army.fleetTitle') : tr('mx.army.attackTitle')) : t.reason} className="w-full min-h-[44px] rounded-lg bg-red-800/70 hover:bg-red-700 disabled:opacity-40 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5">
+            <button key={`${t.kind}:${t.tile}`} type="button" {...why(!t.ok, t.reason, () => setAttack(t))} data-testid={`army-attack-${t.kind}`} title={t.ok ? (t.kind === 'city' ? tr('mx.army.assaultTitle') : t.kind === 'fleet' ? tr('mx.army.fleetTitle') : tr('mx.army.attackTitle')) : t.reason} className="w-full min-h-[44px] rounded-lg bg-red-800/70 hover:bg-red-700 disabled:opacity-40 aria-disabled:opacity-40 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5">
               <Swords className="w-3.5 h-3.5" /> {t.kind === 'city' ? tr('mx.army.assault', { name: t.name }) : tr('mx.army.attackThe', { name: t.name })} ({t.strength.toLocaleString()}){t.ok ? '' : ` · ${t.reason}`}
             </button>
           ))}
@@ -186,6 +188,7 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
           <button type="button" onClick={rename} data-testid="army-rename" className="min-h-[40px] px-3 rounded-lg bg-emerald-700 text-fa-text text-xs">{tr('mx.army.save')}</button>
         </div>
       )}
+      {whyBubble}
     </>
   );
   if (isMobile) {

@@ -64,7 +64,7 @@ const CityPolitics = ({ cityId }) => {
       )}
       {actions.length > 0 && (
         <Card icon={Scale} title={t('cy.crown')} testId="city-crown">
-          {actions.map((a) => <ActionButton key={a.id} icon={a.danger ? Flame : Scale} label={a.label} description={a.reason && !a.enabled ? `${a.description} (${a.reason})` : a.description} costs={a.costs} onClick={() => act(a)} disabled={!a.enabled} variant={a.danger ? 'danger' : undefined} resources={state.resources} size="small" />)}
+          {actions.map((a) => <ActionButton key={a.id} icon={a.danger ? Flame : Scale} label={a.label} description={a.reason && !a.enabled ? `${a.description} (${a.reason})` : a.description} costs={a.costs} onClick={() => act(a)} disabled={!a.enabled} why={a.reason} variant={a.danger ? 'danger' : undefined} resources={state.resources} size="small" />)}
         </Card>
       )}
       {m.disaster && <Card icon={Flame} title={t(`cy.disaster.${m.disaster.kind}`)}><div className="text-fa-muted">{t('cy.turnsLeft', { count: m.disaster.turnsLeft })}</div></Card>}

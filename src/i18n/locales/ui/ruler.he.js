@@ -38,6 +38,7 @@ export default {
   'ruler.pickVirtue': 'בחרו סגולה כדי לראות מה היא נותנת.',
   'ruler.drawback': 'חיסרון: {text}',
   'ruler.block.Opens in a later age': 'נפתחת בעידן מאוחר יותר',
+  'ruler.opensIn': 'נפתחת ב{age}: כל שורת סגולות נפתחת בעידן מאוחר יותר (המחקר מביא אתכם לשם).',
   'ruler.block.Needs the tier before it': 'דורשת את הסגולה שלפניה',
   'ruler.block.One capstone only': 'סגולה אחרונה אחת בלבד',
   'ruler.block.Not enough virtue points': 'חסרות נקודות סגולה',

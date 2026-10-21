@@ -36,7 +36,7 @@ describe('army templates', () => {
     expect(validateTemplate({ name: 'X', composition: { infantry: 1 } }, 'bronze').ok).toBe(true);
     expect(validateTemplate({ name: '', composition: { infantry: 1 } }, 'bronze').ok).toBe(false);
     expect(validateTemplate({ name: 'X', composition: {} }, 'bronze').ok).toBe(false);
-    expect(validateTemplate({ name: 'X', composition: { air: 1 } }, 'bronze').reason).toMatch(/not available/);
+    expect(validateTemplate({ name: 'X', composition: { air: 1 } }, 'bronze').reason).toMatch(/does not exist in this age/);
     expect(productionCost(item, { ageId: 'bronze', citiesOwned: 1 })).toBe(productionCost({ kind: 'unit', classId: 'infantry' }, { ageId: 'bronze', citiesOwned: 1 }));
   });
 

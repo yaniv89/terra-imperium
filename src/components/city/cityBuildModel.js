@@ -23,7 +23,7 @@ import { IMPROVEMENTS, tileFacts, canImprove } from '../../data/tileYields';
 import { NAVAL_LINES, navalLinesFor } from '../../data/navalLines';
 import { GREAT_PROJECTS } from '../../data/greatProjects';
 import { distanceKm } from '../../data/geo/geodesic';
-import { canQueue, itemKey, hasSeaCoast, SETTLER_MIN_SIZE } from '../../engine/world/cities';
+import { canQueue, itemKey, hasSeaCoast } from '../../engine/world/cities';
 import { templatesOf, nextTemplateUnit, templateProgress } from '../../engine/armyTemplates';
 import { wonderOptions, wonderItem } from '../../engine/wonders';
 import { cityLive, queueView, buildQuote, worldOf, isLongBuild, longBuildTurns, focusPreview } from '../../engine/cityEconomy';
@@ -75,13 +75,13 @@ export const itemLabel = (item, tiles = getTiles(), ageId = FIRST_AGE_ID, cityTi
 
 export const turnsText = (turns) => (turns == null ? tNow('cy.noProduction') : tNow('cy.turns', { count: turns }));
 
-/** The queue rows: queueView plus the label and the rush quote (spending.js, I019: what the Buy
+/** The queue rows: queueView plus the label, `waitText` (why a held order waits) and the rush quote (spending.js, I019: what the Buy
  * button shows is what RUSH_PRODUCTION charges). */
 export const buildQueue = (state, cityId, live = cityLive(state, cityId)) => {
   if (!live) return [];
   const tiles = getTiles();
   return queueView(state, cityId, live).map((q) => ({
-    ...q, label: itemLabel(q.item, tiles, live.ctx.ageId, live.city.tile), tile: q.item.kind === 'improvement' || q.item.kind === 'wonder' ? q.item.tile ?? null : null,
+    ...q, label: itemLabel(q.item, tiles, live.ctx.ageId, live.city.tile), waitText: q.wait ? reasonText(q.wait) : null, tile: q.item.kind === 'improvement' || q.item.kind === 'wonder' ? q.item.tile ?? null : null,
     rush: live.city.owner === state.playerNationId ? rushQuote(state, cityId, q.index) : null
   }));
 };
@@ -125,7 +125,7 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
 
   // No site worth a city in reach (settlers.js settlingOutlook: legal, explored): the row says so (I092).
   const noSite = !settlingOutlook(state, city.owner, city.tile, ageId).ok;
-  add({ kind: 'settler' }, 'Units', { fields: { noSite, detail: noSite ? tNow('cy.settlerNoSite') : tNow('cy.settlerDetail'), note: city.size < SETTLER_MIN_SIZE ? tNow('cy.settlerMin', { n: SETTLER_MIN_SIZE }) : null } });
+  add({ kind: 'settler' }, 'Units', { fields: { noSite, detail: noSite ? tNow('cy.settlerNoSite') : tNow('cy.settlerDetail') } }); // below size 2 the reason says so, with the size
   const coast = hasSeaCoast(tiles, city);
   getAvailableClasses(ageId).forEach((classId) => {
     // A unit whose tech is not known yet shows locked, with the tech's name (unitClasses.js UNIT_UNLOCKS).

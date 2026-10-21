@@ -81,7 +81,7 @@ export default {
   'mx.war.vassal': 'you can\'t declare war while you\'re a vassal',
   'mx.war.yourVassal': 'your own vassal',
   'mx.war.cause': 'You have a cause for war.',
-  'mx.war.noCause': 'No cause for war: costs more and angers the world.',
+  'mx.war.noCause': 'No cause for war: costs more and angers the world. A tribute demand they refuse gives you one.',
   'mx.war.breaksTruce': ' Breaks your truce.',
   'mx.army.unassigned': 'Unassigned units',
   'mx.army.scouts': 'Scouts',

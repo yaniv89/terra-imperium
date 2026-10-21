@@ -41,7 +41,7 @@ import IndependentsList from '../independents/IndependentsList';
 import { openTributeDemand, openJoinOffer, openIndependent } from '../independents/independentEvents';
 import { ageOf } from '../../engine/nationState';
 import { canPay, walletOf } from '../../utils/costs';
-import { costLine, shortfallLine } from './empireText';
+import { costLine, shortfallLine, payWhy } from './empireText';
 import { worldCongressModel } from './worldCongressModel';
 import { openWorldCongress } from './WorldCongressSheet';
 
@@ -128,7 +128,7 @@ const DiplomacyPanel = () => {
           </div>
           <div className="flex flex-wrap items-center justify-end gap-1.5">
             {demand.pay.reason && <span className="text-[12px] text-fa-danger-text me-auto" data-testid="demand-blocked">{say(demand.pay.reasonMsg)}</span>}
-            <Button size="sm" disabled={!demand.pay.ok} onClick={() => dispatch({ type: ActionTypes.ANSWER_DEMAND, payload: { accept: true } })} data-testid="demand-accept">{demand.amount != null ? messageOf('m.diplo.btnPayGold', { gold: demand.amount }, lang) : say(demand.pay.labelMsg)}</Button>
+            <Button size="sm" disabled={!demand.pay.ok} why={demand.pay.reason ? say(demand.pay.reasonMsg) : null} onClick={() => dispatch({ type: ActionTypes.ANSWER_DEMAND, payload: { accept: true } })} data-testid="demand-accept">{demand.amount != null ? messageOf('m.diplo.btnPayGold', { gold: demand.amount }, lang) : say(demand.pay.labelMsg)}</Button>
             <Button size="sm" variant="danger" onClick={() => dispatch({ type: ActionTypes.ANSWER_DEMAND, payload: { accept: false } })} data-testid="demand-decline">{tNow('dip.refuse')}</Button>
           </div>
         </div>
@@ -210,13 +210,14 @@ const DiplomacyPanel = () => {
             <ActionCard icon={Unlock} label={tNow('dip.independence')}
               description={tNow('p2.pp.liberty', { n: Math.round(playerNation.libertyDesire || 0), name: nameIn('people', playerNation.vassalOf, state.nations[playerNation.vassalOf]?.name || playerNation.vassalOf) })}
               cost={costLine(ACTION_COSTS.declareIndependence)} onClick={handleDeclareIndependence}
-              disabled={playerNation.isAtWar || (playerNation.libertyDesire || 0) < 50} />
+              disabled={playerNation.isAtWar || (playerNation.libertyDesire || 0) < 50}
+              why={playerNation.isAtWar ? tNow('dip.indepWar') : tNow('p2.pp.liberty', { n: Math.round(playerNation.libertyDesire || 0), name: nameIn('people', playerNation.vassalOf, state.nations[playerNation.vassalOf]?.name || playerNation.vassalOf) })} />
           )}
           {isModernAge && (
             <ActionCard icon={Sparkles} label={tNow('dip.export')}
               description={tNow('p2.pp.exportDesc', { h: CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION, g: CULTURAL_EXPORT_INFLUENCE_GAIN, n: n(playerNation?.culturalInfluence || 0) })}
               cost={costLine(ACTION_COSTS.culturalExport)} onClick={handleCulturalExport}
-              disabled={!canPay(state, ACTION_COSTS.culturalExport)} />
+              disabled={!canPay(state, ACTION_COSTS.culturalExport)} why={payWhy(state, ACTION_COSTS.culturalExport)} />
           )}
         </div>
       </div>

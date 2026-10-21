@@ -34,6 +34,7 @@ import { GROUPS, groupLabel, templateName, describeTile, tileBearing, buildOptio
 import { focusPlace, pointAtTile } from '../map/marchEvents';
 import { BuildingIcon, UnitIcon, WonderIcon, ImprovementIcon, ResourceIcon } from '../ui/icons';
 import { Meter, Stat } from '../ui/atlas';
+import { useWhy } from '../ui/WhyTip';
 import { useT } from '../../i18n/useT';
 import { logText } from '../../i18n/messageText';
 import { rich } from '../../i18n/rich';
@@ -107,6 +108,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   const [buyAt, setBuyAt] = useState(null);
   const { t, lang } = useT();
   const R = (key, nodes, vars) => rich(t(key, vars), nodes);
+  const [why, whyBubble] = useWhy(); // a greyed "+" says why on tap
   const timer = useRef(null);
   useEffect(() => () => clearTimeout(timer.current), []);
 
@@ -199,6 +201,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
     : growth.state === 'starving' ? t('cy.starving') : growth.state === 'full' ? t('cy.housingFull') : growth.state === 'max' ? t('cy.maxSize')
       : growth.state === 'outpost' ? t('cy.outpostIn', { count: outpostLeft ?? 2, n: outpostLeft ?? '?' }) : t('cy.notGrowing');
   const currentTurns = current ? current.pieceTurns ?? current.turns : null;
+  const currentStatus = current?.waitText || turnsText(currentTurns); // a held order says why, never "1 turn"
 
   const overview = (
     <>
@@ -259,7 +262,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
       <div className="fa-card p-2.5" data-testid="city-building-now">
         <div className="flex items-center justify-between gap-2">
           <span className="fa-label">{t('cy.buildingNow')}</span>
-          {current && <span className="fa-num text-[13px] font-semibold">{turnsText(currentTurns)}</span>}
+          {current && <span className={`fa-num text-[13px] font-semibold ${current.waitText ? 'text-fa-enemy' : ''}`} data-testid="city-current-status">{currentStatus}</span>}
         </div>
         {current ? (
           <>
@@ -281,6 +284,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   const shownGroups = group === 'All' ? GROUPS : [group];
   const build = (
     <>
+      {whyBubble}
       {/* The queue bar: pinned, always the same height, so adding to the queue moves nothing below it. */}
       <div className={`sticky top-0 z-10 -mx-3 ${showOverview ? '' : '-mt-3'} px-3 pt-2 pb-1.5 bg-fa-panel border-b border-fa-line`} data-testid="city-queue-bar">
         <div className="flex items-center gap-2 min-h-[44px]">
@@ -289,7 +293,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
             <div className="truncate text-[13px] font-semibold">{current ? current.label : t('cy.nothingProd')}</div>
             <div className={`truncate text-[12px] h-[18px] ${flash ? (flash.ok ? 'text-fa-good' : 'text-fa-danger-text') : 'text-fa-muted'}`} aria-live="polite" data-testid="city-queue-status">
               {flash ? <>{flash.ok && <Check className="inline w-3.5 h-3.5 me-0.5 -mt-0.5" aria-hidden="true" />}{flash.text}</>
-                : current ? <><span className="fa-num">{Math.round(current.progress)}/{current.cost}</span> · {turnsText(currentTurns)}{queue.length > 1 ? ` · ${t('cy.moreQueued', { n: queue.length - 1 })}` : ''}</>
+                : current ? <><span className="fa-num">{Math.round(current.progress)}/{current.cost}</span> · {currentStatus}{queue.length > 1 ? ` · ${t('cy.moreQueued', { n: queue.length - 1 })}` : ''}</>
                   : t('cy.pickBelow')}
             </div>
           </div>
@@ -328,7 +332,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                 <ItemIcon item={q.item} ageId={ageId} size={24} />
                 <div className="min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0} onClick={() => openTile(q.tile)} onKeyDown={(e) => { if (e.key === 'Enter') openTile(q.tile); }}>
                   <div className="truncate">{q.index === 0 ? '' : `${q.index + 1}. `}{q.label}</div>
-                  <div className="text-fa-muted text-[12px]"><span className="fa-num">{q.progress > 0 || q.index === 0 ? `${Math.round(q.progress)}/${q.cost}` : q.cost}</span> · {q.turns == null ? t('cy.noProduction') : t('cy.doneIn', { turns: turnsText(q.turns) })}</div>
+                  <div className="text-fa-muted text-[12px]"><span className="fa-num">{q.progress > 0 || q.index === 0 ? `${Math.round(q.progress)}/${q.cost}` : q.cost}</span> · {q.waitText || (q.turns == null ? t('cy.noProduction') : t('cy.doneIn', { turns: turnsText(q.turns) }))}</div>
                 </div>
                 {mine && q.rush?.gold > 0 && (
                   <button type="button" onClick={() => setBuyAt(q.index)} className={`fa-icon-btn min-w-[44px] min-h-[44px] text-[11px] fa-num ${q.rush.ok ? '' : 'opacity-60'}`} aria-label={t('cy.buyItemAria', { label: q.label, gold: q.rush.gold })} title={rushText(q)?.title} data-testid="queue-rush">
@@ -403,11 +407,11 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                             : o.queued ? null
                               : o.needsName ? <>{t('cy.needs', { name: o.needsName })} <button type="button" onClick={(e) => { e.stopPropagation(); dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } }); }} className="underline text-fa-you min-h-[24px]" data-testid="research-for-item">{t('cy.researchIt')}</button></>
                                 : o.note || o.reason}
-                          {!o.ok && o.cost > 0 && <span className="text-fa-muted"> · {R('cy.prodCost', { cost: <span className="fa-num">{o.cost}</span> })} · {turnsText(o.turns)}</span>}
+                          {!o.ok && o.cost > 0 && <span className="text-fa-muted"> · {R('cy.prodCost', { cost: <span className="fa-num">{o.cost}</span> })}{o.item.kind === 'settler' ? '' : ` · ${turnsText(o.turns)}`}</span>}
                         </div>
                       </div>
                     </div>
-                    <button type="button" disabled={!o.ok} onClick={() => queueNow(o)} className="fa-icon-btn min-w-[44px] min-h-[44px] shrink-0 disabled:opacity-40" aria-label={o.ok ? t('cy.buildAria', { label: o.label }) : `${o.label}: ${o.queued ? t('cy.alreadyInQueue') : o.needsName ? t('cy.needsLower', { name: o.needsName }) : o.reason}`} data-testid="queue-item">
+                    <button type="button" {...why(!o.ok, o.queued ? t('cy.alreadyInQueue') : o.needsName ? t('cy.needsLower', { name: o.needsName }) : o.reason, () => queueNow(o))} className="fa-icon-btn min-w-[44px] min-h-[44px] shrink-0 disabled:opacity-40 aria-disabled:opacity-40" aria-label={o.ok ? t('cy.buildAria', { label: o.label }) : `${o.label}: ${o.queued ? t('cy.alreadyInQueue') : o.needsName ? t('cy.needsLower', { name: o.needsName }) : o.reason}`} data-testid="queue-item">
                       {o.queued && !o.ok ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                     </button>
                   </li>
