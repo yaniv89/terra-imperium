@@ -18,6 +18,9 @@ export default {
   'bpower.artilleryBarrage': 'הפגזת ארטילריה',
   'bpower.airStrike': 'תקיפה אווירית',
   'bpower.navalBombardment': 'הפגזה ימית',
+  'bpower.droneStrike': 'תקיפת רחפנים',
+  'bpower.cyberJam': 'שיבוש סייבר',
+  'bpower.droneRecon': 'סיור רחפנים',
 
   // battle types (battle/setup/battleType.js BATTLE_TYPES)
   'btype.field.label': 'קרב שדה',
@@ -88,6 +91,22 @@ export default {
   'beco.modern.hall': 'מפקדה',
   'beco.modern.worker': 'מהנדס',
   'beco.modern.aidPost': 'בית חולים שדה',
+  // Information (eight-ages plan Appendix C, U58)
+  'beco.information.camp': 'מפקדה',
+  'beco.information.hall': 'עמדת פיקוד',
+  'beco.information.house': 'מבנה מגורים',
+  'beco.information.foodDepot': 'מחסן אספקה',
+  'beco.information.materialsYard': 'חצר לוגיסטיקה',
+  'beco.information.tradePost': 'שוק',
+  'beco.information.farm': 'מפעל חקלאי',
+  'beco.information.mine': 'מכרה',
+  'beco.information.barracks': 'מגורי חיילים',
+  'beco.information.range': 'מטווח ירי',
+  'beco.information.stable': 'מוסך רכב',
+  'beco.information.siegeWorkshop': 'פארק ארטילריה',
+  'beco.information.aidPost': 'בית חולים שדה',
+  'beco.information.tower': 'מגדל מכ"ם',
+  'beco.information.worker': 'מהנדס',
 
   // resource nodes (NODE_KINDS) and the town's structures
   'bnode.tree': 'חורשה',
