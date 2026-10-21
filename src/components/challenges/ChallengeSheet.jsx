@@ -22,8 +22,8 @@ export const ChallengeEntry = ({ onStart }) => {
   useEffect(() => { if (open) fetchLeaderboard(client(), challenge.weekId).then(setBoard); }, [open, challenge]);
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className={`${btn} fixed top-2 end-2 z-20 bg-amber-600 hover:bg-amber-500 text-fa-text flex items-center gap-2`} data-testid="challenge-open">
-        <Trophy className="w-4 h-4" /> {t('chal.button')}
+      <button type="button" onClick={() => setOpen(true)} aria-label={t('chal.button')} className={`${btn} ms-auto shrink-0 pl:px-3 bg-amber-600 hover:bg-amber-500 text-fa-text flex items-center gap-2`} data-testid="challenge-open">
+        <Trophy className="w-4 h-4" /> <span className="pl:hidden">{t('chal.button')}</span>
       </button>
       {open && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" data-testid="challenge-sheet">
