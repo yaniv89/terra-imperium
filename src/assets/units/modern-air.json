@@ -7,6 +7,6 @@
     "skin": "(^|\\s)Skin(\\s|$)",
     "emblem": "(^|\\s)Emblem(\\s|$)"
   },
-  "height": 0.5,
+  "height": 0.46,
   "segment": false
 }

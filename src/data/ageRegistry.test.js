@@ -77,8 +77,7 @@ const KEYED = [
 
 // Opt-outs: table name -> { age: reason }.
 const OPT_OUT = {
-  'government reform tiers': { information: 'U55 adds the Information reforms' },
-  'age icon': { information: 'the icon is held art on claude/art-information', future: 'the icon is held art on claude/art-future' }
+  'government reform tiers': { information: 'U55 adds the Information reforms' }
 };
 
 // Tables that cover only some ages by design: unknown keys are still rejected. [keys, reason].
@@ -187,7 +186,7 @@ describe('registry completeness: every per-age table has every age', () => {
 
   it('every age has an icon file', () => {
     const dir = path.resolve(__dirname, '../assets/icons/ages');
-    const problems = AGE_ORDER.filter((age) => !OPT_OUT['age icon'][age] && !fs.existsSync(path.join(dir, `${age}.svg`))).map((age) => `age icon ${age}.svg is missing`);
+    const problems = AGE_ORDER.filter((age) => !fs.existsSync(path.join(dir, `${age}.svg`))).map((age) => `age icon ${age}.svg is missing`);
     expect(problems).toEqual([]);
   });
 });

@@ -33,7 +33,7 @@ const NO_ART = {
     'synthesis_vats', 'fabrication_hub', 'exo_armory', 'quantum_lab', 'nanoforge', 'habitat_commons', 'submersible_pens', 'maglev_terminal', 'fusion_reactor'],
   units: ['naval'], // drawn by its line (ships)
   wonders: ['solomons_temple', 'masada', // scenario wonders outside art spec section 5: lucide glyphs
-    'world_wide_web', 'large_hadron_collider', 'global_seed_vault', // Information: no icon art yet (their models are held art)
+    'world_wide_web', 'large_hadron_collider', 'global_seed_vault', // Information: no icon art yet (models only)
     'space_elevator', 'mars_colony', 'arcology_prime'] // Future: the same (U92)
 };
 
@@ -103,7 +103,7 @@ describe('icon index', () => {
       units: [...UNIT_CLASS_IDS, 'settler'],
       ships: NAVAL_LINE_IDS,
       cities: CITY_SIZES.flatMap((s) => AGE_ORDER.map((a) => `city-${s}-${a}`)),
-      ages: AGE_ORDER,
+      ages: [...AGE_ORDER, 'information', 'future'], // the Information and Future icons are art ahead of their ages (eight-ages Phases D and E add them)
       markers: ['capital', 'wonder', 'event', 'battle'],
       battle: [...Object.values(BATTLE_BUILDINGS).map((b) => b.icon), ...Object.values(BATTLE_STOCK_ICON_IDS), ...BATTLE_GLYPH_IDS],
       ui: UI_ICON_IDS,

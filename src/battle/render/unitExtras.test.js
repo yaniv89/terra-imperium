@@ -6,7 +6,7 @@ import { BoxGeometry } from 'three';
 import { battleExtraModels, findSignatureModel, preloadUnitModels, findGeneralModel, preloadSoldierModel, preloadSignatureModel, unitLookOf, lookKey, findUnitModel } from './unitModels';
 import { squadLookOf } from './view';
 import { hasSoldierOverride, unregisterSoldierGeometry, MODEL_SCALE } from './soldierFactory';
-import { signatureUnitFor, signatureKey, baseClassOf, SIGNATURE_UNITS, RIG_FIGURES, rigFiguresOf } from '../../data/signatureUnits';
+import { signatureUnitFor, signatureKey, baseClassOf, SIGNATURE_UNITS, LATE_SIGNATURE_UNITS, RIG_FIGURES, rigFiguresOf } from '../../data/signatureUnits';
 import { createArtIndex } from '../art/artIndex';
 import { PEOPLES } from '../../data/peoples';
 import { AGE_ORDER } from '../../data/ages';
@@ -15,6 +15,19 @@ const TABLE = { israel: { ageId: 'bronze', classId: 'infantry', model: 'israel-s
 const art = createArtIndex({ 'assets/units/signature/israel-spear.glb': 'test://israel.glb', 'assets/units/signature/kingdom-of-israel.glb': 'test://merkava.glb' });
 
 describe('signature units', () => {
+  it('each late signature (U85) is a known people in Information or the Future, drawn by its own file, the early one kept', () => {
+    expect(Object.keys(LATE_SIGNATURE_UNITS)).toHaveLength(40);
+    Object.values(LATE_SIGNATURE_UNITS).forEach((e) => {
+      expect(SIGNATURE_UNITS[e.peopleId], e.model).toBeTruthy();
+      expect(['information', 'future']).toContain(e.ageId);
+      expect(findSignatureModel(e.peopleId, e.ageId, e.classId)?.name, e.model).toBe(`signature/${e.model}`);
+    });
+    expect(signatureUnitFor('kemet', 'bronze', 'cavalry')?.model).toBe('kemet');
+    expect(signatureUnitFor('kemet', 'information', 'infantry')?.model).toBe('kemet-information');
+    expect(signatureUnitFor('kemet', 'future', 'cavalry')?.model).toBe('kemet-future');
+    expect(signatureUnitFor('kemet', 'future', 'infantry')).toBeNull();
+  });
+
   it('apply to one people, one age and one role, and need a file', () => {
     // the roster: 150 peoples, one each, any role (Israel: the Merkava, a Modern tank)
     expect(Object.keys(SIGNATURE_UNITS)).toHaveLength(150);

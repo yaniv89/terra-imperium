@@ -1,0 +1,53 @@
+{
+  "enabled": true,
+  "quadruped": false,
+  "restClip": "^Idle$",
+  "triangleBudget": 3000,
+  "tags": {
+    "team": "(^|\\s)Team(\\s|$)",
+    "skin": "(^|\\s)Skin(\\s|$)",
+    "emblem": "(^|\\s)Emblem(\\s|$)"
+  },
+  "clips": {
+    "Idle": {
+      "frames": 41,
+      "fps": 20,
+      "loop": true
+    },
+    "Walk": {
+      "frames": 21,
+      "fps": 20,
+      "loop": true
+    },
+    "Aim-fire-reload": {
+      "frames": 50,
+      "fps": 20,
+      "loop": false,
+      "events": {
+        "fire": 12,
+        "reloaded": 38
+      }
+    },
+    "Hit": {
+      "frames": 10,
+      "fps": 20,
+      "loop": false
+    },
+    "Death": {
+      "frames": 40,
+      "fps": 20,
+      "loop": false,
+      "events": {
+        "settle": 40
+      }
+    },
+    "DeathAlt": {
+      "frames": 40,
+      "fps": 20,
+      "loop": false,
+      "events": {
+        "settle": 40
+      }
+    }
+  }
+}

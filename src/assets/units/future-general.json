@@ -1,0 +1,56 @@
+{
+  "enabled": true,
+  "quadruped": false,
+  "restClip": "^Idle$",
+  "triangleBudget": 6000,
+  "tags": {
+    "team": "(^|\\s)Team(\\s|$)",
+    "skin": "(^|\\s)Skin(\\s|$)",
+    "emblem": "(^|\\s)Emblem(\\s|$)"
+  },
+  "footprint": [
+    0.99,
+    1.46
+  ],
+  "clips": {
+    "Idle": {
+      "frames": 41,
+      "fps": 20,
+      "loop": true
+    },
+    "Move": {
+      "frames": 41,
+      "fps": 20,
+      "loop": true
+    },
+    "Fire": {
+      "frames": 30,
+      "fps": 20,
+      "loop": false,
+      "events": {
+        "fire": 8
+      }
+    },
+    "Hit": {
+      "frames": 10,
+      "fps": 20,
+      "loop": false
+    },
+    "Death": {
+      "frames": 40,
+      "fps": 20,
+      "loop": false,
+      "events": {
+        "settle": 40
+      }
+    },
+    "Wreck": {
+      "frames": 40,
+      "fps": 20,
+      "loop": false,
+      "events": {
+        "settle": 40
+      }
+    }
+  }
+}

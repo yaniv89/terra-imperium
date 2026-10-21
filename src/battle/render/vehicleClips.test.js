@@ -1,4 +1,4 @@
-// The Modern vehicles' authored clips (plans/art/clip-animation-pipeline.md section 7 and 7.4): every GLB carries
+// The Modern and Information vehicles' authored clips (plans/art/clip-animation-pipeline.md section 7 and 7.4): every GLB carries
 // Idle, Move, Fire, Hit, Wreck (and Death when it has a crew) at 20 fps with frame counts that match its options
 // file, the `fire` and `settle` events, closed loops, every rig keyed in every clip, Idle frame 1 at rest, the
 // hull in place, the wheels (or road wheels) turning in Move, the barrel recoiling along its bore in Fire and
@@ -9,17 +9,31 @@ import { readFileSync } from 'node:fs';
 import { Quaternion } from 'three';
 
 const UNITS = {
-  'modern-cavalry': { crew: 0, wheels: /^RoadWheel_/, footprint: [1.39, 3.45] },
-  'modern-support': { crew: 1, wheels: /^Wheel_/, footprint: [1.44, 2.56] },
-  'modern-general': { crew: 2, wheels: /^Wheel_/, footprint: [0.89, 1.39], gun: false },
-  'modern-raider': { crew: 1, wheels: /^Wheel_/, footprint: [0.86, 1.97] },
-  'modern-siege': { crew: 3, wheels: /^Wheel_/, footprint: [1.69, 2.92] },
+  // the present-day machines, renamed from modern-* (eight-ages plan U81, KTD15)
+  'information-cavalry': { crew: 0, wheels: /^RoadWheel_/, footprint: [1.39, 3.45] },
+  'information-support': { crew: 1, wheels: /^Wheel_/, footprint: [1.44, 2.96] }, // SAM battery (U82)
+  'information-general': { crew: 2, wheels: /^Wheel_/, footprint: [0.89, 1.39], gun: false },
+  'information-raider': { crew: 1, wheels: /^Wheel_/, footprint: [0.86, 1.97] },
+  'information-siege': { crew: 1, wheels: /^Wheel_/, footprint: [1.44, 2.96] }, // rocket artillery (U82)
+  // the 20th-century Modern machines (build_modern20_*.py)
+  'modern-cavalry': { crew: 0, wheels: /^RoadWheel_/, footprint: [1.3, 2.39] },
+  'modern-support': { crew: 1, wheels: /^Wheel_/, footprint: [1.11, 2.26] },
+  'modern-general': { crew: 2, wheels: /^Wheel_/, footprint: [1.06, 1.65], gun: false },
+  'modern-raider': { crew: 1, wheels: /^Wheel_/, footprint: [1.06, 1.52] },
+  'modern-siege': { crew: 3, wheels: /^Wheel_/, footprint: [1.82, 2.64] },
   // the older machines (2026-10-20, ti_vehicle_clips.old_machine and trebuchet): a frame or a carriage on two wheels
   'classical-siege': { crew: 3, wheels: /^Wheel_/, footprint: [1.34, 1.56], gun: false },
   'kingdoms-siege': { crew: 3, wheels: /^Wheel_/, footprint: [1.9, 3.2], gun: false },
   'gunpowder-siege': { crew: 3, wheels: /^Wheel_/, footprint: [1.26, 1.67], gun: false },
   // the Stone ladder crew (eight-ages plan U80): the ladder is the Hull, no wheels
-  'stone-siege': { crew: 3, wheels: null, footprint: [0.91, 1.9], gun: false }
+  'stone-siege': { crew: 3, wheels: null, footprint: [0.91, 1.9], gun: false },
+  // the Future hover machines (eight-ages plan U83, ti_future.hover_clips): no wheels, the hull floats
+  'future-cavalry': { crew: 0, wheels: null, footprint: [1.19, 2.15] },
+  'future-siege': { crew: 0, wheels: null, footprint: [1.11, 1.7] },
+  'future-support': { crew: 0, wheels: null, footprint: [1.11, 1.7], gun: false },
+  'future-general': { crew: 1, wheels: null, footprint: [0.99, 1.46], gun: false },
+  'future-raider': { crew: 1, wheels: null, footprint: [0.99, 1.4] },
+  'future-robot-support': { crew: 0, wheels: null, footprint: [1.07, 1.6], gun: false }
 };
 const LOOPS = ['Idle', 'Move'];
 const FPS = 20;

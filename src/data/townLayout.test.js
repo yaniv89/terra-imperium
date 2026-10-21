@@ -22,7 +22,7 @@ describe('town layouts (the city manifest source)', () => {
       const key = townFileKey(age, tier, seed, style);
       expect(townAssetUrl(age, tier, seed, style)).toContain(key);
     });
-    expect(townFileKey('future', 'small')).toBeNull();
+    expect(townFileKey('atlantis', 'small')).toBeNull();
     // the Nile has its own Stone kit (H-25); Mesopotamia has none in this age: the Levant's, not the European base
     expect(townFileKey('stone', 'small', 0, 'nile')).toMatch(/nile$/);
     expect(townFileKey('stone', 'small', 0, 'mesopotamia')).toMatch(/levant$/);

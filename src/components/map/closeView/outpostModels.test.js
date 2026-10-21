@@ -41,7 +41,7 @@ describe('outpost models', () => {
 
   it('ships one camp per age band, each a root with LOD0..LOD2 and a smoke socket', () => {
     const files = fs.readdirSync('src/assets/map/outposts').filter((f) => f.endsWith('.glb')).sort();
-    expect(files).toEqual(['outpost-bronze.glb', 'outpost-kingdoms.glb', 'outpost-modern.glb', 'outpost-stone.glb']);
+    expect(files).toEqual(['outpost-bronze.glb', 'outpost-future.glb', 'outpost-information.glb', 'outpost-kingdoms.glb', 'outpost-modern.glb', 'outpost-stone.glb']);
     files.forEach((f) => {
       const name = f.replace('.glb', '');
       const { nodes, materials } = readGlbJson(`src/assets/map/outposts/${f}`);

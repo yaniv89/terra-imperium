@@ -28,7 +28,9 @@ const UNITS = {
   'classical-cavalry': 'mounted', 'classical-general': 'general', 'classical-raider': 'mounted',
   'kingdoms-cavalry': 'mounted', 'kingdoms-general': 'general', 'kingdoms-raider': 'mounted',
   'gunpowder-cavalry': 'mounted', 'gunpowder-general': 'general', 'gunpowder-raider': 'mounted',
-  'modern-ranged': 'atgm',
+  'modern-ranged': 'atgm', 'information-ranged': 'atgm', 'future-ranged': 'atgm',
+  // the robot walkers on the horse rig (eight-ages plan U84)
+  'future-robot-cavalry': 'mounted', 'future-robot-siege': 'mounted',
   // the signature chariots (scripts/blender/build_signature_chariots.py)
   'signature/ugarit': 'chariot',
   'signature/kemet': 'chariot',
