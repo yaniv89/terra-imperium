@@ -663,13 +663,14 @@ export const processIndependentOps = (state, nationId, rng) => {
   if (!goal || goal.kind !== 'conquer' || !city || city.owner !== goal.id || city.tile == null) return state;
   if (state.wars.some((w) => w.active && (w.aggressor === nationId || w.enemy === nationId))) return state;
   const tiles = getTiles();
-  let next = { ...state, units: { ...state.units } };
   const groups = new Map();
-  Object.values(next.units).forEach((u) => {
-    if (u.ownerId !== nationId || u.indepOp !== goal.id || u.domain !== 'land' || u.embarkedOn || !(u.strength > 0) || isUnitInBattle(next, u.id)) return;
-    const key = `${u.regionId}|${unitTile(next, u)}`;
+  Object.values(state.units).forEach((u) => {
+    if (u.ownerId !== nationId || u.indepOp !== goal.id || u.domain !== 'land' || u.embarkedOn || !(u.strength > 0) || isUnitInBattle(state, u.id)) return;
+    const key = `${u.regionId}|${unitTile(state, u)}`;
     const l = groups.get(key); if (l) l.push(u); else groups.set(key, [u]);
   });
+  if (!groups.size) return state; // no siege force: nothing to copy (most turns of a campaign's muster)
+  let next = { ...state, units: { ...state.units } };
   let marching = false;
   const failKey = `indep:${goal.id}`;
   for (const [key, stack] of [...groups].sort(([a], [b]) => a.localeCompare(b))) {
