@@ -17,10 +17,15 @@ const list = git('worktree', 'list', '--porcelain').split(/\r?\n\r?\n/).map((b) 
   return { wt, head, branch, prunable: /^prunable/m.test(b) };
 }).filter((w) => w.wt && path.resolve(w.wt) !== path.resolve(REPO));
 
+const firstParent = new Set(git('rev-list', '--first-parent', 'claude/integration').split(/\r?\n/));
 let removed = 0;
 for (const w of list) {
   if (w.prunable || !fs.existsSync(w.wt)) continue;
   if (w.branch && KEEP_BRANCHES.test(w.branch)) { console.log('keep (held)', w.wt); continue; }
+  // Lane scratch copies (balance-sim bases and the like) live outside the repo's worktree folders: never ours to remove.
+  if (!/[\\/]\.claude[\\/]worktrees[\\/]|[\\/]GitWotkspace[\\/]ti-/.test(w.wt)) { console.log('keep (not a lane worktree)', w.wt); continue; }
+  // A fresh lane sits on an integration commit itself (first-parent line) before its first commit: still working, keep it.
+  if (firstParent.has(w.head)) { console.log('keep (fresh or idle on integration)', w.wt); continue; }
   let merged = false;
   try { git('merge-base', '--is-ancestor', w.head, 'claude/integration'); merged = true; } catch { /* not merged */ }
   if (!merged) { console.log('keep (unmerged)', w.wt, w.branch); continue; }
