@@ -19,6 +19,77 @@ import { AGE_ORDER, AGES, LAST_AGE_ID, getAgeIndex } from './ages';
 import { getTechsForAge } from './techTree';
 import { ageOf, getResearched } from '../engine/nationState';
 const RAW_HISTORICAL_EVENTS = {
+  // ---- Stone Age (-5000 to -2000): generic by people, never tied to a modern country ----
+  great_migrations: {
+    id: 'great_migrations',
+    year: -4800,
+    title: 'The Great Migrations',
+    description: 'Bands follow the herds and the rivers into new country, and your people meet strangers whose tongue and tools they do not know.',
+    options: [
+      { label: 'Follow the herds into the new country', effects: { hr: 20, controlPenalty: 3 } },
+      { label: 'Hold your valley and guard your fields', effects: { defenseBonus: 0.05, gold: -20 } }
+    ]
+  },
+  the_horse: {
+    id: 'the_horse',
+    year: -4000,
+    title: 'The Horse',
+    description: 'Herders learn to keep and ride the wild horse of the grasslands, and a day\'s journey shrinks to a morning\'s.',
+    options: [
+      { label: 'Breed riding herds for the hunters', effects: { gold: -30, militaryStrengthBonus: 20 } },
+      { label: 'Use the horses to carry goods and trade', effects: { gold: 50 } }
+    ]
+  },
+  the_wheel: {
+    id: 'the_wheel',
+    year: -3500,
+    title: 'The Wheel',
+    description: 'A turning disc of wood, first for the potter and then for the cart, changes what one pair of hands can move and make.',
+    options: [
+      { label: 'Build carts for harvest and market', effects: { gold: -40, cityFood: 10 } },
+      { label: 'Keep the craft to the potters\' guild', effects: { gold: 40, techPoints: 10 } }
+    ]
+  },
+  uruk_expansion: {
+    id: 'uruk_expansion',
+    year: -3300,
+    title: 'The River City Expands',
+    description: 'A great river city sends colonists, goods and its way of life far up the valleys, and its neighbours must decide how to meet it.',
+    options: [
+      { label: 'Trade with the colonists', effects: { gold: 60, dip: 5 } },
+      { label: 'Close your borders to them', effects: { controlBonus: 5, gold: -40 } }
+    ]
+  },
+  first_writing: {
+    id: 'first_writing',
+    year: -3200,
+    title: 'The First Writing',
+    description: 'Marks pressed in clay count the grain and the flocks, and soon the temple clerks can remember more than any elder.',
+    options: [
+      { label: 'Train clerks in the temple', effects: { gold: -50, techPoints: 25 } },
+      { label: 'Keep the tallies in the elders\' memory', effects: { stability: 1 } }
+    ]
+  },
+  river_unification: {
+    id: 'river_unification',
+    year: -3100,
+    title: 'One River, One Crown',
+    description: 'The towns along a great river are drawn together under a single ruler, and the lands beside it feel the pull.',
+    options: [
+      { label: 'Seek a place at the new court', effects: { dip: 10, legitimacy: 5 } },
+      { label: 'Stand apart and arm your border', effects: { defenseBonus: 0.05, gold: -40 } }
+    ]
+  },
+  drought_of_4200: {
+    id: 'drought_of_4200',
+    year: -2200,
+    title: 'The Long Drought',
+    description: 'The rains fail for a generation. Fields crack, rivers shrink, and whole peoples move or perish.',
+    options: [
+      { label: 'Dig channels and share the stores', effects: { gold: -80, cityFood: 10, controlBonus: 4 } },
+      { label: 'Send the hungry away', effects: { hr: -30, stability: -1 } }
+    ]
+  },
   // ---- Bronze Age (-2000 to -800) ----
   great_flood_myth: {
     id: 'great_flood_myth',

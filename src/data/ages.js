@@ -22,7 +22,7 @@ export const AGES = {
     name: 'Stone Age',
     startYear: -5000,
     endYear: -2000,
-    unlocksResources: [],
+    unlocksResources: ['copper'],
     power: { attack: 7, defense: 6 },
     unitCostMult: 1
   },
@@ -31,7 +31,7 @@ export const AGES = {
     name: 'Bronze Age',
     startYear: -2000,
     endYear: -800,
-    unlocksResources: ['copper'],
+    unlocksResources: [],
     // The unit roster's attack and defence (src/data/unitClasses.js) and a unit's production cost
     // multiplier (src/engine/world/cities.js) in this age: explicit per age, not derived from the
     // age's position, so a new age can slot in anywhere.

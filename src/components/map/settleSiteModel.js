@@ -93,7 +93,7 @@ export const settleSiteModel = (state, tile, ageId) => {
   });
   if (nearest) { nearest.rings = near.get(nearest.tile) ?? null; nearest.overWater = !sameLandmass(tiles, tile, nearest.tile); }
   const claims = foundingDisk(tiles, tile).filter((t) => tiles.land[t] && tileOwner[t] == null).length;
-  const resource = facts.resource && resourceKnown(facts.resource, ageId) ? facts.resource : null;
+  const resource = facts.resource && resourceKnown(facts.resource, ageId, getResearched(state, me)) ? facts.resource : null;
   const outlook = siteOutlook(state, tile, me);
   const free = tileOwner[tile] == null;
   const lines = [];

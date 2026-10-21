@@ -211,7 +211,13 @@ describe('HISTORICAL_EVENTS data integrity', () => {
     const ageCounts = {};
     AGE_ORDER.forEach(id => { ageCounts[id] = 0; });
     WORLD_EVENTS.forEach(event => { ageCounts[event.ageId] += 1; });
-    AGE_ORDER.filter((a) => a !== 'stone').forEach(ageId => expect(ageCounts[ageId]).toBeGreaterThanOrEqual(2)); // Stone events: U33
+    AGE_ORDER.forEach(ageId => expect(ageCounts[ageId]).toBeGreaterThanOrEqual(2));
+  });
+
+  it('the Stone Age has seven events, all derived to stone and due within its first six techs', () => {
+    const stone = WORLD_EVENTS.filter((e) => e.ageId === 'stone');
+    expect(stone.length).toBe(7);
+    stone.forEach((e) => { const n = eventTechsNeeded('stone', e.year); expect(n).toBeGreaterThanOrEqual(0); expect(n).toBeLessThanOrEqual(6); });
   });
 
   it('never spawns a follow-up that points at a nonexistent chain entry', () => {

@@ -76,7 +76,7 @@ describe('Hebrew game data covers every id', () => {
       need(`evt.${e.id}.title`); need(`evt.${e.id}.desc`);
       e.options.forEach((_, i) => need(`evt.${e.id}.opt${i}`));
     });
-    ['coastal_trade_boom', 'overcrowded_plague', 'frontier_raiders', 'ambitious_general', 'failed_harvest', 'river_flood', 'foreign_quarter', 'traveling_merchants', 'refugee_crisis', 'harsh_winter'].forEach((id) => {
+    ['coastal_trade_boom', 'overcrowded_plague', 'frontier_raiders', 'ambitious_general', 'failed_harvest', 'river_flood', 'foreign_quarter', 'traveling_merchants', 'refugee_crisis', 'harsh_winter', 'good_harvest', 'sick_herds', 'comet', 'river_shifts', 'shamans_prophecy'].forEach((id) => {
       need(`pevt.${id}.title`); need(`pevt.${id}.desc`); need(`pevt.${id}.opt0`); need(`pevt.${id}.opt1`);
     });
   });

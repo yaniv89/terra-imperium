@@ -1526,7 +1526,7 @@ describe('Government reform and law actions (plan §M8)', () => {
 
     it('resets reforms to the new type\'s first choice for every age tier up to the calendar age', () => {
       const next = gameReducer(richState(), { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } });
-      expect(next.nations.fr.government.reforms).toEqual({ bronze: 'despotic_rule' }); // calendar age is bronze at game start
+      expect(next.nations.fr.government.reforms).toEqual({ stone: 'city_king', bronze: 'despotic_rule' }); // the age is bronze at game start; the Stone tier fills too
     });
 
     it('is a no-op for a type not yet reached by age (Republic needs Classical)', () => {

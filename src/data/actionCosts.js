@@ -206,7 +206,7 @@ export const BANKRUPTCY_MODIFIER_MODS = {
 // "Missing resources give +50% gold cost instead of blocking" (plan, verbatim) — see
 // src/engine/economy.js's getRecruitUnitCost for the fallback.
 export const RECRUIT_STRATEGIC_RESOURCE_BY_AGE = {
-  stone: { key: 'copper', amount: 0 }, // Stone units need no metal
+  stone: null, // Stone units need no metal
   bronze: { key: 'copper', amount: 5 },
   classical: { key: 'copper', amount: 5 },
   kingdoms: { key: 'iron', amount: 8 },

@@ -69,10 +69,10 @@ const titleHe = (id, english) => {
   const lead = /^(kingdom of|empire of|republic of|league of)\s+(.*)$/i.exec(english || '');
   if (lead && lead[2] === people.stem) return `${HE_TITLE_WORDS[lead[1].toLowerCase()]} ${name}`;
   for (const gov of Object.keys(HE_GOVERNMENT_TITLES)) {
-    for (const big of [false, true]) {
-      if (titleFor(people, gov, big ? EMPIRE_CITY_COUNT : 1) !== english) continue;
+    for (const big of [false, true, 'band']) {
+      if (titleFor(people, gov, big === 'band' ? 0 : big ? EMPIRE_CITY_COUNT : 1) !== english) continue;
       const f = HE_GOVERNMENT_TITLES[gov];
-      const tpl = big ? ((people.plural && f.pluralEmpire) || f.empire) : ((people.plural && f.pluralRealm) || f.realm);
+      const tpl = big === 'band' ? f.band : big ? ((people.plural && f.pluralEmpire) || f.empire) : ((people.plural && f.pluralRealm) || f.realm);
       return fillName(tpl, name);
     }
   }

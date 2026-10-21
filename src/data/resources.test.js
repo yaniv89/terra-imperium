@@ -22,8 +22,8 @@ describe('resource unlock ages', () => {
     expect(isResourceUnlocked('hr', 'bronze')).toBe(true);
   });
 
-  it('copper unlocks at Bronze, iron at Classical, oil at Modern', () => {
-    expect(isResourceUnlocked('copper', 'bronze')).toBe(true);
+  it('copper unlocks in the Stone Age, iron at Classical, oil at Modern', () => {
+    expect(isResourceUnlocked('copper', 'stone')).toBe(true);
     expect(isResourceUnlocked('iron', 'bronze')).toBe(false);
     expect(isResourceUnlocked('iron', 'classical')).toBe(true);
     expect(isResourceUnlocked('oil', 'gunpowder')).toBe(false);

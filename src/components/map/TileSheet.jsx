@@ -33,7 +33,7 @@ import { askConfirm } from '../ui/ConfirmActionDialog';
 import { declareWarConfirm } from '../ui/confirmSpecs';
 import { settlerStatus } from './settleRoutes';
 import { useReportInset } from '../../context/MapInsetsContext';
-import { ageOf } from '../../engine/nationState';
+import { ageOf, getResearched } from '../../engine/nationState';
 
 // `settleUnitId`: the settler whose site is being chosen (the settle mode, settleMode.js): it is
 // the one that goes, whatever other settlers wait. `onSettle(unit)` starts the mode for a settler.
@@ -89,7 +89,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
   // city rules never let fall under 2 food, 1 production, 1 gold; otherwise the tile's own yields.
   const asSite = settlers.length > 0 && !ownerCity && !!site?.centre;
   const yields = (asSite ? site.centre : site?.yields) || { food: 0, production: 0, gold: 0 };
-  const resource = facts.resource && resourceKnown(facts.resource, ageId) ? facts.resource : null;
+  const resource = facts.resource && resourceKnown(facts.resource, ageId, getResearched(state, state.playerNationId)) ? facts.resource : null;
   // The one main action sits in the sheet's footer, always in view (it used to be under the fold
   // at 844x340: playtest audit I090).
   const sendGoer = () => dispatch({ type: ActionTypes.SET_SETTLER_TARGET, payload: { unitId: goer.u.id, tile } });

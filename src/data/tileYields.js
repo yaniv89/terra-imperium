@@ -87,8 +87,12 @@ export const RESOURCE_KIND = (id) => RESOURCES_ON_TILES[id]?.kind || null;
 // a hidden resource shows as a little extra production with no name. Hiding the yields too, and
 // revealing by a tech, is a rule change for the balance work (decision D10's history policy).
 export const RESOURCE_KNOWN_FROM_AGE = { coal: 'gunpowder', oil: 'modern', rubber: 'modern', uranium: 'modern' };
-/** Whether the player's age (`ageId`) knows resource `id`; an unknown age knows everything. */
-export const resourceKnown = (id, ageId) => {
+// Stone Age resources a tech reveals (U31): copper once Copper Working is known, horses with Animal Husbandry.
+export const RESOURCE_KNOWN_FROM_TECH = { copper: 'military_copper_working', horses: 'economy_animal_husbandry' };
+/** Whether the player's age (`ageId`) and, when `researched` is given, techs know resource `id`; an unknown age knows everything. */
+export const resourceKnown = (id, ageId, researched = null) => {
+  const tech = RESOURCE_KNOWN_FROM_TECH[id];
+  if (tech && researched && !researched.includes(tech)) return false;
   const from = RESOURCE_KNOWN_FROM_AGE[id];
   if (!from) return true;
   const have = AGE_ORDER.indexOf(ageId);
@@ -102,13 +106,13 @@ export const LUXURY_RESOURCES = Object.keys(RESOURCES_ON_TILES).filter((id) => R
 // add yields once researched.
 export const IMPROVEMENTS = {
   farm: {
-    name: 'Farm', turns: 2, requiresTech: null,
+    name: 'Farm', turns: 2, requiresTech: 'economy_agriculture',
     // A floodplain or an oasis farms whatever the base terrain (the Nile runs through desert).
     allowed: (t) => t.land && t.relief !== 'mountains' && (['grassland', 'plains', 'tundra'].includes(t.terrain) && ['none', 'marsh'].includes(t.feature) || ['floodplain', 'oasis'].includes(t.feature)) || ['wheat', 'rice', 'dates', 'reeds', 'papyrus'].includes(t.resource),
     yields: { food: 1 }, upgrades: { infrastructure_canal_locks: { food: 1 }, science_genomics: { food: 1 } }
   },
   pasture: {
-    name: 'Pasture', turns: 2, requiresTech: null,
+    name: 'Pasture', turns: 2, requiresTech: 'economy_animal_husbandry',
     allowed: (t) => ['cattle', 'sheep', 'horses'].includes(t.resource),
     yields: { food: 1, production: 1 }, upgrades: { governance_feudal_charters: { production: 1 } }
   },
@@ -118,7 +122,7 @@ export const IMPROVEMENTS = {
     yields: { gold: 1 }, upgrades: { economy_silk_road_trade: { gold: 1 } }
   },
   mine: {
-    name: 'Mine', turns: 3, requiresTech: 'military_bronze_casting',
+    name: 'Mine', turns: 3, requiresTech: 'military_copper_working',
     allowed: (t) => t.land && (t.relief === 'hills' || t.relief === 'mountains' || ['copper', 'iron', 'coal', 'gold', 'silver', 'gems', 'salt', 'uranium'].includes(t.resource)),
     yields: { production: 1 }, upgrades: { military_iron_weapons: { production: 1 }, economy_industrial_capital: { production: 1 } }
   },

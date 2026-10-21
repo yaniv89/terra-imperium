@@ -17,6 +17,7 @@ import { DEFAULT_WORLD_SIZE } from '../../data/worldSizes';
 import { withAgesResearched, withTechsResearched } from '../research';
 import { hearthOfTile, AGRICULTURE_TECH } from '../../data/hearths';
 import { FIRST_AGE_ID } from '../../data/ages';
+import { isIndependentNation } from '../../data/independents';
 
 export const NATION_COUNTS = [15, 30, 45, 60, 75];
 export const GENERATION_VERSION = 2;
@@ -129,13 +130,29 @@ const bandWorld = (initial, starts) => {
   return { regions: {}, nations, units, world: { tileOwner: {}, tileState: {} }, activeNationIds: Object.keys(starts).sort() };
 };
 
+// A band start (U23) with independents (U34): the majors are bands, the independents already stand
+// as size 1 villages (the plan: "independents start as camps or size 1 villages").
+const bandedWorld = (initial, starts) => {
+  const indep = Object.keys(starts).filter((id) => isIndependentNation(initial.nations[id]));
+  const pick = (ids) => Object.fromEntries(ids.map((id) => [id, starts[id]]));
+  const villages = buildCityWorld(initial, Object.fromEntries(indep.map((id) => [id, { ...starts[id], size: 1, cities: starts[id].cities.map((c) => ({ ...c, size: 1 })) }])));
+  const bands = bandWorld(initial, pick(Object.keys(starts).filter((id) => !indep.includes(id))));
+  return {
+    regions: villages.regions,
+    nations: { ...bands.nations, ...Object.fromEntries(indep.map((id) => [id, villages.nations[id]])) },
+    units: { ...villages.units, ...bands.units },
+    world: villages.world,
+    activeNationIds: Object.keys(starts).sort()
+  };
+};
+
 const applyPeoplesScenario = (initial, { size = DEFAULT_WORLD_SIZE, seed = 1, start = DEFAULT_SCENARIO_ID, map = { kind: 'earth' }, sites = null, band = false }) => {
   if (start !== 'dawn') throw new Error('The peoples world starts at Dawn only');
   const ids = Object.keys(initial.nations).sort();
   const peoplesStarts = buildPeoplesStarts(ids, sites);
   // A people whose home is an agricultural hearth (hearths.js, U24) already farms.
   const farming = ids.filter((id) => hearthOfTile(getTiles(), peoplesStarts[id].capital)).reduce((s, id) => withTechsResearched(s, id, [AGRICULTURE_TECH]), initial);
-  const built = (band ? bandWorld : buildCityWorld)(farming, peoplesStarts);
+  const built = band ? bandedWorld(farming, peoplesStarts) : buildCityWorld(farming, peoplesStarts);
   const starts = {};
   built.activeNationIds.forEach((id) => { starts[id] = built.nations[id].capitalRegionId; });
   return {

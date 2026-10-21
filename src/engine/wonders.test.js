@@ -26,6 +26,18 @@ describe('wonders as tiles', () => {
     expect(wonderCost(1)).toBe(4 * WONDER_PRODUCTION_PER_TURN);
   });
 
+  it('each Stone wonder can be queued at some capital', () => {
+    const ids = ['eg', 'fr', 'cn', 'in', 'gb', 'de', 'ir', 'br'];
+    ['stonehenge', 'catalhoyuk', 'walls_of_jericho', 'white_temple_of_uruk'].forEach((pid) => {
+      expect(GREAT_PROJECTS[pid].ageId).toBe('stone');
+      const ok = ids.some((n) => {
+        const s = createInitialState({ playerNationId: n, rngSeed: 3 });
+        return canQueueWonder(s, s.regions[getNationCapital(n)], pid, 1).ok;
+      });
+      expect(ok, pid).toBe(true);
+    });
+  });
+
   it('a capital queues the Pyramids on a desert tile, builds them from production, gains prestige, and raises the tier on the same tile', () => {
     let s = quiet(createInitialState({ playerNationId: 'eg', rngSeed: 3 }));
     const capId = getNationCapital('eg');

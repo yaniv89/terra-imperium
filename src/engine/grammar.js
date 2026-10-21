@@ -8,7 +8,7 @@ export const countOf = (n, word, many = `${word}s`) => `${n} ${n === 1 ? word : 
 
 // Last words of a people's or independent's shown name that read as a plural group
 // (src/data/independents.js forms: "the Colchian tribes", "Norse sea raiders", "Rus militias").
-const PLURAL_LAST_WORDS = new Set(['tribes', 'raiders', 'militias', 'pirates', 'corsairs', 'peoples', 'nomads', 'clans', 'horsemen']);
+const PLURAL_LAST_WORDS = new Set(['tribes', 'raiders', 'militias', 'pirates', 'corsairs', 'peoples', 'nomads', 'clans', 'horsemen', 'people']);
 
 /** True when a nation name names a group that takes plural verbs ("the Elamite tribes"). */
 export const isPluralName = (name) => {

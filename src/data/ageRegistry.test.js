@@ -73,9 +73,7 @@ const KEYED = [
 
 // Opt-outs: table name -> { age: reason }.
 const OPT_OUT = {
-  'building tiers': { stone: 'Stone building tiers come in U28' },
-  'government reform tiers': { stone: 'Stone reforms come in U30' },
-  wonders: { stone: 'Stone wonders come in U29' }
+  'building tiers': { stone: 'Stone building tiers come in U28' }
 };
 
 // Tables that cover only some ages by design: unknown keys are still rejected. [keys, reason].
@@ -109,7 +107,7 @@ describe('registry completeness: every per-age table has every age', () => {
       });
       expect(AGES[age].power.attack, `${age} power`).toBeGreaterThan(0);
       expect(AGES[age].unitCostMult, `${age} unitCostMult`).toBeGreaterThan(0);
-      expect(RECRUIT_STRATEGIC_RESOURCE_BY_AGE[age]?.key, `recruit resource ${age}`).toBeTruthy();
+      expect(RECRUIT_STRATEGIC_RESOURCE_BY_AGE, `recruit resource ${age}`).toHaveProperty(age); // null = no metal
     });
   });
 
@@ -120,13 +118,25 @@ describe('registry completeness: every per-age table has every age', () => {
     });
   });
 
+  it('the Stone Age per-age macro tables hold the plan values (Appendix B, U35)', () => {
+    expect(RESEARCH_AGE_BASE.stone).toBe(12);
+    expect(COLONY_SLOTS_BY_AGE.stone).toBe(0);
+    expect(OUTPOST_SLOTS_BY_AGE.stone).toBe(1);
+    expect(NAVAL_KM_BY_AGE.stone).toBe(300);
+    expect(CONTACT_KM.stone).toBe(900);
+    expect(STRIKE_MAX.stone).toBe(6);
+    expect(BORDER_KM_BY_AGE.stone).toBe(204);
+    expect(AI_MAX_STANDING_UNITS_BY_AGE.stone).toBe(4);
+    expect(RECRUIT_STRATEGIC_RESOURCE_BY_AGE.stone).toBeNull();
+  });
+
   it('the building tiers, reform tiers and wonders each cover every age', () => {
     const tierAges = new Set(Object.values(BUILDING_CATEGORIES).flatMap((c) => c.tiers.map((t) => t.age)));
     const reformAges = new Set(Object.values(GOVERNMENT_REFORMS).flatMap((t) => Object.keys(t)));
     const wonderAges = new Set(Object.values(GREAT_PROJECTS).map((p) => p.ageId));
     expect(tableProblems('building tiers', tierAges, OPT_OUT['building tiers'])).toEqual([]);
-    expect(tableProblems('government reform tiers', reformAges, OPT_OUT['government reform tiers'])).toEqual([]);
-    expect(tableProblems('wonders', wonderAges, OPT_OUT.wonders)).toEqual([]);
+    expect(tableProblems('government reform tiers', reformAges)).toEqual([]);
+    expect(tableProblems('wonders', wonderAges)).toEqual([]);
   });
 
   it('every building tier has an icon for its age', () => {

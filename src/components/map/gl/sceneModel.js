@@ -15,7 +15,7 @@ import { cityLatLon, landTilesWithin } from '../../../data/geo/cityFeatures';
 import { hexSizeVsF75 } from '../../../data/geo/gridScale';
 import { getNationColor } from '../../../data/nationColors';
 import { isIndependent, independentPersonality } from '../../../data/independents';
-import { ageOf } from '../../../engine/nationState';
+import { ageOf, getResearched } from '../../../engine/nationState';
 import { wallsOf } from '../../../engine/sieges';
 import { loyaltyOf } from '../../../engine/loyalty';
 import { OUTPOST_DONE, isSettler, MAX_SETTLE_KM } from '../../../engine/settlers';
@@ -214,13 +214,14 @@ export const landSprites = ({ state, projection, k, window, isExplored, lens, cl
   const gdpr = dpr * gs;
   const sized = (art) => [art.w / dpr, art.h / dpr];
   const ageId = ageOf(state, state.playerNationId);
+  const researched = getResearched(state, state.playerNationId);
   within.forEach((t) => {
     // A tribal camp (tribalCamps.js, U26): the camp improvement's glyph on free land.
     if (state.tribalCamps?.[t]) { const ca = glyphArt({ kind: 'improvement', iconUrl: improvementIconUrl('camp'), letter: 'C' }, gdpr); sprites.push({ art: ca, anchor: pointOf(projection, t), size: sized(ca), color: WHITE }); }
     const e = ts[t];
     // A resource nobody knows of yet is not drawn (oil in the Bronze Age: tileYields.resourceKnown, I096).
     const resId = resources && tiles.resourceOf ? tiles.resourceOf(t) : null;
-    const known = resId && resourceKnown(resId, ageId) ? resId : null;
+    const known = resId && resourceKnown(resId, ageId, researched) ? resId : null;
     const nearLand = lens === 'yields' || lens === 'settle' || owner[t] != null || tiles.neighbors[t].some((n) => owner[n] != null);
     // Strategic and luxury resources from the resource zoom; the food and production ones
     // (wheat, cattle, stone: every third tile has one) from the close view, or with the yields or

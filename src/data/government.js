@@ -34,12 +34,20 @@ export const GOVERNMENT_TYPES = {
 
 export const GOVERNMENT_REFORMS = {
   tribal: {
+    stone: [
+      { id: 'council_of_elders', name: 'Council of Elders', description: 'The elders settle disputes before they spread: -1 unrest.', effects: { stabilityBonus: 1 } },
+      { id: 'big_man', name: 'Big Man', description: 'One strong headman leads the clan: +20% manpower.', effects: { hrMult: 0.2 } }
+    ],
     bronze: [
       { id: 'chieftaincy', name: 'Chieftaincy', description: 'Raids on enemy land yield double gold; +1 loyalty in every city.', effects: {}, rules: { pillageGoldMult: 1, loyaltyBonus: 1 } },
       { id: 'warrior_council', name: 'Warrior Council', description: '+20% manpower; morale recovers 10% faster.', effects: { hrMult: 0.2, moraleRecovery: 0.1 } }
     ]
   },
   monarchy: {
+    stone: [
+      { id: 'city_king', name: 'City-King', description: 'A king rules the city and its fields: +1 loyalty in every city.', effects: {}, rules: { loyaltyBonus: 1 } },
+      { id: 'warlord_king', name: 'Warlord King', description: 'A king who won his crown in battle: +25% manpower, +1 unrest.', effects: { hrMult: 0.25, stabilityBonus: -1 } }
+    ],
     bronze: [
       { id: 'despotic_rule', name: 'Despotic Rule', description: '+1 MIL/turn, +1 unrest.', effects: { milBonus: 1, stabilityBonus: -1 } },
       { id: 'divine_kingship', name: 'Divine Kingship', description: 'The king rules by divine will: -1 unrest.', effects: { stabilityBonus: 1 } }
@@ -62,6 +70,9 @@ export const GOVERNMENT_REFORMS = {
     ]
   },
   theocracy: {
+    stone: [
+      { id: 'temple_city', name: 'Temple City', description: 'The temple keeps the stores and the calendar: +10% tech point income.', effects: { techPointsMult: 0.1 } }
+    ],
     bronze: [
       { id: 'temple_state', name: 'Temple State', description: '+1 ADM.', effects: { admBonus: 1 } }
     ],

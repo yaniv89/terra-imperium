@@ -152,6 +152,10 @@ describe('calcNationBalance', () => {
 });
 
 describe('getRecruitUnitCost (plan §M11 resource sink)', () => {
+  it('a Stone Age recruit costs no strategic resource', () => {
+    expect(getRecruitUnitCost({ resources: {} }, 'stone')).toEqual(ACTION_COSTS.recruitUnit);
+  });
+
   it('returns the flat cost unchanged for an age with no strategic-resource mapping', () => {
     expect(getRecruitUnitCost({ resources: {} }, 'unknown_age')).toEqual(ACTION_COSTS.recruitUnit);
   });

@@ -7,7 +7,7 @@
 // kept on the nation (`eraGoals`). The turn a nation entered its age is `nation.ageSince`. The
 // final age is scored once when the ending signal fires (resolveTurn). Pure.
 import { AGES } from '../data/ages';
-import { ERA_GOALS_FOR_LEGACY, ERA_LEGACY_TURNS, PLAYSTYLES, goalsForAge } from '../data/eraGoals';
+import { ERA_GOALS_FOR_LEGACY, ERA_LEGACY_TURNS, PLAYSTYLES, RAID_GOAL_AGES, goalsForAge } from '../data/eraGoals';
 import { addNationModifier } from './modifiers/timed';
 import { msg, sub, thing } from './messages';
 import { ageOf, getResearched } from './nationState';
@@ -23,12 +23,12 @@ export const citiesTakenThisAge = (state, me = state.playerNationId) => {
 
 /** A nation's numbers for every playstyle today (default: the player). Trade agreements are with
  * the player, so an AI nation counts one when it trades with the player. */
-export const playstyleValues = (state, me = state.playerNationId) => {
+export const playstyleValues = (state, me = state.playerNationId, ageId = ageOf(state, me)) => {
   const mine = Object.values(state.regions || {}).filter((c) => c.owner === me);
   return {
     expand: mine.length,
     wealth: me === state.playerNationId ? Object.values(state.nations || {}).filter((n) => n.id !== me && n.hasTradeAgreement).length : (state.nations?.[me]?.hasTradeAgreement ? 1 : 0),
-    war: citiesTakenThisAge(state, me),
+    war: citiesTakenThisAge(state, me) + (RAID_GOAL_AGES.includes(ageId) ? state.nations?.[me]?.battleStats?.raidsWon || 0 : 0),
     culture: Object.values(state.greatProjects || {}).filter((p) => state.regions?.[p.regionId]?.owner === me).length,
     science: getResearched(state, me).length
   };
@@ -36,7 +36,7 @@ export const playstyleValues = (state, me = state.playerNationId) => {
 
 /** The goals of `ageId` (default: the nation's own age) with the nation's progress (default: the player). */
 export const eraGoalProgress = (state, ageId = ageOf(state, state.playerNationId), nationId = state.playerNationId) => {
-  const values = playstyleValues(state, nationId);
+  const values = playstyleValues(state, nationId, ageId);
   const goals = goalsForAge(ageId).map((g) => ({ ...g, value: values[g.id], done: values[g.id] >= g.target }));
   return { ageId, goals, met: goals.filter((g) => g.done).length, needed: ERA_GOALS_FOR_LEGACY };
 };

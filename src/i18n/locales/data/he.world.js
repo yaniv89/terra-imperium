@@ -4,6 +4,14 @@
 // difficulties, identity, rulers' traits, promotions, personas. Machine drafted, for review in H6.
 export default {
   // great projects and wonders (gp.<id>, gp.<id>.desc)
+  'gp.stonehenge': 'סטונהנג׳',
+  'gp.stonehenge.desc': 'טבעת אבנים עומדות העוקבת אחר השמש, נבנית על אדמה שטוחה בכל עיר. +5/10/15% נקודות טכנולוגיה.',
+  'gp.catalhoyuk': 'צ׳טאל הויוק',
+  'gp.catalhoyuk.desc': 'ההתיישבות הגדולה, עיר של בתי בוץ דחוס, נבנית על אדמה שטוחה בכל עיר. +0.2/0.4/0.6% גידול אוכלוסייה לאומי.',
+  'gp.walls_of_jericho': 'חומות יריחו',
+  'gp.walls_of_jericho.desc': 'החומה והמגדל הראשונים מאבן, נבנים ליד נהר בכל עיר. +1/1/2 יציבות.',
+  'gp.white_temple_of_uruk': 'המקדש הלבן של אורוק',
+  'gp.white_temple_of_uruk.desc': 'מקדש מסוייד על גבי מדרגת לבני בוץ, נבנה בבירה שלך. +1/1/2 כוח מנהל בתור.',
   'gp.great_pyramids': 'הפירמידות הגדולות',
   'gp.great_pyramids.desc': 'נבנה בבירה שלך. +1/2/3 יציבות, כתחליף להשפעות הלגיטימיות והרצפה ליציבות שהיה מעניק מתחם קבורה מונומנטלי.',
   'gp.hanging_gardens': 'הגנים התלויים',

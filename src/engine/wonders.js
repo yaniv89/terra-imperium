@@ -29,6 +29,7 @@ export const WONDER_TILE_RULE = {
   great_pyramids: 'desert', hanging_gardens: 'river', great_wall: 'hills', great_library: 'any', colosseum: 'flat', lighthouse: 'coastal',
   grand_bazaar: 'any', great_cathedral: 'any', forbidden_city: 'flat', royal_observatory: 'hills', arsenal: 'coastal', palace_of_versailles: 'flat',
   space_program: 'flat', international_exchange: 'any', atomic_research_center: 'any',
+  stonehenge: 'flat', catalhoyuk: 'flat', walls_of_jericho: 'river', white_temple_of_uruk: 'any',
   solomons_temple: 'hills', masada: 'desert'
 };
 

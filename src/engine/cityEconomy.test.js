@@ -246,10 +246,10 @@ describe('land: the price shown is the price charged (I036, I037, I038)', () => 
 
   it('says that an iron tile gives no iron without a mine', () => {
     const iron = resourceNeed({ resource: 'iron', improvement: null, pillaged: false }, []);
-    expect(iron).toMatchObject({ kind: 'strategic', improvement: 'mine', built: false, needsTech: 'military_bronze_casting' });
+    expect(iron).toMatchObject({ kind: 'strategic', improvement: 'mine', built: false, needsTech: 'military_copper_working' });
     expect(iron.text).toMatch(/gives no iron/);
     expect(iron.text).toMatch(/Mine/);
-    expect(resourceNeed({ resource: 'iron', improvement: 'mine', pillaged: false }, ['military_bronze_casting']).built).toBe(true);
+    expect(resourceNeed({ resource: 'iron', improvement: 'mine', pillaged: false }, ['military_copper_working']).built).toBe(true);
     expect(resourceNeed({ resource: null }, [])).toBeNull();
     expect(resourceNeed({ resource: 'wheat', improvement: null }, []).text).toMatch(/Farm/);
   });

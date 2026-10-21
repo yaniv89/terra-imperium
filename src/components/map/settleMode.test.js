@@ -195,6 +195,11 @@ describe('the site card', () => {
     expect(resourceKnown('coal', 'gunpowder')).toBe(true);
     expect(resourceKnown('wheat', 'bronze')).toBe(true);
     expect(resourceKnown('oil', undefined)).toBe(true);
+    // Stone Age: copper shows after Copper Working, horses after Animal Husbandry (U31)
+    expect(resourceKnown('copper', 'stone', [])).toBe(false);
+    expect(resourceKnown('copper', 'stone', ['military_copper_working'])).toBe(true);
+    expect(resourceKnown('horses', 'stone', ['military_copper_working'])).toBe(false);
+    expect(resourceKnown('horses', 'stone', ['economy_animal_husbandry'])).toBe(true);
     const oil = tiles.land.findIndex((v, t) => v === 1 && tiles.resourceOf(t) === 'oil');
     if (oil >= 0) {
       expect(settleSiteModel(base, oil, 'bronze').resource).toBeNull();

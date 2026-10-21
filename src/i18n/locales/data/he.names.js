@@ -34,7 +34,7 @@ export const HE_TITLE_FIXED = {
 // How a nation's title reads (data/nationTitles.js GOVERNMENT_TITLES): {name} is the people's
 // Hebrew name. Keys are the same government ids; `realm` / `empire`, with plural twins.
 export const HE_GOVERNMENT_TITLES = {
-  tribal: { realm: 'שבטי {name}', empire: 'קונפדרציית {name}' },
+  tribal: { band: 'עם {name}', realm: 'שבטי {name}', empire: 'קונפדרציית {name}' },
   monarchy: { realm: 'ממלכת {name}', empire: 'אימפריית {name}' },
   theocracy: { realm: 'מדינת הקודש של {name}', empire: 'אימפריית הקודש של {name}', pluralRealm: 'ממלכת הקודש של {name}' },
   republic: { realm: 'רפובליקת {name}', empire: 'חבר העמים של {name}' },

@@ -14,11 +14,11 @@ const RECOGNIZED_HOOKS = [
 ];
 
 describe('GREAT_PROJECTS data integrity', () => {
-  it('has exactly 15 world projects, 3 per age, plus national ones tied to a homeland', () => {
+  it('has 19 world projects, 4 in the Stone Age and 3 per later age, plus national ones tied to a homeland', () => {
     const world = Object.values(GREAT_PROJECTS).filter((p) => !p.national);
-    expect(world.length).toBe(15);
-    AGE_ORDER.filter((a) => a !== 'stone').forEach((ageId) => { // Stone wonders: U29
-      expect(world.filter((p) => p.ageId === ageId).length, ageId).toBe(3);
+    expect(world.length).toBe(19);
+    AGE_ORDER.forEach((ageId) => {
+      expect(world.filter((p) => p.ageId === ageId).length, ageId).toBe(ageId === 'stone' ? 4 : 3);
     });
     const national = Object.values(GREAT_PROJECTS).filter((p) => p.national);
     expect(national.map((p) => p.id).sort()).toEqual(['masada', 'solomons_temple']);

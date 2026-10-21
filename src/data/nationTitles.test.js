@@ -6,6 +6,7 @@ import { GOVERNMENT_TYPES } from './government';
 describe('titles by government and size', () => {
   const akkad = PEOPLES.akkad;
   it('reads the decided forms', () => {
+    expect(titleFor(akkad, 'tribal', 0)).toBe('The Akkadian people');
     expect(titleFor(akkad, 'tribal', 1)).toBe('The Akkadian tribes');
     expect(titleFor(akkad, 'monarchy', 3)).toBe('Kingdom of Akkad');
     expect(titleFor(akkad, 'monarchy', EMPIRE_CITY_COUNT)).toBe('The Akkadian Empire');

@@ -56,6 +56,7 @@ import { getTotalDev } from '../engine/development';
 const buildingTier = (region, categoryId) => region?.buildings?.categories?.[categoryId] ?? -1;
 
 export const SITE_RULES = {
+  city: () => true, // Stone wonders: no buildings exist yet; the tile rule (wonders.js) does the work
   capital: (region, regionId) => !!REGIONS_DATA[regionId]?.isCapital,
   capitalWithLibrary: (region, regionId) => !!REGIONS_DATA[regionId]?.isCapital && buildingTier(region, 'science') >= 0,
   irrigation: (region) => buildingTier(region, 'food') >= 1,
@@ -75,6 +76,42 @@ export const SITE_RULES = {
 };
 
 export const GREAT_PROJECTS = {
+  stonehenge: {
+    id: 'stonehenge', name: 'Stonehenge', ageId: 'stone', siteRule: 'city',
+    description: 'A ring of standing stones that tracks the sun, built on flat land in any city. +5/10/15% tech points.',
+    tiers: [
+      { effects: { techPointsMult: 0.05 }, completionPrestige: 10 },
+      { effects: { techPointsMult: 0.1 }, completionPrestige: 20 },
+      { effects: { techPointsMult: 0.15 }, completionPrestige: 30 }
+    ]
+  },
+  catalhoyuk: {
+    id: 'catalhoyuk', name: 'Çatalhöyük', ageId: 'stone', siteRule: 'city',
+    description: 'The Great Settlement, a town of packed mud houses, built on flat land in any city. +0.2/0.4/0.6% national population growth.',
+    tiers: [
+      { effects: { popGrowthBonus: 0.002 }, completionPrestige: 10 },
+      { effects: { popGrowthBonus: 0.004 }, completionPrestige: 20 },
+      { effects: { popGrowthBonus: 0.006 }, completionPrestige: 30 }
+    ]
+  },
+  walls_of_jericho: {
+    id: 'walls_of_jericho', name: 'The Walls of Jericho', ageId: 'stone', siteRule: 'city',
+    description: 'The first stone wall and tower, built by a river in any city. +1/1/2 stability.',
+    tiers: [
+      { effects: { stabilityBonus: 1 }, completionPrestige: 10 },
+      { effects: { stabilityBonus: 1 }, completionPrestige: 20 },
+      { effects: { stabilityBonus: 2 }, completionPrestige: 30 }
+    ]
+  },
+  white_temple_of_uruk: {
+    id: 'white_temple_of_uruk', name: 'The White Temple of Uruk', ageId: 'stone', siteRule: 'capital',
+    description: 'A whitewashed temple on a mud-brick terrace, built at your capital. +1/1/2 Administrative Power per turn.',
+    tiers: [
+      { effects: { admBonus: 1 }, completionPrestige: 10 },
+      { effects: { admBonus: 1 }, completionPrestige: 20 },
+      { effects: { admBonus: 2 }, completionPrestige: 30 }
+    ]
+  },
   great_pyramids: {
     id: 'great_pyramids', name: 'The Great Pyramids', ageId: 'bronze', siteRule: 'capital',
     description: 'Built at your capital. +1/2/3 stability, standing in for the legitimacy/turn and stability-floor effects a monumental tomb complex would ideally grant.',

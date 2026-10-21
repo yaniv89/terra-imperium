@@ -27,12 +27,14 @@ describe('tile yields', () => {
   });
 
   it('gates improvements by tile and tech', () => {
-    expect(canImprove(facts(), 'farm')).toBe(true);
+    expect(canImprove(facts(), 'farm')).toBe(false);
+    expect(canImprove(facts(), 'farm', ['economy_agriculture'])).toBe(true);
     expect(canImprove(facts({ relief: 'hills' }), 'mine')).toBe(false);
-    expect(canImprove(facts({ relief: 'hills' }), 'mine', ['military_bronze_casting'])).toBe(true);
-    expect(canImprove(facts({ terrain: 'desert' }), 'farm')).toBe(false);
-    expect(canImprove(facts({ terrain: 'desert', feature: 'floodplain' }), 'farm')).toBe(true);
-    expect(canImprove(facts({ resource: 'horses' }), 'pasture')).toBe(true);
+    expect(canImprove(facts({ relief: 'hills' }), 'mine', ['military_copper_working'])).toBe(true);
+    expect(canImprove(facts({ terrain: 'desert' }), 'farm', ['economy_agriculture'])).toBe(false);
+    expect(canImprove(facts({ terrain: 'desert', feature: 'floodplain' }), 'farm', ['economy_agriculture'])).toBe(true);
+    expect(canImprove(facts({ resource: 'horses' }), 'pasture')).toBe(false);
+    expect(canImprove(facts({ resource: 'horses' }), 'pasture', ['economy_animal_husbandry'])).toBe(true);
     expect(canImprove(facts({ land: false, terrain: 'coast' }), 'fishing_boats', ['economy_bronze_trade_routes'])).toBe(true);
     Object.values(IMPROVEMENTS).forEach((imp) => expect(typeof imp.allowed).toBe('function'));
   });
