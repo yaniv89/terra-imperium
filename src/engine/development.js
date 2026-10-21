@@ -58,16 +58,19 @@ export const getPopFactor = (region, regionData) => {
   return Math.max(POP_FACTOR_MIN, softCapAbove(ratio, POP_FACTOR_MAX));
 };
 
-// Develop Province (plan §M5's new action): which power pool each development type spends.
-export const DEV_TYPE_POOL = { tax: 'adm', production: 'dip', manpower: 'mil' };
-export const DEV_TYPE_IDS = Object.keys(DEV_TYPE_POOL);
+// Develop Province (plan §M5's new action): the three development types, each bought with gold.
+export const DEV_TYPE_IDS = ['tax', 'production', 'manpower'];
 
 const DEVELOP_PROVINCE_BASE_COST = 50;
 const DEVELOP_PROVINCE_DEV_SCALING = 15;
 
-// The plan's own formula, verbatim: 50 x (1 + totalDev / 15) x (1 + national.developmentCost).
+// Gold per point of the old pool price (differentiation plan U7; U8 tuned it on balance-sim: the AI
+// had developed for free from its pools, so a dearer point starved its rushes and settlers).
+export const DEVELOP_PROVINCE_GOLD_PER_POINT = 0.5;
+
+// The plan's formula in gold: 50 x (1 + totalDev / 15) x (1 + national.developmentCost) x the gold factor.
 export const getDevelopProvinceCost = (region, developmentCostMult = 0) =>
-  Math.round(DEVELOP_PROVINCE_BASE_COST * (1 + getTotalDev(region) / DEVELOP_PROVINCE_DEV_SCALING) * (1 + developmentCostMult));
+  Math.round(DEVELOP_PROVINCE_BASE_COST * DEVELOP_PROVINCE_GOLD_PER_POINT * (1 + getTotalDev(region) / DEVELOP_PROVINCE_DEV_SCALING) * (1 + developmentCostMult));
 
 // +1 development raises currentPopulation by 3% of the modern baseline (plan §M5) — a real,
 // separate growth channel from Population Policy's own per-turn growth-RATE bump.

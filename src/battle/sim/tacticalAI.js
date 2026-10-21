@@ -97,6 +97,11 @@ const densestEnemyCluster = (w, side, enemies) => {
 const decidePowers = (w, side, cfg, mine, enemies, orders) => {
   const ready = (id) => { const st = powerState(w, side, id); return st.available && st.usesLeft > 0 && st.readyAt <= w.tick && w.supply[side] >= POWERS[id].cost; };
   if (ready('rallyCry') && mine.filter((q) => q.morale < 40).length >= 3) { orders.push({ side, type: 'power', power: 'rallyCry', x: 0, y: 0 }); return; }
+  // Ambush (Stone): hide the army where it stands before the lines meet.
+  if (ready('ambush') && mine.length && !mine.some((q) => q.engaged)) {
+    orders.push({ side, type: 'power', power: 'ambush', x: Math.floor(mine.reduce((s, q) => s + q.x, 0) / mine.length), y: Math.floor(mine.reduce((s, q) => s + q.y, 0) / mine.length) });
+    return;
+  }
   const cluster = densestEnemyCluster(w, side, enemies);
   if (!cluster) return;
   const strike = ['airStrike', 'artilleryBarrage', 'arrowStorm'].find(ready);

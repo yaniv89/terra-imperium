@@ -12,6 +12,7 @@
 //                  royal marriage +15, the same lean on an identity axis +5 each
 //   aggressive expansion  -1 per AE point B has in A's eyes above 20
 //   rival          -30; a broken truce -20 while its floor stands; vassalage -10
+//   diplomacy      B's national.opinion modifier (reforms, techs, wonders, ruler, advisor)
 // The AI's war roll multiplies by max(0, (20 - opinion) / 60) (aiLogic.js): with no map reasons
 // this equals the old hostility/100 + 0.2, so a friend never gets a surprise war and an enemy at
 // -40 or less gives a casus belli (diplomacy.js). Pure; cached per (nations, regions, world).
@@ -30,6 +31,7 @@ import {
 } from '../data/opinion';
 import { kinThemeOf } from '../data/peoples';
 import { ageOf } from './nationState';
+import { getModifier } from './modifiers/sheet';
 import { FIRST_AGE_ID } from '../data/ages';
 import { GAVE_US_MAP, SWAPPED_MAPS, SHARED_MAP_FADE_TURNS } from '../data/opinion';
 
@@ -182,6 +184,9 @@ export const opinionReasons = (state, a, b = state.playerNationId) => {
   const posted = b === state.playerNationId ? (B.diplomatTasks || []).find((t) => t.targetId === a && t.task === 'improve_relations') : null;
   if (posted) out.push({ id: 'diplomat', label: 'Your diplomat at our court', value: DIPLOMAT_AT_COURT, detail: `since turn ${posted.startedTurn}` });
   if ((B.rivals || []).includes(a)) out.push({ id: 'rival', label: 'Rival', value: RIVAL });
+  // B's diplomacy (reforms, techs, wonders, its ruler and advisor: national.opinion, KTD5).
+  const charm = getModifier(state, b, 'national.opinion').total;
+  if (charm) out.push({ id: 'diplomacy', label: 'Their diplomacy', value: charm });
   if (b === state.playerNationId && (A.hostilityFloor || 0) >= 40) out.push({ id: 'truce', label: 'Broke a truce', value: BROKEN_TRUCE });
   if (A.vassalOf === b) out.push({ id: 'vassal', label: 'My overlord', value: VASSAL_OF_YOU });
   // A demand of A's that B met (accords.js grantDemand): A thinks better of B while the truce it bought lasts.

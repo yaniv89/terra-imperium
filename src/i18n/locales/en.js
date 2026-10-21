@@ -591,6 +591,8 @@ export default {
   'res.oil': 'Oil',
   'res.rareMetals': 'Rare Metals',
   'res.techPoints': 'Tech Points',
+  'res.decrees': 'Decrees',
+  'res.decrees.desc': 'Decrees: earned by deeds, spent on the great acts of state',
   'res.adm': 'ADM',
   'res.adm.desc': 'Administrative power: laws, reforms, stability and city actions',
   'res.dip': 'DIP',

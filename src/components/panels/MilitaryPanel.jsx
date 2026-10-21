@@ -18,12 +18,13 @@ import { REGIONS_DATA } from '../../data/regions';
 import { ACTION_COSTS, ARMY_MAINTENANCE_MIN, ARMY_MAINTENANCE_MAX, ARMY_MAINTENANCE_DEFAULT } from '../../data/actionCosts';
 import { UNIT_CLASSES } from '../../data/unitClasses';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
-import { canAfford, formatNumber, getFieldedStrength } from '../../utils/helpers';
+import { formatNumber, getFieldedStrength } from '../../utils/helpers';
 import { useEffects } from '../../context/EffectsContext';
 import { describeOutcome, formatMen, sidesFor } from '../battle/battleReportView';
 import { openBattleReport } from '../battle/battleReportEvents';
 import { armySupplySummary } from '../../engine/supplyMeter';
 import { getNationCapital } from '../../data/regions';
+import { canPay } from '../../utils/costs';
 
 const MilitaryPanel = () => {
   useT(); // redraw when the language changes
@@ -37,7 +38,7 @@ const MilitaryPanel = () => {
   const handleSetArmyMaintenance = (value) => dispatch({ type: ActionTypes.SET_ARMY_MAINTENANCE, payload: { value: Number(value) } });
   const handleSetNavyMaintenance = (value) => dispatch({ type: ActionTypes.SET_NAVY_MAINTENANCE, payload: { value: Number(value) } });
   const handleHireGeneral = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.hireGeneral)) return addLog(tNow('ri.notEnough'), 'action');
+    if (!canPay(state, ACTION_COSTS.hireGeneral)) return addLog(tNow('ri.notEnough'), 'action');
     triggerEffect('hire_general', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.HIRE_GENERAL, payload: {} });
   };
@@ -103,7 +104,7 @@ const MilitaryPanel = () => {
       <OfficerCorps
         generals={generals}
         units={state.units}
-        canAffordHire={canAfford(state.resources, ACTION_COSTS.hireGeneral)}
+        canAffordHire={canPay(state, ACTION_COSTS.hireGeneral)}
         onHire={handleHireGeneral}
       />
 

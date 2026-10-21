@@ -116,7 +116,7 @@ describe('government change preview', () => {
     let sawLock = false;
     for (const legitimacy of [0, 20, 35, 50, 70, 100]) {
       for (const stability of [-3, -1, 0, 1, 2, 3]) {
-        const s = { ...base, resources: { ...base.resources, adm: 1000 }, nations: { ...base.nations, [me]: { ...base.nations[me], stability, legitimacy } } };
+        const s = { ...base, nations: { ...base.nations, [me]: { ...base.nations[me], stability, legitimacy, ruler: { ...base.nations[me].ruler, decrees: 3 } } } };
         const pv = previewGovernmentChange(s, target.id);
         const real = gameReducer(s, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: target.id } });
         expect(pv.ok).toBe(true);
@@ -133,7 +133,7 @@ describe('government change preview', () => {
   it('works even when the change is not affordable yet', () => {
     const s = fresh();
     const me = s.playerNationId;
-    const poor = { ...s, resources: { ...s.resources, adm: 0 } };
+    const poor = { ...s, nations: { ...s.nations, [me]: { ...s.nations[me], ruler: { ...s.nations[me].ruler, decrees: 0 } } } };
     const target = getAvailableGovernmentTypes(s.techAgeId, s.nations[me].identity).find((t) => t.id !== s.nations[me].government?.type);
     const pv = previewGovernmentChange(poor, target.id);
     expect(pv.ok).toBe(true);

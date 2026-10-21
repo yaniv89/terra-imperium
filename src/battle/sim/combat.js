@@ -100,7 +100,7 @@ export const elevationMult = (w, a, t) => {
 
 const applyDamage = (w, attacker, target, damage, arc = 0) => {
   loseStrength(target, damage, attacker.stats.melee ? 'melee' : 'ranged');
-  const moraleLoss = Math.round(moraleFromLosses(target, damage) * getPromotionMoraleLossMultiplier(view(target)) * moraleLossMult(w, target) * ARC_MORALE_MULT[arc]);
+  const moraleLoss = Math.round(moraleFromLosses(target, damage) * getPromotionMoraleLossMultiplier(view(target)) * moraleLossMult(w, target) * (target.stats.moraleLoss || 1) * ARC_MORALE_MULT[arc]);
   target.morale = Math.max(0, target.morale - moraleLoss);
   target.lastHitTick = w.tick;
   target.engaged = true;
@@ -137,8 +137,8 @@ export const attackSquad = (w, a, t) => {
   const phase = t.routed ? 'pursuit' : (a.stats.melee ? 'shock' : 'ranged');
   let mult = computeHitMultiplier(view(a), view(t), { ...sideCtx(w, a, t), phase });
   const arc = hitArc(a, t);
-  if (arc === 1) mult *= FLANK_BONUS_MULT;
-  else if (arc === 2) mult *= REAR_BONUS_MULT;
+  if (arc === 1 && !a.stats.noFormation) mult *= FLANK_BONUS_MULT;
+  else if (arc === 2 && !a.stats.noFormation) mult *= REAR_BONUS_MULT;
   if (a.stats.charge && a.movedSinceAttack >= CHARGE_DISTANCE) mult *= CHARGE_BONUS_MULT;
   if (t.routed) mult *= 1 + PURSUIT_EXTRA_LOSS_MULT;
   mult *= damageDealtMult(w, a) * damageTakenMult(w, t, arc);

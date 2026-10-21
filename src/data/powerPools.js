@@ -3,14 +3,12 @@
 // "explain ADM / DIP / MIL and culture points where they are shown"). Read by the resource bar
 // tooltips, the ruler card, the advisor cards and the culture sheet, so the wording lives in one
 // place. No number is typed here: every figure comes from the same constants the engine reads.
-import { BASE_POWER_PER_TURN } from '../utils/helpers';
 import { CULTURE_BASE, CULTURE_PER_SIZE, CULTURE_PER_TIER } from '../engine/world/cities';
 import { t as tNow } from '../i18n/core';
 
 // The texts are getters: they read the current language each time they are used.
 const pool = (id) => ({
   get name() { return tNow(`pool.${id}.name`); },
-  get earns() { return tNow(`pool.${id}.earns`, { base: BASE_POWER_PER_TURN }); },
   get short() { return tNow(`pool.${id}.short`); },
   get spends() { return tNow(`pool.${id}.spends`); }
 });

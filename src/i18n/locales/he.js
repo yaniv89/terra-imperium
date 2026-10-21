@@ -593,6 +593,8 @@ export default {
   'res.oil': 'נפט',
   'res.rareMetals': 'מתכות נדירות',
   'res.techPoints': 'נקודות מחקר',
+  'res.decrees': 'צווים',
+  'res.decrees.desc': 'צווים: נצברים ממעשים גדולים ומוצאים על פעולות מדינה חשובות',
   'res.adm': 'ניהול',
   'res.adm.desc': 'כוח מנהלי: חוקים, רפורמות, יציבות ופעולות בערים',
   'res.dip': "דיפ'",

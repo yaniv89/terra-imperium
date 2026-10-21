@@ -65,7 +65,6 @@ describe('fleet against fleet (plan D5b)', () => {
     if (e) { expect(e.tile).not.toBe(theirs); expect(tiles.land[e.tile]).not.toBe(1); expect(next.units.c?.tile).toBe(e.tile); } // scattered one tile with its cargo
     else expect(next.units.c).toBeUndefined(); // sunk with everything aboard
     expect(next.world.tileState[theirs].battle.outcome).toBe('attacker');
-    expect(next.resources.mil).toBe(war.resources.mil - 2);
     expect(next.logs.at(-1).message).toMatch(/Your fleet beat/);
     assertGameState(next);
     expect(gameReducer(next, { type: ActionTypes.ATTACK_FLEET, payload: { fromTile: ours, tile: theirs } }).units).toEqual(next.units); // no moves left

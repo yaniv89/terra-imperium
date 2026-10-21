@@ -74,7 +74,7 @@ describe('speed per class (U07, I192: every squad at its own pace, Q6)', () => {
 
 describe('the stance contract (U11, I190, I191)', () => {
   it('a pull-back move from under a tower is obeyed at each squad\'s own speed, nobody stops to fight (I190)', () => {
-    const w = world(['infantry', 'ranged', 'siege', 'cavalry'], ['infantry'], { fortLevel: 2 });
+    const w = world(['infantry', 'ranged', 'siege', 'cavalry'], ['infantry'], { fortLevel: 2, attackerAgeId: 'bronze', defenderAgeId: 'bronze' }); // Bronze ground: roads, open plains
     const tower = w.structures.findIndex((s) => s.kind === 'tower' && s.damage > 0);
     expect(tower).toBeGreaterThan(0);
     const t = w.structures[tower];

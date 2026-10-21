@@ -252,7 +252,7 @@ describe('parity with auto-resolve (casualty exchange rate)', () => {
       const { tactical, auto } = exchange(att, def);
       expect(tactical).toBeGreaterThan(auto / 2 - 0.05);
       expect(tactical).toBeLessThan(auto * 3.5 + 0.05);
-    });
+    }, 20000); // 16 battles: about 2 s alone, more under full-suite load
   });
 });
 

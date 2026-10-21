@@ -41,6 +41,8 @@ import { cityManifestOf } from './cityManifest';
 import { getRosterCombatMultiplier } from '../data/unitClasses';
 import { powExact } from '../utils/exactMath';
 import { garrisonOf, resolveCityAttack } from './cityAssault';
+import { siegeHpOf, siegeMaxHp, SIEGE_ENGINEERING_TECH } from './sieges';
+import { getResearched } from './nationState';
 import { FIRST_AGE_ID } from '../data/ages';
 
 export const AUX_UNIT = 1000;
@@ -244,8 +246,12 @@ const autoBattleOf = (state, args, spec, rng, inputs) => {
   // first and never takes the city (garrisonFirst); with none, the attack is against the city
   // itself, its HP, walls, size and militia, and it falls when an attack brings its HP to 0.
   const cityKind = !!cityId && CITY_KINDS.has(kind) && !!state.regions?.[cityId];
-  if (cityKind && !garrisonOf(ins.defenderUnits).length && ins.attackerUnits.some((u) => u.strength > 0)) return resolveCityAttack(state, args, ins, cityId, rng);
-  const fought = autoFromInputs(args, ins, kind, rng);
+  const city = cityKind ? state.regions[cityId] : null;
+  const maxHp = city ? siegeMaxHp(city, state.greatProjects) : 0;
+  const attackerNationId = ins.attackerUnits[0]?.ownerId ?? null;
+  const cityFacts = city && { city, maxHp, hpBefore: Math.min(maxHp, siegeHpOf(city, state.greatProjects)), siegeEngineering: !!attackerNationId && getResearched(state, attackerNationId).includes(SIEGE_ENGINEERING_TECH) };
+  const fought = { ...autoFromInputs(args, { ...ins, cityFacts }, kind, rng), inputs: ins };
+  if (fought.report.cityAttack) return fought;
   const battle = cityKind ? { ...fought, report: { ...fought.report, garrisonFirst: true } } : fought;
   if (!cityId || !ASSAULT_KINDS.has(kind)) return battle;
   // The real city takes its damage as in a commanded battle (row 20 of master plan 6.7).
@@ -261,6 +267,8 @@ const autoBattleOf = (state, args, spec, rng, inputs) => {
  * (.claude/skills/battle-lab/parityEco.sim.js) feeds the same armies to this and to the sim.
  */
 export const autoFromInputs = (args, ins, kind, rng, tune = AUTO_TUNE) => {
+  // Auto against an empty city is an attack on the city itself (cityAssault.js).
+  if (ins.cityFacts && !garrisonOf(ins.defenderUnits).length && ins.attackerUnits.some((u) => u.strength > 0)) return resolveCityAttack(ins.cityFacts, args, ins, rng);
   // A city with no garrison (its militia only) is walked into: no battle economy, no gate held.
   const contested = !ASSAULT_KINDS.has(kind) || ins.defenderUnits.some((u) => !u.militia && u.strength > 0);
   const cityWalled = ASSAULT_KINDS.has(kind) && (ins.walled ?? (args.fortLevel ?? 0) >= WALLS_FORT_LEVEL);

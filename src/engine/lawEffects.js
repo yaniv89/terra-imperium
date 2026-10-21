@@ -25,9 +25,8 @@ const EFFECT_TEXT = {
   stabilityCost: (v) => `${sgn(v)}${Math.abs(pct(v))}% stability cost`,
   popGrowthBonus: (v) => `${sgn(v)}${Math.abs(Math.round(v * 1000) / 10)}% population growth`,
   moraleRecovery: (v) => `morale recovers ${Math.abs(pct(v))}% ${v > 0 ? 'faster' : 'slower'}`,
-  dipBonus: (v) => `${sgn(v)}${Math.abs(v)} DIP a turn`,
-  admBonus: (v) => `${sgn(v)}${Math.abs(v)} ADM a turn`,
-  milBonus: (v) => `${sgn(v)}${Math.abs(v)} MIL a turn`
+  opinion: (v) => `${sgn(v)}${Math.abs(v)} opinion with every nation`,
+  decreePace: () => 'decrees come faster'
 };
 const RULE_TEXT = {
   loyaltyBonus: (v) => `${sgn(v)}${Math.abs(v)} loyalty in every city`,

@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
-  LAW_CATEGORIES, LAW_CATEGORY_IDS, DEFAULT_LAWS, LAW_CHANGE_COOLDOWN_TURNS, getLaw, canEnactLaw, getLawChangeCost, getRequiredTechName
+  LAW_CATEGORIES, LAW_CATEGORY_IDS, DEFAULT_LAWS, LAW_CHANGE_COOLDOWN_TURNS, getLaw, canEnactLaw, getRequiredTechName
 } from './laws';
 import { TECH_TREE } from './techTree';
 
 const RECOGNIZED_HOOKS = [
-  'goldMult', 'hrMult', 'techPointsMult', 'stabilityBonus', 'popGrowthBonus', 'apBonus', 'admBonus',
-  'dipBonus', 'milBonus', 'developmentCost', 'buildingCost', 'researchCost', 'stabilityCost',
+  'goldMult', 'hrMult', 'techPointsMult', 'stabilityBonus', 'popGrowthBonus', 'decreePace', 'opinion',
+  'developmentCost', 'buildingCost', 'researchCost', 'stabilityCost',
   'supplyRange', 'attrition', 'governingCapacity', 'moraleRecovery'
 ];
 
@@ -104,41 +104,6 @@ describe('canEnactLaw', () => {
     const s = state({ lawCooldowns: { taxation: 5 } });
     s.techTree = { economy_minted_coinage: { researched: true } };
     expect(canEnactLaw(s, 'fr', 'taxation', 'land_tax')).toBe(true);
-  });
-});
-
-describe('getLawChangeCost', () => {
-  const state = (nation) => ({ nations: { fr: nation } });
-
-  it('is 50 x tier with no discounts', () => {
-    expect(getLawChangeCost(state({ laws: {}, identity: {} }), 'fr', 'taxation', 'head_tax')).toBe(150); // tier 3
-  });
-
-  it('discounts Religion law changes when the nation leans Religious', () => {
-    const cost = getLawChangeCost(state({ laws: {}, identity: { secularism: 50 } }), 'fr', 'religion', 'established_church');
-    expect(cost).toBe(Math.round(50 * 2 * 0.75));
-  });
-
-  it('discounts Conscription/Land law changes when the nation leans Collectivist', () => {
-    const identity = { collectivism: 50 };
-    expect(getLawChangeCost(state({ laws: {}, identity }), 'fr', 'conscription', 'feudal_levy')).toBe(Math.round(50 * 2 * 0.75));
-    expect(getLawChangeCost(state({ laws: {}, identity }), 'fr', 'land', 'manorialism')).toBe(Math.round(50 * 2 * 0.75));
-  });
-
-  it('discounts Taxation/Trade law changes when the nation leans Individualist', () => {
-    const identity = { collectivism: -50 };
-    expect(getLawChangeCost(state({ laws: {}, identity }), 'fr', 'taxation', 'land_tax')).toBe(Math.round(50 * 2 * 0.75));
-  });
-
-  it('stacks a lawCostMult reform on top of an identity discount', () => {
-    const nation = { laws: {}, identity: { secularism: 50 }, government: { type: 'monarchy', reforms: { gunpowder: 'parliamentary_monarchy' } } };
-    // Parliamentary Monarchy: -50% + Religious: -25% = 0.25x
-    expect(getLawChangeCost(state(nation), 'fr', 'religion', 'established_church')).toBe(Math.round(50 * 2 * 0.25));
-  });
-
-  it('never goes negative', () => {
-    const nation = { laws: {}, identity: { secularism: 50 }, government: { type: 'monarchy', reforms: { gunpowder: 'parliamentary_monarchy', modern: 'constitutional_monarchy' } } };
-    expect(getLawChangeCost(state(nation), 'fr', 'religion', 'established_church')).toBeGreaterThanOrEqual(0);
   });
 });
 

@@ -119,7 +119,7 @@ describe('per-item production progress (I046, I047)', () => {
 });
 
 describe('bought development lasts (I031)', () => {
-  const develop = (s, id, devType) => gameReducer({ ...s, resources: { ...s.resources, adm: 9999, dip: 9999, mil: 9999 } }, { type: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: id, devType } });
+  const develop = (s, id, devType) => gameReducer({ ...s, resources: { ...s.resources, gold: 99999 } }, { type: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: id, devType } });
 
   it('survives turn resolution: every type still counts five turns later', () => {
     const id = paris();

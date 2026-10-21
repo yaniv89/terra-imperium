@@ -187,7 +187,7 @@ export default {
   'm.act.spyUnrest': 'סוכניכם עוררו תסיסה ב{city}.',
   'm.act.spyTech': 'סוכניכם גנבו סודות טכנולוגיים מ{nation}. +{n} נקודות טכנולוגיה.',
   'm.act.spyCaught': 'המרגלים שלכם נתפסו ב{nation}! היחסים החמיצו.',
-  'm.act.counterIntel': 'שירות הביון הנגדי שלכם חשף מזימה של {nation}. העוינות פחתה, +{n} דיפלומטיה.',
+  'm.act.counterIntel': 'שירות הביון הנגדי שלכם חשף מזימה של {nation}. העוינות פחתה.',
   'm.act.rival': '{nation} נחשבת כעת ליריבה.',
   'm.act.royalMarriage': 'נישואי מלוכה קושרים את ביתכם אל {nation}.',
   'm.act.allianceBroken': 'הפרתם את הברית הצבאית עם {nation}.',

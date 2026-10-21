@@ -82,6 +82,7 @@ export const EFFECT_REGISTRY = {
   rival_nation: { scene: 'hostility', palette: P('#f97316', '#ffedd5') },
   assign_diplomat: { scene: 'envoy', palette: P('#0ea5e9', '#e0f2fe'), label: 'Diplomat assigned' },
   vassalize: { scene: 'vassalize', palette: P('#7c3aed', '#ede9fe') },
+  annex_vassal: { scene: 'vassalize', palette: P('#7c3aed', '#ede9fe'), label: 'Vassal annexed' },
 
   // ---- spectacle ----
   cultural_export: { scene: 'culture', palette: P('#f472b6', '#fce7f3') },

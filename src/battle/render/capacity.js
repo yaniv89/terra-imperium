@@ -6,6 +6,7 @@
 // drawing past the 64th squad, which a 300-a-side battle passes at once.
 import { getUnitBattleStats, getBattleStats } from '../data/battleStats';
 import { POP_LIMIT, trainableRoles } from '../data/economy';
+import { guardClassOf } from '../../data/unitClasses';
 
 export const MIN_SQUAD_SLOTS = 64;
 export const MIN_SOLDIER_SLOTS = 640;
@@ -15,7 +16,7 @@ const unitsOf = (side) => [...(side.units || []), ...(side.reinforcements || [])
 
 // A battle with an economy (phase R1) can train up to its population limit a side on top.
 const ecoSquads = (setup) => (setup.economy ? (setup.sides || []).length * POP_LIMIT : 0);
-// A general takes the field as its own cavalry guard squad (phase R3, sim/world.js spawnGenerals):
+// A general takes the field as its own guard squad (cavalry; Stone: infantry) (phase R3, sim/world.js spawnGenerals):
 // one per general commanding a unit of the side.
 const generalsOf = (setup, side) => new Set((side.units || []).filter((u) => u.commanderId && setup.generals?.[u.commanderId]).map((u) => u.commanderId)).size;
 export const squadSlots = (setup) => Math.max(MIN_SQUAD_SLOTS, (setup.sides || []).reduce((n, s) => n + unitsOf(s).length + generalsOf(setup, s), 0) + ecoSquads(setup));
@@ -25,7 +26,7 @@ export const soldierSlots = (setup, ageId, classId) => {
   (setup.sides || []).forEach((s) => {
     if (s.ageId !== ageId) return;
     unitsOf(s).forEach((u) => { if (u.classId === classId) n += getUnitBattleStats(u, ageId).soldiers; });
-    if (classId === 'cavalry') n += generalsOf(setup, s) * getBattleStats('cavalry', ageId).soldiers;
+    if (classId === guardClassOf(ageId)) n += generalsOf(setup, s) * getBattleStats(classId, ageId).soldiers;
     // Trained squads and workers (the battle economy): room for a whole population of this class.
     if (setup.economy && trainableRoles(ageId).includes(classId)) n += POP_LIMIT * getBattleStats(classId, ageId).soldiers;
   });

@@ -136,7 +136,7 @@ const PROCEDURAL_TEMPLATES = [
       description: `${city.name} grows rich on trade, its harbours crowded with foreign ships eager to do business.`,
       options: [
         { label: 'Tax the merchants heavily', effects: { gold: 120 } },
-        { label: 'Keep tariffs low to keep them coming back', effects: { gold: 50, dip: 10 } }
+        { label: 'Keep tariffs low to keep them coming back', effects: { gold: 100 } }
       ]
     })
   },
@@ -182,7 +182,7 @@ const PROCEDURAL_TEMPLATES = [
         title: 'A General Grows Ambitious',
         description: `${general.name}, flush with recent victories, begins courting favor among the officer corps — a loyal commander, or the seed of a future rival?`,
         options: [
-          { label: 'Reward their loyalty publicly', effects: { gold: -100, dip: 10 } },
+          { label: 'Reward their loyalty publicly', effects: { gold: -100, prestige: 10 } },
           { label: 'Quietly reassign them to a distant post', effects: { gold: -30, controlPenalty: 5 } }
         ]
       };
@@ -227,7 +227,7 @@ const PROCEDURAL_TEMPLATES = [
       title: 'A Foreign Quarter',
       description: `Most of ${city.name} speaks another tongue and keeps another law; its elders ask who really rules them.`,
       options: [
-        { label: 'Grant them their customs and a seat in council', effects: { cityLoyalty: 15, dip: -5 } },
+        { label: 'Grant them their customs and a seat in council', effects: { cityLoyalty: 15, gold: -25 } },
         { label: 'Garrison the quarter and tax it', effects: { gold: 60, cityLoyalty: -10, cityUnrest: 5 } }
       ]
     })

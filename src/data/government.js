@@ -4,22 +4,21 @@
 // reaches each age, and every tier it has picked stays in effect (they stack, they don't replace one
 // another). `nation.government = { type, reforms: { [ageId]: reformId } }` replaces the old flat id.
 //
-// Changing TYPE (CHANGE_GOVERNMENT_TYPE) costs 300 ADM and -2 stability, and resets every reached
+// Changing TYPE (CHANGE_GOVERNMENT_TYPE) costs 2 decrees and -2 stability, and resets every reached
 // age tier to the new type's first reform choice (resetReformsForType) — the plan's own "a real cost
 // of switching, not just a formality". Enacting a REFORM for the current age tier
-// (ENACT_GOVERNMENT_REFORM) costs 100 ADM and can only be done once per tier (it locks in).
+// (ENACT_GOVERNMENT_REFORM) costs 1 decree and can only be done once per tier (it locks in).
 //
 // Every reform's `effects` uses the same LEGACY_HOOK vocabulary techs/buildings/traits already do,
 // wherever the plan's own described effect maps onto a real, consumed hook. A reform whose plan text
 // names a system that doesn't exist yet (raiding/cohesion, combat morale, election-candidate choice,
 // trade pact capacity, casus belli, espionage defense) is left with no entry for that part — still
 // real flavor and a real age-gated choice, just not a faked modifier.
-// Several reforms use raw (non-LEGACY_HOOK) keys consumed directly by name rather than through the
-// modifier engine, because they aren't economic multipliers: `lawCostMult` (read by
-// src/data/laws.js's getLawChangeCost through getGovernmentReformEffectSum below). The estates and
+// The old pool bonuses are now decreePace (decrees come faster), opinion and hrMult (differentiation
+// plan KTD5; the old lawCostMult discounts became decreePace too). The estates and
 // succession keys (estateLoyalty, estateInfluence, heirClaimBonus, successionLegitimacyPenalty) went
 // with those systems (master plan decision 37); a reform that only had them now carries a small
-// stability or DIP bonus instead, under the same id so saves keep it.
+// stability or opinion bonus instead, under the same id so saves keep it.
 import { getAgeIndex } from './ages';
 import { leansPositive } from './identity';
 
@@ -49,24 +48,24 @@ export const GOVERNMENT_REFORMS = {
       { id: 'warlord_king', name: 'Warlord King', description: 'A king who won his crown in battle: +25% manpower, +1 unrest.', effects: { hrMult: 0.25, stabilityBonus: -1 } }
     ],
     bronze: [
-      { id: 'despotic_rule', name: 'Despotic Rule', description: '+1 MIL/turn, +1 unrest.', effects: { milBonus: 1, stabilityBonus: -1 } },
+      { id: 'despotic_rule', name: 'Despotic Rule', description: '+5% manpower, +1 unrest.', effects: { hrMult: 0.05, stabilityBonus: -1 } },
       { id: 'divine_kingship', name: 'Divine Kingship', description: 'The king rules by divine will: -1 unrest.', effects: { stabilityBonus: 1 } }
     ],
     classical: [
       { id: 'feudal_nobility', name: 'Feudal Nobility', description: '+30% manpower.', effects: { hrMult: 0.3 } },
-      { id: 'imperial_bureaucracy', name: 'Imperial Bureaucracy', description: '+10 governing capacity, +1 ADM/turn.', effects: { governingCapacity: 10, admBonus: 1 } }
+      { id: 'imperial_bureaucracy', name: 'Imperial Bureaucracy', description: '+10 governing capacity; decrees come faster.', effects: { governingCapacity: 10, decreePace: 1 } }
     ],
     kingdoms: [
       { id: 'hereditary_primogeniture', name: 'Hereditary Primogeniture', description: 'A settled royal line: -1 unrest.', effects: { stabilityBonus: 1 } },
-      { id: 'elective_monarchy', name: 'Elective Monarchy', description: 'The great houses elect each new king: +1 DIP/turn.', effects: { dipBonus: 1 } }
+      { id: 'elective_monarchy', name: 'Elective Monarchy', description: 'The great houses elect each new king: +2 opinion with every nation.', effects: { opinion: 2 } }
     ],
     gunpowder: [
-      { id: 'absolutism', name: 'Absolutism', description: '+1 ADM; a firm hand keeps order in the cities.', effects: { admBonus: 1 } },
-      { id: 'parliamentary_monarchy', name: 'Parliamentary Monarchy', description: 'Law changes cost 50% less ADM; +1 DIP.', effects: { dipBonus: 1, lawCostMult: -0.5 } }
+      { id: 'absolutism', name: 'Absolutism', description: 'Decrees come faster; a firm hand keeps order in the cities.', effects: { decreePace: 1 } },
+      { id: 'parliamentary_monarchy', name: 'Parliamentary Monarchy', description: 'Decrees come much faster; +2 opinion with every nation.', effects: { opinion: 2, decreePace: 2 } }
     ],
     modern: [
       { id: 'constitutional_monarchy', name: 'Constitutional Monarchy', description: '+10% tax; a steady throne keeps the realm calm.', effects: { goldMult: 0.1 } },
-      { id: 'autocratic_monarchy', name: 'Autocratic Monarchy', description: '+2 MIL/turn, +2 unrest; -20 opinion with democracies.', effects: { milBonus: 2, stabilityBonus: -2 } }
+      { id: 'autocratic_monarchy', name: 'Autocratic Monarchy', description: '+10% manpower, +2 unrest; -20 opinion with democracies.', effects: { hrMult: 0.1, stabilityBonus: -2 } }
     ]
   },
   theocracy: {
@@ -74,7 +73,7 @@ export const GOVERNMENT_REFORMS = {
       { id: 'temple_city', name: 'Temple City', description: 'The temple keeps the stores and the calendar: +10% tech point income.', effects: { techPointsMult: 0.1 } }
     ],
     bronze: [
-      { id: 'temple_state', name: 'Temple State', description: '+1 ADM.', effects: { admBonus: 1 } }
+      { id: 'temple_state', name: 'Temple State', description: 'Decrees come faster.', effects: { decreePace: 1 } }
     ],
     classical: [
       { id: 'priest_kings', name: 'Priest-Kings', description: 'Devotion +1/turn (folded into legitimacy gain automatically); -1 unrest.', effects: { stabilityBonus: 1 } },
@@ -85,7 +84,7 @@ export const GOVERNMENT_REFORMS = {
       { id: 'monastic_state', name: 'Monastic State', description: '+20% pop growth; +10% tech point income.', effects: { popGrowthBonus: 0.004, techPointsMult: 0.1 } }
     ],
     gunpowder: [
-      { id: 'ecclesiastical_absolutism', name: 'Ecclesiastical Absolutism', description: '+1 ADM; -10% stability cost.', effects: { admBonus: 1, stabilityCost: -0.1 } }
+      { id: 'ecclesiastical_absolutism', name: 'Ecclesiastical Absolutism', description: 'Decrees come faster; -10% stability cost.', effects: { decreePace: 1, stabilityCost: -0.1 } }
     ],
     modern: [
       { id: 'theocratic_republic', name: 'Theocratic Republic', description: 'Faith steadies the realm; secular nations think less of you (-15 opinion).', effects: {} }
@@ -93,7 +92,7 @@ export const GOVERNMENT_REFORMS = {
   },
   republic: {
     classical: [
-      { id: 'oligarchic_republic', name: 'Oligarchic Republic', description: 'Elections every 8 turns; +1 DIP.', effects: { dipBonus: 1 } },
+      { id: 'oligarchic_republic', name: 'Oligarchic Republic', description: 'Elections every 8 turns; +2 opinion with every nation.', effects: { opinion: 2 } },
       { id: 'merchant_republic', name: 'Merchant Republic', description: '+25% income; +2 gold per trade pact.', effects: { goldMult: 0.25 }, rules: { tradeGoldPerRoute: 2 } }
     ],
     kingdoms: [
@@ -102,17 +101,17 @@ export const GOVERNMENT_REFORMS = {
     ],
     gunpowder: [
       { id: 'federal_republic', name: 'Dutch-style Federal Republic', description: '+20 governing capacity; vassals -50% liberty desire.', effects: { governingCapacity: 20 } },
-      { id: 'revolutionary_republic', name: 'Revolutionary Republic', description: '+20% manpower, +1 MIL; -10 opinion with monarchies.', effects: { hrMult: 0.2, milBonus: 1 } }
+      { id: 'revolutionary_republic', name: 'Revolutionary Republic', description: '+25% manpower; -10 opinion with monarchies.', effects: { hrMult: 0.25 } }
     ],
     modern: [
-      { id: 'parliamentary_democracy', name: 'Parliamentary Democracy', description: '+2 DIP; law changes cost 25% less ADM; a stable, orderly state.', effects: { dipBonus: 2, lawCostMult: -0.25 } },
-      { id: 'presidential_republic', name: 'Presidential Republic', description: '+1 ADM/DIP/MIL; a strong elected head of state.', effects: { admBonus: 1, dipBonus: 1, milBonus: 1 } }
+      { id: 'parliamentary_democracy', name: 'Parliamentary Democracy', description: '+4 opinion with every nation; decrees come faster; a stable, orderly state.', effects: { opinion: 4, decreePace: 1 } },
+      { id: 'presidential_republic', name: 'Presidential Republic', description: 'Decrees come faster, +2 opinion with every nation, +5% manpower; a strong elected head of state.', effects: { decreePace: 1, opinion: 2, hrMult: 0.05 } }
     ]
   },
   dictatorship: {
     modern: [
-      { id: 'military_junta', name: 'Military Junta', description: '+2 MIL; morale recovers 20% faster; war exhaustion rises 20% slower.', effects: { milBonus: 2, moraleRecovery: 0.2 }, rules: { warExhaustionMult: -0.2 } },
-      { id: 'one_party_state', name: 'One-Party State', description: '+2 ADM; +3 unrest; secret police (+50% espionage defense).', effects: { admBonus: 2, stabilityBonus: -3 } }
+      { id: 'military_junta', name: 'Military Junta', description: '+10% manpower; morale recovers 20% faster; war exhaustion rises 20% slower.', effects: { hrMult: 0.1, moraleRecovery: 0.2 }, rules: { warExhaustionMult: -0.2 } },
+      { id: 'one_party_state', name: 'One-Party State', description: 'Decrees come much faster; +3 unrest; secret police (+50% espionage defense).', effects: { decreePace: 2, stabilityBonus: -3 } }
     ]
   }
 };
@@ -141,10 +140,6 @@ export const getActiveReforms = (nation) => {
     .filter(Boolean);
 };
 
-// Sums a RAW (non-LEGACY_HOOK) numeric effect field across every active reform — for the handful of
-// reform effects that aren't economic modifiers (lawCostMult, read by laws.js).
-export const getGovernmentReformEffectSum = (nation, key) =>
-  getActiveReforms(nation).reduce((sum, reform) => sum + (reform.effects?.[key] || 0), 0);
 
 export const canChangeGovernmentType = (nation, newTypeId, nationAgeId, phase = null) => {
   const type = GOVERNMENT_TYPES[newTypeId];

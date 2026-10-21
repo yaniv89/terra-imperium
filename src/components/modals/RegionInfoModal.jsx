@@ -21,7 +21,7 @@ import { isIndependentNation, PERSONALITIES } from '../../data/independents';
 import IndependentCityCard from '../independents/IndependentCityCard';
 import RazeControl from './RazeControl';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
-import { canAfford, formatNumber, getControlColor, getRelationColor, getFieldedStrength, getDisplayPopulation, getStability, getSupplyCapacity } from '../../utils/helpers';
+import { formatNumber, getControlColor, getRelationColor, getFieldedStrength, getDisplayPopulation, getStability, getSupplyCapacity } from '../../utils/helpers';
 import { categoryTierName, extractionName, wonderName, terrainWord, buildingCategoryLabel, unitClassName, resourceName, independentKindName } from '../../i18n/gameText';
 import { BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, EXTRACTION_BUILDINGS, getBuildingSlots, getUsedBuildingSlots } from '../../data/buildings';
 import { UNIT_CLASSES } from '../../data/unitClasses';
@@ -66,6 +66,7 @@ import { reasonText } from '../../i18n/messageText';
 import { msgRefText } from '../battle/battleText';
 import { t as tNow, hasKey } from '../../i18n/core';
 import { ageOf } from '../../engine/nationState';
+import { canPay } from '../../utils/costs';
 // a nation's name in the current language (a people's title, or an independent's form)
 const pn = (n, id = n?.id) => (n ? nameNow('people', id, n.name) : undefined);
 const isReachable = (fromRegionId, toRegionId, age) =>
@@ -243,13 +244,13 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
     setLandingChoice(navalUnitId);
   };
   const handleNavalEngagement = (fromRegionId) => {
-    if (!canAfford(state.resources, ACTION_COSTS.navalEngagement)) return addLog(t('ri.notEnough'), 'action');
+    if (!canPay(state, ACTION_COSTS.navalEngagement)) return addLog(t('ri.notEnough'), 'action');
     triggerEffect('naval_engagement', { from: fromRegionId, to: regionId });
     dispatch({ type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId, targetRegionId: regionId } });
   };
   const handleDeclareWar = () => {
     if (warBlockedReason) return addLog(warBlockedReason, 'action');
-    if (!canAfford(state.resources, declareWarCosts)) return addLog(t('ri.notEnoughWar'), 'action');
+    if (!canPay(state, declareWarCosts)) return addLog(t('ri.notEnoughWar'), 'action');
     // Two taps: the card shows the cost and the opinion hit first (H-08).
     const nationId = ownerNation.id;
     askConfirm(declareWarConfirm(state, nationId), () => {
@@ -258,12 +259,12 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
     });
   };
   const handleGatherIntel = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.espionage)) return addLog(t('ri.notEnough'), 'action');
+    if (!canPay(state, ACTION_COSTS.espionage)) return addLog(t('ri.notEnough'), 'action');
     triggerEffect('espionage', { from: getCapital(state, state.playerNationId), to: regionId });
     dispatch({ type: ActionTypes.ESPIONAGE, payload: { nationId: regionState.owner, type: 'gather_intel' } });
   };
   const handleSettleColonize = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.settleColonize)) return addLog(t('ri.notEnough'), 'action');
+    if (!canPay(state, ACTION_COSTS.settleColonize)) return addLog(t('ri.notEnough'), 'action');
     triggerEffect('settle_colonize', { region: regionId });
     dispatch({ type: ActionTypes.SETTLE_COLONIZE, payload: { regionId } });
   };
@@ -440,7 +441,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
                 </div>
                 {!kind && !pending && can.ok && (
                   <ActionButton icon={Target} label={t('ri.fabricate', { city: nameNow('city', null, regionState.name) })} description={turnsOf(CLAIM_FABRICATE_TURNS)} costs={ACTION_COSTS.fabricateClaim}
-                    onClick={() => dispatch({ type: ActionTypes.FABRICATE_CLAIM, payload: { cityId: regionId } })} disabled={!canAfford(state.resources, ACTION_COSTS.fabricateClaim)} size="small" />
+                    onClick={() => dispatch({ type: ActionTypes.FABRICATE_CLAIM, payload: { cityId: regionId } })} disabled={!canPay(state, ACTION_COSTS.fabricateClaim)} size="small" />
                 )}
               </div>
             );
@@ -457,7 +458,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
                 description={warBlockedReason || (warJustified ? t('ri.causeYes') : t('ri.causeNo'))}
                 costs={declareWarCosts}
                 onClick={handleDeclareWar}
-                disabled={!!warBlockedReason || !canAfford(state.resources, declareWarCosts)}
+                disabled={!!warBlockedReason || !canPay(state, declareWarCosts)}
                 variant="danger"
                 size="small"
               />
@@ -511,7 +512,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               description={t('ri.contest', { count: defendingNavalUnits.length })}
               costs={ACTION_COSTS.navalEngagement}
               onClick={() => handleNavalEngagement(srcId)}
-              disabled={!canAfford(state.resources, ACTION_COSTS.navalEngagement)}
+              disabled={!canPay(state, ACTION_COSTS.navalEngagement)}
               variant="danger"
               size="small"
             />
@@ -523,7 +524,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               description={t('ri.settleDesc', { who: regionOwner && !regionOwner.isEliminated ? t('ri.rebelsHold') : t('ri.noOneGoverns'), control: Math.round(regionState.control) })}
               costs={ACTION_COSTS.settleColonize}
               onClick={handleSettleColonize}
-              disabled={!canAfford(state.resources, ACTION_COSTS.settleColonize)}
+              disabled={!canPay(state, ACTION_COSTS.settleColonize)}
               size="small"
             />
           )}
@@ -570,7 +571,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             description={t('ri.gatherDesc', { nation: pn(ownerNation) || t('ri.thisNation'), p: Math.round(ESPIONAGE_SUCCESS_CHANCE * 100), n: INTEL_DURATION_TURNS })}
             costs={ACTION_COSTS.espionage}
             onClick={handleGatherIntel}
-            disabled={!canAfford(state.resources, ACTION_COSTS.espionage)}
+            disabled={!canPay(state, ACTION_COSTS.espionage)}
             resources={state.resources}
             size="small"
           />
