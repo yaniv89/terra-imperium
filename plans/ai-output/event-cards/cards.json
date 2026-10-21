@@ -1,0 +1,528 @@
+{
+  "failed": [],
+  "rejected": [],
+  "cards": {
+    "ai_americas_shicra_platform_mounds": {
+      "id": "ai_americas_shicra_platform_mounds",
+      "year": -2600,
+      "ageId": "stone",
+      "theme": "americas",
+      "subject": {
+        "kind": "city",
+        "name": "Caral"
+      },
+      "title": "Mounds of Woven Stone",
+      "description": "Your builders fill reed bags called shicra with stones and stack them into great platform mounds. Each terrace takes thousands of hands away from the fields and nets.",
+      "options": [
+        {
+          "label": "Raise the great mound higher",
+          "effects": {
+            "hr": -40,
+            "controlBonus": 10
+          }
+        },
+        {
+          "label": "Send the workers back to the cotton fields",
+          "effects": {
+            "gold": 60,
+            "controlPenalty": 5
+          }
+        }
+      ]
+    },
+    "ai_americas_bone_flutes_ritual": {
+      "id": "ai_americas_bone_flutes_ritual",
+      "year": -2500,
+      "ageId": "stone",
+      "theme": "americas",
+      "subject": {
+        "kind": "ruler",
+        "name": "Quilla"
+      },
+      "title": "Flutes of Condor Bone",
+      "description": "Craftsmen carve flutes from condor and pelican bones, and their music fills the sunken plaza at the rites. Quilla must decide who may hear them.",
+      "options": [
+        {
+          "label": "Play them for all at the plaza",
+          "effects": {
+            "gold": -30,
+            "controlBonus": 8
+          }
+        },
+        {
+          "label": "Keep the flutes for the priests alone",
+          "effects": {
+            "techPoints": 15,
+            "controlPenalty": 4
+          }
+        },
+        {
+          "label": "Gift flutes to the coastal fishers",
+          "effects": {
+            "diplomacyPoints": 15,
+            "gold": -20
+          }
+        }
+      ]
+    },
+    "ai_americas_highland_maize": {
+      "id": "ai_americas_highland_maize",
+      "year": -4300,
+      "ageId": "stone",
+      "theme": "americas",
+      "subject": {
+        "kind": "people",
+        "name": "Zapotec"
+      },
+      "title": "The Small Cobs",
+      "description": "In the caves and valleys of Oaxaca, your gatherers plant the wild grass whose cobs grow a little larger each season. Planting it means staying put.",
+      "options": [
+        {
+          "label": "Sow the grass and settle the valley",
+          "effects": {
+            "techPoints": 20,
+            "hr": -20
+          }
+        },
+        {
+          "label": "Keep moving with the seasons",
+          "effects": {
+            "hr": 20,
+            "controlPenalty": 3
+          }
+        }
+      ]
+    },
+    "ai_americas_old_copper_lakes": {
+      "id": "ai_americas_old_copper_lakes",
+      "year": -3500,
+      "ageId": "stone",
+      "theme": "americas",
+      "subject": {
+        "kind": "people",
+        "name": "Hopewell"
+      },
+      "title": "Copper of the Lakes",
+      "description": "Traders bring pure copper nuggets from the shores of the great northern lakes, hammered cold into points and awls. The journey is long and the strangers there are wary.",
+      "options": [
+        {
+          "label": "Send a party north for copper",
+          "effects": {
+            "copper": 60,
+            "hr": -15
+          }
+        },
+        {
+          "label": "Trade furs for finished tools",
+          "effects": {
+            "gold": -40,
+            "militaryStrengthBonus": 10
+          }
+        }
+      ]
+    },
+    "ai_americas_herding_llama": {
+      "id": "ai_americas_herding_llama",
+      "year": -4000,
+      "ageId": "stone",
+      "theme": "americas",
+      "subject": {
+        "kind": "people",
+        "name": "Tiwanaku"
+      },
+      "title": "Taming the Llama",
+      "description": "On the high grasslands near Lake Titicaca, hunters begin penning the wild guanaco and vicuña instead of killing them. A herd feeds a family for years, but it must be guarded.",
+      "options": [
+        {
+          "label": "Pen the herds and guard them",
+          "effects": {
+            "gold": 50,
+            "defenseBonus": -0.05
+          }
+        },
+        {
+          "label": "Keep hunting the wild flocks",
+          "effects": {
+            "militaryStrengthBonus": 10,
+            "gold": -20
+          }
+        }
+      ]
+    },
+    "ai_americas_arctic_small_tools": {
+      "id": "ai_americas_arctic_small_tools",
+      "year": -2400,
+      "ageId": "stone",
+      "theme": "americas",
+      "subject": {
+        "kind": "people",
+        "name": "Dorset"
+      },
+      "title": "Into the Ice Lands",
+      "description": "Bands with tiny, finely chipped stone blades push east across the Arctic, following seal and musk ox. The new coasts are rich but the winters are deadly.",
+      "options": [
+        {
+          "label": "Follow the bands to Igloolik",
+          "effects": {
+            "hr": 25,
+            "controlPenalty": 5
+          }
+        },
+        {
+          "label": "Stay on known hunting grounds",
+          "effects": {
+            "defenseBonus": 0.05,
+            "gold": -15
+          }
+        }
+      ]
+    },
+    "ai_americas_shell_midden_pottery": {
+      "id": "ai_americas_shell_midden_pottery",
+      "year": -4800,
+      "ageId": "stone",
+      "theme": "americas",
+      "subject": {
+        "kind": "people",
+        "name": "Marajoara"
+      },
+      "title": "Clay by the River",
+      "description": "Along the lower Amazon, people who live on great mounds of river shells learn to fire clay into pots tempered with crushed shell. The craft needs fuel and patient hands.",
+      "options": [
+        {
+          "label": "Teach the potters' craft widely",
+          "effects": {
+            "techPoints": 15,
+            "gold": -25
+          }
+        },
+        {
+          "label": "Trade pots to upriver bands",
+          "effects": {
+            "diplomacyPoints": 10,
+            "hr": -10
+          }
+        }
+      ]
+    },
+    "ai_americas_shell_rings": {
+      "id": "ai_americas_shell_rings",
+      "year": -2800,
+      "ageId": "stone",
+      "theme": "americas",
+      "subject": {
+        "kind": "people",
+        "name": "Calusa"
+      },
+      "title": "Rings of Shell",
+      "description": "On the islands of the southwest Florida coast, your people heap oyster and conch shells into great rings around a shared plaza. Feasts there draw neighbors, and their quarrels.",
+      "options": [
+        {
+          "label": "Hold great feasts in the ring",
+          "effects": {
+            "diplomacyPoints": 15,
+            "gold": -30
+          }
+        },
+        {
+          "label": "Wall the ring against raiders",
+          "effects": {
+            "defenseBonus": 0.1,
+            "hr": -20
+          }
+        }
+      ]
+    },
+    "ai_eastafrica_painted_cattle_shelters": {
+      "id": "ai_eastafrica_painted_cattle_shelters",
+      "year": -3000,
+      "ageId": "stone",
+      "theme": "eastafrica",
+      "subject": {
+        "kind": "people",
+        "name": "Ajuran"
+      },
+      "title": "Cattle on the Rock",
+      "description": "Your herders paint their long-horned cattle in red and white on the walls of rock shelters, but the grazing near the shelters grows thin.",
+      "options": [
+        {
+          "label": "Stay and honor the painted herds",
+          "effects": {
+            "techPoints": 10,
+            "gold": -20
+          }
+        },
+        {
+          "label": "Drive the herds to fresh pasture",
+          "effects": {
+            "gold": 40,
+            "controlPenalty": 4
+          }
+        }
+      ]
+    },
+    "ai_eastafrica_herders_from_the_north": {
+      "id": "ai_eastafrica_herders_from_the_north",
+      "year": -2800,
+      "ageId": "stone",
+      "theme": "eastafrica",
+      "subject": {
+        "kind": "people",
+        "name": "Engaruka"
+      },
+      "title": "Herders from the North",
+      "description": "Strangers arrive in the Rift with cattle, goats and new pots, and they want water from the springs your hunters have always used.",
+      "options": [
+        {
+          "label": "Share the springs and learn herding",
+          "effects": {
+            "gold": 50,
+            "controlPenalty": 5
+          }
+        },
+        {
+          "label": "Guard the springs for your hunters",
+          "effects": {
+            "defenseBonus": 0.05,
+            "diplomacyPoints": -10
+          }
+        }
+      ]
+    },
+    "ai_eastafrica_lakeshore_fishers": {
+      "id": "ai_eastafrica_lakeshore_fishers",
+      "year": -4000,
+      "ageId": "stone",
+      "theme": "eastafrica",
+      "subject": {
+        "kind": "people",
+        "name": "Kitara"
+      },
+      "title": "The Lakeshore Camps",
+      "description": "Your fisher bands on the great lake shape comb-marked pots and return to the same shores each season, tempted to stop wandering altogether.",
+      "options": [
+        {
+          "label": "Settle the shore camps year round",
+          "effects": {
+            "hr": 20,
+            "gold": -30
+          }
+        },
+        {
+          "label": "Keep moving with the seasons",
+          "effects": {
+            "controlBonus": 5,
+            "hr": -10
+          }
+        }
+      ]
+    },
+    "ai_eastafrica_gathering_at_the_hills": {
+      "id": "ai_eastafrica_gathering_at_the_hills",
+      "year": -3500,
+      "ageId": "stone",
+      "theme": "eastafrica",
+      "subject": {
+        "kind": "city",
+        "name": "Tsodilo"
+      },
+      "title": "Gathering at the Hills",
+      "description": "Bands from far across the sands come to the painted hills for dancing and healing, and they will eat what your people have gathered.",
+      "options": [
+        {
+          "label": "Welcome every band to the hills",
+          "effects": {
+            "diplomacyPoints": 15,
+            "gold": -30
+          }
+        },
+        {
+          "label": "Keep the hills for your own band",
+          "effects": {
+            "controlBonus": 5,
+            "diplomacyPoints": -10
+          }
+        }
+      ]
+    },
+    "ai_eastafrica_eggshell_bead_gifts": {
+      "id": "ai_eastafrica_eggshell_bead_gifts",
+      "year": -4500,
+      "ageId": "stone",
+      "theme": "eastafrica",
+      "subject": {
+        "kind": "ruler",
+        "name": "Gao"
+      },
+      "title": "Strings of Eggshell Beads",
+      "description": "Women drill ostrich eggshell into beads, and strings given to distant kin bind them to help you in lean years.",
+      "options": [
+        {
+          "label": "Send bead gifts to far kin",
+          "effects": {
+            "diplomacyPoints": 12,
+            "gold": -25
+          }
+        },
+        {
+          "label": "Keep the beads to trade for meat",
+          "effects": {
+            "gold": 35,
+            "diplomacyPoints": -8
+          }
+        }
+      ]
+    },
+    "ai_eastafrica_shellfish_beds": {
+      "id": "ai_eastafrica_shellfish_beds",
+      "year": -4000,
+      "ageId": "stone",
+      "theme": "eastafrica",
+      "subject": {
+        "kind": "city",
+        "name": "Camissa"
+      },
+      "title": "The Shellfish Beds",
+      "description": "Your people feast on mussels and limpets along the cold Cape shore, and the shell heaps grow taller while the shells grow smaller.",
+      "options": [
+        {
+          "label": "Harvest every bed while it lasts",
+          "effects": {
+            "gold": 40,
+            "controlPenalty": 4
+          }
+        },
+        {
+          "label": "Rest the beds and hunt seals",
+          "effects": {
+            "gold": -15,
+            "controlBonus": 5
+          }
+        }
+      ]
+    },
+    "ai_eastafrica_the_long_dry": {
+      "id": "ai_eastafrica_the_long_dry",
+      "year": -2200,
+      "ageId": "stone",
+      "theme": "eastafrica",
+      "subject": {
+        "kind": "city",
+        "name": "Kilwa Kisiwani"
+      },
+      "title": "The Long Dry",
+      "description": "Years of failing rains drive hungry bands from the inland plains toward your shore, where fish and shellfish still feed your camps.",
+      "options": [
+        {
+          "label": "Let the inland bands settle here",
+          "effects": {
+            "hr": 25,
+            "controlPenalty": 6
+          }
+        },
+        {
+          "label": "Turn them back from the shore",
+          "effects": {
+            "defenseBonus": 0.08,
+            "diplomacyPoints": -12
+          }
+        }
+      ]
+    },
+    "ai_eastafrica_poisoned_arrows": {
+      "id": "ai_eastafrica_poisoned_arrows",
+      "year": -3000,
+      "ageId": "stone",
+      "theme": "eastafrica",
+      "subject": {
+        "kind": "ruler",
+        "name": "Mutota"
+      },
+      "title": "Poison for the Arrows",
+      "description": "Your hunters tip tiny stone points with plant poison and bring down great antelope, and neighboring bands ask to learn the craft.",
+      "options": [
+        {
+          "label": "Arm your own hunters only",
+          "effects": {
+            "militaryStrengthBonus": 15,
+            "diplomacyPoints": -10
+          }
+        },
+        {
+          "label": "Teach the craft to neighbors",
+          "effects": {
+            "diplomacyPoints": 15,
+            "defenseBonus": -0.05
+          }
+        }
+      ]
+    }
+  },
+  "he": {
+    "evt.ai_americas_shicra_platform_mounds.title": "תלים מאבן ארוגה",
+    "evt.ai_americas_shicra_platform_mounds.desc": "הבונים שלך ממלאים שקי קנים הנקראים שיקרה באבנים ומערימים אותם לתלי במות גדולים. כל מדרגה לוקחת אלפי ידיים מן השדות ומן הרשתות.",
+    "evt.ai_americas_shicra_platform_mounds.opt0": "הגבה את התל הגדול",
+    "evt.ai_americas_shicra_platform_mounds.opt1": "החזר את העובדים לשדות הכותנה",
+    "evt.ai_americas_bone_flutes_ritual.title": "חלילים מעצם קונדור",
+    "evt.ai_americas_bone_flutes_ritual.desc": "אומנים מגלפים חלילים מעצמות קונדור ושקנאי, והמוזיקה שלהם ממלאת את הכיכר השקועה בטקסים. קיליה צריכה להחליט מי רשאי לשמוע אותם.",
+    "evt.ai_americas_bone_flutes_ritual.opt0": "נגנו בהם לכולם בכיכר",
+    "evt.ai_americas_bone_flutes_ritual.opt1": "שמרו את החלילים לכוהנים בלבד",
+    "evt.ai_americas_bone_flutes_ritual.opt2": "העניקו חלילים לדייגי החוף",
+    "evt.ai_americas_highland_maize.title": "האשבולים הקטנים",
+    "evt.ai_americas_highland_maize.desc": "במערות ובעמקים של אואחקה, הלקטים שלך שותלים את העשב הבר שאשבוליו גדלים מעט בכל עונה. לשתול אותו פירושו להישאר במקום.",
+    "evt.ai_americas_highland_maize.opt0": "זרעו את העשב והתיישבו בעמק",
+    "evt.ai_americas_highland_maize.opt1": "המשיכו לנדוד עם העונות",
+    "evt.ai_americas_old_copper_lakes.title": "נחושת האגמים",
+    "evt.ai_americas_old_copper_lakes.desc": "סוחרים מביאים גושי נחושת טהורה מחופי האגמים הגדולים בצפון, ומרקעים אותם בקור לחודים ולמרצעים. הדרך ארוכה והזרים שם חשדנים.",
+    "evt.ai_americas_old_copper_lakes.opt0": "שלחו משלחת צפונה לנחושת",
+    "evt.ai_americas_old_copper_lakes.opt1": "החליפו פרוות בכלים מוכנים",
+    "evt.ai_americas_herding_llama.title": "ביות הלאמה",
+    "evt.ai_americas_herding_llama.desc": "בערבות הגבוהות ליד אגם טיטיקקה, ציידים מתחילים לכלוא את הגואנקו והוויקוניה הבר במקום להרוג אותם. עדר מאכיל משפחה שנים, אך צריך לשמור עליו.",
+    "evt.ai_americas_herding_llama.opt0": "כלאו את העדרים ושמרו עליהם",
+    "evt.ai_americas_herding_llama.opt1": "המשיכו לצוד את הלהקות הבר",
+    "evt.ai_americas_arctic_small_tools.title": "אל ארצות הקרח",
+    "evt.ai_americas_arctic_small_tools.desc": "להקות עם להבי אבן זעירים ומסותתים בעדינות נעות מזרחה לרוחב הארקטי, בעקבות כלבי ים ושוורי מושק. החופים החדשים עשירים, אך החורפים קטלניים.",
+    "evt.ai_americas_arctic_small_tools.opt0": "עקבו אחר הלהקות לאיגלוליק",
+    "evt.ai_americas_arctic_small_tools.opt1": "הישארו בשטחי הציד המוכרים",
+    "evt.ai_americas_shell_midden_pottery.title": "חימר על שפת הנהר",
+    "evt.ai_americas_shell_midden_pottery.desc": "לאורך האמזונס התחתון, אנשים החיים על תלים עצומים של צדפי נהר לומדים לשרוף חימר לכלים מחוזקים בצדף כתוש. המלאכה דורשת דלק וידיים סבלניות.",
+    "evt.ai_americas_shell_midden_pottery.opt0": "למדו את מלאכת הקדרות לרבים",
+    "evt.ai_americas_shell_midden_pottery.opt1": "סחרו בכדים עם להקות במעלה הנהר",
+    "evt.ai_americas_shell_rings.title": "טבעות של צדפים",
+    "evt.ai_americas_shell_rings.desc": "באיי החוף הדרום מערבי של פלורידה, בני עמך מערימים צדפות וקונכיות לטבעות גדולות סביב כיכר משותפת. החגיגות שם מושכות שכנים, ואת מריבותיהם.",
+    "evt.ai_americas_shell_rings.opt0": "ערכו משתאות גדולים בטבעת",
+    "evt.ai_americas_shell_rings.opt1": "בצרו את הטבעת מפני פושטים",
+    "evt.ai_eastafrica_painted_cattle_shelters.title": "בקר על הסלע",
+    "evt.ai_eastafrica_painted_cattle_shelters.desc": "הרועים שלך מציירים את הבקר ארוך הקרניים באדום ובלבן על קירות מחסות הסלע, אך המרעה סביב המחסות הולך ומידלדל.",
+    "evt.ai_eastafrica_painted_cattle_shelters.opt0": "הישארו וכבדו את העדרים המצוירים",
+    "evt.ai_eastafrica_painted_cattle_shelters.opt1": "הובילו את העדרים למרעה חדש",
+    "evt.ai_eastafrica_herders_from_the_north.title": "רועים מן הצפון",
+    "evt.ai_eastafrica_herders_from_the_north.desc": "זרים מגיעים אל הבקע עם בקר, עזים וכלי חרס חדשים, והם מבקשים מים מן המעיינות שהציידים שלך השתמשו בהם תמיד.",
+    "evt.ai_eastafrica_herders_from_the_north.opt0": "חלקו את המעיינות ולמדו רעייה",
+    "evt.ai_eastafrica_herders_from_the_north.opt1": "שמרו את המעיינות לציידים שלכם",
+    "evt.ai_eastafrica_lakeshore_fishers.title": "מחנות חוף האגם",
+    "evt.ai_eastafrica_lakeshore_fishers.desc": "להקות הדייגים שלך על האגם הגדול מעצבות כלי חרס מעוטרים בסירוק וחוזרות לאותם חופים בכל עונה, ומתפתות להפסיק לנדוד לגמרי.",
+    "evt.ai_eastafrica_lakeshore_fishers.opt0": "ישבו את מחנות החוף כל השנה",
+    "evt.ai_eastafrica_lakeshore_fishers.opt1": "המשיכו לנוע עם העונות",
+    "evt.ai_eastafrica_gathering_at_the_hills.title": "התכנסות בגבעות",
+    "evt.ai_eastafrica_gathering_at_the_hills.desc": "להקות מכל רחבי החולות באות אל הגבעות המצוירות לריקוד ולריפוי, והן יאכלו את מה שאנשיך ליקטו.",
+    "evt.ai_eastafrica_gathering_at_the_hills.opt0": "קבלו כל להקה אל הגבעות",
+    "evt.ai_eastafrica_gathering_at_the_hills.opt1": "שמרו את הגבעות ללהקה שלכם",
+    "evt.ai_eastafrica_eggshell_bead_gifts.title": "מחרוזות חרוזי קליפת ביצה",
+    "evt.ai_eastafrica_eggshell_bead_gifts.desc": "נשים קודחות קליפות ביצי יען לחרוזים, ומחרוזות שניתנות לקרובים רחוקים מחייבות אותם לעזור לך בשנים הדלות.",
+    "evt.ai_eastafrica_eggshell_bead_gifts.opt0": "שלחו מתנות חרוזים לקרובים רחוקים",
+    "evt.ai_eastafrica_eggshell_bead_gifts.opt1": "שמרו את החרוזים למסחר בבשר",
+    "evt.ai_eastafrica_shellfish_beds.title": "מצעי הרכיכות",
+    "evt.ai_eastafrica_shellfish_beds.desc": "אנשיך סועדים מולים וצדפות לאורך חוף הכף הקר, וערמות הקונכיות גדלות בעוד הקונכיות עצמן קטנות.",
+    "evt.ai_eastafrica_shellfish_beds.opt0": "לקטו מכל מצע כל עוד אפשר",
+    "evt.ai_eastafrica_shellfish_beds.opt1": "תנו למצעים לנוח וצודו כלבי ים",
+    "evt.ai_eastafrica_the_long_dry.title": "הבצורת הארוכה",
+    "evt.ai_eastafrica_the_long_dry.desc": "שנים של גשמים שלא באו דוחפות להקות רעבות ממישורי הפנים אל החוף שלך, שבו דגים ורכיכות עדיין מזינים את מחנותיך.",
+    "evt.ai_eastafrica_the_long_dry.opt0": "תנו ללהקות הפנים להתיישב כאן",
+    "evt.ai_eastafrica_the_long_dry.opt1": "השיבו אותן מן החוף",
+    "evt.ai_eastafrica_poisoned_arrows.title": "רעל לחיצים",
+    "evt.ai_eastafrica_poisoned_arrows.desc": "הציידים שלך מורחים רעל צמחי על חודי אבן זעירים ומפילים אנטילופות גדולות, ולהקות שכנות מבקשות ללמוד את המלאכה.",
+    "evt.ai_eastafrica_poisoned_arrows.opt0": "חמשו רק את הציידים שלכם",
+    "evt.ai_eastafrica_poisoned_arrows.opt1": "למדו את המלאכה את השכנים"
+  }
+}
