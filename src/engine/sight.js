@@ -24,12 +24,14 @@ export const SIGHT_FLEET = ringsForKm(SIGHT_FLEET_KM);
 
 const cache = new WeakMap(); // state.units -> { regions, nationId, set }
 
-const grow = (tiles, seeds, rings, out) => {
+// `seen` is what this walk already visited; an army passes its own so tiles the nation already
+// sees do not cut its radius short.
+const grow = (tiles, seeds, rings, out, seen = out) => {
   let frontier = seeds;
-  frontier.forEach((t) => out.add(t));
+  frontier.forEach((t) => { seen.add(t); out.add(t); });
   for (let d = 0; d < rings; d++) {
     const next = [];
-    for (const t of frontier) for (const n of tiles.neighbors[t]) if (!out.has(n)) { out.add(n); next.push(n); }
+    for (const t of frontier) for (const n of tiles.neighbors[t]) if (!seen.has(n)) { seen.add(n); out.add(n); next.push(n); }
     frontier = next;
   }
 };
@@ -60,7 +62,7 @@ export const visibleTiles = (state, nationId = state.playerNationId) => {
     const t = unitTile(state, u);
     if (t == null) return;
     const rings = ringsForKm(extra + (u.domain === 'naval' ? SIGHT_FLEET_KM + navalSightBonus(navalLineOf(u)) : SIGHT_ARMY_KM + (tiles.reliefOf(t) === 'hills' ? SIGHT_HILLS_BONUS_KM : 0)));
-    grow(tiles, [t], rings, set);
+    grow(tiles, [t], rings, set, new Set());
   });
   cache.set(state.units, { regions: state.regions, nations: state.nations, techTree: state.techTree, nationId, set });
   return set;
