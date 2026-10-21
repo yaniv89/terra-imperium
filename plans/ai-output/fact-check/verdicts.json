@@ -1,0 +1,142 @@
+{
+  "national_aztec_founding": {
+    "ok": false,
+    "severity": 3,
+    "kind": "date",
+    "problem": "Tenochtitlan was founded around 1325 CE, not 1325 BCE, so this card is misplaced in the Bronze Age by over 2,600 years.",
+    "fix": "Change year to 1325 and move the card to the age covering the 14th century CE."
+  },
+  "rise_of_writing": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "bronze_age_collapse": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "sea_peoples_invasions": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "national_persian_zenith": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "national_greek_golden_age": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "alexanders_conquests": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "national_punic_ambitions": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "library_of_alexandria": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "silk_road_opens": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "great_migrations": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "the_horse": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "the_wheel": {
+    "ok": false,
+    "severity": 1,
+    "kind": "anachronism",
+    "problem": "A potters' guild is an anachronistic institution for 3500 BCE.",
+    "fix": "Option: \"Keep the craft to the potters\"; Hebrew: \"להשאיר את המלאכה בידי הקדרים\""
+  },
+  "uruk_expansion": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "first_writing": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "river_unification": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "drought_of_4200": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "national_egypt_nile_flood": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "great_flood_myth": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "bronze_trade_networks": {
+    "ok": false,
+    "severity": 1,
+    "kind": "none",
+    "problem": "The English description uses an em dash.",
+    "fix": "\"...every bronze-working kingdom cannot do without, and the routes that carry it are worth fighting over.\""
+  }
+}
