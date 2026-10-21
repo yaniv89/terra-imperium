@@ -22,7 +22,6 @@ const playerAt = (ageId, n = 0, extra = {}) => {
   const owned = [...AGE_ORDER.slice(0, AGE_ORDER.indexOf(ageId)).flatMap((a) => getTechsForAge(a)), ...getTechsForAge(ageId).slice(0, n)];
   return { playerNationId: 'p', techAgeId: ageId, techTree: Object.fromEntries(owned.map((x) => [x.id, { researched: true }])), nations: {}, firedEvents: {}, regions: REALM, ...extra };
 };
-const endState = (extra) => playerAt(AGE_ORDER[AGE_ORDER.length - 1], 10, extra);
 const eventAtItsPoint = (event, extra) => playerAt(event.ageId, eventTechsNeeded(event.ageId, event.year), extra);
 
 // Fixture events (independent of the real HISTORICAL_EVENTS content) exercise the generic
@@ -123,7 +122,7 @@ describe('nextStory against real HISTORICAL_EVENTS content', () => {
   });
 
   it('picks by event year, then declaration order, and only the left-behind ages are skipped', () => {
-    const state = endState();
+    const state = playerAt('information', 10); // the last age with events until U73 writes the Future's
     const order = [];
     let firedEvents = {};
     for (let i = 0; i < 100; i += 1) {
@@ -133,7 +132,7 @@ describe('nextStory against real HISTORICAL_EVENTS content', () => {
       firedEvents = { ...firedEvents, [event.id]: true };
     }
     expect(order.length).toBeGreaterThan(0);
-    expect(order.every(e => e.ageId === LAST_AGE_ID)).toBe(true);
+    expect(order.every(e => e.ageId === 'information')).toBe(true);
     expect(order.map(e => e.year)).toEqual([...order.map(e => e.year)].sort((x, y) => x - y));
   });
 });
@@ -212,7 +211,7 @@ describe('HISTORICAL_EVENTS data integrity', () => {
     const ageCounts = {};
     AGE_ORDER.forEach(id => { ageCounts[id] = 0; });
     WORLD_EVENTS.forEach(event => { ageCounts[event.ageId] += 1; });
-    AGE_ORDER.forEach(ageId => expect(ageCounts[ageId]).toBeGreaterThanOrEqual(2));
+    AGE_ORDER.filter((a) => a !== 'future').forEach(ageId => expect(ageCounts[ageId]).toBeGreaterThanOrEqual(2)); // U73 adds the Future's events
   });
 
   it('the Stone Age has seven events, all derived to stone and due within its first six techs', () => {

@@ -173,6 +173,16 @@ export const UNIT_ROSTER = {
     naval: rosterEntry('Guided-Missile Destroyer', 'information'),
     air: rosterEntry('Strike Drones', 'information'),
     support: rosterEntry('SAM Battery', 'information')
+  },
+  // Phase E (U66): shields, hover hulls, railguns and beams (src/battle/data/battleStats.js).
+  future: {
+    infantry: rosterEntry('Exo-Infantry', 'future'),
+    cavalry: rosterEntry('Hover Tanks', 'future'),
+    ranged: rosterEntry('Railgun Teams', 'future'),
+    siege: rosterEntry('Plasma Artillery', 'future'),
+    naval: rosterEntry('Railgun Cruiser', 'future'),
+    air: rosterEntry('Drone Swarm', 'future'),
+    support: rosterEntry('Shield Projector', 'future')
   }
 };
 

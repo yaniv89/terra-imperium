@@ -43,9 +43,7 @@ const ROSTER_CLASSES = ['infantry', 'cavalry', 'ranged', 'siege', 'naval'];
 const ROSTER_OPT_OUT = { 'stone cavalry': 'no horses before the Bronze Age (U37): the guard goes on foot, unitClasses.js guardClassOf' };
 
 /** Problems with one table: an age it lacks (and has no opt-out reason for) or a key that is no age. */
-// shortcut: U79's art fallbacks name 'future' before Phase E registers it (U64); drop this when it does.
-const PENDING_AGES = ['future'];
-const isKnown = (k) => AGE_ORDER.includes(k) || PENDING_AGES.includes(k);
+const isKnown = (k) => AGE_ORDER.includes(k);
 
 export const tableProblems = (name, keys, optOut = {}) => {
   const have = new Set(keys);
@@ -79,8 +77,11 @@ const KEYED = [
 
 // Opt-outs: table name -> { age: reason }.
 const OPT_OUT = {
-  'government reform tiers': { information: 'U55 adds the Information reforms' },
-  'age icon': { information: 'the icon is held art on claude/art-information' }
+  'building tiers': { future: 'U69 appends the Future tiers' },
+  'government reform tiers': { information: 'U55 adds the Information reforms', future: 'U69 adds the Future reforms' },
+  wonders: { future: 'U69 adds the Future wonders' },
+  techs: { future: 'U65 gives the Future its techs' },
+  'age icon': { information: 'the icon is held art on claude/art-information', future: 'the icon is held art on claude/art-future' }
 };
 
 // Tables that cover only some ages by design: unknown keys are still rejected. [keys, reason].
@@ -174,7 +175,7 @@ describe('registry completeness: every per-age table has every age', () => {
 
   it('every tech belongs to a known age and each age has 10 techs', () => {
     Object.values(TECH_TREE).forEach((t) => expect(AGE_ORDER, `tech ${t.id}`).toContain(t.ageId));
-    AGE_ORDER.forEach((age) => expect(getTechsForAge(age), `techs in ${age}`).toHaveLength(10));
+    AGE_ORDER.filter((age) => !OPT_OUT.techs[age]).forEach((age) => expect(getTechsForAge(age), `techs in ${age}`).toHaveLength(10));
   });
 
   it('every age has its English and Hebrew names in i18n', () => {

@@ -218,7 +218,7 @@ export default {
   'victory.domination': 'ניצחון שליטה',
   'victory.domination.desc': 'להחזיק את בירותיהן של לפחות 25% מהאומות האחרות בעולם.',
   'victory.finalScore': 'ניצחון מורשת',
-  'victory.finalScore.desc': 'להוביל את העולם במורשת כשהמשחק מסתיים.',
+  'victory.finalScore.desc': 'להוביל את העולם במורשת כשהמשחק מסתיים: במגבלת התורות, או כשאומה משלימה את עידן העתיד.',
 
   // tax rates (tax.<id>, tax.<id>.desc), difficulties (diff.<id>, .desc), identity axes
   'tax.low': 'מסים נמוכים',

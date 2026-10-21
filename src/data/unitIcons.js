@@ -62,4 +62,6 @@ export const UNIT_ICON_PATHS = {
   }
 };
 
+UNIT_ICON_PATHS.future = UNIT_ICON_PATHS.information; // its own icons come with U93
+
 export const getUnitIconPath = (ageId, classId) => UNIT_ICON_PATHS[ageId]?.[classId] || null;

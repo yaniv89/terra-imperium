@@ -31,7 +31,7 @@ export const VICTORY_CONDITIONS = {
   finalScore: {
     id: 'finalScore',
     name: 'Legacy Victory',
-    description: 'Lead the world in legacy when the game ends.',
+    description: 'Lead the world in legacy when the game ends: at the turn limit, or when a nation completes the Future Age.',
     check: () => false
   }
 };

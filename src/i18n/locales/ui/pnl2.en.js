@@ -65,6 +65,7 @@ export default {
   'p2.ageShort.gunpowder': 'Gunpowder',
   'p2.ageShort.modern': 'Modern',
   'p2.ageShort.information': 'Information',
+  'p2.ageShort.future': 'Future',
   'p2.web.lines': 'Lines',
   'p2.web.web': 'Web',
   'p2.web.known': 'known',

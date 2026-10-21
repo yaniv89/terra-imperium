@@ -40,6 +40,13 @@ describe('game speed (KTD9: a cost multiplier per age, a turn limit, no years pe
     expect(['fast', 'normal', 'marathon'].map((sp) => speedCostMult(sp, 'information'))).toEqual([1, 2, 2]);
   });
 
+  it('registers the Future last: 2100 to 2500, power 64/48, multipliers 1/2/2 (U64)', () => {
+    expect(LAST_AGE_ID).toBe('future');
+    expect([AGES.information.endYear, AGES.future.startYear, AGES.future.endYear, END_YEAR]).toEqual([2100, 2100, 2500, 2500]);
+    expect(AGES.future.power).toEqual({ attack: 64, defense: 48 });
+    expect(['fast', 'normal', 'marathon'].map((sp) => speedCostMult(sp, 'future'))).toEqual([1, 2, 2]);
+  });
+
   it('keeps the values the old calendar gave Bronze to Modern exactly', () => {
     const old = { bronze: 40, classical: 20, kingdoms: 10, gunpowder: 4, modern: 2 };
     const years = { fast: { bronze: 50, classical: 25, kingdoms: 12, gunpowder: 5, modern: 2 }, normal: { bronze: 25, classical: 12, kingdoms: 6, gunpowder: 2, modern: 1 }, marathon: { bronze: 10, classical: 5, kingdoms: 3, gunpowder: 1, modern: 1 } };
@@ -140,7 +147,7 @@ describe('tech tree listed by age', () => {
     ]);
   });
   it('ten techs an age, two per line, the second after the first', () => {
-    AGE_ORDER.forEach((age) => {
+    AGE_ORDER.filter((age) => age !== 'future').forEach((age) => { // U65 gives the Future its techs
       const techs = getTechsForAge(age);
       expect(techs.length, age).toBe(10);
       const perLine = techs.reduce((acc, t) => ({ ...acc, [t.category]: [...(acc[t.category] || []), t] }), {});
