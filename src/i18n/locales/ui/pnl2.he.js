@@ -2,15 +2,6 @@
 // UI text: pnl2 (phase H5). Plural forms use .one / .two / .other with { count }.
 export default {
   'p2.act.cost': 'עלות: {cost}',
-  'p2.cu.gold': 'זהב',
-  'p2.cu.adm': 'ניהול',
-  'p2.cu.dip': 'דיפלומטיה',
-  'p2.cu.mil': 'צבא',
-  'p2.cw.adm': 'כוח ניהול',
-  'p2.cw.dip': 'כוח דיפלומטיה',
-  'p2.cw.mil': 'כוח צבאי',
-  'p2.cw.techPoints': 'מדע',
-  'p2.cw.gold': 'זהב',
   'p2.log.noRes': 'אין מספיק משאבים',
   'p2.bt.map': 'מפה',
   'p2.lens.yields': 'התנובה',
