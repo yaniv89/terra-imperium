@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { liveUsd } from './claudeJob.mjs';
-import { TOOLS, AREAS, SIZES, parseAction, parseFlags, stepWorstUsd, reportWorstUsd, imageTokens, systemPrompt, PERSONAS } from './human-playtest.mjs';
+import { TOOLS, AREAS, SIZES, parseAction, parseFlags, stepWorstUsd, reportWorstUsd, imageTokens, systemPrompt, PERSONAS, isBlankShot } from './human-playtest.mjs';
+import sharp from 'sharp';
 
 const mood = { thought: 'the city should open', fun: 3, frustration: 2, area: AREAS[2] };
 const use = (name, input) => ({ type: 'tool_use', id: 't', name, input: { ...mood, ...input } });
@@ -63,5 +64,15 @@ describe('human-playtest spend math', () => {
     expect(() => parseFlags([], { SLICES: 'stone' })).toThrow(/slice/);
     expect(() => parseFlags([], { PERSONA: 'troll' })).toThrow(/persona/);
     expect(() => parseFlags(['--limit', '0'], {})).toThrow(/MAX_STEPS/);
+  });
+});
+
+describe('human-playtest blank screen check', () => {
+  const jpg = (raw) => sharp(raw, { raw: { width: 64, height: 32, channels: 3 } }).jpeg().toBuffer();
+  it('calls a black screen blank and a drawn one not', async () => {
+    expect(await isBlankShot(await jpg(Buffer.alloc(64 * 32 * 3)))).toBe(true);
+    const drawn = Buffer.alloc(64 * 32 * 3);
+    for (let i = 0; i < drawn.length; i++) drawn[i] = (i * 37) % 256;
+    expect(await isBlankShot(await jpg(drawn))).toBe(false);
   });
 });

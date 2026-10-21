@@ -201,7 +201,13 @@ export const GameProvider = ({ children }) => {
   // with VITE_QA_HOOK=1 (the screenshot-qa job, never the deployed site) keeps it too.
   useEffect(() => {
     if (!import.meta.env.DEV && import.meta.env.VITE_QA_HOOK !== '1') return undefined;
-    window.__game = { state, dispatch };
+    // load: a state from JSON goes through migrateSave like a real save (the fog's arrays come back from their encoding).
+    const load = (saved) => {
+      const migrated = migrateSave({ version: CURRENT_SAVE_VERSION, state: saved });
+      if (!migrated) throw new Error('migrateSave refused the state');
+      dispatch({ type: ActionTypes.LOAD_GAME, payload: migrated.state });
+    };
+    window.__game = { state, dispatch, load };
     return () => { delete window.__game; };
   }, [state, dispatch]);
   // Meta-progression (achievements + selected starting doctrine/difficulty) lives in its OWN

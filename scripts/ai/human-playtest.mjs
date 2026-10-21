@@ -11,7 +11,7 @@
 //   node scripts/ai/human-playtest.mjs --max-usd 1.5 --limit 40      (--limit = MAX_STEPS)
 // Flags or env: --persona/PERSONA, --size/SIZE phone|desktop, --lang/LANG_UI en|he, --slices/SLICES
 // bronze,classical,... (late-game slices: a headless scripted game, saved at each age, loaded through
-// window.__game LOAD_GAME; an age the run does not reach in SLICE_TURNS turns is boosted by research),
+// window.__game.load, which runs migrateSave; a slice that loads to no map or a blank screen is a harness-error line, not played; an age the run does not reach in SLICE_TURNS turns is boosted by research),
 // --url (default the preview), --max-steps/MAX_STEPS (default 60).
 import fs from 'node:fs';
 import path from 'node:path';
@@ -176,7 +176,7 @@ export const buildSlices = async (ages, turns, log) => {
   }));
 };
 
-const openGame = async (browser, { size, lang, url }) => {
+export const openGame = async (browser, { size, lang, url }) => {
   const ctx = await browser.newContext({ viewport: { width: size.width, height: size.height }, deviceScaleFactor: size.mobile ? 2 : 1, isMobile: size.mobile, hasTouch: size.mobile, ...(size.mobile ? { userAgent: UA } : {}), locale: lang === 'he' ? 'he-IL' : 'en-US' });
   await ctx.addInitScript((l) => { try { if (!sessionStorage.getItem('hpt')) { localStorage.clear(); sessionStorage.setItem('hpt', '1'); } localStorage.setItem('terra-imperium.language', l); } catch { /* storage blocked */ } }, lang);
   const page = await ctx.newPage();
@@ -189,8 +189,8 @@ const openGame = async (browser, { size, lang, url }) => {
   return { ctx, page, cdp, errors };
 };
 
-// The harness, not the player, starts a slice: through the start screen as qa-shots.mjs does, then LOAD_GAME.
-const loadSlice = async (page, save) => {
+// The harness, not the player, starts a slice: through the start screen as qa-shots.mjs does, then __game.load.
+export const loadSlice = async ({ page, errors }, save) => {
   const click = (l) => l.dispatchEvent('click');
   await click(page.locator('[data-people]').first());
   await click(page.getByTestId('start-step-ready'));
@@ -199,8 +199,19 @@ const loadSlice = async (page, save) => {
   await skip.waitFor({ state: 'visible', timeout: 30000 }).catch(() => {});
   if (await skip.isVisible().catch(() => false)) await click(skip);
   await page.getByTestId('world-top-bar').waitFor({ timeout: 120000 });
-  await page.evaluate((json) => window.__game.dispatch({ type: 'LOAD_GAME', payload: JSON.parse(json) }), JSON.stringify(save.state));
+  // __game.load runs migrateSave: a bare LOAD_GAME kept the fog's encoded arrays and the map crashed to a black page.
+  await page.evaluate((json) => window.__game.load(JSON.parse(json)), JSON.stringify(save.state));
+  const canvas = await page.locator('canvas').first().waitFor({ timeout: 60000 }).then(() => true, () => false);
   await wait(4000);
+  const shot = await page.screenshot({ type: 'jpeg', quality: 55, scale: 'css', timeout: 120000 });
+  const blank = !canvas ? 'no map canvas' : (await isBlankShot(shot)) ? 'a near-uniform screen' : null;
+  if (blank) throw new Error(`the slice loaded to ${blank}${errors.length ? `; page errors: ${errors.slice(0, 3).join(' / ')}` : ''}`);
+};
+
+/** True when a screenshot is almost one colour (every RGB channel's spread under 6 of 255): a black or blank page. */
+export const isBlankShot = async (buf) => {
+  const { default: sharp } = await import('sharp');
+  return (await sharp(buf).stats()).channels.slice(0, 3).every((c) => c.stdev < 6);
 };
 
 /** Runs one gesture in the page. Touch through CDP on a phone, the mouse on desktop. */
@@ -250,7 +261,11 @@ const play = async (opts, log = console.log) => {
     for (const seg of segments) {
       if (stopped) break;
       const g = await openGame(browser, opts);
-      if (seg.save) await loadSlice(g.page, seg.save);
+      if (seg.save) {
+        // A slice that does not show the game is the harness's fault: log it and skip, never let the model play a black screen.
+        const failed = await loadSlice(g, seg.save).then(() => null, (err) => String(err.message).split('\n')[0]);
+        if (failed) { write({ step, segment: seg.id, usd: Number(spent.toFixed(4)), name: 'harness-error', error: failed }); await g.ctx.close(); continue; }
+      }
       const shoot = () => g.page.screenshot({ type: 'jpeg', quality: 55, scale: 'css', timeout: 120000 });
       let prev = null; let now = await shoot();
       for (let k = 0; k < perSegment; k++) {
@@ -293,7 +308,7 @@ const play = async (opts, log = console.log) => {
 };
 
 const REPORT_SYSTEM = `You turn a playtest diary into a report for the development team of a grand-strategy game (real Earth hex map, research, cities, wars, diplomacy, real-time tactical battles).
-A model played the real game through screenshots as a persona, one gesture a step; each diary line has the action, a one-line thought, fun and frustration from 1 to 5, and the checklist area; notes are its findings, each with a screenshot path. Page errors were caught by the harness, not seen by the player.
+A model played the real game through screenshots as a persona, one gesture a step; each diary line has the action, a one-line thought, fun and frustration from 1 to 5, and the checklist area; notes are its findings, each with a screenshot path. Page errors were caught by the harness, not seen by the player; a harness-error line is a session the harness could not open on a working game screen (not played).
 Write Markdown, plain English, no em dashes:
 1. Summary: one paragraph, and the three things that matter most.
 2. Scorecard: a table of every checklist area with a score out of 10 and a one-line why; "not reached" when the diary never got there.
