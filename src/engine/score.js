@@ -6,7 +6,7 @@
 // src/data/regions.js's own header describes.
 import { getOwnedRegionIds } from '../data/regions';
 import { getTotalDev } from './development';
-import { getResearched } from './nationState';
+import { getResearched, futureTechsOf } from './nationState';
 import { GREAT_PROJECTS, getGreatProjectOwner } from '../data/greatProjects';
 import { isIndependentNation } from '../data/independents';
 import { legacyScore } from './legacy';
@@ -27,7 +27,7 @@ export const calcNationScore = (state, nationId) => {
   const ownedRegionIds = getOwnedRegionIds(state.regions, nationId);
   const development = ownedRegionIds.reduce((sum, id) => sum + getTotalDev(state.regions[id]), 0);
   const regions = ownedRegionIds.length;
-  const techResearched = getResearched(state, nationId).length;
+  const techResearched = getResearched(state, nationId).length + futureTechsOf(state, nationId); // each Future Tech scores as a tech
   const prestige = state.nations[nationId]?.prestige || 0;
   const greatProjects = GREAT_PROJECT_IDS.filter((id) => getGreatProjectOwner(state, id) === nationId).length;
   const warsWon = getWarsWonCount(state, nationId);

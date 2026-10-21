@@ -118,8 +118,11 @@ export const GRAPH_THIN_W = 40; // a collapsed age (TechPanel's jump strip): one
 export const techGraph = (state, collapsed = []) => {
   const lines = Object.values(TechCategories);
   const ageX = {};
+  const ageW = {};
   let cursor = 0;
-  AGE_ORDER.forEach((ageId) => { ageX[ageId] = cursor; cursor += collapsed.includes(ageId) ? GRAPH_THIN_W : 2 * GRAPH_COL_W; });
+  // Two columns an age, more where a line has extra techs (the Future's robot techs and Future Tech).
+  const colsOf = (ageId) => Math.max(2, ...lines.map((c) => Object.values(TECH_TREE).filter((t) => t.category === c && t.ageId === ageId).length));
+  AGE_ORDER.forEach((ageId) => { ageX[ageId] = cursor; ageW[ageId] = collapsed.includes(ageId) ? GRAPH_THIN_W : colsOf(ageId) * GRAPH_COL_W; cursor += ageW[ageId]; });
   const colX = (ageId, col) => ageX[ageId] + (col - 2 * AGE_ORDER.indexOf(ageId)) * GRAPH_COL_W;
   const science = getSciencePerTurn(state);
   const nodes = [];
@@ -145,6 +148,6 @@ export const techGraph = (state, collapsed = []) => {
     } else Object.assign(edge, { x1: from.x + GRAPH_NODE_W, y1: from.y + GRAPH_NODE_H / 2, x2: n.x, y2: n.y + GRAPH_NODE_H / 2 });
     edges.push(edge);
   }));
-  const ages = AGE_ORDER.map((ageId) => ({ ageId, name: ageName(ageId, AGES[ageId]?.name || ageId), x: ageX[ageId], width: collapsed.includes(ageId) ? GRAPH_THIN_W : 2 * GRAPH_COL_W, collapsed: collapsed.includes(ageId) }));
+  const ages = AGE_ORDER.map((ageId) => ({ ageId, name: ageName(ageId, AGES[ageId]?.name || ageId), x: ageX[ageId], width: ageW[ageId], collapsed: collapsed.includes(ageId) }));
   return { nodes, edges, width: cursor, height: lines.length * GRAPH_ROW_H, ages, rows: lines };
 };

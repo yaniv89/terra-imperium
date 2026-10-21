@@ -26,7 +26,7 @@ import { LogTypes } from '../data/types';
 import { msg, thing, carry, people } from './messages';
 import { getModifier } from './modifiers/sheet';
 import { withDiffusion } from './techDiffusion';
-import { ageOf, getResearched } from './nationState';
+import { ageOf, getResearched, futureTechsOf } from './nationState';
 import { WRITING_TECH, NO_WRITING_COST_MULT } from './stonePhase';
 import { awardEraLegacy } from './eraGoals';
 import { isIndependentNation } from '../data/independents';
@@ -44,6 +44,8 @@ import { AGRICULTURE_TECH } from '../data/hearths';
 export const RESEARCH_AGE_BASE = { stone: 15, bronze: 17, classical: 82, kingdoms: 1200, gunpowder: 2400, modern: 5000, information: 12000, future: 16000 };
 export { SCIENCE_PER_DEV } from '../data/actionCosts';
 export const FOCUS_SCIENCE_BONUS = 0.1;
+// Future Tech (U65) repeats; each one done adds this share of its first cost to the next.
+export const FUTURE_TECH_COST_GROWTH = 0.25;
 // A nation's first tech costs a quarter (U47): a band's first village makes 2 science, and a full
 // price first tech (about 50 on Normal, writing not yet known) left it waiting 25 turns.
 export const FIRST_TECH_COST_MULT = 0.25;
@@ -66,10 +68,10 @@ const researchedSetOf = (state, nationId) => new Set(isPlayer(state, nationId)
   : state.nations[nationId]?.tech?.researched || []);
 const techAgeOf = (state, nationId) => ageOf(state, nationId);
 
-export const getResearchCost = (state, nationId, techId) => {
+export const getResearchCost = (state, nationId, techId, repeats = futureTechsOf(state, nationId)) => {
   const tech = TECH_TREE[techId];
   if (!tech) return Infinity;
-  const base = RESEARCH_AGE_BASE[tech.ageId] ?? RESEARCH_AGE_BASE.modern;
+  const base = (RESEARCH_AGE_BASE[tech.ageId] ?? RESEARCH_AGE_BASE.modern) * (tech.repeatable ? 1 + FUTURE_TECH_COST_GROWTH * repeats : 1);
   const speed = speedCostMult(state.gameSpeed, techAgeOf(state, nationId)); // the speed table (ages.js, KTD9): keyed by the paying nation's own age
   const mult = withDiffusion(state, nationId, techId, getModifier(state, nationId, 'national.researchCost').total);
   const known = getResearched(state, nationId);
@@ -204,7 +206,7 @@ export const stepResearch = (state, nationId) => {
       if (!research.current) break;
     }
     const tech = TECH_TREE[research.current];
-    const cost = getResearchCost({ ...state, ...(isPlayer(state, nationId) ? { techAgeId } : {}) }, nationId, research.current);
+    const cost = getResearchCost({ ...state, ...(isPlayer(state, nationId) ? { techAgeId } : {}) }, nationId, research.current, research.futureTechs || 0);
     const have = research.progress[research.current] || 0;
     const rate = focus && focus === tech.category ? 1 + FOCUS_SCIENCE_BONUS : 1;
     const spend = Math.min(stock, Math.ceil((cost - have) / rate));
@@ -212,11 +214,12 @@ export const stepResearch = (state, nationId) => {
     stock -= spend;
     if (research.progress[research.current] >= cost - 1e-9) {
       delete research.progress[research.current];
-      researched.add(research.current);
+      if (tech.repeatable) research.futureTechs = (research.futureTechs || 0) + 1; // never researched: it can be taken again
+      else researched.add(research.current);
       completed.push(research.current);
       techAgeId = techAgeAfter(techAgeId, researched);
       research.lastCompleted = { techId: research.current, turn: state.turnNumber };
-      research.current = null;
+      research.current = tech.repeatable && !research.queue.length ? research.current : null; // Future Tech repeats while nothing is queued
     }
   }
   return { research, stock, completed, techAgeId };
@@ -257,7 +260,7 @@ export const applyResearchTurn = (state) => {
   const p = stepResearch(next, state.playerNationId);
   if (p.completed.length || p.stock !== (state.resources?.techPoints || 0) || p.research.current !== state.research?.current || p.research !== state.research) {
     const techTree = { ...state.techTree };
-    p.completed.forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
+    p.completed.forEach((id) => { if (!TECH_TREE[id].repeatable) techTree[id] = { ...techTree[id], researched: true }; });
     const logs = [...next.logs];
     p.completed.forEach((id) => logs.push({ year: state.year, ...msg('m.world.researched', { tech: thing('tech', id, TECH_TREE[id].name) }), type: LogTypes.TECH }));
     const before = techAgeOf(state, state.playerNationId);
@@ -287,7 +290,7 @@ export const applyResearchTurn = (state) => {
       research: r.research,
       economy: { ...nation.economy, techPoints: r.stock },
       // The same researched list while nothing completed: its identity keys the tile-yield memos.
-      tech: r.completed.length || !nation.tech ? { researched: [...(nation.tech?.researched || []), ...r.completed], ageId: r.techAgeId } : (nation.tech.ageId === r.techAgeId ? nation.tech : { ...nation.tech, ageId: r.techAgeId })
+      tech: r.completed.length || !nation.tech ? { researched: [...(nation.tech?.researched || []), ...r.completed.filter((id) => !TECH_TREE[id].repeatable)], ageId: r.techAgeId } : (nation.tech.ageId === r.techAgeId ? nation.tech : { ...nation.tech, ageId: r.techAgeId })
     };
   });
   return nations ? { ...next, nations } : next;

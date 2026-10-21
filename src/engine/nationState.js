@@ -19,6 +19,9 @@ export const getPool = (state, nationId) =>
 // The player's list is memoised on the tech tree's identity, so callers that key caches on the
 // array (the cities phase's tile yields) hit across turns until a tech completes.
 const researchedMemo = new WeakMap();
+/** How many times a nation has finished the repeatable Future Tech (research.js, U65). */
+export const futureTechsOf = (state, nationId) => ((nationId === state.playerNationId ? state.research : state.nations?.[nationId]?.research)?.futureTechs || 0);
+
 export const getResearched = (state, nationId) => {
   if (nationId === state.playerNationId) {
     const tree = state.techTree;
