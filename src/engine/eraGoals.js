@@ -12,6 +12,8 @@ import { addNationModifier } from './modifiers/timed';
 import { msg, sub, thing } from './messages';
 import { ageOf, getResearched } from './nationState';
 import { grantDecree } from './decrees';
+import { grantRenown, grantEraLegacy } from './renown';
+import { RENOWN } from '../data/rulers';
 
 /** The turn `nationId` entered its current age (0 for the first age). */
 export const ageStartTurn = (state, nationId = state.playerNationId) => state.nations?.[nationId]?.ageSince || 0;
@@ -53,7 +55,9 @@ export const awardEraLegacy = (state, nation, endingAgeId, turnNumber) => {
   const earned = met.length >= ERA_GOALS_FOR_LEGACY;
   const record = { ...(nation.eraGoals || {}), [endingAgeId]: { met, legacy: earned } };
   // Each goal met grants the ruler one decree (U6), once: an age is scored only once.
-  nation = met.reduce((n, id) => grantDecree(n, 'eraGoal', turnNumber, id), nation);
+  // And renown (renown.js): each goal met, then the legacy with its virtue point.
+  nation = met.reduce((n, id) => grantRenown(grantDecree(n, 'eraGoal', turnNumber, id), 'eraGoal', RENOWN.eraGoal, turnNumber, id), nation);
+  if (earned) nation = grantEraLegacy(nation, turnNumber, endingAgeId);
   if (!earned) return { nation: { ...nation, eraGoals: record }, log: msg('m.world.noLegacy', { age: thing('age', endingAgeId, AGES[endingAgeId]?.name || endingAgeId), n: met.length }) };
   const mods = {};
   met.forEach((id) => Object.entries(PLAYSTYLES[id].mods).forEach(([k, v]) => { mods[k] = (mods[k] || 0) + v; }));

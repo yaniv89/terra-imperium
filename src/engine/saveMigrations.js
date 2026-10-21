@@ -374,11 +374,13 @@ export const migrate14to15 = (state) => {
 
 // v16: one ruler a game (differentiation plan U5, RULER-PLAN 7.3). Every ruler takes the fixed shape:
 // the people's ruler (a legacy nation keeps its name), attributes 3/3/3/0/0/0; the house, the reign
-// and the rolled traits go, with the dynasty streak.
+// and the rolled traits go, with the dynasty streak; each old positive trait comes back as a virtue
+// point (RULER-PLAN 7.3, U11).
+const OLD_POSITIVE_TRAITS = new Set(['just', 'scholar', 'warrior', 'diplomat', 'architect', 'merchant', 'administrator', 'strategist', 'kind', 'builder', 'genius']);
 export const migrate15to16 = (state) => ({
   ...state,
   nations: Object.fromEntries(Object.entries(state.nations || {}).map(([id, n]) => [id, n.ruler
-    ? { ...omit(n, ['sameDynastyStreak']), ruler: { ...createRuler(id), name: PEOPLES[id]?.ruler?.name || n.ruler.name } }
+    ? { ...omit(n, ['sameDynastyStreak']), ruler: { ...createRuler(id), name: PEOPLES[id]?.ruler?.name || n.ruler.name, bonusVirtuePoints: (n.ruler.traits || []).filter((t) => OLD_POSITIVE_TRAITS.has(t)).length } }
     : omit(n, ['sameDynastyStreak'])]))
 });
 

@@ -10,7 +10,7 @@ export default {
   'p1.achunit.iron_grip': 'turns at +3',
   'p1.achunit.phoenix': 'gold after bankruptcy',
   'p1.achunit.builder_of_wonders': 'tier 3 projects',
-  'p1.achunit.dynasty': 'rulers of one house',
+  'p1.achunit.dynasty': 'ruler level',
   'p1.achunit.master_diplomat': 'nations at peace or trading',
   'p1.achunit.tech_titan': 'techs',
   'p1.achunit.three_front_war': 'wars at once',

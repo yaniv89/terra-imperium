@@ -30,6 +30,7 @@ import { isIndependent } from '../data/independents';
 import { independentCityCtx } from './independents';
 import { forageCtx } from '../data/hearths';
 import { stonePhaseCtx } from './stonePhase';
+import { rulerCityCtx } from './lawRules';
 import { logisticGrowthMult } from './population';
 import { nextTemplateUnit, templateProgress } from './armyTemplates';
 import {
@@ -71,6 +72,7 @@ export const cityCtx = (state, city) => {
     greatProjects: state.greatProjects || {},
     ...forageCtx(nid ? getResearched(state, nid) : []), // no Agriculture: a size cap (hearths.js)
     ...stonePhaseCtx(state, nid), // the first cities: river food (stonePhase.js)
+    ...rulerCityCtx(state.nations?.[nid]), // the ruler's yields and costs (lawRules.js)
     ...(isIndependent(state.nations, nid) ? independentCityCtx(state, nid) : {})
   };
   const wonderCulture = cityWonderTotal(state.greatProjects, city.id, 'local.culture');
@@ -82,7 +84,7 @@ export const cityCtx = (state, city) => {
 };
 
 /** What a production item costs in this city (the cost the turn will ask for). */
-export const costCtxOf = (ctx) => ({ ageId: ctx.ageId, citiesOwned: ctx.citiesOwned, speedMult: ctx.speedMult, trainMult: ctx.trainMult });
+export const costCtxOf = (ctx) => ({ ageId: ctx.ageId, citiesOwned: ctx.citiesOwned, speedMult: ctx.speedMult, trainMult: ctx.trainMult, costMult: ctx.costMult });
 
 const NO_YIELDS = Object.freeze({ food: 0, production: 0, gold: 0, science: 0, culture: 0, strategic: {}, luxuries: [], raw: { food: 0, production: 0, gold: 0 } });
 

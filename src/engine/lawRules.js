@@ -10,9 +10,11 @@
 //   tradeGoldPerRoute   flat gold a turn per trade pact (utils/helpers.js calcIncome)
 //   partnerOpinion      what every trade partner thinks of this nation for its trade law (opinion.js)
 //   pillageGoldMult     gold from a raid on an enemy tile, +1 = double (threat.js pillageTile)
-// Booleans combine with OR, numbers add. Memoised per nation record.
+// The ruler's attributes and virtues add their own rules (data/rulerVirtues.js rulerRules), so every
+// consumer of these reads them too. Booleans combine with OR, numbers add. Memoised per nation record.
 import { LAW_CATEGORIES, getLaw } from '../data/laws';
 import { getActiveReforms } from '../data/government';
+import { rulerRules } from '../data/rulerVirtues';
 
 export const LAW_RULE_KEYS = ['loyaltyBonus', 'tolerance', 'unitUpkeepMult', 'warExhaustionMult', 'tradeGoldPerRoute', 'partnerOpinion', 'pillageGoldMult'];
 export const EMPTY_RULES = Object.freeze({ loyaltyBonus: 0, tolerance: false, unitUpkeepMult: 0, warExhaustionMult: 0, tradeGoldPerRoute: 0, partnerOpinion: 0, pillageGoldMult: 0 });
@@ -35,6 +37,7 @@ export const lawRulesOf = (nation) => {
   const out = { ...EMPTY_RULES };
   Object.keys(LAW_CATEGORIES).forEach((category) => add(out, getLaw(category, nation.laws?.[category])?.rules));
   getActiveReforms(nation).forEach((reform) => add(out, reform.rules));
+  add(out, rulerRules(nation.ruler));
   cache.set(nation, out);
   return out;
 };
@@ -49,5 +52,19 @@ export const describeRules = (rules) => {
   if (rules.tradeGoldPerRoute) out.push(`${rules.tradeGoldPerRoute > 0 ? '+' : ''}${rules.tradeGoldPerRoute} gold per trade pact`);
   if (rules.partnerOpinion) out.push(`trade partners' opinion ${rules.partnerOpinion > 0 ? '+' : ''}${rules.partnerOpinion}`);
   if (rules.pillageGoldMult) out.push(`raids yield ${rules.pillageGoldMult > 0 ? '+' : ''}${Math.round(rules.pillageGoldMult * 100)}% gold`);
+  return out;
+};
+
+/** The ruler's part of a city's turn context (world/cities.js cityYields and productionCost):
+ * {} when the ruler adds nothing, so a city's context is otherwise unchanged. */
+export const rulerCityCtx = (nation) => {
+  const r = lawRulesOf(nation);
+  const out = {};
+  if (r.productionMult) out.productionMult = r.productionMult;
+  if (r.scienceMult) out.scienceMult = r.scienceMult;
+  if (r.cultureMult) out.cultureMult = r.cultureMult;
+  if (r.capitalScience) out.capitalScience = r.capitalScience;
+  if (r.capitalCulture) out.capitalCulture = r.capitalCulture;
+  if (r.buildingCostMult || r.settlerCostMult || r.wonderCostMult) out.costMult = { building: r.buildingCostMult || 0, settler: r.settlerCostMult || 0, wonder: r.wonderCostMult || 0 };
   return out;
 };

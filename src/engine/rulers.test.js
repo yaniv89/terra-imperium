@@ -7,7 +7,7 @@ import { createInitialState } from './gameReducer';
 
 describe('createRuler (differentiation plan U5)', () => {
   it('is fixed: the same ruler for the same nation, no rolls, reign or house', () => {
-    expect(createRuler('akkad')).toEqual({ id: 'ruler_akkad', name: 'Sargon', ...RULER_START });
+    expect(createRuler('akkad')).toEqual({ id: 'ruler_akkad', name: 'Sargon', ...RULER_START, renown: 0, traits: [] });
     expect(createRuler('fr')).toEqual(createRuler('fr'));
     expect(typeof createRuler('fr').name).toBe('string');
   });
@@ -16,7 +16,7 @@ describe('createRuler (differentiation plan U5)', () => {
     const state = createInitialState({ playerNationId: 'akkad', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11 } });
     const majors = Object.values(state.nations).filter((n) => n.kind !== 'independent');
     expect(majors.length).toBeGreaterThan(5);
-    majors.forEach((n) => expect(n.ruler).toEqual({ id: `ruler_${n.id}`, name: n.ruler.name, adm: 3, dip: 3, mil: 3, cmd: 0, lrn: 0, maj: 0 }));
+    majors.forEach((n) => expect(n.ruler).toEqual({ id: `ruler_${n.id}`, name: n.ruler.name, adm: 3, dip: 3, mil: 3, cmd: 0, lrn: 0, maj: 0, renown: 0, traits: [] }));
     Object.values(state.nations).filter((n) => n.kind === 'independent').forEach((n) => expect(n.ruler).toBeNull());
   });
 });

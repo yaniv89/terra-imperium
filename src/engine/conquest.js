@@ -20,6 +20,8 @@ import { getCapital } from '../data/regions';
 import { CAPITAL_LOST_IN_PEACE_STABILITY_PENALTY } from '../data/actionCosts';
 import { isIndependentNation, INDEPENDENT_CONQUEST_AE_MULT } from '../data/independents';
 import { grudgeForKinCity } from './grudges';
+import { lawRulesOf } from './lawRules';
+import { grantRenown, cityTakenRenown } from './renown';
 
 export const CONQUEST_CONTROL = 25;
 export const CONQUEST_MIN_UNREST = 50;
@@ -76,7 +78,13 @@ export const conquerRegion = ({ regions, nations, turnNumber }, regionId, conque
   const nextRegions = { ...regions, [regionId]: taken };
   // Taking an independent's city costs half the usual AE (plans/independent-cities.md 5).
   const indepMult = isIndependentNation(nations[loserId]) ? INDEPENDENT_CONQUEST_AE_MULT : 1;
-  let nextNations = applyAggressiveExpansion(nations, nextRegions, regionId, loserId, conquerorId, aeMultFor({ nations, regions }, conquerorId, region) * indepMult);
+  // Terror of the Field and Conqueror's Peace (rulerVirtues.js aeMult).
+  let nextNations = applyAggressiveExpansion(nations, nextRegions, regionId, loserId, conquerorId, aeMultFor({ nations, regions }, conquerorId, region) * indepMult * Math.max(0, 1 + (lawRulesOf(nations[conquerorId]).aeMult || 0)));
+  // The conqueror's renown (renown.js): a major's city (its capital more), or an independent's, damped by size.
+  if (nextNations[conquerorId]?.ruler) {
+    const cities = Object.values(nextRegions).filter((c) => c.owner === conquerorId).length;
+    nextNations = { ...nextNations, [conquerorId]: grantRenown(nextNations[conquerorId], 'cityTaken', cityTakenRenown({ fromIndependent: isIndependentNation(nations[loserId]), capital: loserCapital === regionId, cities }), turnNumber, regionId) };
+  }
   // The claim the city was taken for is settled.
   if (nextNations[conquerorId]?.claims?.includes(regionId)) nextNations = { ...nextNations, [conquerorId]: { ...nextNations[conquerorId], claims: nextNations[conquerorId].claims.filter((id) => id !== regionId) } };
   // Its kin among the independents remember (grudges.js, phase W2).

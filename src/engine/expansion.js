@@ -7,6 +7,7 @@
 import { getNeighborIds } from '../data/regions';
 import { leansNegative } from '../data/identity';
 import { AE_PER_DEV_POINT, AE_DECAY_PER_TURN, AE_PRUNE_BELOW, AE_ISOLATIONIST_DISCOUNT } from '../data/actionCosts';
+import { lawRulesOf } from './lawRules';
 
 // Called once per successful capture (player LAUNCH_INVASION/AMPHIBIOUS_ASSAULT in gameReducer.js,
 // AI captures in diplomacy.js's resolveWarProgress) — region/dev must be read from the state
@@ -51,7 +52,7 @@ export const decayAggressiveExpansion = (nations) => {
     let nationChanged = false;
     const ae = {};
     Object.entries(nation.ae).forEach(([targetId, value]) => {
-      const decayed = value - AE_DECAY_PER_TURN;
+      const decayed = value - AE_DECAY_PER_TURN * (1 + (lawRulesOf(nations[targetId]).aeDecayMult || 0)); // Great Game (rulerVirtues.js)
       if (decayed >= AE_PRUNE_BELOW) {
         ae[targetId] = decayed;
       } else {

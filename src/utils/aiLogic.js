@@ -22,6 +22,7 @@
 // favoring infantry, the real counter, not a scripted response to "cavalry" by name.
 
 import { opinionOf, warRollOpinionMult } from '../engine/opinion';
+import { rulerWarMult } from '../engine/rulerBias';
 import { DOCTRINES } from '../data/nations';
 import { isIndependentNation, everyMajorThinks } from '../data/independents';
 import { RelationStatus } from '../data/types';
@@ -296,7 +297,7 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
 // leader ignores all that and goes straight for the leader — that's the whole point of ganging up.
 export const WAR_TEMPER_MIN = 0.5;
 export const WAR_TEMPER_MAX = 2;
-export const warTemper = (nation) => Math.max(WAR_TEMPER_MIN, Math.min(WAR_TEMPER_MAX, (DOCTRINES[nation?.doctrine] || DEFAULT_DOCTRINE).warRollMult));
+export const warTemper = (nation) => Math.max(WAR_TEMPER_MIN, Math.min(WAR_TEMPER_MAX, (DOCTRINES[nation?.doctrine] || DEFAULT_DOCTRINE).warRollMult * rulerWarMult(nation || {})));
 export const rankWarTargets = (state, nationId, candidates) => {
   const cost = WAR_COST / warTemper(state.nations[nationId]);
   return candidates.map((id) => ({ id, ...warValue(state, nationId, id, { cost }) })).sort((a, b) => b.ev - a.ev || (a.id < b.id ? -1 : 1));
@@ -339,7 +340,7 @@ const pickWarTarget = (state, nationId, preferredTargetId = null, excludeId = nu
 const shouldDeclareWar = (nation, rng, aggressionMult = 1, coalitionMult = 1, opinionMult = (nation.hostility || 0) / 100 + 0.2) => {
   const doctrine = DOCTRINES[nation.doctrine] || DEFAULT_DOCTRINE;
   if (doctrine.warRollMult <= 0) return false;
-  const chance = BASE_WAR_ROLL_CHANCE * doctrine.warRollMult * aggressionMult * coalitionMult * opinionMult;
+  const chance = BASE_WAR_ROLL_CHANCE * doctrine.warRollMult * aggressionMult * coalitionMult * opinionMult * rulerWarMult(nation); // the ruler's virtues (rulerBias.js)
   return rng.next() < chance;
 };
 

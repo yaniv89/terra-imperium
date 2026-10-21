@@ -27,6 +27,7 @@ import { getRegionModifier } from './modifiers/sheet';
 import { unitsWithinRings, nearestHeldCity, REINFORCE_RINGS } from './armies';
 import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier, SIEGE_CONTROL_DAMAGE } from './siege';
 import { applyBattleOutcome, makeBattleOutcome } from './battleOutcome';
+import { commandGenerals } from '../data/generals';
 
 // Before this system, a successful capture roll against a garrisoned player region always did
 // full siege damage. Now the garrison fights back (getAssaultPressure averages about half), so the
@@ -137,7 +138,7 @@ export const getDefenseBattleContext = (state, def) => {
   return {
     terrain: getRegionTerrain(def.regionId, REGIONS_DATA),
     isAttackingFortification: (region.defenseLevel || 0) > 0,
-    generals: state.hiredCommanders || {},
+    generals: commandGenerals(state),
     attackerAgeId: sideAgeOf(state, def.aggressorId),
     defenderAgeId: ageOf(state, state.playerNationId),
     fortLevel,

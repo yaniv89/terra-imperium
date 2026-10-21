@@ -14,6 +14,7 @@ import { TECH_TREE } from '../../data/techTree';
 import { LEGACY_HOOK } from './registry';
 import { getOverextension, getRulerBestPool } from '../nationalPower';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
+import { VIRTUES } from '../../data/rulerVirtues';
 
 const linesFromEffect = (effect, sourceType, sourceId, label) =>
   Object.entries(effect || {})
@@ -58,6 +59,10 @@ export const staticSources = (nation) => {
     ['adm', 'dip', 'mil'].forEach((pool) => {
       if (ruler[pool]) lines.push({ key: `national.${pool}Bonus`, value: ruler[pool], sourceType: 'ruler', sourceId: ruler.id, label: ruler.name });
     });
+    // Military above 3: +2% manpower a level; Command: +5% morale recovery a level (RULER-PLAN 3).
+    if ((ruler.mil || 0) > 3) lines.push({ key: 'national.hrMult', value: Math.round(2 * (ruler.mil - 3)) / 100, sourceType: 'ruler', sourceId: ruler.id, label: `${ruler.name} (Military ${ruler.mil})` });
+    if (ruler.cmd) lines.push({ key: 'national.moraleRecovery', value: Math.round(5 * ruler.cmd) / 100, sourceType: 'ruler', sourceId: ruler.id, label: `${ruler.name} (Command ${ruler.cmd})` });
+    (ruler.traits || []).forEach((id) => { if (VIRTUES[id]) lines.push(...linesFromEffect(VIRTUES[id].effects, 'virtue', id, `${ruler.name} (${VIRTUES[id].name})`)); });
   }
 
   // Advisors (plan §M3): each hired advisor's level (1-3) adds straight to their own pool, on top

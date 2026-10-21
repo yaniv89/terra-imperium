@@ -70,6 +70,8 @@ import { transferRegion } from './regionTransfer';
 import { burnCities, aiWantsRaze, startRazing } from './razing';
 import { processPatrons } from './cityStates';
 import { canAnnex } from './stonePhase';
+import { lawRulesOf } from './lawRules';
+import { grantRenown, cityTakenRenown } from './renown';
 
 const COURT_MAX_GRUDGE = 20;
 const COURT_MAX_TURNS = 40;
@@ -150,7 +152,8 @@ export const joinCheck = (state, indepId, majorId, byTile = null) => {
   if (!majorsNear(state, city.tile, ringsForKm(JOIN_KM)).has(majorId)) return { ok: false, ...reasonOf('m.why.mercFar') };
   const attitude = attitudeOf(state, indepId, majorId);
   const since = n.indep?.leanSince?.[majorId];
-  if (attitude >= JOIN_OPINION && since != null && (state.turnNumber || 0) - since >= JOIN_TURNS) return { ok: true, how: 'opinion', attitude };
+  const joinTurns = JOIN_TURNS * (1 - (lawRulesOf(m).indepJoinMult || 0)); // Arbiter of Nations (rulerVirtues.js)
+  if (attitude >= JOIN_OPINION && since != null && (state.turnNumber || 0) - since >= joinTurns) return { ok: true, how: 'opinion', attitude };
   // The plan's "5 times its military strength": the major's whole land army against all of its own.
   const theirs = Math.max(1, indepStrength(state, indepId));
   const mine = armyStrength(state, majorId, byTile);
@@ -181,6 +184,7 @@ const annex = (w, indepId, majorId) => {
   w.nations[indepId] = { ...n, isEliminated: true, capitalRegionId: null, indep: { ...n.indep, raid: null, joined: { to: majorId, turn: w.turn } } };
   // Its tribute and trade deals end with it (they live on its record); campaigns against it end at their next think.
   w.stats.joined += 1;
+  if (w.nations[majorId]?.ruler) w.nations[majorId] = grantRenown(w.nations[majorId], 'cityJoined', cityTakenRenown({ fromIndependent: true, cities: Object.values(w.regions).filter((c) => c.owner === majorId).length }), w.turn, city.id);
   const who = people(majorId, w.nations[majorId]?.name || majorId);
   w.logs.push({ year: w.year, type: LogTypes.DIPLOMACY, ...(majorId === w.playerId ? msg('m.battle.indepJoinYou', { nation: people(indepId, n.name), city: cityRef(city.id, city.name) }) : msg('m.battle.indepJoin', { nation: people(indepId, n.name), major: who })), nationId: majorId });
 };

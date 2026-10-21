@@ -8,6 +8,7 @@ export default {
   'log.foldNote': '({count} times so far, since {year})',
 
   'm.turn.newEra': 'A new era dawns: the world enters the {age}.',
+  'm.turn.rulerLevel': '{name} reaches ruler level {level}: new points wait to be spent.',
   'm.turn.governorMoved': 'Governor {name} now serves from {city}: your cities were regrouped.',
   'm.turn.governorMerged': 'Governor {name} has left office: the group of {city} joined a group that already has a governor.',
   'm.turn.governorLeft': 'Governor {name} has left office: {city} is no longer yours.',

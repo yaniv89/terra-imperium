@@ -19,6 +19,7 @@ import { regionForTile, unitTile } from './armies';
 import { isUnitInBattle } from './invasion';
 import { isFleet } from './fleets';
 import { applyBattleOutcome, makeBattleOutcome, battleIdOf } from './battleOutcome';
+import { commandGenerals } from '../data/generals';
 
 export const SEA_TERRAIN = 'sea';
 export const NAVAL_BATTLE_TYPE = 'naval';
@@ -65,7 +66,7 @@ export const getFleetBattleContext = (state, v) => ({
   isDefended: true,
   isAttackingFortification: false,
   battleType: NAVAL_BATTLE_TYPE,
-  generals: state.hiredCommanders,
+  generals: commandGenerals(state),
   attackerAgeId: ageOf(state, state.playerNationId),
   defenderAgeId: sideAgeOf(state, v.defenderNationId),
   attackerPenaltyMultiplier: 1,

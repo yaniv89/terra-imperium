@@ -6,6 +6,7 @@ export default {
   'log.foldNote': '({count} פעמים עד כה, מאז {year})',
 
   'm.turn.newEra': 'עידן חדש מפציע: העולם נכנס ל{age}.',
+  'm.turn.rulerLevel': '{name}: דרגת שליט {level}. נקודות חדשות מחכות.',
   'm.turn.governorMoved': 'המושל {name} משרת עכשיו מ{city}: הערים שלכם קובצו מחדש.',
   'm.turn.governorMerged': 'המושל {name} עזב את תפקידו: הקבוצה של {city} אוחדה עם קבוצה שכבר יש לה מושל.',
   'm.turn.governorLeft': 'המושל {name} עזב את תפקידו: {city} כבר לא בידיכם.',

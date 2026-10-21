@@ -4,6 +4,8 @@
 // data model already carries commanderId on the unit itself (§11), so no separate "Army" grouping
 // entity is needed for a general to matter — assigning one directly biases that unit's combat.
 
+import { rulerRules } from './rulerVirtues';
+
 export const PERSONALITIES = ['cautious', 'reckless', 'siegemaster', 'logistician'];
 
 const TRAIT_MIN = 1;
@@ -47,3 +49,20 @@ export const getGeneralDefenseMultiplier = (general) => (general?.personality ==
 // Logistician generals get their unit combat experience faster — a modest XP bonus, standing in
 // for actual supply mechanics (what "logistician" ought to touch) until Task 19 exists.
 export const getGeneralXpMultiplier = (general) => (general?.personality === 'logistician' ? 1.25 : 1);
+
+// The ruler's Command (RULER-PLAN 3): every general of a nation fights with + generalMartial Martial
+// (data/rulerVirtues.js rulerRules: 1 per 3 levels), which may pass 5. Every battle set-up (Auto
+// and Command alike) reads its generals through this. Memoised per (hiredCommanders, nations).
+const commandCache = new WeakMap();
+export const commandGenerals = (state) => {
+  const hired = state.hiredCommanders || {};
+  const hit = commandCache.get(hired);
+  if (hit && hit.nations === state.nations) return hit.out;
+  const out = {};
+  Object.entries(hired).forEach(([id, g]) => {
+    const bonus = rulerRules(state.nations?.[g?.nationId]?.ruler).generalMartial || 0;
+    out[id] = bonus ? { ...g, martial: (g.martial || 0) + bonus } : g;
+  });
+  commandCache.set(hired, { nations: state.nations, out });
+  return out;
+};

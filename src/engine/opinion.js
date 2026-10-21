@@ -130,6 +130,8 @@ const mapReasons = (state, a, b) => {
   if (!mine.length || !theirs.length) return out;
   const shared = sharedBorderOf(regions, tileOwner, tiles, idx).get(a)?.get(b) || 0;
   const sharedLength = shared * (kmPerRing() / BORDER_TILE_KM); // in tiles of BORDER_TILE_KM
+  const warlike = shared > 0 ? lawRulesOf(state.nations?.[b]).warlikeOpinion : 0; // a Warlord next door (rulerVirtues.js)
+  if (warlike) out.push({ id: 'warlikeRuler', label: 'Warlike ruler', value: warlike });
   if (sharedLength > BORDER_FREE_TILES) out.push({ id: 'borders', label: 'Shared border', value: Math.max(BORDER_MAX, Math.round(BORDER_PER_TILE * (sharedLength - BORDER_FREE_TILES))), detail: `${shared} tiles touch` });
   const turn = state.turnNumber || 1;
   let settled = 0;
@@ -166,7 +168,11 @@ export const opinionReasons = (state, a, b = state.playerNationId) => {
   // affection (aiAccords.js opens most peaceful neighbours; the bonus there smothered every war).
   if ((A.openBordersWith?.[b] || B.openBordersWith?.[a]) && (a === state.playerNationId || b === state.playerNationId)) out.push({ id: 'openBorders', label: 'Open borders', value: OPEN_BORDERS });
   if (A.defensivePact && B.defensivePact && A.defensivePact.against === B.defensivePact.against) out.push({ id: 'pact', label: 'Defensive pact together', value: DEFENSIVE_PACT });
-  if ((B.marriageWith || []).includes(a) || (A.marriageWith || []).includes(b)) out.push({ id: 'marriage', label: 'Royal marriage', value: ROYAL_MARRIAGE });
+  if ((B.marriageWith || []).includes(a) || (A.marriageWith || []).includes(b)) out.push({ id: 'marriage', label: 'Royal marriage', value: ROYAL_MARRIAGE * (1 + (lawRulesOf(B).marriageOpinionMult || 0)) });
+  // B's ruler (rulerVirtues.js rulerRules): Diplomacy above 3 and the Diplomat virtues; Living God among theocracies.
+  const rulerRule = lawRulesOf(B);
+  if (B.ruler && rulerRule.rulerOpinion) out.push({ id: 'ruler', label: `Renown of ${B.ruler.name}`, value: rulerRule.rulerOpinion });
+  if (rulerRule.theocracyOpinion && A.government?.type === 'theocracy') out.push({ id: 'livingGod', label: 'A rival god-king', value: rulerRule.theocracyOpinion });
   const axes = Object.keys(IDENTITY_AXES).filter((axis) => (leansPositive(A.identity, axis) && leansPositive(B.identity, axis)) || (leansNegative(A.identity, axis) && leansNegative(B.identity, axis)));
   if (axes.length) out.push({ id: 'identity', label: 'Alike in outlook', value: SAME_IDENTITY_AXIS * axes.length, detail: axes.join(', ') });
   const ae = B.ae?.[a] || 0;

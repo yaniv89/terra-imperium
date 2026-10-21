@@ -173,6 +173,9 @@ export const ActionTypes = {
   CULTURAL_EXPORT: 'CULTURAL_EXPORT',
   // Rulers and advisors (plan §M3) — see src/engine/rulers.js.
   HIRE_ADVISOR: 'HIRE_ADVISOR',
+  RAISE_RULER_ATTRIBUTE: 'RAISE_RULER_ATTRIBUTE',
+  TAKE_RULER_VIRTUE: 'TAKE_RULER_VIRTUE',
+  RESHAPE_RULER: 'RESHAPE_RULER',
   // Governors (plans/civ-map-rework.md C4.3, src/engine/governors.js).
   ASSIGN_GOVERNOR: 'ASSIGN_GOVERNOR',
   DISMISS_GOVERNOR: 'DISMISS_GOVERNOR',
