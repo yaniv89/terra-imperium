@@ -40,6 +40,10 @@ describe('the first-battle coach', () => {
     expect(m).not.toMatch(/\btap\b|pinch|finger/i);
   });
 
+  it('the touch steps teach the controls in order: path, circle, hold', () => {
+    expect(coachSteps(false).map((s) => s.title)).toEqual(['Draw a path', 'Circle to select', 'Hold for help']);
+  });
+
   it('a mouse only when the pointer is fine and there is no touch screen', () => {
     expect(mouseFirst(win({ fine: true }))).toBe(true);
     expect(mouseFirst(win({ fine: true, touchPoints: 5 }))).toBe(false);
