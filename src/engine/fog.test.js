@@ -1,17 +1,18 @@
 // src/engine/fog.test.js
 import { describe, it, expect } from 'vitest';
-import { gameReducer } from './gameReducer';
+import { gameReducer, createInitialState } from './gameReducer';
 import { peoplesWorld } from './testWorld';
 import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
 import { getTiles } from '../data/geo/tiles';
 import { ringsForKm } from '../data/geo/gridScale';
+import { distanceKm } from '../data/geo/geodesic';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { migrateSave, CURRENT_SAVE_VERSION } from './saveMigrations';
 import { bestSites } from './settlers';
 import {
   fogOn, isExplored, hasMet, metNations, knownNationName, UNKNOWN_PEOPLE, updateFog, initFog, reviveFog,
-  bitsCount, bitsHas, TileBits, TileInts, START_KNOWN_KM, mapSharingPairs, ownSightAll
+  bitsCount, bitsHas, TileBits, TileInts, START_KNOWN_KM, START_CONTACT_KM, mapSharingPairs, ownSightAll
 } from './fog';
 import { visibleTiles } from './sight';
 
@@ -42,8 +43,28 @@ describe('fog of war: the start', () => {
     expect(isExplored(S, capTile(S, far), ME)).toBe(false);
   });
 
-  it('no people knows another at the start (majors stand farther apart than a homeland); a meeting by sight is mutual', () => {
-    expect(metNations(S, ME)).toEqual([]);
+  it('first contact: every major knows its nearest major (and those within START_CONTACT_KM) and where its capital stands, never an independent', () => {
+    const majors = Object.keys(S.nations).filter((id) => S.nations[id].kind !== 'independent' && capTile(S, id) != null);
+    majors.forEach((id) => expect(metNations(S, id).filter((o) => majors.includes(o)).length).toBeGreaterThan(0));
+    Object.keys(S.nations).filter((id) => S.nations[id].kind === 'independent').forEach((id) => expect(hasMet(S, ME, id)).toBe(false));
+    const near = metNations(S, ME);
+    expect(near.length).toBeGreaterThan(0);
+    near.forEach((id) => {
+      expect(isExplored(S, capTile(S, id), ME)).toBe(true);
+      expect(S.fog.seen.cities[getNationCapital(id)]?.owner).toBe(id);
+      if (near.length > 1) expect(distanceKm(tiles.centres[capTile(S, ME)], tiles.centres[capTile(S, id)])).toBeLessThanOrEqual(START_CONTACT_KM);
+    });
+  });
+
+  it('first contact on a band start (a new game): from the bands\' homes, and the land around a contact\'s home is known', () => {
+    const b = createInitialState({ playerNationId: 'akkad', rngSeed: 7, scenario: { mode: 'peoples', size: 'standard', seed: 7, band: true } });
+    const near = metNations(b, 'akkad');
+    expect(near.length).toBeGreaterThan(0);
+    const home = Object.values(b.units).find((u) => u.band && u.ownerId === near[0]).band.home;
+    expect(isExplored(b, home, 'akkad')).toBe(true);
+  }, 60000);
+
+  it('a far people is unknown at the start; a meeting by sight is mutual', () => {
     const far = farAway(S);
     expect(hasMet(S, ME, far)).toBe(false);
     expect(knownNationName(S, far)).toBe(UNKNOWN_PEOPLE);

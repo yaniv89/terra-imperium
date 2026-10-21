@@ -23,6 +23,10 @@ import { mapEffectsFor } from '../../engine/techMapEffects';
 import { upgradeQuote, unitAgeOf } from '../../engine/unitUpgrades';
 import { reasonText } from '../../i18n/messageText';
 import { reasonOf } from '../../engine/messages';
+import { fogOn, isExplored } from '../../engine/fog';
+import { scoutPath } from '../../engine/aiScouting';
+import { EXPLORE_REACH } from '../../engine/scouting';
+import { distanceKm } from '../../data/geo/geodesic';
 
 import { pillageTile } from '../../engine/threat';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
@@ -73,6 +77,28 @@ export const stackOn = (state, tile, fleet = false) => {
 
 // An army's name: the templates' own names are game data; a name the player typed stays as typed.
 const armyLabel = (name) => (name === 'Legion' ? t('mx.army.legion') : name === 'Siege train' ? t('mx.army.siegeTrain') : name);
+
+/**
+ * An idle army's way to a fight (playtests of 21 October: armies wandered and nobody met anyone):
+ * the nearest unexplored land it may walk to at peace (aiScouting.js scoutPath, the scouts' rule)
+ * and the nearest foreign city the player knows (fog.js memory). { tile, city: { id, name } } or
+ * null when neither exists (fog off and no foreign city, or nothing in reach).
+ */
+export const exploreHint = (state, tile) => {
+  const me = state.playerNationId;
+  const fog = fogOn(state);
+  const path = fog ? scoutPath(state, me, tile, (t) => !isExplored(state, t, me), EXPLORE_REACH) : null;
+  const centres = getTiles().centres;
+  const known = fog ? Object.values(state.fog.seen?.cities || {}) : Object.values(state.regions || {});
+  let city = null;
+  known.forEach((c) => {
+    if (!c.owner || c.owner === me || c.tile == null || !state.nations[c.owner]) return;
+    const km = distanceKm(centres[tile], centres[c.tile]);
+    if (!city || km < city.km || (km === city.km && c.id < city.id)) city = { id: c.id, name: nameNow('city', null, c.name), km };
+  });
+  const to = path ? path[path.length - 1] : null;
+  return to == null && !city ? null : { tile: to, city };
+};
 
 export const armySheetModel = (state, tile, fleet = false) => {
   const tiles = getTiles();
@@ -173,6 +199,7 @@ export const armySheetModel = (state, tile, fleet = false) => {
     canHold: !naval && !scouts && !units.some((u) => u.route?.length),
     siegeOrders: naval ? [] : siegeOrders(state, tile, units),
     canMarch: units.some((u) => (u.movesLeft ?? 0) > 0 && !u.route?.length),
+    explore: !naval && !scouts && (status === 'idle' || status === 'garrison') && !lead ? exploreHint(state, tile) : null, // a waiting army, in the field or at home
     pillage: naval ? null : pillageTarget(state, tile, units),
     generals,
     airCover: naval ? 0 : airUnitsInRange(state, state.playerNationId, tile, units).length, airRange: AIR_RANGE,

@@ -504,6 +504,7 @@ export default {
   'march.suppliesCount.other': '{count} אספקה',
   'march.moveNowNote': ' מעבר מיידי מגיע בתור הזה.',
   'march.halts': ' עוצר ב{place} כדי לתקוף.',
+  'march.supplyOut': 'אין שם אספקה: {change} בכל תור, הצבא ירעב בעוד כ־{turns}.',
   'march.attack': 'תקיפה',
   'march.marchAttack': 'צעידה לתקיפה',
   'march.moveNow': 'מעבר מיידי',

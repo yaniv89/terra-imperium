@@ -18,6 +18,7 @@ import { fogOn, bitsHas } from '../../engine/fog';
 const viewCache = new WeakMap(); // state -> view
 let last = null; // the previous view, to keep identities when nothing changed
 
+const ghostCache = new WeakMap(); // remembered city snapshot -> its ghost record
 const sameKeys = (a, b) => {
   if (a === b) return true;
   const ka = Object.keys(a); if (ka.length !== Object.keys(b).length) return false;
@@ -89,7 +90,9 @@ export const fogView = (state) => {
     }
     // `lastSeen`: the turn the player last saw its centre (the "last seen T12" of the fog look, W03).
     // No land, worked or locked tiles: a remembered city is drawn, never worked.
-    regions[snap.id] = { ...snap, owner, ghost: true, lastSeen: seen?.turn?.ints?.[snap.tile] || null, tiles: [], worked: [], locked: [], control: 100, unrest: 0 };
+    const lastSeen = seen?.turn?.ints?.[snap.tile] || null;
+    const g = ghostCache.get(snap); // the same record while nothing changed, so the view keeps its identity
+    regions[snap.id] = g && g.owner === owner && g.lastSeen === lastSeen ? g : ghostCache.set(snap, { ...snap, owner, ghost: true, lastSeen, tiles: [], worked: [], locked: [], control: 100, unrest: 0 }).get(snap);
   });
   // Territories of remembered cities without a remembered record (never named) are dropped.
   Object.keys(tileOwner).forEach((k) => { if (!regions[tileOwner[k]]) delete tileOwner[k]; });
