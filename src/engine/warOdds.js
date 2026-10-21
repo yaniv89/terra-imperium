@@ -39,9 +39,18 @@ export const RESERVE_WEIGHT = 0.1;
 const isArmy = (u) => u.domain === 'land' && u.classId !== 'settler' && !u.embarkedOn && (u.strength || 0) > 0;
 const countWars = (wars, id) => (wars || []).filter((w) => w.active && (w.aggressor === id || w.enemy === id)).length;
 
-/** The land units of `nationId` as `viewerId` judges them: [{ classId, strength }] (seen ones exact, the rest scaled by the intel error). */
-export const perceivedArmy = (state, viewerId, nationId) => {
-  const units = Object.values(state.units || {}).filter((u) => u.ownerId === nationId && isArmy(u));
+/** Every nation's land army in one walk of `units`: Map ownerId -> [unit] (in the map's order), for
+ * a pass that sizes up many pairs on the same units (perceivedArmy's `byOwner`). */
+export const armiesByOwner = (units = {}) => {
+  const out = new Map();
+  Object.values(units).forEach((u) => { if (!isArmy(u)) return; const l = out.get(u.ownerId); if (l) l.push(u); else out.set(u.ownerId, [u]); });
+  return out;
+};
+
+/** The land units of `nationId` as `viewerId` judges them: [{ classId, strength }] (seen ones exact, the rest scaled by the intel error).
+ * `byOwner`: armiesByOwner(state.units), built once by a caller that asks many times. */
+export const perceivedArmy = (state, viewerId, nationId, byOwner = null) => {
+  const units = byOwner ? (byOwner.get(nationId) || []) : Object.values(state.units || {}).filter((u) => u.ownerId === nationId && isArmy(u));
   const reserve = (state.nations?.[nationId]?.militaryStrength || 0) * RESERVE_WEIGHT;
   const out = units.map((u) => ({ classId: u.classId, strength: u.strength }));
   if (reserve > 0) out.push({ classId: 'infantry', strength: reserve });
@@ -52,9 +61,9 @@ export const perceivedArmy = (state, viewerId, nationId) => {
 };
 
 /** An age-and-matchup-aware Lanchester power ratio of `a`'s army against `b`'s, seen by `viewerId`. */
-export const armyPower = (state, a, b, viewerId = a) => {
-  const armyA = perceivedArmy(state, viewerId, a);
-  const armyB = perceivedArmy(state, viewerId, b);
+export const armyPower = (state, a, b, viewerId = a, byOwner = null) => {
+  const armyA = perceivedArmy(state, viewerId, a, byOwner);
+  const armyB = perceivedArmy(state, viewerId, b, byOwner);
   // Each side fights every war it is in with the same army: split it over its fronts (counting
   // this war when it has not started yet).
   const atWar = (state.wars || []).some((w) => w.active && ((w.aggressor === a && w.enemy === b) || (w.aggressor === b && w.enemy === a)));
@@ -65,8 +74,8 @@ export const armyPower = (state, a, b, viewerId = a) => {
 };
 
 /** p that `a` wins a war against `b`, as `viewerId` sees it (default: `a`). */
-export const warOdds = (state, a, b, viewerId = a) => {
-  const power = armyPower(state, a, b, viewerId);
+export const warOdds = (state, a, b, viewerId = a, byOwner = null) => {
+  const power = armyPower(state, a, b, viewerId, byOwner);
   if (power === Infinity) return 1;
   if (!(power > 0)) return 0;
   const ratio = WAR_EDGE * powQuarter(power, WAR_SHARPNESS);
@@ -98,8 +107,8 @@ export const prizeOf = (state, a, b) => {
 };
 
 /** The expected value to `a` of a war on `b`, with its terms: { ev, p, gain, risk }. `cost` is the war's price for this nation (WAR_COST scaled by its temper). */
-export const warValue = (state, a, b, { cost = WAR_COST } = {}) => {
-  const p = warOdds(state, a, b, a);
+export const warValue = (state, a, b, { cost = WAR_COST, byOwner = null } = {}) => {
+  const p = warOdds(state, a, b, a, byOwner);
   const gain = prizeOf(state, a, b);
   const risk = exposure(state, a, b);
   return { ev: DECISIVE * (p * gain - (1 - p) * risk) - cost, p, gain, risk };

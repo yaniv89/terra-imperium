@@ -41,7 +41,7 @@ import { getResearched } from './nationState';
 import { enemyFleetAt, findSeaPath, fleetPace, isFleet, portsBeside, portWaters } from './fleets';
 import {
   BANK_CAP, DEFAULT_MOVE_POINTS, ENEMY_TILE_COST, MARCH_ATTRITION, MAX_ROUTE_STEPS, MOVE_POINTS,
-  enemyArmyAt, findTilePath, inEnemyZoc, isHarsh, movePoints, regionAccess, regionForTile, stackPace, tileAccess, tileStepCost, unitTile
+  armiesByTile, enemyArmyAt, findTilePath, inEnemyZoc, isHarsh, movePoints, regionAccess, regionForTile, stackPace, tileAccess, tileStepCost, unitTile
 } from './armies';
 import { isStationedIn } from './unitLocation';
 
@@ -304,6 +304,7 @@ export const advanceMarches = (state, units, { year, turnOf = null, only = null 
   let marched = 0;
   const reached = new Map(); // destination -> count, for one log line per stack
   const halted = new Map();
+  let foes = null; // armiesByTile, built on the first land step: the walk moves only `me`'s units, whom enemyArmyAt skips
   Object.keys(units).sort().forEach((id) => {
     const u = units[id];
     if (!u?.route?.length || u.ownerId !== me || (only && !only.has(id))) return;
@@ -331,13 +332,14 @@ export const advanceMarches = (state, units, { year, turnOf = null, only = null 
       // Enemy land is walked at war (a siege is an army beside the city); the city itself is taken
       // through the attack card.
       if (access === 'enemy' && state.regions[state.world?.tileOwner?.[next]]?.tile === next) { halt = 'attack'; break; }
-      if (enemyArmyAt(state, next, me, units)) { halt = 'enemy'; break; }
+      foes ||= armiesByTile(state, units);
+      if (enemyArmyAt(state, next, me, units, foes)) { halt = 'enemy'; break; }
       const cost = tileStepCost(state, tiles, at, next, access, researched);
       if (bank + 1e-9 < cost) break;
       bank -= cost; at = next; route = route.slice(1); moved = true;
       if (isHarsh(tiles, next)) strength = Math.max(1, Math.round(strength * (1 - MARCH_ATTRITION)));
       // Zone of control: next to an enemy army the move ends for the turn.
-      if (inEnemyZoc(state, tiles, next, me, units)) { bank = 0; break; }
+      if (inEnemyZoc(state, tiles, next, me, units, foes)) { bank = 0; break; }
     }
     const regionId = moved ? regionForTile(state, at, me, u.regionId) : u.regionId;
     const place = { tile: at, regionId, strength, ...(moved ? { marchedTurn: state.turnNumber, ...mark } : {}) };

@@ -39,7 +39,7 @@ import { AE_COALITION_ROLL_SCALE, AE_COALITION_ROLL_CAP } from '../data/actionCo
 import { independenceChance } from '../engine/vassals';
 import { getEffectiveMilitaryPower, canAffordAIRecruit, applyAIRecruitCost } from '../engine/aiEconomy';
 import { warContagionMult } from '../engine/warContagion';
-import { warValue, WAR_COST } from '../engine/warOdds';
+import { warValue, WAR_COST, armiesByOwner } from '../engine/warOdds';
 import { msg, people } from '../engine/messages';
 import { ageOf } from '../engine/nationState';
 
@@ -300,9 +300,9 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
 export const WAR_TEMPER_MIN = 0.5;
 export const WAR_TEMPER_MAX = 2;
 export const warTemper = (nation) => Math.max(WAR_TEMPER_MIN, Math.min(WAR_TEMPER_MAX, (DOCTRINES[nation?.doctrine] || DEFAULT_DOCTRINE).warRollMult * rulerWarMult(nation || {})));
-export const rankWarTargets = (state, nationId, candidates) => {
+export const rankWarTargets = (state, nationId, candidates, byOwner = armiesByOwner(state.units)) => {
   const cost = WAR_COST / warTemper(state.nations[nationId]);
-  return candidates.map((id) => ({ id, ...warValue(state, nationId, id, { cost }) })).sort((a, b) => b.ev - a.ev || (a.id < b.id ? -1 : 1));
+  return candidates.map((id) => ({ id, ...warValue(state, nationId, id, { cost, byOwner }) })).sort((a, b) => b.ev - a.ev || (a.id < b.id ? -1 : 1));
 };
 // A peace (or a truce bought with tribute) is remembered AI_PEACE_MEMORY_TURNS past the truce's end
 // (truces hold their expiry turn, diplomacy.js setTruce); in that time the AI picks other targets.
@@ -312,7 +312,7 @@ export const recentlyAtPeace = (state, nationId, otherId) => {
   const until = state.nations[nationId]?.truces?.[otherId];
   return until != null && state.turnNumber < until + AI_PEACE_MEMORY_TURNS;
 };
-const pickWarTarget = (state, nationId, preferredTargetId = null, excludeId = null, memoryExempt = null) => {
+const pickWarTarget = (state, nationId, preferredTargetId = null, excludeId = null, memoryExempt = null, byOwner) => {
   // Plan §M12/M13: the AI never breaks a truce (isInTruce, src/engine/diplomacy.js) — a
   // truce-active neighbor is filtered out of consideration entirely.
   const candidates = getBorderingNationIds(state.regions, nationId)
@@ -332,7 +332,7 @@ const pickWarTarget = (state, nationId, preferredTargetId = null, excludeId = nu
       && !hasActiveWarBetween(state, nationId, id) && countActiveWars(state.wars, id) < MAX_TARGET_WARS);
   if (candidates.length === 0) return null;
   if (preferredTargetId && candidates.includes(preferredTargetId)) return preferredTargetId;
-  const best = rankWarTargets(state, nationId, candidates)[0];
+  const best = rankWarTargets(state, nationId, candidates, byOwner)[0];
   return best && best.ev > 0 ? best.id : null;
 };
 
@@ -358,6 +358,7 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
   const aggressionMult = state.difficultyMultiplier || 1;
   const runawayLeaderId = findRunawayLeader(nations);
   const draggedIn = new Set(); // nations declared on this pass — they don't also declare this turn
+  const byOwner = armiesByOwner(state.units); // the pass never moves a unit: one walk for every pair it sizes up
 
   Object.keys(nations).forEach(nationId => {
     // Re-read from currentNations, not the original `nations` snapshot — a nation earlier in this
@@ -427,8 +428,8 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     // turn every truce ended: six Kanesh wars on one player in 90 turns).
     const spent = new Set(activeNation.spentClaims || []);
     const freshClaims = claimsOf(activeNation).filter((cid) => !spent.has(cid));
-    const readyTarget = freshClaims.map((cid) => state.regions[cid]?.owner).find((t) => t && t !== nationId && !(warRollOpinionMult(opinion) <= 0 && t === state.playerNationId) && pickWarTarget(view, nationId, t, null) === t) || null;
-    const targetId = readyTarget || pickWarTarget(view, nationId, canStrikeLeader ? runawayLeaderId : null, warRollOpinionMult(opinion) <= 0 ? state.playerNationId : null, canStrikeLeader ? runawayLeaderId : null);
+    const readyTarget = freshClaims.map((cid) => state.regions[cid]?.owner).find((t) => t && t !== nationId && !(warRollOpinionMult(opinion) <= 0 && t === state.playerNationId) && pickWarTarget(view, nationId, t, null, null, byOwner) === t) || null;
+    const targetId = readyTarget || pickWarTarget(view, nationId, canStrikeLeader ? runawayLeaderId : null, warRollOpinionMult(opinion) <= 0 ? state.playerNationId : null, canStrikeLeader ? runawayLeaderId : null, byOwner);
     if (!targetId) return;
     // Recent wars nearby raise the roll (warContagion.js, a Hawkes process).
     if (!readyTarget && !shouldDeclareWar(activeNation, rng, aggressionMult, coalitionMult * warContagionMult(activeNation) * (fronts > 0 ? SECOND_FRONT_ROLL_MULT : 1), warRollOpinionMult(opinionOf(view, nationId, targetId)))) return;
