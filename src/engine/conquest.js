@@ -58,6 +58,11 @@ export const relocateLostCapital = (nations, regions, nationId, stabilityPenalty
   return { ...nations, [nationId]: { ...nation, capitalRegionId: newCapital.id, stability: clampStability((nation.stability || 0) - stabilityPenalty) } };
 };
 
+// The AE multiplier of taking `region` by force. Taking an independent's city costs half the usual
+// AE (plans/independent-cities.md 5); Terror of the Field and Conqueror's Peace (rulerVirtues.js aeMult).
+export const captureAeMult = ({ nations, regions }, conquerorId, region) =>
+  aeMultFor({ nations, regions }, conquerorId, region) * (isIndependentNation(nations[region.owner]) ? INDEPENDENT_CONQUEST_AE_MULT : 1) * Math.max(0, 1 + (lawRulesOf(nations[conquerorId]).aeMult || 0));
+
 /**
  * `conquerorId` takes `regionId` by force in `war`. Pure: returns { regions, nations, loserId,
  * capitalTaken } for the caller to write back.
@@ -77,9 +82,7 @@ export const conquerRegion = ({ regions, nations, turnNumber }, regionId, conque
   });
   const nextRegions = { ...regions, [regionId]: taken };
   // Taking an independent's city costs half the usual AE (plans/independent-cities.md 5).
-  const indepMult = isIndependentNation(nations[loserId]) ? INDEPENDENT_CONQUEST_AE_MULT : 1;
-  // Terror of the Field and Conqueror's Peace (rulerVirtues.js aeMult).
-  let nextNations = applyAggressiveExpansion(nations, nextRegions, regionId, loserId, conquerorId, aeMultFor({ nations, regions }, conquerorId, region) * indepMult * Math.max(0, 1 + (lawRulesOf(nations[conquerorId]).aeMult || 0)));
+  let nextNations = applyAggressiveExpansion(nations, nextRegions, regionId, loserId, conquerorId, captureAeMult({ nations, regions }, conquerorId, region));
   // The conqueror's renown (renown.js): a major's city (its capital more), or an independent's, damped by size.
   if (nextNations[conquerorId]?.ruler) {
     const cities = Object.values(nextRegions).filter((c) => c.owner === conquerorId).length;

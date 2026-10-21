@@ -332,4 +332,10 @@ export default {
   'bt.cap.waiting.two': 'עוד שתי ערים מחכות להחלטה שלכם אחרי זו.',
   'bt.cap.waiting.other': 'עוד {count} ערים מחכות להחלטה שלכם אחרי זו.',
   'bt.cap.turnWaits': 'התור מחכה להחלטה הזו. אי אפשר לבטל אותה.',
+  'bt.pre.coalition.one': 'לכידתה תכעיס את {names}, שעלולים להצטרף לברית נגדכם.',
+  'bt.pre.coalition.other': 'לכידתה תכעיס {count} עמים ({names}), שעלולים להצטרף לברית נגדכם.',
+  'bt.pre.loyaltyBreaks.one': 'תושביה עלולים למרוד ולעזוב אתכם בתוך תור אחד.',
+  'bt.pre.loyaltyBreaks.two': 'תושביה עלולים למרוד ולעזוב אתכם בתוך שני תורות.',
+  'bt.pre.loyaltyBreaks.other': 'תושביה עלולים למרוד ולעזוב אתכם בתוך {count} תורות.',
+  'bt.pre.loyaltyLow': 'תושביה אינם שלכם. הנאמנות תתייצב סביב {n} אלא אם תחנו בה חיל מצב.',
 };
