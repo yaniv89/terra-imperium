@@ -1,5 +1,6 @@
 import { getOwnedRegionIds, REGIONS_DATA } from '../data/regions';
 import { isAgeAtLeast, isAgeBefore } from '../data/ages';
+import { BUILDING_CATEGORIES } from '../data/buildings';
 // src/engine/supplies.js
 // Army supplies: the production chain between raw metal and an army in the field. Supplies
 // (provisions, munitions, remounts) are a stock the player builds up and campaigns spend down.
@@ -11,7 +12,8 @@ import { isAgeAtLeast, isAgeBefore } from '../data/ages';
 //   Industry     each Industry tier in a province (Workshop, Manufactory, Factory) converts
 //                METAL_PER_INDUSTRY_TIER of the age's metal into SUPPLIES_PER_INDUSTRY_TIER:
 //                copper in the Bronze Age, iron from the Classical to the Gunpowder Age, oil in
-//                the Modern Age. With the metal short, it converts only what's in stock.
+//                the Modern Age. With the metal short, it converts only what's in stock. A city with
+//                a Fusion Reactor (Energy, U69) needs no oil for its tiers.
 //   Campaigning  every land unit beyond the nation's own (unoccupied) provinces eats
 //                SUPPLY_PER_CAMPAIGNING_UNIT per turn; troops at home live off the land.
 //
@@ -25,6 +27,9 @@ export const SUPPLY_PER_CAMPAIGNING_UNIT = 1;
 export const HUNGER_MORALE = 10;
 // Marching (routes.js): every land unit that marched this turn eats this much more, double abroad.
 export const MARCH_SUPPLY_PER_UNIT = 0.5;
+
+/** The Energy tier from which a city's Industry runs without oil (the Fusion Reactor). */
+export const FUSION_TIER = BUILDING_CATEGORIES.energy.tiers.findIndex((t) => t.name === 'Fusion Reactor');
 
 export const industryMetalFor = (ageId) => (isAgeBefore(ageId, 'classical') ? 'copper' : isAgeAtLeast(ageId, 'modern') ? 'oil' : 'iron');
 
@@ -59,18 +64,20 @@ export const marchSupplyCost = (units, regions, nationId, turnNumber, tileOwner 
 
 export const computeSupplyFlow = ({ regions, units, nationId, ageId, resources, turnNumber = null, tileOwner = null, ownedUnits = null }) => {
   const mine = ownedUnitsOf(units, nationId, ownedUnits);
-  let forage = 0; let industryTiers = 0;
+  let forage = 0; let industryTiers = 0; let fusionTiers = 0;
   getOwnedRegionIds(regions,nationId).forEach((id) => {
     const r=regions[id];
     if (r.owner !== nationId || r.occupiedBy) return;
     forage += SUPPLY_FORAGE_PER_REGION * forageSize(id) * Math.max(0, Math.min(1, (r.control ?? 100) / 100));
     const tier = r.buildings?.categories?.industry ?? -1;
-    if (tier >= 0) industryTiers += tier + 1;
+    if (tier >= 0 && (r.buildings.categories.energy ?? -1) >= FUSION_TIER) fusionTiers += tier + 1;
+    else if (tier >= 0) industryTiers += tier + 1;
   });
   const metalId = industryMetalFor(ageId);
+  if (metalId !== 'oil') { industryTiers += fusionTiers; fusionTiers = 0; } // fusion only ends oil
   const metalWanted = industryTiers * METAL_PER_INDUSTRY_TIER;
   const metalUsed = Math.max(0, Math.min(metalWanted, resources?.[metalId] || 0));
-  const manufactured = metalWanted > 0 ? (metalUsed / METAL_PER_INDUSTRY_TIER) * SUPPLIES_PER_INDUSTRY_TIER : 0;
+  const manufactured = (metalWanted > 0 ? (metalUsed / METAL_PER_INDUSTRY_TIER) * SUPPLIES_PER_INDUSTRY_TIER : 0) + fusionTiers * SUPPLIES_PER_INDUSTRY_TIER;
   const campaigning = mine.filter((u) => u.ownerId === nationId && isCampaigning(u, regions, tileOwner)).length;
   const marching = marchSupplyCost(units, regions, nationId, turnNumber, tileOwner, mine);
   const consumed = round1(campaigning * SUPPLY_PER_CAMPAIGNING_UNIT + marching);

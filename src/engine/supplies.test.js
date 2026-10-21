@@ -1,6 +1,6 @@
 // src/engine/supplies.test.js
 import { describe, it, expect } from 'vitest';
-import { computeSupplyFlow, industryMetalFor, isCampaigning, SUPPLY_FORAGE_PER_REGION, SUPPLIES_PER_INDUSTRY_TIER, METAL_PER_INDUSTRY_TIER, HUNGER_MORALE } from './supplies';
+import { computeSupplyFlow, industryMetalFor, isCampaigning, SUPPLY_FORAGE_PER_REGION, SUPPLIES_PER_INDUSTRY_TIER, METAL_PER_INDUSTRY_TIER, HUNGER_MORALE, FUSION_TIER } from './supplies';
 import { resolveTurn } from './resolveTurn';
 import { getNeighborIds } from '../data/regions';
 import { peoplesWorld } from './testWorld';
@@ -36,6 +36,13 @@ describe('army supplies', () => {
     expect(flow.manufactured).toBe(0);
     expect(flow.hungry).toBe(true);
     expect(flow.supplies).toBe(0);
+  });
+  it('a Fusion Reactor city makes supplies with no oil; others still need it (U69)', () => {
+    const fused = { ...regions, a: { ...regions.a, buildings: { categories: { industry: 1, energy: FUSION_TIER } } } };
+    const flow = computeSupplyFlow({ regions: fused, units, nationId: 'me', ageId: 'future', resources: { oil: 0, supplies: 0 } });
+    expect(flow.metalUsed).toBe(0);
+    expect(flow.manufactured).toBe(2 * SUPPLIES_PER_INDUSTRY_TIER);
+    expect(computeSupplyFlow({ regions, units, nationId: 'me', ageId: 'future', resources: { oil: 0, supplies: 0 } }).manufactured).toBe(0);
   });
   it('a hungry army abroad loses morale and does not recover in resolveTurn', () => {
     const s = peoplesWorld({ seed: 4 });

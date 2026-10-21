@@ -52,6 +52,12 @@ export default {
   'gp.large_hadron_collider.desc': 'נבנה במחוז עם מרכז מחשבי-על. +10/20/30% הכנסת נקודות טכנולוגיה.',
   'gp.global_seed_vault': 'כספת הזרעים העולמית',
   'gp.global_seed_vault.desc': 'נבנה בבירה שלך. +0.1/0.2/0.3% גידול אוכלוסייה, במקום הגנה מרעב.',
+  'gp.space_elevator': 'מעלית החלל',
+  'gp.space_elevator.desc': 'נבנה במחוז עם נפחיית ננו. מסלול זול לסחר: +10/20/30% הכנסה.',
+  'gp.mars_colony': 'המושבה במאדים',
+  'gp.mars_colony.desc': 'נבנה בבירה שלך. +5/10/15% הכנסה ו-+5/10/15% הכנסת נקודות טכנולוגיה.',
+  'gp.arcology_prime': 'הארקולוגיה הראשית',
+  'gp.arcology_prime.desc': 'נבנה במחוז עם מרחב מגורים משותף. -1/2/3 אי שקט בכל מקום; +0.1% גידול אוכלוסייה.',
 
   // research boosts (boost.<techId>): how to get the boost
   'boost.military_hunting_bands': 'להחזיק יער או גבעות',

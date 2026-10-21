@@ -14,9 +14,9 @@ const RECOGNIZED_HOOKS = [
 ];
 
 describe('GREAT_PROJECTS data integrity', () => {
-  it('has 22 world projects, 4 in the Stone Age and 3 per later age, plus national ones tied to a homeland', () => {
+  it('has 25 world projects, 4 in the Stone Age and 3 per later age, plus national ones tied to a homeland', () => {
     const world = Object.values(GREAT_PROJECTS).filter((p) => !p.national);
-    expect(world.length).toBe(22);
+    expect(world.length).toBe(25);
     AGE_ORDER.forEach((ageId) => {
       expect(world.filter((p) => p.ageId === ageId).length, ageId).toBe(ageId === 'stone' ? 4 : 3);
     });

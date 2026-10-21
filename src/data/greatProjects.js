@@ -71,6 +71,8 @@ export const SITE_RULES = {
   stockExchange: (region) => buildingTier(region, 'economy') >= 3,
   factory: (region) => buildingTier(region, 'industry') >= 2,
   supercomputer: (region) => buildingTier(region, 'science') >= 5,
+  nanoforge: (region) => buildingTier(region, 'industry') >= 4,
+  habitatCommons: (region) => buildingTier(region, 'culture') >= 6,
   // a national wonder: the city's centre stands on its homeland (the tile's country)
   // (a culture zone on a generated world: src/engine/world/cultureZones.js)
   homeland: (region, regionId, project) => !!project?.homeland && region?.tile != null && onHomeland(region.tile, project.homeland)
@@ -293,6 +295,35 @@ export const GREAT_PROJECTS = {
       { effects: { popGrowthBonus: 0.001 }, completionPrestige: 10 },
       { effects: { popGrowthBonus: 0.002 }, completionPrestige: 20 },
       { effects: { popGrowthBonus: 0.003 }, completionPrestige: 30 }
+    ]
+  },
+  // Future (eight ages U69); models are art keys of the same id (U92, held on claude/art-future).
+  space_elevator: {
+    id: 'space_elevator', name: 'The Space Elevator', ageId: 'future', siteRule: 'nanoforge',
+    description: 'Built in a region with a Nanoforge. Cheap orbit for trade: +10/20/30% income.',
+    tiers: [
+      { effects: { goldMult: 0.1 }, completionPrestige: 10 },
+      { effects: { goldMult: 0.2 }, completionPrestige: 20 },
+      { effects: { goldMult: 0.3 }, completionPrestige: 30 }
+    ]
+  },
+  // A yields wonder (plan U69): no space victory, the colony pays in gold and science.
+  mars_colony: {
+    id: 'mars_colony', name: 'The Mars Colony', ageId: 'future', siteRule: 'capital',
+    description: 'Built at your capital. +5/10/15% income and +5/10/15% tech point income.',
+    tiers: [
+      { effects: { goldMult: 0.05, techPointsMult: 0.05 }, completionPrestige: 10 },
+      { effects: { goldMult: 0.1, techPointsMult: 0.1 }, completionPrestige: 20 },
+      { effects: { goldMult: 0.15, techPointsMult: 0.15 }, completionPrestige: 30 }
+    ]
+  },
+  arcology_prime: {
+    id: 'arcology_prime', name: 'Arcology Prime', ageId: 'future', siteRule: 'habitatCommons',
+    description: 'Built in a region with Habitat Commons. -1/2/3 unrest everywhere; +0.1% population growth.',
+    tiers: [
+      { effects: { stabilityBonus: 1, popGrowthBonus: 0.001 }, completionPrestige: 10 },
+      { effects: { stabilityBonus: 2, popGrowthBonus: 0.001 }, completionPrestige: 20 },
+      { effects: { stabilityBonus: 3, popGrowthBonus: 0.001 }, completionPrestige: 30 }
     ]
   }
 };

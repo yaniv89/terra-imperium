@@ -22,14 +22,17 @@ export const LAW_CATEGORIES = {
     { id: 'land_tax', name: 'Land Tax', tier: 2, requiresTech: 'economy_minted_coinage', description: '+10% tax income.', effects: { goldMult: 0.1 } },
     { id: 'head_tax', name: 'Head Tax', tier: 3, requiresTech: 'economy_guild_charters', description: '+15% tax income; +1 unrest.', effects: { goldMult: 0.15, stabilityBonus: -1 } },
     { id: 'income_tax', name: 'Income Tax', tier: 4, requiresTech: 'economy_banking_houses', description: '+25% tax income; +0.5 unrest.', effects: { goldMult: 0.25, stabilityBonus: -0.5 } },
-    { id: 'progressive_tax', name: 'Progressive Tax', tier: 5, requiresTech: 'economy_industrial_capital', description: '+30% tax income.', effects: { goldMult: 0.3 } }
+    { id: 'progressive_tax', name: 'Progressive Tax', tier: 5, requiresTech: 'economy_industrial_capital', description: '+30% tax income.', effects: { goldMult: 0.3 } },
+    // Future tiers (eight-ages plan U69): automation, exo-soldiers, post-scarcity.
+    { id: 'automation_dividend', name: 'Automation Dividend', tier: 6, requiresTech: 'economy_automated_industry', description: '+30% tax income; -0.5 unrest.', effects: { goldMult: 0.3, stabilityBonus: 0.5 } }
   ],
   conscription: [
     { id: 'warrior_caste', name: 'Warrior Caste', tier: 1, requiresTech: null, description: 'The baseline levy pool.', effects: {} },
     { id: 'feudal_levy', name: 'Feudal Levy', tier: 2, requiresTech: 'military_feudal_levies', description: '+30% manpower; army upkeep -20%.', effects: { hrMult: 0.3 }, rules: { unitUpkeepMult: -0.2 } },
     { id: 'professional_army', name: 'Professional Army', tier: 3, requiresTech: 'military_standing_armies', description: '-10% manpower; army upkeep +30%; morale recovers 15% faster.', effects: { hrMult: -0.1, moraleRecovery: 0.15 }, rules: { unitUpkeepMult: 0.3 } },
     { id: 'mass_conscription', name: 'Mass Conscription', tier: 4, requiresTech: 'military_mechanized_warfare', description: '+60% manpower; army upkeep -10%; +2 unrest; war exhaustion rises 20% slower.', effects: { hrMult: 0.6, stabilityBonus: -2 }, rules: { unitUpkeepMult: -0.1, warExhaustionMult: -0.2 } },
-    { id: 'volunteer_army', name: 'Volunteer Army', tier: 5, requiresTech: 'governance_digital_administration', description: '-20% manpower; army upkeep +50%; morale recovers 20% faster.', effects: { hrMult: -0.2, moraleRecovery: 0.2 }, rules: { unitUpkeepMult: 0.5 } }
+    { id: 'volunteer_army', name: 'Volunteer Army', tier: 5, requiresTech: 'governance_digital_administration', description: '-20% manpower; army upkeep +50%; morale recovers 20% faster.', effects: { hrMult: -0.2, moraleRecovery: 0.2 }, rules: { unitUpkeepMult: 0.5 } },
+    { id: 'exo_corps', name: 'Exo Corps', tier: 6, requiresTech: 'military_powered_exoskeletons', description: '-30% manpower; army upkeep +40%; morale recovers 25% faster.', effects: { hrMult: -0.3, moraleRecovery: 0.25 }, rules: { unitUpkeepMult: 0.4 } }
   ],
   religion: [
     { id: 'state_cult', name: 'State Cult', tier: 1, requiresTech: null, description: 'The baseline faith.', effects: {} },
@@ -53,7 +56,8 @@ export const LAW_CATEGORIES = {
     // COLLECTIVIZATION_UNREST_MODIFIER/COLLECTIVIZATION_UNREST_TURNS constants below and
     // gameReducer.js's CHANGE_LAW case, which is what actually pushes it.
     { id: 'collectivization', name: 'Collectivization', tier: 4, requiresTech: 'economy_industrial_capital', description: '-0.1% pop growth; +25% gold income; +2 unrest for 10 turns after enacting.', effects: { popGrowthBonus: -0.001, goldMult: 0.25 } },
-    { id: 'renewable_mandate', name: 'Renewable Mandate', tier: 5, requiresTech: 'infrastructure_smart_grids', description: '-5% income; -1 unrest; +0.1% pop growth.', effects: { goldMult: -0.05, stabilityBonus: 1, popGrowthBonus: 0.001 } }
+    { id: 'renewable_mandate', name: 'Renewable Mandate', tier: 5, requiresTech: 'infrastructure_smart_grids', description: '-5% income; -1 unrest; +0.1% pop growth.', effects: { goldMult: -0.05, stabilityBonus: 1, popGrowthBonus: 0.001 } },
+    { id: 'universal_basic_income', name: 'Universal Basic Income', tier: 6, requiresTech: 'economy_post_scarcity_fabrication', description: '-10% income; -2 unrest; +0.1% pop growth.', effects: { goldMult: -0.1, stabilityBonus: 2, popGrowthBonus: 0.001 } }
   ],
   justice: [
     { id: 'customary_law', name: 'Customary Law', tier: 1, requiresTech: null, description: 'The baseline courts.', effects: {} },

@@ -45,8 +45,8 @@ describe('wonder models in the close view', () => {
   const SHIPPED = fs.readdirSync(DIR).filter((f) => f.endsWith('.glb')).map((f) => f.replace('.glb', ''));
   it('ships one file per wonder of the game, and none for an unknown id', () => {
     expect(SHIPPED.filter((id) => !GREAT_PROJECT_IDS.includes(id))).toEqual([]);
-    // Information's models are held art (claude/art-information, U92) until Phase D and E merge
-    const HELD = ['world_wide_web', 'large_hadron_collider', 'global_seed_vault'];
+    // Information's and the Future's models are held art (claude/art-information, claude/art-future, U92) until they merge
+    const HELD = ['world_wide_web', 'large_hadron_collider', 'global_seed_vault', 'space_elevator', 'mars_colony', 'arcology_prime'];
     expect(GREAT_PROJECT_IDS.filter((id) => !SHIPPED.includes(id) && !HELD.includes(id))).toEqual([]);
   });
 
