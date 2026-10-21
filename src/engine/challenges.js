@@ -7,7 +7,10 @@ import { ENGINE_BUILD, TURN_LIMIT, MAX_LOG_BYTES, MAX_ACTIONS } from '../data/ch
 import { MAJOR_PEOPLES_LIST } from '../data/peoples';
 import { ActionTypes } from '../data/types';
 import { checkLog } from './actionLog';
-import { replayGame, stateHash } from './macroVerify';
+import { stateHash } from './macroVerify';
+import { startState, gameReducer } from './gameReducer';
+import { verifyCommandedBattle, REPLAYED } from './battleVerify';
+import { syncWorldRegistry } from './world/registry';
 import { legacyScore } from './legacy';
 import { calcNationScore } from './score';
 
@@ -38,6 +41,22 @@ export const turnsIn = (log) => log.actions.filter((a) => a.type === ActionTypes
 const reject = (reason) => ({ status: 'rejected', reason });
 
 /**
+ * Replays `actions` from `state`; { state } or { reason }. A commanded battle must replay from its
+ * own order log: without one the reducer keeps the client's (sanitized) result, a free win.
+ */
+export const replayChecked = (state, actions) => {
+  for (const a of actions) {
+    const pb = state.pendingBattle;
+    if (a.type === ActionTypes.RESOLVE_TACTICAL_BATTLE && pb && pb.id === a.payload?.battleId) {
+      syncWorldRegistry(state);
+      if (!REPLAYED.has(verifyCommandedBattle(state, pb, a.payload).verification.status)) return { reason: 'battle' };
+    }
+    state = gameReducer(state, a);
+  }
+  return { state };
+};
+
+/**
  * { status: 'verified', score, hash } | { status: 'closed' } | { status: 'rejected', reason }.
  * sub = { weekId, build, log, hash, score }. Never throws, never trusts the claimed score.
  */
@@ -53,7 +72,12 @@ export const verifyChallenge = (sub) => {
     if (sub.log.actions.some((a) => Object.keys(a).some((k) => k !== 'type' && k !== 'payload'))) return reject('fields');
     if (stateHash(sub.log.start) !== stateHash(challenge.start)) return reject('seed');
     if (turnsIn(sub.log) !== challenge.turnLimit) return reject('turns');
-    const end = replayGame(sub.log);
+    // Replayed from the week's own start, never the submitted one; turns counted on the state (FAST_FORWARD runs several).
+    const first = startState(challenge.start);
+    const run = replayChecked(first, sub.log.actions);
+    if (run.reason) return reject(run.reason);
+    const end = run.state;
+    if (end.turnNumber - first.turnNumber !== challenge.turnLimit) return reject('turns');
     const hash = stateHash(end);
     const score = challengeScore(end);
     if (hash !== sub.hash || score !== sub.score) return reject('mismatch');

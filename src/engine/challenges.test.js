@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import { writeFileSync } from 'node:fs';
 import { isoWeekId } from '../services/challenges';
-import { challengeForWeek, verifyChallenge, challengeScore } from './challenges';
+import { challengeForWeek, verifyChallenge, challengeScore, replayChecked } from './challenges';
 import { startLog, logAction } from './actionLog';
 import { startState, gameReducer } from './gameReducer';
 import { stateHash } from './macroVerify';
@@ -12,10 +12,11 @@ import { ActionTypes } from '../data/types';
 import { ENGINE_BUILD, TURN_LIMIT, MAX_LOG_BYTES } from '../data/challenges';
 
 const WEEK = '2026-W43';
-const play = () => {
+const play = (first = []) => {
   const c = challengeForWeek(WEEK);
   let log = startLog(c.start);
   let s = startState(c.start);
+  for (const a of first) { log = logAction(log, a); s = gameReducer(s, a); }
   for (let i = 0; i < TURN_LIMIT; i++) {
     if (s.activeEventId || s.activeProceduralEvent) { const a = { type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex: 0 } }; log = logAction(log, a); s = gameReducer(s, a); }
     const a = { type: ActionTypes.ADVANCE_TURN }; log = logAction(log, a); s = gameReducer(s, a);
@@ -60,5 +61,17 @@ describe('weekly challenge', () => {
     expect(withActions(sub.log.actions.slice(1)).reason).toBe('turns');
     expect(withActions([{ type: ActionTypes.ADVANCE_TURN, payload: 'x'.repeat(MAX_LOG_BYTES) }]).reason).toBe('size');
     expect(verifyChallenge(null).status).toBe('rejected');
+    // an extra turn hidden in a FAST_FORWARD (not an ADVANCE_TURN) is counted on the replayed state
+    const s0 = startState(sub.log.start);
+    const cap = Object.values(s0.regions).find((c) => c.owner === s0.playerNationId).id;
+    const cheat = play([{ type: ActionTypes.SET_RESEARCH_AUTO, payload: { auto: true } }, { type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId: cap, item: { kind: 'unit', classId: 'infantry' } } }, { type: ActionTypes.FAST_FORWARD }]).sub;
+    expect(verifyChallenge(cheat).reason).toBe('turns');
   }, 600000);
+
+  it('security: a commanded battle without its order log (a client-claimed result) is refused', () => {
+    const s = { ...startState(challengeForWeek(WEEK).start), pendingBattle: { id: 'b1', kind: 'field', attackerUnitIds: [], defenderUnitIds: [] } };
+    const forged = { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: 'b1', result: { outcome: 'attacker', attackerUnits: [], defenderUnits: [] } } };
+    expect(replayChecked(s, [forged])).toEqual({ reason: 'battle' });
+    expect(replayChecked(s, [{ type: ActionTypes.SET_TAX_RATE, payload: { rate: 'low' } }]).state).toBeTruthy();
+  });
 });
