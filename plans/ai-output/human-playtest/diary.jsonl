@@ -1,0 +1,40 @@
+{"step":1,"segment":"stone-field","usd":0.0192,"name":"drag","args":{"x1":420,"y1":330,"x2":420,"y2":80},"thought":"Scroll down to find the Fight button.","fun":3,"frustration":1,"area":"battle setup screen (age, armies, terrain, walls)"}
+{"step":2,"segment":"stone-field","usd":0.0247,"name":"tap","args":{"x":421,"y":318},"thought":"Start the fight.","fun":3,"frustration":1,"area":"battle setup screen (age, armies, terrain, walls)"}
+{"step":3,"segment":"stone-field","usd":0.0303,"name":"tap","args":{"x":275,"y":284},"thought":"Dismiss tutorial with Next to see more of the screen.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":4,"segment":"stone-field","usd":0.0361,"name":"tap","args":{"x":275,"y":284},"thought":"Next tutorial tip, then get to deploy.","fun":3,"frustration":2,"area":"layout on this screen and language"}
+{"step":5,"segment":"stone-field","usd":0.0419,"name":"tap","args":{"x":273,"y":284},"thought":"Dismiss last tip, then start the battle.","fun":3,"frustration":2,"area":"layout on this screen and language"}
+{"step":6,"segment":"bronze-walls","usd":0.0475,"name":"drag","args":{"x1":420,"y1":330,"x2":420,"y2":80},"thought":"Setup screen is showing again; scroll down to find Fight.","fun":3,"frustration":2,"area":"battle setup screen (age, armies, terrain, walls)"}
+{"step":7,"segment":"bronze-walls","usd":0.0536,"name":"tap","args":{"x":421,"y":318},"thought":"Start the fight.","fun":3,"frustration":2,"area":"battle setup screen (age, armies, terrain, walls)"}
+{"step":8,"segment":"bronze-walls","usd":0.0597,"name":"tap","args":{"x":275,"y":284},"thought":"Dismiss tutorial tip to see the deploy screen.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":9,"segment":"bronze-walls","usd":0.0659,"name":"tap","args":{"x":275,"y":284},"thought":"Next tip, then the last one.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":10,"segment":"bronze-walls","usd":0.0722,"name":"tap","args":{"x":273,"y":284},"thought":"Dismiss last tip, then start the battle.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":11,"segment":"classical-naval","usd":0.0783,"name":"drag","args":{"x1":420,"y1":330,"x2":420,"y2":80},"thought":"Setup shows again; scroll to Fight.","fun":3,"frustration":2,"area":"battle setup screen (age, armies, terrain, walls)"}
+{"step":12,"segment":"classical-naval","usd":0.0849,"name":"tap","args":{"x":421,"y":318},"thought":"Start the naval fight.","fun":3,"frustration":2,"area":"battle setup screen (age, armies, terrain, walls)"}
+{"step":13,"segment":"classical-naval","usd":0.0916,"name":"tap","args":{"x":275,"y":284},"thought":"Dismiss the tip to see the deploy screen.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":14,"segment":"classical-naval","usd":0.0982,"name":"tap","args":{"x":275,"y":284},"thought":"Next tip, then last one.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":15,"segment":"classical-naval","usd":0.1051,"name":"tap","args":{"x":273,"y":284},"thought":"Dismiss last tip, then look at the deploy screen.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":16,"segment":"kingdoms-sack","usd":0.1117,"name":"drag","args":{"x1":420,"y1":330,"x2":420,"y2":80},"thought":"Scroll to find Fight on setup.","fun":3,"frustration":2,"area":"battle setup screen (age, armies, terrain, walls)"}
+{"step":17,"segment":"kingdoms-sack","usd":0.1189,"name":"tap","args":{"x":421,"y":318},"thought":"Start the sack defense fight.","fun":3,"frustration":2,"area":"battle setup screen (age, armies, terrain, walls)"}
+{"step":18,"segment":"kingdoms-sack","usd":0.1261,"name":"tap","args":{"x":275,"y":284},"thought":"Dismiss tip to see deploy screen.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":19,"segment":"kingdoms-sack","usd":0.1333,"name":"tap","args":{"x":275,"y":284},"thought":"Last tip, then start the battle.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":20,"segment":"kingdoms-sack","usd":0.1407,"name":"tap","args":{"x":273,"y":284},"thought":"Dismiss last tip, then start the battle.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":21,"segment":"gunpowder-field","usd":0.1478,"name":"drag","args":{"x1":420,"y1":330,"x2":420,"y2":80},"thought":"Scroll to Fight button.","fun":3,"frustration":2,"area":"battle setup screen (age, armies, terrain, walls)"}
+{"step":22,"segment":"gunpowder-field","usd":0.1555,"name":"tap","args":{"x":421,"y":318},"thought":"Start the gunpowder fight.","fun":3,"frustration":2,"area":"battle setup screen (age, armies, terrain, walls)"}
+{"step":23,"segment":"gunpowder-field","usd":0.1632,"name":"tap","args":{"x":275,"y":284},"thought":"Dismiss tip to reach deploy.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":24,"segment":"gunpowder-field","usd":0.171,"name":"tap","args":{"x":275,"y":284},"thought":"Next tip, then start the battle.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":25,"segment":"gunpowder-field","usd":0.1789,"name":"tap","args":{"x":273,"y":284},"thought":"Dismiss last tip, then start the battle.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":26,"segment":"modern-walls","usd":0.1866,"name":"drag","args":{"x1":420,"y1":330,"x2":420,"y2":80},"thought":"Scroll down to find Fight.","fun":3,"frustration":2,"area":"battle setup screen (age, armies, terrain, walls)"}
+{"step":27,"segment":"modern-walls","usd":0.1949,"name":"tap","args":{"x":421,"y":318},"thought":"Start the modern walled assault fight.","fun":3,"frustration":2,"area":"battle setup screen (age, armies, terrain, walls)"}
+{"step":28,"segment":"modern-walls","usd":0.2031,"name":"tap","args":{"x":275,"y":284},"thought":"Dismiss tip to see deploy screen.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":29,"segment":"modern-walls","usd":0.2114,"name":"tap","args":{"x":275,"y":284},"thought":"Last tip, then start the battle.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":30,"segment":"modern-walls","usd":0.2198,"name":"tap","args":{"x":273,"y":284},"thought":"Dismiss last tip, then start the battle.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":31,"segment":"information-naval","usd":0.228,"name":"drag","args":{"x1":420,"y1":330,"x2":420,"y2":80},"thought":"Scroll down to find Fight.","fun":3,"frustration":2,"area":"battle setup screen (age, armies, terrain, walls)"}
+{"step":32,"segment":"information-naval","usd":0.2366,"name":"tap","args":{"x":421,"y":318},"thought":"Start the naval fight.","fun":3,"frustration":2,"area":"battle setup screen (age, armies, terrain, walls)"}
+{"step":33,"segment":"information-naval","usd":0.2451,"name":"tap","args":{"x":275,"y":284},"thought":"Dismiss tip to see deploy screen.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":34,"segment":"information-naval","usd":0.2536,"name":"tap","args":{"x":275,"y":284},"thought":"Next tip, then the last one.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":35,"segment":"information-naval","usd":0.2621,"name":"tap","args":{"x":273,"y":284},"thought":"Dismiss last tip, then start the battle.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":36,"segment":"future-sack","usd":0.2702,"name":"drag","args":{"x1":420,"y1":330,"x2":420,"y2":80},"thought":"Scroll down to find Fight.","fun":3,"frustration":2,"area":"battle setup screen (age, armies, terrain, walls)"}
+{"step":37,"segment":"future-sack","usd":0.2788,"name":"tap","args":{"x":421,"y":318},"thought":"Start the future-age sack defense.","fun":3,"frustration":2,"area":"battle setup screen (age, armies, terrain, walls)"}
+{"step":38,"segment":"future-sack","usd":0.2873,"name":"tap","args":{"x":275,"y":284},"thought":"Dismiss tip to see deploy screen.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":39,"segment":"future-sack","usd":0.2958,"name":"tap","args":{"x":275,"y":284},"thought":"Next tip, then the last one, then start.","fun":3,"frustration":2,"area":"deploy phase"}
+{"step":40,"segment":"future-sack","usd":0.3042,"name":"tap","args":{"x":273,"y":284},"thought":"Dismiss last tip, then start the battle.","fun":3,"frustration":2,"area":"deploy phase"}
