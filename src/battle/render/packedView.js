@@ -68,7 +68,7 @@ export const createViewPacker = () => {
       fog: fog && w.fog ? w.fog[playerSide].slice() : null,
       powers: (w.setup.powers?.[playerSide] || []).map((p) => {
         const st = powerState(w, playerSide, p.id);
-        return { id: p.id, label: POWERS[p.id]?.label || p.id, cost: st.cost, usesLeft: st.usesLeft, readyIn: Math.max(0, st.readyAt - w.tick), targeted: !!POWERS[p.id]?.impacts };
+        return { id: p.id, label: p.label || POWERS[p.id]?.label || p.id, cost: st.cost, usesLeft: st.usesLeft, readyIn: Math.max(0, st.readyAt - w.tick), targeted: !!(POWERS[p.id]?.impacts || POWERS[p.id]?.hide) };
       }),
       structures: w.structures.map((s, si) => ({
         id: s.id, kind: s.kind, x: s.x, y: s.y, hp: s.hp, maxHp: s.maxHp, alive: s.alive, radius: s.radius,

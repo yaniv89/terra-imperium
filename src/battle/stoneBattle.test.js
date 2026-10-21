@@ -12,6 +12,9 @@ import { navalLinesFor } from '../data/navalLines';
 import { buildableFor, buildingArt, ecoName, trainableRoles } from './data/economy';
 import { ART } from './art/artFiles';
 import { projectileFor } from './art/projectiles';
+import { getBattlePowers } from '../engine/invasion';
+import { replayBattle, replayUntil } from './sim/replay';
+import { firePower } from './sim/effects';
 
 const army = (prefix, classes, commanderId = null) => classes.map((classId, i) => ({
   id: `${prefix}${i}`, classId, strength: 800, maxStrength: 1000, morale: 100, promotions: [], commanderId: i === 0 ? commanderId : null, domain: 'land', xp: 0
@@ -73,5 +76,34 @@ describe('Stone battle economy and art (U38)', () => {
     expect(projectileFor('tower', 'stone')).toBe('sling-stone');
     expect(ART.projectiles('stone')?.ageId).toBe('stone');
     expect(ART.bridge('stone')?.material).toBe('ford');
+  });
+});
+
+describe('Stone commander powers (U39)', () => {
+  const powers = [getBattlePowers(null, 'a', 'stone'), getBattlePowers(null, 'd', 'stone')];
+  const setup = () => stoneSetup(5, { powers, controllers: ['player', 'ai'] });
+
+  it('a Stone commander brings War Cry and Ambush; a Bronze one keeps Rally Cry and Arrow Storm', () => {
+    expect(powers[0]).toEqual([{ id: 'rallyCry', label: 'War Cry' }, { id: 'ambush' }]);
+    expect(getBattlePowers(null, 'a', 'bronze').map((p) => p.id)).toEqual(['rallyCry', 'arrowStorm']);
+  });
+
+  it('Ambush hides the troops around the aimed spot, and a battle with it replays to the same hash', () => {
+    const w0 = createWorld(setup());
+    const me = w0.squads.find((q) => q.side === 0 && !q.isGeneral);
+    const log = [{ tick: 20, seq: 0, type: 'power', power: 'ambush', x: me.x, y: me.y }];
+    const { world } = replayUntil(setup(), log, 21);
+    expect(world.squads[me.idx].hiddenUntil).toBeGreaterThan(world.tick);
+    const a = replayBattle(setup(), log);
+    const b = replayBattle(setup(), log);
+    expect(a.dropped).toBe(0);
+    expect(a.hash).toBe(b.hash);
+  });
+
+  it('a side whose age has no Ambush cannot fire it', () => {
+    const w = createWorld(buildSetupFromArmies({ regionId: 'bronze-test', terrain: 'plains', seed: 5, attackerAgeId: 'bronze', defenderAgeId: 'bronze',
+      attackerUnits: army('a', ['infantry', 'ranged']), defenderUnits: army('d', ['infantry']), powers: [getBattlePowers(null, 'a', 'bronze'), []] }));
+    w.supply[0] = 1000;
+    expect(firePower(w, 0, 'ambush', 0, 0)).toBe(false);
   });
 });
