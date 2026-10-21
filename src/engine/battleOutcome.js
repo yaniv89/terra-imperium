@@ -63,6 +63,7 @@ import { seaPassable, fleetAge, enemyFleetAt } from './fleets';
 import { mapEffectsFor } from './techMapEffects';
 import { sackCityDamage } from './raidBattle';
 import { cityFell, openCapture } from './capture';
+import { spendBattleCards } from '../data/battleCards';
 
 export const OUTCOME_VERSION = 1;
 export const APPLIED_MEMORY = 64;
@@ -630,6 +631,8 @@ export const applyBattleOutcome = (state, o) => {
   const def = awardSideXp(s, out, out.defenderUnits, out.deployedDefenderIds, xpFor('defender', out.outcome) * xpMult('defender', out.defenderNationId));
   const placed = ADAPTERS[o.kind](s, out, war, att, def, record);
   s = { ...s, units: placed.units, regions: placed.regions, nations: placed.nations };
+  // U23: the cards the two nations held were in play for this battle (battleInputs.js): spent.
+  [out.attackerNationId, out.defenderNationId].forEach((id) => { if (s.nations[id]?.battleCards?.length) s = { ...s, nations: { ...s.nations, [id]: spendBattleCards(s.nations[id]) } }; });
 
   // row 1: one war-score entry
   // `war.battles` counts every battle fought in the war (telemetry: battles per war, wars with none).

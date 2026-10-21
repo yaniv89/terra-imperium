@@ -16,6 +16,8 @@ import { transferRegion } from './regionTransfer';
 import { grantClaim, nearestCityOf } from './claims';
 import { msg, sub, people, thing } from './messages';
 import { grantRenown } from './renown';
+import { grantBattleCard } from '../data/battleCards';
+import { waitAgeOf } from './ageRefs';
 
 // The resources an option lacks, as a list of names ("gold, hr").
 const shortfallList = (ids) => ids.map((id) => thing('resource', id, id)).reduce((acc, r) => (acc === '' ? r : sub('m.world.listMore', { a: acc, b: r })), '');
@@ -250,6 +252,9 @@ export const applyEventEffects = (state, event, optionIndex) => {
 
   // An event may grant the ruler renown (RULER-PLAN 2.3: `effects.renown`, renown.js).
   if (effects.renown && next.nations[playerNationId]) next.nations = { ...next.nations, [playerNationId]: grantRenown(next.nations[playerNationId], 'event', effects.renown, next.turnNumber) };
+
+  // A won event can hand the player a battle card for the next fight (U23, data/battleCards.js).
+  if (effects.battleCard && next.nations[playerNationId]) next.nations = { ...next.nations, [playerNationId]: grantBattleCard(next.nations[playerNationId], effects.battleCard, { turn: next.turnNumber, speed: next.gameSpeed, age: waitAgeOf(next, playerNationId) }) };
 
   // Plan §M17 effect vocabulary — each of these hooks into an EXISTING M3/M5/M6/M8/M9/M12/M14
   // system rather than inventing a parallel one, so the effect is exactly as real as the action a

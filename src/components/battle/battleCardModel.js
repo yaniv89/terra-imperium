@@ -40,5 +40,6 @@ export const battleCardRows = (setup, playerSide = 0) => {
     const men = (sides[i]?.reinforcements || []).reduce((n, r) => n + sumStrength(r.units), 0);
     if (men > 0) push(`reinforce-${who}`, i === mine ? 'good' : 'bad', t(`bt.card.reinforce.${who}`, { men: menText(men) }));
   });
+  (cond.cards || []).forEach((c) => push(`card-${c.id}`, c.nationId === sides[mine]?.nationId ? 'good' : 'bad', t(`bt.card.c.${c.id}.${c.nationId === sides[mine]?.nationId ? 'you' : 'foe'}`)));
   return rows;
 };
