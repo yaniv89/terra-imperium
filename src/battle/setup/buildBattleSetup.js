@@ -187,7 +187,10 @@ export const buildSetupFromArmies = ({
   const raiding = RAID_TYPES.has(type);
   const realCity = !naval && type !== 'sally' && type !== 'raid' && cityManifest?.structures?.length ? cityManifest : null;
   const ground = tileContext?.oasis && terrain === 'mixed' ? 'desert' : terrain; // what the field looks like
-  const map = generateMap({ regionId, terrain: ground, combatWidth, pointCount: naval ? 0 : deposits.length, roads: 1 + (infrastructure >= 5 ? 1 : 0) + (infrastructure >= 8 ? 1 : 0) + (tileContext?.roads || 0), landing, tileContext, naval, ...(realCity ? { keepInset: cityKeepInset(realCity) } : {}) });
+  // The ground is the defender's: Stone land has no roads and more wood (U40).
+  const wild = defenderAgeId === FIRST_AGE_ID;
+  const roads = wild ? 0 : 1 + (infrastructure >= 5 ? 1 : 0) + (infrastructure >= 8 ? 1 : 0) + (tileContext?.roads || 0);
+  const map = generateMap({ regionId, terrain: ground, combatWidth, pointCount: naval ? 0 : deposits.length, roads, landing, tileContext, naval, wild, ...(realCity ? { keepInset: cityKeepInset(realCity) } : {}) });
   // A siege in progress (sieges.js) has already battered the walls: the keep starts at that HP.
   // A sea battle has one structure: the defender's anchorage, an unwalled keep the AI steers for and the renderer leaves out.
   let cityInfo = null;

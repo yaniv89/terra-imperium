@@ -15,6 +15,8 @@ import { projectileFor } from './art/projectiles';
 import { getBattlePowers } from '../engine/invasion';
 import { replayBattle, replayUntil } from './sim/replay';
 import { firePower } from './sim/effects';
+import { generateMap, TILE } from './setup/mapgen';
+import { buildTownManifest } from '../data/townLayout';
 
 const army = (prefix, classes, commanderId = null) => classes.map((classId, i) => ({
   id: `${prefix}${i}`, classId, strength: 800, maxStrength: 1000, morale: 100, promotions: [], commanderId: i === 0 ? commanderId : null, domain: 'land', xp: 0
@@ -105,5 +107,26 @@ describe('Stone commander powers (U39)', () => {
       attackerUnits: army('a', ['infantry', 'ranged']), defenderUnits: army('d', ['infantry']), powers: [getBattlePowers(null, 'a', 'bronze'), []] }));
     w.supply[0] = 1000;
     expect(firePower(w, 0, 'ambush', 0, 0)).toBe(false);
+  });
+});
+
+describe('Stone battlefields and village battles (U40)', () => {
+  const count = (map, t) => map.tiles.reduce((n, x) => n + (x === t ? 1 : 0), 0);
+  it('Stone ground has more wood and no roads', () => {
+    const tame = generateMap({ regionId: 'wild-test', terrain: 'mixed', combatWidth: 6 });
+    const wild = generateMap({ regionId: 'wild-test', terrain: 'mixed', combatWidth: 6, roads: 0, wild: true });
+    expect(count(wild, TILE.FOREST)).toBeGreaterThan(count(tame, TILE.FOREST));
+    expect(count(wild, TILE.ROAD)).toBe(0);
+    expect(stoneSetup(3).map.tiles.includes(TILE.ROAD)).toBe(false);
+  });
+
+  it('a Stone village keeps its earth ring unless it built the Walls of Jericho', () => {
+    const village = (wonders) => buildSetupFromArmies({
+      regionId: 'v-1', terrain: 'plains', seed: 1, attackerAgeId: 'stone', defenderAgeId: 'stone', attackerUnits: army('a', ['infantry', 'ranged']), defenderUnits: army('d', ['infantry']),
+      city: true, fortLevel: 1, cityManifest: buildTownManifest({ cityId: 'v-1', ageId: 'stone', tierId: 'small', style: 'europe', seed: 1, defenseTier: 1, wonders })
+    }).city;
+    expect(village([]).wallAgeId).toBe('stone');
+    expect(village(['walls_of_jericho']).wallAgeId).toBe('bronze');
+    expect(ART.walls('stone')?.ageId).toBe('stone');
   });
 });

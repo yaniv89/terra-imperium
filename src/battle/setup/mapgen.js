@@ -207,7 +207,8 @@ const generateNavalMap = ({ w, h, tileContext, rng }) => {
 
 // How far in from the east edge the keep stands (tiles).
 export const KEEP_INSET = 14;
-export const generateMap = ({ regionId, terrain, combatWidth, pointCount = 0, roads = 1, landing = false, tileContext = null, naval = false, keepInset = KEEP_INSET }) => {
+// `wild`: Stone land (eight ages U40), half again as much wood where the ground grows any.
+export const generateMap = ({ regionId, terrain, combatWidth, pointCount = 0, roads = 1, landing = false, tileContext = null, naval = false, keepInset = KEEP_INSET, wild = false }) => {
   const { w, h } = getMapSize(combatWidth);
   if (naval) return generateNavalMap({ w, h, tileContext, rng: createRng(hashString(tileContext ? `sea:tile:${tileContext.tile}` : `sea:${regionId}`)) });
   const tpl = TEMPLATES[terrain] || TEMPLATES.mixed;
@@ -217,12 +218,13 @@ export const generateMap = ({ regionId, terrain, combatWidth, pointCount = 0, ro
   const forestNoise = valueNoise(rng, w, h, Math.max(5, tpl.cell - 3));
   const sandNoise = valueNoise(rng, w, h, tpl.cell + 4);
   const tiles = new Uint8Array(w * h);
-  const forestAt = quantileAbove(forestNoise, tpl.forest);
+  const forest = wild && tpl.forest ? Math.min(0.6, tpl.forest * 1.5) : tpl.forest;
+  const forestAt = quantileAbove(forestNoise, forest);
   const rockAt = quantileAbove(heightNoise, tpl.rock);
   const sandAt = quantileAbove(sandNoise, tpl.sand);
   for (let i = 0; i < w * h; i++) {
     if (tpl.rock && heightNoise[i] >= rockAt) tiles[i] = TILE.ROCK;
-    else if (tpl.forest && forestNoise[i] >= forestAt) tiles[i] = TILE.FOREST;
+    else if (forest && forestNoise[i] >= forestAt) tiles[i] = TILE.FOREST;
     else if (tpl.sand && sandNoise[i] >= sandAt) tiles[i] = TILE.SAND;
   }
 
