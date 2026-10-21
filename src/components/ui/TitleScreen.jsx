@@ -33,11 +33,11 @@ export const SaveFacts = ({ info, now, className = '' }) => {
   );
 };
 
-const TitleScreen = ({ slots, onContinue, onNewGame, onLoad, onDelete, onImportText, onSettings, now = Date.now() }) => {
+const TitleScreen = ({ slots, initialView = 'main', onContinue, onNewGame, onLoad, onDelete, onImportText, onSettings, now = Date.now() }) => {
   const { t, name } = useT();
   const layout = useLayoutMode();
   const wide = layout === 'desktop';
-  const [view, setView] = useState('main'); // 'main' | 'load'
+  const [view, setView] = useState(initialView); // 'main' | 'load'
   const [toDelete, setToDelete] = useState(null);
   const [message, setMessage] = useState('');
   const fileRef = useRef(null);

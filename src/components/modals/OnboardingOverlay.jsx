@@ -34,13 +34,13 @@ const OnboardingOverlay = ({ onComplete }) => {
   const handleBack = () => setStepIndex(i => Math.max(0, i - 1));
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
-      <div className="bg-fa-panel rounded-xl border-2 border-blue-500/60 max-w-sm w-full shadow-2xl p-6 text-center">
-        <Icon className="w-12 h-12 mx-auto mb-3 text-fa-you" />
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-2 bg-black/85 backdrop-blur-sm">
+      <div className="bg-fa-panel rounded-xl border-2 border-blue-500/60 max-w-sm w-full max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl p-6 pl:p-4 text-center">
+        <Icon className="w-12 h-12 pl:w-8 pl:h-8 mx-auto mb-3 pl:mb-1 text-fa-you" />
         <h2 className="text-xl font-bold text-fa-text mb-2">{t(`onb.${step.id}.title`)}</h2>
-        <p className="text-fa-text text-sm leading-relaxed mb-6">{t(`onb.${step.id}.body`)}</p>
+        <p className="text-fa-text text-sm leading-relaxed mb-6 pl:mb-3">{t(`onb.${step.id}.body`)}</p>
 
-        <div className="flex items-center justify-center gap-1.5 mb-5">
+        <div className="flex items-center justify-center gap-1.5 mb-5 pl:mb-3">
           {STEPS.map((s, i) => (
             <span
               key={s.id}

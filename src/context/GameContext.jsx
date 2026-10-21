@@ -4,7 +4,7 @@
 // Turn resolution and event resolution are delegated to pure functions in src/engine/ —
 // the reducer's job is validation + a single atomic state transition per dispatch.
 
-import React, { createContext, useContext, useReducer, useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect, useMemo, useState, useRef, useSyncExternalStore } from 'react';
 import { ActionTypes, LogTypes } from '../data/types';
 import { ACHIEVEMENTS, checkAchievements } from '../data/achievements';
 import { loadMeta, saveMeta } from '../utils/metaProgression';
@@ -46,6 +46,11 @@ export const removeSave = (key) => { try { localStorage.removeItem(key); } catch
 let launchHold = false;
 let saveFailedNoted = false;
 export const setLaunchHold = (on) => { launchHold = !!on; };
+// The last autosave written ({ turn, at }), for the menu's "Autosaved, turn N" line and the toast.
+let lastSave = null;
+const saveListeners = new Set();
+const subscribeSave = (fn) => { saveListeners.add(fn); return () => saveListeners.delete(fn); };
+export const useLastSave = () => useSyncExternalStore(subscribeSave, () => lastSave, () => lastSave);
 // New game and Load keep the game being left: its autosave moves to the previous slot (only when
 // it is a save this build can read).
 export const stashCurrentGame = () => {
@@ -224,12 +229,17 @@ export const GameProvider = ({ children }) => {
   // hidden or closed, not after every action: serialising the whole world took tens of ms of the
   // main thread on each army move.
   const saveNow = useCallback(() => {
-    if (launchHold) return;
+    if (launchHold) return false;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SAVE_VERSION, state: stateRef.current, savedAt: Date.now() }));
+      const at = Date.now();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SAVE_VERSION, state: stateRef.current, savedAt: at }));
+      lastSave = { turn: stateRef.current.turnNumber, at };
+      saveListeners.forEach((fn) => fn());
+      return true;
     } catch (e) {
       // Storage unavailable or full — autosave is best-effort, never fatal (noted once for the crash log).
       if (!saveFailedNoted) { saveFailedNoted = true; noteCrashEvent(`save failed: ${e?.name || e?.message || 'unknown'}`); }
+      return false;
     }
   }, []);
   useEffect(() => {
@@ -404,11 +414,12 @@ export const GameProvider = ({ children }) => {
     resetGame,
     exportSave,
     importSave,
+    saveNow,
     meta,
     selectDoctrine,
     selectDifficulty,
     completeOnboarding
-  }), [state, dispatch, addLog, advanceTurn, turnPending, resolveEvent, resetGame, exportSave, importSave, meta, selectDoctrine, selectDifficulty, completeOnboarding]);
+  }), [state, dispatch, addLog, advanceTurn, turnPending, resolveEvent, resetGame, exportSave, importSave, saveNow, meta, selectDoctrine, selectDifficulty, completeOnboarding]);
 
   return (
     <GameContext.Provider value={contextValue}>

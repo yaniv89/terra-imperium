@@ -16,7 +16,7 @@ import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useAgeTheme } from '../../hooks/useAgeTheme';
 import { ageOf } from '../../engine/nationState';
 import { openPanelTab } from '../panels/panelEvents';
-import { openNationOverview, openTurnReport } from './uiEvents';
+import { openNationOverview, openTurnReport, openMenu } from './uiEvents';
 import { topBarModel } from './topBarModel';
 import { Shield, signed } from './atlas';
 import ResourceBar from './ResourceBar';
@@ -133,6 +133,7 @@ const WorldTopBar = () => {
             {t('topbar.turn')} <span className="fa-num text-[12px] text-fa-text tracking-normal">{m.turn}</span>
           </button>
         )}
+        <button type="button" onClick={() => openMenu('help')} className="shrink-0 w-8 h-8 -me-1 rounded-full border border-fa-line text-[14px] font-bold text-fa-muted hover:text-fa-text hover:bg-fa-raised" aria-label={t('hub.helpAria')} title={t('hub.helpAria')} data-testid="top-bar-help">?</button>
       </div>
       {open === 'gold' && (
         <Reasons title={t('topbar.goldTitle')} rows={m.gold.reasons} total={m.gold.perTurn} unit="" onClose={close}

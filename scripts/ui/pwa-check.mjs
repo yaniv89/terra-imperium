@@ -64,6 +64,7 @@ for (let i = 0; i < 8; i += 1) {
 await tid('world-top-bar').waitFor({ timeout: 120000 });
 const n = await tid('landscape-rail').locator('nav button').count();
 await hit(tid('landscape-rail').locator('nav button').nth(n - 1));
+await hit(tid('menu-settings')); // the menu hub, then Settings
 await tid('settings-sheet').waitFor({ timeout: 10000 });
 await tid('settings-fullscreen').click();
 let calls = await page.evaluate(() => window.__fs);

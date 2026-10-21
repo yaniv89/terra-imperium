@@ -211,6 +211,7 @@ await step('log', async () => {
 await step('menu', async () => {
   const n = await tid('landscape-rail').locator('nav button').count();
   await railTab(n - 1);
+  await click(tid('menu-settings')); // the menu hub, then Settings
   await tid('settings-sheet').waitFor({ timeout: 8000 });
   await record('menu: settings');
   await visitTabs('menu', tid('settings-sheet'));

@@ -19,7 +19,8 @@ import NationOverviewSheet from './components/ui/NationOverviewSheet';
 import GlossarySheet from './components/glossary/GlossarySheet';
 import WorldCongressSheet from './components/panels/WorldCongressSheet';
 import { useHoldHelp } from './hooks/useHoldHelp';
-import { OPEN_SETTINGS } from './components/ui/uiEvents';
+import { OPEN_SETTINGS, OPEN_MENU, openGlossary } from './components/ui/uiEvents';
+import MenuSheet, { AutosaveToast } from './components/ui/MenuSheet';
 import { SELECT_REGION, openCityOnMap } from './components/map/marchEvents';
 import WaitingChips from './components/ui/WaitingChips';
 import ConfirmDialog from './components/ui/ConfirmDialog';
@@ -72,7 +73,7 @@ const readTitleSlots = () => [
 
 // Main game layout component
 const GameLayout = () => {
-  const { state, dispatch, resolveEvent, resetGame, importSave, meta, completeOnboarding } = useGame();
+  const { state, dispatch, resolveEvent, resetGame, importSave, saveNow, meta, completeOnboarding } = useGame();
   const { t, name: nm } = useT();
   const { triggerEffect } = useEffects();
   useHoldHelp();
@@ -141,6 +142,7 @@ const GameLayout = () => {
   const [cameFromTitle, setCameFromTitle] = useState(launch === 'title');
   const [showStartScreen, setShowStartScreen] = useState(launch === 'start');
   const [titleSlots, setTitleSlots] = useState(() => (launch === 'title' ? readTitleSlots() : []));
+  const [titleView, setTitleView] = useState('main'); // the menu's Load opens the title screen's load view
   // Where the player is, for the crash log (src/utils/crashLog.js; never shown to the player).
   const onBattle = !!state.pendingBattle;
   useEffect(() => {
@@ -269,6 +271,23 @@ const GameLayout = () => {
     window.addEventListener(OPEN_SETTINGS, onOpen);
     return () => window.removeEventListener(OPEN_SETTINGS, onOpen);
   }, []);
+  // The menu hub (Menu on the tab rail, "?" on the top bar) and Help (the onboarding cards again).
+  const [menuView, setMenuView] = useState(null); // null | 'all' | 'help'
+  const [showHelp, setShowHelp] = useState(false);
+  useEffect(() => {
+    const onOpen = (e) => setMenuView(e.detail || 'all');
+    window.addEventListener(OPEN_MENU, onOpen);
+    return () => window.removeEventListener(OPEN_MENU, onOpen);
+  }, []);
+  const openTitle = (view) => { saveNow(); setTitleView(view); backToTitle(); };
+  const menuActions = {
+    save: saveNow,
+    load: () => openTitle('load'),
+    help: () => setShowHelp(true),
+    glossary: () => openGlossary('people', state.playerNationId),
+    settings: () => setShowSettings(true),
+    title: () => openTitle('main')
+  };
   // Dev builds only: open a province from the console / browser tests (the globe is hard to click).
   useEffect(() => {
     if (!import.meta.env.DEV) return undefined;
@@ -279,7 +298,7 @@ const GameLayout = () => {
   if (showTitle) {
     return (
       <>
-        <TitleScreen slots={titleSlots} onContinue={leaveTitle} onNewGame={titleNewGame} onLoad={titleLoad} onDelete={titleDelete}
+        <TitleScreen key={titleView} initialView={titleView} slots={titleSlots} onContinue={leaveTitle} onNewGame={titleNewGame} onLoad={titleLoad} onDelete={titleDelete}
           onImportText={titleImport} onSettings={() => setShowSettings(true)} />
         <SettingsSheet open={showSettings} onClose={() => setShowSettings(false)} onOpenAccount={() => setShowSettings(false)} onReset={() => { setShowSettings(false); titleNewGame(); }} cloudLabel={null} />
       </>
@@ -388,7 +407,10 @@ const GameLayout = () => {
       {/* Event Log drawer - the log's actual content, opened on demand from LogTrigger above */}
       <LogDrawer open={logDrawerOpen} onClose={() => setLogDrawerOpen(false)} />
 
-      {/* Settings and saves (W12), from Menu on the tab rail */}
+      <MenuSheet open={!!menuView} view={menuView || 'all'} onClose={() => setMenuView(null)} on={menuActions} />
+      <AutosaveToast />
+      {showHelp && <OnboardingOverlay onComplete={() => setShowHelp(false)} />}
+      {/* Settings and saves (W12), from the menu hub */}
       <SettingsSheet open={showSettings} onClose={() => setShowSettings(false)} onOpenAccount={() => { setShowSettings(false); setShowAccount(true); }} onReset={handleReset} cloudLabel={client ? (cloudSync.status === 'synced' ? t('app.cloudSaved') : t('app.cloudAccount')) : null} />
 
       {/* Cloud saves + account (plan §M0.5) - opened from Settings */}

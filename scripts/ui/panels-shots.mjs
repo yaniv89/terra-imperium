@@ -192,6 +192,7 @@ const main = async () => {
   let nativeDialog = false;
   page.on('dialog', (d) => { nativeDialog = true; d.dismiss(); });
   await click(rail.getByRole('button', { name: /Open the menu/ }));
+  await click(page.getByTestId('menu-settings')); // the menu hub, then Settings
   await click(page.getByRole('button', { name: 'New game' }));
   const confirm = page.getByTestId('new-game-confirm');
   await confirm.waitFor({ timeout: 5000 });

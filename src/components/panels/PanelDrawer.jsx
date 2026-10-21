@@ -24,7 +24,7 @@ import { useReportInset } from '../../context/MapInsetsContext';
 import ActionPanelTabs, { TABS, getTabBadge } from './ActionPanelTabs';
 import { OPEN_TAB, CLOSE_PANELS } from './panelEvents';
 import ActionPanel from './ActionPanel';
-import { openSettings } from '../ui/uiEvents';
+import { openMenu } from '../ui/uiEvents';
 import { useT } from '../../i18n/useT';
 
 // Research and Peoples need two columns, so their dock is wider (plans/UI-DESIGN.md section 5:
@@ -164,7 +164,7 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
             />
           ))}
           <RailButton icon={ScrollText} label={t('rail.log')} ariaLabel={t('rail.openLog')} badge={unreadLogs > 0 ? 1 : 0} onClick={onOpenLog} />
-          <RailButton icon={Menu} label={t('rail.menu')} ariaLabel={t('rail.openMenu')} onClick={openSettings} />
+          <RailButton icon={Menu} label={t('rail.menu')} ariaLabel={t('rail.openMenu')} onClick={() => openMenu()} />
         </nav>
       </div>
     );
@@ -196,7 +196,7 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
         className="fixed bottom-0 inset-x-0 z-20 bg-fa-panel/95 border-t border-fa-line pb-[env(safe-area-inset-bottom)] flex"
       >
         <div className="flex-1 min-w-0"><ActionPanelTabs activeTab={mobileSheetOpen ? activeTab : null} onTabChange={handleMobileTabChange} /></div>
-        <button type="button" onClick={openSettings} aria-label={t('rail.openMenu')} className="fa-tab flex-col !gap-0.5 !px-2 !text-[10px] shrink-0 border-s border-fa-line">
+        <button type="button" onClick={() => openMenu()} aria-label={t('rail.openMenu')} className="fa-tab flex-col !gap-0.5 !px-2 !text-[10px] shrink-0 border-s border-fa-line">
           <Menu className="w-[18px] h-[18px]" aria-hidden="true" />{t('rail.menu')}
         </button>
       </div>

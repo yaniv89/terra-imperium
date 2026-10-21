@@ -3,6 +3,7 @@
 // callbacks through the tree, as panelEvents.js does for the tabs. App.jsx listens.
 export const OPEN_NATION_OVERVIEW = 'ti:open-nation-overview';
 export const OPEN_SETTINGS = 'ti:open-settings';
+export const OPEN_MENU = 'ti:open-menu';
 export const OPEN_TURN_REPORT = 'ti:open-turn-report';
 export const SET_MAP_LENS = 'ti:set-map-lens';
 
@@ -12,6 +13,8 @@ const fire = (name, detail) => { if (typeof window !== 'undefined') window.dispa
 export const openNationOverview = () => fire(OPEN_NATION_OVERVIEW);
 /** The settings sheet (W12). */
 export const openSettings = () => fire(OPEN_SETTINGS);
+/** The menu hub (save, load, help, glossary, settings, title); 'help' shows only Help and Glossary. */
+export const openMenu = (view = 'all') => fire(OPEN_MENU, view);
 /** The last turn's report (W10). */
 export const openTurnReport = () => fire(OPEN_TURN_REPORT);
 // A line on the map saying what to do there (Research's Map button): MapGoals.jsx shows it.
