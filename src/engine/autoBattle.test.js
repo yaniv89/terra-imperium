@@ -4,7 +4,7 @@
 // the decisive field rule, and a small parity guardrail against the real-time battle with the
 // economy on (the full matrix: .claude/skills/battle-lab/parityEco.sim.js).
 import { describe, it, expect } from 'vitest';
-import { autoFromInputs, auxiliariesFor, autoCityDamage, WALLS_NO_SIEGE_MULT, WALLS_AGE_RELIEF, AUTO_TUNE } from './autoBattle';
+import { autoFromInputs, auxiliariesFor, autoCityDamage, WALLS_NO_SIEGE_MULT, WALLS_AGE_RELIEF, FORT_NO_SIEGE_MULT, AUTO_TUNE } from './autoBattle';
 import { militiaFor } from './battleInputs';
 import { createRng } from '../utils/rng';
 import { getDefenseLevelDamageReductionMultiplier } from './siege';
@@ -123,5 +123,12 @@ describe('the honest auto-resolve', () => {
     expect(run('classical', 'bronze', { isAttackingFortification: true }, true)).toBe(1);
     expect(run('classical', 'classical', { isAttackingFortification: true }, true)).toBe(1);
     expect(run('bronze', 'classical', {}, false)).toBe(1);
+  });
+
+  it('a manned fort holds its gate against an army without engines (FORT_NO_SIEGE_MULT), a field battle does not', () => {
+    const run = (att, fort) => autoFromInputs(args({ isAttackingFortification: fort }), ins(mk('a', att), mk('d', ['infantry', 'ranged'])), 'field', createRng(5)).report.wallsMult;
+    expect(run(['infantry', 'infantry'], true)).toBeCloseTo(FORT_NO_SIEGE_MULT);
+    expect(run(['infantry', 'siege'], true)).toBe(1);
+    expect(run(['infantry', 'infantry'], false)).toBe(1);
   });
 });

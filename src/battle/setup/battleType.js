@@ -35,8 +35,8 @@ export const RAID_TYPES = new Set(['raid', 'sack']);
 // scaled so the quick battle keeps parity with the objective the tactical sim would set.
 export const RIVER_ATTACK_MULT = 0.85;    // crossing under fire
 export const AMBUSH_ATTACK_MULT = 0.8;    // entering cover in column
-export const LANDING_ATTACK_MULT = 0.75;  // wading ashore (the old amphibious penalty)
-export const SALLY_ATTACK_MULT = 1;       // the sally must burn engines or the camp: no edge in the quick battle (parity harness)
+export const LANDING_ATTACK_MULT = 1;     // was 0.75 (wading ashore); the real-time landing loses less than that read (U19, autoCalib LM)
+export const SALLY_ATTACK_MULT = 1.1;     // calibrated with parityEco sally (U19, autoCalib SM)
 export const AUTO_ATTACK_MULT = { field: 1, river: RIVER_ATTACK_MULT, ambush: AMBUSH_ATTACK_MULT, assault: 1, sally: SALLY_ATTACK_MULT, landing: LANDING_ATTACK_MULT }; // a raid's odds: autoBattle.js (RAID_MULT, RAID_SLIP)
 export const autoAttackerMult = (type) => AUTO_ATTACK_MULT[type] ?? 1;
 // The river's size changes the crossing (mapgen.js: a stream is narrow with three fords, a great

@@ -54,7 +54,7 @@ export const AUX_EFFECT = 1.6;
 // works only as strong as their crew, so the real-time attacker of a city bleeds far less; autoCalib
 // over parityEco assault and town, bronze, classical against kingdoms and bronze against classical,
 // N=16: 13 of 14 in, the bronze 3-against-3 against classical walls reads 0.41).
-export const AUX_TRAINED = { field: [8, 8], assault: [8, 8], town: [2, 2] };
+export const AUX_TRAINED = { field: [8, 8], assault: [12, 8], town: [2, 2] }; // assault [12, 8] since U19 (autoCalib over parityEco fort, landing, sally, assault, town)
 export const AUX_ROUNDS = 0; // extra auto-resolve rounds per auxiliary unit (the time to fight them)
 export const WALLS_FORT_LEVEL = 2;
 // 0.8 since SETUP_VERSION 13 (W12): with wood everywhere the real-time attacker trains more
@@ -64,6 +64,9 @@ export const WALLS_FORT_LEVEL = 2;
 // a walled city about as an army with them does (autoCalib, parityEco N=16; at 0.9 the classical
 // 3-against-3 assault reads 0.46, out). Kept as the knob for the next calibration.
 export const WALLS_NO_SIEGE_MULT = 1;
+// The same gate for a manned fort in a field battle (forts.js): a keep and one tower, not a walled
+// city, so an army without engines is held harder there (parityEco fort, U19).
+export const FORT_NO_SIEGE_MULT = 0.85;
 export const AUX_CLOSENESS = 1.5; // the auxiliaries x min(1, this x weaker / stronger army); 0 = off
 // Raids and sacks (measured with parityEco TYPES=raid,sack): raiders do not fight for the field,
 // they burn and run. In a raid their blows count RAID_MULT x min(1, defenders / raiders) (the more
@@ -81,8 +84,8 @@ export const RAID_SLIP = 0.5;
 // classical walls loses what it loses against bronze walls: the fight is the gate, not the weapons),
 // while the round-based exchange multiplies the whole roster gap. The attacker gets back this share
 // (as an exponent) of the defender's roster advantage on a walled assault; 0 = off.
-export const WALLS_AGE_RELIEF = 0.7;
-export const AUTO_TUNE = { AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED, WALLS_NO_SIEGE_MULT, AUX_CLOSENESS, WALLS_AGE_RELIEF, RAID_MULT, SACK_MULT, RAID_SLIP_BASE, RAID_SLIP };
+export const WALLS_AGE_RELIEF = 1.2; // 0.7 before U19: the cross-age assault and fort rows read 0.37 to 0.53
+export const AUTO_TUNE = { AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED, WALLS_NO_SIEGE_MULT, FORT_NO_SIEGE_MULT, AUX_CLOSENESS, WALLS_AGE_RELIEF, RAID_MULT, SACK_MULT, RAID_SLIP_BASE, RAID_SLIP };
 
 /** The raiders' damage multiplier in an auto-resolved raid or sack (see RAID_MULT). */
 export const raidMult = (kind, ins, tune = AUTO_TUNE) => {
@@ -266,7 +269,8 @@ export const autoFromInputs = (args, ins, kind, rng, tune = AUTO_TUNE) => {
   // A field battle against a manned fort (forts.js: a walled keep on the battle map) holds its gate too.
   const walled = contested && (cityWalled || (kind === 'field' && !!args.isAttackingFortification));
   const noSiege = walled && !ins.attackerUnits.some((u) => u.classId === 'siege' && u.strength > 0);
-  const wallsMult = noSiege ? 1 - (1 - tune.WALLS_NO_SIEGE_MULT) * Math.max(0, Math.min(1, ins.hpRatio ?? 1)) : 1;
+  const gate = cityWalled ? tune.WALLS_NO_SIEGE_MULT : tune.FORT_NO_SIEGE_MULT ?? FORT_NO_SIEGE_MULT;
+  const wallsMult = noSiege ? 1 - (1 - gate) * Math.max(0, Math.min(1, ins.hpRatio ?? 1)) : 1;
   // The attacker's roster disadvantage is eased behind walls (WALLS_AGE_RELIEF).
   const ageGap = walled ? getRosterCombatMultiplier(args.defenderAgeId ?? FIRST_AGE_ID, args.attackerAgeId ?? FIRST_AGE_ID) : 1;
   const ageRelief = ageGap > 1 ? powExact(ageGap, tune.WALLS_AGE_RELIEF ?? WALLS_AGE_RELIEF) : 1;
