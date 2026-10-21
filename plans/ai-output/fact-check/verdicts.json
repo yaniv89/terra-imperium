@@ -1,0 +1,4650 @@
+{
+  "ai_steppe_afghan_war": {
+    "ok": false,
+    "severity": 1,
+    "kind": "anachronism",
+    "problem": "By 1980 the city was Balkh, not Bactra, and the Hebrew third option says 'manage' a truce rather than 'negotiate' one.",
+    "fix": "Use 'Balkh' (Hebrew בלח) in the subject and description. Change the third Hebrew option to 'לנהל משא ומתן על הפסקת אש מקומית'."
+  },
+  "ai_steppe_arkaim_reservoir": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_pearl_millet_fields": {
+    "ok": false,
+    "severity": 2,
+    "kind": "hebrew",
+    "problem": "The Hebrew 'בטטות' means sweet potatoes, a New World crop, not yams.",
+    "fix": "Replace 'הבטטות' with 'היאמים' in the Hebrew description."
+  },
+  "ai_westafrica_savanna_drought": {
+    "ok": false,
+    "severity": 3,
+    "kind": "anachronism",
+    "problem": "Lueji was a Lunda queen of about the 16th to 17th century CE, not of 1300 BCE.",
+    "fix": "Change the subject to the people 'Lunda', or to an unnamed chief, with no named ruler."
+  },
+  "ai_westafrica_forest_yam_clearing": {
+    "ok": false,
+    "severity": 2,
+    "kind": "anachronism",
+    "problem": "Ile-Ife did not exist as a town in 1200 BCE, and the Hebrew 'בטטות' means sweet potatoes.",
+    "fix": "Make the subject the people 'Ife' and say 'Farmers at the forest edge' and 'the village'. In Hebrew, use 'חקלאים בשולי היער' and 'תלי יאם'."
+  },
+  "ai_westafrica_lake_fishing_dispute": {
+    "ok": false,
+    "severity": 3,
+    "kind": "anachronism",
+    "problem": "Kalala Ilunga, legendary founder of the Luba kingdom, belongs to about the 16th century CE, not 1100 BCE.",
+    "fix": "Change the subject to the people 'Luba' with no named ruler."
+  },
+  "ai_westafrica_salt_traders": {
+    "ok": false,
+    "severity": 3,
+    "kind": "anachronism",
+    "problem": "Kabasa was the capital of the Ndongo kingdom in the 16th century CE and did not exist in 1000 BCE.",
+    "fix": "Change the subject to the people 'Ndongo' and replace 'Kabasa' with 'your village' (Hebrew 'הכפר שלך')."
+  },
+  "ai_westafrica_newcomers_from_north": {
+    "ok": false,
+    "severity": 2,
+    "kind": "hebrew",
+    "problem": "The Hebrew 'שתילי בטטה' means sweet potato cuttings, not yam cuttings.",
+    "fix": "Replace 'שתילי בטטה' with 'שתילי יאם'."
+  },
+  "ai_westafrica_terracotta_workshops": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_first_furnaces": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew 'אסור על בזבוז' is ungrammatical.",
+    "fix": "Change the second Hebrew option to 'אסור את בזבוז העצים הטובים'."
+  },
+  "ai_americas_desert_dam": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_rubber_bust": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_marines_land": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_chaco_border_war": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_oil_expropriation": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_arctic_radar_line": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_land_reform": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_fishmeal_boom": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew says the ports became the busiest fisheries in the world, not among the busiest, and the wording is awkward.",
+    "fix": "קמח הדגים מהזרם הקר שליד החוף הפך את נמליך לאחד ממרכזי הדיג העמוסים ביותר בעולם. דייגים ותיקים מזהירים ששנת אל ניניו חמה עלולה לרוקן את הים."
+  },
+  "ai_americas_nunavut_civil_service": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_supermarket_near_pyramids": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_eastafrica_stone_terraces": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_eastafrica_highland_rice": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_eastafrica_almeida_at_kilwa": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_eastafrica_mir_ali_bey_alliance": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_eastafrica_mavura_vassal_treaty": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_eastafrica_cape_fort_cattle": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_eastafrica_failing_furrows": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_eastafrica_general_commando": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew imperative 'סגת' for 'Retreat' is not a correct form.",
+    "fix": "היסוג אל הפנים היבשים"
+  },
+  "ai_eastafrica_radama_british_treaty": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_eastafrica_baker_at_masindi": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_saba_flood_channels": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_magan_copper_ships": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_manium_akkad": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew imperative 'סגת' is not a correct form of 'retreat'.",
+    "fix": "היסוג אל ההרים והמתן"
+  },
+  "ai_levant_copper_for_the_gulf": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_assyrian_merchant_quarter": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_fall_of_hattusa": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_short_alphabet": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_gold_in_the_rivers": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_ships_off_the_coast": {
+    "ok": false,
+    "severity": 1,
+    "kind": "fact",
+    "problem": "Ammurapi's letter places the troops in Hatti and only the ships in Lukka, not both in Lukka.",
+    "fix": "Enemy ships burn your coastal villages while your troops serve the Hittite king in Hatti and your fleet is far away in Lukka. / ספינות אויב שורפות את כפרי החוף שלך, בזמן שחייליך משרתים את המלך החתי בחתי והצי שלך הרחק בלוקה."
+  },
+  "ai_levant_taming_wadi_floods": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_portuguese_forts": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_coffee_monopoly": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_arabic_press": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_pilgrim_road_fort": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_desert_preacher": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_angora_goats": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_sinope_batteries": {
+    "ok": false,
+    "severity": 1,
+    "kind": "fact",
+    "problem": "At Sinop in 1853 the Russian force that carried the shell guns was mainly sailing ships of the line, with only a few steam frigates in support.",
+    "fix": "Title 'Russian Guns off Sinope'; description 'Russian warships armed with new shell guns patrol the Black Sea...'; Hebrew title 'תותחים רוסיים מול סינופה', description 'ספינות מלחמה רוסיות חמושות בתותחי פגזים חדשים מסיירות בים השחור...'"
+  },
+  "ai_levant_hejaz_railway_station": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_van_under_siege": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_ras_shamra_tablets": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_palembang_refinery_raid": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_oc_eo_excavation": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_revolutionary_capital": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew title says 'heart of the kingdom', which is odd for a republic and narrower than 'heartland'.",
+    "fix": "בירה בלב הארץ"
+  },
+  "ai_monsoon_hung_temple_oath": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_tondo_foreshore_relocation": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_balangay_boats_found": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_cham_refugees": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_lake_condah_land_return": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_semna_cataract_forts": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_western_deffufa": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_temple_hall": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_saltpetre_trade": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_brahmaputra_fleet": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_stone_observatory": {
+    "ok": false,
+    "severity": 2,
+    "kind": "hebrew",
+    "problem": "The Hebrew 'מכשירי בנייה ענקיים' reads as 'giant construction tools' rather than giant instruments built of masonry.",
+    "fix": "אסטרונומים באוג'יין מציעים מכשירים ענקיים בנויים מאבן לתיקון הלוחות הישנים, בטענה שאסטרולבות הפליז קטנים מכדי לסמוך עליהם."
+  },
+  "ai_indic_muslin_weavers": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_digboi_refinery": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_bengal_partition": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_taxila_finds": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_harappa_mounds": {
+    "ok": false,
+    "severity": 1,
+    "kind": "fact",
+    "problem": "The railway brick robbing at Harappa happened mainly in the 1850s, and by 1921 the site was protected and under ASI excavation.",
+    "fix": "Change 'railway contractors still haul the ancient bricks away' to 'local villagers still dig the ancient bricks for their houses', and change the Hebrew to 'אך כפריים מקומיים עדיין חופרים את הלבנים העתיקות לבתיהם'."
+  },
+  "ai_indic_bihar_earthquake": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_shicra_foundations": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_empty_nets": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_copper_from_north": {
+    "ok": false,
+    "severity": 2,
+    "kind": "anachronism",
+    "problem": "The Hopewell culture dates to about 100 BCE to 500 CE, so a Hopewell mound people trading for Great Lakes copper in 1500 BCE is anachronistic; at that date this was Poverty Point and Archaic trade.",
+    "fix": "Move the card to year -100 in the Classical Age, or keep -1500 and reword it as Poverty Point era mound builders without naming Hopewell."
+  },
+  "ai_americas_seeds_from_south": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_magnetite_mirrors": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_fields_above_frost": {
+    "ok": false,
+    "severity": 2,
+    "kind": "hebrew",
+    "problem": "The Hebrew uses שיבולים (ears of grain) for 'crops', which is the wrong word and does not agree with the verb.",
+    "fix": "חקלאים לחוף אגם טיטיקקה מגלים שיבולים על ערוגות מוגבהות -> חקלאים לחוף אגם טיטיקקה מגלים שיבולים... replace with: חקלאים לחוף אגם טיטיקקה מגלים שיבולים is wrong; use: חקלאים לחוף אגם טיטיקקה מגלים שהיבולים על ערוגות מוגבהות בין תעלות מים שורדים את כפור הלילה הקטלני של הרמה."
+  },
+  "ai_americas_burning_the_forest": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew בשלף means stubble, not fallow land.",
+    "fix": "לברא לאט ולהשאיר אדמה בור"
+  },
+  "ai_americas_soapstone_lamps": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_conquest_slabs": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_obsidian_from_the_west": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_astronomical_compendium": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_harsha_vengeance": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_pilgrim_summons": {
+    "ok": false,
+    "severity": 1,
+    "kind": "date",
+    "problem": "Bhaskaravarman's summons of Xuanzang from Nalanda and Harsha's demand for him are usually dated around 642, not 638.",
+    "fix": "Change year to 642."
+  },
+  "ai_indic_debal_ultimatum": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew imperative 'סגת' is ungrammatical.",
+    "fix": "Change third option Hebrew to 'היסוג פנימה כדי לאסוף כוחות'."
+  },
+  "ai_indic_chola_invasion": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew imperative 'סגת' is ungrammatical.",
+    "fix": "Change first option Hebrew to 'היסוג דרומה לרוהונה'."
+  },
+  "ai_indic_ghaznavid_raids": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_konark_sun_temple": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_arab_war_horses": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_diu_fort": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_indus_crossing": {
+    "ok": false,
+    "severity": 3,
+    "kind": "anachronism",
+    "problem": "Ambhi was the king of Taxila around 326 BCE, so he cannot be the ruler in 1581, when Akbar built the Attock fort.",
+    "fix": "Change the subject ruler to Akbar (or a Mughal governor of the Attock crossing)."
+  },
+  "ai_steppe_botai_horse_milk": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_sarazm_turquoise": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_kurgan_wagons": {
+    "ok": false,
+    "severity": 2,
+    "kind": "hebrew",
+    "problem": "Hebrew 'מעל ראשיהם' can read as 'over their own heads' rather than 'over their chiefs'.",
+    "fix": "הרועים שלך מגלגלים עגלות שוורים כבדות על פני הערבה הפתוחה וצוברים תלי עפר גדולים מעל קברי ראשי השבט שלהם."
+  },
+  "ai_steppe_millet_highlands": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_altai_newcomers": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_murghab_canals": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_spoked_chariots": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_sacred_drink_gonur": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_spitamenes_resistance": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_siege_of_bactra": {
+    "ok": false,
+    "severity": 2,
+    "kind": "hebrew",
+    "problem": "Hebrew 'מצור על בקטרה' uses the noun 'siege' instead of a verb, so the sentence is ungrammatical.",
+    "fix": "אנטיוכוס השלישי צר על בקטרה זה שנתיים. שליחיו רומזים על שלום אם תמסור את פילי המלחמה שלך ותכיר בו כאדון להלכה."
+  },
+  "continental_upheaval": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "industrial_revolution": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew 'להשקיע בכבדות' is a calque of 'heavily' and can read as 'sluggishly'.",
+    "fix": "להשקיע רבות במפעלים ובמסילות"
+  },
+  "the_great_war": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "great_depression": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "decolonization_wave": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "digital_revolution": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew 'להשקיע בכבדות' is a calque of 'heavily' and can read as 'sluggishly'.",
+    "fix": "להשקיע רבות בטכנולוגיה החדשה"
+  },
+  "financial_crisis": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "global_pandemic": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "climate_stress": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "solar_storm": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_banpo_village_ditch": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_liangzhu_jade_cong": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_northern_jade_traders": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_eggshell_pottery": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_shijiahe_earthen_walls": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_chengdu_plain_floods": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_cracked_bones": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew word מגידים means tellers or preachers, not diviners.",
+    "fix": "Replace המגידים with המנחשים in the description, and לתת למגידים with לתת למנחשים in the first option."
+  },
+  "ai_sinic_fall_of_haojing": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_salt_iron_monopoly": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_weight_of_cauldrons": {
+    "ok": false,
+    "severity": 2,
+    "kind": "hebrew",
+    "problem": "The Hebrew option uses וסגת, a past-tense form meaning you retreated, instead of an imperative.",
+    "fix": "קבל את נזיפת השליח והיסוג"
+  },
+  "ai_steppe_amage_rides_to_chersonesos": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_han_princess_wusun": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_loulan_between_empires": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_tanshihuai_refuses_title": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_silkworms_in_headdress": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The English title says seeds while the Hebrew title and the story speak of eggs.",
+    "fix": "Change the English title to \"Eggs in a Headdress\" to match ביצים בכיסוי הראש."
+  },
+  "ai_steppe_smiths_of_the_rouran": {
+    "ok": false,
+    "severity": 1,
+    "kind": "date",
+    "problem": "Anagui's 'blacksmith slaves' insult and the Western Wei marriage came in 551, before the 552 revolt the card offers as a choice.",
+    "fix": "Set the year to 551."
+  },
+  "ai_steppe_silk_embassy_west": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_tang_princess_bride": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_khagan_chooses_faith": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_paper_mills_samarkand": {
+    "ok": false,
+    "severity": 2,
+    "kind": "anachronism",
+    "problem": "Marakanda is the ancient Greek name; in 795 the city was known as Samarkand.",
+    "fix": "Change the subject name to Samarkand."
+  },
+  "national_spanish_exploration": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew 'חסר ניסיון' means 'inexperienced' rather than 'unproven'.",
+    "fix": "הימור על נתיב מערבה שטרם הוכח מעבר לאוקיינוס משתלם מעבר לכל ציפייה, ופותח חצי כדור שלם שאיש בחצר לא ידע על קיומו."
+  },
+  "national_india_maritime_trade": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "columbian_exchange": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "reformation": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "national_britain_naval_turn": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "national_japan_sakoku": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "national_china_mandate": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew 'להתפשט' means 'spread', which differs from 'run its course'.",
+    "fix": "לתת לריקבון השושלת הישנה לעשות את שלו"
+  },
+  "national_dutch_golden_age": {
+    "ok": false,
+    "severity": 2,
+    "kind": "hebrew",
+    "problem": "The Hebrew uses a feminine 'נמלייך' that clashes with 'סוחריך', drops 'busiest' (ביותר), and turns 'some of the wealthiest' into 'the wealthiest'.",
+    "fix": "צי סוחרים וסוג חדש של חברת מניות הופכים את נמליך לעמוסים ביותר בעולם ואת סוחריך לבין העשירים ביותר."
+  },
+  "scientific_revolution": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "national_russian_reforms": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew 'מסע רפורמה מערבי' reads as 'a western reform campaign' rather than 'westernizing', and 'בידי מעטים' (by few) differs from 'by some'.",
+    "fix": "מסע נרחב של רפורמות התמערבות מעצב מחדש את הצבא, המנהל והחצר כמעט בן לילה, מתקבל בברכה בידי חלק ובטינה בידי רבים יותר."
+  },
+  "ai_korea_flooded_paddies": {
+    "ok": false,
+    "severity": 2,
+    "kind": "date",
+    "problem": "Banked paddy fields in Korea appear in the Middle Mumun period (c. 900-800 BCE), not 1300 BCE, and the name Ungjin is a much later Baekje name.",
+    "fix": "Change the year to -900. Optionally replace 'Ungjin' in the text with 'the Geum River valley'."
+  },
+  "ai_korea_dolmen_capstone": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_korea_heavenly_rite": {
+    "ok": false,
+    "severity": 2,
+    "kind": "anachronism",
+    "problem": "Haemosu is the legendary 1st-century BCE founder of Buyeo, and Korean bronze mirrors and bells date to the late first millennium BCE, not 1100 BCE.",
+    "fix": "Replace the ruler with Dangun. Change 'a great rite of bronze mirrors, bells and offerings' to 'a great rite with bronze ornaments and offerings' (Hebrew: 'טקס גדול של עיטורי ארד ומנחות')."
+  },
+  "ai_korea_crowded_longhouses": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_korea_lute_daggers": {
+    "ok": false,
+    "severity": 1,
+    "kind": "date",
+    "problem": "Lute-shaped (Liaoning-type) bronze daggers are dated mostly from the 9th-8th century BCE, so 1000 BCE is early.",
+    "fix": "Change the year to -850."
+  },
+  "ai_korea_northern_horses": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_korea_village_moat": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_korea_tin_shortage": {
+    "ok": false,
+    "severity": 2,
+    "kind": "anachronism",
+    "problem": "Onjo, founder of Baekje, lived around 18 BCE, not 850 BCE.",
+    "fix": "Replace the ruler with a generic chieftain or Dangun of Gojoseon. In the Hebrew, 'נסיכויות עוינות' could become 'ראשויות שבטיות עוינות' to match 'chiefdoms'."
+  },
+  "ai_korea_muryeong_tomb": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_korea_move_to_sabi": {
+    "ok": false,
+    "severity": 3,
+    "kind": "fact",
+    "problem": "King Seong moved the Baekje capital from Ungjin to Sabi in 538, not Onjo, who founded Baekje over five centuries earlier.",
+    "fix": "Change the ruler to Seong (King Seong of Baekje)."
+  },
+  "ai_israelite_karaite_schism": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_radhanite_charters": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_masoretic_codex": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew title means 'The Crown of the Masoretes', not 'The Masoretes' Great Codex'.",
+    "fix": "Change the Hebrew title to: כתב היד הגדול של בעלי המסורה"
+  },
+  "ai_israelite_crusader_siege": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_resettle_jerusalem": {
+    "ok": false,
+    "severity": 1,
+    "kind": "date",
+    "problem": "The Ashkelon Jews moved to Jerusalem after Saladin razed Ashkelon in 1191, so 1190 is slightly early.",
+    "fix": "Change the year to 1192."
+  },
+  "ai_israelite_maimonidean_controversy": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_sephardi_exiles": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_rebuild_city_walls": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_tiberias_silk": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_safed_printing_press": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_fortress_on_the_rock": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_erebuni_captives": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_tribute_to_assyria": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew \"ממלכת הערבים\" reads as \"from the kingdom of the Arabs\" rather than \"from the queen of the Arabs\".",
+    "fix": "צבאו של תגלת פלאסר עומד בסוריה, ושליחיו דורשים גמלים ומס מן מלכת הערבים."
+  },
+  "ai_levant_marib_sluices": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_cimmerian_riders": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_median_army_reform": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_stamped_electrum": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_asiatic_vespers": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_roman_annexation": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_shirvan_silk": {
+    "ok": false,
+    "severity": 2,
+    "kind": "fact",
+    "problem": "The Ottoman-Safavid war ended with the Peace of Amasya in 1555, so in 1562 there was no ongoing war.",
+    "fix": "EN: \"Years of war with the Ottomans have choked the western caravans, but the shah distrusts these strangers.\" HE: \"שנים של מלחמה עם העות'מאנים חנקו את השיירות למערב, אך השאה חושד בזרים האלה.\""
+  },
+  "ai_korea_summit_in_the_north": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_korea_joint_industrial_zone": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_korea_whose_ancient_kingdom": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_korea_underground_test": {
+    "ok": false,
+    "severity": 2,
+    "kind": "hebrew",
+    "problem": "Hebrew 'המתקן' means facility or installation, not the explosive device.",
+    "fix": "המדענים שלך מדווחים שההתקן מוכן מתחת להר. ניסוי יוכיח את כוחך אך יביא סנקציות מכל המעצמות הגדולות."
+  },
+  "ai_korea_ancient_capital_ruins": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_van_obsidian": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_ugarit_coastal_village": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_kura_araxes_hearths": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_colchis_arsenic_copper": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_bat_stone_towers": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_odia_province": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_temple_entry": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_partition_refugees": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_harappa_salt_bricks": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_chandraketugarh_terracottas": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew verb 'לשטור' is not a real Hebrew word for policing.",
+    "fix": "להציב שוטרים בשדות ולעצור את הסוחרים"
+  },
+  "ai_indic_taxila_foundries_stupas": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_nalanda_revival": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_ujjain_simhastha_water": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_hastinapura_legend_dig": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_lothal_maritime_complex": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_brushwood_and_gall": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew renders brushwood as קש (straw) rather than brushwood or firewood twigs.",
+    "fix": "Title: זרדים ומרה; description: מאז תבוסתך לוו אתה ישן על זרדים ומדי יום טועם מרה. שריך מייעצים סבלנות, וקציניך משתוקקים לנקמה."
+  },
+  "ai_sinic_jixia_academy": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_dujiangyan_weir": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_emperor_of_the_south": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_seal_of_dian": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_wokou_coast_raids": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_shaanxi_great_earthquake": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_sichuan_resettlement": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_yunnan_copper_mines": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_canton_single_port": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_pyramid_of_the_sun": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_marked_adobe": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_gila_canals": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_entrada_at_mutal": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The first Hebrew option 'והמלך את איש שלך' is ungrammatical.",
+    "fix": "שלח את הלוחמים והמלך את האיש שלך"
+  },
+  "ai_americas_raised_fields": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_mounds_above_flood": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_highland_outposts": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_victory_over_calakmul": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_shell_canal": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_great_house_timber": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "great_migrations": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "the_horse": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "the_wheel": {
+    "ok": false,
+    "severity": 1,
+    "kind": "anachronism",
+    "problem": "A 'potters' guild' is an anachronistic institution for 3500 BCE.",
+    "fix": "Option: 'Keep the craft to the potters' / 'להשאיר את המלאכה בידי הקדרים'"
+  },
+  "uruk_expansion": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "first_writing": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "river_unification": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "drought_of_4200": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "national_egypt_nile_flood": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "great_flood_myth": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "bronze_trade_networks": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The English uses an em dash, and the Hebrew renders 'bronze-working kingdom' as 'kingdom of the Bronze Age'.",
+    "fix": "EN: '...every bronze-working kingdom cannot do without, and the routes that carry it are worth fighting over.' HE: 'הבדיל, נדיר ונמצא רק בקומץ מקומות, הפך למשאב היחיד שאף ממלכה המעבדת ארד אינה יכולה בלעדיו, והדרכים שנושאות אותו ראויות למלחמה.'"
+  },
+  "ai_americas_war_with_hunza": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_strangers_tribute": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_governors_feast": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_zapotec_spanish_alliance": {
+    "ok": false,
+    "severity": 2,
+    "kind": "hebrew",
+    "problem": "The Hebrew option 'סגת' is not a valid imperative of 'retreat'.",
+    "fix": "היסוג אל מבצרי ההרים"
+  },
+  "ai_americas_quesada_on_the_savanna": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_french_at_guanabara": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_jesuit_mission_calos": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_false_inca_bohorquez": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_neutral_island_treaty": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_sea_otter_traders": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_hyksos_envoy": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "Hebrew 'הנאות' alone reads as 'the pastures' rather than 'the oases'.",
+    "fix": "מלך החיקסוס שבדלתא שולח שליח דרך נאות המדבר ודוחק בך לתקוף את תבאי מדרום בזמן שהוא יכה מצפון."
+  },
+  "ai_nile_ships_from_kemet": {
+    "ok": false,
+    "severity": 1,
+    "kind": "fact",
+    "problem": "Ati was the wife of the Puntite chief Parahu, who is the ruler shown receiving Hatshepsut's expedition, and Hebrew 'עוגנות' (anchor) differs from 'beach'.",
+    "fix": "Set subject ruler to Parahu; Hebrew: חמש ספינות מצריות גדולות עולות על חופך, ושליחיהן מציעים חרוזים, גרזנים ופגיונות תמורת מור, הובנה, זהב ואפילו עצי קטורת חיים."
+  },
+  "ai_nile_peru_nefer_shipyards": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_libu_sea_alliance": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_tomb_builders_strike": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_libyan_chiefs_delta": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_kings_from_the_south": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_sabaean_masons": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_greeks_seek_land": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_canal_to_the_red_sea": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_land_census_reform": {
+    "ok": false,
+    "severity": 2,
+    "kind": "anachronism",
+    "problem": "Iyo was a 3rd-century Yamatai queen and could not rule during the Taika reform of 646.",
+    "fix": "Change the ruler subject to Emperor Kotoku (or Prince Naka no Oe), who issued the Taika reform edicts."
+  },
+  "ai_japan_gold_of_mutsu": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_ambush_at_the_river": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew imperative 'סגת' is not a valid form of 'withdraw'.",
+    "fix": "היסוג אל הגבעות"
+  },
+  "ai_japan_palisade_of_isawa": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_kangi_famine": {
+    "ok": false,
+    "severity": 1,
+    "kind": "anachronism",
+    "problem": "Makimuku was a 3rd-century center that was long abandoned by 1231, and the Hebrew uses the wrong plural 'אסמות' for granaries.",
+    "fix": "Use Kyoto (or Kamakura) as the city, and in the Hebrew replace 'האסמות שלך אינם' with 'האסמים שלך אינם' and the option with 'פתח את האסמים לכולם'."
+  },
+  "ai_japan_mongol_fleet": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_arquebus_arrival": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_jesuit_mission": {
+    "ok": false,
+    "severity": 2,
+    "kind": "anachronism",
+    "problem": "Iyo was a 3rd-century queen, not a ruler in 1551 when the Jesuits sought permission to preach.",
+    "fix": "Change the ruler subject to a period daimyo such as Otomo Sorin or Ouchi Yoshitaka."
+  },
+  "ai_japan_sword_hunt": {
+    "ok": false,
+    "severity": 1,
+    "kind": "anachronism",
+    "problem": "Makimuku was a 3rd-century site with no significance in 1588.",
+    "fix": "Replace Makimuku with Osaka or Kyoto (Hebrew: אוסקה or קיוטו)."
+  },
+  "ai_japan_pacific_embassy": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "automation_riots": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "first_general_ai": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_river_pottery": {
+    "ok": false,
+    "severity": 1,
+    "kind": "anachronism",
+    "problem": "The earliest Amazonian pottery, such as Taperinha, was open-fired, so kilns are anachronistic for 4800 BCE.",
+    "fix": "Change the option to 'Build firing pits at the shell mound' / 'בנה בורות שריפה ליד תל הצדפים'."
+  },
+  "ai_americas_teosinte_gardens": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_taming_llamas": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew option 'כלוא ורבה' uses an incorrect imperative for 'breed'.",
+    "fix": "כלוא וגדל את העדרים המאולפים"
+  },
+  "ai_americas_lake_copper": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_shell_ring": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_sunken_plaza": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_knotted_cords": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_small_tool_bands": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_offshore_gas": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_rocket_interceptors": {
+    "ok": false,
+    "severity": 2,
+    "kind": "fact",
+    "problem": "Rockets from Gaza first reached Jerusalem in November 2012, not 2011, and by then Iron Dome was already proven in combat rather than only in tests.",
+    "fix": "Set year to 2012 and rewrite: 'Rockets now reach as far as Jerusalem. The new interceptor system has proven itself in battle, but every missile it fires costs a fortune.' Hebrew: 'רקטות מגיעות כעת עד ירושלים. מערכת היירוט החדשה הוכיחה את עצמה בקרב, אך כל טיל שהיא משגרת עולה הון.'"
+  },
+  "ai_israelite_jerusalem_light_rail": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_obsidian_crossing": {
+    "ok": false,
+    "severity": 2,
+    "kind": "anachronism",
+    "problem": "Iyo was a 3rd century CE queen of Yamatai, and she is addressed by name in a card set in 4000 BCE.",
+    "fix": "Make the subject the people and drop the name: 'Some of your young men are willing to paddle there.' Hebrew: 'כמה מצעיריך מוכנים לחתור לשם.'"
+  },
+  "ai_japan_rising_sea": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_chestnut_groves": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_green_jade": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_flame_pottery": {
+    "ok": false,
+    "severity": 2,
+    "kind": "anachronism",
+    "problem": "Makimuku is a 3rd century CE site in Nara, while flame-style pottery is a Middle Jomon craft of the Niigata region.",
+    "fix": "Replace Makimuku with a generic village: 'The potters of your village by the great river shape vessels with rims like leaping fire...' Hebrew: 'הקדרים של כפרך שליד הנהר הגדול מעצבים כלים ששפתם כאש מתלקחת...'"
+  },
+  "ai_japan_great_pillars": {
+    "ok": false,
+    "severity": 1,
+    "kind": "anachronism",
+    "problem": "The subject is the 3rd century CE ruler Iyo, which is anachronistic for a 3000 BCE Jomon pillar hall like the one at Sannai-Maruyama.",
+    "fix": "Change the subject to the people Emishi, since Sannai-Maruyama lies in the north."
+  },
+  "ai_japan_clay_figures": {
+    "ok": false,
+    "severity": 2,
+    "kind": "anachronism",
+    "problem": "Aterui was an Emishi leader who died in 802 CE, and he is addressed by name in a card set in 2500 BCE.",
+    "fix": "Make the subject the people and drop the name: 'They ask you for food to fund the rites.' Hebrew: 'הם מבקשים ממך מזון לטקסים.'"
+  },
+  "ai_pacific_dentate_stamped_pottery": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The second option uses the past-tense verb 'יצר' where the other options use the imperative.",
+    "fix": "צור כלים פשוטים לבישול יומיומי"
+  },
+  "ai_pacific_talasea_obsidian": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_shells_from_coast": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_voyage_beyond_horizon": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_first_fiji_gardens": {
+    "ok": false,
+    "severity": 2,
+    "kind": "hebrew",
+    "problem": "The Hebrew renders yams as 'בטטות' (sweet potatoes), which changes the meaning and is anachronistic for Fiji in 900 BCE.",
+    "fix": "המתיישבים הראשונים באיים האלה מוצאים ציפורים שמנות וצבים שקל לתפוס, אבל היאמים והטארו שהביאו מתקשים באדמה החדשה."
+  },
+  "ai_pacific_manila_galleon_stop": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_sweet_potato_arrives": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_mission_on_guam": {
+    "ok": false,
+    "severity": 2,
+    "kind": "fact",
+    "problem": "Gadao is a legendary chief of Inarajan, not a figure of the 1671 rising, which was led by Hurao.",
+    "fix": "Change the ruler to Hurao."
+  },
+  "ai_pacific_great_pig_exchange": {
+    "ok": false,
+    "severity": 2,
+    "kind": "hebrew",
+    "problem": "'חליפה' means a suit of clothes, not an exchange.",
+    "fix": "Title: חילופי החזירים הגדולים; description: החמולות השכנות מצפות שתארח טקס חליפין של חזירים וצדפים. נדיבות קונה בריתות, אך העדרים שלך דלים אחרי עונה יבשה."
+  },
+  "ai_pacific_shipwrecked_musketeers": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_drought_exodus": {
+    "ok": false,
+    "severity": 2,
+    "kind": "fact",
+    "problem": "Syrian drought migrants in 2008 moved mainly to inland cities such as Damascus, Aleppo, Homs and Daraa, not to the coastal cities.",
+    "fix": "EN: \"...and farming families pour into the cities looking for work.\" HE: \"...ומשפחות חקלאים נוהרות לערים בחיפוש אחר עבודה.\""
+  },
+  "ai_levant_jobs_for_citizens": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_coastal_nuclear_plant": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_goats_on_the_green_mountain": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_snail_shell_mounds": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_bone_harpoons": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_painted_rock_shelters": {
+    "ok": false,
+    "severity": 3,
+    "kind": "anachronism",
+    "problem": "Tin Hinan was a Tuareg queen of about the 4th century CE and cannot be the subject of a card set in 4000 BCE.",
+    "fix": "Change the subject to the people Garamantes, whose Fezzan homeland contains the Acacus."
+  },
+  "ai_maghreb_the_shrinking_lake": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_the_drying_pastures": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_ivory_across_the_strait": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_eastafrica_pirates_off_the_horn": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_phocaean_walls": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_roman_envoys_piracy": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_friend_of_rome": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_siege_ring": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_cimbri_at_noreia": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_uproot_vines": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_scorched_earth": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_fugitive_caratacus": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_columba_at_gates": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew title drops 'your', and the Hebrew description says his god will not share the hall 'with you' rather than 'your hall'.",
+    "fix": "Title: נזיר בשערך. Description end: הדרואידים שלך מזהירים שאלוהיו לא יחלוק את האולם שלך."
+  },
+  "ai_korea_monks_to_wa": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_korea_sui_invasion": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_korea_restoration_army": {
+    "ok": false,
+    "severity": 2,
+    "kind": "anachronism",
+    "problem": "Haemosu is the mythical founder of Buyeo, centuries before the Baekje restoration movement of 660 to 663.",
+    "fix": "Replace the ruler with Bojang, king of Goguryeo in 661."
+  },
+  "ai_korea_khitan_demands": {
+    "ok": false,
+    "severity": 2,
+    "kind": "fact",
+    "problem": "The Goryeo king in 993, when Seo Hui negotiated with the Khitan, was Seongjong, not a ruler named Jun.",
+    "fix": "Change the ruler to Seongjong."
+  },
+  "ai_korea_island_refuge": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_korea_metal_type": {
+    "ok": false,
+    "severity": 2,
+    "kind": "fact",
+    "problem": "The 1377 metal-type printing of the Jikji took place at Heungdeok temple in Cheongju, not Buyeo.",
+    "fix": "Change the subject city to Cheongju."
+  },
+  "ai_korea_memory_chip_wager": {
+    "ok": false,
+    "severity": 2,
+    "kind": "anachronism",
+    "problem": "Haemosu, a mythical ancient king, cannot be the ruler in 1992 South Korea.",
+    "fix": "Replace the ruler with Roh Tae-woo, president in 1992."
+  },
+  "ai_korea_arduous_march": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_korea_gold_collection_drive": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "In Hebrew, ירושות means inheritances rather than heirlooms.",
+    "fix": "משפחות פשוטות מציעות את טבעות הנישואין ותכשיטי המשפחה שלהן כדי לעזור לפרוע את החוב הלאומי."
+  },
+  "ai_korea_broadband_for_all": {
+    "ok": false,
+    "severity": 1,
+    "kind": "anachronism",
+    "problem": "Ungjin is the Baekje-era name. In 1999 the city was called Gongju.",
+    "fix": "Change the subject city to Gongju, or to Seoul for the broadband rollout."
+  },
+  "ai_mesopotamia_new_holy_city": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_stele_to_susa": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_fortress_of_sargon": {
+    "ok": false,
+    "severity": 1,
+    "kind": "theme",
+    "problem": "The subject name 'Sargon' is ambiguous with Sargon of Akkad, but the card describes Sargon II of Assyria building Dur-Sharrukin.",
+    "fix": "Rename the subject to 'Sargon II'."
+  },
+  "ai_mesopotamia_alliance_with_babylon": {
+    "ok": false,
+    "severity": 2,
+    "kind": "fact",
+    "problem": "Der (720 BCE) was fought by Humban-nikash I, who was Shutruk-Nahhunte II's uncle, not his father; the subject name also needs the 'II'.",
+    "fix": "Change 'Your father's army' to 'Your uncle's army' (Hebrew: 'צבאו של דודך כבר הביס את האשורים בדר'), and rename the subject to 'Shutruk-Nahhunte II'."
+  },
+  "ai_mesopotamia_tribute_to_assyria": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_sack_of_susa": {
+    "ok": false,
+    "severity": 2,
+    "kind": "hebrew",
+    "problem": "The Hebrew imperative 'סגת' is not a valid form of 'retreat'.",
+    "fix": "Replace with 'היסוג אל רמות הזגרוס'."
+  },
+  "ai_mesopotamia_cyrus_revolt": {
+    "ok": false,
+    "severity": 2,
+    "kind": "theme",
+    "problem": "The subject is Anshan, Cyrus's own city, yet the card treats Cyrus's envoys as foreign callers at your gate.",
+    "fix": "Change the subject to the city of Susa (or the people Elam)."
+  },
+  "ai_mesopotamia_aramaic_scribes": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_greek_ships_tylos": {
+    "ok": false,
+    "severity": 2,
+    "kind": "anachronism",
+    "problem": "Qal'at al-Bahrain is a later Arabic name for the site; in 324 BCE the Greeks knew the island as Tylos.",
+    "fix": "Rename the subject city to 'Tylos'."
+  },
+  "ai_mesopotamia_fort_downriver": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_centrifuge_bargain": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_sumatran_foragers": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_eel_channels": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew drops 'short-finned' from the eels.",
+    "fix": "זרמי הלבה ליד בודג' בים מחזיקים ביצות מלאות צלופחים קצרי סנפיר. בני עמך יכולים לחצוב תעלות וסכרי אבן כדי ללכוד אותם, אך העבודה ארוכה."
+  },
+  "ai_monsoon_shell_middens": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_rising_sea": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_smoked_eel_trade": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_rice_from_north": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_outrigger_landing": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_polished_adzes": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_green_stone_north": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_night_uprising": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_oil_strike": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_iron_railway": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_sahel_drought": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_pickup_war": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_great_man_made_river": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_proto_elamite_tablets": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_highland_copper": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew 'מהרייך' is an odd feminine form that is inconsistent with the rest of the card's address.",
+    "fix": "סוחרים מן המישורים עולים לאנשן בחיפוש אחר נחושת ואבן משובחת מההרים שלך, ומציעים תמורתן תבואה ובדים."
+  },
+  "ai_mesopotamia_mari_canal": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_kingship_kish": {
+    "ok": false,
+    "severity": 1,
+    "kind": "anachronism",
+    "problem": "The 'kingship descended to Kish after the flood' formula comes from the Sumerian King List, which was composed centuries later (c. 2100 BCE).",
+    "fix": "Reword to 'The priests proclaim that the gods have granted kingship to Kish.' Hebrew: הכוהנים מכריזים שהאלים העניקו את המלוכה לכיש. ערים אחרות פונות עתה אל הלוגל שלך כשופט בסכסוכיהן."
+  },
+  "ai_mesopotamia_oil_nationalization": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew second option drops 'better' from 'Renegotiate a better royalty'.",
+    "fix": "לנהל מחדש משא ומתן על תמלוגים טובים יותר"
+  },
+  "ai_mesopotamia_euphrates_dam": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_war_over_shatt": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_oil_for_food": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_guard_the_museum": {
+    "ok": false,
+    "severity": 1,
+    "kind": "theme",
+    "problem": "The 2003 museum looting happened at the Iraq Museum in Baghdad, not at Kish, which is an ancient ruin with no national museum.",
+    "fix": "Change the subject to the people Akkad, or to a city such as Babylon, and keep the description unnamed."
+  },
+  "ai_mesopotamia_reflood_the_marshes": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_fort_and_reclamation": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_island_banking_hub": {
+    "ok": false,
+    "severity": 2,
+    "kind": "date",
+    "problem": "Bahrain became the Gulf's offshore banking hub from 1975, so by 2008 the proposal to start one is decades late.",
+    "fix": "Move the year to 1975, in the Modern Age."
+  },
+  "ai_mesopotamia_euphrates_drought": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_looters_at_the_tell": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_siege_of_candia": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_bursting_bottles": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_mountain_serf_revolt": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_allied_fleet_kerch": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew option 'וסגת' is not a valid imperative for 'withdraw'.",
+    "fix": "שרוף את המחסנים והיסוג"
+  },
+  "ai_europe_foreign_excavator": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew option mixes a singular imperative (סרב) with a plural one (חפרו), and the English likewise mixes singular and plural.",
+    "fix": "סרבו וחפרו בעצמכם"
+  },
+  "ai_europe_knossos_excavation": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_numantia_dig": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_maiden_castle_dig": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_berlin_blockade": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_budapest_uprising": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_diamond_certification": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_offshore_oil_find": {
+    "ok": false,
+    "severity": 2,
+    "kind": "fact",
+    "problem": "Bono Manso is the ruined inland capital of old Bono, now a small village far from the coast, so it would not fill with oil consultants.",
+    "fix": "Change the subject city to Techiman (the modern Bono East center near Bono Manso), or reword to 'and the capital fills with consultants' (Hebrew: 'והבירה מתמלאת ביועצים')."
+  },
+  "ai_westafrica_cobalt_rush": {
+    "ok": false,
+    "severity": 2,
+    "kind": "fact",
+    "problem": "Kabongo in Haut-Lomami is not a cobalt district; the artisanal cobalt pits are around Kolwezi and Likasi in the southern Katanga copperbelt.",
+    "fix": "Change the subject city to Kolwezi (description: 'crowd the pits near Kolwezi'; Hebrew: 'צובאים על הבורות ליד קולווזי')."
+  },
+  "ai_westafrica_ebola_outbreak": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_volga_river_tithe": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_river_eats_kath": {
+    "ok": false,
+    "severity": 2,
+    "kind": "fact",
+    "problem": "Gurganj lay downstream of Kath, to the northwest toward the Aral, not upstream.",
+    "fix": "Replace 'safely upstream' with 'safely across the river to the northwest' (Hebrew: 'הבטוחה בצפון-מערב, מעבר לנהר'); also render 'dikes' as 'סוללות' rather than 'סכרים'."
+  },
+  "ai_steppe_karakhanid_holy_war": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_fall_of_astrakhan": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "Hebrew options use the imperative while other cards use the infinitive.",
+    "fix": "'לקבל את מכסי רוסיה ולהמשיך לסחור' / 'לבקש תמיכה מקרים ומהעות'מאנים'"
+  },
+  "ai_steppe_mongolian_revolution": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew 'הבוגד חאן' reads as 'the traitor khan'.",
+    "fix": "Use 'להשאיר את בוגדו חאן כסמל'."
+  },
+  "ai_steppe_basmachi_revolt": {
+    "ok": false,
+    "severity": 2,
+    "kind": "anachronism",
+    "problem": "In 1922 the city was Samarkand; the ancient Greek name Marakanda is anachronistic.",
+    "fix": "Replace 'Marakanda' with 'Samarkand' in the description, and 'מרקנדה' with 'סמרקנד' in the Hebrew."
+  },
+  "ai_steppe_karakum_canal": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_virgin_lands": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_aral_cotton_quota": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_lop_nur_test": {
+    "ok": false,
+    "severity": 1,
+    "kind": "date",
+    "problem": "Lop Nur was chosen as the test site in 1959, and the first test came in 1964.",
+    "fix": "Change the opening to 'The dry lakebed near the ruins of Loulan hosts the first nuclear test.' (Hebrew: 'קרקעית האגם היבשה ליד חורבות לולאן משמשת לניסוי הגרעיני הראשון.')"
+  },
+  "ai_westafrica_gold_for_muskets": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_asante_tribute_demand": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_kasanje_gun_caravan": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_zazzau_slave_raids": {
+    "ok": false,
+    "severity": 2,
+    "kind": "hebrew",
+    "problem": "The Hebrew option uses 'סגת', which is not a valid imperative of 'to retreat'.",
+    "fix": "סוג אל ראשי גבעות מבוצרים"
+  },
+  "ai_westafrica_oyo_refugees_modakeke": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_nyamwezi_traders_arrive": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_home_video_boom": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_looted_terracottas": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_gsm_licences": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_ceasefire_demobilization": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "national_aztec_founding": {
+    "ok": false,
+    "severity": 3,
+    "kind": "date",
+    "problem": "Tenochtitlan was founded around 1325 CE, not 1325 BCE, so the card sits in the Bronze Age about 2,650 years too early.",
+    "fix": "Change year to 1325 and move the card to the medieval/late-medieval age covering the 14th century CE."
+  },
+  "rise_of_writing": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "bronze_age_collapse": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "sea_peoples_invasions": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "national_persian_zenith": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "national_greek_golden_age": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "alexanders_conquests": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "national_punic_ambitions": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "library_of_alexandria": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "silk_road_opens": {
+    "ok": false,
+    "severity": 1,
+    "kind": "anachronism",
+    "problem": "Caravanserais as a building type and term belong mostly to later Persian and Islamic eras, not 130 BCE.",
+    "fix": "Replace with \"Invest in way stations and trade infrastructure\" / \"להשקיע בתחנות דרכים ובתשתיות סחר\"."
+  },
+  "ai_eastafrica_myrrh_tree_saplings": {
+    "ok": false,
+    "severity": 2,
+    "kind": "anachronism",
+    "problem": "Merca did not exist as a town in 1180 BCE; it is a medieval Somali port, and the myrrh-sapling trade belongs to the Egyptian Punt expeditions.",
+    "fix": "Replace the subject Merca with a period-neutral coast such as 'the Somali coast' (or 'the Land of Punt')."
+  },
+  "ai_eastafrica_monsoon_fishers": {
+    "ok": false,
+    "severity": 2,
+    "kind": "anachronism",
+    "problem": "Kilwa Kisiwani was not founded until around the 9th-10th century CE, so it cannot be the subject in 1100 BCE.",
+    "fix": "Replace the subject with a generic coastal site such as 'the Swahili coast reefs', or move the card to about 1100 CE in the Age of Kingdoms."
+  },
+  "ai_eastafrica_herders_from_north": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_eastafrica_limpopo_floodplain": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_eastafrica_beads_at_tsodilo": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_eastafrica_failing_rains": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_eastafrica_ibn_battuta_visit": {
+    "ok": false,
+    "severity": 2,
+    "kind": "hebrew",
+    "problem": "The English says his hosts expect to receive lavish gifts, while the Hebrew says his hosts are expected to give them.",
+    "fix": "English: 'but custom demands lavish gifts from his hosts.' Hebrew: 'אך המנהג מחייב את מארחיו להעניק מתנות נדיבות.'"
+  },
+  "ai_eastafrica_control_of_wells": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_eastafrica_great_ditches": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_eastafrica_march_for_salt": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_river_tolls": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_standing_army": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_ships_of_magan": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_burial_mounds": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_temple_of_inzak": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_elamite_tin_shipment": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_ugarit_palace_visit": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_magan_copper_route": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_walls_of_kish": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_akkadian_letters": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_special_economic_zone": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_southern_factory_zone": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_three_gorges_dam": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_online_marketplace": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_oracle_bone_heritage": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_sichuan_earthquake": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_freight_trains_west": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_southern_railway": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_barbecue_craze": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_steppe_delta_fishers": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_sinop_listening_post": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_midas_mound_opened": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_marib_oil_strike": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_gabala_radar": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_marib_dam_rebuilt": {
+    "ok": false,
+    "severity": 1,
+    "kind": "date",
+    "problem": "The UAE-funded Marib Dam was completed in 1986, so the offer to fund it came earlier, around 1984 when construction began.",
+    "fix": "Change the year to 1984."
+  },
+  "ai_levant_offshore_oil_contract": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_black_sea_terminal": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_quake_building_codes": {
+    "ok": false,
+    "severity": 2,
+    "kind": "fact",
+    "problem": "The great 1999 earthquake (Izmit) struck northwestern Anatolia around the Marmara Sea, not western Anatolia where Sardis lies.",
+    "fix": "Change the description to: \"A great earthquake has struck the Marmara region, and the rubble reveals concrete that builders cut with sand and bribes. Inspectors in Sardis fear the same.\" Change the Hebrew to: \"רעידת אדמה גדולה פגעה באזור מרמרה, וההריסות חושפות בטון שהקבלנים דיללו בחול ובשוחד. פקחים בסרדיס חוששים מאותו הדבר.\""
+  },
+  "ai_levant_falling_water_table": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_levant_rock_tombs_tourism": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_north_sea_oil": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_navan_quarry": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_chernobyl_reactor": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_polished_axes": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_marsh_rice": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_baked_brick_city": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_river_floods": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_weights_and_seals": {
+    "ok": false,
+    "severity": 1,
+    "kind": "theme",
+    "problem": "No Harappan ruler names are known, and 'Sindhu' is the river's name, so it reads oddly as a ruler; the Hebrew also switches to singular 'סופריך'.",
+    "fix": "Make the subject the people Meluhha (or the city Harappa), and change 'סופריך' to 'סופריכם' in the Hebrew."
+  },
+  "ai_indic_lothal_basin": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_cattle_pen_fires": {
+    "ok": false,
+    "severity": 2,
+    "kind": "hebrew",
+    "problem": "The Hebrew 'גורמים ערמות גללים' is a typo meaning 'cause piles of dung', and 'אשות' is an awkward plural for fires.",
+    "fix": "Title: 'מדורות מכלאות הבקר'. Description: 'רועי הדקאן עורמים ערמות גללים במכלאות בקר גדולות ושורפים אותן במדורות מתנשאות, ומשאירים תלי אפר. הטקס מאחד את השבטים, אך עולה בדלק של עונה.'"
+  },
+  "ai_indic_brahmaputra_floods": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_philistine_smiths": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_jebusite_stronghold": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_ark_to_jerusalem": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_stepped_stone_terraces": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_cedars_of_tyre": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_absalom_revolt": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_royal_census": {
+    "ok": false,
+    "severity": 2,
+    "kind": "fact",
+    "problem": "In 2 Samuel 24 David orders the census and his commander Joab objects; the card reverses who proposes it.",
+    "fix": "EN: \"You wish to count every fighting man from Dan to Beersheba, but your commander Joab objects. A census would make taxes and levies precise, yet prophets warn that numbering the people invites disaster.\" HE: \"אתה מבקש למנות כל איש מלחמה מדן ועד באר שבע, אך שר צבאך יואב מתנגד. המפקד יאפשר מסים וגיוס מדויקים, אך נביאים מזהירים שמניית העם מזמינה אסון.\""
+  },
+  "ai_israelite_arabah_copper": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_persian_march": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_fiji_coup": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_mine_tailings_river": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_parliament_seized": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_compact_renegotiation": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_marine_relocation": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_kuk_world_heritage": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_rising_tide_mussau": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_nan_madol_in_danger": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_typhoon_strikes_guam": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_hemudu_stilt_rice": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_salmon_for_rice": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_dutch_anatomy": {
+    "ok": false,
+    "severity": 1,
+    "kind": "date",
+    "problem": "The Kotsugahara dissection and the start of the translation of Ontleedkundige Tafelen were in 1771; by 1774 the Kaitai Shinsho was already published.",
+    "fix": "Change year to 1771."
+  },
+  "ai_japan_tenmei_famine": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_black_ships": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_war_loans": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_rice_riots": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_great_earthquake": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_northern_famine": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_zaibatsu_breakup": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_poisoned_bay": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_oil_shock": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_bullet_train_north": {
+    "ok": false,
+    "severity": 1,
+    "kind": "date",
+    "problem": "The Tohoku Shinkansen opened to Morioka in 1982, so a proposal to build it belongs to its approval and construction start around 1971.",
+    "fix": "Change year to 1971."
+  },
+  "ai_japan_bubble_burst": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "'הלוואות רעות' is a literal calque of 'bad loans' and reads awkwardly in Hebrew.",
+    "fix": "לחייב את הבנקים למחוק חובות אבודים"
+  },
+  "ai_japan_hanshin_earthquake": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_subway_cult_attack": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_mobile_internet": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_asteroid_probe": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_tohoku_tsunami": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_three_arrows": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_emptying_villages": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_fezzan_caravan_tax": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_turkish_musketeers": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_ransom_of_alcacer": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_musketeers_at_the_gates": {
+    "ok": false,
+    "severity": 1,
+    "kind": "anachronism",
+    "problem": "The ancient site of Djenné-Djeno was abandoned by about 1400; the city the Moroccans took in 1591 was Djenné.",
+    "fix": "Rename the subject city to Djenné (Hebrew ג'נה)."
+  },
+  "ai_maghreb_corsair_licenses": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_char_bouba_war": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_siege_of_constantine": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_mosque_rebuilt": {
+    "ok": false,
+    "severity": 1,
+    "kind": "anachronism",
+    "problem": "The Great Mosque rebuilt in 1907 stands in Djenné town, not at the long-abandoned site of Djenné-Djeno.",
+    "fix": "Rename the subject city to Djenné (Hebrew ג'נה)."
+  },
+  "ai_maghreb_italian_landing": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_rif_republic": {
+    "ok": false,
+    "severity": 3,
+    "kind": "hebrew",
+    "problem": "Hebrew option 'התברך' means 'be blessed', not 'ally with'.",
+    "fix": "כרות ברית עם מורדי הריף"
+  },
+  "ai_monsoon_yupa_pillars": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_pyu_monks": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_gomati_canal": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_strangers_seek_gold": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_toungoo_at_the_gates": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_march_on_batavia": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_company_pepper_monopoly": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_hue_ends_panduranga": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_settlers_at_eel_traps": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_restore_great_stupa": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_shali_fortress": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_nomads_at_soba": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_fall_of_soba": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_portuguese_raids_coast": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "Hebrew 'נמלי סומליה' names the modern country Somalia rather than the Somali ports.",
+    "fix": "ציים פורטוגליים בזזו את בראווה ודורשים מס מן הנמלים הסומליים. סוחריך חוששים לסחר באוקיינוס ההודי שמפרנס את העיר."
+  },
+  "ai_nile_portuguese_musketeers": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_jesuit_faith": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_siwa_annexation": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_cotton_boom": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_mahdist_uprising": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_gezira_cotton": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_whalers_in_harbor": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew renders yams as בטטות (sweet potatoes), a different crop.",
+    "fix": "ומשלמות בבד, כלים וטבק תמורת יאמים ומים."
+  },
+  "ai_pacific_cession_to_britain": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_labor_recruiters": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_sokehs_rebellion": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_highland_first_contact": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_guam_occupation": {
+    "ok": false,
+    "severity": 2,
+    "kind": "fact",
+    "problem": "Japanese planes bombed Guam hours after Pearl Harbor, but the troops landed two days later, on 10 December.",
+    "fix": "EN: Japanese planes bomb Guam hours after Pearl Harbor, and two days later troops land and the small American garrison surrenders. HE: מטוסים יפניים מפציצים את גואם שעות אחרי פרל הארבור, וכעבור יומיים נוחתים כוחות וחיל המצב האמריקאי הקטן נכנע."
+  },
+  "ai_pacific_wahgi_coffee": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew מטעים means plantations, not planters.",
+    "fix": "בעלי מטעים בעמק וואגי משלמים היטב על קפה"
+  },
+  "ai_pacific_fiji_independence": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_kuk_ditches": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_lapita_homeland_dig": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_ships_to_agade": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_drying_rivers": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_bamboo_grove_grant": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew option gives the Sanskrit form Venuvana (ונובנה), while the English uses the Pali Veluvana.",
+    "fix": "העניק את ולובנה לסנגהה"
+  },
+  "ai_indic_physician_from_magadha": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_envoys_of_alexander": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_mahinda_arrives": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_nanda_canal": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_yavana_pearl_trade": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_nahapana_silver": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_indic_sudarshana_dam": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_earthquake_leogane": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_after_hurricane_maria": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_caral_land_traffickers": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_chips_in_the_desert": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_lithium_salt_flats": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_americas_chaco_drilling_buffer": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_eastafrica_painted_hills": {
+    "ok": false,
+    "severity": 3,
+    "kind": "hebrew",
+    "problem": "Hebrew 'אילנים' means trees, not eland antelopes.",
+    "fix": "ודור חדש מבקש להוסיף לצוקים אנטילופות אלנד וקרנפים משלו."
+  },
+  "ai_eastafrica_obsidian_quarry": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_eastafrica_punt_incense_ships": {
+    "ok": false,
+    "severity": 1,
+    "kind": "fact",
+    "problem": "The Egyptians at Punt offered beads, axes and daggers; gold flowed from Punt to Egypt, not the other way.",
+    "fix": "Option: 'Trade freely for their beads, axes and goods' / 'סחר חופשי תמורת החרוזים, הגרזנים והסחורות שלהם'"
+  },
+  "ai_eastafrica_dry_waterholes": {
+    "ok": false,
+    "severity": 2,
+    "kind": "hebrew",
+    "problem": "Hebrew 'המשקעים סדוקים' means 'the precipitation is cracked', not the pans; option 2 adds ostrich eggs absent from the English.",
+    "fix": "Hebrew: 'אגני החימר סדוקים'; English option: 'Dig deep and store water in ostrich eggshells'."
+  },
+  "ai_europe_sirmium_tribute": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_andalusian_exiles": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_strangford_longships": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_karmsund_toll": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_skara_bishopric": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_orvieto_cathedral": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_venetian_protection": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_portuguese_succession": {
+    "ok": false,
+    "severity": 3,
+    "kind": "anachronism",
+    "problem": "Viriathus was a Lusitanian war leader who died in 139 BCE and cannot be the ruler facing the 1580 Portuguese succession crisis.",
+    "fix": "Change the subject ruler to a 1580 figure, e.g. \"António, Prior of Crato\" (or set the subject to the people Lusitania)."
+  },
+  "ai_europe_dutch_timber_trade": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_europe_iron_mountain_union": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_caravan_tolls": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_plague_and_flood": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_euphrates_steamers": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_telegraph_line": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew option uses 'דמים', which reads as 'blood' rather than 'fees'.",
+    "fix": "דרוש תחילה דמי מעבר גבוהים יותר"
+  },
+  "ai_mesopotamia_french_excavators": {
+    "ok": false,
+    "severity": 2,
+    "kind": "fact",
+    "problem": "The Dieulafoys found the glazed-brick archers frieze at Susa in 1884-1886, not at Anshan.",
+    "fix": "Change the subject city from Anshan to Susa."
+  },
+  "ai_mesopotamia_foothill_oil_strike": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_northern_gusher_pipeline": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_pearl_market_collapse": {
+    "ok": false,
+    "severity": 1,
+    "kind": "anachronism",
+    "problem": "In 1930 Bahrain had no oil fields yet, since oil was first struck there in 1932.",
+    "fix": "Change the year to 1934, or change the option to 'Send divers to work abroad' / 'לשלוח את הצוללנים לעבוד בחו\"ל'."
+  },
+  "ai_mesopotamia_first_gulf_oil": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_statue_at_tell_hariri": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_glass_bead_furnaces": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_copper_cross_currency": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_bronze_casting_masters": {
+    "ok": false,
+    "severity": 2,
+    "kind": "fact",
+    "problem": "The Saharan copper reached Ife from the north, travelling south, but 'come north across the desert' says it travelled northward.",
+    "fix": "Change to: 'but the metal must come south across the desert through costly trade routes.'"
+  },
+  "ai_westafrica_mande_gold_traders": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_gold_dust_monopoly": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_sacred_kingship_rites": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_kongo_tribute_demand": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_foreign_hunter_suitor": {
+    "ok": false,
+    "severity": 2,
+    "kind": "date",
+    "problem": "The Lueji and Chibinda Ilunga tradition is usually dated to the late 16th century, well after 1495.",
+    "fix": "Move the year to about 1590, in the Age of Gunpowder."
+  },
+  "ai_westafrica_portuguese_envoys_kabasa": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_westafrica_imbangala_war_bands": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_oracle_of_amun": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_furnaces_of_the_south": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_ships_at_opone": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_aksum_on_the_atbara": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_longinus_mission": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_baqt_treaty": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_memphis_quarry": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_persian_merchants": {
+    "ok": false,
+    "severity": 2,
+    "kind": "anachronism",
+    "problem": "Opone (Ras Hafun) was a classical-era port long abandoned by 1000 CE; Persian and Arab settlers of that time founded communities at Mogadishu.",
+    "fix": "Change the subject city to Mogadishu (Hamar) and replace Opone with Mogadishu in the description, Hebrew: מוגדישו."
+  },
+  "ai_nile_great_calamity": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_rock_churches": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_messianic_claimant": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_french_at_the_coast": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_quarter_outside_walls": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_farming_colonies": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_jaffa_railway": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_soviet_aliyah": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The first Hebrew option mixes an imperative with a present-tense verb (ומממן), which is ungrammatical.",
+    "fix": "בנה שכונות קרוואנים ומַמֵּן דיור"
+  },
+  "ai_israelite_scud_restraint": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_ethiopian_airlift": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_israelite_venture_fund": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The definite article is misplaced in the construct phrase קרן ההון סיכון.",
+    "fix": "הקם את קרן הון הסיכון הממשלתית"
+  },
+  "ai_israelite_oslo_talks": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_jingzhou_dike_flood": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_dragon_bones_inscriptions": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_shandong_boxer_bands": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_boxer_uprising": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_datong_school": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_wuchang_uprising": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_whampoa_academy": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_yinxu_excavation": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_xian_incident": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_sinic_burma_road": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_rice_reaches_north": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_bronze_bells": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_young_queen_tested": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_peninsula_iron": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_great_keyhole_mound": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_tribute_to_jin": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_horses_from_south": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_tombs_creep_north": {
+    "ok": false,
+    "severity": 3,
+    "kind": "anachronism",
+    "problem": "Aterui was an Emishi leader who died in 802, over three centuries after 480.",
+    "fix": "Change the subject to the people Emishi (kind people, name Emishi) and keep the year 480."
+  },
+  "ai_japan_buddha_from_baekje": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_japan_envoys_to_tang": {
+    "ok": false,
+    "severity": 2,
+    "kind": "anachronism",
+    "problem": "Makimuku had been abandoned for centuries by 630; the court sat at Asuka.",
+    "fix": "Change the subject city to Asuka (Hebrew אסוקה)."
+  },
+  "ai_monsoon_lac_lords_tribute": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_failed_rains": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_mekong_copper_hills": {
+    "ok": false,
+    "severity": 1,
+    "kind": "theme",
+    "problem": "The Dvaravati heartland is the Chao Phraya basin, not the Mekong, and its nearby copper hills are at Khao Wong Prachan near Lopburi.",
+    "fix": "Title 'Copper in the Lopburi Hills' / 'נחושת בגבעות לופבורי'; description: 'Villagers report green-stained rock in the hills near Lopburi, where outsiders already dig and smelt copper in small clay furnaces.' / 'כפריים מדווחים על סלעים מוכתמים בירוק בגבעות ליד לופבורי, שם זרים כבר חופרים ומתיכים נחושת בכבשני חימר קטנים.'"
+  },
+  "ai_monsoon_sandstone_molds": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_mounds_above_flood": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_burial_jars": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_bronze_drums": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_kaundinya_marriage": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_lam_ap_revolt": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_monsoon_wu_envoys": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_italian_invasion": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_suez_nationalized": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "Hebrew renders 'tolls' as מכס (customs duties) rather than canal transit tolls.",
+    "fix": "נהל משא ומתן על נתח גדול יותר מהאגרות"
+  },
+  "ai_nile_desert_oil": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_high_dam_financing": {
+    "ok": false,
+    "severity": 2,
+    "kind": "date",
+    "problem": "The Soviet loan decision came in 1958, after the West withdrew in 1956; by 1960 construction had already begun.",
+    "fix": "Change year to 1958."
+  },
+  "ai_nile_halfa_resettlement": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_ogaden_war": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_nile_highland_famine": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_kuk_swamp_ditches": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "Hebrew word for 'clearing them' is misspelled as ניקוין.",
+    "fix": "ניקויין פירושו שבועות של חפירה כשהמשפחות מעדיפות לשתול."
+  },
+  "ai_pacific_cleared_slopes": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_pacific_landfall_marianas": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_stone_walled_villages": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_barqa_tribute_treaty": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_foggara_tunnels_dry": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_idris_at_volubilis": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_banu_hilal_arrive": {
+    "ok": false,
+    "severity": 1,
+    "kind": "anachronism",
+    "problem": "The option calls the city Cirta, a name replaced by Constantine since the 4th century, and the Hebrew imperative 'סגת' is malformed.",
+    "fix": "Option: 'Retreat behind Constantine's cliffs'; Hebrew: 'היסוג אל מאחורי צוקי קונסטנטין'."
+  },
+  "ai_maghreb_merchant_quarter": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_almoravid_pressure": {
+    "ok": false,
+    "severity": 2,
+    "kind": "date",
+    "problem": "The Almoravids took Awdaghust in 1054 to 1055. By 1076 they were traditionally said to be taking Ghana's capital itself, so 'now threaten' does not fit 1076.",
+    "fix": "Change year to 1055, or keep 1076 and say they 'are at the gates of Koumbi Saleh'."
+  },
+  "ai_maghreb_hummay_conversion": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_old_mound_abandoned": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_maghreb_ottoman_tripoli": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "antonine_plague": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "migration_period": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "islamic_golden_age": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew drops 'a dozen' and says 'states' instead of 'civilizations'. It also lacks 'from' before mathematics.",
+    "fix": "מרכזי למידה גדולים מתרגמים, שומרים ובונים על הידע שנצבר מתריסר תרבויות עתיקות יותר, ממתמטיקה ורפואה ועד אסטרונומיה."
+  },
+  "viking_raids": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "national_mongol_succession": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "black_death": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "little_ice_age": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "national_inca_roads": {
+    "ok": false,
+    "severity": 1,
+    "kind": "hebrew",
+    "problem": "The Hebrew says crossing each valley would take weeks. The English means the journey between valleys would otherwise take weeks.",
+    "fix": "רשת דרכים וגשרי חבלים שזורה כעת בין ההרים, וקושרת יחד עמקים שאלמלא כן המסע ביניהם ברגל היה אורך שבועות."
+  },
+  "printing_press": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "national_ottoman_city_between_seas": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_paper_mill": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_zanj_rising": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_qarmatian_preachers": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_daylamite_mercenaries": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_pearl_season": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_mongol_demand": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_timur_approaches": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_portuguese_pearl_tribute": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  },
+  "ai_mesopotamia_shah_and_sultan": {
+    "ok": false,
+    "severity": 1,
+    "kind": "fact",
+    "problem": "In 1534 Baghdad was held by the Safavids, and only the Ottoman army marched on it down the Tigris.",
+    "fix": "Rewrite: 'Ottoman armies march down the Tigris toward Safavid-held Baghdad, and both sides demand that your tribes declare for them before the summer campaign.' Hebrew: 'צבאות העות'מאנים צועדים במורד החידקל לעבר בגדאד שבידי הצפווים, ושני הצדדים דורשים מהשבטים שלך להצהיר נאמנות לפני מסע הקיץ.'"
+  },
+  "ai_mesopotamia_foreign_gunners": {
+    "ok": true,
+    "severity": 0,
+    "kind": "none",
+    "problem": "",
+    "fix": ""
+  }
+}
