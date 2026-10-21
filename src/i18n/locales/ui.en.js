@@ -16,5 +16,6 @@ import misc2 from './ui/misc2.en';
 import decree from './ui/decree.en';
 import ruler from './ui/ruler.en';
 import chronicle from './ui/chronicle.en';
+import challenge from './ui/challenge.en';
 
-export default { ...hud, ...result, ...pre, ...left, ...nation, ...ind, ...misc, ...region, ...city, ...pnl1, ...pnl2, ...mapx, ...misc2, ...decree, ...ruler, ...chronicle };
+export default { ...hud, ...result, ...pre, ...left, ...nation, ...ind, ...misc, ...region, ...city, ...pnl1, ...pnl2, ...mapx, ...misc2, ...decree, ...ruler, ...chronicle, ...challenge };

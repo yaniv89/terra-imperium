@@ -20,6 +20,10 @@ import { isCurrentWorld, currentWorldSpec, rememberWorldSpec, PENDING_START_KEY 
 import { normalizeSpec, EARTH_SPEC } from '../worldgen/spec';
 import { playSounds } from '../audio/sfx';
 import { noteCrashEvent } from '../utils/crashLog';
+import { startLog, logAction } from '../engine/actionLog';
+import { challengeScore, turnsIn } from '../engine/challenges';
+import { stateHash } from '../engine/macroVerify';
+import { ENGINE_BUILD } from '../data/challenges';
 
 export { createInitialState, gameReducer };
 
@@ -177,7 +181,15 @@ export const GameProvider = ({ children }) => {
   // by sfx.js after the render; the reducer and the game logic never wait on them.
   const lastActionRef = useRef(null);
   const soundPrevRef = useRef(state);
-  const dispatch = useCallback((action) => { lastActionRef.current = action; reducerDispatch(action); }, []);
+  // A weekly challenge game keeps its action log (U36); null for any other game. shortcut: the log
+  // lives in memory, so a reload mid-challenge ends the run; upgrade to a stored log if players ask.
+  const challengeLogRef = useRef(null);
+  const dispatch = useCallback((action) => {
+    lastActionRef.current = action;
+    if (action?.type === ActionTypes.LOAD_GAME || action?.type === ActionTypes.RESET_GAME) challengeLogRef.current = null;
+    else if (challengeLogRef.current) challengeLogRef.current = logAction(challengeLogRef.current, action);
+    reducerDispatch(action);
+  }, []);
   useEffect(() => {
     const prev = soundPrevRef.current; soundPrevRef.current = state;
     const action = lastActionRef.current; lastActionRef.current = null;
@@ -294,7 +306,10 @@ export const GameProvider = ({ children }) => {
     // "The world moves" always clears, whatever the worker does (turnClient.js resolves null on any
     // failure; this also covers a throw).
     try { resolved = await runTurnInWorker(from, { type }); } catch (e) { resolved = null; } finally { pendingRef.current = false; setTurnPending(false); }
-    if (resolved) dispatch({ type: ActionTypes.APPLY_TURN_RESULT, payload: { from, state: resolved } });
+    if (resolved) {
+      if (challengeLogRef.current) challengeLogRef.current = logAction(challengeLogRef.current, { type }); // the worker ran this turn action
+      dispatch({ type: ActionTypes.APPLY_TURN_RESULT, payload: { from, state: resolved } });
+    }
     else if (stateRef.current === from) dispatch({ type });
   }, [dispatch]);
   const advanceTurn = useCallback(() => runTurn(ActionTypes.ADVANCE_TURN), [runTurn]);
@@ -306,6 +321,7 @@ export const GameProvider = ({ children }) => {
   // Starts a new game as `playerNationId` at the chosen `gameSpeed`, layering in the player's
   // persisted starting doctrine and (if the start screen picked one) difficulty — see the
   // country-select + difficulty + speed start screen this feeds.
+  const challengeRef = useRef(null);
   const resetGame = useCallback((options = {}) => {
     // A game on another world: remember it, keep the choices and reload into that world; the new
     // page starts it (App.jsx, takePendingStart).
@@ -319,6 +335,12 @@ export const GameProvider = ({ children }) => {
     // A new game is always a peoples world (the legacy 240-country world is retired,
     // plans/legacy-world-retirement.md): a start without a scenario gets the default one.
     const scenario = options.scenario || { mode: 'peoples', map: EARTH_SPEC };
+    if (options.challenge) {
+      dispatch({ type: ActionTypes.RESET_GAME, payload: options.challenge.start });
+      challengeLogRef.current = startLog(options.challenge.start);
+      challengeRef.current = options.challenge;
+      return;
+    }
     dispatch({
       type: ActionTypes.RESET_GAME,
       payload: {
@@ -360,6 +382,11 @@ export const GameProvider = ({ children }) => {
 
   const contextValue = useMemo(() => ({
     state,
+    // The running weekly challenge (U36): { challenge, turns, submission() } or null. submission() hashes the whole state, so it is called on demand.
+    challengeRun: challengeLogRef.current && challengeRef.current ? {
+      challenge: challengeRef.current, turns: turnsIn(challengeLogRef.current),
+      submission: () => ({ weekId: challengeRef.current.weekId, build: ENGINE_BUILD, log: challengeLogRef.current, hash: stateHash(state), score: challengeScore(state) })
+    } : null,
     dispatch,
     addLog,
     advanceTurn,

@@ -2,6 +2,7 @@
 // Weekly challenge (differentiation plan U36): the same week gives the same challenge, and a
 // submission is accepted only when its log replays to the claimed hash and score.
 import { describe, it, expect } from 'vitest';
+import { writeFileSync } from 'node:fs';
 import { challengeForWeek, isoWeekId, verifyChallenge, challengeScore } from './challenges';
 import { startLog, logAction } from './actionLog';
 import { startState, gameReducer } from './gameReducer';
@@ -32,6 +33,8 @@ describe('weekly challenge', () => {
 
   it('security: honest accepted; forged score, wrong seed, tampered log, other build, hostile logs rejected', () => {
     const { sub } = play();
+    // CHALLENGE_SUB_OUT=file keeps the submission, to run scripts/verifyChallenges.mjs --file on it
+    if (process.env.CHALLENGE_SUB_OUT) writeFileSync(process.env.CHALLENGE_SUB_OUT, JSON.stringify(sub));
     const ok = verifyChallenge(sub);
     expect(ok).toMatchObject({ status: 'verified', score: sub.score });
     // forged score or hash
