@@ -145,6 +145,10 @@ describe('real TECH_TREE content integrity', () => {
     });
   });
 
+  it('no cliff from Classical on: an age costs at most 4 times the one before (follow-up 17: Kingdoms was 15 times)', () => {
+    for (let i = getAgeIndex('kingdoms'); i < AGE_ORDER.length; i++) expect(RESEARCH_AGE_BASE[AGE_ORDER[i]] / RESEARCH_AGE_BASE[AGE_ORDER[i - 1]], AGE_ORDER[i]).toBeLessThanOrEqual(4);
+  });
+
   it('research costs rise with each age (src/engine/research.js RESEARCH_AGE_BASE)', () => {
     for (let i = 1; i < AGE_ORDER.length; i++) expect(RESEARCH_AGE_BASE[AGE_ORDER[i]]).toBeGreaterThanOrEqual(RESEARCH_AGE_BASE[AGE_ORDER[i - 1]]);
   });

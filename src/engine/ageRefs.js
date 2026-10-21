@@ -12,10 +12,10 @@
 //                                     when it knows none. Independents read its age (KTD8).
 //
 // Both are cached on the state objects they read, like the diffusion index.
-import { AGE_ORDER, FIRST_AGE_ID, getAgeIndex } from '../data/ages';
+import { AGES, AGE_ORDER, FIRST_AGE_ID, getAgeIndex } from '../data/ages';
+import { getTechsForAge } from '../data/techTree';
 import { isIndependentNation } from '../data/independents';
 import { ageOf, getResearched } from './nationState';
-import { labelYear } from './displayYear';
 import { economySizes } from './tradeValue';
 import { contactsOf } from './techDiffusion';
 
@@ -38,17 +38,27 @@ export const researchLeaderAge = (state) => {
   return ageId;
 };
 
-/** The year label of the most advanced major with a city (displayYear.js labelYear over its own
- * research): a wait owned by no nation (late peoples arriving) reads it, never the calendar. */
+/** The late peoples' clock: the age's year range over its 10 techs done. Frozen from the old label
+ * (before follow-up 18) so the screen's year can change without moving when late peoples arrive. */
+export const arrivalYear = (ageId, researched) => {
+  const age = AGES[ageId];
+  if (!age) return null;
+  const known = researched instanceof Set ? researched : new Set(researched);
+  const done = getTechsForAge(ageId).filter((t) => known.has(t.id)).length;
+  return Math.round(age.startYear + (age.endYear - age.startYear) * Math.min(1, done / 10));
+};
+
+/** The arrivalYear of the most advanced major with a city: a wait owned by no nation (late peoples
+ * arriving) reads it, never the calendar. */
 export const researchLeaderYear = (state) => {
   const sizes = economySizes(state);
   let best = null;
   Object.keys(state.nations || {}).forEach((id) => {
     if (!isMajor(state.nations[id]) || !sizes.get(id)) return;
-    const y = labelYear(ageOf(state, id), getResearched(state, id));
+    const y = arrivalYear(ageOf(state, id), getResearched(state, id));
     if (best == null || y > best) best = y;
   });
-  return best ?? labelYear(FIRST_AGE_ID, []);
+  return best ?? arrivalYear(FIRST_AGE_ID, []);
 };
 
 /**
