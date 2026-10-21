@@ -15,6 +15,7 @@ import { HISTORICAL_EVENTS, ageIdOfYear, eventTechsNeeded } from '../data/events
 import { EVENT_CHAINS } from '../data/eventChains';
 import { PROCEDURAL_TEMPLATES } from '../data/proceduralEvents';
 import { DECK_DRAWS, DECK_LINKS } from '../data/eventDeck/index';
+import { CRISIS_LINKS } from '../data/crises';
 import { getAgeIndex, speedCostMult } from '../data/ages';
 import { countryOfNation } from '../data/peoples';
 import { factContext, predicateMet } from './predicates';
@@ -42,7 +43,7 @@ export const storyCard = (e) => {
 /** Every card by id: stories, links and draws. */
 export const CARDS = Object.fromEntries([
   ...Object.values(HISTORICAL_EVENTS).map((e) => [e.id, storyCard(e)]),
-  ...Object.values({ ...EVENT_CHAINS, ...DECK_LINKS }).map((e) => [e.id, { ...e, kind: 'link' }]),
+  ...Object.values({ ...EVENT_CHAINS, ...DECK_LINKS, ...CRISIS_LINKS }).map((e) => [e.id, { ...e, kind: 'link' }]),
   ...[...PROCEDURAL_TEMPLATES, ...DECK_DRAWS].map((t) => [t.id, { ...t, kind: 'draw' }])
 ]);
 const DRAWS = Object.values(CARDS).filter((c) => c.kind === 'draw');

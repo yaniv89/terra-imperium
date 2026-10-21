@@ -72,4 +72,11 @@ export default {
   // the tutorial (tutorial.js) and old saves (saveMigrations.js)
   'm.world.tutorialDone': 'The guide ends: every step done. Egypt is yours.',
   'm.world.tutorialEnds': 'The guide ends after {turns} turns with {done} of {total} steps done. The next prompt keeps pointing at what wants a decision.',
+  // history crises (crises.js)
+  'm.world.crisis.bronze_collapse': 'The great palaces of the Bronze Age are falling: trade has stopped and outer towns drift away from their kings.',
+  'm.world.crisis.sea_peoples': 'Raiders from the sea fall on the coasts of the old kingdoms.',
+  'm.world.crisis.steppe_surge': 'The riders of the dry lands surge out against the settled kingdoms.',
+  'm.world.crisis.great_plague': 'A great plague spreads along the trade routes, striking the largest cities first.',
+  'm.world.crisis.little_ice_age': 'The cold years begin: harvests fail and hunger empties the towns.',
+  'm.world.crisis.world_war': 'The great powers go to war, and their alliances drag the world in.',
 };
