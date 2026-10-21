@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import { readGlbJson } from '../../../scripts/art/glbInfo.mjs';
 import { BUILDINGS } from '../data/economy';
 
-const AGES = ['stone', 'bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'];
+const AGES = ['stone', 'bronze', 'classical', 'kingdoms', 'gunpowder', 'modern', 'information'];
 const ROLES = ['expedition-camp', 'town-hall', 'food-depot', 'materials-yard', 'trade-post', 'farm-plot', 'mine', 'barracks', 'range',
   'stable', 'siege-workshop', 'aid-post', 'tower'];
 const MODERN_EXTRAS = ['generator', 'airfield', 'radar-aa'];
@@ -22,7 +22,7 @@ describe('battle building files: three states per role', () => {
     const roots = new Map(j.scenes[j.scene || 0].nodes.map((i) => [j.nodes[i].name, j.nodes[i]]));
     const kids = (root) => (root.children || []).map((c) => j.nodes[c].name || '');
     const missing = [];
-    [...ROLES, ...(age === 'modern' ? MODERN_EXTRAS : [])].forEach((role) => STATES.forEach((state) => {
+    [...ROLES, ...(['modern', 'information'].includes(age) ? MODERN_EXTRAS : [])].forEach((role) => STATES.forEach((state) => {
       const root = roots.get(role + state);
       if (!root) { missing.push(role + state); return; }
       const names = kids(root);
