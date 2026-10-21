@@ -57,13 +57,18 @@ export const getReinforcementSources = (state, targetRegionId, nationId, exclude
 
 // The commander powers a nation brings into a battle, from what it really has (Tactical Battles
 // plan §8.8): everyone can rally; the arrow storm belongs to the early ages; artillery needs a
-// siege unit in the fight; an air strike needs aircraft.
+// siege unit in the fight; an air strike (and from Information a drone strike) needs aircraft;
+// Information also brings Cyber Jam and Drone Recon.
 export const getBattlePowers = (state, nationId, ageId, units = []) => {
   if (ageId === FIRST_AGE_ID) return [{ id: 'rallyCry', label: 'War Cry' }, { id: 'ambush' }]; // Stone (U39): no massed archery yet
   const out = [{ id: 'rallyCry' }];
   if (isAgeBefore(ageId, 'gunpowder')) out.push({ id: 'arrowStorm' });
   if (isAgeAtLeast(ageId, 'gunpowder') && units.some((u) => u.classId === 'siege')) out.push({ id: 'artilleryBarrage' });
   if (isAgeAtLeast(ageId, 'modern') && units.some((u) => u.classId === 'air')) out.push({ id: 'airStrike' });
+  if (isAgeAtLeast(ageId, 'information')) { // U58: drones and networks
+    if (units.some((u) => u.classId === 'air')) out.push({ id: 'droneStrike' });
+    out.push({ id: 'cyberJam' }, { id: 'droneRecon' });
+  }
   return out;
 };
 

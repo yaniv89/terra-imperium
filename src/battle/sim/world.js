@@ -104,6 +104,8 @@ export const createWorld = (setup) => {
     impacts: [],
     powersUsed: [{}, {}],
     powerCooldowns: [{}, {}],
+    jammedUntil: [-1, -1], // Cyber Jam (effects.js): a side's orders wait until this tick
+    jammedOrders: [],
     assimilation: 0,
     beachhead: 0,
     spent: [false, false],
