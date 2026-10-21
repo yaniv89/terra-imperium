@@ -31,13 +31,14 @@ export const RENOWN = {
   techPerAge: 4,
   wonderTier: 30,
   eraGoal: 40,            // each goal met when an age ends
+  ambition: 30,           // each ambition fulfilled (ambitions.js)
   eraLegacy: 60,          // and 1 virtue point (at most ERA_LEGACY_VIRTUE_MAX a game)
   stability: 20           // stability at its maximum for STABILITY_RENOWN_REF_TURNS
 };
 export const RENOWN_DEED_LABELS = {
   time: 'Years on the throne', cityFounded: 'City founded', cityTaken: 'City taken', cityJoined: 'City joined us',
   battleWon: 'Battle won', warWon: 'War won', defenceSurvived: 'War survived', tech: 'Discovery', wonder: 'Wonder built',
-  eraGoal: 'Era goal met', eraLegacy: 'Era legacy', stability: 'Years of order', event: 'Event'
+  eraGoal: 'Era goal met', ambition: 'Ambition fulfilled', eraLegacy: 'Era legacy', stability: 'Years of order', event: 'Event'
 };
 // The time trickle is paid in one lump every TIME_RENOWN_REF_TURNS reference turns: a nation record
 // that changed every turn would empty every per-nation cache (modifier sheets, rules) each turn.
