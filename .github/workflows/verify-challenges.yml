@@ -1,0 +1,31 @@
+# U36 (KTD16): replays queued challenge submissions and writes the leaderboard. Review only: it needs
+# the Actions secret CHALLENGE_VERIFIER_KEY and the variable SUPABASE_URL, which the user adds
+# (plans/U36-DEPLOY.md). Only a schedule and a manual run start it, so a pull request never reaches the secret.
+name: Verify challenges
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: verify-challenges
+  cancel-in-progress: false
+jobs:
+  verify:
+    # Scheduled runs always use the default branch; a manual run is allowed from main only.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node scripts/verifyChallenges.mjs
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          CHALLENGE_VERIFIER_KEY: ${{ secrets.CHALLENGE_VERIFIER_KEY }}

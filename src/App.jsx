@@ -43,6 +43,7 @@ import { startMusic } from './audio/music';
 import { unlockSfx } from './audio/sfx';
 import { installUiSounds } from './audio/uiSounds';
 import { getSupabaseClient, isCloudSaveConfigured } from './services/supabaseClient';
+import { ChallengeEntry, ChallengeBanner } from './components/challenges/ChallengeSheet';
 import { getCurrentUser, onAuthStateChange, getProfile } from './services/auth';
 import { lazyWithReload } from './utils/lazyWithReload';
 import RotateOverlay from './components/ui/RotateOverlay';
@@ -278,7 +279,7 @@ const GameLayout = () => {
     );
   }
   if (showStartScreen) {
-    return <><StartScreen onStart={handleStart} onBackToTitle={cameFromTitle ? backToTitle : undefined} /><OldSaveNotice /></>;
+    return <><StartScreen onStart={handleStart} onBackToTitle={cameFromTitle ? backToTitle : undefined} /><ChallengeEntry onStart={handleStart} /><OldSaveNotice /></>;
   }
 
   return (
@@ -295,6 +296,7 @@ const GameLayout = () => {
 
       {/* The one world top bar (plans/UI-DESIGN.md section 2), floating over the map's top edge. */}
       <WorldTopBar />
+      <ChallengeBanner />
 
       {/* "Needs you" chips under the top bar (W02): tap one to jump there. */}
       {/* data-map-hud: the map's names keep clear of them (I081). */}
