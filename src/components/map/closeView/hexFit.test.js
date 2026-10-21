@@ -83,7 +83,8 @@ describe('the camera never zooms in past a few hexes across the screen', () => {
   });
   it('a unit is a fraction of the screen at that zoom', () => {
     const k = maxZoomFor({ width: 844, scale: projection.scale(), hexKm: kmPerRing() });
-    expect(FIGURE_HEIGHT_HEX * hexPxOf(projection, k)).toBeLessThan(390 * 0.35);
+    // the model's height before the map's tilt (about 0.8 of it shows): under 40% of the screen
+    expect(FIGURE_HEIGHT_HEX * hexPxOf(projection, k)).toBeLessThan(390 * 0.4);
     expect(getTiles().count).toBeGreaterThan(0);
   });
 });
