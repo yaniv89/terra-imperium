@@ -33,7 +33,7 @@ export const ChallengeEntry = ({ onStart }) => {
             <h3 className="text-sm font-semibold mt-3">{t('chal.board')}</h3>
             {board && !board.connected && <p className="text-sm text-amber-300" data-testid="challenge-offline">{t('chal.offline')}</p>}
             {board?.connected && !board.rows.length && <p className="text-sm text-fa-muted">{t('chal.empty')}</p>}
-            {board?.connected && <ol className="text-sm mt-1">{board.rows.map((r, i) => <li key={i} className="flex justify-between"><span>{i + 1}. {r.display_name}</span><span>{r.score}</span></li>)}</ol>}
+            {board?.connected && <ol className="text-sm mt-1">{board.rows.map((r, i) => <li key={i} className="flex justify-between"><span>{i + 1}. {r.display_name || 'Player'}</span><span>{r.score}</span></li>)}</ol>}
             <div className="flex gap-2 mt-4">
               <button type="button" onClick={() => onStart({ challenge })} className={`${btn} flex-1 bg-amber-600 hover:bg-amber-500`} data-testid="challenge-start">{t('chal.start')}</button>
               <button type="button" onClick={() => setOpen(false)} className={`${btn} bg-fa-hover hover:bg-fa-line`}>{t('chal.close')}</button>
