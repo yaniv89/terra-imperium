@@ -74,6 +74,7 @@ import {
 import { getAdvisorSalary, aiDevelopRuler, rulerLevel } from './rulers';
 import { grantRenown, timeRenown } from './renown';
 import { tickAmbitions, ambitionDef } from './ambitions';
+import { tickChronicle } from './chronicle';
 import { RENOWN, STABILITY_RENOWN_REF_TURNS, STABILITY_RENOWN_GAP_REF_TURNS } from '../data/rulers';
 import { grantDecree, tickDecrees } from './decrees';
 import { applyResearchTurn, researchesThisTurn } from './research';
@@ -1254,5 +1255,5 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // A major may offer the player a swap of maps on the grown fog (mapTrade.js, I116; never blocks).
   next = processAIMapOffers(next);
   mark('fog');
-  return next;
+  return tickChronicle(state, next);
 };
