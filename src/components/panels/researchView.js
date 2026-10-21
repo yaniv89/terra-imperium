@@ -7,7 +7,7 @@ import { TechCategories } from '../../data/types';
 import { TECH_TREE } from '../../data/techTree';
 import { AGES, AGE_ORDER } from '../../data/ages';
 import { calcIncome } from '../../utils/helpers';
-import { canStartTech, getResearchCost, FOCUS_SCIENCE_BONUS, inResearchWindow } from '../../engine/research';
+import { canStartTech, getResearchCost, FOCUS_SCIENCE_BONUS, inResearchWindow, ageDoneFor } from '../../engine/research';
 import { ageOf } from '../../engine/nationState';
 import { getTechDiffusion } from '../../engine/techDiffusion';
 import { researchSchedule, researchStatus, techGate, gateText } from '../../engine/researchStatus';
@@ -55,6 +55,7 @@ export const startReasonText = (techId, researched, ageId) => {
   if (!prereqs) return tNow('p2.rs.needs', { list: tech.prerequisites.map((p) => techName(p, TECH_TREE[p]?.name || p)).join(tNow('p2.rs.and')) });
   const rival = (tech.exclusiveWith || []).find((id) => researched.has(id));
   if (rival) return tNow('p2.rs.exclusive', { name: techName(rival, TECH_TREE[rival]?.name || rival) });
+  if (tech.repeatable && !ageDoneFor(tech, researched)) return tNow('p2.rs.ageFirst', { age: ageName(tech.ageId, AGES[tech.ageId]?.name) });
   return null;
 };
 

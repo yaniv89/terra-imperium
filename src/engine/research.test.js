@@ -166,6 +166,7 @@ describe('the Future (U64, U65)', () => {
     const id = 'governance_future_tech';
     const first = getResearchCost(s, FR_ID, id);
     expect(canStartTech(id, new Set(getResearched(s, FR_ID)), 'future').ok).toBe(true);
+    expect(canStartTech(id, new Set(allButFutureTech.filter((t) => t !== 'economy_automated_industry')), 'future').ok).toBe(false); // after the last Future tech only
     s = { ...withStock(s, first * 2.5 + 1), research: { ...s.research, current: id, queue: [] } };
     const step = stepResearch(s, FR_ID);
     expect(step.completed).toEqual([id, id]);

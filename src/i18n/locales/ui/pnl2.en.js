@@ -11,6 +11,7 @@ export default {
   'p2.rs.done': 'Already researched',
   'p2.rs.reachAge': 'Reach the {age} first',
   'p2.rs.needs': 'Needs {list}',
+  'p2.rs.ageFirst': 'Research every tech of the {age} first',
   'p2.rs.and': ' and ',
   'p2.rs.exclusive': 'Exclusive with {name}',
   'p2.tr.known': 'Known',

@@ -83,6 +83,9 @@ export const getResearchCost = (state, nationId, techId, repeats = futureTechsOf
 /** The research window (eight-ages plan KTD4): a nation may start techs of its own age and the next. */
 export const inResearchWindow = (ageId, tech) => !!tech && getAgeIndex(tech.ageId) <= getAgeIndex(ageId) + 1;
 
+/** Future Tech (repeatable) comes after the last tech of its age: every other one of them is known. */
+export const ageDoneFor = (tech, researched, techDefs = TECH_TREE) => Object.values(techDefs).every((t) => t.ageId !== tech.ageId || t.repeatable || researched.has(t.id));
+
 // Can this tech be researched now? (It is in the research window of the nation's age `ageId`, its
 // line's earlier tech is known, and no exclusive rival is.) `researched` is a Set of tech ids. No
 // rule reads the year.
@@ -95,6 +98,7 @@ export const canStartTech = (techId, researched, ageId, techDefs = TECH_TREE) =>
   if (!prereqs) return { ok: false, reason: `Needs ${tech.prerequisites.map((p) => techDefs[p]?.name || p).join(' and ')}` };
   const rival = (tech.exclusiveWith || []).find((id) => researched.has(id));
   if (rival) return { ok: false, reason: `Exclusive with ${techDefs[rival]?.name || rival}` };
+  if (tech.repeatable && !ageDoneFor(tech, researched, techDefs)) return { ok: false, reason: `Research every ${AGES[tech.ageId]?.name || tech.ageId} tech first` };
   return { ok: true, reason: null };
 };
 
