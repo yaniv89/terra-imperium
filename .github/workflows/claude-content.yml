@@ -17,6 +17,7 @@ on:
           - fact-check
           - screenshot-qa
           - playtester
+          - tech-unlocks
       limit:
         description: Only the first N requests (a small trial run); empty for the full job
         required: false
