@@ -42,6 +42,8 @@ import { openTributeDemand, openJoinOffer, openIndependent } from '../independen
 import { ageOf } from '../../engine/nationState';
 import { canPay, walletOf } from '../../utils/costs';
 import { costLine, shortfallLine } from './empireText';
+import { worldCongressModel } from './worldCongressModel';
+import { openWorldCongress } from './WorldCongressSheet';
 
 
 const RELATION_TONE = { war: 'text-fa-danger-text border-fa-danger', pact: 'text-fa-good border-fa-good/60', trade: 'text-fa-you border-fa-you/60', vassal: 'text-fa-indep border-fa-indep/60' };
@@ -80,6 +82,7 @@ const DiplomacyPanel = () => {
   const tributes = (state.tributeDemands || []).filter((d) => state.nations[d.indepId] && !state.nations[d.indepId].isEliminated);
   const joins = (state.joinOffers || []).filter((o) => state.nations[o.indepId] && !state.nations[o.indepId].isEliminated);
   const mapOffer = useMemo(() => mapOfferTerms(state), [state]);
+  const congress = useMemo(() => worldCongressModel(state), [state]);
 
   return (
     <div className="px-3 sm:px-4 pt-3 pb-4 space-y-3" data-testid="peoples-tab">
@@ -88,6 +91,16 @@ const DiplomacyPanel = () => {
         <span className="fa-label" data-testid="peoples-counts">{tNow('p2.pp.met', { n: m.counts.met })}{m.counts.war ? tNow('p2.pp.war', { n: m.counts.war }) : ''}{m.counts.pact ? tNow('p2.pp.pact', { count: m.counts.pact }) : ''}</span>
       </div>
 
+      {/* The World Congress (U60): the next resolution and your vote; the sheet has the rest. */}
+      {congress?.proposal && (
+        <div className="fa-card p-2.5 flex flex-wrap items-center justify-between gap-2" data-testid="wc-card">
+          <div className="text-[13px] min-w-0">
+            <span className="font-semibold">{tNow('wc.title')}</span>: {tNow(`wc.res.${congress.proposal.id}`)}{congress.proposal.targetId ? ` · ${nameIn('people', congress.proposal.targetId, state.nations[congress.proposal.targetId]?.name)}` : ''}
+            <span className="text-fa-muted"> · {tNow('wc.nextVote', { count: congress.turnsLeft, turn: congress.voteTurn })}{congress.member ? ` · ${tNow(congress.myVote === 'yes' ? 'wc.voteYes' : congress.myVote === 'no' ? 'wc.voteNo' : 'wc.voteAbstain')}` : ''}</span>
+          </div>
+          <Button size="sm" onClick={openWorldCongress} className="shrink-0 !min-h-[44px]" data-testid="wc-open">{tNow('wc.open')}</Button>
+        </div>
+      )}
       {pendingPeaceOffer && (
         // resolveWarProgress blocks further turns until this is accepted or rejected (resolveTurn.js).
         <div className="fa-card p-2.5 flex flex-wrap items-center justify-between gap-2 border-fa-brass/60">

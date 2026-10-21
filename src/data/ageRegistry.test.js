@@ -137,6 +137,20 @@ describe('registry completeness: every per-age table has every age', () => {
     expect(RECRUIT_STRATEGIC_RESOURCE_BY_AGE.stone).toBeNull();
   });
 
+  it('the Information per-age macro tables hold the plan values (Appendix B, U57)', () => {
+    expect(RESEARCH_AGE_BASE.information).toBe(12000); // the plan's 360 is on the old scale; U48 set today's (calibrated in U63)
+    expect(COLONY_SLOTS_BY_AGE.information).toBe(3);
+    expect(OUTPOST_SLOTS_BY_AGE.information).toBe(4);
+    expect(NAVAL_KM_BY_AGE.information).toBe(1300);
+    expect(CONTACT_KM.information).toBe(40000);
+    expect(STRIKE_MAX.information).toBe(18);
+    expect(BORDER_KM_BY_AGE.information).toBe(204);
+    expect(AI_MAX_STANDING_UNITS_BY_AGE.information).toBe(34);
+    expect(RAID_ERA_FACTOR.information).toBe(0.4);
+    expect(AGE_BAND.information).toBe('modern');
+    expect(MATERIAL_BY_AGE.information).toBe(2.2);
+  });
+
   it('the building tiers, reform tiers and wonders each cover every age', () => {
     const tierAges = new Set(Object.values(BUILDING_CATEGORIES).flatMap((c) => c.tiers.map((t) => t.age)));
     const reformAges = new Set(Object.values(GOVERNMENT_REFORMS).flatMap((t) => Object.keys(t)));

@@ -80,8 +80,13 @@ const isPlagued = (r) => r.disaster?.kind === 'plague' || (r.plague?.i || 0) > 0
 // base commit) still had the calendar floor and the +1 cap; the ages-by-tech engine has only research.
 const nationAge = (s, id) => (AGES.getEffectiveAgeId ? AGES.getEffectiveAgeId(s.age, getTechAgeId(s, id)) : getTechAgeId(s, id));
 const livingMajors = (s) => Object.values(s.nations).filter((n) => n.kind !== 'independent' && !n.isEliminated && !n.id.startsWith('free_') && n.id !== 'rebels');
-// The plan's target end turn of each age by speed (KTD9, Bronze to Gunpowder; Modern runs to the end).
-const AGE_TARGET_TURNS = { fast: { bronze: 24, classical: 52, kingdoms: 84, gunpowder: 80 }, normal: { bronze: 48, classical: 109, kingdoms: 167, gunpowder: 200 }, marathon: { bronze: 120, classical: 260, kingdoms: 334, gunpowder: 400 } };
+// The plan's target end turn of each age by speed (KTD9, Stone to Modern; Information runs to the end
+// until the Future exists). Stone comes first, so every later end turn counts its turns too (U63).
+const AGE_TARGET_TURNS = {
+  fast: { stone: 30, bronze: 24, classical: 52, kingdoms: 84, gunpowder: 80, modern: 45 },
+  normal: { stone: 60, bronze: 48, classical: 109, kingdoms: 167, gunpowder: 200, modern: 90 },
+  marathon: { stone: 75, bronze: 120, classical: 260, kingdoms: 334, gunpowder: 400, modern: 100 }
+};
 const ageTargetEnds = (speed) => { const t = AGE_TARGET_TURNS[speed] || AGE_TARGET_TURNS.normal; let sum = 0; return Object.fromEntries(Object.entries(t).map(([a, n]) => { sum += n; return [a, sum]; })); };
 const ageStats = (s, counters) => {
   const idx = livingMajors(s).map((n) => AGES.getAgeIndex(nationAge(s, n.id))).sort((a, b) => a - b);

@@ -22,6 +22,18 @@ export const RESOLUTIONS = {
   sanctions: { id: 'sanctions', name: 'Sanctions', description: 'The signers cut trade with the target: no trade route between them, and the target loses gold.' }
 };
 
+// How an AI member votes (eight-ages plan U57): a score of the opinion it holds (of the host, or
+// minus its opinion of a sanctions target) plus its doctrine's lean on the resolution. Yes from
+// VOTE_YES_AT, no below VOTE_NO_BELOW, abstain between, so a world of strangers (opinion 8) splits
+// by doctrine instead of passing everything (U54 saw 23 to 0).
+export const VOTE_YES_AT = 20;
+export const VOTE_NO_BELOW = 0;
+export const DOCTRINE_VOTE_LEAN = {
+  tradeStandard: { merchant: 25, opportunist: 15, isolationist: -30 },
+  armsLimit: { cautious: 20, defender: 15, merchant: 15, conqueror: -30, blitz: -30, attrition: -20, zealot: -15 },
+  sanctions: { conqueror: 10, zealot: 10, merchant: -15, isolationist: -10 }
+};
+
 // Trade between two AI nations is not modelled (tradeValue.js prices the player's routes only), so
 // a sanctioned AI nation pays this instead; a sanctioned player loses its routes to the signers.
 export const SANCTIONS_AI_GOLD_MULT = -0.1;

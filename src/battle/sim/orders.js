@@ -16,7 +16,7 @@
 import { angleBetween, polarX, polarY } from './fixed';
 import { deployZone } from './world';
 import { Q, SIDE_ATTACKER } from './constants';
-import { activateAbility, firePower } from './effects';
+import { activateAbility, firePower, JAM_ORDER_DELAY } from './effects';
 import { canGarrison, garrisonRoom, leaveGarrison } from './objectives';
 import { applyEcoOrder, clearWorkerJobs } from './economy';
 import { tileOf, walkableGoal } from './pathing';
@@ -211,7 +211,15 @@ export const applyOrder = (w, o) => {
   }
 };
 
-export const applyOrders = (w, orders) => sortOrders(orders).forEach((o) => applyOrder(w, o));
+// Orders a jammed side gives (Cyber Jam, effects.js) wait in w.jammedOrders and apply
+// JAM_ORDER_DELAY later, ahead of that tick's own orders: delayed, never dropped, and kept in the
+// world so a replay of the same log holds them the same way.
+export const applyOrders = (w, orders) => {
+  const due = w.jammedOrders.filter((o) => o.dueTick <= w.tick);
+  if (due.length) w.jammedOrders = w.jammedOrders.filter((o) => o.dueTick > w.tick);
+  sortOrders(orders).forEach((o) => { if (w.jammedUntil[o.side] > w.tick) w.jammedOrders.push({ ...o, dueTick: w.tick + JAM_ORDER_DELAY }); else due.push(o); });
+  due.forEach((o) => applyOrder(w, o));
+};
 
 // The deployment phase (plan D5): before the first tick the live battle sets a `deploy` order down
 // the moment it arrives (worker/battleLoop.js pushOrders), ahead of the first tick's fog, the AI's

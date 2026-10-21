@@ -76,21 +76,22 @@ export const MUSTER_UNIT_UTILITY = 1.6; // a major mustering against an independ
 export const RESOURCE_IMPROVEMENT_UTILITY = { luxury: 1.3, strategic: 1.2, bonus: 1.0 };
 export const UNWORKED_IMPROVEMENT_MULT = 0.6;
 export const RANGED_SHARE = 0.25; // about a quarter of an army are archers: one per three foot (eight-ages plan U36)
+export const AIR_SHARE = 0.15; // from Modern, about one aircraft (Information: strike drones) in seven; it stays at its city and flies to battles in range (airPower.js, U57)
 /** The building lines in the order a doctrine builds them, every line once (the template). */
 export const buildingOrder = (doctrine) => { const liked = DOCTRINE_BUILDING_PRIORITY[doctrine] || []; return [...liked.filter((c) => BUILDING_PRIORITY.includes(c)), ...BUILDING_PRIORITY.filter((c) => !liked.includes(c))]; };
-export const BUILDING_PRIORITY = ['food', 'economy', 'culture', 'science', 'industry', 'military', 'logistics', 'defense', 'naval']; // 'logistics' is the category id (buildings.js); it was listed as 'infrastructure' and the AI never built a Road Post from the template
+export const BUILDING_PRIORITY = ['food', 'economy', 'culture', 'science', 'industry', 'energy', 'military', 'logistics', 'defense', 'naval']; // 'logistics' is the category id (buildings.js); it was listed as 'infrastructure' and the AI never built a Road Post from the template
 
 /** The nation-wide counts the choice reads, computed once a turn for every nation (the per-city
  * scans of units and cities were the cost of the phase): { settlers, outposts, landUnits }. */
 export const nationCounts = (state) => {
   const out = {};
-  const of = (id) => (out[id] ||= { settlers: 0, outposts: 0, landUnits: 0, siege: 0, ranged: 0, queuedUnits: 0 });
+  const of = (id) => (out[id] ||= { settlers: 0, outposts: 0, landUnits: 0, siege: 0, ranged: 0, air: 0, queuedUnits: 0 });
   Object.values(state.units || {}).forEach((u) => {
     if (!u.ownerId) return;
     if (u.classId === 'settler') { of(u.ownerId).settlers += 1; return; }
     if (u.domain !== 'land') return;
     const c = of(u.ownerId); c.landUnits += 1;
-    if (u.classId === 'siege') c.siege += 1; else if (u.classId === 'ranged') c.ranged += 1;
+    if (u.classId === 'siege') c.siege += 1; else if (u.classId === 'ranged') c.ranged += 1; else if (u.classId === 'air') c.air += 1;
   });
   Object.values(state.regions || {}).forEach((c) => {
     if (!c.owner) return;
@@ -235,6 +236,7 @@ export const chooseProduction = (state, city, ctx) => {
       const options = [];
       if (plan && plan.siege && !(counts.siege > 0) && classes.includes('siege')) options.push('siege');
       if (!independent && classes.includes('ranged') && (counts.ranged || 0) < RANGED_SHARE * (counts.landUnits + 1)) options.push('ranged');
+      if (!independent && classes.includes('air') && (counts.air || 0) < AIR_SHARE * (counts.landUnits + 1)) options.push('air');
       options.push(mounted ? 'cavalry' : 'infantry');
       for (const classId of options) {
         const item = { kind: 'unit', classId };

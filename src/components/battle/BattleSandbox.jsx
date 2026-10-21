@@ -9,7 +9,8 @@ import { buildTownManifest } from '../../data/townLayout';
 import { TEMPLATES } from '../../battle/setup/mapgen';
 import { tileContextOf } from '../../battle/setup/tileContext';
 import { getTiles } from '../../data/geo/tiles';
-import { AGE_ORDER, FIRST_AGE_ID, isAgeAtLeast, isAgeBefore } from '../../data/ages';
+import { AGE_ORDER } from '../../data/ages';
+import { getBattlePowers } from '../../engine/invasion';
 import { getAvailableClasses } from '../../data/unitClasses';
 import { makeBenchSetup } from '../../battle/bench/benchScenario';
 import { sandboxTileOptions } from './sandboxTile';
@@ -58,14 +59,8 @@ const GENERALS = {
   g_def: { id: 'g_def', name: 'Enemy general', personality: 'cautious', martial: 3, shock: 3, fire: 3, maneuver: 3 }
 };
 
-// The powers a sandbox army of that age would bring (the campaign derives these from real assets).
-const sandboxPowers = (ageId, units) => {
-  if (ageId === FIRST_AGE_ID) return [{ id: 'rallyCry', label: 'War Cry' }, { id: 'ambush' }]; // as invasion.js getBattlePowers
-  const out = [{ id: 'rallyCry' }];
-  if (isAgeBefore(ageId, 'gunpowder')) out.push({ id: 'arrowStorm' });
-  if (isAgeAtLeast(ageId, 'gunpowder') && units.some((u) => u.classId === 'siege')) out.push({ id: 'artilleryBarrage' });
-  return out;
-};
+// The powers a sandbox army of that age would bring: the campaign's own rule (it reads only the age and the units).
+const sandboxPowers = (ageId, units) => getBattlePowers(null, null, ageId, units);
 
 const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
 // `&city=small|medium|big`: assault a real city from its manifest (src/battle/setup/cityBattle.js);

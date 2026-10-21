@@ -188,9 +188,14 @@ const NAMES = {
   kingdoms: { stable: 'Stable', worker: 'Villager' },
   classical: { stable: 'Stable' },
   gunpowder: { range: 'Musketry yard', stable: 'Stable', siegeWorkshop: 'Gun foundry', camp: 'Headquarters tent' },
-  modern: { range: 'Firing range', stable: 'Vehicle works', siegeWorkshop: 'Artillery park', camp: 'Command camp', hall: 'Headquarters', worker: 'Engineer', aidPost: 'Field hospital' }
+  modern: { range: 'Firing range', stable: 'Vehicle works', siegeWorkshop: 'Artillery park', camp: 'Command camp', hall: 'Headquarters', worker: 'Engineer', aidPost: 'Field hospital' },
+  // Information (eight-ages plan Appendix C, U58)
+  information: {
+    camp: 'Headquarters', hall: 'Command Post', house: 'Housing Block', foodDepot: 'Supply Depot', materialsYard: 'Logistics Yard', tradePost: 'Market',
+    farm: 'Agri-Plant', mine: 'Mine', barracks: 'Barracks', range: 'Firing Range', stable: 'Motor Pool', siegeWorkshop: 'Artillery Park',
+    aidPost: 'Field Hospital', tower: 'Radar Tower', worker: 'Engineer'
+  }
 };
-NAMES.information = NAMES.modern; // Appendix C names come with U58
 export const ecoName = (id, ageId) => NAMES[ageId]?.[id] || NAMES.default[id] || id;
 
 /** Cost as an integer milli map { food, wood, stone, gold }. */

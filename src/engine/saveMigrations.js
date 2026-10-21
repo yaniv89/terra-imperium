@@ -39,7 +39,7 @@ import { PEOPLES } from '../data/peoples';
 // migrate10to11). Version 12 adds fog of war (src/engine/fog.js: explored maps, contacts, the
 // last-seen picture, arrays saved run-length encoded); a save from before it loads and starts its
 // fog from where its cities stand now (migrate11to12). A version 10 save runs both steps.
-export const CURRENT_SAVE_VERSION = 19;
+export const CURRENT_SAVE_VERSION = 20;
 export const OLDEST_LOADABLE_SAVE_VERSION = 10;
 // The first version of the tile world: older saves are the province map ('tooOld'), newer ones up
 // to OLDEST_LOADABLE_SAVE_VERSION a coarser hex grid ('oldGrid').
@@ -231,9 +231,17 @@ export const migrate18to19 = (state) => {
   return { ...state, nations, resources: dropPools(state.resources) };
 };
 
+// v20: Modern splits into Modern and Information (eight-ages plan U48, U49, U62, KTD10). Ten techs
+// a new Modern list (three of the old Modern techs moved up to Information), so every nation is
+// granted the techs of the ages below the age it had, then its age is derived again on the new
+// map: a late-Modern nation with six Information techs reaches Information, and none falls below
+// the age it had (withTechsResearched never lowers it). Reforms keyed 'modern' and building tiers
+// stay as they are (the Information tiers and the Energy line were appended).
+export const migrate19to20 = migrate16to17;
+
 // Versions 1 to 9 are never migrated (the province map or an older grid, a clean break: OLDEST_LOADABLE_SAVE_VERSION).
 
-const MIGRATIONS = { 10: migrate10to11, 11: migrate11to12, 12: migrate12to13, 13: migrate13to14, 14: migrate14to15, 15: migrate15to16, 16: migrate16to17, 17: migrate17to18, 18: migrate18to19 };
+const MIGRATIONS = { 10: migrate10to11, 11: migrate11to12, 12: migrate12to13, 13: migrate13to14, 14: migrate14to15, 15: migrate15to16, 16: migrate16to17, 17: migrate17to18, 18: migrate18to19, 19: migrate19to20 };
 
 // Plain objects only: the fog's packed arrays (TileBits, TileInts) are class instances and are
 // never merged key by key.

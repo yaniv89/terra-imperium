@@ -17,6 +17,7 @@ import SettingsSheet from './components/ui/SettingsSheet';
 import TurnReportSheet from './components/ui/TurnReportSheet';
 import NationOverviewSheet from './components/ui/NationOverviewSheet';
 import GlossarySheet from './components/glossary/GlossarySheet';
+import WorldCongressSheet from './components/panels/WorldCongressSheet';
 import { OPEN_SETTINGS } from './components/ui/uiEvents';
 import { SELECT_REGION, openCityOnMap } from './components/map/marchEvents';
 import WaitingChips from './components/ui/WaitingChips';
@@ -370,6 +371,9 @@ const GameLayout = () => {
       {/* The nation overview (W17), from the name on the top bar */}
       <NationOverviewSheet />
       <GlossarySheet />
+
+      {/* The World Congress (eight-ages U60), opened from the Diplomacy tab */}
+      <WorldCongressSheet />
 
       {/* Age Advance banner - non-blocking, auto-dismisses (plan §10.5's "showpiece") */}
       <AgeAdvanceBanner ageName={ageBanner} onDismiss={() => setAgeBanner(null)} />

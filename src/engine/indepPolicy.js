@@ -78,7 +78,7 @@ const COURT_MAX_TURNS = 40;
 const SCORE_RINGS = 4;
 
 const sumStrength = (units) => units.reduce((s, u) => s + Math.max(0, u.strength || 0), 0);
-const isArmy = (u) => u.domain !== 'naval' && !u.embarkedOn && !isSettler(u) && u.strength > 0;
+const isArmy = (u) => u.domain !== 'naval' && u.classId !== 'air' && !u.embarkedOn && !isSettler(u) && u.strength > 0; // aircraft stay at their base (airPower.js)
 
 /** May this independent join a major at all? Tribal and mercantile peoples, and free cities that are not fortresses. */
 export const mayJoin = (nation) => {
