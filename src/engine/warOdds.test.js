@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getNationCapital } from '../data/regions';
-import { perceivedArmy, warOdds, exposure, prizeOf, warValue, INTEL_ERROR } from './warOdds';
+import { perceivedArmy, armiesByOwner, warOdds, exposure, prizeOf, warValue, INTEL_ERROR } from './warOdds';
 import { canSeeTile } from './sight';
 import { neighbourWorld, rivalOf, borderPair } from './testWorld';
 
@@ -33,6 +33,8 @@ describe('warOdds: how an AI sizes up a war', () => {
     expect(hidden).toBeLessThanOrEqual(1000 * (1 + INTEL_ERROR));
     // Deterministic: the same report on the same turn.
     expect(perceivedArmy(st, FR_ID, DE_ID)[0].strength).toBe(hidden);
+    // A pass's one-walk index gives the same picture.
+    expect(perceivedArmy(st, FR_ID, DE_ID, armiesByOwner(st.units))).toEqual(seen);
   });
 
   it('the bigger army has the better odds, and a nation busy in another war counts as weaker', () => {

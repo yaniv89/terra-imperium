@@ -156,8 +156,20 @@ export const tileStepCost = (state, tiles, from, to, access = 'wild', researched
 
 export const isHarsh = (tiles, tile) => HARSH_TERRAIN.has(legacyTerrainOf(tiles, tile));
 
+const isLandArmy = (u) => u.domain !== 'naval' && !u.embarkedOn && u.strength > 0 && u.classId !== 'settler';
+/** Land armies by tile (Map tile -> [unit]), for enemyArmyAt's `byTile` in a walk that asks about many
+ * tiles while the units it reads stay put (advanceMarches moves only the actor's own). */
+export const armiesByTile = (state, units = state.units) => {
+  const out = new Map();
+  Object.values(units).forEach((u) => {
+    if (!isLandArmy(u)) return;
+    const t = unitTile(state, u);
+    const l = out.get(t); if (l) l.push(u); else out.set(t, [u]);
+  });
+  return out;
+};
 // A land unit of a nation at war with `nationId` (or rebels) standing on `tile`.
-export const enemyArmyAt = (state, tile, nationId, units = state.units) => Object.values(units).some((u) => u.domain !== 'naval' && !u.embarkedOn && u.strength > 0 && u.classId !== 'settler'
+export const enemyArmyAt = (state, tile, nationId, units = state.units, byTile = null) => (byTile ? byTile.get(tile) || [] : Object.values(units)).some((u) => isLandArmy(u)
   && u.ownerId !== nationId && unitTile(state, u) === tile
   && canFight(state, nationId, u.ownerId));
 
@@ -170,7 +182,7 @@ const enemyFortAt = (state, tile, nationId) => {
 };
 
 /** True when an enemy army, or an enemy fort (manned or not), stands on a tile next to `tile` (zone of control). */
-export const inEnemyZoc = (state, tiles, tile, nationId, units = state.units) => tiles.neighbors[tile].some((n) => enemyArmyAt(state, n, nationId, units) || enemyFortAt(state, n, nationId));
+export const inEnemyZoc = (state, tiles, tile, nationId, units = state.units, byTile = null) => tiles.neighbors[tile].some((n) => enemyArmyAt(state, n, nationId, units, byTile) || enemyFortAt(state, n, nationId));
 
 // A tiny binary heap for the path search.
 const heapPush = (h, item) => {

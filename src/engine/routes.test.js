@@ -11,7 +11,7 @@ import { computeSupplyFlow, MARCH_SUPPLY_PER_UNIT } from './supplies';
 import { calcNationBalance } from './economy';
 import { UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
 import { accessOf, advanceMarches, findRoute, planMarch, scheduleSteps, stackPace, stepCost, ENEMY_STEP_COST, moveNowCheck, routeEta, marchingUnits, marchOrigin, orderMarch, marchedThisTurn, canStepNow, unitsAtTurnStart } from './routes';
-import { ROAD_COST, riverCrossingCost, TILE_COST_MOUNTAINS, MOVE_POINTS, findTilePath, normalizeUnitTiles, tileAccess, tileStepCost, unitTile, inEnemyZoc } from './armies';
+import { ROAD_COST, riverCrossingCost, TILE_COST_MOUNTAINS, MOVE_POINTS, findTilePath, normalizeUnitTiles, tileAccess, tileStepCost, unitTile, inEnemyZoc, armiesByTile } from './armies';
 import { validateInvasion } from './invasion';
 import { addCity } from './testWorld';
 import { assertGameState } from './stateAudit';
@@ -227,6 +227,7 @@ describe('marching', () => {
     expect(watch).toBeDefined();
     const guarded = withUnits(s, [unit('e', PK, { ownerId: PK_ID, tile: watch })]);
     expect(inEnemyZoc(guarded, tiles, steps[k], IN_ID)).toBe(true);
+    expect(inEnemyZoc(guarded, tiles, steps[k], IN_ID, guarded.units, armiesByTile(guarded))).toBe(true); // the walk's index agrees
     const units = { ...guarded.units };
     let st = guarded;
     for (let t = 0; t < sched[k]; t++) { advanceMarches(st, units, {}); st = { ...st, units: { ...units } }; }
