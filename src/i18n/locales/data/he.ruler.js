@@ -1,0 +1,38 @@
+// src/i18n/locales/data/he.ruler.js
+// Hebrew for the ruler's data text (differentiation plan U14, U17): virtue.<id>, virtue.<id>.text and
+// virtue.<id>.drawback for src/data/rulerVirtues.js, renown.<id> for RENOWN_DEED_LABELS in src/data/rulers.js.
+export default Object.freeze({
+  'virtue.warlord': 'אדון המלחמה', 'virtue.warlord.text': '+10% כוח אדם', 'virtue.warlord.drawback': 'השכנים: -5 יחס',
+  'virtue.ironDiscipline': 'משמעת ברזל', 'virtue.ironDiscipline.text': 'אובדן המורל בפתיחת קרב קטן ב-20%, התאוששות המורל גבוהה ב-20%',
+  'virtue.siegeLord': 'אדון המצור', 'virtue.siegeLord.text': 'המצורים שוברים חומות מהר ב-20%',
+  'virtue.terrorOfTheField': 'אימת שדה הקרב', 'virtue.terrorOfTheField.text': 'ניקוד מלחמה מקרבות +20%, ניסיון מניצחונות +25%', 'virtue.terrorOfTheField.drawback': 'התרחבות תוקפנית מכיבוש +10%',
+  'virtue.grandStrategist': 'אסטרטג גדול', 'virtue.grandStrategist.text': 'טווח אספקה +2, שחיקה -20%',
+  'virtue.conquerorsPeace': 'שלום הכובש', 'virtue.conquerorsPeace.text': 'ערים כבושות כועסות עליך חצי, התרחבות תוקפנית -25%', 'virtue.conquerorsPeace.drawback': 'יציבות -1',
+  'virtue.founder': 'מייסד', 'virtue.founder.text': 'מתיישבים זולים ב-5%',
+  'virtue.masterBuilder': 'בנאי מומחה', 'virtue.masterBuilder.text': 'מבנים זולים ב-10%',
+  'virtue.surveyor': 'מודד', 'virtue.surveyor.text': '+5 כושר שלטון',
+  'virtue.granaries': 'ממגורות', 'virtue.granaries.text': 'גידול האוכלוסייה +1',
+  'virtue.engineerKing': 'מלך המהנדסים', 'virtue.engineerKing.text': 'פלאים זולים ב-15%',
+  'virtue.builderOfAges': 'בונה הדורות', 'virtue.builderOfAges.text': '+10% ייצור בכל עיר', 'virtue.builderOfAges.drawback': 'כוח אדם -5%',
+  'virtue.scribe': 'סופר', 'virtue.scribe.text': '+5% מדע',
+  'virtue.patronOfLearning': 'פטרון הלמידה', 'virtue.patronOfLearning.text': 'זירוזי מחקר מהמפה שווים 10% יותר',
+  'virtue.royalLibrary': 'ספרייה מלכותית', 'virtue.royalLibrary.text': 'הבירה +2 מדע ו-+1 תרבות',
+  'virtue.philosopher': 'פילוסוף', 'virtue.philosopher.text': 'עלות מחקר -8%',
+  'virtue.academy': 'אקדמיה', 'virtue.academy.text': 'תגליות מתפשטות מהשכנים ב-25% יותר',
+  'virtue.enlightened': 'נאור', 'virtue.enlightened.text': '+10% מדע, +15% תרבות', 'virtue.enlightened.drawback': 'כוח אדם -10%',
+  'virtue.envoy': 'שגריר', 'virtue.envoy.text': '+5 יחס אליך בכל מקום',
+  'virtue.merchantPrince': 'נסיך סוחרים', 'virtue.merchantPrince.text': 'הסכם סחר +1, +5% זהב',
+  'virtue.peacemaker': 'עושה שלום', 'virtue.peacemaker.text': 'הצעות השלום שלך דורשות 10 ניקוד מלחמה פחות',
+  'virtue.matchmaker': 'שדכן', 'virtue.matchmaker.text': 'נישואים מלכותיים שווים פי אחד וחצי, +5 יחס אליך בכל מקום',
+  'virtue.greatGame': 'המשחק הגדול', 'virtue.greatGame.text': 'התרחבות תוקפנית נגדך דועכת מהר ב-25%',
+  'virtue.arbiterOfNations': 'שופט העמים', 'virtue.arbiterOfNations.text': '+10 יחס אליך בכל מקום, עצמאיים מצטרפים אליך מהר ב-25%', 'virtue.arbiterOfNations.drawback': 'הכרזת מלחמה עולה ביציבות 1',
+  'virtue.anointed': 'משוח', 'virtue.anointed.text': '+0.2 לגיטימציה בתור',
+  'virtue.beloved': 'אהוב', 'virtue.beloved.text': 'יציבות +1',
+  'virtue.cultOfTheRuler': 'פולחן השליט', 'virtue.cultOfTheRuler.text': '+5 נאמנות בכל עיר',
+  'virtue.unifier': 'מאחד', 'virtue.unifier.text': 'התרבות שלך לוחצת חזק ב-15%',
+  'virtue.divineMandate': 'מנדט אלוהי', 'virtue.divineMandate.text': 'תשישות המלחמה עולה לאט ב-20%, מחיר היציבות נמוך ב-15%',
+  'virtue.livingGod': 'אל חי', 'virtue.livingGod.text': '+10 סמכות', 'virtue.livingGod.drawback': 'תיאוקרטיות אחרות: -10 יחס',
+  'renown.time': 'שנים על הכס', 'renown.cityFounded': 'עיר נוסדה', 'renown.cityTaken': 'עיר נכבשה', 'renown.cityJoined': 'עיר הצטרפה אלינו',
+  'renown.battleWon': 'קרב נוצח', 'renown.warWon': 'מלחמה נוצחה', 'renown.defenceSurvived': 'מלחמה נשרדה', 'renown.tech': 'תגלית', 'renown.wonder': 'פלא נבנה',
+  'renown.eraGoal': 'יעד תקופה הושג', 'renown.ambition': 'שאיפה התגשמה', 'renown.eraLegacy': 'מורשת תקופה', 'renown.stability': 'שנות סדר', 'renown.event': 'אירוע'
+});

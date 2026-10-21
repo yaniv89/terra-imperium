@@ -14,5 +14,6 @@ import pnl2 from './data/he.pnl2';
 import mapx from './data/he.mapx';
 import misc2 from './data/he.misc2';
 import ambitions from './data/he.ambitions';
+import ruler from './data/he.ruler';
 
-export default Object.freeze({ ...systems, ...world, ...events, ...units, ...tiles, ...battle, ...city, ...pnl1, ...pnl2, ...mapx, ...misc2, ...ambitions });
+export default Object.freeze({ ...systems, ...world, ...events, ...units, ...tiles, ...battle, ...city, ...pnl1, ...pnl2, ...mapx, ...misc2, ...ambitions, ...ruler });
