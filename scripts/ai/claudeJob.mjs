@@ -40,9 +40,19 @@ export const estTokens = (text) => {
   return Math.ceil(1.25 * (ascii / 4 + (s.length - ascii) / 1.5));
 };
 
+// An image's input tokens: the claude-api skill's high-resolution tier (Opus 4.7 and later, Sonnet 5 and later)
+// takes up to 2576 px on the long edge and about 4784 tokens an image. Every image is charged that cap
+// (an 844x390 shot at DPR 2 is nearer 1,700), so the image part of the guard stays an upper bound.
+export const IMAGE_TOKENS_MAX = 4784;
+const requestInTok = (r) => {
+  let images = 0;
+  const text = JSON.stringify(r.params.messages, (k, v) => (v && v.type === 'image' ? (images += 1, null) : v));
+  return estTokens(JSON.stringify(r.params.system) + text) + images * IMAGE_TOKENS_MAX;
+};
+
 /** Input tokens guessed, output capped at max_tokens (thinking counts toward it), so `worstUsd` is a bound. */
 export const estimate = (job, requests) => {
-  const inTok = requests.reduce((a, r) => a + estTokens(JSON.stringify(r.params.system) + JSON.stringify(r.params.messages)), 0);
+  const inTok = requests.reduce((a, r) => a + requestInTok(r), 0);
   const outCap = requests.length * job.maxTokens;
   return { requests: requests.length, inTok, outCap, worstUsd: usd(job.model, inTok, outCap), likelyUsd: usd(job.model, inTok, requests.length * job.likelyOut) };
 };
@@ -52,7 +62,7 @@ export const params = (job, system, user, schema) => ({
   model: job.model,
   max_tokens: job.maxTokens,
   system,
-  messages: [{ role: 'user', content: user }],
+  messages: [{ role: 'user', content: user }], // a string, or content blocks (text and images)
   output_config: { effort: job.effort, format: { type: 'json_schema', schema } }
 });
 
@@ -107,6 +117,7 @@ export const runJob = async (job, { dryRun, limit, maxUsd }, log = console.log) 
   log(`${job.name}: ${est.requests} requests on ${job.model} (batch), about ${est.inTok} input tokens, output capped at ${est.outCap}`);
   log(`${job.name}: likely $${est.likelyUsd.toFixed(2)}, worst case $${est.worstUsd.toFixed(2)} (guard $${maxUsd})`);
   if (dryRun) return { est, requests };
+  job.check?.(src); // a job's own refusal before any spend (e.g. no screenshots to send)
   if (est.worstUsd > maxUsd) throw new Error(`Refusing: worst case $${est.worstUsd.toFixed(2)} is over --max-usd ${maxUsd}`);
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) throw new Error('ANTHROPIC_API_KEY is not set');
