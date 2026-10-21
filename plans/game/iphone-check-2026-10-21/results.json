@@ -1,0 +1,26 @@
+[
+ {
+  "lang": "en",
+  "name": "challenge button clear of notch and 44 px",
+  "ok": false,
+  "detail": "[642,8,836,52]"
+ },
+ {
+  "lang": "en",
+  "name": "challenge sheet fits, inside safe areas",
+  "ok": true,
+  "detail": "[198,98,646,292]"
+ },
+ {
+  "lang": "en",
+  "name": "challenge sheet buttons >= 44 px",
+  "ok": true,
+  "detail": "[]"
+ },
+ {
+  "lang": "en",
+  "name": "world run",
+  "ok": false,
+  "detail": "locator.waitFor: Timeout 180000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-people]').first() to be visible\u001b[22m\n"
+ }
+]
