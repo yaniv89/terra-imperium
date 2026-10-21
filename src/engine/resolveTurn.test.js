@@ -853,26 +853,8 @@ describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-
 
 describe('resolveTurn victory', () => {
   // Plan §M18: reaching the turn limit is no longer an automatic win — it's a RANKED ending
-  // (src/engine/score.js): VICTORY only if the player leads the world, GameStatus.COMPLETE
-  // (with finalRank) otherwise.
-  it('triggers a Score Victory at the turn limit only when the player actually ranks #1', () => {
-    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), turnNumber: speedTurnLimit('normal') - 1 });
-    // Prestige alone won't do it here — processNationalPowerTurn's own decay/clamp runs earlier in
-    // this same turn and would clamp any artificial value straight back into [-100, 100] before the
-    // victory check ever reads it. 500 extra NON-CAPITAL regions is enough to lead the score table
-    // outright while staying safely under every ambition's own threshold (domination 40% of
-    // 4,482 regions, conqueror 25% of capitals, economicHegemony 45% of GDP) — this must resolve
-    // through the turn-limit ranked step, not accidentally trip an ambition first.
-    // The Dawn world is 240 capitals: 50 of them (under the conqueror ambition's 25%) lead the
-    // score table outright while staying under every ambition's threshold.
-    const regions = { ...base.regions };
-    Object.keys(regions).filter((id) => regions[id].owner !== 'fr').slice(0, 50)
-      .forEach((id) => { regions[id] = { ...regions[id], owner: 'fr' }; });
-    const next = resolveTurn({ ...base, regions });
-    expect(next.gameStatus).toBe(GameStatus.VICTORY);
-    expect(next.victoryConditionId).toBe('finalScore');
-  });
-
+  // by legacy (src/engine/score.js; the win itself: legacy.test.js): VICTORY only if the player
+  // leads the world, GameStatus.COMPLETE (with finalRank) otherwise.
   it('ends as GameStatus.COMPLETE with a real finalRank when the player does NOT rank #1 at the turn limit', () => {
     const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), turnNumber: speedTurnLimit('normal') - 1 });
     const regions = {};
