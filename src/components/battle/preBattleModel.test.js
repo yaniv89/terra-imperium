@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { getNeighborIds } from '../../data/regions';
 import { atGates } from '../../engine/testWorld';
-import { preBattleModel, autoText } from './preBattleModel';
+import { preBattleModel, autoText, parityLine, rangeLine } from './preBattleModel';
 import { cityManifestOf } from '../../engine/cityManifest';
 import { peoplesWorld, rivalOf, withBorder } from '../../engine/testWorld';
 
@@ -51,6 +51,21 @@ describe('W11 preBattleModel', () => {
     expect(m.chance).toMatchObject({ exact: true, source: 'Spy report' });
     expect(m.chance.win + m.chance.lose + m.chance.draw).toBeCloseTo(1, 5);
     expect(typeof m.theirs.total).toBe('number');
+  });
+
+  it("exact odds carry the Auto range, at most three ranked reasons and the kind's parity line", { timeout: 20000 }, () => {
+    const { s, from, target } = setup();
+    const m = preBattleModel({ ...s, intel: { [DE]: s.turnNumber + 3 } }, { fromRegionId: from, targetRegionId: target }, { samples: 40 });
+    expect(m.chance.range).toMatch(/^Auto expects: win \d+( to \d+)?%\. You lose [\d,]+( to [\d,]+)? men, they lose/);
+    expect(m.chance.reasons.length).toBeLessThanOrEqual(3);
+    expect(m.chance.parity).toMatch(/^Auto matched real time in \d+ of \d+ test matchups\.$/);
+    expect(preBattleModel({ ...s, intel: {} }, { fromRegionId: from, targetRegionId: target }, { samples: 4 }).chance.range).toBeUndefined();
+  });
+
+  it('no parity record or no range yields no line, never a made-up number', () => {
+    expect(parityLine('naval')).toBeNull();
+    expect(parityLine(undefined)).toBeNull();
+    expect(rangeLine({})).toBeNull();
   });
 });
 
