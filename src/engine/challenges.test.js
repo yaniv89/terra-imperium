@@ -3,7 +3,8 @@
 // submission is accepted only when its log replays to the claimed hash and score.
 import { describe, it, expect } from 'vitest';
 import { writeFileSync } from 'node:fs';
-import { challengeForWeek, isoWeekId, verifyChallenge, challengeScore } from './challenges';
+import { isoWeekId } from '../services/challenges';
+import { challengeForWeek, verifyChallenge, challengeScore } from './challenges';
 import { startLog, logAction } from './actionLog';
 import { startState, gameReducer } from './gameReducer';
 import { stateHash } from './macroVerify';

@@ -13,14 +13,6 @@ import { calcNationScore } from './score';
 
 const WEEK = /^\d{4}-W(0[1-9]|[1-4]\d|5[0-3])$/;
 
-/** '2026-W43': the ISO week of a Date (UTC). */
-export const isoWeekId = (date) => {
-  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7)); // the Thursday of this week
-  const week = Math.ceil(((d - Date.UTC(d.getUTCFullYear(), 0, 1)) / 86400000 + 1) / 7);
-  return `${d.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
-};
-
 const seedOf = (weekId) => {
   let h = 0x811c9dc5;
   for (let i = 0; i < weekId.length; i++) h = Math.imul(h ^ weekId.charCodeAt(i), 0x01000193);

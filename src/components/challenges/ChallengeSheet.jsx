@@ -5,8 +5,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Trophy } from 'lucide-react';
 import { useT } from '../../i18n/useT';
-import { isoWeekId, challengeForWeek } from '../../engine/challenges';
-import { fetchLeaderboard, submitChallenge } from '../../services/challenges';
+import { challengeForWeek } from '../../engine/challenges';
+import { isoWeekId, fetchLeaderboard, submitChallenge } from '../../services/challenges';
 import { getSupabaseClient, isCloudSaveConfigured } from '../../services/supabaseClient';
 import { getCurrentUser } from '../../services/auth';
 import { useGame } from '../../context/GameContext';
