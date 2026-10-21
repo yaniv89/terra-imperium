@@ -270,6 +270,25 @@ describe('master plan 6.7, row by row', () => {
     expect(setup.sides[1].units.find((u) => u.id === 'd1').morale).toBe(100 - STARVED_MORALE_LOSS);
   });
 
+  it('U23 a battle card changes the same input for Command and Auto, expires and is spent once', () => {
+    const s = armies();
+    const carded = (nation, id, expires) => ({ ...s, nations: { ...s.nations, [nation]: { ...s.nations[nation], battleCards: [{ id, expires }] } } });
+    const read = (st) => battleInputs(st, { attackerUnits: [st.units.a1], defenderUnits: [st.units.d1], cityId: T, fromRegionId: FR });
+    const traitor = carded(P, 'traitor', s.turnNumber + 3);
+    expect(read(traitor).defenderUnits[0].morale).toBe(read(s).defenderUnits[0].morale - 15);
+    // Command reads the same conditioned units as Auto: the setup's defenders carry the same morale
+    const began = gameReducer(traitor, { type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: { fromRegionId: FR, targetRegionId: T } });
+    expect(buildInvasionSetup(began, began.pendingBattle).sides[1].units.find((u) => u.id === 'd1').morale).toBe(read(traitor).defenderUnits[0].morale);
+    // it expires
+    expect(read(carded(P, 'traitor', s.turnNumber - 1)).defenderUnits[0].morale).toBe(read(s).defenderUnits[0].morale);
+    // a depot feeds the holder's own men
+    const depot = carded(P, 'supplyDepot', s.turnNumber + 3);
+    expect(read({ ...depot, units: { ...depot.units, a1: { ...depot.units.a1, supply: 20 } } }).economyInputs.supply[0]).toBe(1);
+    // the battle spends it, once
+    const spent = applyBattleOutcome(traitor, invasion(traitor, 'attacker', { a1: 900 }, { d1: 0, d2: 0 }, { decisive: true }));
+    expect(spent.nations[P].battleCards).toEqual([]);
+  });
+
   it('10 a fortress wonder raises the walls: one HP formula for the battlefield and the auto-resolve', () => {
     const s = armies();
     const city = { ...s.regions[T], buildings: { ...(s.regions[T].buildings || {}), categories: { ...(s.regions[T].buildings?.categories || {}), defense: 1 } } };

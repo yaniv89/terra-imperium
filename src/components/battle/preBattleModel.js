@@ -9,7 +9,7 @@ import { getRegionTerrain } from '../../data/terrain';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { getTiles } from '../../data/geo/tiles';
 import { ageOf } from '../../engine/nationState';
-import { estimateInvasionOdds, estimateLandingOdds, estimateFieldOdds, estimateFleetOdds } from '../../engine/battleOdds';
+import { autoParityOf, estimateInvasionOdds, estimateLandingOdds, estimateFieldOdds, estimateFleetOdds } from '../../engine/battleOdds';
 import { battleName } from '../../engine/battleNames';
 import { validateInvasion, validateAmphibious } from '../../engine/invasion';
 import { validateFieldAttack } from '../../engine/fieldBattle';
@@ -41,6 +41,24 @@ const factorText = (f) => {
   if (f.id === 'terrain') return { ...f, label, detail: terrainWord(f.detail) };
   const vs = f.id === 'numbers' ? /^(d+) vs (d+)$/.exec(f.detail || '') : null;
   return { ...f, label, detail: vs ? t('mx.odds.vs', { a: vs[1], b: vs[2] }) : f.detail };
+};
+
+// Which committed parity record (autoParity.json) speaks for each card kind; a sea battle has none.
+const PARITY_KIND = { invasion: 'assault', field: 'field', amphibious: 'landing' };
+const span = (lo, hi, fmt) => (lo === hi ? fmt(lo) : t('bt.pre.rangeTo', { a: fmt(lo), b: fmt(hi) }));
+
+/** "Auto: win 55 to 70%. You lose 300 to 600 men..." or null when the odds carry no range. */
+export const rangeLine = (odds) => {
+  const r = odds?.range;
+  if (!r) return null;
+  const win = span(Math.round(r.win[0] * 100), Math.round(r.win[1] * 100), String);
+  return t('bt.pre.autoRange', { win, mine: span(...r.attackerMen, (n) => n.toLocaleString('en')), theirs: span(...r.defenderMen, (n) => n.toLocaleString('en')) });
+};
+
+/** How often Auto matched real time for this kind in the committed record, or null (never a made-up number). */
+export const parityLine = (parityKind) => {
+  const p = parityKind ? autoParityOf(parityKind) : null;
+  return p?.matchups ? t('bt.pre.autoParity', { n: p.inside, of: p.matchups }) : null;
 };
 
 export const preBattleModel = (state, { fromRegionId = null, targetRegionId = null, navalUnitId = null, tile = null, fromTile = null }, { samples = 200 } = {}) => {
@@ -98,7 +116,10 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
         exact: true, source: source.label, win: odds.attacker, take: odds.capture, lose: odds.defender, draw: odds.stalemate,
         verdict: odds.attacker >= 0.65 ? t('bt.pre.likelyWin') : odds.attacker >= 0.35 ? t('bt.pre.evenFight') : t('bt.pre.likelyLoss'),
         losses: t('bt.pre.expectedLosses', { a: Math.round(odds.attackerLossShare * 100), b: Math.round(odds.defenderLossShare * 100) }),
-        factors: (odds.factors || []).filter((f) => Math.abs(f.value - 1) >= 0.02).map(factorText)
+        factors: (odds.factors || []).filter((f) => Math.abs(f.value - 1) >= 0.02).map(factorText),
+        reasons: (odds.reasons || []).filter((f) => Math.abs(f.value - 1) >= 0.02).map(factorText),
+        range: rangeLine(odds),
+        parity: parityLine(PARITY_KIND[kind])
       };
     } else {
       const band = scoutsEstimate(odds.attacker);

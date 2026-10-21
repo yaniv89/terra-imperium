@@ -35,6 +35,7 @@ import { getReinforcementSources } from './invasion';
 import { unitsWithinRings, REINFORCE_RINGS } from './armies';
 import { lawRulesOf } from './lawRules';
 import { isWarBetween } from './diplomacy';
+import { BATTLE_CARDS, activeCards } from '../data/battleCards';
 
 export const SUPPLY_MORALE_LOSS = 20;
 export const STARVED_MORALE_LOSS = 15;
@@ -75,10 +76,20 @@ export const wallsHpRatio = (state, city) => (city ? clamp01(siegeHpOf(city, sta
  */
 export const batteredReduction = (reduction, hpRatio) => 1 - (1 - (reduction ?? 1)) * (0.5 + 0.5 * clamp01(hpRatio ?? 1));
 
-/** One unit's starting morale under its conditions. */
-export const conditionUnit = (state, u, { starved = false } = {}) => {
+/** The battle cards in play for a unit of `ownerId` against `foeId` (U23): { supply, moraleLoss }. */
+export const cardEffects = (state, ownerId, foeId) => {
+  const turn = state.turnNumber ?? 0;
+  const own = activeCards(state.nations?.[ownerId], turn).map((c) => BATTLE_CARDS[c.id].own);
+  const foe = activeCards(state.nations?.[foeId], turn).map((c) => BATTLE_CARDS[c.id].foe);
+  return { supply: Math.max(0, ...own.map((e) => e?.supply || 0)), moraleLoss: foe.reduce((n, e) => n + (e?.moraleLoss || 0), 0) };
+};
+
+/** One unit's starting morale under its conditions; `foeId`: the nation it fights, for the cards. */
+export const conditionUnit = (state, u, { starved = false, foeId = null } = {}) => {
   if (!u || u.domain === 'naval' || u.classId === 'air') return u;
-  let loss = 0;
+  const card = cardEffects(state, u.ownerId, foeId);
+  if (card.supply > (u.supply ?? 100)) u = { ...u, supply: card.supply };
+  let loss = card.moraleLoss;
   if (u.supply != null) loss += Math.round(SUPPLY_MORALE_LOSS * (1 - clamp01(u.supply / 100)));
   if (starved) loss += STARVED_MORALE_LOSS;
   if (hasPlague(state.regions?.[u.regionId])) loss += PLAGUE_MORALE_LOSS;
@@ -151,16 +162,18 @@ export const reinforcementSources = (state, regionId, nationId, enemyId, exclude
 export const battleInputs = (state, { attackerUnits = [], defenderUnits = [], cityId = null, fromRegionId = null, naval = false, militia = null } = {}) => {
   const city = cityId ? state.regions?.[cityId] : null;
   const starved = !naval && isStarved(city);
-  const att = attackerUnits.map((u) => conditionUnit(state, u));
-  const def = defenderUnits.map((u) => conditionUnit(state, u, { starved }));
-  const mil = naval || !city ? [] : (militia ?? cityMilitia(state, cityId)).map((u) => conditionUnit(state, u, { starved }));
+  const attId = attackerUnits[0]?.ownerId; const defId = defenderUnits[0]?.ownerId ?? city?.owner;
+  const att = attackerUnits.map((u) => conditionUnit(state, u, { foeId: defId }));
+  const def = defenderUnits.map((u) => conditionUnit(state, u, { starved, foeId: attId }));
+  const mil = naval || !city ? [] : (militia ?? cityMilitia(state, cityId)).map((u) => conditionUnit(state, u, { starved, foeId: attId }));
   const supply = [sideSupply(att), Math.min(sideSupply(def), starved ? STARVED_SUPPLY : 1)];
   const development = [cityDevelopment(state.regions?.[fromRegionId]), cityDevelopment(city)];
   return {
     attackerUnits: att,
     defenderUnits: [...def, ...mil],
     militia: mil,
-    economyInputs: { supply, development },
+    // `conditions` ride along for the battle card (BattleCard.jsx), which shows exactly these facts.
+    economyInputs: { supply, development, conditions: { cards: [attId, defId].flatMap((nationId) => activeCards(state.nations?.[nationId], state.turnNumber ?? 0).map((c) => ({ nationId, id: c.id }))), starved, plague: hasPlague(city), militia: mil.reduce((n, u) => n + u.strength, 0) } },
     hpRatio: city ? wallsHpRatio(state, city) : 1,
     // Walls the real-time battle stands on the field (the keep's walls from the fort level, the
     // town's wall ring from its Defense line): the auto-resolve's gate rule (autoBattle.js).
