@@ -7,7 +7,8 @@ describe('unit names (plan P5.2)', () => {
     expect(unitDisplayName('bronze', 'infantry')).toBe('Spearmen');
     expect(unitDisplayName('bronze', 'cavalry')).toBe('Chariots');
     expect(unitDisplayName('kingdoms', 'ranged')).toBe('Longbowmen');
-    expect(unitDisplayName('modern', 'air')).toBe('Fighter Jet');
+    expect(unitDisplayName('modern', 'air')).toBe('Fighters');
+    expect(unitDisplayName('information', 'air')).toBe('Strike Drones');
     expect(unitDisplayName('classical', 'naval', 'raider')).toBe('Bireme');
     expect(unitDisplayName('gunpowder', 'naval')).toBe('Frigate');
     expect(unitDisplayName('bronze', 'settler')).toBe('Settlers');

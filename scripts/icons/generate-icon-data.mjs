@@ -41,7 +41,8 @@ const UNIT_ICONS = {
   classical: { infantry: 'gladius', cavalry: 'elephant', ranged: 'bowman', siege: 'catapult', naval: 'trireme', support: 'trowel' },
   kingdoms: { infantry: 'pikeman', cavalry: 'mounted-knight', ranged: 'crossbow', siege: 'trebuchet', naval: 'drakkar', support: 'toolbox' },
   gunpowder: { infantry: 'musket', cavalry: 'saber-and-pistol', ranged: 'crossed-pistols', siege: 'cannon', naval: 'galleon', support: 'dynamite' },
-  modern: { infantry: 'rifle', cavalry: 'battle-tank', ranged: 'machine-gun', siege: 'artillery-shell', naval: 'battleship', air: 'jet-fighter', support: 'anti-aircraft-gun' }
+  modern: { infantry: 'rifle', cavalry: 'battle-tank', ranged: 'machine-gun', siege: 'artillery-shell', naval: 'battleship', air: 'jet-fighter', support: 'anti-aircraft-gun' },
+  information: { infantry: 'kevlar-vest', cavalry: 'tank', ranged: 'missile-launcher', siege: 'missile-pod', naval: 'battleship', air: 'delivery-drone', support: 'radar-sweep' }
 };
 
 const BUILDING_ICONS = {

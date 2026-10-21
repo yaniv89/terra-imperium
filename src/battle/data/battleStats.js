@@ -40,14 +40,24 @@ export const AGE_OVERRIDES = {
     infantry: { range: 4 * Q, melee: false, attackTicks: S(1.6) },
     cavalry: { speed: T(3.0) }
   },
+  // Modern (U50): Machine Gun Teams suppress what they hit (`suppress` ticks: it fires slower,
+  // sim/effects.js attackRateMult).
   modern: {
     infantry: { range: 5 * Q, melee: false, speed: T(1.9), attackTicks: S(1.0) },
     cavalry: { range: 6 * Q, melee: false, speed: T(3.0), soldiers: 4, attackTicks: S(1.8), charge: false },
-    ranged: { range: 9 * Q, attackTicks: S(2.0) },
+    ranged: { range: 9 * Q, attackTicks: S(2.0), suppress: S(2) },
     support: { range: 8 * Q, attackTicks: S(1.0), airOnly: true, supplyAura: 0 }
   }
 };
-AGE_OVERRIDES.information = AGE_OVERRIDES.modern; // U50 gives Information its own
+// Information (U50): guided weapons land their first shot harder (`precision`, sim/combat.js);
+// Strike Drones are a swarm of small, quick, fragile craft; a SAM Battery reaches further.
+AGE_OVERRIDES.information = {
+  ...AGE_OVERRIDES.modern,
+  ranged: { range: 9 * Q, attackTicks: S(2.0), precision: 1.5 },
+  siege: { precision: 1.5 },
+  air: { speed: T(5.5), range: 5 * Q, attackTicks: S(1.0), soldiers: 6, moraleLoss: 1.25 },
+  support: { ...AGE_OVERRIDES.modern.support, range: 10 * Q }
+};
 
 export const getBattleStats = (classId, ageId) => ({ ...(CLASS_BASE[classId] || CLASS_BASE.infantry), ...(AGE_OVERRIDES[ageId]?.[classId] || {}) });
 
