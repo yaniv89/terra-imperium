@@ -31,6 +31,7 @@ import os from 'os';
 import fs from 'fs';
 import { worldHealth, kaplanMeier, mean, sd, tCritical95 } from './simStats.mjs';
 import { createScriptedPlayer, createTelemetry } from './campaignTelemetry.mjs';
+import { createDigest } from './playtestDigest.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -40,8 +41,10 @@ export const parseArgs = (argv) => {
   //   --demands refuse|pay        the scripted player's answer to demands and tribute
   //   --speed normal|marathon|..  game speed (default: the engine's)
   //   --player <id>               one player for every game (default: a different nation per game)
-  const args = { games: 5, turns: 150, seed: 1, policy: 'passive', demands: 'refuse', speed: null, player: null };
-  const STRINGS = { policy: ['passive', 'scripted'], demands: ['refuse', 'pay'], speed: null, player: null };
+  //   --digest <file>             write a compact per-turn digest of each game (scripts/playtestDigest.mjs) for
+  //                               the playtester AI job; events stay on, so it needs --policy scripted
+  const args = { games: 5, turns: 150, seed: 1, policy: 'passive', demands: 'refuse', speed: null, player: null, digest: null };
+  const STRINGS = { policy: ['passive', 'scripted'], demands: ['refuse', 'pay'], speed: null, player: null, digest: null };
   for (let i = 0; i < argv.length; i++) {
     const [flag, inlineValue] = argv[i].split('=');
     const key = flag.replace(/^--/, '');
@@ -59,6 +62,7 @@ export const parseArgs = (argv) => {
     const value = args[key];
     if (!Number.isSafeInteger(value) || value < (key === 'seed' ? 0 : 1)) throw new Error(`Invalid --${key}: expected ${key === 'seed' ? 'a nonnegative' : 'a positive'} integer`);
   }
+  if (args.digest && args.policy !== 'scripted') throw new Error('--digest needs --policy scripted (someone must answer the events)');
   return args;
 };
 
@@ -104,7 +108,7 @@ export const buildSimEngine = async (extraExports = []) => {
 
 // Explicit policy for the passive benchmark: reject demands, accept white peace, auto-defend.
 // A blocked loop must fail instead of reporting many iterations over an unchanged world.
-export const advanceCampaign = (engine, state, options = {}) => {
+export const advanceCampaign = (engine, state, options = {}, onEvent = null) => {
   let ready = state;
   if (ready.pendingPeaceOffer) {
     ready = engine.gameReducer(ready, { type: ready.pendingPeaceOffer.terms?.length
@@ -113,7 +117,7 @@ export const advanceCampaign = (engine, state, options = {}) => {
   if (ready.pendingDefenses?.length) ready = engine.gameReducer(ready, { type: engine.ActionTypes.RESOLVE_ALL_DEFENSES_AUTO });
   if (ready.gameStatus !== 'ACTIVE') return ready;
   let next = engine.resolveTurn(ready, options);
-  if (next.activeProceduralEvent) next = { ...next, activeProceduralEvent: null };
+  if (next.activeProceduralEvent) { onEvent?.(next.activeProceduralEvent); next = { ...next, activeProceduralEvent: null }; }
   if (next.gameStatus === 'ACTIVE' && next.turnNumber !== ready.turnNumber + 1) {
     throw new Error(`Campaign stalled at turn ${ready.turnNumber}`);
   }
@@ -123,16 +127,20 @@ export const advanceCampaign = (engine, state, options = {}) => {
 
 const runGame = (engine, playerNationId, seed, turns, opts = {}) => {
   const firedEvents = Object.keys(engine.HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {});
+  const initial = engine.createInitialState({ playerNationId, rngSeed: seed, scenario: { mode: 'peoples', size: 'standard', seed }, ...(opts.speed ? { gameSpeed: opts.speed } : {}) });
   let state = {
-    ...engine.createInitialState({ playerNationId, rngSeed: seed, scenario: { mode: 'peoples', size: 'standard', seed }, ...(opts.speed ? { gameSpeed: opts.speed } : {}) }),
-    firedEvents,
-    proceduralEventCooldown: 999999,
+    ...initial,
+    // A digest run is a playtest: the events stay on (story cards answered below, drawn cards dismissed).
+    ...(opts.digest ? {} : { firedEvents, proceduralEventCooldown: 999999 }),
     // Nobody is at the controls: defense battles auto-resolve instead of waiting for the player.
     battleSettings: { defaultMode: 'auto', autoDefend: true }
   };
 
   const scripted = opts.policy === 'scripted' ? createScriptedPlayer({ engine, demands: opts.demands, opinionOf: engine.opinionOf }) : null;
   const telemetry = createTelemetry({ playerId: state.playerNationId, isIndependent: engine.isIndependentNation, authorityOf: engine.authorityOf, getOverextension: engine.getOverextension, metNations: engine.metNations, getTiles: engine.getTiles });
+  // A playtest lets the research advisor choose, as a player who taps "Let the advisor choose" does.
+  if (opts.digest) state = engine.gameReducer(state, { type: engine.ActionTypes.SET_RESEARCH_AUTO, payload: { auto: true } });
+  const digest = opts.digest ? createDigest({ playerId: state.playerNationId, getResearched: engine.getResearched, isIndependent: engine.isIndependentNation }) : null;
   const seenWarIds = new Set();
   const seenBankruptNations = new Set();
   const seenCivilWarNations = new Set();
@@ -150,9 +158,16 @@ const runGame = (engine, playerNationId, seed, turns, opts = {}) => {
 
   for (let t = 0; t < turns; t++) {
     const startedAt = performance.now();
+    // A playtest takes the first option of a story card, so the card counts as fired and its effects apply.
+    if (digest && state.activeEventId) state = engine.gameReducer(state, { type: engine.ActionTypes.RESOLVE_EVENT, payload: { optionIndex: 0 } });
     if (scripted) state = scripted.answer(state).state;
-    const next = advanceCampaign(engine, state);
+    const shown = [];
+    const next = advanceCampaign(engine, state, {}, (e) => shown.push(e.title || e.id));
     const elapsed=performance.now()-startedAt;
+    if (digest) {
+      if (next.activeEventId && next.activeEventId !== state.activeEventId) shown.push(engine.HISTORICAL_EVENTS[next.activeEventId]?.title || next.activeEventId);
+      digest.observe(state, next, elapsed, shown);
+    }
     turnTimeMsTotal += elapsed; turnTimes.push(elapsed);
     completedTurns += next.turnNumber - state.turnNumber;
     telemetry.observe(state, next);
@@ -193,6 +208,7 @@ const runGame = (engine, playerNationId, seed, turns, opts = {}) => {
   const km = kaplanMeier(lives, [turns]);
 
   return {
+    ...(digest ? { digest: digest.result(state) } : {}),
     ...health,
     campaign: telemetry.snapshot(state),
     survival: km.at[turns],
@@ -230,7 +246,7 @@ const main = async () => {
     const playerNationId = args.player || nationIds[(seed + g) % nationIds.length];
     const gameSeed = seed * 1000 + g;
     console.log(`  game ${g + 1}/${games}: player=${playerNationId} seed=${gameSeed}`);
-    results.push(runGame(engine, playerNationId, gameSeed, turns, { policy: args.policy, demands: args.demands, speed: args.speed }));
+    results.push(runGame(engine, playerNationId, gameSeed, turns, { policy: args.policy, demands: args.demands, speed: args.speed, digest: !!args.digest }));
   }
 
   const sum = (key) => results.reduce((acc, r) => acc + r[key], 0);
@@ -271,6 +287,12 @@ const main = async () => {
       `civil wars ${r.civilWars}, region changes ${r.regionOwnershipChanges}, ` +
       `mean turn ${r.meanTurnMs.toFixed(2)}ms, p50 ${r.p50TurnMs.toFixed(2)}ms, p95 ${r.p95TurnMs.toFixed(2)}ms`);
   });
+
+  if (args.digest) {
+    fs.mkdirSync(path.dirname(path.resolve(args.digest)), { recursive: true });
+    fs.writeFileSync(args.digest, `${JSON.stringify(results.map((r, i) => ({ game: i + 1, seed: seed * 1000 + i, wars: r.warsDeclared, peaces: r.peacesConcluded, meanTurnMs: Math.round(r.meanTurnMs), p95TurnMs: Math.round(r.p95TurnMs), campaign: r.campaign, ...r.digest })), null, 1)}\n`);
+    console.log(`\nDigest written to ${args.digest}`);
+  }
 
   if (avg('meanTurnMs') > 80) {
     console.warn('\nWARNING: mean turn time exceeds the plan\'s 80ms/turn end-of-M16 budget.');

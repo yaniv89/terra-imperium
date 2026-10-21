@@ -7,6 +7,7 @@
 // Touch:  tap · one-finger drag = pan · drag starting on a selected squad = formation line ·
 //         double-tap then drag = lasso select · long-press = context (ground: attack-move;
 //         selected squad: radial) · two fingers = pinch-zoom + pan
+//         A lasso that closes on itself (a circle) selects what the loop encloses (`opts.polygon`).
 //         Select mode (the HUD's Select button, `h.isSelectMode()`): a one-finger drag draws the
 //         lasso instead of panning; a completed lasso calls `h.selectModeDone()` (the HUD turns
 //         the mode off). Two fingers still pinch and pan.
@@ -24,6 +25,25 @@ export const LONG_MS = 380;
 export const MOVE_PX = 10;
 export const DOUBLE_TAP_MS = 300;
 export const DOUBLE_TAP_PX = 40; // a second tap farther away is a new gesture: a drag from it pans
+
+/** A lasso stroke that loops back to where it began (a circle) selects what it encloses; an open drag keeps the box. */
+export const isClosedStroke = (pts) => {
+  if (pts.length < 6) return false;
+  const xs = pts.map((q) => q.x); const ys = pts.map((q) => q.y);
+  const w = Math.max(...xs) - Math.min(...xs); const h = Math.max(...ys) - Math.min(...ys);
+  const a = pts[0]; const b = pts[pts.length - 1];
+  return Math.min(w, h) >= 30 && Math.hypot(a.x - b.x, a.y - b.y) <= 0.25 * Math.max(w, h);
+};
+
+/** Even-odd point-in-polygon test. */
+export const insidePolygon = (pt, poly) => {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const a = poly[i]; const b = poly[j];
+    if ((a.y > pt.y) !== (b.y > pt.y) && pt.x < ((b.x - a.x) * (pt.y - a.y)) / (b.y - a.y) + a.x) inside = !inside;
+  }
+  return inside;
+};
 
 export const createGestureRecognizer = (el, h) => {
   const pointers = new Map();
@@ -58,7 +78,7 @@ export const createGestureRecognizer = (el, h) => {
     }
     if (pointers.size > 2) return;
     start = { ...p, t: e.timeStamp, button: e.button, touch: e.pointerType === 'touch', shift: !!e.shiftKey };
-    last = p;
+    last = p; trail = [p];
     if (!start.touch) {
       mode = e.button === 2 ? 'mouse-right' : e.button === 1 || spaceHeld || e.altKey ? 'mouse-pan' : 'mouse-left';
       return;
@@ -104,7 +124,7 @@ export const createGestureRecognizer = (el, h) => {
     else if (mode === 'mouse-right') mode = h.hasSelection?.() ? 'formation' : 'pan';
     if (mode === 'pan') h.pan?.(p.x - last.x, p.y - last.y);
     else if (mode === 'formation') h.formationDrag?.(start, p);
-    else if (mode === 'lasso') h.lassoDrag?.(start, p);
+    else if (mode === 'lasso') { trail.push(p); h.lassoDrag?.(start, p, { polygon: isClosedStroke(trail) ? trail : null }); }
     else if (mode === 'path') { if (Math.hypot(p.x - trail[trail.length - 1].x, p.y - trail[trail.length - 1].y) >= MOVE_PX) trail.push(p); h.pathDrag?.(trail); }
     else if (mode === 'radial') h.radialHover?.(p);
     last = p;
@@ -123,7 +143,7 @@ export const createGestureRecognizer = (el, h) => {
     else if (mode === 'mouse-left') (h.click || h.tap)?.(p, { shift: start.shift });
     else if (mode === 'mouse-right') h.order?.(p);
     else if (mode === 'formation') h.formationEnd?.(start, p);
-    else if (mode === 'lasso') { h.lassoEnd?.(start, p, { shift: start.shift }); if (fromSelectMode && start.touch) h.selectModeDone?.(); }
+    else if (mode === 'lasso') { h.lassoEnd?.(start, p, { shift: start.shift, polygon: isClosedStroke(trail) ? trail : null }); if (fromSelectMode && start.touch) h.selectModeDone?.(); }
     else if (mode === 'path') { h.pathEnd?.([...trail, p]); h.pathModeDone?.(); }
     else if (mode === 'radial') h.radialSelect?.(p);
     mode = 'idle'; start = null;

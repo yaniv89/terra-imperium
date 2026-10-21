@@ -304,7 +304,10 @@ export const pickAILaw = (state, nationId, nation) => {
     const wanted = (held === -1 ? preferred : preferred.slice(0, held)).find((l) => canEnactLaw(state, nationId, category, l.id) && affordable(category, l));
     if (wanted) return { category, id: wanted.id };
     if (liked[category]) continue; // a doctrine with a view on this category waits for its law
-    const choices = [...LAW_CATEGORIES[category]].filter((l) => l.requiresTech && canEnactLaw(state, nationId, category, l.id) && (l.effects.stabilityBonus || 0) >= 0).reverse();
+    // Only up from the law it holds (it flipped back to the tier below after every cooldown), and
+    // never a law that costs income (U57: every doctrine took the Renewable Mandate's -5%).
+    const heldTier = LAW_CATEGORIES[category].find((l) => l.id === current)?.tier || 0;
+    const choices = [...LAW_CATEGORIES[category]].filter((l) => l.requiresTech && l.tier > heldTier && canEnactLaw(state, nationId, category, l.id) && (l.effects.stabilityBonus || 0) >= 0 && (l.effects.goldMult || 0) >= 0).reverse();
     const law = choices.find((l) => affordable(category, l));
     if (law) return { category, id: law.id };
   }

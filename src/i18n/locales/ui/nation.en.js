@@ -80,6 +80,7 @@ export default {
   'op.d.ae': '{n} AE',
   'op.d.sinceTurn': 'since turn {n}',
   'op.d.untilTurn': 'until turn {n}',
+  'op.sanctionedUs': 'Sanctioned us',
   'nc.peaceTreaty': 'Peace treaty',
   'nc.tradeCut': 'Trade agreement: route cut',
   'nc.tradeNothing': 'Trade agreement: pays nothing',

@@ -9,7 +9,7 @@ import { isRtl } from '../../i18n';
 import { deployZone } from '../../battle/sim/world';
 import { BattleRenderer } from '../../battle/render/BattleRenderer';
 import { createBattleClient } from '../../battle/worker/battleClient';
-import { createGestureRecognizer } from '../../battle/input/gestures';
+import { createGestureRecognizer, insidePolygon } from '../../battle/input/gestures';
 import { decidePointer, isCycleClick, pickOwnBuilding, selectionAfter, BUILDING_PICK_TILES, BUILDING_PICK_PX } from '../../battle/input/selection';
 import { Q, TICK_HZ, battleLimitTicks } from '../../battle/sim/constants';
 import BattleHud from './BattleHud';
@@ -825,7 +825,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         r.addMarker(a.x, a.z); r.addMarker(b.x, b.z);
         markPending({ kind: 'move', x: a.x, z: a.z, x2: b.x, z2: b.z, squads: [...selectedRef.current], color: '#a3e635' });
       },
-      lassoDrag: (s, p) => setLasso({ x0: Math.min(s.x, p.x), y0: Math.min(s.y, p.y), x1: Math.max(s.x, p.x), y1: Math.max(s.y, p.y) }),
+      lassoDrag: (s, p, o) => setLasso({ poly: o?.polygon, x0: Math.min(s.x, p.x), y0: Math.min(s.y, p.y), x1: Math.max(s.x, p.x), y1: Math.max(s.y, p.y) }),
       lassoEnd: (s, p, mods) => {
         setLasso(null);
         const r = rendererRef.current; const cur = frames.current.cur;
@@ -833,7 +833,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         const x0 = Math.min(s.x, p.x); const x1 = Math.max(s.x, p.x); const y0 = Math.min(s.y, p.y); const y1 = Math.max(s.y, p.y);
         const ids = cur.squads.filter((q) => q.side === playerSide && q.alive && q.onField && !q.fled).filter((q) => {
           const sp = r.worldToScreen(q.x / Q, q.y / Q);
-          return sp.x >= x0 && sp.x <= x1 && sp.y >= y0 && sp.y <= y1;
+          return mods?.polygon ? insidePolygon(sp, mods.polygon) : sp.x >= x0 && sp.x <= x1 && sp.y >= y0 && sp.y <= y1;
         }).map((q) => q.idx);
         updateSelection(mods?.shift ? [...new Set([...selectedRef.current, ...ids])] : ids);
       },
@@ -1153,7 +1153,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           <polyline points={drawPath.map((p) => `${p.x},${p.y}`).join(' ')} fill="none" stroke="#a3e635" strokeWidth="4" strokeDasharray="10 6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )}
-      {lasso && <div className="absolute pointer-events-none border-2 border-lime-400 bg-lime-400/10 rounded" style={{ left: lasso.x0, top: lasso.y0, width: lasso.x1 - lasso.x0, height: lasso.y1 - lasso.y0 }} />}
+      {lasso?.poly && <svg className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true"><polygon points={lasso.poly.map((q) => `${q.x},${q.y}`).join(' ')} fill="rgba(163,230,53,0.1)" stroke="#a3e635" strokeWidth="2" /></svg>}
+      {lasso && !lasso.poly && <div className="absolute pointer-events-none border-2 border-lime-400 bg-lime-400/10 rounded" style={{ left: lasso.x0, top: lasso.y0, width: lasso.x1 - lasso.x0, height: lasso.y1 - lasso.y0 }} />}
       {radial && (
         <div className="absolute z-10 flex flex-wrap justify-center gap-2 max-w-[92vw] -translate-x-1/2 -translate-y-[130%]" style={{ left: Math.min(Math.max(radial.x, 160), (wrapRef.current?.clientWidth || 400) - 160), top: radial.y }} data-testid="battle-radial">
           {selectedAbilities.map((a) => (

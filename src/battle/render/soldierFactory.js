@@ -36,7 +36,7 @@ const C = {
   skin: ['#e0ac82', '#c68b5f', '#8d5a3b', '#f0c9a4'],
   leather: '#6b4a2e', darkLeather: '#3f2a1a', steel: '#b8bec6', darkSteel: '#6e757d', bronze: '#b98b3e',
   wood: '#8a6238', darkWood: '#5c3f23', cloth: '#d9d0bc', olive: '#56613e', darkOlive: '#3b4430',
-  black: '#26241f', horse: '#6d4a31', horseDark: '#3d2a1c', rope: '#b59a6a', gold: '#d9b44a', rubber: '#1f2226'
+  black: '#26241f', horse: '#6d4a31', horseDark: '#3d2a1c', rope: '#b59a6a', gold: '#d9b44a', rubber: '#1f2226', glow: '#5ee7ff'
 };
 
 const tmpM = new Matrix4(); const tmpQ = new Quaternion(); const tmpE = new Euler();
@@ -102,13 +102,17 @@ export const HELMETS = {
   gunpowder: (y) => [part(cyl(0.1, 0.11, 0.2), C.black, { at: [0, y + 0.1, 0] }), part(cyl(0.13, 0.13, 0.02, 8), C.black, { at: [0, y + 0.0, 0.02] }), part(ball(0.025, 4, 3), C.gold, { at: [0, y + 0.13, 0.1] })],
   modern: (y) => [part(dome(0.114), C.darkOlive, { at: [0, y - 0.005, 0], scale: [1, 0.8, 1.1] })]
 };
-HELMETS.information = HELMETS.modern; // the present-day look (KTD15) until U50 dates Modern
-export const BODY_CLOTH = { stone: C.leather, bronze: C.cloth, classical: C.leather, kingdoms: C.darkSteel, gunpowder: C.cloth, modern: C.olive, information: C.olive };
-export const LEG_CLOTH = { stone: C.leather, bronze: C.leather, classical: C.leather, kingdoms: C.darkSteel, gunpowder: C.cloth, modern: C.olive, information: C.olive };
+// Information: a dark helmet with a visor band. Future: a smooth white-grey shell with a cyan visor glow.
+HELMETS.information = (y) => [part(dome(0.114), C.darkSteel, { at: [0, y - 0.005, 0], scale: [1, 0.85, 1.1] }), part(box(0.17, 0.035, 0.03), C.black, { at: [0, y - 0.04, 0.1] })];
+HELMETS.future = (y) => [part(dome(0.118), '#dfe5ea', { at: [0, y, 0], scale: [1, 1, 1.15] }), part(box(0.17, 0.04, 0.03), C.glow, { at: [0, y - 0.03, 0.115] })];
+export const BODY_CLOTH = { stone: C.leather, bronze: C.cloth, classical: C.leather, kingdoms: C.darkSteel, gunpowder: C.cloth, modern: C.olive, information: C.darkOlive, future: '#46505c' };
+export const LEG_CLOTH = { ...BODY_CLOTH, bronze: C.leather };
 
 // A standing person: legs (two bones), torso in team colour, belt, head, age helmet, two arm bones.
 // `skin` picks one of four skin tones; `seat` lifts the whole figure (riders) and drops the legs.
-const person = (ageId, { skin = 0, seat = 0, legs = true } = {}) => {
+let look = null; // the age whose helmet and cloth a borrowed Modern model wears (see the end of MODELS)
+const person = (modelAge, { skin = 0, seat = 0, legs = true } = {}) => {
+  const ageId = look || modelAge;
   const y0 = seat;
   const parts = [];
   if (legs) {
@@ -341,8 +345,14 @@ export const MODELS = {
     ]
   }
 };
-// Information wears today's modern models (KTD15) until U50 dates Modern's.
-Object.values(MODELS).forEach((byAge) => { if (byAge.modern) byAge.information = byAge.modern; });
+// Information and Future borrow the Modern models (KTD15) in their own helmet and cloth, until the
+// art session's files arrive (a vehicle keeps the Modern look). Stone has no worker or air: they
+// take the same fallback as any missing (age, class) pair.
+Object.values(MODELS).forEach((byAge) => {
+  if (!byAge.modern) return;
+  ['information', 'future'].forEach((a) => { byAge[a] = () => { look = a; try { return byAge.modern(); } finally { look = null; } }; });
+});
+MODELS.worker.stone = () => [...person('stone', { skin: 2 }), ...shovel(), ...pack(C.leather)];
 
 const cache = new Map();
 // Artist models (GLB, via registerSoldierGeometry) take precedence over the procedural ones.

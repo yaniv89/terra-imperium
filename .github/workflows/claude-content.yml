@@ -14,6 +14,10 @@ on:
           - hebrew-review
           - glossary-notes
           - event-cards
+          - fact-check
+          - screenshot-qa
+          - playtester
+          - tech-unlocks
       limit:
         description: Only the first N requests (a small trial run); empty for the full job
         required: false
@@ -22,6 +26,14 @@ on:
         description: Refuse to start if the worst-case cost is over this many dollars
         required: false
         default: '10'
+      cards_ref:
+        description: fact-check only, the git ref whose plans/ai-output/event-cards/cards.json is checked
+        required: false
+        default: origin/ai/event-cards-39615084757
+      seeds:
+        description: playtester only, how many 300-turn games to play (seeds 1000, 1001, ...)
+        required: false
+        default: '1'
 permissions:
   contents: write
 concurrency:
@@ -35,6 +47,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false # the job step must not find a GitHub token in .git/config
+          fetch-depth: 0 # every branch, so fact-check can `git show <cards_ref>:<path>`
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -44,15 +57,40 @@ jobs:
         env:
           LIMIT: ${{ inputs.limit }}
           MAX_USD: ${{ inputs.max_usd }}
+          CARDS_REF: ${{ inputs.cards_ref }}
+          SEEDS: ${{ inputs.seeds }}
         run: |
           [[ -z "$LIMIT" || "$LIMIT" =~ ^[0-9]+$ ]] || { echo "limit must be a whole number"; exit 1; }
           [[ "$MAX_USD" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "max_usd must be a number"; exit 1; }
+          [[ "$CARDS_REF" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "cards_ref must be a plain git ref"; exit 1; }
+          [[ "$SEEDS" =~ ^[1-9]$ ]] || { echo "seeds must be 1 to 9"; exit 1; }
+      # screenshot-qa: a build with the QA state hook (VITE_QA_HOOK, never the deployed site), served
+      # by the static preview, shot by scripts/ui/qa-shots.mjs in Playwright's Chromium (software WebGL).
+      - name: Capture the screenshots
+        if: inputs.job == 'screenshot-qa'
+        env:
+          VITE_QA_HOOK: '1'
+          NODE_OPTIONS: --max-old-space-size=12288
+          SWGL: '1'
+        run: |
+          npx playwright install --with-deps chromium
+          npx vite build --outDir dist --emptyOutDir
+          npm run preview > preview.log 2>&1 &
+          for i in $(seq 60); do curl -sf http://localhost:4173/terra-imperium/ > /dev/null && break; sleep 2; done
+          node scripts/ui/qa-shots.mjs --url http://localhost:4173/terra-imperium/ --out plans/ai-output/screenshot-qa/shots
+          du -sh plans/ai-output/screenshot-qa/shots
+      - name: Play the headless games
+        if: inputs.job == 'playtester'
+        env:
+          SEEDS: ${{ inputs.seeds }}
+        run: node scripts/simulate.mjs --policy scripted --turns 300 --games "$SEEDS" --digest plans/ai-output/playtester/digest.json
       - name: Run the job
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           JOB: ${{ inputs.job }}
           LIMIT: ${{ inputs.limit }}
           MAX_USD: ${{ inputs.max_usd }}
+          CARDS_REF: ${{ inputs.cards_ref }}
         run: node "scripts/ai/$JOB.mjs" --max-usd "$MAX_USD" ${LIMIT:+--limit "$LIMIT"}
       - name: Push the results to a new branch
         env:

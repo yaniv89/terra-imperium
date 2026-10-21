@@ -102,9 +102,13 @@ const decidePowers = (w, side, cfg, mine, enemies, orders) => {
     orders.push({ side, type: 'power', power: 'ambush', x: Math.floor(mine.reduce((s, q) => s + q.x, 0) / mine.length), y: Math.floor(mine.reduce((s, q) => s + q.y, 0) / mine.length) });
     return;
   }
+  // Information: jam the enemy once the lines meet, scout with a drone before they do.
+  const engaged = mine.some((q) => q.engaged);
+  if (engaged && ready('cyberJam')) { orders.push({ side, type: 'power', power: 'cyberJam', x: 0, y: 0 }); return; }
+  if (!engaged && ready('droneRecon')) { orders.push({ side, type: 'power', power: 'droneRecon', x: 0, y: 0 }); return; }
   const cluster = densestEnemyCluster(w, side, enemies);
   if (!cluster) return;
-  const strike = ['airStrike', 'artilleryBarrage', 'arrowStorm'].find(ready);
+  const strike = ['airStrike', 'droneStrike', 'artilleryBarrage', 'arrowStorm'].find(ready);
   if (strike && cluster.s >= 1200) orders.push({ side, type: 'power', power: strike, x: cluster.x, y: cluster.y });
 };
 

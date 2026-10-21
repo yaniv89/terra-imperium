@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { AGE_ORDER } from '../../../data/ages';
 import { buildTownGeometry, countBuildings, townTier } from './townModels';
 
 const region = (cats, extraction = {}) => ({ buildings: { categories: cats, extraction } });
@@ -29,5 +30,12 @@ describe('town models', () => {
     const c = buildTownGeometry('de-by', 'medium', { ageId: 'classical' }).attributes.position.array;
     expect(Array.from(a)).toEqual(Array.from(b));
     expect(Array.from(a)).not.toEqual(Array.from(c));
+  });
+
+  it('every age and Future (not registered yet) builds a town of every size without art', () => {
+    [...new Set([...AGE_ORDER, 'future'])].forEach((ageId) => ['small', 'medium', 'big'].forEach((tier) => {
+      expect(buildTownGeometry('fr-75', tier, { ageId, walls: true, capital: true }).attributes.position.count, `${ageId} ${tier}`).toBeGreaterThan(50);
+    }));
+    expect(buildTownGeometry('fr-75', 'big', { ageId: 'future' }).attributes.position.count).not.toBe(buildTownGeometry('fr-75', 'big', { ageId: 'information' }).attributes.position.count);
   });
 });

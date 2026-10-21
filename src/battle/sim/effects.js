@@ -129,9 +129,18 @@ export const POWERS = {
   arrowStorm: { label: 'Arrow Storm', cost: 150, cooldown: S(60), impacts: 6, spread: 3 * Q, every: 10, radius: Math.round(1.5 * Q), damage: 45, structureMult: 0.5, delay: 10 },
   artilleryBarrage: { label: 'Artillery Barrage', cost: 250, cooldown: S(75), impacts: 8, spread: 4 * Q, every: 10, radius: Math.round(1.8 * Q), damage: 90, structureMult: 3, delay: 20 },
   airStrike: { label: 'Air Strike', cost: 300, cooldown: S(90), impacts: 8, line: true, every: 4, radius: Math.round(1.4 * Q), damage: 120, structureMult: 2, delay: 40 },
+  // Information (eight-ages U58): a quick, tight drone strike; Cyber Jam holds every order the
+  // enemy gives for JAM_ORDER_DELAY while it lasts (orders.js applyOrders); Drone Recon shows the
+  // whole field to its side for a while (fog.js revealUntil).
+  droneStrike: { label: 'Drone Strike', cost: 200, cooldown: S(45), impacts: 3, spread: Q, every: 6, radius: Math.round(1.2 * Q), damage: 140, structureMult: 1, delay: 10 },
+  cyberJam: { label: 'Cyber Jam', cost: 200, cooldown: S(90), jam: S(12) },
+  droneRecon: { label: 'Drone Recon', cost: 100, cooldown: S(60), reveal: S(15) },
   // The invasion fleet's guns (amphibious landings): they only reach the shore half of the field.
   navalBombardment: { label: 'Naval Bombardment', cost: 0, cooldown: S(40), impacts: 6, spread: 3 * Q, every: 8, radius: Math.round(1.6 * Q), damage: 100, structureMult: 2.5, delay: 30, reachFrac: 0.5 }
 };
+
+/** How long a jammed side's orders wait (Cyber Jam): 3 seconds. */
+export const JAM_ORDER_DELAY = S(3);
 
 // setup.powers[side] = [{ id, uses? }] — which powers each side brought (fed by real strategic
 // assets: air units, siege, the fleet). Uses default to unlimited (cooldown-gated).
@@ -161,6 +170,8 @@ export const firePower = (w, side, id, x, y) => {
     });
     return true;
   }
+  if (p.jam) { w.jammedUntil[1 - side] = w.tick + p.jam; return true; }
+  if (p.reveal) { if (w.revealUntil) w.revealUntil[side] = Math.max(w.revealUntil[side], w.tick + p.reveal); return true; }
   if (p.hide) { hideAround(w, side, Math.round(x), Math.round(y), p.hide.radius, w.tick + p.hide.duration); return true; }
   const maxX = p.reachFrac ? Math.floor(w.map.w * p.reachFrac) * Q : w.map.w * Q - 1;
   const cx = Math.max(0, Math.min(maxX, Math.round(x))); const cy = Math.max(0, Math.min(w.map.h * Q - 1, Math.round(y)));

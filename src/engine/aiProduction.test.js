@@ -65,6 +65,13 @@ describe('AI production by utility (plans/math/ai.md)', () => {
     expect(chooseProduction(war, city, ctx(war, 0))).toMatchObject({ kind: 'unit' });
     expect(chooseProduction(s0, city, ctx(s0, 0)).kind).toBe('building');
   });
+  it('from Modern an army at war keeps a share of aircraft beside its archers (U57)', () => {
+    const { st: s0, city } = setup('attrition');
+    const war = { ...s0, wars: [{ id: 'w', active: true, aggressor: FAR, enemy: D }] };
+    const late = (air) => ({ ...ctx(war, 6), ageId: 'information', citiesOwned: 10, counts: { settlers: 1, outposts: 0, landUnits: 6, ranged: 2, air } });
+    expect(chooseProduction(war, city, late(0))).toMatchObject({ kind: 'unit', classId: 'air' });
+    expect(chooseProduction(war, city, late(2))).toMatchObject({ kind: 'unit', classId: 'infantry' });
+  });
 });
 
 describe('AI resource improvements (lane W6)', () => {

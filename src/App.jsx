@@ -17,6 +17,8 @@ import SettingsSheet from './components/ui/SettingsSheet';
 import TurnReportSheet from './components/ui/TurnReportSheet';
 import NationOverviewSheet from './components/ui/NationOverviewSheet';
 import GlossarySheet from './components/glossary/GlossarySheet';
+import WorldCongressSheet from './components/panels/WorldCongressSheet';
+import { useHoldHelp } from './hooks/useHoldHelp';
 import { OPEN_SETTINGS } from './components/ui/uiEvents';
 import { SELECT_REGION, openCityOnMap } from './components/map/marchEvents';
 import WaitingChips from './components/ui/WaitingChips';
@@ -46,6 +48,8 @@ import { unlockSfx } from './audio/sfx';
 import { installUiSounds } from './audio/uiSounds';
 import { getSupabaseClient, isCloudSaveConfigured } from './services/supabaseClient';
 import { ChallengeEntry, ChallengeBanner } from './components/challenges/ChallengeSheet';
+// shortcut: weekly challenge hidden until its Supabase deploy (plans/U36-DEPLOY.md) is done; flip to true then.
+const CHALLENGES_ON = false;
 import { getCurrentUser, onAuthStateChange, getProfile } from './services/auth';
 import { lazyWithReload } from './utils/lazyWithReload';
 import RotateOverlay from './components/ui/RotateOverlay';
@@ -71,6 +75,7 @@ const GameLayout = () => {
   const { state, dispatch, resolveEvent, resetGame, importSave, meta, completeOnboarding } = useGame();
   const { t, name: nm } = useT();
   const { triggerEffect } = useEffects();
+  useHoldHelp();
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [showAccount, setShowAccount] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
@@ -281,7 +286,7 @@ const GameLayout = () => {
     );
   }
   if (showStartScreen) {
-    return <><StartScreen onStart={handleStart} onBackToTitle={cameFromTitle ? backToTitle : undefined} /><ChallengeEntry onStart={handleStart} /><OldSaveNotice /></>;
+    return <><StartScreen onStart={handleStart} onBackToTitle={cameFromTitle ? backToTitle : undefined} headerExtra={CHALLENGES_ON ? <ChallengeEntry onStart={handleStart} /> : null} /><OldSaveNotice /></>;
   }
 
   return (
@@ -370,6 +375,9 @@ const GameLayout = () => {
       {/* The nation overview (W17), from the name on the top bar */}
       <NationOverviewSheet />
       <GlossarySheet />
+
+      {/* The World Congress (eight-ages U60), opened from the Diplomacy tab */}
+      <WorldCongressSheet />
 
       {/* Age Advance banner - non-blocking, auto-dismisses (plan §10.5's "showpiece") */}
       <AgeAdvanceBanner ageName={ageBanner} onDismiss={() => setAgeBanner(null)} />

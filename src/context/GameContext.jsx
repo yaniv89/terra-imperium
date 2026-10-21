@@ -185,6 +185,7 @@ export const GameProvider = ({ children }) => {
   // lives in memory, so a reload mid-challenge ends the run; upgrade to a stored log if players ask.
   const challengeLogRef = useRef(null);
   const dispatch = useCallback((action) => {
+    if (challengeLogRef.current && action?.type === ActionTypes.FAST_FORWARD) return; // the verifier counts one turn per End Turn: no fast-forward in a challenge
     lastActionRef.current = action;
     if (action?.type === ActionTypes.LOAD_GAME || action?.type === ActionTypes.RESET_GAME) challengeLogRef.current = null;
     else if (challengeLogRef.current) challengeLogRef.current = logAction(challengeLogRef.current, action);
@@ -196,9 +197,10 @@ export const GameProvider = ({ children }) => {
     if (prev === state || !action) return;
     try { playSounds(soundsForTransition(prev, state, action)); } catch (e) { /* sound never breaks the game */ }
   }, [state]);
-  // Dev builds only: read the state and dispatch from the console or a browser check.
+  // Dev builds only: read the state and dispatch from the console or a browser check. A build made
+  // with VITE_QA_HOOK=1 (the screenshot-qa job, never the deployed site) keeps it too.
   useEffect(() => {
-    if (!import.meta.env.DEV) return undefined;
+    if (!import.meta.env.DEV && import.meta.env.VITE_QA_HOOK !== '1') return undefined;
     window.__game = { state, dispatch };
     return () => { delete window.__game; };
   }, [state, dispatch]);

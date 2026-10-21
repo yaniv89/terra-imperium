@@ -1,7 +1,7 @@
 // Gesture disambiguation (Tactical Battles plan §11.2): each gesture is decided early and never
 // turns into another — panning can't open a menu, a second finger always means pinch.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createGestureRecognizer, LONG_MS } from './gestures';
+import { createGestureRecognizer, LONG_MS, insidePolygon } from './gestures';
 import { decidePointer, selectionAfter } from './selection';
 
 const makeEl = () => {
@@ -124,6 +124,18 @@ describe('battle gestures', () => {
       expect(h.lassoDrag).toHaveBeenCalled();
       expect(h.lassoEnd).toHaveBeenCalledTimes(1);
       expect(h.pan).not.toHaveBeenCalled();
+    });
+
+    it('a closed loop selects by polygon, an open drag keeps the box, and a long hold does not fire during a drag', () => {
+      down(1, 150, 100); clock += 30;
+      [[190, 120], [200, 160], [170, 195], [130, 190], [105, 150], [120, 110], [148, 102]].forEach(([x, y]) => move(1, x, y));
+      up(1, 150, 104);
+      expect(h.lassoEnd.mock.calls[0][2].polygon.length).toBeGreaterThan(6);
+      selectMode = true;
+      down(2, 100, 100); clock += 30; move(2, 140, 130); move(2, 180, 170); up(2, 180, 170);
+      expect(h.lassoEnd.mock.calls[1][2].polygon).toBeNull();
+      vi.advanceTimersByTime(LONG_MS + 50);
+      expect(h.longPress).not.toHaveBeenCalled();
     });
 
     it('wins over a formation drag from a selected squad', () => {
@@ -302,5 +314,13 @@ describe('battle controls: select, deselect, order', () => {
     tap(100, 100);
     state = selectionAfter(state, { do: 'deselect' });
     expect(state).toEqual({ ids: [], building: null });
+  });
+});
+
+describe('insidePolygon', () => {
+  it('tells inside from outside', () => {
+    const sq = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }, { x: 0, y: 10 }];
+    expect(insidePolygon({ x: 5, y: 5 }, sq)).toBe(true);
+    expect(insidePolygon({ x: 15, y: 5 }, sq)).toBe(false);
   });
 });

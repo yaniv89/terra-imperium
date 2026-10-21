@@ -35,7 +35,7 @@ const NOROUT = process.env.NOROUT === 'attacker' ? 0 : process.env.NOROUT === 'd
 const noRout = (setup) => { if (NOROUT >= 0) setup.sides[NOROUT].canRout = false; return setup; };
 const TIER = process.env.TIER || 'medium';
 const TYPES = (process.env.TYPES || 'field,assault').split(',');
-const AGE_PAIRS = (process.env.AGES || 'stone:stone,stone:bronze,stone:classical,stone:kingdoms,bronze:bronze,classical:classical,kingdoms:kingdoms,gunpowder:gunpowder,modern:modern').split(',').map((p) => p.split(':'));
+const AGE_PAIRS = (process.env.AGES || 'stone:stone,stone:bronze,stone:classical,stone:kingdoms,bronze:bronze,classical:classical,kingdoms:kingdoms,gunpowder:gunpowder,modern:modern,gunpowder:modern,modern:information,information:information,kingdoms:information,classical:information').split(',').map((p) => p.split(':'));
 const MATCHUPS = [
   [['infantry', 'infantry', 'ranged'], ['infantry', 'infantry', 'ranged']],
   [['infantry', 'infantry', 'infantry', 'cavalry', 'ranged'], ['infantry', 'ranged']],

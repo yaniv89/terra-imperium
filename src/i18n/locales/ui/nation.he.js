@@ -80,6 +80,7 @@ export default {
   'op.d.ae': '{n} התפשטות',
   'op.d.sinceTurn': 'מאז תור {n}',
   'op.d.untilTurn': 'עד תור {n}',
+  'op.sanctionedUs': 'הטילו עלינו סנקציות',
   'nc.peaceTreaty': 'הסכם שלום',
   'nc.tradeCut': 'הסכם סחר: הנתיב נחתך',
   'nc.tradeNothing': 'הסכם סחר: לא משלם דבר',

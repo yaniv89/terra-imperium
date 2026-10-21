@@ -1,6 +1,6 @@
 # Projectiles: `<age>.glb`
 
-One file per age (`bronze.glb` ... `modern.glb`), read by `src/battle/art/projectiles.js`. Spec:
+One file per age (`stone.glb` ... `future.glb`, the eight of `src/data/ages.js`), read by `src/battle/art/projectiles.js`. Spec:
 `plans/ART-MODELS-PLAN.md` 8.3.
 
 ## Objects

@@ -6,9 +6,10 @@
 // RESOLUTION_ORDER (src/data/worldCongress.js), skipping sanctions while no major is thought badly of.
 //
 // A member's vote weighs 1 + its trade agreements + its alliances and defensive pact. AI members
-// vote by opinion: sanctions on a nation they think badly of (below 0; the target votes no), a
-// trade standard or an arms limit when they think well enough (0 or more) of the host, never an
-// arms limit while at war. A resolution passes when the yes weight beats the no weight.
+// vote by opinion plus their doctrine's lean (DOCTRINE_VOTE_LEAN): sanctions by how badly they
+// think of the target (the target votes no), a trade standard or an arms limit by how well they
+// think of the host (the host votes yes), never an arms limit while at war; a middling score
+// abstains. A resolution passes when the yes weight beats the no weight.
 // A passed trade standard or arms limit is a timed modifier on every member; passed sanctions cut
 // the player's trade route to each signer (tradeValue.js), cost an AI target SANCTIONS_AI_GOLD_MULT
 // gold and give the target the "sanctioned us" opinion of every signer (opinion.js). Each lasts
@@ -17,7 +18,7 @@
 // state.worldCongress = { hostId, nextVoteTurn, proposal: { id, targetId? }, playerVote, votes,
 //   sanctions: [{ targetId, signers, untilTurn }], record: [{ turn, id, targetId, passed, yes, no }] }
 // Absent until the first member sits (old saves need nothing).
-import { CONGRESS_TECH, CONGRESS_SPAN_REF_TURNS, RESOLUTION_SPANS, CONGRESS_RECORD_MAX, RESOLUTION_ORDER, RESOLUTIONS, SANCTIONS_AI_GOLD_MULT } from '../data/worldCongress';
+import { CONGRESS_TECH, CONGRESS_SPAN_REF_TURNS, RESOLUTION_SPANS, CONGRESS_RECORD_MAX, RESOLUTION_ORDER, RESOLUTIONS, SANCTIONS_AI_GOLD_MULT, VOTE_YES_AT, VOTE_NO_BELOW, DOCTRINE_VOTE_LEAN } from '../data/worldCongress';
 import { isIndependentNation } from '../data/independents';
 import { speedTurns } from '../data/ages';
 import { ageOf, getResearched } from './nationState';
@@ -40,11 +41,15 @@ export const voteWeight = (state, id) => {
   return 1 + others.filter((o) => o.hasTradeAgreement).length + others.filter((o) => o.hasMilitaryPact).length + pact;
 };
 
-/** How an AI member votes on `proposal`: 'yes' or 'no'. */
+/** How an AI member votes on `proposal`: 'yes', 'no' or 'abstain'. */
 export const aiVote = (state, voterId, proposal, hostId) => {
-  if (proposal.id === 'sanctions') return voterId !== proposal.targetId && opinionOf(state, voterId, proposal.targetId) < 0 ? 'yes' : 'no';
+  const sanctions = proposal.id === 'sanctions';
+  if (sanctions && voterId === proposal.targetId) return 'no';
   if (proposal.id === 'armsLimit' && state.nations[voterId].isAtWar) return 'no';
-  return voterId === hostId || opinionOf(state, voterId, hostId) >= 0 ? 'yes' : 'no';
+  if (!sanctions && voterId === hostId) return 'yes';
+  const lean = DOCTRINE_VOTE_LEAN[proposal.id]?.[state.nations[voterId].doctrine] || 0;
+  const score = (sanctions ? -opinionOf(state, voterId, proposal.targetId) : opinionOf(state, voterId, hostId)) + lean;
+  return score >= VOTE_YES_AT ? 'yes' : score < VOTE_NO_BELOW ? 'no' : 'abstain';
 };
 
 // Sanctions target the living major the members think worst of, summed (ties by id); none below 0, none.

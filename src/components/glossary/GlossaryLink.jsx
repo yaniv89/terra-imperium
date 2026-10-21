@@ -11,7 +11,7 @@ const GlossaryLink = ({ kind, id, children, className = '' }) => {
   return (
     <button type="button" onClick={(e) => { e.stopPropagation(); openGlossary(kind, id); }}
       aria-label={t('gloss.open', { name: typeof children === 'string' ? children : id })}
-      className={`underline decoration-dotted underline-offset-2 hover:text-fa-text ${className}`} data-testid="glossary-link">
+      className={`underline decoration-dotted underline-offset-2 hover:text-fa-text ${className}`} data-testid="glossary-link" data-help={`${kind}:${id}`}>
       {children}
     </button>
   );
