@@ -11,7 +11,8 @@
 //   the player and every nation in a military alliance with it, add each other's explored tiles.
 // - CONTACT needs sight: nation A meets nation B the first time A sees one of B's tiles or units
 //   (or B sees A's: meeting is mutual). Peoples whose cities lie in each other's homeland have met
-//   at the start. Diplomacy with a people you have not met is closed (gameReducer.js), the AI only
+//   at the start, and every major has heard of the majors near it (START_CONTACT_KM, at least the
+//   nearest one): it knows where their capitals stand. Diplomacy with a people you have not met is closed (gameReducer.js), the AI only
 //   picks war targets it has met (aiLogic.js) and settles only explored land (settlers.js).
 // - The player also keeps a LAST SEEN picture of every tile it has seen: which city held it, the
 //   improvement on it and the turn it was seen; and of every city seen: owner, name, size, town
@@ -32,6 +33,7 @@
 // Pure: copies on write (a nation's bitset is copied only when it gains a tile), deterministic
 // (fixed iteration orders, no randomness).
 import { getTiles, onWorldChange } from '../data/geo/tiles';
+import { distanceKm } from '../data/geo/geodesic';
 import { ringsForKm } from '../data/geo/gridScale';
 import { SIGHT_LAND_KM, SIGHT_ARMY_KM, SIGHT_HILLS_BONUS_KM, SIGHT_FLEET_KM, visibleTiles } from './sight';
 import { unitTile } from './armies';
@@ -42,6 +44,15 @@ import { metOnlyBySight } from './hostility';
 
 /** How far around its cities a people knows the world at the start (km). */
 export const START_KNOWN_KM = 1000;
+/** First contact (the playtests of 21 October: nobody met anyone for 30 turns): at the start every
+ * major has heard of the majors whose capital lies within this many km of its own (about four turns
+ * of an infantry march), and always of the nearest one. Both know the land around the other's home
+ * (START_CONTACT_SIGHT_KM), and the player remembers the capital of every people it has met once
+ * that capital's tile is on its map (updateSeen). Independents still meet only by sight. */
+export const START_CONTACT_KM = 1200;
+/** How far around a first contact's home its land is known: a band founds its village within
+ * settlers.js BAND_RANGE_KM (230) of home, so its capital falls inside. */
+export const START_CONTACT_SIGHT_KM = 300;
 
 // ---------------------------------------------------------------- packed arrays with RLE saves
 
@@ -300,7 +311,7 @@ const ownerAt = (state) => {
 const snapshotCity = (c) => ({ id: c.id, name: c.name, owner: c.owner || null, size: c.size || 1, tile: c.tile, isCapital: !!c.isCapital, tier: c.outpost ? 'outpost' : townTier(c)?.id || 'small', buildings: c.buildings || null, outpost: c.outpost ? { progress: c.outpost.progress } : null });
 
 /** The player's last-seen picture updated for the tiles it sees now. */
-const updateSeen = (state, seen, visible) => {
+const updateSeen = (state, seen, visible, known = null) => {
   const tileOwner = state.world?.tileOwner || {};
   const tileState = state.world?.tileState || {};
   const turn = state.turnNumber || 0;
@@ -324,10 +335,13 @@ const updateSeen = (state, seen, visible) => {
       if (imp || road) improvements[t] = road ? { i: imp, r: 1 } : { i: imp }; else delete improvements[t];
     }
   });
+  const p = state.playerNationId;
+  const metP = known?.met?.[p]; const exploredP = known?.explored?.[p];
   Object.values(state.regions).forEach((c) => {
     if (c.tile == null) return;
     const centre = visible.has(c.tile);
-    if (!centre && !bordersSeen.has(c.id)) return;
+    // The capital of a people met is known once its tile is on the map (first contact, initFog).
+    if (!centre && !bordersSeen.has(c.id) && !(c.isCapital && !cities[c.id] && metP?.[c.owner] != null && bitsHas(exploredP, c.tile))) return;
     if (centre) visibleCities.add(c.id);
     const snap = snapshotCity(c);
     const old = cities[c.id];
@@ -403,8 +417,8 @@ export const updateFog = (state, { onlyPlayer = false } = {}) => {
     }
   });
   if (!onlyPlayer) mapSharingPairs(state).forEach(([a, b]) => { unionInto(writer, writer.explored, a, b); unionInto(writer, writer.explored, b, a); });
-  const seen = state.nations[p] ? updateSeen(state, fog.seen || emptySeen(), playerVisible) : fog.seen;
   const explored = writer.explored(); const met = writer.met();
+  const seen = state.nations[p] ? updateSeen(state, fog.seen || emptySeen(), playerVisible, { met, explored }) : fog.seen;
   if (explored === fog.explored && met === fog.met && seen === fog.seen) return state;
   return { ...state, fog: { ...fog, explored, met, seen } };
 };
@@ -437,6 +451,25 @@ export const initFog = (state, { on = true } = {}) => {
       if (o && o !== id && state.nations[o] && !metOnlyBySight(state, o) && !metOnlyBySight(state, id)) { (met[id] ||= {})[o] = state.turnNumber || 1; (met[o] ||= {})[id] = state.turnNumber || 1; }
     });
     explored[id] = new TileBits(bytes);
+  });
+  // First contact: each major and the majors near it (START_CONTACT_KM, at least the nearest),
+  // from its capital, or its band's home before its first village (a new game, settlers.js makeBand).
+  const homeTile = new Map();
+  Object.values(state.regions).forEach((c) => { if (c.owner && c.tile != null && (c.isCapital || !homeTile.has(c.owner))) homeTile.set(c.owner, c.tile); });
+  Object.values(state.units || {}).forEach((u) => { if (u.band?.home != null && !homeTile.has(u.ownerId)) homeTile.set(u.ownerId, u.band.home); });
+  const majors = [...homeTile.keys()].filter((id) => alive(state.nations[id]) && !metOnlyBySight(state, id)).sort();
+  const knownRings = ringsForKm(START_CONTACT_SIGHT_KM);
+  majors.forEach((a) => {
+    const near = majors.filter((b) => b !== a).map((b) => ({ b, km: distanceKm(tiles.centres[homeTile.get(a)], tiles.centres[homeTile.get(b)]) }))
+      .sort((x, y) => x.km - y.km || (x.b < y.b ? -1 : 1));
+    near.forEach(({ b, km }, i) => {
+      if (i > 0 && km > START_CONTACT_KM) return;
+      (met[a] ||= {})[b] ??= state.turnNumber || 1; (met[b] ||= {})[a] ??= state.turnNumber || 1;
+      [[a, b], [b, a]].forEach(([x, y]) => {
+        const bits = (explored[x] ||= new TileBits(new Uint8Array(byteCount(tiles.count)))).bytes;
+        walk(tiles, [homeTile.get(y)], knownRings, mark, ++stamp, (t) => setBit(bits, t));
+      });
+    });
   });
   return updateFog({ ...state, fog: { on: true, explored, met, seen: emptySeen() } });
 };

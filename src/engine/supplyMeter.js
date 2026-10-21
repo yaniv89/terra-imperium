@@ -120,6 +120,23 @@ export const supplyChange = (state, tiles, unit, { lineRings = SUPPLY_LINE_RINGS
   return { zone, delta, change: Math.round(change * mult), hungry: !!hungry, overStack, mult };
 };
 
+/** What the meter of a stack would do on `tile` (the march bar warns before a march leaves supply):
+ * the fastest-falling unit's change a turn there and the whole turns its meter lasts from now
+ * ({ change, turns }), or null where the stack refills or holds (scouts carry no meter).
+ * shortcut: no hunger, stack size or modifiers (supplyChange's defaults), so a hungry nation starves sooner; pass them if the bar must be exact. */
+export const supplyAtTile = (state, units, tile) => {
+  const tiles = getTiles();
+  let worst = null;
+  units.forEach((u) => {
+    if (isExplorer(u) || isSettler(u)) return;
+    const { change } = supplyChange(state, tiles, { ...u, tile });
+    if (change >= 0) return;
+    const turns = Math.floor(supplyOf(u) / -change);
+    if (!worst || turns < worst.turns) worst = { change, turns };
+  });
+  return worst;
+};
+
 /** What the army sheet says about a stack's supply (plans/playtest-1.md P2.2): the meter, this
  * turn's real change (supplyChange: the same number the turn applies), the turns left, whether it
  * starves, the distance to your border, the line's reach and the lever to pull.

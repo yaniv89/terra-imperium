@@ -19,7 +19,7 @@ export const MarchProvider = ({ children }) => {
   const [march, setMarch] = useState(null);
 
   useEffect(() => {
-    const onStart = (e) => setMarch({ from: e.detail.from, naval: !!e.detail.naval, unitIds: e.detail.unitIds || null, target: null });
+    const onStart = (e) => setMarch({ from: e.detail.from, naval: !!e.detail.naval, unitIds: e.detail.unitIds || null, target: e.detail.target ?? null });
     window.addEventListener(START_MARCH, onStart);
     return () => window.removeEventListener(START_MARCH, onStart);
   }, []);

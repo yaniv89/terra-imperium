@@ -490,6 +490,7 @@ export default {
   'march.suppliesCount.other': '{count} supplies',
   'march.moveNowNote': ' Move now arrives this turn.',
   'march.halts': ' Halts at {place} to attack.',
+  'march.supplyOut': 'Out of supply there: {change} a turn, the army starves in about {turns}.',
   'march.attack': 'Attack',
   'march.marchAttack': 'March to attack',
   'march.moveNow': 'Move now',

@@ -52,7 +52,7 @@ const NationSheet = ({ nationId, onClose, onSelectRegion }) => {
         {(m.claims.mine || m.claims.theirs) ? <div>{m.claims.mine ? t('ns.claimsMine', { count: m.claims.mine }) : ''}{m.claims.theirs ? t('ns.claimsTheirs', { count: m.claims.theirs }) : ''}</div> : null}
         {m.wonders.length > 0 && <div className="text-yellow-200">{t('ns.wonders', { list: m.wonders.join(', ') })}</div>}
       </div>
-      <NationCard nation={state.nations[nationId]} hideTitle />
+      <NationCard nation={state.nations[nationId]} hideTitle onLeave={onClose} />
     </>
   );
   if (isMobile) {

@@ -5,7 +5,7 @@
 // main actions as tiles that say before you try whether they would accept or refuse (and why, in
 // one line under them), and the long tail of secondary actions behind "More actions".
 import React, { useState } from 'react';
-import { Target, Gift, Eye, Heart, Users, Crown, Ban, AlertTriangle, ChevronDown, ChevronUp, DoorOpen, Scale, Milestone } from 'lucide-react';
+import { Target, Gift, Eye, Heart, Users, Crown, Ban, AlertTriangle, ChevronDown, ChevronUp, DoorOpen, Scale, Milestone, MapPin, Flag } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { Chip } from '../ui/atlas';
 import { askConfirm } from '../ui/ConfirmActionDialog';
@@ -30,6 +30,10 @@ import { canAnnex as pastVillage } from '../../engine/stonePhase';
 import { isAgeBefore } from '../../data/ages';
 import { tradeRouteStatus } from '../../engine/tradeDisruptions';
 import MapTradeBox from './MapTradeBox';
+import { peopleWhere } from './peopleWhere';
+import { focusPlace, startMarch } from '../map/marchEvents';
+import { closePanels } from './panelEvents';
+import { canAttack } from '../../engine/hostility';
 import { hasKey } from '../../i18n/core';
 import { useT } from '../../i18n/useT';
 import { nameNow } from '../../i18n/names';
@@ -87,7 +91,7 @@ const Tile = ({ label, sub, onClick, refuse, looksDisabled, testId }) => (
 // One nation's relation card. Local `expanded` state gates the long tail of secondary actions
 // behind a "More" toggle (plan feedback) — 1-2 primary actions (whichever is relevant to the
 // current relationship) always stay visible.
-export const NationCard = ({ nation, hideTitle = false }) => {
+export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels }) => {
   const { state, dispatch, addLog } = useGame();
   const { t } = useT();
   const { triggerEffect } = useEffects();
@@ -102,6 +106,8 @@ export const NationCard = ({ nation, hideTitle = false }) => {
   };
 
   const atWarWithPlayer = isAtWarWithPlayer(state, nation.id);
+  const where = peopleWhere(state, nation.id);
+  const marchCity = where.cities.find((c) => c.id === where.march?.target) || (!where.march ? where.cities[0] : null);
   // War score (plan §M13), shown from the player's own perspective regardless of which side of
   // the war record (aggressor/enemy) the player happens to be.
   const activeWar = state.wars.find(w => w.active && isWarBetween(w, state.playerNationId, nation.id));
@@ -203,10 +209,32 @@ export const NationCard = ({ nation, hideTitle = false }) => {
           <span className={`absolute inset-y-0 rounded-full ${opinion >= 0 ? 'bg-fa-good' : 'bg-fa-danger'}`} style={opinion >= 0 ? { insetInlineStart: '50%', width: `${Math.min(50, opinion / 2)}%` } : { insetInlineEnd: '50%', width: `${Math.min(50, -opinion / 2)}%` }} />
         </div>
         <div className="flex flex-wrap gap-x-3 text-[12px] text-fa-muted mt-1.5">
-          <span>{t('nc.army')} {hasIntel(state, nation.id) ? <span className="fa-num text-fa-text">{formatNumber(getFieldedStrength(state, nation.id))}</span> : <span className="fa-num" title={t('nc.armyUnknown')}>?</span>}</span>
+          <span>{t('nc.army')} {hasIntel(state, nation.id) ? <span className="fa-num text-fa-text">{formatNumber(getFieldedStrength(state, nation.id))}</span> : where.armyStrength > 0 ? <span className="text-fa-text" title={t('nc.armyUnknown')}>{t('nc.armySeen', { n: formatNumber(where.armyStrength) })}</span> : <span title={t('nc.armyUnknown')}>{t('nc.notSeen')}</span>}</span>
           {atWarWithPlayer && <span>{t('nc.warExhaustion')} <span className="fa-num text-fa-text">{Math.round(nation.warExhaustion || 0)}</span></span>}
           {atWarWithPlayer && activeWar && <span>{t('nc.warScore')} <span className={`fa-num ${playerWarScore >= 0 ? 'text-fa-good' : 'text-fa-danger-text'}`}>{playerWarScore >= 0 ? '+' : ''}{playerWarScore}</span></span>}
         </div>
+        {/* Where they are (peopleWhere.js): the cities you know, their armies in sight, and the way there. */}
+        <p className="text-[12px] text-fa-muted mt-1.5" data-testid="people-where">
+          {where.places.length === 0 ? t('nc.whereNone') : <>
+            {where.cities.length > 0 && <>{t('nc.whereKnown', { cities: where.cities.map((c) => (c.isCapital ? t('nc.capitalMark', { name: nameNow('city', null, c.name) }) : nameNow('city', null, c.name))).join(', ') })}. </>}
+            {where.armies.length > 0 ? t('nc.whereArmies', { count: where.armies.length }) : atWarWithPlayer ? t('nc.whereNoArmy') : ''}{where.armies.length > 0 || atWarWithPlayer ? '.' : ''}
+          </>}
+        </p>
+        {where.places.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-1.5">
+            <IconButton icon={MapPin} label={t('nc.showOnMap')} onClick={() => { onLeave(); focusPlace(where.places); }} />
+            {atWarWithPlayer && canAttack(state, state.playerNationId, nation.id) && (
+              <IconButton icon={Flag} label={marchCity ? t('nc.marchTo', { name: nameNow('city', null, marchCity.name) }) : t('nc.marchToArmy')} disabled={!where.march}
+                onClick={() => {
+                  if (!where.march) return addLog(t('nc.noArmyToMarch'), 'action');
+                  onLeave();
+                  startMarch(where.march.from, { unitIds: where.march.unitIds, target: where.march.target });
+                  focusPlace([typeof where.march.target === 'number' ? { tile: where.march.target } : { regionId: where.march.target }]);
+                  return undefined;
+                }} />
+            )}
+          </div>
+        )}
       </div>
 
       {(nation.hasPeaceTreaty || nation.hasTradeAgreement || nation.hasMilitaryPact || bordersOpen || truceActive || isRival || hasDiplomatAssigned || claimsAgainst(state, player.id, nation.id).length > 0 || (player.claimsInProgress || []).some((c) => state.regions[c.cityId]?.owner === nation.id)) && (

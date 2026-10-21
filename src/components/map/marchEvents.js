@@ -4,7 +4,8 @@
 export const START_MARCH = 'ti:start-march';
 // `naval`: the fleets in that port sail instead of the army marching.
 // `unitIds`: only these units (the army sheet marches the stack on one tile, not the whole base).
-export const startMarch = (fromRegionId, { naval = false, unitIds = null } = {}) => window.dispatchEvent(new CustomEvent(START_MARCH, { detail: { from: fromRegionId, naval, unitIds } }));
+// `target`: a city id or a tile already chosen (the Peoples card's "March to", the army sheet's explore hint).
+export const startMarch = (fromRegionId, { naval = false, unitIds = null, target = null } = {}) => window.dispatchEvent(new CustomEvent(START_MARCH, { detail: { from: fromRegionId, naval, unitIds, target } }));
 // Open the army sheet for the stack on `tile`, or the tile sheet for `tile` (the next prompt).
 export const SELECT_ARMY = 'ti:select-army';
 export const SELECT_TILE = 'ti:select-tile';
