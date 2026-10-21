@@ -312,10 +312,13 @@ const play = async (opts, log = console.log) => {
   const covered = new Set();
   let spent = 0; let step = 0; let stopped = null;
   const browser = await launchBrowser({ args: ['--disable-dev-shm-usage'] });
+  let g = null;
   try {
     for (const seg of segments) {
       if (stopped) break;
-      const g = await openGame(browser, battle ? { ...opts, url: seg.url, ready: '[data-testid=sandbox-ageId]' } : opts);
+      // Battles share one tab, as a player would: the first-battle tips show once, not in every age.
+      if (battle && g) { await g.page.goto(seg.url, { timeout: 240000 }); await g.page.getByTestId('sandbox-ageId').waitFor({ timeout: 300000 }); }
+      else g = await openGame(browser, battle ? { ...opts, url: seg.url, ready: '[data-testid=sandbox-ageId]' } : opts);
       const seen = { drawn: false };
       if (seg.save) {
         // A slice that does not show the game is the harness's fault: log it and skip, never let the model play a black screen.
@@ -360,7 +363,7 @@ const play = async (opts, log = console.log) => {
         if (failed) { write({ ...base, name: 'harness-error', error: failed }); break; }
         if (act.name !== 'note') { prev = now; now = await shoot(); }
       }
-      await g.ctx.close();
+      if (!battle) await g.ctx.close();
     }
   } finally { await browser.close(); }
   return { diary, spent, stopped, covered: [...covered], segments: segments.map((s) => s.id) };
