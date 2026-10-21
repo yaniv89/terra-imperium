@@ -749,23 +749,25 @@ describe('resolveTurn AI war declarations', () => {
   });
 
   it('an aggressive, hostile Tier 1 neighbor eventually declares war on its own, wired end-to-end through resolveTurn', () => {
-    // R1 borders the player (P), which makes it Tier 1 every turn regardless of ranking.
-    // zealot + hostility 100 gives it the highest available per-turn roll chance; run enough
+    // zealot + hostility 100 gives R1 the highest available per-turn roll chance; run enough
     // turns that failing to ever roll it is astronomically unlikely (this is an integration test
     // of the real wiring, not a probability estimate — aiLogic.test.js covers the exact odds).
-    // Waits for a war DE itself declared: with multi-front wars another nation may declare on DE
+    // A large reserve (militaryStrength) makes a war on its neighbour worth it (warOdds.js
+    // warValue > 0): without it the war's value decides, and research pace alone moved R1 from
+    // one war at turn 147 to none in 300 turns (U47).
+    // Waits for a war R1 itself declared: with multi-front wars another nation may declare on R1
     // first, which makes it isAtWar without it having declared anything. Fixed seed: reproducible.
-    // R1 starts in the Bronze Age: a Stone people cannot take cities before Agriculture and Chiefdoms (U32),
-    // and since U47's slower Stone research the default world may not get there within 300 turns.
-    const base = withAgesResearched(world(2024), R1, 'bronze');
+    const base = world(2024);
     let state = withAllEventsFired({
       ...base,
       // The floor keeps hostility at 100 (it would otherwise decay a point a turn and take the
       // roll chance with it), so the premise above holds for the whole run.
-      nations: { ...base.nations, [R1]: { ...base.nations[R1], doctrine: 'zealot', hostility: 100, hostilityFloor: 100 } }
+      nations: { ...base.nations, [R1]: { ...base.nations[R1], doctrine: 'zealot', hostility: 100, hostilityFloor: 100, militaryStrength: 5000 } }
     });
     let warDeclared = false;
     for (let i = 0; i < 300 && !warDeclared; i++) {
+      // A peace offer to the player stops the turn (CLAUDE.md): refuse it and go on.
+      if (state.pendingPeaceOffer) state = gameReducer(state, { type: ActionTypes.REJECT_PENDING_PEACE });
       state = resolveTurn(state);
       if (state.wars.some(w => w.aggressor === R1)) warDeclared = true;
     }
