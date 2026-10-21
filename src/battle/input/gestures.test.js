@@ -96,6 +96,15 @@ describe('battle gestures', () => {
     expect(h.pan).not.toHaveBeenCalled();
   });
 
+  it('double-tap then drag still lassos when the recognizer is rebuilt between the taps', () => {
+    const memory = { lastTapAt: -1000, lastTapPos: null };
+    dispose(); dispose = createGestureRecognizer(el, h, memory);
+    down(1, 100, 100); clock += 80; up(1, 100, 100);
+    dispose(); dispose = createGestureRecognizer(el, h, memory); // a tap changes the selection, so the screen rebuilds it
+    clock += 120; down(1, 100, 100); clock += 30; move(1, 180, 170); up(1, 180, 170);
+    expect(h.lassoEnd).toHaveBeenCalledTimes(1);
+  });
+
   it('a tap then a drag from somewhere else pans (H-27)', () => {
     down(1, 100, 100); clock += 80; up(1, 100, 100);
     clock += 120; down(1, 400, 250); clock += 30; move(1, 300, 200); up(1, 300, 200);

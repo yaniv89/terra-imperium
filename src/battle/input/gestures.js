@@ -45,14 +45,13 @@ export const insidePolygon = (pt, poly) => {
   return inside;
 };
 
-export const createGestureRecognizer = (el, h) => {
+// `memory` carries the last tap across recognizers: the screen rebuilds the recognizer whenever its handlers change (a tap changes the selection), which must not forget the first tap of a double-tap.
+export const createGestureRecognizer = (el, h, memory = { lastTapAt: -1000, lastTapPos: null }) => {
   const pointers = new Map();
   let mode = 'idle';
   let start = null;
   let last = null;
   let longTimer = null;
-  let lastTapAt = -1000;
-  let lastTapPos = null;
   let pinch = null;
   let fromSelectMode = false; // this lasso was drawn in select mode (not a double-tap)
   let trail = []; // the points of a path being drawn (U38)
@@ -93,7 +92,7 @@ export const createGestureRecognizer = (el, h) => {
     if (h.isPathMode?.()) { mode = 'path-armed'; trail = [p]; return; }
     const onSelected = h.isOnSelectedSquad?.(p);
     fromSelectMode = !!h.isSelectMode?.();
-    mode = fromSelectMode || (e.timeStamp - lastTapAt < DOUBLE_TAP_MS && lastTapPos && Math.hypot(p.x - lastTapPos.x, p.y - lastTapPos.y) < DOUBLE_TAP_PX) ? 'lasso-armed' : onSelected ? 'press-selected' : 'press';
+    mode = fromSelectMode || (e.timeStamp - memory.lastTapAt < DOUBLE_TAP_MS && memory.lastTapPos && Math.hypot(p.x - memory.lastTapPos.x, p.y - memory.lastTapPos.y) < DOUBLE_TAP_PX) ? 'lasso-armed' : onSelected ? 'press-selected' : 'press';
     longTimer = setTimeout(() => {
       longTimer = null;
       if (mode === 'press-selected') { mode = 'radial'; h.radial?.(start); }
@@ -139,7 +138,7 @@ export const createGestureRecognizer = (el, h) => {
     if (!start) return;
     const quick = e.timeStamp - start.t < TAP_MS;
     if (mode === 'place') h.placeEnd?.(p, { moved: !!start.moved, onGhost: !!start.onGhost, quick });
-    else if ((mode === 'press' || mode === 'press-selected' || mode === 'lasso-armed' || mode === 'path-armed') && quick) { h.tap?.(p); lastTapAt = e.timeStamp; lastTapPos = p; }
+    else if ((mode === 'press' || mode === 'press-selected' || mode === 'lasso-armed' || mode === 'path-armed') && quick) { h.tap?.(p); memory.lastTapAt = e.timeStamp; memory.lastTapPos = p; }
     else if (mode === 'mouse-left') (h.click || h.tap)?.(p, { shift: start.shift });
     else if (mode === 'mouse-right') h.order?.(p);
     else if (mode === 'formation') h.formationEnd?.(start, p);

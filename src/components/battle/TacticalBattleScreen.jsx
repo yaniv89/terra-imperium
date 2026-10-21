@@ -776,6 +776,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     }
   }, [ownSquadAt, ownBuildingAt, inspectAt, inspectThing, updateSelection, selectBuilding, clearSelection, issueAt, send, disarm, markPending]);
 
+  const tapMemory = useRef({ lastTapAt: -1000, lastTapPos: null });
   useEffect(() => {
     const el = canvasRef.current;
     return createGestureRecognizer(el, {
@@ -838,7 +839,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         updateSelection(mods?.shift ? [...new Set([...selectedRef.current, ...ids])] : ids);
       },
       cancel: () => { setDragLine(null); setLasso(null); setDrawPath(null); }
-    });
+    }, tapMemory.current);
   }, [pointer, issueAt, ownSquadAt, playerSide, send, updateSelection, setSelectModeOn, setPathModeOn, setGhostAt, setFollow, markPending]);
 
   // I198: the mouse resting at the screen's edge moves the camera (a mouse only; the HUD's own
