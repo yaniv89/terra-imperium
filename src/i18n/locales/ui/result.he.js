@@ -62,7 +62,7 @@ export default {
   'bt.result.repairsFewTurns': '. התיקון חינם במשך כמה תורות.',
   'bt.result.afterBattle': 'אחרי הקרב',
   'bt.result.afterNaval': 'ספינות שטבעו אבודות לתמיד.',
-  'bt.result.afterField': 'קרב שדה מכריע: הגדודים של המפסיד שנשארו בשדה אבודים; מי שיצא דרך מוצא שורד וסוגג אריח אחורה.',
+  'bt.result.afterField': 'ומי שיצא דרך מוצא שורד ונסוג צעד אחורה.',
   'bt.result.goldTreasury': 'זהב לאוצר שלכם',
   'bt.result.battleLoot': 'שלל הקרב',
   'bt.result.goldCaps': 'זהב',

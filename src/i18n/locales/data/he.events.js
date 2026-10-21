@@ -100,7 +100,7 @@ export default {
   'evt.columbian_exchange.opt1': 'להתקדם בזהירות',
   'evt.reformation.title': 'פילוג דתי',
   'evt.reformation.desc': 'אתגר לסמכות הדתית המקובלת מפלג קהילות, חצרות וממלכות שלמות למחנות יריבים, וכל אחד בטוח שהאחר בגד באמונה.',
-  'evt.reformation.opt0': 'לתמוך במתקנים',
+  'evt.reformation.opt0': 'לתמוך ברפורמים',
   'evt.reformation.opt1': 'להגן על הסדר הקיים',
   'evt.scientific_revolution.title': 'שיטה חדשה',
   'evt.scientific_revolution.desc': 'דרך חדשה לבחון טענות מול תצפית וניסוי מתפשטת בין פילוסופי הטבע, והופכת בשקט ודאויות שעמדו אלף שנה.',
@@ -111,7 +111,7 @@ export default {
   'evt.continental_upheaval.opt0': 'לחדש את הצבא כדי לעמוד בקצב',
   'evt.continental_upheaval.opt1': 'להישאר ניטרלי ולהתחזק בבית',
   'evt.industrial_revolution.title': 'עידן המכונות',
-  'evt.industrial_revolution.desc': 'קיטור וממכון משנים את אופן הייצור, ומושכים עובדים מן האדמה אל עיירות מפעלים חדשות כמעט בן לילה.',
+  'evt.industrial_revolution.desc': 'קיטור ומכונות משנים את אופן הייצור, ומושכים עובדים מן האדמה אל עיירות מפעלים חדשות כמעט בן לילה.',
   'evt.industrial_revolution.opt0': 'להשקיע בכבדות במפעלים ובמסילות',
   'evt.industrial_revolution.opt1': 'להניח לתיעוש להתקדם בקצב שלו',
   'evt.the_great_war.title': 'המלחמה הגדולה',
@@ -243,7 +243,7 @@ export default {
 
   // procedural events ({city} = the city's name)
   'pevt.coastal_trade_boom.title': 'פריחת חוף',
-  'pevt.coastal_trade_boom.desc': '{city} מתעשרת מסחר, ונמליה עמוסים בספינות זרות הלהוטות לעשות עסקים.',
+  'pevt.coastal_trade_boom.desc': '{city} מתעשרת ממסחר, ונמליה עמוסים בספינות זרות הלהוטות לעשות עסקים.',
   'pevt.coastal_trade_boom.opt0': 'להטיל מס כבד על הסוחרים',
   'pevt.coastal_trade_boom.opt1': 'להשאיר מכסים נמוכים כדי שימשיכו לבוא',
   'pevt.overcrowded_plague.title': 'מגפה ברחובות',
