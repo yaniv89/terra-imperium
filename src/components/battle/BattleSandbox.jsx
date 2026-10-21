@@ -172,7 +172,7 @@ const BattleSandbox = () => {
   );
 
   return (
-    <div className="min-h-[100dvh] bg-slate-950 text-slate-100 p-4 flex items-start justify-center">
+    <div className="h-full overflow-y-auto bg-slate-950 text-slate-100 p-4 flex items-start justify-center" data-testid="sandbox-setup">{/* body and #root never scroll (index.css): the form scrolls itself so Fight is reachable at 844x390 */}
       <div className="w-full max-w-md space-y-4">
         <h1 className="text-xl font-bold">{t('mx.sb.heading')}</h1>
         <div className="grid grid-cols-2 gap-3">

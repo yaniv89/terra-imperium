@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { liveUsd } from './claudeJob.mjs';
-import { TOOLS, AREAS, SIZES, parseAction, parseFlags, stepWorstUsd, reportWorstUsd, imageTokens, systemPrompt, PERSONAS, isBlankShot } from './human-playtest.mjs';
+import { TOOLS, AREAS, BATTLE_AREAS, BATTLE_SETUPS, SIZES, parseAction, parseFlags, stepWorstUsd, reportWorstUsd, imageTokens, systemPrompt, PERSONAS, isBlankShot, toolsFor, battleUrl } from './human-playtest.mjs';
 import sharp from 'sharp';
 
 const mood = { thought: 'the city should open', fun: 3, frustration: 2, area: AREAS[2] };
@@ -64,6 +64,36 @@ describe('human-playtest spend math', () => {
     expect(() => parseFlags([], { SLICES: 'stone' })).toThrow(/slice/);
     expect(() => parseFlags([], { PERSONA: 'troll' })).toThrow(/persona/);
     expect(() => parseFlags(['--limit', '0'], {})).toThrow(/MAX_STEPS/);
+  });
+});
+
+describe('human-playtest battle scene', () => {
+  it('reads --scene and BATTLE_AGES: all eight ages by default, bad ages and scenes refused, slices ignored', () => {
+    expect(parseFlags([], {})).toMatchObject({ scene: 'campaign', battleAges: [] });
+    const b = parseFlags(['--scene', 'battle'], { PERSONA: 'battle-commander', SLICES: 'stone' });
+    expect(b).toMatchObject({ scene: 'battle', persona: 'battle-commander', slices: [] });
+    expect(b.battleAges).toEqual(['stone', 'bronze', 'classical', 'kingdoms', 'gunpowder', 'modern', 'information', 'future']);
+    expect(parseFlags([], { SCENE: 'battle', BATTLE_AGES: 'bronze, future' }).battleAges).toEqual(['bronze', 'future']);
+    expect(() => parseFlags([], { SCENE: 'battle', BATTLE_AGES: 'iron' })).toThrow(/battle age/);
+    expect(() => parseFlags([], { SCENE: 'arena' })).toThrow(/scene/);
+  });
+
+  it('opens the sandbox in each age with the setups in turn', () => {
+    expect(battleUrl('http://x/terra-imperium/', 'stone', 0)).toBe('http://x/terra-imperium/?battleSandbox&age=stone');
+    expect(battleUrl('http://x/', 'bronze', 1)).toBe(`http://x/?battleSandbox&age=bronze${BATTLE_SETUPS[1].query}`);
+    expect(battleUrl('http://x/?lang=he', 'future', 6)).toBe(`http://x/?lang=he&battleSandbox&age=future${BATTLE_SETUPS[2].query}`);
+  });
+
+  it('battle tools and prompt use the battle checklist', () => {
+    const area = BATTLE_AREAS[1];
+    expect(toolsFor(BATTLE_AREAS)[0].input_schema.properties.area.enum).toEqual(BATTLE_AREAS);
+    expect(parseAction(use('tap', { x: 1, y: 1, area }), SIZES.phone, BATTLE_AREAS).area).toBe(area);
+    expect(parseAction(use('tap', { x: 1, y: 1, area })).area).toBe(null);
+    const p = systemPrompt('rts-commander', SIZES.phone, 'he', 'battle');
+    expect(p).toContain('battle sandbox');
+    BATTLE_AREAS.forEach((a) => expect(p).toContain(a));
+    expect(p).not.toContain(AREAS[0]);
+    expect(p).toContain('Hebrew');
   });
 });
 
