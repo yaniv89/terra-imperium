@@ -1,0 +1,58 @@
+{
+  "assault": {
+    "matchups": 6,
+    "inside": 6,
+    "seeds": 32,
+    "ratioLow": 0.74,
+    "ratioHigh": 2.2
+  },
+  "field": {
+    "matchups": 6,
+    "inside": 4,
+    "seeds": 32,
+    "ratioLow": 0.39,
+    "ratioHigh": 1.41
+  },
+  "fort": {
+    "matchups": 6,
+    "inside": 6,
+    "seeds": 32,
+    "ratioLow": 0.83,
+    "ratioHigh": 3.47
+  },
+  "landing": {
+    "matchups": 6,
+    "inside": 6,
+    "seeds": 32,
+    "ratioLow": 0.54,
+    "ratioHigh": 1.96
+  },
+  "raid": {
+    "matchups": 6,
+    "inside": 6,
+    "seeds": 32,
+    "ratioLow": 0.57,
+    "ratioHigh": 0.59
+  },
+  "sack": {
+    "matchups": 6,
+    "inside": 6,
+    "seeds": 32,
+    "ratioLow": 0.84,
+    "ratioHigh": 3.33
+  },
+  "sally": {
+    "matchups": 6,
+    "inside": 6,
+    "seeds": 32,
+    "ratioLow": 0.5,
+    "ratioHigh": 2.04
+  },
+  "town": {
+    "matchups": 6,
+    "inside": 6,
+    "seeds": 32,
+    "ratioLow": 0.56,
+    "ratioHigh": 2.49
+  }
+}
