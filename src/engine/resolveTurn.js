@@ -1,5 +1,6 @@
 import { applyArmyDesertion, DESERTION_SHARE, DESERTION_MORALE } from './armyDesertion';
 import { processAIAccords } from './aiAccords';
+import { processWorldCongress } from './worldCongress';
 import { advanceTutorial } from './tutorial';
 export { DESERTION_SHARE, DESERTION_MORALE, DESERTION_DISBAND_BELOW } from './armyDesertion';
 import { processLateArrivals, independentCityCtx } from './independents';
@@ -950,6 +951,10 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   Object.assign(nations, accords.nations);
   accords.logs.forEach((l) => { if (!l.nationId) logs.push({ year: newYear, ...carry(l), type: LogTypes.DIPLOMACY }); });
   const pendingDemand = accords.pendingDemand;
+  // The World Congress (worldCongress.js): members of Global Institutions vote every span.
+  const congress = processWorldCongress({ ...state, nations, regions, turnNumber: newTurnNumber });
+  if (congress.nations !== nations) Object.assign(nations, congress.nations);
+  congress.logs.forEach((l) => logs.push({ year: newYear, ...carry(l), type: LogTypes.DIPLOMACY }));
   mark('diplomacy');
 
   // --- great projects (plan §M10, now plans/civ-map-rework.md C9.2) --- a wonder is built from a
@@ -1177,6 +1182,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     wars,
     pendingPeaceOffer,
     pendingDemand,
+    ...(congress.worldCongress ? { worldCongress: congress.worldCongress } : {}),
     tradeDisruptions, // cut and guarded trade routes (tradeDisruptions.js); absent in old saves = none
     // Assaults on the player's garrisons (src/engine/defense.js), fought before the next turn —
     // dropped if their war ended this same turn.

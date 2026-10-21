@@ -73,7 +73,8 @@ import { levyUnit } from './aftermath';
 import { cardOf } from './eventDeck';
 import { AGES, FIRST_AGE_ID, isAgeAtLeast, isAgeBefore } from '../data/ages';
 import { endingSignal } from './ending';
-import { ageOf } from './nationState';
+import { ageOf, getResearched } from './nationState';
+import { congressMembers } from './worldCongress';
 import { sideAgeOf } from './ageRefs';
 import { getRegionTerrain } from '../data/terrain';
 import { createEmptyResourcePool } from '../data/resources';
@@ -882,7 +883,7 @@ const reduceAction = (state, action) => {
       const region = state.regions[regionId];
       const costs = ACTION_COSTS.developResourceSite;
       if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
-      if (region.buildings.extraction[resourceId] === undefined || region.buildings.extraction[resourceId]) return state;
+      if (region.buildings?.extraction?.[resourceId]) return state; // an unknown resource fails canBuildExtraction below
       if (!regionHasDeposit(REGIONS_DATA[regionId], resourceId) || !canBuildExtraction(resourceId, ageOf(state, state.playerNationId))) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
@@ -1939,7 +1940,7 @@ const reduceAction = (state, action) => {
       const type = GOVERNMENT_TYPES[typeId];
       const nation = state.nations[state.playerNationId];
       const costs = ACTION_COSTS.changeGovernmentType;
-      if (!type || !canChangeGovernmentType(nation, typeId, ageOf(state, state.playerNationId), stonePhaseOf(state, state.playerNationId))) return state;
+      if (!type || !canChangeGovernmentType(nation, typeId, ageOf(state, state.playerNationId), stonePhaseOf(state, state.playerNationId), getResearched(state, state.playerNationId))) return state;
       if (!canPay(state, costs)) return state;
       return payCost({
         ...state,
@@ -1970,6 +1971,13 @@ const reduceAction = (state, action) => {
         },
         logs: [...state.logs, { year: state.year, ...msg('m.act.reformEnacted', { reform: thing('reform', reformId, reform.name) }), type: LogTypes.MILESTONE }]
       }, costs, 'enactGovernmentReform');
+    }
+
+    case ActionTypes.WORLD_CONGRESS_VOTE: {
+      // Only a member votes; null abstains. Counted at the next vote (worldCongress.js).
+      const vote = action.payload?.vote ?? null;
+      if (!state.worldCongress || ![null, 'yes', 'no'].includes(vote) || !congressMembers(state).includes(state.playerNationId)) return state;
+      return { ...state, worldCongress: { ...state.worldCongress, playerVote: vote } };
     }
 
     case ActionTypes.CHANGE_LAW: {

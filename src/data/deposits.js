@@ -11,21 +11,26 @@ import { countryOfNation } from './peoples';
 
 export const RESOURCE_DEPOSITS = {
   // Copper
-  cl: ['copper'], pe: ['copper'], cd: ['copper'], zm: ['copper'], mn: ['copper'],
-  id: ['copper', 'oil'], au: ['copper', 'iron'], cy: ['copper'],
+  cl: ['copper', 'rareMetals'], pe: ['copper'], cd: ['copper', 'rareMetals'], zm: ['copper'], mn: ['copper'],
+  id: ['copper', 'oil'], au: ['copper', 'iron', 'rareMetals'], cy: ['copper'],
 
   // Iron
-  br: ['iron'], in: ['iron'], ua: ['iron'], se: ['iron'], za: ['iron'],
+  br: ['iron', 'rareMetals'], in: ['iron', 'rareMetals'], ua: ['iron'], se: ['iron'], za: ['iron', 'rareMetals'],
   mr: ['iron'], kr: ['iron'],
 
   // Oil
   sa: ['oil'], iq: ['oil'], ae: ['oil'], kw: ['oil'], qa: ['oil'], ir: ['iron', 'oil'],
   ve: ['oil'], ng: ['oil'], ly: ['oil'], dz: ['oil'], ao: ['oil'],
-  no: ['oil'], gb: ['oil'], ca: ['oil'], mx: ['oil'], kz: ['oil'], az: ['oil'], bn: ['oil'],
+  no: ['oil'], gb: ['oil'], ca: ['oil'], mx: ['oil'], kz: ['oil', 'rareMetals'], az: ['oil'], bn: ['oil'],
 
   // Nations with more than one major deposit — the historically-dominant, resource-rich powers.
-  us: ['copper', 'iron', 'oil'], ru: ['copper', 'iron', 'oil'], cn: ['copper', 'iron'],
-  tr: ['copper', 'iron']
+  us: ['copper', 'iron', 'oil', 'rareMetals'], ru: ['copper', 'iron', 'oil', 'rareMetals'], cn: ['copper', 'iron', 'rareMetals'],
+  tr: ['copper', 'iron'],
+
+  // Rare metals (eight-ages plan U56): rare earths, lithium, cobalt, platinum, niobium. Mined from
+  // the Information age (EXTRACTION_BUILDINGS). Not in geo/deposits.json, which guarantees TILE
+  // resources at map build: rare metals are a city deposit only, so the map needs no rebuild.
+  vn: ['rareMetals'], mm: ['rareMetals'], bo: ['rareMetals'], ar: ['rareMetals']
 };
 
 export const hasDeposit = (countryId, resourceId) => (RESOURCE_DEPOSITS[countryId] || []).includes(resourceId);

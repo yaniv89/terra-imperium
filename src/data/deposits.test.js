@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { RESOURCE_DEPOSITS, hasDeposit, getDepositsFor } from './deposits';
 import countriesMeta from './geo/countries-meta.json';
+import { EXTRACTION_BUILDINGS, canBuildExtraction } from './buildings';
 
 describe('RESOURCE_DEPOSITS', () => {
   it('every key is a real country id', () => {
@@ -9,12 +10,18 @@ describe('RESOURCE_DEPOSITS', () => {
     });
   });
 
-  it('only lists copper/iron/oil, never an unlocked-later resource', () => {
+  it('only lists resources a building extracts', () => {
     Object.values(RESOURCE_DEPOSITS).forEach(list => {
       list.forEach(resourceId => {
-        expect(['copper', 'iron', 'oil']).toContain(resourceId);
+        expect(Object.keys(EXTRACTION_BUILDINGS)).toContain(resourceId);
       });
     });
+  });
+
+  it('rare metals lie on known land and are mined from the Information age only', () => {
+    expect(hasDeposit('cn', 'rareMetals')).toBe(true);
+    expect(canBuildExtraction('rareMetals', 'modern')).toBe(false);
+    expect(canBuildExtraction('rareMetals', 'information')).toBe(true);
   });
 
   it('is not exhaustive over all 240 nations — scarcity is the point', () => {

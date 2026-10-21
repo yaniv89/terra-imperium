@@ -67,7 +67,7 @@ describe('icon index', () => {
 
   it('uses the same building ids as the close view models', () => {
     Object.entries(BUILDING_MODEL_IDS).forEach(([cat, ids]) => expect(BUILDING_ICON_IDS[cat]).toEqual(ids));
-    expect(EXTRACTION_ICON_IDS).toEqual({ copper: 'copper_mine', iron: 'iron_foundry', oil: 'oil_well' });
+    expect(EXTRACTION_ICON_IDS).toEqual({ copper: 'copper_mine', iron: 'iron_foundry', oil: 'oil_well', rareMetals: 'copper_mine' });
   });
 
   it('has art for every wonder of the spec, a lucide glyph for the rest', () => {

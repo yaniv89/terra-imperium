@@ -23,6 +23,7 @@ import { getTiles } from '../data/geo/tiles';
 import { getCapital } from '../data/regions';
 import { getTradeRoute } from './tradeRoutes';
 import { distanceKm } from '../data/geo/geodesic';
+import { sanctionsBetween } from '../data/worldCongress';
 
 /** Km between two tiles (the shared exact distance), or Infinity when either is missing. */
 export const tileKm = (tiles, a, b) => (a == null || b == null || !tiles.centres[a] || !tiles.centres[b] ? Infinity : distanceKm(tiles.centres[a], tiles.centres[b]));
@@ -94,6 +95,7 @@ export const tradeRoutesValue = (state, nationId = state.playerNationId) => {
     if (state.scenario && !route?.ok) return;
     // A route that is cut pays nothing while the cut lasts (tradeDisruptions.js), by land or by sea.
     if (state.tradeDisruptions?.[id]?.phase === 'cut') return;
+    if (sanctionsBetween(state, nationId, id)) return; // World Congress sanctions (worldCongress.js)
     const km = routeKm(state, nationId, id, route);
     const mult = gravityMult(yMe, sizes.get(id) || 0, km);
     if (mult > 0) out.push({ partnerId: id, name: n.name || id, km: Math.round(km), kind: route?.kind || 'direct', mult });

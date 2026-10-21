@@ -304,7 +304,7 @@ const RAW_HISTORICAL_EVENTS = {
     ]
   },
 
-  // ---- Modern Age (1900 to 2300) ----
+  // ---- Modern Age (1900 to 1990) ----
   the_great_war: {
     id: 'the_great_war',
     year: 1914,
@@ -347,6 +347,29 @@ const RAW_HISTORICAL_EVENTS = {
       { label: 'Let private industry lead the way', effects: { gold: 100, techPoints: 20 } }
     ]
   },
+  // ---- Information Age (from 1990; eight-ages plan U59). Generic: never about real living people
+  // or current politics. Dated before 2100 so they stay Information events once the Future arrives.
+  // ----
+  financial_crisis: {
+    id: 'financial_crisis',
+    year: 2008,
+    title: 'The Global Financial Crisis',
+    description: 'Debts nobody understood come due at once. Banks fail in a week, and the panic crosses every border the money once did.',
+    options: [
+      { label: 'Bail out the banks', effects: { gold: -250, stability: 1 } },
+      { label: 'Let the failing banks fall', effects: { gold: 60, addModifier: { label: 'Credit crunch', mods: { 'national.goldMult': -0.1 }, duration: 10 } } }
+    ]
+  },
+  global_pandemic: {
+    id: 'global_pandemic',
+    year: 2020,
+    title: 'A Global Pandemic',
+    description: 'A new disease moves faster than any before it, carried along the flight paths that tie the world together.',
+    options: [
+      { label: 'Order a quarantine and close the borders', effects: { gold: -150, addModifier: { label: 'Quarantine', mods: { 'national.goldMult': -0.15 }, duration: 6 } } },
+      { label: 'Keep the country open and treat the sick', effects: { hr: -80, cityUnrest: 10, stability: -1 } }
+    ]
+  },
   climate_stress: {
     id: 'climate_stress',
     year: 2050,
@@ -355,6 +378,36 @@ const RAW_HISTORICAL_EVENTS = {
     options: [
       { label: 'Invest in resilient infrastructure', effects: { gold: -200, hr: 30 } },
       { label: 'Manage the damage as it comes', effects: { hr: -60, gold: 50, stability: -1 } }
+    ]
+  },
+  solar_storm: {
+    id: 'solar_storm',
+    year: 2060,
+    title: 'The Solar Storm',
+    description: 'A burst from the Sun lights the sky in green curtains and burns out transformers on half the planet. The power grid goes dark.',
+    options: [
+      { label: 'Rebuild the grid hardened against the next one', effects: { gold: -200, defenseBonus: 0.05 } },
+      { label: 'Patch it back together quickly', effects: { gold: -60, addModifier: { label: 'Fragile grid', mods: { 'national.stabilityBonus': -1 }, duration: 8 } } }
+    ]
+  },
+  automation_riots: {
+    id: 'automation_riots',
+    year: 2075,
+    title: 'The Automation Riots',
+    description: 'Machines now do the work of whole towns. The workers they replaced fill the squares and smash the robots at the factory gates.',
+    options: [
+      { label: 'Pay every worker a share of what the machines make', effects: { gold: -200, stability: 1, cityLoyalty: 5 } },
+      { label: 'Send in the police and keep the factories running', effects: { gold: 80, cityUnrest: 15, legitimacy: -5 } }
+    ]
+  },
+  first_general_ai: {
+    id: 'first_general_ai',
+    year: 2090,
+    title: 'The First General AI',
+    description: 'A laboratory switches on a mind that can learn anything a person can, and faster. Every government wants it, and every government fears it.',
+    options: [
+      { label: 'Put it to work on research', effects: { techPoints: 150, stability: -1 } },
+      { label: 'Keep it boxed under strict law', effects: { prestige: 20, legitimacy: 5 } }
     ]
   },
 

@@ -143,6 +143,7 @@ export default {
   'bext.copper': 'מכרה נחושת',
   'bext.iron': 'יצקת ברזל',
   'bext.oil': 'באר נפט',
+  'bext.rareMetals': 'מכרה מתכות נדירות',
 
   // laws (law.<id>, law.<id>.desc)
   'law.tribute': 'מס מנחה',
@@ -197,6 +198,12 @@ export default {
   'law.rule_of_law.desc': '+4 נאמנות בכל עיר; -1 אי שקט.',
   'law.martial_law': 'משטר צבאי',
   'law.martial_law.desc': '-20% מס, -1 דיפלומטיה בתור; -1 יציבות בחקיקה; +2 אי שקט; +6 נאמנות בכל עיר; תשישות המלחמה גדלה לאט ב-20%.',
+  'law.privacy_rights': 'זכויות פרטיות',
+  'law.privacy_rights.desc': '+3 נאמנות בכל עיר; -1 אי שקט; +2 דעה בעיני כל אומה.',
+  'law.open_data': 'מידע פתוח',
+  'law.open_data.desc': '+20% הכנסה; +10% הכנסת נקודות מחקר; שותפי הסחר +10 דעה.',
+  'law.renewable_mandate': 'חובת אנרגיה מתחדשת',
+  'law.renewable_mandate.desc': '-5% הכנסה; -1 אי שקט; +0.1% גידול אוכלוסייה.',
 
   // government types (gov.<id>) and reforms (reform.<id>, reform.<id>.desc)
   'gov.tribal': 'מועצת שבט',
@@ -204,6 +211,7 @@ export default {
   'gov.theocracy': 'תיאוקרטיה',
   'gov.republic': 'רפובליקה',
   'gov.dictatorship': 'דיקטטורה',
+  'gov.technocracy': 'טכנוקרטיה',
   'reform.chieftaincy': 'ראשות שבט',
   'reform.chieftaincy.desc': 'פשיטות על אדמות אויב מניבות כפל זהב; +1 נאמנות בכל עיר.',
   'reform.warrior_council': 'מועצת לוחמים',
@@ -272,6 +280,18 @@ export default {
   'reform.military_junta.desc': '+2 כוח צבאי; המורל מתאושש מהר ב-20%; תשישות המלחמה גדלה לאט ב-20%.',
   'reform.one_party_state': 'מדינת מפלגה אחת',
   'reform.one_party_state.desc': '+2 מנהל; +3 אי שקט; משטרה חשאית (+50% הגנה מפני ריגול).',
+  'reform.networked_clans': 'שבטים מרושתים',
+  'reform.networked_clans.desc': 'השבטים שומרים על קשר בכל הארץ: -1 אי שקט; +1 נאמנות בכל עיר.',
+  'reform.ceremonial_crown': 'כתר טקסי',
+  'reform.ceremonial_crown.desc': 'הכתר מולך והממשלה שולטת: -1 אי שקט; +10% מס.',
+  'reform.broadcast_ministry': 'משרד השידור',
+  'reform.broadcast_ministry.desc': 'הדרשות מגיעות לכל מסך: -1 אי שקט; +2 דעה בעיני כל אומה.',
+  'reform.digital_democracy': 'דמוקרטיה דיגיטלית',
+  'reform.digital_democracy.desc': 'האזרחים מצביעים ועותרים ברשת: +4 דעה בעיני כל אומה; -1 אי שקט.',
+  'reform.surveillance_state': 'מדינת מעקב',
+  'reform.surveillance_state.desc': 'מצלמות בכל רחוב: +3 נאמנות בכל עיר; +2 אי שקט.',
+  'reform.expert_ministries': 'משרדי מומחים',
+  'reform.expert_ministries.desc': 'מדענים מנהלים את המשרדים: +15% הכנסת נקודות מחקר; הצווים מגיעים מהר יותר.',
 
   // resources (res.<id>, res.<id>.desc)
   'res.gold': 'זהב',
@@ -287,5 +307,5 @@ export default {
   'res.oil': 'נפט',
   'res.oil.desc': 'יחידות ממוכנות, אוויריות וימיות, ומפעלים. צוואר הבקבוק של אמצע המשחק ואחריו.',
   'res.rareMetals': 'מתכות נדירות',
-  'res.rareMetals.desc': 'מכריית אסטרואידים. אלקטרוניקה מתקדמת, לוויינים ויחידות של סוף המשחק.',
+  'res.rareMetals.desc': 'אלקטרוניקה מתקדמת ויחידות של סוף המשחק.',
 };

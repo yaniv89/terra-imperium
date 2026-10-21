@@ -153,7 +153,8 @@ export const getRecruitUnitCost = (state, ageId, nationId = state.playerNationId
   const base = ACTION_COSTS.recruitUnit;
   const strategic = RECRUIT_STRATEGIC_RESOURCE_BY_AGE[ageId];
   if (!strategic) return base;
-  const have = getPool(state, nationId)[strategic.key] || 0;
-  if (have >= strategic.amount) return { ...base, [strategic.key]: strategic.amount };
+  const needs = [].concat(strategic);
+  const pool = getPool(state, nationId);
+  if (needs.every((n) => (pool[n.key] || 0) >= n.amount)) return { ...base, ...Object.fromEntries(needs.map((n) => [n.key, n.amount])) };
   return { ...base, gold: Math.round(base.gold * (1 + RECRUIT_MISSING_RESOURCE_GOLD_PENALTY_MULT)) };
 };

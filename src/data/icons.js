@@ -79,7 +79,7 @@ export const BUILDING_ICON_IDS = {
   logistics: ['trail_cairns', 'road_post', 'highway', 'rail_depot', 'logistics_hub'],
   energy: ['coal_plant', 'oil_plant', 'nuclear_plant', 'power_grid']
 };
-export const EXTRACTION_ICON_IDS = { copper: 'copper_mine', iron: 'iron_foundry', oil: 'oil_well' };
+export const EXTRACTION_ICON_IDS = { copper: 'copper_mine', iron: 'iron_foundry', oil: 'oil_well', rareMetals: 'copper_mine' }; // shortcut: the Rare Metal Mine shows the copper mine until its art exists
 
 /** Icon URL of a building tier (category + tier index), or null. */
 export const buildingIconUrl = (categoryId, tierIndex) => iconUrl('buildings', BUILDING_ICON_IDS[categoryId]?.[tierIndex]);

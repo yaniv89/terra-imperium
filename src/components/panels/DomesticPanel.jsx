@@ -47,7 +47,7 @@ import { previewGovernmentChange } from '../../engine/governmentPreview';
 import { openGovernmentChange } from './GovernmentChangeDialog';
 import { askConfirm } from '../ui/ConfirmActionDialog';
 import { changeLawConfirm } from '../ui/confirmSpecs';
-import { ageOf } from '../../engine/nationState';
+import { ageOf, getResearched } from '../../engine/nationState';
 import { stonePhaseOf } from '../../engine/stonePhase';
 import { canPay } from '../../utils/costs';
 
@@ -350,7 +350,7 @@ const DomesticPanel = () => {
   };
 
   const currentGovernmentType = GOVERNMENT_TYPES[playerNation?.government?.type];
-  const availableGovernmentTypes = getAvailableGovernmentTypes(ageOf(state, state.playerNationId), playerNation?.identity, stonePhaseOf(state, state.playerNationId))
+  const availableGovernmentTypes = getAvailableGovernmentTypes(ageOf(state, state.playerNationId), playerNation?.identity, stonePhaseOf(state, state.playerNationId), getResearched(state, state.playerNationId))
     .filter((t) => t.id !== playerNation?.government?.type);
   const activeReforms = getActiveReforms(playerNation);
   const currentAgeReformChoices = playerNation?.government ? getReformChoices(playerNation.government.type, ageOf(state, state.playerNationId)) : [];
@@ -375,7 +375,7 @@ const DomesticPanel = () => {
           description={preview.ok ? tNow('p1.dom.becomeTap', { lines: governmentCardLines(preview) }) : tNow('p1.dom.becomeReset')}
           costs={ACTION_COSTS.changeGovernmentType}
           onClick={() => handleChangeGovernmentType(gov.id)}
-          disabled={!canPay(state, ACTION_COSTS.changeGovernmentType) || !canChangeGovernmentType(playerNation, gov.id, ageOf(state, state.playerNationId), stonePhaseOf(state, state.playerNationId))}
+          disabled={!canPay(state, ACTION_COSTS.changeGovernmentType) || !canChangeGovernmentType(playerNation, gov.id, ageOf(state, state.playerNationId), stonePhaseOf(state, state.playerNationId), getResearched(state, state.playerNationId))}
           resources={state.resources}
           size="small"
         />

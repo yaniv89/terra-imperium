@@ -176,4 +176,11 @@ describe('getRecruitUnitCost (plan §M11 resource sink)', () => {
     expect(getRecruitUnitCost({ resources: { iron: 100 } }, 'gunpowder').iron).toBe(8);
     expect(getRecruitUnitCost({ resources: { oil: 100 } }, 'modern').oil).toBe(10);
   });
+
+  it('an Information recruit needs oil and rare metals, else pays the gold penalty', () => {
+    const both = getRecruitUnitCost({ resources: { oil: 100, rareMetals: 5 } }, 'information');
+    expect([both.oil, both.rareMetals, both.gold]).toEqual([8, 2, ACTION_COSTS.recruitUnit.gold]);
+    const noMetals = getRecruitUnitCost({ resources: { oil: 100, rareMetals: 1 } }, 'information');
+    expect([noMetals.oil, noMetals.rareMetals, noMetals.gold]).toEqual([undefined, undefined, Math.round(ACTION_COSTS.recruitUnit.gold * 1.5)]);
+  });
 });

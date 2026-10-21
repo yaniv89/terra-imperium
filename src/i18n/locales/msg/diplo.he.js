@@ -194,5 +194,12 @@ export default {
   'm.diplo.ownStaysYours': '{city} נשארת שלך.',
   'm.diplo.ownStaysTheirs': '{city} נשארת בידי {nation}.',
   'm.diplo.moneyGold': 'אתה משלם ל{nation} {gold} זהב',
-  'm.diplo.moneyReparations': 'אתה משלם פיצויים: עשירית מהכנסת הזהב שלך למשך 10 תורות'
+  'm.diplo.moneyReparations': 'אתה משלם פיצויים: עשירית מהכנסת הזהב שלך למשך 10 תורות',
+
+  'm.diplo.congressFormed': 'הקונגרס העולמי מתכנס לראשונה, בחסות {nation}.',
+  'm.diplo.congressPropose.tradeStandard': 'הקונגרס העולמי יצביע על תקן סחר בתור {turn}.',
+  'm.diplo.congressPropose.armsLimit': 'הקונגרס העולמי יצביע על הגבלת חימוש בתור {turn}.',
+  'm.diplo.congressPropose.sanctions': 'הקונגרס העולמי יצביע על סנקציות נגד {nation} בתור {turn}.',
+  'm.diplo.congressPassed': 'הקונגרס העולמי מקבל את ההחלטה, {yes} קולות מול {no}.',
+  'm.diplo.congressFailed': 'הקונגרס העולמי דוחה את ההחלטה, {yes} קולות מול {no}.'
 };

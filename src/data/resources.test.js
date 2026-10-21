@@ -48,9 +48,10 @@ describe('getUnlockedResourceIds / createEmptyResourcePool', () => {
     expect(unlocked.sort()).toEqual(['copper', 'gold', 'hr', 'supplies'].sort());
   });
 
-  it('Modern Age exposes every defined resource', () => {
-    const unlocked = getUnlockedResourceIds('modern');
+  it('the Information Age exposes every defined resource; rare metals wait for it', () => {
+    const unlocked = getUnlockedResourceIds('information');
     expect(unlocked.sort()).toEqual([...RESOURCE_IDS].sort());
+    expect(getUnlockedResourceIds('modern')).not.toContain('rareMetals');
   });
 
   it('createEmptyResourcePool zero-initializes exactly the unlocked set', () => {

@@ -76,9 +76,23 @@ describe('getAvailableGovernmentTypes', () => {
     expect(getAvailableGovernmentTypes('bronze', { secularism: 50 }).map((t) => t.id)).toContain('theocracy');
   });
 
-  it('offers every type once its minimum age is reached', () => {
-    expect(getAvailableGovernmentTypes('modern', { secularism: 50 }).map((t) => t.id).sort())
+  it('offers every type once its minimum age and tech are reached', () => {
+    expect(getAvailableGovernmentTypes('information', { secularism: 50 }, null, ['science_artificial_intelligence']).map((t) => t.id).sort())
       .toEqual(Object.keys(GOVERNMENT_TYPES).sort());
+  });
+
+  it('Technocracy needs the Information age and Artificial Intelligence', () => {
+    const ai = ['science_artificial_intelligence'];
+    expect(getAvailableGovernmentTypes('modern', {}, null, ai).map((t) => t.id)).not.toContain('technocracy');
+    expect(getAvailableGovernmentTypes('information', {}).map((t) => t.id)).not.toContain('technocracy');
+    expect(getAvailableGovernmentTypes('information', {}, null, ai).map((t) => t.id)).toContain('technocracy');
+    const tribal = { government: { type: 'tribal', reforms: {} } };
+    expect(canChangeGovernmentType(tribal, 'technocracy', 'information')).toBe(false);
+    expect(canChangeGovernmentType(tribal, 'technocracy', 'information', null, ai)).toBe(true);
+  });
+
+  it('every type has an Information reform tier', () => {
+    Object.keys(GOVERNMENT_TYPES).forEach((id) => expect(getReformChoices(id, 'information').length, id).toBeGreaterThan(0));
   });
 });
 

@@ -159,7 +159,8 @@ export const BUILDING_CATEGORY_IDS = Object.keys(BUILDING_CATEGORIES);
 export const EXTRACTION_BUILDINGS = {
   copper: { age: 'stone', name: 'Copper Mine' },
   iron: { age: 'kingdoms', name: 'Iron Foundry' },
-  oil: { age: 'modern', name: 'Oil Well' }
+  oil: { age: 'modern', name: 'Oil Well' },
+  rareMetals: { age: 'information', name: 'Rare Metal Mine' }
 };
 
 // True if `tierIndex` (the tier a region is about to move to) is allowed right now: no gate for a
@@ -227,7 +228,7 @@ export const canBuildExtraction = (resourceId, ageId) => {
 // A fresh region's building state: no category built, no extraction developed.
 export const createEmptyRegionBuildings = () => ({
   categories: Object.fromEntries(BUILDING_CATEGORY_IDS.map(id => [id, -1])),
-  extraction: { copper: false, iron: false, oil: false }
+  extraction: { copper: false, iron: false, oil: false, rareMetals: false }
 });
 
 // What a building tier actually does, in plain words, for the build buttons (e.g. "+3 gold/turn,

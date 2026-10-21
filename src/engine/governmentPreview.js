@@ -9,7 +9,7 @@ import { ActionTypes } from '../data/types';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { GOVERNMENT_TYPES, canChangeGovernmentType, getActiveReforms, reformSlotsForType } from '../data/government';
 import { AGES } from '../data/ages';
-import { ageOf } from './nationState';
+import { ageOf, getResearched } from './nationState';
 import { stonePhaseOf } from './stonePhase';
 import { authorityOf, canEnactLaws, AUTHORITY_NO_LAWS } from './authority';
 import { canPay } from '../utils/costs';
@@ -35,7 +35,7 @@ export const previewGovernmentChange = (state, typeId, picks = null) => {
   const type = GOVERNMENT_TYPES[typeId];
   const cost = ACTION_COSTS.changeGovernmentType;
   if (!nation || !type) return { ok: false, reason: 'Unknown government', cost, lines: [] };
-  if (!canChangeGovernmentType(nation, typeId, ageOf(state, state.playerNationId), stonePhaseOf(state, me))) return { ok: false, reason: 'Not available to you yet', typeName: type.name, cost, lines: [] };
+  if (!canChangeGovernmentType(nation, typeId, ageOf(state, state.playerNationId), stonePhaseOf(state, me), getResearched(state, me))) return { ok: false, reason: 'Not available to you yet', typeName: type.name, cost, lines: [] };
 
   const affordable = canPay(state, cost);
   // Run the real action with the decrees covered, so the preview works even when it is not affordable yet.
