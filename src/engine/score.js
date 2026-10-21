@@ -1,13 +1,15 @@
 // src/engine/score.js
 // Plan §M18: "Score = development + regions + tech + prestige + great projects + wars won. The
-// same formula applies to the AI." Used both for the END_YEAR final ranking (resolveTurn.js) and
-// for the Final Score / Age Summary UI. A pure, cheap-enough-to-run-for-every-nation function —
+// same formula applies to the AI." It breaks legacy ties in the ending's ranking (rankNations,
+// resolveTurn.js) and is shown on the game-over screen. A pure, cheap-enough-to-run-for-every-nation function —
 // no O(nations x regions) blowup, since getOwnedRegionIds is already the memoized index
 // src/data/regions.js's own header describes.
 import { getOwnedRegionIds } from '../data/regions';
 import { getTotalDev } from './development';
 import { getResearched } from './nationState';
 import { GREAT_PROJECTS, getGreatProjectOwner } from '../data/greatProjects';
+import { isIndependentNation } from '../data/independents';
+import { legacyScore } from './legacy';
 
 // A war counts as "won" for `nationId` once it's closed (not `active`) and the final war-score
 // (aggressor POV, set by peace.js/resolveTurn.js's own war-progress rolls and frozen once a war
@@ -35,14 +37,14 @@ export const calcNationScore = (state, nationId) => {
   return { nationId, total, development, regions, techResearched, prestige, greatProjects, warsWon, population };
 };
 
-// Every nation in the world, ranked highest score first — ties broken by nation id for a stable,
-// deterministic order (matters for the edge-bundle/replay parity tests, which need byte-identical
-// results across two independent runs of the same seed).
+// Every major (independents and the eliminated left out, the player always in), ranked by the
+// legacy score (legacy.js, KTD7), the old score breaking ties, then the nation id for a stable,
+// deterministic order (the edge-bundle/replay parity tests need byte-identical results).
 export const rankNations = (state) =>
   Object.keys(state.nations)
-    .map((id) => calcNationScore(state, id))
-    .sort((a, b) => (b.total - a.total) || a.nationId.localeCompare(b.nationId));
+    .filter((id) => id === state.playerNationId || (!state.nations[id]?.isEliminated && !isIndependentNation(state.nations[id])))
+    .map((id) => ({ ...calcNationScore(state, id), legacy: legacyScore(state, id).total }))
+    .sort((a, b) => (b.legacy - a.legacy) || (b.total - a.total) || a.nationId.localeCompare(b.nationId));
 
-// 1-indexed: 1 means the player leads the world. Always found, since the player is always a key
-// in state.nations.
+// 1-indexed: 1 means the player leads the world. Always found, since the player is always ranked.
 export const getPlayerRank = (state) => rankNations(state).findIndex((r) => r.nationId === state.playerNationId) + 1;

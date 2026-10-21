@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { applyEventEffects } from './applyEventEffects';
-import { GameStatus } from '../data/types';
 import { getNationCapital } from '../data/regions';
 import { neighbourWorld, rivalOf } from './testWorld';
 
@@ -19,15 +18,6 @@ describe('applyEventEffects', () => {
     expect(next.resources.gold).toBe(state.resources.gold + 500);
     expect(next.activeEventId).toBeNull();
     expect(next.firedEvents[event.id]).toBe(true);
-  });
-
-  it('sets gameStatus to VICTORY when the choice carries effects.victory', () => {
-    const state = neighbourWorld();
-    const next = applyEventEffects(state, fixtureEvent('win_event', { victory: true }), 0);
-    expect(next.gameStatus).toBe(GameStatus.VICTORY);
-    // Plan §M18 removed the old 'survival' auto-win-at-END_YEAR condition entirely — an event
-    // granting victory directly records the display-only 'eventVictory' entry instead.
-    expect(next.victoryConditionId).toBe('eventVictory');
   });
 
   it('applies stability/legitimacy/prestige deltas to the player nation (plan §M4)', () => {

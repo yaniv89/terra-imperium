@@ -48,7 +48,7 @@ import { isUnitInBattle } from './invasion';
 import { resolveWarProgress, refreshWarFlags } from './diplomacy';
 import { drainAutoBattles } from './battleQueue';
 import { transferRegion } from './regionTransfer';
-import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
+import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS } from '../data/victoryConditions';
 import { getPlayerRank } from './score';
 import { REGIONS_DATA, getCapital } from '../data/regions';
 import {
@@ -740,8 +740,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   Object.entries(nations).forEach(([nId, nation]) => {
     const result = processNationalPowerTurn(nation);
     // Plan §M18's "Iron Grip" achievement ("+3 stability for 20 turns"): a real sustained-streak
-    // counter, the same shape diplomaticLeadershipStreak already uses for Diplomatic Victory —
-    // reset to 0 the instant stability drops off the max, so a fresh run of turns is required.
+    // counter, reset to 0 the instant stability drops off the max, so a fresh run of turns is required.
     const stability3Streak = result.stability >= STABILITY_MAX ? (nation.stability3Streak || 0) + 1 : 0;
     nations[nId] = { ...nation, ...result, stability3Streak };
   });
@@ -1145,10 +1144,6 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   });
   mark('warExhaustion');
 
-  // --- diplomatic leadership streak (plan §10.4's Diplomatic victory) ---
-  const alignmentShare = getDiplomaticAlignmentShare({ ...state, nations: nationsAfterWars });
-  const diplomaticLeadershipStreak = alignmentShare >= DIPLOMATIC_LEADERSHIP_SHARE ? (state.diplomaticLeadershipStreak || 0) + 1 : 0;
-
   // --- events ---
   const dueEvent = pickNextEvent({ ...state, nations, regions });
   // The scripted plagues start a real outbreak where history started them (plague.js).
@@ -1208,7 +1203,6 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     // Raids are not wars: their battles carry no war id and stay (battleQueue.js keepQueued).
     pendingDefenses: [...operations.pendingDefenses, ...(warProgress.pendingDefenses || []), ...raidBattles].filter((d) => keepQueued(d, wars, nationsAfterWars)),
     regionModifiers,
-    diplomaticLeadershipStreak,
     playerEliminatedNationId,
     activeEventId: dueEvent ? dueEvent.id : chainEventId,
     activeProceduralEvent,
@@ -1244,21 +1238,20 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
 
   // --- victory (checked against THIS turn's resolved state, not last turn's) ---
   // Not checked while an event is actively pending, so a victory never lands mid-event-resolution.
-  // Plan §M18: "Remove the free win... at END_YEAR the game ends with a Final Score screen ranking
-  // the player against the top 10 nations... 'Victory' if the player ranks #1; otherwise 'Game
-  // Complete — Rank N'." An ambition (domination/conqueror/economicHegemony/diplomatic)
-  // can still win outright at ANY year — only reaching the calendar's own end
-  // with no ambition met routes through this ranked step instead of an automatic win.
+  // One victory model (differentiation plan KD4): domination wins outright on any turn; otherwise
+  // the one ending signal ranks every major once by legacy (score.js, legacy.js): 'Victory' if
+  // the player ranks #1, else 'Game Complete, Rank N'.
+  const ending = next.ending ? null : endingSignal(next);
   if (next.gameStatus === GameStatus.ACTIVE && !next.activeEventId && !next.activeProceduralEvent && !next.pendingPeaceOffer) {
     const conditionId = checkVictoryConditions(next);
     if (conditionId) {
       const condition = VICTORY_CONDITIONS[conditionId];
       next = applyVictory(next, conditionId);
       next.logs = [...next.logs, { year: newYear, ...msg('m.turn.victory', { victory: thing('victory', conditionId, condition.name) }), type: LogTypes.MILESTONE }];
-    } else if (!next.ending && endingSignal(next)) {
+    } else if (ending) {
       // The one ending signal (ending.js): the speed's turn limit or the Future's final goal. It
       // fires once: the ending it gives is kept on the state.
-      next = { ...next, ending: endingSignal(next) };
+      next = { ...next, ending };
       // The final age is scored once, for every major, when the game ends (KTD7).
       const scoredNations = { ...next.nations };
       Object.keys(scoredNations).sort().forEach((id) => {
@@ -1271,7 +1264,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       next = { ...next, nations: scoredNations };
       const rank = getPlayerRank(next);
       if (rank === 1) {
-        next = applyVictory(next, 'finalScore');
+        next = { ...applyVictory(next, 'finalScore'), finalRank: 1 };
         next.logs = [...next.logs, { year: newYear, ...msg('m.turn.scoreVictory'), type: LogTypes.MILESTONE }];
       } else {
         next = { ...next, gameStatus: GameStatus.COMPLETE, finalRank: rank };

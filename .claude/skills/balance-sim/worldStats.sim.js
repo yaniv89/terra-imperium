@@ -11,7 +11,7 @@ import { HISTORICAL_EVENTS } from '../../../src/data/events';
 import { auditGameState } from '../../../src/engine/stateAudit';
 import { getTiles } from '../../../src/data/geo/tiles';
 import { RESOURCES_ON_TILES } from '../../../src/data/tileYields';
-import { worldHealth, kaplanMeier, rulerStats } from '../../../scripts/simStats.mjs';
+import { worldHealth, kaplanMeier, rulerStats, gini as worldGini } from '../../../scripts/simStats.mjs';
 import * as RULERS from '../../../src/engine/rulers'; // read through the namespace: a base before U11 has no levels
 import { installGeneratedWorld } from '../../../src/worldgen/nodeWorld';
 import { createScriptedPlayer, createTelemetry } from '../../../scripts/campaignTelemetry.mjs';
@@ -27,6 +27,8 @@ import { decreeCap } from '../../../src/engine/decrees';
 import { isIndependentNation } from '../../../src/data/independents';
 import fs from 'node:fs';
 import path from 'node:path';
+// A glob, so a base before U16 (no legacy.js) still runs this harness: {} there.
+const LEGACY = Object.values(import.meta.glob('../../../src/engine/legacy.js', { eager: true }))[0];
 
 // Land tiles of the world in play (recounted when MAP=generated installs a world per seed).
 const countLand = () => { const t = getTiles(); let n = 0; for (let i = 0; i < t.count; i++) if (t.land[i] === 1) n += 1; return n; };
@@ -96,6 +98,20 @@ const ageStats = (s, counters) => {
 
 // Ambitions (differentiation plan U12): fulfilled per age entered (ages = the nation's age index + 1),
 // the AI majors' mean beside the player's; ambitionsDone sums every major. Empty on a base without them.
+// The legacy score (U16) over the living majors: spread and the player's place.
+const legacyStats = (s) => {
+  if (!LEGACY) return {};
+  const scores = livingMajors(s).map((n) => ({ id: n.id, v: LEGACY.legacyScore(s, n.id).total })).sort((a, b) => b.v - a.v);
+  if (!scores.length) return {};
+  const median = scores[Math.floor(scores.length / 2)].v;
+  return {
+    legacyTop: scores[0].v, legacyMedian: median, legacyTopToMedian: +(scores[0].v / Math.max(1, median)).toFixed(2),
+    legacyGini: +worldGini(scores.map((x) => x.v)).toFixed(3),
+    playerLegacy: LEGACY.legacyScore(s, s.playerNationId).total,
+    playerLegacyRank: scores.findIndex((x) => x.id === s.playerNationId) + 1
+  };
+};
+
 const ambitionStats = (s) => {
   const rate = (n) => (n.ambitions?.done?.length || 0) / (AGES.getAgeIndex(nationAge(s, n.id)) + 1);
   const majors = livingMajors(s).filter((n) => n.ruler);
@@ -120,7 +136,7 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
   const mil = nations.map((n) => n.militaryStrength || 0).sort((a, b) => b - a);
   const nonFinite = [...Object.values(s.resources), ...mil, ...regs.map((r) => r.currentPopulation)].filter((v) => typeof v === 'number' && !Number.isFinite(v)).length;
   return {
-    turn: t, year: s.year, status: s.gameStatus,
+    turn: t, year: s.year, status: s.gameStatus, ending: s.ending?.reason ?? null, victory: s.victoryConditionId ?? null, finalRank: s.finalRank ?? null,
     warsActive: s.wars.filter((w) => w.active).length, warsTotal: s.wars.length,
     independenceWars: s.wars.filter((w) => w.cb === 'independence').length,
     pactWars: s.wars.filter((w) => w.cb === 'defensivePact').length,
@@ -151,6 +167,7 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     ...worldHealth(s, { isLand, landTiles: LAND_TILES, playerId: s.playerNationId }),
     ...(RULERS.rulerLevel ? rulerStats(s.nations, { levelOf: (r) => RULERS.rulerLevel(r.renown), pointsOf: RULERS.rulerPoints, branchOf: (v) => RULERS.VIRTUES[v]?.branch, playerId: s.playerNationId }) : {}),
     ...ambitionStats(s),
+    ...legacyStats(s),
     nationsAliveShare: +kaplanMeier(lives, [t]).at[t].toFixed(3), leadChanges: counters.leadChanges,
     // Plague: cities carrying the 'plague' mark now, and distinct cities struck so far (the old
     // independent roll in cityDisasters.js and the SIR epidemic in plague.js both set the mark).

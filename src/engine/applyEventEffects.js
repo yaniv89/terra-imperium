@@ -3,7 +3,7 @@
 // fully-resolved next state, so two effects touching the same key can never silently clobber
 // each other the way ~12 separate dispatches from the same frozen closure once could.
 
-import { RelationStatus, LogTypes, GameStatus } from '../data/types';
+import { RelationStatus, LogTypes } from '../data/types';
 import { REGIONS_DATA } from '../data/regions';
 import { WORLD_NATIONS as NATIONS_DATA } from '../data/worldNations';
 import { RESOURCE_IDS } from '../data/resources';
@@ -323,16 +323,6 @@ export const applyEventEffects = (state, event, optionIndex) => {
   if (effects.law && next.nations[playerNationId] && getLaw(effects.law.category, effects.law.lawId)) {
     const player = next.nations[playerNationId];
     next.nations = { ...next.nations, [playerNationId]: { ...player, laws: { ...player.laws, [effects.law.category]: effects.law.lawId } } };
-  }
-
-  if (effects.victory) {
-    next.gameStatus = GameStatus.VICTORY;
-    // Plan §M18 removed the old 'survival' auto-win-at-END_YEAR condition entirely — an event
-    // granting victory directly is a different, still-real mechanic (unrelated to reaching the
-    // calendar's end), so it now records the display-only 'eventVictory' entry instead
-    // (src/data/victoryConditions.js), kept solely for GameOverModal's name/description lookup.
-    next.victoryConditionId = 'eventVictory';
-    logs.push({ year: next.year, ...msg('m.world.eventVictory'), type: LogTypes.MILESTONE });
   }
 
   logs.push({ year: next.year, ...msg('m.world.eventChoice', { event: thing('event', event.id, event.title), option: thing('eventOption', `${event.id}.${optionIndex}`, option.label) }), type: LogTypes.EVENT });

@@ -21,7 +21,7 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
   const isVictory = status === GameStatus.VICTORY;
   const isComplete = status === GameStatus.COMPLETE;
   // Plan §M18: "Victory if the player ranks #1; otherwise Game Complete — Rank N" — an ambition
-  // win (domination/conqueror/economicHegemony/diplomatic) can still land before
+  // win (domination) can still land before
   // the ending signal (ending.js), and offers a real choice to keep playing rather than a forced stop.
   const canContinue = isVictory && !state.ending && !endingSignal(state);
   const playerNation = state.nations[state.playerNationId];

@@ -42,7 +42,7 @@ export default {
   'm.turn.conqueredAll': 'כבשת את {nation} כולה! +{gold:money}.',
   'm.turn.defeat': 'תבוסה: אומתך נפלה, לא נותר בידיך שום שטח.',
   'm.turn.victory': 'ניצחון: {victory} הושג!',
-  'm.turn.scoreVictory': 'ניצחון: ניצחון ניקוד הושג, אומתך מובילה את העולם!',
+  'm.turn.scoreVictory': 'ניצחון: אומתך מובילה את העולם במורשת!',
   'm.turn.gameComplete': 'המשחק הסתיים: אומתך מדורגת במקום {rank} בעולם.',
 
   'report.group.battles': 'קרבות',

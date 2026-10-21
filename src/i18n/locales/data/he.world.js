@@ -201,16 +201,8 @@ export default {
   // victories (victory.<id>, victory.<id>.desc)
   'victory.domination': 'ניצחון שליטה',
   'victory.domination.desc': 'להחזיק את בירותיהן של לפחות 25% מהאומות האחרות בעולם.',
-  'victory.conqueror': 'ניצחון כובש',
-  'victory.conqueror.desc': 'להחזיק לפחות 40% מערי העולם.',
-  'victory.economicHegemony': 'ניצחון הגמוניה כלכלית',
-  'victory.economicHegemony.desc': 'להרוויח לפחות 35% מהזהב בעולם, כולל סחר.',
-  'victory.diplomatic': 'ניצחון דיפלומטי',
-  'victory.diplomatic.desc': 'לשמור על יחסי ידידות עם רוב העולם במשך 20 תורות.',
-  'victory.eventVictory': 'ניצחון',
-  'victory.eventVictory.desc': 'נקודת מפנה מכרעת הבטיחה את ניצחון אומתך.',
-  'victory.finalScore': 'ניצחון בנקודות',
-  'victory.finalScore.desc': 'להוביל את אומתך לניקוד הגבוה בעולם כשהמשחק מסתיים.',
+  'victory.finalScore': 'ניצחון מורשת',
+  'victory.finalScore.desc': 'להוביל את העולם במורשת כשהמשחק מסתיים.',
 
   // tax rates (tax.<id>, tax.<id>.desc), difficulties (diff.<id>, .desc), identity axes
   'tax.low': 'מסים נמוכים',

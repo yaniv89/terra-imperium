@@ -451,10 +451,6 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     // nation id, in case that changes later.
     advisorPool: { [playerNationId]: generateAdvisorCandidates(playerNationId, rulerRng, [nations[playerNationId]?.ruler?.name]) },
 
-    // diplomaticLeadershipStreak is the Diplomatic victory condition's sustained-majority counter
-    // (victoryConditions.js).
-    diplomaticLeadershipStreak: 0,
-
     // Deterministic turn resolution — see src/utils/rng.js
     // Carries forward whatever rulerRng advanced to while generating all 240 nations' rulers
     // above, rather than a fresh randomSeed() — turn 1 then continues deterministically from

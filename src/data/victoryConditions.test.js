@@ -1,23 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import { VICTORY_CONDITIONS, checkVictoryConditions, applyVictory, isDiplomaticallyAligned, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_STREAK_TURNS, DOMINATION_CAPITAL_SHARE, CONQUEROR_CITY_SHARE, ECONOMIC_HEGEMONY_SHARE, ECONOMIC_ROUTE_SHARE, getEconomicShare } from './victoryConditions';
+import { VICTORY_CONDITIONS, checkVictoryConditions, applyVictory, DOMINATION_CAPITAL_SHARE } from './victoryConditions';
 import { GameStatus } from './types';
 import { END_YEAR } from './ages';
 import { getNationCapital } from './regions';
-import { peoplesWorld, rivalOf } from '../engine/testWorld';
+import { peoplesWorld } from '../engine/testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
 const WORLD = peoplesWorld({ seed: 3 });
 const FR = WORLD.playerNationId;
-const DE = rivalOf(WORLD, 0);
 
-// Plan §M18: "Remove the free win. survival no longer grants VICTORY." — reaching END_YEAR is no
-// longer a `check` in this table at all (see resolveTurn.test.js/endgameReachability.test.js for
-// the real, ranked ending it's replaced with, src/engine/score.js). The two display-only entries
-// kept for GameOverModal's lookup must never fire through checkVictoryConditions's own loop.
-describe('eventVictory / finalScore (display-only entries)', () => {
-  it('never fire on their own — checkVictoryConditions only ever returns null for them', () => {
+// One victory model (KD4): domination and the legacy ranking at the ending (resolveTurn.js), nothing else.
+describe('the victory table', () => {
+  it('holds domination and the legacy ranking only', () => {
+    expect(Object.keys(VICTORY_CONDITIONS)).toEqual(['domination', 'finalScore']);
+  });
+
+  it('finalScore never fires on its own: the ending ranks it', () => {
     const state = peoplesWorld();
-    expect(VICTORY_CONDITIONS.eventVictory.check(state)).toBe(false);
     expect(VICTORY_CONDITIONS.finalScore.check({ ...state, year: END_YEAR })).toBe(false);
   });
 });
@@ -46,95 +45,31 @@ describe('domination (capitals held)', () => {
   });
 });
 
-describe('conqueror (cities held)', () => {
-  it('is false at the start and true once the player owns enough of the world\'s cities', () => {
-    const state = peoplesWorld({ seed: 3 });
-    expect(VICTORY_CONDITIONS.conqueror.check(state)).toBe(false);
-    const regions = { ...state.regions };
-    const ids = Object.keys(regions);
-    ids.slice(0, Math.ceil(ids.length * (CONQUEROR_CITY_SHARE + 0.01))).forEach(id => { regions[id] = { ...regions[id], owner: FR }; });
-    expect(VICTORY_CONDITIONS.conqueror.check({ ...state, regions })).toBe(true);
-  });
-});
-
-describe('economicHegemony (gold and trade)', () => {
-  it('is false at the start and true once the player earns enough of the world\'s gold', () => {
-    const state = peoplesWorld({ seed: 3 });
-    expect(VICTORY_CONDITIONS.economicHegemony.check(state)).toBe(false);
-    const regions = Object.fromEntries(Object.entries(state.regions).map(([id, r]) => [id, { ...r, lastYields: { ...(r.lastYields || {}), gold: r.owner === FR ? 100000 : 10 } }]));
-    const rich = { ...state, regions };
-    expect(getEconomicShare(rich).share).toBeGreaterThan(ECONOMIC_HEGEMONY_SHARE);
-    expect(VICTORY_CONDITIONS.economicHegemony.check(rich)).toBe(true);
-    const traded = { ...state, nations: { ...state.nations, [DE]: { ...state.nations[DE], hasTradeAgreement: true } } };
-    const deGold = Object.values(state.regions).filter((r) => r.owner === DE).reduce((sum, r) => sum + Math.max(0, r.lastYields?.gold ?? r.dev?.tax ?? 0), 0);
-    expect(getEconomicShare(traded).routes).toBeCloseTo(deGold * ECONOMIC_ROUTE_SHARE, 6);
-    expect(getEconomicShare(traded).mine).toBeCloseTo(getEconomicShare(state).mine + deGold * ECONOMIC_ROUTE_SHARE, 6);
-  });
-});
-
-describe('diplomatic', () => {
-  it('is false without a sustained streak', () => {
-    const state = peoplesWorld();
-    expect(VICTORY_CONDITIONS.diplomatic.check(state)).toBe(false);
-    expect(VICTORY_CONDITIONS.diplomatic.check({ ...state, diplomaticLeadershipStreak: DIPLOMATIC_LEADERSHIP_STREAK_TURNS - 1 })).toBe(false);
-  });
-
-  it('is true once the streak reaches the required length', () => {
-    const state = peoplesWorld();
-    expect(VICTORY_CONDITIONS.diplomatic.check({ ...state, diplomaticLeadershipStreak: DIPLOMATIC_LEADERSHIP_STREAK_TURNS })).toBe(true);
-  });
-});
-
-describe('isDiplomaticallyAligned', () => {
-  it('requires genuine engagement (trade or alliance), not just low hostility', () => {
-    // Every real nation starts at hostility 5 (worldNations.js) — this must NOT count as aligned
-    // on its own, or every game would win a Diplomatic Victory by turn ~20 for free.
-    expect(isDiplomaticallyAligned({ hostility: 5 })).toBe(false);
-    expect(isDiplomaticallyAligned({ hostility: 0 })).toBe(false);
-  });
-
-  it('is true with a trade agreement or a military pact', () => {
-    expect(isDiplomaticallyAligned({ hasTradeAgreement: true, hostility: 90 })).toBe(true);
-    expect(isDiplomaticallyAligned({ hasMilitaryPact: true, hostility: 90 })).toBe(true);
-  });
-});
-
-describe('getDiplomaticAlignmentShare', () => {
-  it('is 0 in a fresh game (no trade agreements or alliances exist yet)', () => {
-    const state = peoplesWorld();
-    expect(getDiplomaticAlignmentShare(state)).toBe(0);
-  });
-
-  it('excludes the player itself from the denominator', () => {
-    const state = {
-      nations: {
-        us: { isPlayer: true, hasTradeAgreement: true },
-        [FR]: { isPlayer: false, hasTradeAgreement: true },
-        [DE]: { isPlayer: false, hasTradeAgreement: false }
-      }
-    };
-    expect(getDiplomaticAlignmentShare(state)).toBeCloseTo(0.5);
-  });
-});
-
 describe('checkVictoryConditions', () => {
   it('returns null when nothing is satisfied', () => {
     expect(checkVictoryConditions(peoplesWorld())).toBeNull();
   });
 
-  it('returns the id of a satisfied ambition', () => {
-    const state = { ...peoplesWorld(), diplomaticLeadershipStreak: DIPLOMATIC_LEADERSHIP_STREAK_TURNS };
-    expect(checkVictoryConditions(state)).toBe('diplomatic');
+  const dominating = () => {
+    const state = peoplesWorld({ seed: 3 });
+    const regions = { ...state.regions };
+    const others = Object.keys(state.nations).filter(id => id !== FR);
+    others.slice(0, Math.ceil(others.length * DOMINATION_CAPITAL_SHARE)).forEach((id) => { const c = getNationCapital(id); if (c) regions[c] = { ...regions[c], owner: FR }; });
+    return { ...state, regions };
+  };
+
+  it('returns the id of a satisfied condition', () => {
+    expect(checkVictoryConditions(dominating())).toBe('domination');
+  });
+
+  it('ignores the diplomatic streak an old save carries', () => {
+    expect(checkVictoryConditions({ ...peoplesWorld(), diplomaticLeadershipStreak: 99 })).toBeNull();
   });
 
   // Plan §M18: "Continue playing after victory" — an ambition already recorded as achieved must
   // not immediately re-fire the next turn just because its threshold, naturally, is often still met.
   it('skips an ambition already recorded in state.victoriesAchieved', () => {
-    const state = {
-      ...peoplesWorld(),
-      diplomaticLeadershipStreak: DIPLOMATIC_LEADERSHIP_STREAK_TURNS,
-      victoriesAchieved: ['diplomatic']
-    };
+    const state = { ...dominating(), victoriesAchieved: ['domination'] };
     expect(checkVictoryConditions(state)).toBeNull();
   });
 

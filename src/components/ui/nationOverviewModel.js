@@ -16,12 +16,12 @@ import { PEOPLES } from '../../data/peoples';
 import { titleFor, EMPIRE_CITY_COUNT } from '../../data/nationTitles';
 import { getGovernmentType, getActiveReforms } from '../../data/government';
 import { getCapital, getNationCapital } from '../../data/regions';
-import { DOMINATION_CAPITAL_SHARE, CONQUEROR_CITY_SHARE, ECONOMIC_HEGEMONY_SHARE, getEconomicShare } from '../../data/victoryConditions';
+import { DOMINATION_CAPITAL_SHARE } from '../../data/victoryConditions';
 import { PLAYSTYLES, ERA_LEGACY_TURNS } from '../../data/eraGoals';
 import { authorityOf } from '../../engine/authority';
 import { eraGoalProgress } from '../../engine/eraGoals';
 import { STABILITY_MIN, STABILITY_MAX } from '../../engine/nationalPower';
-import { getPlayerRank } from '../../engine/score';
+import { rankNations } from '../../engine/score';
 import { t as tNow } from '../../i18n';
 import { nameNow } from '../../i18n/names';
 import { governmentName, reformName, reformDescription, playstyleName, goalUnit, goalBonus } from '../../i18n/gameText';
@@ -63,15 +63,13 @@ export const nationOverviewModel = (state) => {
   const held = (id) => !!id && state.regions?.[id]?.owner === me;
   const capitalsHeld = others.filter((x) => held(getCapital(state, x.id)) || held(state.scenario?.starts?.[x.id] || getNationCapital(x.id))).length;
   const capitalsNeeded = Math.ceil(others.length * DOMINATION_CAPITAL_SHARE);
-  const totalCities = Object.keys(state.regions || {}).length;
-  const econ = getEconomicShare(state);
   const victory = [
-    { id: 'domination', label: tNow('p1.no.vic.domination'), value: capitalsHeld, target: capitalsNeeded, text: tNow('p1.no.vic.capitals', { a: capitalsHeld, b: capitalsNeeded }) },
-    { id: 'conqueror', label: tNow('p1.no.vic.conqueror'), value: mine.length, target: Math.ceil(totalCities * CONQUEROR_CITY_SHARE), text: tNow('p1.no.vic.cities', { a: mine.length, b: Math.ceil(totalCities * CONQUEROR_CITY_SHARE) }) },
-    { id: 'economic', label: tNow('p1.no.vic.economic'), value: Math.round(econ.share * 100), target: Math.round(ECONOMIC_HEGEMONY_SHARE * 100), text: tNow('p1.no.vic.gold', { a: Math.round(econ.share * 100), b: Math.round(ECONOMIC_HEGEMONY_SHARE * 100) }) }
+    { id: 'domination', label: tNow('p1.no.vic.domination'), value: capitalsHeld, target: capitalsNeeded, text: tNow('p1.no.vic.capitals', { a: capitalsHeld, b: capitalsNeeded }) }
   ];
-  const rank = getPlayerRank(state);
-  const ranked = Object.keys(state.nations).length;
+  // The legacy ranking (legacy.js): what ranks the game at its ending.
+  const ranking = rankNations(state);
+  const rank = ranking.findIndex((r) => r.nationId === me) + 1;
+  const ranked = ranking.length;
 
   const era = eraGoalProgress(state);
   // The player's own age; the next one comes with 6 of this age's 10 techs (KTD1), never a date.

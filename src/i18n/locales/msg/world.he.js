@@ -59,7 +59,6 @@ export default {
   'm.world.eventPeace': 'נחתם שלום עם {nation}!',
   'm.world.eventTrade': 'הסכם סחר עם {nation}!',
   'm.world.eventWar': 'הוכרזה מלחמה על {nation}!',
-  'm.world.eventVictory': 'ניצחון!',
   'm.world.eventChoice': 'אירוע: {event} ← {option}',
 
   'm.world.tutorialDone': 'המדריך הסתיים: כל הצעדים הושלמו. מצרים שלך.',

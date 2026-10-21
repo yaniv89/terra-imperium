@@ -945,26 +945,6 @@ describe('resolveTurn curated national events', () => {
   });
 });
 
-describe('resolveTurn diplomatic leadership streak', () => {
-  it('increments the streak while aligned with a majority of the world', () => {
-    const base = createInitialState({ playerNationId: 'fr' });
-    const nations = { ...base.nations };
-    Object.keys(nations).forEach(id => {
-      if (id === 'fr') return;
-      nations[id] = { ...nations[id], hasTradeAgreement: true };
-    });
-    const state = withAllEventsFired({ ...base, nations, diplomaticLeadershipStreak: 5 });
-    const next = resolveTurn(state);
-    expect(next.diplomaticLeadershipStreak).toBe(6);
-  });
-
-  it('resets the streak once alignment drops below a majority', () => {
-    const state = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), diplomaticLeadershipStreak: 10 });
-    const next = resolveTurn(state);
-    expect(next.diplomaticLeadershipStreak).toBe(0);
-  });
-});
-
 describe('resolveTurn new victory conditions wired end-to-end', () => {
 
   it('triggers Domination once the player holds enough of the world\'s regions', () => {

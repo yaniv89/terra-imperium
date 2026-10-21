@@ -23,7 +23,7 @@ describe('nation overview model (W17)', () => {
     if (m.government.nextTitle) expect(m.government.nextTitle.needed).toBe(EMPIRE_CITY_COUNT);
     expect(m.stability.authority).toBe(authorityOf(s, FR).total);
     expect(m.stability.parts.some((p) => p.id === 'base')).toBe(false);
-    expect(m.victory.map((v) => v.id)).toEqual(['domination', 'conqueror', 'economic']);
+    expect(m.victory.map((v) => v.id)).toEqual(['domination']);
     expect(m.victory[0].value).toBe(0);
     expect(m.score.rank).toBeGreaterThan(0);
     expect(m.era.goals).toHaveLength(5);

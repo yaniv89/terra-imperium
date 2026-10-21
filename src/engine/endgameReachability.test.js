@@ -2,8 +2,7 @@
 // Plan §13's "endgame reachability": an automated long-run test asserting each victory condition
 // is achievable in principle.
 //
-// domination / economicHegemony / diplomatic: construct a state that satisfies the condition's real
-// threshold (a genuine share of regions/GDP, a sustained alignment streak) and confirm resolveTurn —
+// domination (the one direct win): construct a state that holds its real capital share and confirm resolveTurn —
 // the same code path every real turn goes through — actually ends the game with that victory. This
 // is a regression guard on the mechanism recognizing success, not a claim that an AI or scripted
 // player reaches it unaided.
@@ -12,9 +11,7 @@ import { resolveTurn } from './resolveTurn';
 import { createInitialState, gameReducer } from '../context/GameContext';
 import { ActionTypes, GameStatus } from '../data/types';
 import { speedTurnLimit } from '../data/ages';
-import {
-  DOMINATION_CAPITAL_SHARE, ECONOMIC_HEGEMONY_SHARE, getEconomicShare, DIPLOMATIC_LEADERSHIP_STREAK_TURNS
-} from '../data/victoryConditions';
+import { DOMINATION_CAPITAL_SHARE } from '../data/victoryConditions';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { advanceCampaign } from '../../scripts/simulate.mjs';
 import { assertGameState } from './stateAudit';
@@ -52,12 +49,8 @@ const advanceUntil = (state, predicate, maxTurns) => {
 
 describe('endgame reachability: the game always resolves to a definite outcome by the turn limit', () => {
   // Plan §M18: "Remove the free win... the passive run must NOT win by default." A player who never
-  // acts can't form the trade pact/alliance a Diplomatic Victory needs, can't conquer anything a
-  // Domination/Conqueror/Economic Hegemony victory needs, and can't launch a single space mission —
-  // so none of the five ambitions can fire for them. With M16's AI now running a real economy on
-  // all 239 other nations, the only real outcomes left are DEFEAT (conquered before END_YEAR) or
-  // COMPLETE (survives to END_YEAR, ranked well below the AI nations that spent the whole game
-  // actually building an economy).
+  // acts can't conquer the capitals domination needs, and meets few era goals or ambitions, so the
+  // AI majors that build all game lead the legacy ranking: DEFEAT (conquered first) or COMPLETE.
   it('a passive run (no player actions at all) never wins by default', () => {
     const MAX_TURNS = 1200; // Marathon's ~990-turn estimate (plan §3) plus generous headroom
     const state = advanceUntil(freshWorld(), (s) => s.gameStatus !== GameStatus.ACTIVE, MAX_TURNS);
@@ -85,35 +78,6 @@ describe('endgame reachability: each victory condition fires when its real thres
     expect(next.victoryConditionId).toBe('domination');
   });
 
-  it('Economic Hegemony: earning the gold-share threshold (trade included) ends the game as an Economic Hegemony Victory', () => {
-    const state = freshWorld();
-    // A fifth of the capitals (under the domination and conqueror shares; city gold does not grow with
-    // size at Dawn, worked tiles are capped by owned tiles) and trade with most of the world: the player's gold and routes clear the share, nothing else fires.
-    const others = Object.keys(state.nations).filter((id) => id !== state.playerNationId);
-    const regions = { ...state.regions };
-    others.slice(0, Math.floor(others.length * 0.2)).forEach((id) => { const cap = getNationCapital(id); if (cap) regions[cap] = { ...regions[cap], owner: state.playerNationId, size: 40 }; });
-    const nations = { ...state.nations };
-    others.slice(0, Math.floor(others.length * 0.7)).forEach((id) => { nations[id] = { ...nations[id], hasTradeAgreement: true }; });
-    const next = resolveTurn({ ...state, regions, nations });
-    expect(getEconomicShare(next).share).toBeGreaterThanOrEqual(ECONOMIC_HEGEMONY_SHARE);
-    expect(next.gameStatus).toBe(GameStatus.VICTORY);
-    expect(next.victoryConditionId).toBe('economicHegemony');
-  });
-
-  it('Diplomatic: a sustained majority-alignment streak ends the game as a Diplomatic Victory', () => {
-    const state = freshWorld();
-    const others = Object.values(state.nations).filter((n) => !n.isPlayer);
-    const majorityCount = Math.floor(others.length / 2) + 1;
-    const nations = { ...state.nations };
-    others.slice(0, majorityCount).forEach((n) => { nations[n.id] = { ...n, hasTradeAgreement: true }; });
-    // One turn short of the streak requirement, with the majority already aligned this turn too,
-    // so resolveTurn's own streak increment (not a hand-set field) is what crosses the threshold —
-    // the real mechanism under test, not a shortcut around it.
-    const primed = { ...state, nations, diplomaticLeadershipStreak: DIPLOMATIC_LEADERSHIP_STREAK_TURNS - 1 };
-    const next = resolveTurn(primed);
-    expect(next.gameStatus).toBe(GameStatus.VICTORY);
-    expect(next.victoryConditionId).toBe('diplomatic');
-  });
 });
 
 describe('endgame reachability: defeat and bankruptcy are achievable (plan §M15)', () => {

@@ -67,7 +67,6 @@ export default {
   'm.world.eventPeace': 'PEACE signed with {nation}!',
   'm.world.eventTrade': 'Trade agreement with {nation}!',
   'm.world.eventWar': 'WAR declared on {nation}!',
-  'm.world.eventVictory': 'VICTORY!',
   'm.world.eventChoice': 'Event: {event} → {option}',
 
   // the tutorial (tutorial.js) and old saves (saveMigrations.js)

@@ -44,7 +44,7 @@ export default {
   'm.turn.conqueredAll': 'You have conquered {nation} entirely! +{gold:money}.',
   'm.turn.defeat': 'DEFEAT: your nation has fallen — no territory remains under your control.',
   'm.turn.victory': 'VICTORY: {victory} achieved!',
-  'm.turn.scoreVictory': 'VICTORY: Score Victory achieved — your nation leads the world!',
+  'm.turn.scoreVictory': 'VICTORY: your nation leads the world in legacy!',
   'm.turn.gameComplete': 'GAME COMPLETE: your nation finishes ranked #{rank} in the world.',
 
   // the turn report (src/components/ui/turnReportModel.js, TurnReportSheet.jsx)
