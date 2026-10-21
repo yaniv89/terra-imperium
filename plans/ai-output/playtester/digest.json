@@ -1,0 +1,1430 @@
+[
+ {
+  "game": 1,
+  "seed": 1000,
+  "wars": 18,
+  "peaces": 14,
+  "meanTurnMs": 158,
+  "p95TurnMs": 308,
+  "campaign": {
+   "playerAdm": 0,
+   "playerDip": 0,
+   "playerMil": 0,
+   "playerGoldMin": 503,
+   "playerGoldMax": 20857,
+   "playerCities": 7,
+   "playerProdMean": 10.9,
+   "playerProdMin": 1,
+   "aiCityProdP10": 3.3,
+   "aiCityProdMedian": 15.6,
+   "aiCityProdP90": 37.7,
+   "aiTopCities": 38,
+   "aiTopProdMean": 25.8,
+   "aiTop5ProdMean": 23.2,
+   "firstUnitTurn": 156,
+   "firstSettlerTurn": 87,
+   "firstBuildingTurn": 16,
+   "secondCityTurn": 100,
+   "demandsMajor": 1,
+   "demandsTribute": 8,
+   "warsDeclaredMajors": 18,
+   "warsDeclaredAll": 18,
+   "warsOnPlayer": 2,
+   "battlesMajors": 91,
+   "battlesPerWar": 5.1,
+   "warsZeroBattles": 2,
+   "warLenMedian": 17,
+   "warLenMean": 15.9,
+   "warLenMax": 22,
+   "warsEnded": 15,
+   "siegesBegun": 44,
+   "capturesTotal": 29,
+   "capturesFromMajors": 10,
+   "capturesFromIndep": 19,
+   "conquestsKept20": 23,
+   "conquestsLost20": 2,
+   "rebellionsStarted": 12,
+   "rebellionsOnPlayer": 1,
+   "rebellionsConqueredLand": 0,
+   "rebellionsSucceeded": 0,
+   "aiMoveRate": 0.097,
+   "aiMoveRateWar": 0.616,
+   "aiMoveRatePeace": 0.059,
+   "stackTurns": 2307,
+   "stackMovedShare": 0.358,
+   "stackShuttleShare": 0.042,
+   "stackBesiegeShare": 0.034,
+   "stackWaitRouteShare": 0.007,
+   "stackIdleHomeShare": 0.485,
+   "stackIdleFieldShare": 0.073,
+   "majorsMet": 6,
+   "warStackMean": 3.9,
+   "warStackMedian": 2,
+   "warFieldStackMean": 5.2,
+   "warFieldStackMedian": 4,
+   "warWallStackMean": 7.2,
+   "warWallStackMedian": 4,
+   "warWallStackTurns": 109,
+   "aiGoldMean": 8950,
+   "aiUnitsMean": 25.9,
+   "bankruptcies": 0,
+   "playerCitiesLost": 0,
+   "playerOverext": 0,
+   "playerAuthority": 50,
+   "aiTopOverext": 255,
+   "aiTopAuthority": 59,
+   "aiTop5OverextMean": 232.7,
+   "aiTop5AuthorityMean": 64,
+   "telemTurn": 301
+  },
+  "player": {
+   "id": "akkad",
+   "name": "The Akkadian tribes"
+  },
+  "finalTurn": 301,
+  "finalYear": 700,
+  "status": "ACTIVE",
+  "blockTurns": 10,
+  "blocks": [
+   {
+    "turns": "2-11",
+    "year": -4400,
+    "cities": 1,
+    "citySizes": 4,
+    "gold": 552,
+    "techs": 2,
+    "researching": "governance_sacred_kingship",
+    "queue": 0,
+    "units": 1,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 3,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 0,
+    "aiCitiesChanged": 0,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 60,
+     "max": 132
+    }
+   },
+   {
+    "turns": "12-21",
+    "year": -3800,
+    "cities": 1,
+    "citySizes": 6,
+    "gold": 716,
+    "techs": 4,
+    "researching": "military_copper_working",
+    "queue": 0,
+    "units": 1,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 3,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 0,
+    "aiCitiesChanged": 0,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 48,
+     "max": 53
+    }
+   },
+   {
+    "turns": "22-31",
+    "year": -2000,
+    "cities": 1,
+    "citySizes": 7,
+    "gold": 876,
+    "techs": 6,
+    "researching": "science_proto_writing",
+    "queue": 0,
+    "units": 1,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 2,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 0,
+    "aiCitiesChanged": 0,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 52,
+     "max": 66
+    }
+   },
+   {
+    "turns": "32-41",
+    "year": -2000,
+    "cities": 1,
+    "citySizes": 8,
+    "gold": 1090,
+    "techs": 10,
+    "researching": "governance_code_of_laws",
+    "queue": 0,
+    "units": 1,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 1,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 0,
+    "aiCitiesChanged": 0,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 70,
+     "max": 102
+    }
+   },
+   {
+    "turns": "42-51",
+    "year": -1520,
+    "cities": 1,
+    "citySizes": 9,
+    "gold": 1150,
+    "techs": 14,
+    "researching": "science_cuneiform_records",
+    "queue": 0,
+    "units": 1,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 3,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 0,
+    "aiCitiesChanged": 0,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 54,
+     "max": 63
+    }
+   },
+   {
+    "turns": "52-61",
+    "year": -800,
+    "cities": 1,
+    "citySizes": 10,
+    "gold": 1364,
+    "techs": 19,
+    "researching": "infrastructure_mudbrick_roads",
+    "queue": 0,
+    "units": 1,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 1,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 0,
+    "aiCitiesChanged": 0,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 59,
+     "max": 71
+    }
+   },
+   {
+    "turns": "62-71",
+    "year": -800,
+    "cities": 1,
+    "citySizes": 10,
+    "gold": 1704,
+    "techs": 20,
+    "researching": "governance_civic_assemblies",
+    "queue": 0,
+    "units": 1,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 1,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 1,
+    "aiCitiesChanged": 0,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 74,
+     "max": 85
+    }
+   },
+   {
+    "turns": "72-81",
+    "year": -670,
+    "cities": 1,
+    "citySizes": 11,
+    "gold": 2062,
+    "techs": 21,
+    "researching": "military_iron_weapons",
+    "queue": 0,
+    "units": 1,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 1,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 0,
+    "aiCitiesChanged": 0,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 82,
+     "max": 104
+    }
+   },
+   {
+    "turns": "82-91",
+    "year": -540,
+    "cities": 1,
+    "citySizes": 11,
+    "gold": 2425,
+    "techs": 22,
+    "researching": "science_geometry",
+    "queue": 0,
+    "units": 1,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 1,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 0,
+    "aiCitiesChanged": 0,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 78,
+     "max": 96
+    }
+   },
+   {
+    "turns": "92-101",
+    "year": -540,
+    "cities": 2,
+    "citySizes": 12,
+    "gold": 2750,
+    "techs": 22,
+    "researching": "science_geometry",
+    "queue": 0,
+    "units": 1,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 2,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 0,
+    "aiCitiesChanged": 0,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 77,
+     "max": 100
+    }
+   },
+   {
+    "turns": "102-111",
+    "year": -410,
+    "cities": 2,
+    "citySizes": 14,
+    "gold": 2938,
+    "techs": 23,
+    "researching": "military_siege_engineering",
+    "queue": 0,
+    "units": 1,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 3,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 0,
+    "aiCitiesChanged": 0,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 90,
+     "max": 101
+    }
+   },
+   {
+    "turns": "112-121",
+    "year": -150,
+    "cities": 2,
+    "citySizes": 14,
+    "gold": 3350,
+    "techs": 25,
+    "researching": "economy_minted_coinage",
+    "queue": 0,
+    "units": 1,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 2,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 0,
+    "aiCitiesChanged": 2,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 118,
+     "max": 166
+    }
+   },
+   {
+    "turns": "122-131",
+    "year": 500,
+    "cities": 2,
+    "citySizes": 15,
+    "gold": 3768,
+    "techs": 26,
+    "researching": "infrastructure_paved_roads",
+    "queue": 0,
+    "units": 1,
+    "warsWithPlayer": [
+     "Kingdom of Israel"
+    ],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 2,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 1,
+    "aiCitiesChanged": 2,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 121,
+     "max": 143
+    }
+   },
+   {
+    "turns": "132-141",
+    "year": 500,
+    "cities": 2,
+    "citySizes": 16,
+    "gold": 4218,
+    "techs": 27,
+    "researching": "governance_provincial_administration",
+    "queue": 0,
+    "units": 1,
+    "warsWithPlayer": [
+     "Kingdom of Israel"
+    ],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 1,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 0,
+    "aiCitiesChanged": 2,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 133,
+     "max": 144
+    }
+   },
+   {
+    "turns": "142-151",
+    "year": 500,
+    "cities": 3,
+    "citySizes": 17,
+    "gold": 4728,
+    "techs": 28,
+    "researching": "economy_silk_road_trade",
+    "queue": 0,
+    "units": 1,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 1,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 1,
+    "aiCitiesChanged": 2,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 150,
+     "max": 212
+    }
+   },
+   {
+    "turns": "152-161",
+    "year": 500,
+    "cities": 3,
+    "citySizes": 18,
+    "gold": 5341,
+    "techs": 30,
+    "researching": "governance_feudal_charters",
+    "queue": 0,
+    "units": 2,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 2,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 0,
+    "aiCitiesChanged": 3,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 153,
+     "max": 173
+    }
+   },
+   {
+    "turns": "162-171",
+    "year": 500,
+    "cities": 3,
+    "citySizes": 18,
+    "gold": 5973,
+    "techs": 30,
+    "researching": "governance_feudal_charters",
+    "queue": 0,
+    "units": 2,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 1,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 2,
+    "aiCitiesChanged": 2,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 160,
+     "max": 178
+    }
+   },
+   {
+    "turns": "172-181",
+    "year": 500,
+    "cities": 3,
+    "citySizes": 19,
+    "gold": 6592,
+    "techs": 30,
+    "researching": "governance_feudal_charters",
+    "queue": 0,
+    "units": 3,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 1,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 2,
+    "aiCitiesChanged": 2,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 186,
+     "max": 285
+    }
+   },
+   {
+    "turns": "182-191",
+    "year": 500,
+    "cities": 3,
+    "citySizes": 20,
+    "gold": 7340,
+    "techs": 30,
+    "researching": "governance_feudal_charters",
+    "queue": 0,
+    "units": 2,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 2,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 0,
+    "aiCitiesChanged": 3,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 198,
+     "max": 230
+    }
+   },
+   {
+    "turns": "192-201",
+    "year": 500,
+    "cities": 3,
+    "citySizes": 20,
+    "gold": 8115,
+    "techs": 30,
+    "researching": "governance_feudal_charters",
+    "queue": 0,
+    "units": 2,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 1,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 0,
+    "aiCitiesChanged": 3,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 187,
+     "max": 206
+    }
+   },
+   {
+    "turns": "202-211",
+    "year": 500,
+    "cities": 3,
+    "citySizes": 22,
+    "gold": 8979,
+    "techs": 30,
+    "researching": "governance_feudal_charters",
+    "queue": 0,
+    "units": 2,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 1,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 0,
+    "aiCitiesChanged": 3,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 205,
+     "max": 261
+    }
+   },
+   {
+    "turns": "212-221",
+    "year": 500,
+    "cities": 4,
+    "citySizes": 22,
+    "gold": 9961,
+    "techs": 30,
+    "researching": "governance_feudal_charters",
+    "queue": 0,
+    "units": 3,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 2,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 0,
+    "aiCitiesChanged": 1,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 199,
+     "max": 213
+    }
+   },
+   {
+    "turns": "222-231",
+    "year": 500,
+    "cities": 4,
+    "citySizes": 23,
+    "gold": 10918,
+    "techs": 30,
+    "researching": "governance_feudal_charters",
+    "queue": 0,
+    "units": 2,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 1,
+     "other": 0
+    },
+    "events": 1,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 1,
+    "aiCitiesChanged": 1,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 234,
+     "max": 252
+    }
+   },
+   {
+    "turns": "232-241",
+    "year": 500,
+    "cities": 5,
+    "citySizes": 26,
+    "gold": 11963,
+    "techs": 30,
+    "researching": "governance_feudal_charters",
+    "queue": 0,
+    "units": 2,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 1,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 1,
+    "aiCitiesChanged": 5,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 244,
+     "max": 304
+    }
+   },
+   {
+    "turns": "242-251",
+    "year": 500,
+    "cities": 5,
+    "citySizes": 27,
+    "gold": 13200,
+    "techs": 30,
+    "researching": "governance_feudal_charters",
+    "queue": 0,
+    "units": 2,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 2,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 2,
+    "aiCitiesChanged": 2,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 258,
+     "max": 308
+    }
+   },
+   {
+    "turns": "252-261",
+    "year": 600,
+    "cities": 6,
+    "citySizes": 27,
+    "gold": 14487,
+    "techs": 31,
+    "researching": "governance_royal_chancery",
+    "queue": 0,
+    "units": 2,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 2,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 0,
+    "aiCitiesChanged": 2,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 268,
+     "max": 295
+    }
+   },
+   {
+    "turns": "262-271",
+    "year": 600,
+    "cities": 6,
+    "citySizes": 29,
+    "gold": 15981,
+    "techs": 31,
+    "researching": "governance_royal_chancery",
+    "queue": 0,
+    "units": 2,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 1,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 1,
+    "aiCitiesChanged": 1,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 284,
+     "max": 392
+    }
+   },
+   {
+    "turns": "272-281",
+    "year": 600,
+    "cities": 6,
+    "citySizes": 29,
+    "gold": 17471,
+    "techs": 31,
+    "researching": "governance_royal_chancery",
+    "queue": 0,
+    "units": 3,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 2,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 0,
+    "aiCitiesChanged": 0,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 260,
+     "max": 297
+    }
+   },
+   {
+    "turns": "282-291",
+    "year": 600,
+    "cities": 7,
+    "citySizes": 32,
+    "gold": 19187,
+    "techs": 31,
+    "researching": "governance_royal_chancery",
+    "queue": 0,
+    "units": 2,
+    "warsWithPlayer": [],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 0,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 3,
+    "aiCitiesChanged": 1,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 304,
+     "max": 393
+    }
+   },
+   {
+    "turns": "292-301",
+    "year": 700,
+    "cities": 7,
+    "citySizes": 34,
+    "gold": 20857,
+    "techs": 32,
+    "researching": "military_feudal_levies",
+    "queue": 0,
+    "units": 2,
+    "warsWithPlayer": [
+     "The Pontic Empire"
+    ],
+    "battles": {
+     "won": 0,
+     "lost": 0,
+     "other": 0
+    },
+    "events": 3,
+    "citiesLost": 0,
+    "citiesTaken": 0,
+    "aiWarsDeclared": 1,
+    "aiCitiesChanged": 7,
+    "majorsAlive": 36,
+    "turnMs": {
+     "mean": 328,
+     "max": 357
+    }
+   }
+  ],
+  "notable": [
+   {
+    "turn": 2,
+    "kind": "event",
+    "text": "The Great Migrations"
+   },
+   {
+    "turn": 4,
+    "kind": "event",
+    "text": "Raiders on the Frontier"
+   },
+   {
+    "turn": 4,
+    "kind": "tech",
+    "text": "Researched governance_chiefdoms"
+   },
+   {
+    "turn": 5,
+    "kind": "event",
+    "text": "The Horse"
+   },
+   {
+    "turn": 14,
+    "kind": "tech",
+    "text": "Researched governance_sacred_kingship"
+   },
+   {
+    "turn": 15,
+    "kind": "event",
+    "text": "The Wheel"
+   },
+   {
+    "turn": 16,
+    "kind": "event",
+    "text": "The River City Expands"
+   },
+   {
+    "turn": 20,
+    "kind": "tech",
+    "text": "Researched military_hunting_bands"
+   },
+   {
+    "turn": 21,
+    "kind": "event",
+    "text": "The First Writing"
+   },
+   {
+    "turn": 22,
+    "kind": "event",
+    "text": "One River, One Crown"
+   },
+   {
+    "turn": 23,
+    "kind": "event",
+    "text": "Sick Herds"
+   },
+   {
+    "turn": 24,
+    "kind": "tech",
+    "text": "Researched military_copper_working"
+   },
+   {
+    "turn": 31,
+    "kind": "eraGoals",
+    "text": "stone scored: 1 goals met, no legacy"
+   },
+   {
+    "turn": 31,
+    "kind": "tech",
+    "text": "Researched science_star_lore"
+   },
+   {
+    "turn": 34,
+    "kind": "tech",
+    "text": "Researched science_proto_writing"
+   },
+   {
+    "turn": 37,
+    "kind": "tech",
+    "text": "Researched economy_animal_husbandry"
+   },
+   {
+    "turn": 39,
+    "kind": "event",
+    "text": "A Smith Comes to Town"
+   },
+   {
+    "turn": 39,
+    "kind": "tech",
+    "text": "Researched infrastructure_pottery"
+   },
+   {
+    "turn": 41,
+    "kind": "tech",
+    "text": "Researched infrastructure_the_wheel"
+   },
+   {
+    "turn": 42,
+    "kind": "tech",
+    "text": "Researched governance_code_of_laws"
+   },
+   {
+    "turn": 43,
+    "kind": "event",
+    "text": "The Great Flood"
+   },
+   {
+    "turn": 45,
+    "kind": "tech",
+    "text": "Researched governance_scribal_bureaucracy"
+   },
+   {
+    "turn": 46,
+    "kind": "event",
+    "text": "The Tin Trade"
+   },
+   {
+    "turn": 48,
+    "kind": "tech",
+    "text": "Researched military_bronze_casting"
+   },
+   {
+    "turn": 51,
+    "kind": "event",
+    "text": "Counting the Grain"
+   },
+   {
+    "turn": 51,
+    "kind": "tech",
+    "text": "Researched military_composite_bow"
+   },
+   {
+    "turn": 52,
+    "kind": "event",
+    "text": "The First Scribes"
+   },
+   {
+    "turn": 53,
+    "kind": "tech",
+    "text": "Researched science_cuneiform_records"
+   },
+   {
+    "turn": 55,
+    "kind": "eraGoals",
+    "text": "bronze scored: 1 goals met, no legacy"
+   },
+   {
+    "turn": 55,
+    "kind": "tech",
+    "text": "Researched science_early_astronomy"
+   },
+   {
+    "turn": 58,
+    "kind": "tech",
+    "text": "Researched economy_bronze_trade_routes"
+   },
+   {
+    "turn": 59,
+    "kind": "tech",
+    "text": "Researched economy_granary_storage"
+   },
+   {
+    "turn": 60,
+    "kind": "crisis",
+    "text": "steppe_surge hit The Funanese tribes, The Gojoseon tribes, Kingdom of Israel, The Yamatai tribes, The Mutal tribes, The Nok tribes"
+   },
+   {
+    "turn": 61,
+    "kind": "tech",
+    "text": "Researched infrastructure_irrigation_canals"
+   },
+   {
+    "turn": 63,
+    "kind": "event",
+    "text": "A Library for Kish"
+   },
+   {
+    "turn": 64,
+    "kind": "tech",
+    "text": "Researched infrastructure_mudbrick_roads"
+   },
+   {
+    "turn": 65,
+    "kind": "ai",
+    "text": "The Ahhiyawan tribes declared war on The Dacian tribes"
+   },
+   {
+    "turn": 75,
+    "kind": "event",
+    "text": "A Road to Build"
+   },
+   {
+    "turn": 77,
+    "kind": "tech",
+    "text": "Researched governance_civic_assemblies"
+   },
+   {
+    "turn": 88,
+    "kind": "event",
+    "text": "Traveling Merchants"
+   },
+   {
+    "turn": 91,
+    "kind": "tech",
+    "text": "Researched military_iron_weapons"
+   },
+   {
+    "turn": 92,
+    "kind": "event",
+    "text": "A Conqueror's Shadow"
+   },
+   {
+    "turn": 101,
+    "kind": "event",
+    "text": "Raiders on the Frontier"
+   },
+   {
+    "turn": 102,
+    "kind": "tech",
+    "text": "Researched science_geometry"
+   },
+   {
+    "turn": 103,
+    "kind": "event",
+    "text": "A Great Library"
+   },
+   {
+    "turn": 104,
+    "kind": "event",
+    "text": "The Silk Road Opens"
+   },
+   {
+    "turn": 111,
+    "kind": "event",
+    "text": "The River Rises"
+   },
+   {
+    "turn": 113,
+    "kind": "tech",
+    "text": "Researched military_siege_engineering"
+   },
+   {
+    "turn": 114,
+    "kind": "event",
+    "text": "A Great Plague"
+   },
+   {
+    "turn": 116,
+    "kind": "event",
+    "text": "Traveling Merchants"
+   },
+   {
+    "turn": 119,
+    "kind": "tech",
+    "text": "Researched science_natural_philosophy"
+   },
+   {
+    "turn": 123,
+    "kind": "event",
+    "text": "Failed Harvest"
+   },
+   {
+    "turn": 123,
+    "kind": "ai",
+    "text": "The Dacian tribes declared war on Kingdom of Ahhiyawa"
+   },
+   {
+    "turn": 126,
+    "kind": "war",
+    "text": "Kingdom of Israel declared war on The Akkadian tribes (none)"
+   },
+   {
+    "turn": 129,
+    "kind": "eraGoals",
+    "text": "classical scored: 1 goals met, no legacy"
+   },
+   {
+    "turn": 129,
+    "kind": "tech",
+    "text": "Researched economy_minted_coinage"
+   },
+   {
+    "turn": 131,
+    "kind": "event",
+    "text": "Masters Ask for a Charter"
+   },
+   {
+    "turn": 139,
+    "kind": "event",
+    "text": "A Fair at the Border"
+   },
+   {
+    "turn": 140,
+    "kind": "tech",
+    "text": "Researched infrastructure_paved_roads"
+   },
+   {
+    "turn": 147,
+    "kind": "event",
+    "text": "Traveling Merchants"
+   },
+   {
+    "turn": 148,
+    "kind": "tech",
+    "text": "Researched governance_provincial_administration"
+   },
+   {
+    "turn": 149,
+    "kind": "ai",
+    "text": "Kingdom of Israel declared war on Kingdom of Pontus"
+   },
+   {
+    "turn": 154,
+    "kind": "event",
+    "text": "A Harsh Winter"
+   },
+   {
+    "turn": 157,
+    "kind": "tech",
+    "text": "Researched economy_silk_road_trade"
+   },
+   {
+    "turn": 158,
+    "kind": "tech",
+    "text": "Researched infrastructure_aqueducts"
+   },
+   {
+    "turn": 160,
+    "kind": "event",
+    "text": "Raiders on the Frontier"
+   },
+   {
+    "turn": 165,
+    "kind": "crisis",
+    "text": "little_ice_age hit The Magadhan Commonwealth, The Mapungubwe Empire, The Hopewell Commonwealth, The Funanese Empire, The Gojoseon Empire, The Chacoan Commonwealth"
+   },
+   {
+    "turn": 166,
+    "kind": "ai",
+    "text": "Kingdom of Pyu declared war on Kingdom of Shu"
+   },
+   {
+    "turn": 167,
+    "kind": "event",
+    "text": "Plague in the Streets"
+   },
+   {
+    "turn": 167,
+    "kind": "ai",
+    "text": "Kingdom of Shang declared war on Kingdom of Shu"
+   },
+   {
+    "turn": 173,
+    "kind": "event",
+    "text": "Failed Harvest"
+   },
+   {
+    "turn": 178,
+    "kind": "ai",
+    "text": "Kingdom of Ahhiyawa declared war on Kingdom of Dacia"
+   },
+   {
+    "turn": 178,
+    "kind": "ai",
+    "text": "Kingdom of Nanyue declared war on The Shu Empire"
+   },
+   {
+    "turn": 182,
+    "kind": "event",
+    "text": "Traveling Merchants"
+   },
+   {
+    "turn": 191,
+    "kind": "event",
+    "text": "A Harsh Winter"
+   },
+   {
+    "turn": 199,
+    "kind": "event",
+    "text": "Plague in the Streets"
+   },
+   {
+    "turn": 205,
+    "kind": "event",
+    "text": "Raiders on the Frontier"
+   },
+   {
+    "turn": 213,
+    "kind": "event",
+    "text": "The River Rises"
+   },
+   {
+    "turn": 218,
+    "kind": "event",
+    "text": "Traveling Merchants"
+   },
+   {
+    "turn": 223,
+    "kind": "battle",
+    "text": "Sack of Eshnunna: attacker (player defender, auto); men lost 1800"
+   },
+   {
+    "turn": 223,
+    "kind": "ai",
+    "text": "Kingdom of Ahhiyawa declared war on The Dacian Empire"
+   },
+   {
+    "turn": 231,
+    "kind": "event",
+    "text": "Plague in the Streets"
+   },
+   {
+    "turn": 233,
+    "kind": "ai",
+    "text": "Kingdom of Ahhiyawa declared war on The Khazar Empire"
+   },
+   {
+    "turn": 239,
+    "kind": "event",
+    "text": "Raiders on the Frontier"
+   },
+   {
+    "turn": 243,
+    "kind": "event",
+    "text": "Failed Harvest"
+   },
+   {
+    "turn": 243,
+    "kind": "ai",
+    "text": "The Shu Empire declared war on The Gokturk Commonwealth"
+   },
+   {
+    "turn": 244,
+    "kind": "ai",
+    "text": "The Pontic Empire declared war on The Khazar Empire"
+   },
+   {
+    "turn": 248,
+    "kind": "event",
+    "text": "Traveling Merchants"
+   },
+   {
+    "turn": 253,
+    "kind": "event",
+    "text": "The River Rises"
+   },
+   {
+    "turn": 258,
+    "kind": "tech",
+    "text": "Researched governance_feudal_charters"
+   },
+   {
+    "turn": 260,
+    "kind": "event",
+    "text": "A Coastal Boom"
+   },
+   {
+    "turn": 267,
+    "kind": "ai",
+    "text": "The Ahhiyawan Empire declared war on The Pontic Empire"
+   },
+   {
+    "turn": 270,
+    "kind": "event",
+    "text": "Plague in the Streets"
+   },
+   {
+    "turn": 276,
+    "kind": "event",
+    "text": "Raiders on the Frontier"
+   },
+   {
+    "turn": 280,
+    "kind": "event",
+    "text": "Refugees at the Border"
+   },
+   {
+    "turn": 282,
+    "kind": "ai",
+    "text": "The Pyu Empire declared war on The Shu Empire"
+   },
+   {
+    "turn": 285,
+    "kind": "ai",
+    "text": "The Ndongo Empire declared war on The Kitaran Empire"
+   },
+   {
+    "turn": 290,
+    "kind": "ai",
+    "text": "The Shang Empire declared war on The Shu Empire"
+   },
+   {
+    "turn": 292,
+    "kind": "event",
+    "text": "Failed Harvest"
+   },
+   {
+    "turn": 293,
+    "kind": "ai",
+    "text": "Kingdom of Nanyue declared war on The Shu Empire"
+   },
+   {
+    "turn": 295,
+    "kind": "tech",
+    "text": "Researched governance_royal_chancery"
+   },
+   {
+    "turn": 296,
+    "kind": "event",
+    "text": "A Golden Age of Learning"
+   },
+   {
+    "turn": 297,
+    "kind": "event",
+    "text": "Raiders From the North"
+   },
+   {
+    "turn": 297,
+    "kind": "war",
+    "text": "The Pontic Empire declared war on The Akkadian tribes (none)"
+   }
+  ],
+  "notableCapped": false
+ }
+]
