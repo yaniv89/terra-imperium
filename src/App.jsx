@@ -17,6 +17,7 @@ import SettingsSheet from './components/ui/SettingsSheet';
 import TurnReportSheet from './components/ui/TurnReportSheet';
 import NationOverviewSheet from './components/ui/NationOverviewSheet';
 import GlossarySheet from './components/glossary/GlossarySheet';
+import { useHoldHelp } from './hooks/useHoldHelp';
 import { OPEN_SETTINGS } from './components/ui/uiEvents';
 import { SELECT_REGION, openCityOnMap } from './components/map/marchEvents';
 import WaitingChips from './components/ui/WaitingChips';
@@ -71,6 +72,7 @@ const GameLayout = () => {
   const { state, dispatch, resolveEvent, resetGame, importSave, meta, completeOnboarding } = useGame();
   const { t, name: nm } = useT();
   const { triggerEffect } = useEffects();
+  useHoldHelp();
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [showAccount, setShowAccount] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
