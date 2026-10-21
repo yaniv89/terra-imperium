@@ -47,7 +47,6 @@ describe('an AI landing on the player\'s coast is queued', () => {
     expect(def.defenderUnitIds).toEqual(['guard']);
     expect(q.units.fleet.movesLeft).toBe(0);
     expect(q.units.army.embarkedOn).toBe('fleet');
-    expect(q.nations[A].economy.mil).toBeLessThan(100);
     expect(isUnitInBattle(q, 'fleet')).toBe(true);
     expect(isUnitInBattle(q, 'guard')).toBe(true);
     expect(resolveTurn(q)).toBe(q);

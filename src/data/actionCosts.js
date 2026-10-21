@@ -7,116 +7,104 @@
 // gdp/population -> gold/hr formulas) — costs in the tens-to-low-hundreds keep every action
 // affordable within a few turns without being free.
 //
-// Plan §M2: the single shared `actionPoints` pool is replaced by three EU4-style power pools —
-// `adm` (domestic/economy/government), `dip` (diplomacy/research-that-isn't-military/space), and
-// `mil` (military) — so a turn's priorities compete only against other actions of the SAME kind,
-// not against everything else in the game. Every entry below keeps its old quantity, just
-// recategorized onto whichever pool that action actually belongs to; `diplomacyPoints` (the old
-// separate diplomacy currency) folds into `dip` 1:1 rather than staying a fourth currency.
+// Differentiation plan U7 (Appendix A): the ADM/DIP/MIL pools are gone. A cost is gold (and other
+// resources), `decrees` spent from the ruler's bank (src/engine/decrees.js), or nothing; the one
+// cost helper for decree acts is src/utils/costs.js (canPay, payCost).
 
 export const ACTION_COSTS = {
-  gainControl: { gold: 40, adm: 1 },
-  buildInfrastructure: { gold: 80, adm: 1 },
-  buildDefenses: { gold: 60, adm: 1 },
-  constructBuilding: { gold: 100, adm: 1 },
-  developResourceSite: { gold: 120, adm: 1 },
-  quellUnrest: { gold: 50, adm: 1 },
+  gainControl: { gold: 40 },
+  buildInfrastructure: { gold: 80 },
+  buildDefenses: { gold: 60 },
+  constructBuilding: { gold: 100 },
+  developResourceSite: { gold: 120 },
+  quellUnrest: { gold: 50 },
   // Peacefully absorbing a bordering nation whose own grip on its territory has collapsed — no
-  // military required, unlike Launch Invasion, so it costs more gold and ADM than any other
+  // military required, unlike Launch Invasion, so it costs more gold than any other
   // single-region domestic action to compensate.
-  settleColonize: { gold: 150, adm: 2 },
-  populationPolicy: { gold: 100, adm: 1 },
-  // A slider flip, not a strategic decision competing with the rest of the ADM budget — free.
-  setTaxRate: { adm: 0 },
-  // Great Projects (plan §M10): cost scales by tier (500/1000/2000 gold + 100/150/200 ADM, 4/6/8
+  settleColonize: { gold: 150 },
+  populationPolicy: { gold: 100 },
+  // A slider flip, not a strategic decision — free.
+  setTaxRate: {},
+  // Great Projects (plan §M10): cost scales by tier (500/1000/2000 gold, 4/6/8
   // turns) via src/data/greatProjects.js's getGreatProjectCost — no flat ACTION_COSTS entry here,
   // matching the RESEARCH_TECH/CHANGE_LAW pattern for dynamically-priced actions.
 
-  recruitUnit: { gold: 60, hr: 100, mil: 1 },
+  recruitUnit: { gold: 60, hr: 100 },
   // Free since routes (plan §4g): marching costs supplies and gold instead (routes.js).
   moveArmy: {},
-  launchInvasion: { mil: 2 },
+  launchInvasion: {},
   // Bookkeeping, not a strategic decision — free, like setTaxRate/appointGeneral.
-  promoteUnit: { mil: 0 },
-  hireGeneral: { gold: 150, mil: 1 },
-  appointGeneral: { mil: 0 },
+  promoteUnit: {},
+  hireGeneral: { gold: 150 },
+  appointGeneral: {},
 
-  embarkUnit: { mil: 1 },
-  disembarkUnit: { mil: 1 },
-  amphibiousAssault: { mil: 3 },
-  navalEngagement: { mil: 2 },
-  suppressRebellion: { mil: 2 },
+  embarkUnit: {},
+  disembarkUnit: {},
+  amphibiousAssault: {},
+  navalEngagement: {},
+  suppressRebellion: {},
 
   // Research itself has no action cost: science pays for the chosen tech turn by turn
   // (src/engine/research.js).
-  setResearchFocus: { adm: 1 },
-  fundScholars: { gold: 100, dip: 1 },
+  setResearchFocus: {},
+  fundScholars: { gold: 100 },
 
-  // Plan §M8.1: changing government TYPE is the big, rare decision (300 ADM, plus -2 stability
+  // Plan §M8.1: changing government TYPE is the big, rare decision (2 decrees, plus -2 stability
   // applied directly in the reducer); enacting a reform for the current age tier is the smaller,
-  // routine one. A law's own cost is computed dynamically (src/data/laws.js's getLawChangeCost:
-  // 50 x the law's tier, discounted by reforms/identity) rather than a flat entry here.
-  changeGovernmentType: { adm: 300 },
-  enactGovernmentReform: { adm: 100 },
+  // routine one. A law change is changeLaw below (one decree).
+  changeGovernmentType: { decrees: 2 },
+  enactGovernmentReform: { decrees: 1 },
   // Plan §M15: relocating the capital is a rare, deliberate decision — priced like changing
-  // government type (the other "big ADM decision"), plus a real gold cost the plan itself specifies.
-  moveCapital: { adm: 200, gold: 300 },
+  // government type (the other big act of state), plus a real gold cost the plan itself specifies.
+  moveCapital: { gold: 300, decrees: 1 },
   // Declaring independence costs nothing beyond the war itself (like every other DECLARE_WAR variant
   // in this codebase) — a vassal already pays 10% tribute every turn just for existing as a subject.
   declareIndependence: {},
 
-  // Declaring war with a real casus belli (a fabricated claim or organic hostility) costs only
-  // DIP; without one it costs a real gold premium on top — see GameContext.jsx's DECLARE_WAR for
+  // Declaring war with a real casus belli (a fabricated claim or organic hostility) costs one
+  // decree; without one it costs a real gold premium on top — see GameContext.jsx's DECLARE_WAR for
   // the rest of an unjustified war's cost (global relations, home unrest).
-  declareWarJustified: { dip: 2 },
-  declareWarUnjustified: { gold: 300, dip: 2 },
-  // The old { diplomacyPoints: 10, actionPoints: 1 } collapses into one dip cost (10 + 1) now that
-  // diplomacyPoints and the diplomatic AP draw from the same pool.
-  fabricateClaim: { gold: 150, dip: 11 },
-  tradeAgreement: { gold: 100, dip: 1 },
-  openBorders: { gold: 50, dip: 5 },
+  declareWarJustified: { decrees: 1 },
+  declareWarUnjustified: { gold: 300 },
+  fabricateClaim: { gold: 150, decrees: 1 },
+  tradeAgreement: { gold: 100 },
+  openBorders: { gold: 50 },
   borderStele: { gold: 40 },
-  demand: { dip: 5 },
-  militaryAlliance: { gold: 150, dip: 16 },
-  giftBribe: { gold: 100, dip: 1 },
+  demand: { decrees: 1 },
+  militaryAlliance: { gold: 150, decrees: 1 },
+  giftBribe: { gold: 100 },
   // Espionage risks the gold on a coin-flip-ish roll (see ESPIONAGE_SUCCESS_CHANCE, gameReducer.js)
   // — priced like a real covert operation, not a guaranteed purchase of techPoints.
-  espionage: { gold: 200, dip: 2 },
+  espionage: { gold: 200 },
   // Counter-Intelligence auto-targets whoever is currently most hostile toward you rather than
   // needing a chosen target, so it's priced like Gift/Bribe (a direct relations action) rather than
   // Espionage's riskier, pricier covert-ops tier.
-  counterIntelligence: { gold: 120, dip: 1 },
+  counterIntelligence: { gold: 120 },
 
   // Diplomacy overhaul (plan §M12).
   // Rivals/Insult/Break Alliance are free relationship declarations, like Gift/Bribe's flavor
   // sibling — their real cost is the relationship consequence itself, not a resource.
-  rivalNation: { dip: 0 },
-  proposeMarriage: { gold: 100, dip: 10 },
-  breakAlliance: { dip: 0 },
-  insult: { dip: 0 },
-  assignDiplomat: { dip: 5 },
-  // Vassalize is a major diplomatic commitment, priced well above Military Alliance; Annex scales
-  // with the vassal's own development (getAnnexVassalCost, below) so a large vassal costs more to
-  // absorb than a small one, matching the plan's own "8 DIP x total dev" shape.
-  vassalize: { gold: 300, dip: 20 },
-  releaseVassal: { dip: 0 },
+  rivalNation: {},
+  proposeMarriage: { gold: 100, decrees: 1 },
+  breakAlliance: {},
+  insult: {},
+  assignDiplomat: {},
+  // Vassalize is a major diplomatic commitment, priced well above Military Alliance; annexing a
+  // vassal (after VASSAL_ANNEX_COOLDOWN_TURNS) is one decree.
+  vassalize: { gold: 300, decrees: 1 },
+  annexVassal: { decrees: 1 },
+  // A law change needs authority (canEnactLaw) and one decree.
+  changeLaw: { decrees: 1 },
+  releaseVassal: {},
 
-  // Plan §M2/§M8.3: identity shifts cost ADM only (gold is gone) — a real decision, priced
+  // Plan §M2/§M8.3: identity shifts cost one decree — a real decision, priced
   // between a reform and a law change, with its own 5-turn cooldown (IDENTITY_SHIFT_COOLDOWN_TURNS).
-  shiftIdentity: { adm: 50 },
+  shiftIdentity: { decrees: 1 },
   // Priced like Build Defenses — a persistent, steadily-improving region investment of the same shape.
-  buildClimateResilience: { gold: 90, adm: 1 },
+  buildClimateResilience: { gold: 90 },
   // Priced like Gift/Bribe — a direct relations action, but empire-wide rather than one target.
-  culturalExport: { gold: 130, dip: 1 }
+  culturalExport: { gold: 130 }
 };
-
-// Flat bank cap for ADM/DIP/MIL (9,999 — EU4 uses 999, but this game's turns can span decades and a
-// long hoard toward several 300-ADM reforms shouldn't hit a ceiling). The old cap was 2x a nation's per-turn
-// income, left over from the 1-3 point action-point era — once M7+ priced techs at 40-160, laws at
-// 50 x tier, government changes at 300 and Increase Stability at 100+, every one of those sat above
-// what a pool could ever hold (a 4-9/turn income capped out at 8-18), so none was ever affordable,
-// for the player or any AI. src/data/powerCosts.test.js guards that every power cost fits under it.
-export const POWER_POOL_CAP = 9999;
 
 // Every nation's flat techPoints/turn before any Science building. Tech points otherwise came ONLY
 // from Science buildings, whose first tier (Library) itself needs a researched tech — a closed loop
@@ -243,9 +231,8 @@ export const ESPIONAGE_FAILURE_HOSTILITY_INCREASE = 15;
 // How long a successful espionage op keeps the target's provinces visible (src/engine/intel.js).
 export const INTEL_DURATION_TURNS = 10;
 // Counter-Intelligence auto-targets whoever is currently most hostile toward the player (no chosen
-// target) and both calms them down and rewards the player for catching the plot.
+// target) and calms them down.
 export const COUNTER_INTEL_HOSTILITY_REDUCTION = 20;
-export const COUNTER_INTEL_DIPLOMACY_POINTS_REWARD = 10;
 
 // Fraction of a disbanded unit's HR cost recovered — never the full amount, or disband/recruit
 // would be a free way to reshuffle composition every turn.
@@ -332,13 +319,10 @@ export const AE_COALITION_ROLL_CAP = 2;
 // Vassals (plan §M12; nation.vassals was scaffolded back in M4 but never had a real writer until
 // now). Vassalize requires the target's hostility already low and the player overwhelmingly
 // stronger — the plan's own "opinion >= +150... >= 3x their strength" translated onto this
-// codebase's real axes (hostility, militaryStrength). Annex opens up after a cooldown, at a DIP
-// cost scaling with the vassal's own total development — cheap early, a real commitment for a
-// large one.
+// codebase's real axes (hostility, militaryStrength). Annex opens up after a cooldown, for one decree.
 export const VASSALIZE_HOSTILITY_CEILING = 20;
 export const VASSALIZE_STRENGTH_RATIO = 3;
 export const VASSAL_ANNEX_COOLDOWN_TURNS = 10;
-export const VASSAL_ANNEX_DIP_PER_DEV = 8;
 // Plan: "Vassals pay 10% of their income as tribute" — real and computable for an AI vassal too,
 // since every nation has real per-region dev (M5), not just the player.
 export const VASSAL_TRIBUTE_RATE = 0.10;
@@ -351,7 +335,6 @@ export const VASSAL_TRIBUTE_GOLD_PER_DEV_POINT = 1;
 // the plan's own distinct table entries for each of the three capital events.
 export const MOVE_CAPITAL_FOREIGN_STABILITY_PENALTY = 1;
 export const CAPITAL_OCCUPIED_STABILITY_PENALTY = 1;
-export const CAPITAL_OCCUPIED_POOL_PENALTY = 1; // -1 ADM/DIP/MIL per turn while occupied (player only, see resolveTurn.js)
 export const CAPITAL_LOST_IN_PEACE_STABILITY_PENALTY = 2;
 
 // Civil war (plan §M15). Insurgent rebels reuse REBEL_OWNER_ID (src/data/rebellion.js) for combat —

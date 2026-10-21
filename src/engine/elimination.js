@@ -9,7 +9,7 @@ import { getOwnedRegionIds } from '../data/regions';
 
 // A modest one-time prize for finishing a nation off entirely — sized like a single mid-tier
 // action's cost (src/data/actionCosts.js), not a windfall.
-export const NATION_ELIMINATION_REWARD = { gold: 200, dip: 15 };
+export const NATION_ELIMINATION_REWARD = { gold: 200 };
 
 // The player nation record is never flagged isEliminated by this function (an AI nation's zero-
 // regions state means "dead and done"; the player's does not — GameStatus.DEFEAT, checked separately

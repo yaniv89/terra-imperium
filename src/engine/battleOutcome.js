@@ -40,6 +40,8 @@ import { LogTypes } from '../data/types';
 import { msg, sub, people, cityRef, place as placeRef, thing } from './messages';
 import { awardXp } from '../data/promotions';
 import { getGeneralXpMultiplier } from '../data/generals';
+import { lawRulesOf } from './lawRules';
+import { grantBattleRenown } from './renown';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 import { getTiles } from '../data/geo/tiles';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
@@ -623,14 +625,15 @@ export const applyBattleOutcome = (state, o) => {
 
   let s = base;
   // row 5 (XP), then the kind (rows 2, 3, 6.9)
-  const att = awardSideXp(s, out, out.attackerUnits, out.deployedAttackerIds, xpFor('attacker', out.outcome));
-  const def = awardSideXp(s, out, out.defenderUnits, out.deployedDefenderIds, xpFor('defender', out.outcome));
+  const xpMult = (side, nationId) => (out.outcome === side ? 1 + (lawRulesOf(s.nations?.[nationId]).battleXpMult || 0) : 1);
+  const att = awardSideXp(s, out, out.attackerUnits, out.deployedAttackerIds, xpFor('attacker', out.outcome) * xpMult('attacker', out.attackerNationId));
+  const def = awardSideXp(s, out, out.defenderUnits, out.deployedDefenderIds, xpFor('defender', out.outcome) * xpMult('defender', out.defenderNationId));
   const placed = ADAPTERS[o.kind](s, out, war, att, def, record);
   s = { ...s, units: placed.units, regions: placed.regions, nations: placed.nations };
 
   // row 1: one war-score entry
   // `war.battles` counts every battle fought in the war (telemetry: battles per war, wars with none).
-  if (war) s = { ...s, wars: s.wars.map((w) => (w.id === war.id ? { ...w, battles: (w.battles || 0) + 1, ...(placed.score ? { battleScore: recordBattle(w, placed.score.winnerId, placed.score.share) } : {}) } : w)) };
+  if (war) s = { ...s, wars: s.wars.map((w) => (w.id === war.id ? { ...w, battles: (w.battles || 0) + 1, ...(placed.score ? { battleScore: recordBattle(w, placed.score.winnerId, placed.score.share, 1 + (lawRulesOf(s.nations?.[placed.score.winnerId]).battleWarScore || 0)) } : {}) } : w)) };
 
   // rows 5 and 21: the aftermath, every kind
   const beforeA = out.attackerUnits.map((u) => ({ ...(state.units[u.id] || u), strength: startStrength(state, out, u) }));
@@ -681,6 +684,14 @@ export const applyBattleOutcome = (state, o) => {
   // row 15: each nation's battle record (research boosts read it)
   // A city taken again by the same nation soon after (conquest.js captureLog) is not a second prize (I132).
   s = { ...s, nations: recordStats(s.nations, out, placed.captured && !s.regions[o.regionId]?.conquest?.repeat) };
+  // The winner's ruler earns renown (renown.js), once: this outcome is applied once by its id.
+  const winnerId = out.outcome === 'attacker' ? out.attackerNationId : out.outcome === 'defender' ? out.defenderNationId : null;
+  if (winnerId && s.nations[winnerId]?.ruler) {
+    const [mine, theirs] = winnerId === out.attackerNationId ? [out.attackerUnits, out.defenderUnits] : [out.defenderUnits, out.attackerUnits];
+    const men = (list) => list.reduce((x, u) => x + startStrength(state, out, u), 0);
+    const cities = Object.values(s.regions).filter((c) => c.owner === winnerId).length;
+    s = { ...s, nations: { ...s.nations, [winnerId]: grantBattleRenown(s.nations[winnerId], { outnumbered: men(mine) < men(theirs), cities, turn: state.turnNumber, where: name }) } };
+  }
   // Decision 40: the player who took a city decides its fate on the capture card (capture.js), once.
   if (placed.captured && out.attackerNationId === viewerId && s.regions[o.regionId]?.owner === viewerId) s = openCapture(s, { opId: id, cityId: o.regionId, by: viewerId, from: state.regions[o.regionId]?.owner ?? null, source: 'battle' });
   // An independent remembers who attacked it (grudges.js, phase W2): any assault on its city, any

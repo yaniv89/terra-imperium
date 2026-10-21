@@ -22,6 +22,7 @@
 // favoring infantry, the real counter, not a scripted response to "cavalry" by name.
 
 import { opinionOf, warRollOpinionMult } from '../engine/opinion';
+import { rulerWarMult } from '../engine/rulerBias';
 import { DOCTRINES } from '../data/nations';
 import { isIndependentNation, everyMajorThinks } from '../data/independents';
 import { RelationStatus } from '../data/types';
@@ -32,6 +33,7 @@ import { claimsOf, claimsInProgressOf, claimableCities, startClaim } from '../en
 import { hasOpenDemand, hasStele } from '../engine/accords';
 import { canAnnex } from '../engine/stonePhase';
 import { ACTION_COSTS } from '../data/actionCosts';
+import { decreesOf, spendDecree } from '../engine/decrees';
 import { UNIT_CLASSES, UNIT_CLASS_IDS, getAvailableClasses } from '../data/unitClasses';
 import { AE_COALITION_ROLL_SCALE, AE_COALITION_ROLL_CAP } from '../data/actionCosts';
 import { independenceChance } from '../engine/vassals';
@@ -296,7 +298,7 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
 // leader ignores all that and goes straight for the leader — that's the whole point of ganging up.
 export const WAR_TEMPER_MIN = 0.5;
 export const WAR_TEMPER_MAX = 2;
-export const warTemper = (nation) => Math.max(WAR_TEMPER_MIN, Math.min(WAR_TEMPER_MAX, (DOCTRINES[nation?.doctrine] || DEFAULT_DOCTRINE).warRollMult));
+export const warTemper = (nation) => Math.max(WAR_TEMPER_MIN, Math.min(WAR_TEMPER_MAX, (DOCTRINES[nation?.doctrine] || DEFAULT_DOCTRINE).warRollMult * rulerWarMult(nation || {})));
 export const rankWarTargets = (state, nationId, candidates) => {
   const cost = WAR_COST / warTemper(state.nations[nationId]);
   return candidates.map((id) => ({ id, ...warValue(state, nationId, id, { cost }) })).sort((a, b) => b.ev - a.ev || (a.id < b.id ? -1 : 1));
@@ -339,7 +341,7 @@ const pickWarTarget = (state, nationId, preferredTargetId = null, excludeId = nu
 const shouldDeclareWar = (nation, rng, aggressionMult = 1, coalitionMult = 1, opinionMult = (nation.hostility || 0) / 100 + 0.2) => {
   const doctrine = DOCTRINES[nation.doctrine] || DEFAULT_DOCTRINE;
   if (doctrine.warRollMult <= 0) return false;
-  const chance = BASE_WAR_ROLL_CHANCE * doctrine.warRollMult * aggressionMult * coalitionMult * opinionMult;
+  const chance = BASE_WAR_ROLL_CHANCE * doctrine.warRollMult * aggressionMult * coalitionMult * opinionMult * rulerWarMult(nation); // the ruler's virtues (rulerBias.js)
   return rng.next() < chance;
 };
 
@@ -430,22 +432,25 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     // Recent wars nearby raise the roll (warContagion.js, a Hawkes process).
     if (!readyTarget && !shouldDeclareWar(activeNation, rng, aggressionMult, coalitionMult * warContagionMult(activeNation) * (fronts > 0 ? SECOND_FRONT_ROLL_MULT : 1), warRollOpinionMult(opinionOf(view, nationId, targetId)))) return;
     if (!hasCasusBelli(view, nationId, targetId)) {
-      // No justification yet: fabricate a claim on the nearest city of the target when the DIP is
-      // there, and come back for the war when it is ready; a nation that cannot (no city within
-      // reach, no DIP) declares unjustified as before.
+      // No justification yet: fabricate a claim on the nearest city of the target when the gold and a
+      // decree are there, and come back for the war when it is ready; a nation that cannot (no city
+      // within reach, no decree) declares unjustified as before.
       if (claimsInProgressOf(activeNation).length) return;
       const site = claimableCities(view, nationId, targetId)[0];
       const cost = ACTION_COSTS.fabricateClaim;
       const pool = activeNation.economy;
-      if (site && pool && (pool.dip || 0) >= (cost.dip || 0) && (pool.gold || 0) >= (cost.gold || 0)) {
-        currentNations = { ...currentNations, [nationId]: startClaim({ ...activeNation, economy: { ...pool, dip: pool.dip - (cost.dip || 0), gold: pool.gold - (cost.gold || 0) } }, site.city.id, state.turnNumber) };
+      if (site && pool && decreesOf(activeNation) >= cost.decrees && (pool.gold || 0) >= cost.gold) { // the decree a warlike doctrine keeps back (aiEconomy.js spareDecrees)
+        currentNations = { ...currentNations, [nationId]: startClaim(spendDecree({ ...activeNation, economy: { ...pool, gold: pool.gold - cost.gold } }, 'fabricateClaim', state.turnNumber), site.city.id, state.turnNumber) };
         return;
       }
     }
+    const justified = hasCasusBelli(view, nationId, targetId);
     const result = declareWar({ ...state, nations: currentNations, wars: currentWars }, targetId, { aggressor: nationId });
     if (result.wars === currentWars) return; // no-op (shouldn't happen given pickWarTarget's filter, but stay defensive)
     draggedIn.add(targetId);
     currentNations = result.nations;
+    // A justified war spends a decree like the player's (U8); a court without one still marches.
+    if (justified && decreesOf(currentNations[nationId]) > 0) currentNations = { ...currentNations, [nationId]: spendDecree(currentNations[nationId], 'declareWarJustified', state.turnNumber) };
     // Every claim on the target is spent by this war (see readyTarget above).
     const claimsOnTarget = claimsOf(currentNations[nationId]).filter((cid) => state.regions[cid]?.owner === targetId);
     if (claimsOnTarget.length) {

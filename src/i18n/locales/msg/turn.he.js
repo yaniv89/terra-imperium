@@ -6,6 +6,8 @@ export default {
   'log.foldNote': '({count} פעמים עד כה, מאז {year})',
 
   'm.turn.newEra': 'עידן חדש מפציע: העולם נכנס ל{age}.',
+  'm.turn.ambition': 'שאיפה הוגשמה: {ambition}. תהילה וצו בידינו.',
+  'm.turn.rulerLevel': '{name}: דרגת שליט {level}. נקודות חדשות מחכות.',
   'm.turn.governorMoved': 'המושל {name} משרת עכשיו מ{city}: הערים שלכם קובצו מחדש.',
   'm.turn.governorMerged': 'המושל {name} עזב את תפקידו: הקבוצה של {city} אוחדה עם קבוצה שכבר יש לה מושל.',
   'm.turn.governorLeft': 'המושל {name} עזב את תפקידו: {city} כבר לא בידיכם.',
@@ -37,7 +39,7 @@ export default {
   'm.turn.wonderBuilt': '{wonder} (דרגה {tier}) עומד ב{city}!{prestige}',
   'm.turn.eliminated': '{nation} חוסלה: לא נותר בידיה שום שטח.',
   'm.turn.rivalFallen': 'יריבתך {nation} נפלה. (+{n} יוקרה)',
-  'm.turn.conqueredAll': 'כבשת את {nation} כולה! +{gold:money}, +{dip} דיפ.',
+  'm.turn.conqueredAll': 'כבשת את {nation} כולה! +{gold:money}.',
   'm.turn.defeat': 'תבוסה: אומתך נפלה, לא נותר בידיך שום שטח.',
   'm.turn.victory': 'ניצחון: {victory} הושג!',
   'm.turn.scoreVictory': 'ניצחון: ניצחון ניקוד הושג, אומתך מובילה את העולם!',

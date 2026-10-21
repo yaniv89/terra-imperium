@@ -138,7 +138,6 @@ describe('standing works and growth follow age, speed and level (I021)', () => {
     expect(infrastructureCosts(withGold(s, 1e6), c0)).toEqual(infrastructureCosts(withGold(s, 0), c0));
     expect(eraGoldFactor('modern')).toBeGreaterThan(eraGoldFactor('bronze'));
     expect(scaledGold({ ...s, gameSpeed: 'marathon' }, 'buildInfrastructure')).toBeGreaterThan(scaledGold({ ...s, gameSpeed: 'normal' }, 'buildInfrastructure'));
-    expect(infrastructureCosts(s, c0).adm).toBe(1); // other currencies untouched
   });
 
   it('the reducer charges the scaled price', () => {

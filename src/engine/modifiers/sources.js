@@ -12,8 +12,11 @@ import { GREAT_PROJECTS, getGreatProjectOwner } from '../../data/greatProjects';
 import { TAX_RATES } from '../../data/taxRates';
 import { TECH_TREE } from '../../data/techTree';
 import { LEGACY_HOOK } from './registry';
-import { getOverextension, getRulerBestPool } from '../nationalPower';
+import { getOverextension } from '../nationalPower';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
+import { VIRTUES } from '../../data/rulerVirtues';
+
+const ADVISOR_JOBS = { adm: { key: 'national.decreePace', per: 1 }, dip: { key: 'national.opinion', per: 2 }, mil: { key: 'national.hrMult', per: 0.05 } };
 
 const linesFromEffect = (effect, sourceType, sourceId, label) =>
   Object.entries(effect || {})
@@ -51,19 +54,20 @@ export const staticSources = (nation) => {
     });
   });
 
-  // The ruler's ADM/DIP/MIL attributes feed the matching per-pool bonus hook (differentiation plan
-  // KTD5: until U7 retires the pools).
+  // The ruler: Military above 3 +2% manpower a level, Command +5% morale recovery a level and the
+  // Virtue tree (RULER-PLAN 3; Administration works in src/engine/decrees.js, Diplomacy in opinion.js).
   const ruler = nation?.ruler;
   if (ruler) {
-    ['adm', 'dip', 'mil'].forEach((pool) => {
-      if (ruler[pool]) lines.push({ key: `national.${pool}Bonus`, value: ruler[pool], sourceType: 'ruler', sourceId: ruler.id, label: ruler.name });
-    });
+    if ((ruler.mil || 0) > 3) lines.push({ key: 'national.hrMult', value: Math.round(2 * (ruler.mil - 3)) / 100, sourceType: 'ruler', sourceId: ruler.id, label: `${ruler.name} (Military ${ruler.mil})` });
+    if (ruler.cmd) lines.push({ key: 'national.moraleRecovery', value: Math.round(5 * ruler.cmd) / 100, sourceType: 'ruler', sourceId: ruler.id, label: `${ruler.name} (Command ${ruler.cmd})` });
+    (ruler.traits || []).forEach((id) => { if (VIRTUES[id]) lines.push(...linesFromEffect(VIRTUES[id].effects, 'virtue', id, `${ruler.name} (${VIRTUES[id].name})`)); });
   }
 
-  // Advisors (plan §M3): each hired advisor's level (1-3) adds straight to their own pool, on top
-  // of anything the ruler or government already contribute to it.
-  Object.entries(nation?.advisors || {}).forEach(([pool, advisor]) => {
-    if (advisor?.level) lines.push({ key: `national.${pool}Bonus`, value: advisor.level, sourceType: 'advisor', sourceId: advisor.id, label: advisor.name });
+  // An advisor's level feeds its slot's new job (differentiation plan KTD5): decree pace, +2 opinion
+  // or +5% manpower a level.
+  Object.entries(nation?.advisors || {}).forEach(([slot, advisor]) => {
+    const job = ADVISOR_JOBS[slot];
+    if (advisor?.level && job) lines.push({ key: job.key, value: job.per * advisor.level, sourceType: 'advisor', sourceId: advisor.id, label: advisor.name });
   });
 
   return lines;
@@ -99,7 +103,7 @@ export const contextSources = (state, nationId) => {
   // Plan §M7: every researched tech's own real effects (TECH_TREE[id].effects, src/data/
   // techTree.js) — this REPLACES the old flat "+1 ADM per 3 Governance techs" rule with the
   // per-tech table the plan always specified (Code of Laws/Royal Chancery/Digital Administration
-  // each contribute their own +1 admBonus). Only the player tracks a per-tech techTree today (AI
+  // each contribute their own decree pace). Only the player tracks a per-tech techTree today (AI
   // nations don't independently research — see src/engine/nationState.js once M0.2's AI research
   // support lands in a later milestone), so this only ever appears for state.playerNationId.
   if (nationId === state.playerNationId) {
@@ -140,13 +144,11 @@ export const contextSources = (state, nationId) => {
     lines.push({ key: 'national.stabilityBonus', value: -(overextension / 20), sourceType: 'overextension', sourceId: 'overextension', label: 'Overextension' });
   }
 
-  // Legitimacy/tradition/devotion below 50 (plan §M4): -1 to the ruler's best pool, +1 unrest
-  // everywhere. "Extra rebel chance" is adapted onto the same unrest line rather than a separate
+  // Legitimacy/tradition/devotion below 50 (plan §M4): +1 unrest everywhere (the old -1 to the
+  // ruler's best pool is a slower decree trickle now, src/engine/decrees.js). "Extra rebel chance" is adapted onto the same unrest line rather than a separate
   // hook into src/data/rebellion.js's own threshold check.
   const legitimacy = nation?.legitimacy ?? 50;
   if (legitimacy < 50 && nation?.ruler) {
-    const bestPool = getRulerBestPool(nation.ruler);
-    lines.push({ key: `national.${bestPool}Bonus`, value: -1, sourceType: 'legitimacy', sourceId: 'legitimacy', label: 'Low Legitimacy' });
     lines.push({ key: 'national.stabilityBonus', value: -1, sourceType: 'legitimacy', sourceId: 'legitimacy', label: 'Low Legitimacy' });
   }
 

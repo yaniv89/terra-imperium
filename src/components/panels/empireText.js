@@ -12,6 +12,7 @@ import { canEnactLaws, AUTHORITY_NO_LAWS } from '../../engine/authority';
 import { leansPositive, leansNegative } from '../../data/identity';
 import { TECH_TREE } from '../../data/techTree';
 import { AGES } from '../../data/ages';
+import { getCostString } from '../../utils/helpers';
 
 /** ADM / DIP / MIL in the current language (the shell table's res.adm, res.dip, res.mil). */
 export const poolLabel = (pool) => tNow(`res.${pool}`);
@@ -49,9 +50,8 @@ const EFFECT = {
   stabilityCost: (v) => tNow('p1.law.stabilityCost', { a: ltr(`${sgn(v)}${Math.abs(pct(v))}%`) }),
   popGrowthBonus: (v) => tNow('p1.law.popGrowth', { a: ltr(`${sgn(v)}${Math.abs(Math.round(v * 1000) / 10)}%`) }),
   moraleRecovery: (v) => tNow(v > 0 ? 'p1.law.moraleFaster' : 'p1.law.moraleSlower', { n: Math.abs(pct(v)) }),
-  dipBonus: (v) => tNow('p1.law.poolTurn', { a: ltr(`${sgn(v)}${Math.abs(v)}`), pool: poolLabel('dip') }),
-  admBonus: (v) => tNow('p1.law.poolTurn', { a: ltr(`${sgn(v)}${Math.abs(v)}`), pool: poolLabel('adm') }),
-  milBonus: (v) => tNow('p1.law.poolTurn', { a: ltr(`${sgn(v)}${Math.abs(v)}`), pool: poolLabel('mil') })
+  opinion: (v) => tNow('p1.law.opinion', { a: ltr(`${sgn(v)}${Math.abs(v)}`) }),
+  decreePace: () => tNow('p1.law.decreePace')
 };
 const RULE = {
   loyaltyBonus: (v) => tNow('p1.law.loyalty', { a: ltr(`${sgn(v)}${Math.abs(v)}`) }),
@@ -112,5 +112,5 @@ export const governmentCardLines = (preview) => {
   return lines.join(' ');
 };
 
-/** A cost object as "300 ADM, 5 Gold" in the current language (the dialog and cards). */
-export const costLine = (cost) => Object.entries(cost || {}).map(([k, v]) => `${v} ${['adm', 'dip', 'mil'].includes(k) ? poolLabel(k) : k.toUpperCase()}`).join(', ');
+/** A cost object as "2 decrees, 5 Gold" in the current language (the dialog and cards). */
+export const costLine = (cost) => getCostString(cost || {});

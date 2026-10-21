@@ -15,6 +15,7 @@ import { seedDevelopment } from './development';
 import { transferRegion } from './regionTransfer';
 import { grantClaim, nearestCityOf } from './claims';
 import { msg, sub, people, thing } from './messages';
+import { grantRenown } from './renown';
 
 // The resources an option lacks, as a list of names ("gold, hr").
 const shortfallList = (ids) => ids.map((id) => thing('resource', id, id)).reduce((acc, r) => (acc === '' ? r : sub('m.world.listMore', { a: acc, b: r })), '');
@@ -29,7 +30,7 @@ const DEFENSE_BONUS_DURATION_TURNS = 20;
 
 // Resources an event option costs more of than the player currently holds (negative deltas only).
 // EventModal greys such an option out; the engine refuses it too while any other option is payable.
-const PAYABLE_KEYS = [...RESOURCE_IDS, 'dip', 'techPoints'];
+const PAYABLE_KEYS = [...RESOURCE_IDS, 'techPoints'];
 export const getOptionShortfall = (resources, effects = {}) =>
   PAYABLE_KEYS.filter((id) => (effects[id] || 0) < 0 && (resources?.[id] || 0) < -effects[id]);
 
@@ -55,7 +56,6 @@ export const applyEventEffects = (state, event, optionIndex) => {
   RESOURCE_IDS.forEach(id => {
     if (effects[id] && resources[id] !== undefined) resources[id] += effects[id];
   });
-  if (effects.dip) resources.dip = (resources.dip || 0) + effects.dip;
   if (effects.techPoints) resources.techPoints = (resources.techPoints || 0) + effects.techPoints;
   // Only reachable when NO option was affordable: pay what exists, and the realm feels the default.
   const couldNotPay = shortfall.length > 0;
@@ -247,6 +247,9 @@ export const applyEventEffects = (state, event, optionIndex) => {
       }
     };
   }
+
+  // An event may grant the ruler renown (RULER-PLAN 2.3: `effects.renown`, renown.js).
+  if (effects.renown && next.nations[playerNationId]) next.nations = { ...next.nations, [playerNationId]: grantRenown(next.nations[playerNationId], 'event', effects.renown, next.turnNumber) };
 
   // Plan §M17 effect vocabulary — each of these hooks into an EXISTING M3/M5/M6/M8/M9/M12/M14
   // system rather than inventing a parallel one, so the effect is exactly as real as the action a

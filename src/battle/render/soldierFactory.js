@@ -267,7 +267,7 @@ export const MODELS = {
     modern: () => [...person('modern'), ...launcher(), ...pack(C.darkOlive)]
   },
   cavalry: {
-    stone: () => [...person('stone', { skin: 1 }), ...spear(1.2)], // runners on foot (U37 drops the class)
+    stone: () => [...person('stone', { skin: 1 }), ...spear(1.2)], // no Stone cavalry line (U37); kept so an old save's runners still draw
     bronze: () => [ // a chariot: two horses, a wheeled car, a driver with a spear
       ...shift(horse(), -0.24, 0, 0.55), ...shift(horse(C.horseDark), 0.24, 0, 0.55),
       part(box(0.7, 0.34, 0.55), C.wood, { at: [0, 0.62, -0.35] }), part(box(0.72, 0.1, 0.02), '#ffffff', { at: [0, 0.75, -0.07], team: 1 }),

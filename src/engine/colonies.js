@@ -5,8 +5,7 @@
 //
 //   Founding    free frontier land (emergent worlds) next to yours, with one of your land armies
 //               next to it (it moves in as the escort), a free colony slot, and the cost:
-//               gold FOUND_GOLD_BASE + FOUND_GOLD_PER x provinces^FOUND_GOLD_EXP, ADM
-//               FOUND_ADM_BASE + provinces / FOUND_ADM_PER_PROVINCES, and SETTLER_SHARE of the
+//               gold FOUND_GOLD_BASE + FOUND_GOLD_PER x provinces^FOUND_GOLD_EXP and SETTLER_SHARE of the
 //               population of the province the escort leaves from (at least SETTLER_MIN).
 //   Slots       COLONY_SLOTS_BY_AGE (1 in the Bronze Age, 2 from the Classical, 3 from the
 //               Gunpowder Age) plus static `national.colonySlots` bonuses.
@@ -37,8 +36,6 @@ import { msg, sub, cityRef, people } from './messages';
 export const FOUND_GOLD_BASE = 60;
 export const FOUND_GOLD_PER = 12;
 export const FOUND_GOLD_EXP = 1.15;
-export const FOUND_ADM_BASE = 2;
-export const FOUND_ADM_PER_PROVINCES = 6;
 export const SETTLER_SHARE = 0.04;
 export const SETTLER_MIN = 2000;
 export const COLONY_SLOTS_BY_AGE = { stone: 0, bronze: 1, classical: 2, kingdoms: 2, gunpowder: 3, modern: 3 };
@@ -94,7 +91,7 @@ export const colonySlots = (state, nationId) => {
 
 export const foundingCost = (state, nationId) => {
   const provinces = getOwnedRegionIds(state.regions, nationId).length;
-  return { gold: Math.round(FOUND_GOLD_BASE + FOUND_GOLD_PER * powExact(provinces, FOUND_GOLD_EXP)), adm: FOUND_ADM_BASE + Math.floor(provinces / FOUND_ADM_PER_PROVINCES) };
+  return { gold: Math.round(FOUND_GOLD_BASE + FOUND_GOLD_PER * powExact(provinces, FOUND_GOLD_EXP)) };
 };
 
 export const settlersFrom = (region) => Math.max(SETTLER_MIN, Math.round((region?.currentPopulation || 0) * SETTLER_SHARE));
@@ -131,7 +128,7 @@ export const validateColony = (state, regionId, nationId = state.playerNationId,
   checks.push({ ok: used < slots, label: `Colony slots: ${used} of ${slots} in use` });
   const cost = foundingCost(state, nationId);
   const affordable = canAfford(getPool(state, nationId), cost);
-  checks.push({ ok: affordable, label: `Costs ${cost.gold} gold and ${cost.adm} ADM` });
+  checks.push({ ok: affordable, label: `Costs ${cost.gold} gold` });
   const source = escort ? state.regions[escort.regionId] : null;
   const settlers = settlersFrom(source);
   const enoughPeople = !source || (source.currentPopulation || 0) > settlers * 2;

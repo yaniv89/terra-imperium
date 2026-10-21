@@ -8,8 +8,8 @@ import { createEmptyRegionBuildings } from './buildings';
 import { REGIONS_DATA } from './regions';
 
 const RECOGNIZED_HOOKS = [
-  'goldMult', 'hrMult', 'techPointsMult', 'stabilityBonus', 'popGrowthBonus', 'apBonus', 'admBonus',
-  'dipBonus', 'milBonus', 'developmentCost', 'buildingCost', 'researchCost', 'stabilityCost',
+  'goldMult', 'hrMult', 'techPointsMult', 'stabilityBonus', 'popGrowthBonus', 'decreePace', 'opinion',
+  'developmentCost', 'buildingCost', 'researchCost', 'stabilityCost',
   'supplyRange', 'attrition', 'governingCapacity'
 ];
 
@@ -78,10 +78,10 @@ describe('getGreatProject / getGreatProjectCost', () => {
     expect(getGreatProject('not_real')).toBeNull();
   });
 
-  it('matches the plan\'s own gold/ADM/turns table for each tier', () => {
-    expect(getGreatProjectCost(1)).toEqual({ gold: 500, adm: 100, turns: 4 });
-    expect(getGreatProjectCost(2)).toEqual({ gold: 1000, adm: 150, turns: 6 });
-    expect(getGreatProjectCost(3)).toEqual({ gold: 2000, adm: 200, turns: 8 });
+  it('matches the plan\'s own gold/turns table for each tier', () => {
+    expect(getGreatProjectCost(1)).toEqual({ gold: 500, turns: 4 });
+    expect(getGreatProjectCost(2)).toEqual({ gold: 1000, turns: 6 });
+    expect(getGreatProjectCost(3)).toEqual({ gold: 2000, turns: 8 });
   });
 
   it('returns null for an out-of-range tier', () => {

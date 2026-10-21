@@ -12,6 +12,11 @@ import { militiaFor } from '../../../src/engine/battleInputs';
 import { createRng } from '../../../src/utils/rng';
 import { buildTownManifest, manifestHousing } from '../../../src/data/townLayout';
 import { getDefenseLevelDamageReductionMultiplier } from '../../../src/engine/siege';
+import { FORT_REDUCTION } from '../../../src/engine/fieldBattle';
+import { LANDING_ATTACK_MULT, SALLY_ATTACK_MULT } from '../../../src/battle/setup/battleType';
+
+// LM / SM: try a landing / sally attacker multiplier (battleType.js) without editing it; FM: the fort gate.
+let typeMult = {};
 
 const N = Number(process.env.N || 32);
 const TIER = process.env.TIER || 'medium';
@@ -26,8 +31,9 @@ it('calibrate', () => {
   });
   // Pre-build the inputs once per row and seed.
   const cases = rows.map((r) => {
-    const assault = r.type === 'assault' || r.type === 'town';
+    const assault = r.type === 'assault' || r.type === 'town' || r.type === 'landing';
     const walled = r.type === 'assault';
+    const fort = r.type === 'fort';
     const seeds = [];
     for (let seed = 1; seed <= N; seed++) {
       const manifest = assault ? buildTownManifest({ cityId: `parity-${seed}`, ageId: r.ageD, tierId: TIER, style: 'europe', seed, defenseTier: walled ? 1 : -1 }) : null;
@@ -35,7 +41,7 @@ it('calibrate', () => {
       const militia = assault ? militiaFor({ ownerId: 'defender', cityId: `parity-${seed}`, housing }) : [];
       seeds.push({ seed, attackers: mk('a', r.att), defenders: [...mk('d', r.def), ...militia], housing });
     }
-    return { ...r, assault, walled, seeds };
+    return { ...r, assault, walled, fort, seeds };
   });
   const score = (tune) => {
     let out = 0; let logSum = 0; let winGap = 0; const outRows = []; const rowsAll = [];
@@ -43,7 +49,7 @@ it('calibrate', () => {
       let aA = 0; let aD = 0; let wins = 0;
       c.seeds.forEach((s) => {
         const ins = { attackerUnits: s.attackers, defenderUnits: s.defenders, hpRatio: 1, walled: c.walled, economyInputs: { supply: [1, 1], development: [0.3, 0.3] }, housing: s.housing };
-        const r = autoFromInputs({ terrain: c.terrain, isAttackingFortification: c.walled, battleType: c.walled ? 'assault' : 'field', attackerAgeId: c.ageA, defenderAgeId: c.ageD, defenderDamageReductionMultiplier: c.walled ? getDefenseLevelDamageReductionMultiplier(2) : 1, generals: {} }, ins, c.assault ? 'invasion' : 'field', createRng(s.seed * 97), tune);
+        const r = autoFromInputs({ terrain: c.terrain, isAttackingFortification: c.walled || c.fort, battleType: c.type === 'landing' || c.type === 'sally' ? c.type : c.walled ? 'assault' : 'field', attackerAgeId: c.ageA, defenderAgeId: c.ageD, defenderDamageReductionMultiplier: c.walled ? getDefenseLevelDamageReductionMultiplier(2) : c.fort ? FORT_REDUCTION : 1, attackerPenaltyMultiplier: typeMult[c.type] ?? 1, generals: {} }, ins, c.type === 'landing' ? 'landing' : c.assault ? 'invasion' : 'field', createRng(s.seed * 97), tune);
         aA += sum(s.attackers) - sum(r.attackerUnits); aD += sum(s.defenders) - sum(r.defenderUnits);
         if (r.outcome === 'attacker') wins += 1;
       });
@@ -58,14 +64,16 @@ it('calibrate', () => {
   };
   const results = [];
   // TA / TD: the auxiliaries of an unwalled city (AUX_TRAINED.town), attacker and defender; unset = the assault's.
+  const list = (v, dflt) => (process.env[v] ? process.env[v].split(',').map(Number) : [dflt]);
   const town = (v) => (process.env[v] ? process.env[v].split(',').map(Number) : [null]);
   const ages = (process.env.WAR || String(AUTO_TUNE.WALLS_AGE_RELIEF)).split(',').map(Number);
-  for (const AUX_CLOSENESS of (process.env.K || "0").split(",").map(Number)) for (const AUX_ROUNDS of (process.env.R || "2").split(",").map(Number)) for (const AUX_UNIT of (process.env.U || "400").split(",").map(Number)) for (const AUX_EFFECT of (process.env.EFF || "0.4,0.7,1").split(",").map(Number)) for (const f of (process.env.F || "4,8,12").split(",").map(Number)) for (const a of (process.env.A || "6,12,20").split(",").map(Number)) for (const d of (process.env.D || "4,8,12").split(",").map(Number)) for (const WALLS_NO_SIEGE_MULT of (process.env.W || "0.2,0.35,0.5,0.7").split(",").map(Number)) for (const ta of town('TA')) for (const td of town('TD')) for (const WALLS_AGE_RELIEF of ages) {
-    const tune = { ...AUTO_TUNE, AUX_CLOSENESS, AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED: { field: [f, f], assault: [a, d], ...(ta != null || td != null ? { town: [ta ?? a, td ?? d] } : {}) }, WALLS_NO_SIEGE_MULT, WALLS_AGE_RELIEF };
+  for (const AUX_CLOSENESS of (process.env.K || "0").split(",").map(Number)) for (const AUX_ROUNDS of (process.env.R || "2").split(",").map(Number)) for (const AUX_UNIT of (process.env.U || "400").split(",").map(Number)) for (const AUX_EFFECT of (process.env.EFF || "0.4,0.7,1").split(",").map(Number)) for (const f of (process.env.F || "4,8,12").split(",").map(Number)) for (const a of (process.env.A || "6,12,20").split(",").map(Number)) for (const d of (process.env.D || "4,8,12").split(",").map(Number)) for (const WALLS_NO_SIEGE_MULT of (process.env.W || "0.2,0.35,0.5,0.7").split(",").map(Number)) for (const ta of town('TA')) for (const td of town('TD')) for (const WALLS_AGE_RELIEF of ages) for (const FORT_NO_SIEGE_MULT of list('FM', AUTO_TUNE.FORT_NO_SIEGE_MULT)) for (const lm of list('LM', LANDING_ATTACK_MULT)) for (const sm of list('SM', SALLY_ATTACK_MULT)) {
+    typeMult = { landing: lm / LANDING_ATTACK_MULT, sally: sm / SALLY_ATTACK_MULT };
+    const tune = { ...AUTO_TUNE, FORT_NO_SIEGE_MULT, LM: lm, SM: sm, AUX_CLOSENESS, AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED: { field: [f, f], assault: [a, d], ...(ta != null || td != null ? { town: [ta ?? a, td ?? d] } : {}) }, WALLS_NO_SIEGE_MULT, WALLS_AGE_RELIEF };
     results.push({ tune, ...score(tune) });
   }
   results.sort((x, y) => x.out - y.out || (x.logSum + x.winGap) - (y.logSum + y.winGap));
-  const brief = (t) => JSON.stringify({ K: t.AUX_CLOSENESS, R: t.AUX_ROUNDS, U: t.AUX_UNIT, EFF: t.AUX_EFFECT, AUX_TRAINED: t.AUX_TRAINED, W: t.WALLS_NO_SIEGE_MULT, WAR: t.WALLS_AGE_RELIEF });
+  const brief = (t) => JSON.stringify({ K: t.AUX_CLOSENESS, R: t.AUX_ROUNDS, U: t.AUX_UNIT, EFF: t.AUX_EFFECT, AUX_TRAINED: t.AUX_TRAINED, W: t.WALLS_NO_SIEGE_MULT, FM: t.FORT_NO_SIEGE_MULT, LM: t.LM, SM: t.SM, WAR: t.WALLS_AGE_RELIEF });
   results.slice(0, 8).forEach((r) => console.log(`CALIB out=${r.out}/${cases.length} logSum=${r.logSum.toFixed(2)} winGap=${r.winGap.toFixed(2)} ${brief(r.tune)}`));
   if (process.env.ROWS) results[0].rowsAll.forEach((row) => console.log(`CALIB-ROW ${row}`));
   results[0].outRows.forEach((row) => console.log(`CALIB-OUT ${row}`));

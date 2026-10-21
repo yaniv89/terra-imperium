@@ -192,3 +192,9 @@ export const neighbourWorld = ({ rivals = 4, capitals = false, ...opts } = {}) =
   }
   return neighbourCache.get(key);
 };
+
+// A full decree bank (src/engine/decrees.js) for one nation, default the player: acts of state spend decrees.
+export const withDecrees = (state, n = 3, nationId = state.playerNationId) => {
+  const nation = state.nations[nationId];
+  return { ...state, nations: { ...state.nations, [nationId]: { ...nation, ruler: { ...nation.ruler, decrees: n } } } };
+};

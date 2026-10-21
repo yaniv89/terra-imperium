@@ -32,6 +32,7 @@ import { stonePhaseOf } from './stonePhase';
 import { getAvailableGovernmentTypes, resetReformsForType } from '../data/government';
 import { DEFAULT_LAWS } from '../data/laws';
 import { clampStability, clampLegitimacy, clampPrestige } from './nationalPower';
+import { humbleRuler } from './renown';
 import {
   CIVIL_WAR_STABILITY_STREAK_TURNS, CIVIL_WAR_INSURGENT_REGION_SHARE, CIVIL_WAR_INSURGENT_STRENGTH_SHARE,
   CIVIL_WAR_HOLD_SHARE_TO_LOSE, CIVIL_WAR_HOLD_STREAK_TO_LOSE_TURNS, CIVIL_WAR_LOSE_PRESTIGE_PENALTY,
@@ -198,7 +199,8 @@ export const processCivilWarTurn = (state, regionsIn, unitsIn, nation, nationId,
       regions: clearedRegions,
       units: clearedUnits,
       nation: {
-        ...nation,
+        // The ruler is humbled (renown.js): the progress to the next level and this age's free reshape go.
+        ...humbleRuler(nation, ageOf(state, nationId)),
         civilWar: null,
         government: { type: newType, reforms: resetReformsForType(newType, ageOf(state, nationId)) },
         laws: { ...DEFAULT_LAWS },

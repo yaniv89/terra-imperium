@@ -11,14 +11,11 @@ export const MODIFIER_KEYS = {
   'national.techPointsMult': { scope: 'nation', unit: 'pct', label: 'Tech Point Income' },
   'national.stabilityBonus': { scope: 'nation', unit: 'flat', label: 'Stability' },
   'national.popGrowthBonus': { scope: 'nation', unit: 'flat', label: 'Population Growth' },
-  // apBonus (all three pools equally: government maturity, Governance techs) vs. admBonus/dipBonus/
-  // milBonus (one pool each: plan §M3's ruler skill, advisors, and pool-specific traits) are kept
-  // as separate keys rather than merged, so a source that's only ever meant to touch one pool can't
-  // accidentally leak onto the other two.
-  'national.apBonus': { scope: 'nation', unit: 'flat', label: 'All Power Pools' },
-  'national.admBonus': { scope: 'nation', unit: 'flat', label: 'Administrative Power' },
-  'national.dipBonus': { scope: 'nation', unit: 'flat', label: 'Diplomatic Power' },
-  'national.milBonus': { scope: 'nation', unit: 'flat', label: 'Military Power' },
+  // The old pool bonuses' new jobs (differentiation plan KTD5): decreePace shortens the decree trickle
+  // (src/engine/decrees.js trickleTurns, like a point of the ruler's Administration); opinion is added
+  // to every nation's opinion of this one (src/engine/opinion.js); the old MIL bonus is hrMult.
+  'national.decreePace': { scope: 'nation', unit: 'flat', label: 'Decree Pace' },
+  'national.opinion': { scope: 'nation', unit: 'flat', label: 'Opinion of Us' },
   // Plan §M5: Develop Province's own cost multiplier. Nothing sources this yet (M6/M8's building/
   // reform effect tables are the plan's named sources) other than the Administrator ruler trait
   // below, which is exactly the "first real consumer" this key was added for.
@@ -76,10 +73,8 @@ export const LEGACY_HOOK = {
   techPointsMult: 'national.techPointsMult',
   stabilityBonus: 'national.stabilityBonus',
   popGrowthBonus: 'national.popGrowthBonus',
-  apBonus: 'national.apBonus',
-  admBonus: 'national.admBonus',
-  dipBonus: 'national.dipBonus',
-  milBonus: 'national.milBonus',
+  decreePace: 'national.decreePace',
+  opinion: 'national.opinion',
   developmentCost: 'national.developmentCost',
   buildingCost: 'national.buildingCost',
   researchCost: 'national.researchCost',

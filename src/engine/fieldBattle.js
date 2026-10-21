@@ -33,6 +33,7 @@ import { isSettler } from './settlers';
 import { battleTypeOf, RIVER_ATTACK_MULT, riverAttackAdjust } from '../battle/setup/battleType';
 import { tileContextOf } from '../battle/setup/tileContext';
 import { ringsForKm } from '../data/geo/gridScale';
+import { commandGenerals } from '../data/generals';
 
 export const FORT_REDUCTION = 0.75;      // damage taken by a stack on a tile with a Fort
 export const FORT_BATTLE_LEVEL = 2;      // a Fort on the battle map: a walled keep with a tower (forts.js, decision 34)
@@ -86,7 +87,7 @@ export const getFieldBattleContext = (state, v) => {
     isAttackingFortification: fort,
     river,
     battleType,
-    generals: state.hiredCommanders,
+    generals: commandGenerals(state),
     attackerAgeId: ageOf(state, state.playerNationId),
     // Rebels fight at their host's age: the nation whose city they rose in.
     defenderAgeId: v.defenderNationId === REBEL_OWNER_ID ? ageOf(state, state.regions[v.defenderUnits[0]?.regionId]?.owner) : sideAgeOf(state, v.defenderNationId),

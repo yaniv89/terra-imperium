@@ -80,7 +80,6 @@ describe('a commanded sea battle through the reducer', () => {
     expect(begun.pendingBattle?.kind).toBe('naval');
     expect(begun.pendingBattle.attackerUnitIds).toEqual(['f1', 'f2', 'f3']);
     expect(begun.pendingBattle.defenderUnitIds).toEqual(['e']);
-    expect(begun.resources.mil).toBe(war.resources.mil - 2);
     const setup = buildInvasionSetup(begun, begun.pendingBattle);
     expect(setup.map.naval).toBe(true);
     expect(setup.sides[0].units.map((u) => u.id)).toEqual(['f1', 'f2', 'f3']);
@@ -103,7 +102,6 @@ describe('a commanded sea battle through the reducer', () => {
     expect(done.pendingBattle).toBeNull();
     expect(done.lastBattleReport?.kind).toBe('naval');
     expect(done.lastBattleReport?.tactical).toBeUndefined();
-    expect(done.resources.mil).toBe(war.resources.mil - 2); // paid once, when the battle began
     assertGameState(done);
   });
 });

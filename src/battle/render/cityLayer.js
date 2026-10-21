@@ -84,7 +84,7 @@ export class CityLayer {
     this.pieces = new KitInstances(this.r.scene, { track: (x) => this.r.track(x) });
     this.housePieces = new KitInstances(this.root, { track: (x) => this.r.track(x) });
     const hasPalace = this.items.some(({ s }) => s.kind === 'palace');
-    const refs = { walls: this.art.walls(this.city.ageId), ruins: this.art.ruins(this.city.ageId), houses: this.art.housesDamage(this.city.ageId, this.city.style),
+    const refs = { walls: this.art.walls(this.city.wallAgeId || this.city.ageId), ruins: this.art.ruins(this.city.ageId), houses: this.art.housesDamage(this.city.ageId, this.city.style),
       civic: this.art.civic(this.city.ageId, this.city.style),
       palaceDamage: hasPalace ? this.art.palaceDamage(this.city.ageId, this.city.style) : null };
     if (hasPalace) this.sharedUrls(this.city.ageId, this.city.style).forEach((url, i) => {

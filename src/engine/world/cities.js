@@ -363,9 +363,10 @@ export const cityYields = (city, tiles, world, worked, researched = [], ctx = {}
   const food = Math.round((sum.food * dm.food + foodTier + (ctx.foodBonus || 0) + (city.marketFood || 0) - FOOD_PER_CITIZEN * city.size) * 10) / 10; // marketFood: world/market.js
   const production = Math.round((sum.production + palace.production) * (1 + tierEffect(city, 'industry', 'local.productionIncome') + (ctx.productionMult || 0)) * dm.production * 10) / 10;
   const gold = Math.round(((sum.gold + palace.gold) * (1 + tierEffect(city, 'economy', 'local.taxIncome') + (ctx.goldMult || 0)) + tierEffect(city, 'economy', 'local.flatGold') + tierEffect(city, 'industry', 'local.flatGold') + tierEffect(city, 'naval', 'local.tradeIncome')) * 10) / 10;
-  const science = Math.round((SCIENCE_PER_SIZE * city.size + palace.science + tierEffect(city, 'science', 'local.techPoints') + districts.science) * 10) / 10;
+  // The ruler (lawRules.js rulerCityCtx): Learning and the Sage virtues.
+  const science = Math.round(((SCIENCE_PER_SIZE * city.size + palace.science + tierEffect(city, 'science', 'local.techPoints') + districts.science) * (1 + (ctx.scienceMult || 0)) + (city.isCapital ? ctx.capitalScience || 0 : 0)) * 10) / 10;
   const cultureTier = (city.buildings?.categories?.culture ?? -1) + 1;
-  const culture = Math.round((CULTURE_BASE + palace.culture + CULTURE_PER_SIZE * city.size + CULTURE_PER_TIER * cultureTier + districts.culture + (ctx.cultureBonus || 0)) * 10) / 10;
+  const culture = Math.round(((CULTURE_BASE + palace.culture + CULTURE_PER_SIZE * city.size + CULTURE_PER_TIER * cultureTier + districts.culture + (ctx.cultureBonus || 0)) * (1 + (ctx.cultureMult || 0)) + (city.isCapital ? ctx.capitalCulture || 0 : 0)) * 10) / 10;
   const strategic = {};
   worked.forEach((t) => { const s = strategicSupply(factsOf(tiles, world, t), researched); if (s) strategic[s.resource] = (strategic[s.resource] || 0) + s.amount; });
   const luxuries = new Set();
@@ -384,7 +385,8 @@ export const amenitiesOf = (city, ctx = {}) => {
 // What is trained (units, settlers, army orders) takes the speed's training multiplier, everything
 // else its cost multiplier eased on a slow game (ages.js speedTrainMult, buildSpeedMult).
 const TRAINED_KINDS = new Set(['unit', 'settler', 'army']);
-export const productionCost = (item, { ageId = FIRST_AGE_ID, citiesOwned = 1, speedMult = 1, trainMult = null } = {}) => Math.round(baseProductionCost(item, { ageId, citiesOwned }) * (TRAINED_KINDS.has(item.kind) ? trainMult ?? speedMult : buildSpeedMult(speedMult, ageId)));
+// costMult (lawRules.js rulerCityCtx): the ruler's Founder, Master Builder and Engineer-King.
+export const productionCost = (item, { ageId = FIRST_AGE_ID, citiesOwned = 1, speedMult = 1, trainMult = null, costMult = null } = {}) => Math.round(baseProductionCost(item, { ageId, citiesOwned }) * (TRAINED_KINDS.has(item.kind) ? trainMult ?? speedMult : buildSpeedMult(speedMult, ageId)) * (1 + (costMult?.[item.kind] || 0)));
 const baseProductionCost = (item, { ageId = FIRST_AGE_ID, citiesOwned = 1 } = {}) => {
   switch (item.kind) {
     case 'building': return getBuildingTierCost(item.category, item.tier) ?? 9999;
@@ -657,7 +659,7 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
   let next = { ...c, size, food: Math.round(food * 10) / 10, unrest, worked };
   for (let guard = 0; guard < 6 && production.current; guard++) {
     const item = production.current;
-    const cost = productionCost(item, { ageId, citiesOwned: ctx.citiesOwned || 1, speedMult: ctx.speedMult || 1, trainMult: ctx.trainMult });
+    const cost = productionCost(item, { ageId, citiesOwned: ctx.citiesOwned || 1, speedMult: ctx.speedMult || 1, trainMult: ctx.trainMult, costMult: ctx.costMult });
     if (production.progress < cost) break;
     production = { ...production, progress: production.progress - cost };
     if (item.kind === 'building') {

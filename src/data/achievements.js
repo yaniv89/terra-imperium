@@ -14,6 +14,9 @@ import { GameStatus } from './types';
 import { isAgeAtLeast } from './ages';
 import { getOwnedRegionIds } from './regions';
 import { GREAT_PROJECTS, getGreatProjectOwner } from './greatProjects';
+import { rulerLevel } from './rulers';
+
+export const LIVING_LEGEND_LEVEL = 20;
 
 export const ACHIEVEMENTS = {
   iron_grip: {
@@ -58,11 +61,12 @@ export const ACHIEVEMENTS = {
       (state.greatProjects?.[id]?.tier || 0) >= 3 && getGreatProjectOwner(state, id) === state.playerNationId
     ).length >= 3
   },
+  // The id stays (A Seasoned Court unlocks with it): one ruler a game, so a ruler level (RULER-PLAN 2.3).
   dynasty: {
     id: 'dynasty',
-    name: 'Dynasty',
-    description: 'Keep the same royal house for 10 consecutive rulers.',
-    check: (state) => (state.nations[state.playerNationId]?.sameDynastyStreak || 0) >= 10
+    name: 'Living Legend',
+    description: 'Raise your ruler to level 20.',
+    check: (state) => rulerLevel(state.nations[state.playerNationId]?.ruler?.renown) >= LIVING_LEGEND_LEVEL
   },
   unbroken: {
     id: 'unbroken',

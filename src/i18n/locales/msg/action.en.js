@@ -188,7 +188,7 @@ export default {
   'm.act.spyUnrest': 'Your agents stirred unrest in {city}.',
   'm.act.spyTech': 'Your agents stole technological secrets from {nation}. +{n} Tech Points.',
   'm.act.spyCaught': 'Your spies were caught in {nation}! Relations have soured.',
-  'm.act.counterIntel': 'Your counter-intelligence service uncovered a plot by {nation}. Hostility reduced, +{n} DIP.',
+  'm.act.counterIntel': 'Your counter-intelligence service uncovered a plot by {nation}. Hostility reduced.',
   'm.act.rival': '{nation} is now considered a rival.',
   'm.act.royalMarriage': 'A royal marriage binds your house to {nation}.',
   'm.act.allianceBroken': 'You broke the military alliance with {nation}.',

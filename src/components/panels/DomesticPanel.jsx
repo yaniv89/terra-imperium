@@ -24,18 +24,18 @@ import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
 import { getNationCapital } from '../../data/regions';
 import {
-  ACTION_COSTS, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD } from '../../data/actionCosts';
+  ACTION_COSTS, COUNTER_INTEL_HOSTILITY_REDUCTION } from '../../data/actionCosts';
 import {
   GOVERNMENT_TYPES, getActiveReforms, getAvailableGovernmentTypes, getReformChoices, canChangeGovernmentType, canEnactReform
 } from '../../data/government';
 import { IDENTITY_AXES, IDENTITY_AXIS_IDS, IDENTITY_MIN, IDENTITY_MAX } from '../../data/identity';
-import { LAW_CATEGORY_IDS, LAW_CATEGORIES, getLaw, canEnactLaw, getLawChangeCost, getRequiredTechName } from '../../data/laws';
+import { LAW_CATEGORY_IDS, LAW_CATEGORIES, getLaw, canEnactLaw, getRequiredTechName } from '../../data/laws';
 import {
   GREAT_PROJECTS, GREAT_PROJECT_IDS, getGreatProjectOwner
 } from '../../data/greatProjects';
 import { TAX_RATES, TAX_RATE_IDS } from '../../data/taxRates';
 import { calcNationBalance, getLoanCapacity, getLoanSize, hasBankingHouses } from '../../engine/economy';
-import { canAfford, formatNumber } from '../../utils/helpers';
+import { formatNumber, getCostString } from '../../utils/helpers';
 import { getAdvisorHireCost } from '../../engine/rulers';
 import { getIncreaseStabilityCost, STABILITY_MAX } from '../../engine/nationalPower';
 import { getModifier } from '../../engine/modifiers/sheet';
@@ -47,9 +47,9 @@ import { previewGovernmentChange } from '../../engine/governmentPreview';
 import { openGovernmentChange } from './GovernmentChangeDialog';
 import { askConfirm } from '../ui/ConfirmActionDialog';
 import { changeLawConfirm } from '../ui/confirmSpecs';
-import { powerPoolsShort, POWER_POOL_HELP } from '../../data/powerPools';
 import { ageOf } from '../../engine/nationState';
 import { stonePhaseOf } from '../../engine/stonePhase';
+import { canPay } from '../../utils/costs';
 
 const DomesticPanel = () => {
   useT(); // redraw when the language changes
@@ -58,12 +58,12 @@ const DomesticPanel = () => {
   const playerNation = state.nations[state.playerNationId];
 
   const handleSetTaxRate = (rate) => {
-    if (!canAfford(state.resources, ACTION_COSTS.setTaxRate)) return addLog(tNow('ri.notEnough'), 'action');
+    if (!canPay(state, ACTION_COSTS.setTaxRate)) return addLog(tNow('ri.notEnough'), 'action');
     triggerEffect('set_tax_rate', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.SET_TAX_RATE, payload: { rate } });
   };
   const handleCounterIntelligence = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.counterIntelligence)) return addLog(tNow('ri.notEnough'), 'action');
+    if (!canPay(state, ACTION_COSTS.counterIntelligence)) return addLog(tNow('ri.notEnough'), 'action');
     triggerEffect('counter_intelligence', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.COUNTER_INTELLIGENCE });
   };
@@ -74,10 +74,10 @@ const DomesticPanel = () => {
       <ActionButton
         icon={ShieldAlert}
         label={tNow('dom.counter')}
-        description={tNow('p1.dom.counterDesc', { hostility: COUNTER_INTEL_HOSTILITY_REDUCTION, dip: COUNTER_INTEL_DIPLOMACY_POINTS_REWARD })}
+        description={tNow('p1.dom.counterDesc', { hostility: COUNTER_INTEL_HOSTILITY_REDUCTION })}
         costs={ACTION_COSTS.counterIntelligence}
         onClick={handleCounterIntelligence}
-        disabled={!canAfford(state.resources, ACTION_COSTS.counterIntelligence)}
+        disabled={!canPay(state, ACTION_COSTS.counterIntelligence)}
         size="small"
       />
 
@@ -91,7 +91,7 @@ const DomesticPanel = () => {
               <button
                 key={rateId}
                 onClick={() => handleSetTaxRate(rateId)}
-                disabled={playerNation?.taxRate === rateId || onTaxCooldown || !canAfford(state.resources, ACTION_COSTS.setTaxRate)}
+                disabled={playerNation?.taxRate === rateId || onTaxCooldown || !canPay(state, ACTION_COSTS.setTaxRate)}
                 title={onTaxCooldown && playerNation?.taxRate !== rateId
                   ? tNow('p1.dom.taxAvail', { desc: taxRateDescription(rateId, TAX_RATES[rateId].description), turn: taxCooldownTurn })
                   : taxRateDescription(rateId, TAX_RATES[rateId].description)}
@@ -191,7 +191,7 @@ const DomesticPanel = () => {
   const stabilityCostMult = getModifier(state, state.playerNationId, 'national.stabilityCost').total;
   const increaseStabilityCost = getIncreaseStabilityCost(state, state.playerNationId, stabilityCostMult);
   const handleIncreaseStability = () => {
-    if ((state.resources.adm || 0) < increaseStabilityCost) return addLog(tNow('p1.dom.notAdm'), 'action');
+    if (!canPay(state, increaseStabilityCost)) return addLog(tNow('ri.notEnough'), 'action');
     triggerEffect('increase_stability', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.INCREASE_STABILITY });
   };
@@ -255,7 +255,7 @@ const DomesticPanel = () => {
             {poolLabel('adm')} {ruler.adm} · {poolLabel('dip')} {ruler.dip} · {poolLabel('mil')} {ruler.mil}
           </div>
           <div className="text-[10px] text-fa-muted" data-testid="ruler-skill-help">
-            {tNow('p1.dom.skillHelp')} {powerPoolsShort()}
+            {tNow('p1.dom.skillHelp')}
           </div>
           <div className="text-[10px] text-fa-muted mt-1 border-t border-fa-line pt-1">
             {tNow('p1.no.noHeirs')}
@@ -282,9 +282,9 @@ const DomesticPanel = () => {
           icon={TrendingUp}
           label={tNow('dom.increaseStability')}
           description={nationStability >= STABILITY_MAX ? tNow('p1.dom.maxStability') : tNow('p1.dom.plusStability')}
-          costs={{ adm: increaseStabilityCost }}
+          costs={increaseStabilityCost}
           onClick={handleIncreaseStability}
-          disabled={nationStability >= STABILITY_MAX || (state.resources.adm || 0) < increaseStabilityCost}
+          disabled={nationStability >= STABILITY_MAX || !canPay(state, increaseStabilityCost)}
           resources={state.resources}
           size="small"
         />
@@ -300,7 +300,7 @@ const DomesticPanel = () => {
               <Users size={12} />
               {tNow('p1.dom.advisorTitle', { pool: tNow(`p1.pool.${pool}`) })}
             </div>
-            <div className="text-[10px] text-fa-muted">{tNow('p1.dom.advisorAdds', { pool: poolLabel(pool), name: POWER_POOL_HELP[pool].name, short: POWER_POOL_HELP[pool].short })}</div>
+            <div className="text-[10px] text-fa-muted">{tNow(`p1.dom.advisorJob.${pool}`)}</div>
             {current ? (
               <div className="text-fa-text">{nameNow('person', null, current.name)} {tNow('p1.dom.level', { level: current.level })}</div>
             ) : (
@@ -331,17 +331,17 @@ const DomesticPanel = () => {
   // Nothing applies here: the confirm dialog (GovernmentChangeDialog.jsx) shows the preview, lets
   // the player choose the reforms and dispatches only on its own button (I140).
   const handleChangeGovernmentType = (typeId) => {
-    if (!canAfford(state.resources, ACTION_COSTS.changeGovernmentType)) return addLog(tNow('ri.notEnough'), 'action');
+    if (!canPay(state, ACTION_COSTS.changeGovernmentType)) return addLog(tNow('ri.notEnough'), 'action');
     openGovernmentChange(typeId); // the card is drawn by GovernmentChangeDialog inside NationOverviewSheet
   };
   const handleEnactReform = (ageId, reformId) => {
-    if (!canAfford(state.resources, ACTION_COSTS.enactGovernmentReform)) return addLog(tNow('ri.notEnough'), 'action');
+    if (!canPay(state, ACTION_COSTS.enactGovernmentReform)) return addLog(tNow('ri.notEnough'), 'action');
     triggerEffect('enact_government_reform', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.ENACT_GOVERNMENT_REFORM, payload: { ageId, reformId } });
   };
   const handleChangeLaw = (category, lawId) => {
-    const costs = { adm: getLawChangeCost(state, state.playerNationId, category, lawId) };
-    if (!canAfford(state.resources, costs)) return addLog(tNow('ri.notEnough'), 'action');
+    const costs = ACTION_COSTS.changeLaw;
+    if (!canPay(state, costs)) return addLog(tNow('ri.notEnough'), 'action');
     // Two taps: the card shows the cost and what the law does first (H-08).
     askConfirm(changeLawConfirm(state, category, lawId, costs), () => {
       triggerEffect('change_law', { region: getNationCapital(state.playerNationId) });
@@ -375,7 +375,7 @@ const DomesticPanel = () => {
           description={preview.ok ? tNow('p1.dom.becomeTap', { lines: governmentCardLines(preview) }) : tNow('p1.dom.becomeReset')}
           costs={ACTION_COSTS.changeGovernmentType}
           onClick={() => handleChangeGovernmentType(gov.id)}
-          disabled={!canAfford(state.resources, ACTION_COSTS.changeGovernmentType) || !canChangeGovernmentType(playerNation, gov.id, ageOf(state, state.playerNationId), stonePhaseOf(state, state.playerNationId))}
+          disabled={!canPay(state, ACTION_COSTS.changeGovernmentType) || !canChangeGovernmentType(playerNation, gov.id, ageOf(state, state.playerNationId), stonePhaseOf(state, state.playerNationId))}
           resources={state.resources}
           size="small"
         />
@@ -406,7 +406,7 @@ const DomesticPanel = () => {
                 description={reformDescription(reform.id, reform.description)}
                 costs={ACTION_COSTS.enactGovernmentReform}
                 onClick={() => handleEnactReform(ageOf(state, state.playerNationId), reform.id)}
-                disabled={!canAfford(state.resources, ACTION_COSTS.enactGovernmentReform) || !canEnactReform(playerNation, ageOf(state, state.playerNationId), reform.id, ageOf(state, state.playerNationId))}
+                disabled={!canPay(state, ACTION_COSTS.enactGovernmentReform) || !canEnactReform(playerNation, ageOf(state, state.playerNationId), reform.id, ageOf(state, state.playerNationId))}
                 size="small"
               />
             )
@@ -434,7 +434,7 @@ const DomesticPanel = () => {
             <div className="flex flex-col gap-1.5 pt-1">
               {alternatives.map((law) => {
                 const canEnact = canEnactLaw(state, state.playerNationId, category, law.id);
-                const cost = { adm: getLawChangeCost(state, state.playerNationId, category, law.id) };
+                const cost = ACTION_COSTS.changeLaw;
                 const requiredTech = getRequiredTechName(law);
                 const effectText = lawEffectText(law);
                 const lock = lawLockText(state, state.playerNationId, category, law);
@@ -442,11 +442,11 @@ const DomesticPanel = () => {
                   <div key={law.id} className="flex flex-col items-start gap-0.5">
                     <button
                       onClick={() => handleChangeLaw(category, law.id)}
-                      disabled={!canEnact || !canAfford(state.resources, cost)}
+                      disabled={!canEnact || !canPay(state, cost)}
                       title={requiredTech && !canEnact ? tNow('p1.dom.requires', { tech: techName(law.requiresTech, requiredTech) }) : lawLine(law, effectText)}
                       className="text-[10px] rounded bg-fa-hover/80 hover:bg-fa-line disabled:opacity-40 disabled:cursor-not-allowed text-fa-text px-2 py-1"
                     >
-                      {lawName(law.id, law.name)} ({cost.adm} {poolLabel('adm')})
+                      {lawName(law.id, law.name)} ({getCostString(cost)})
                     </button>
                     <span className="text-[10px] text-fa-muted" data-testid={`law-alt-${law.id}`}>{lawLine(law, effectText)}{lock ? ` ${tNow('p1.dom.locked', { why: lock })}` : ''}</span>
                   </div>
@@ -461,7 +461,7 @@ const DomesticPanel = () => {
 
   const identityOnCooldown = (state.turnNumber || 0) < (playerNation?.identityShiftCooldownTurn || 0);
   const handleShiftIdentity = (axis, direction) => {
-    if (!canAfford(state.resources, ACTION_COSTS.shiftIdentity)) return addLog(tNow('ri.notEnough'), 'action');
+    if (!canPay(state, ACTION_COSTS.shiftIdentity)) return addLog(tNow('ri.notEnough'), 'action');
     triggerEffect('shift_identity', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.SHIFT_IDENTITY, payload: { axis, direction } });
   };
@@ -480,14 +480,14 @@ const DomesticPanel = () => {
             <div className="flex gap-1.5">
               <button
                 onClick={() => handleShiftIdentity(axisId, -1)}
-                disabled={!canAfford(state.resources, ACTION_COSTS.shiftIdentity) || identityOnCooldown || value <= IDENTITY_MIN}
+                disabled={!canPay(state, ACTION_COSTS.shiftIdentity) || identityOnCooldown || value <= IDENTITY_MIN}
                 className="flex-1 text-[10px] rounded bg-fa-hover/80 hover:bg-fa-line disabled:opacity-40 disabled:cursor-not-allowed text-fa-text py-1"
               >
                 &larr; {identityPole(axisId, 'neg', axis.negativePole)}
               </button>
               <button
                 onClick={() => handleShiftIdentity(axisId, 1)}
-                disabled={!canAfford(state.resources, ACTION_COSTS.shiftIdentity) || identityOnCooldown || value >= IDENTITY_MAX}
+                disabled={!canPay(state, ACTION_COSTS.shiftIdentity) || identityOnCooldown || value >= IDENTITY_MAX}
                 className="flex-1 text-[10px] rounded bg-fa-hover/80 hover:bg-fa-line disabled:opacity-40 disabled:cursor-not-allowed text-fa-text py-1"
               >
                 {identityPole(axisId, 'pos', axis.positivePole)} &rarr;

@@ -30,9 +30,8 @@
 // falls to one attack of four regiments or more. A siege first (HP down, walls battered) cuts that.
 // The HP lives on the city's siege record (city.siege.hp), so it heals SIEGE_HEAL a turn once nobody
 // besieges or attacks it (sieges.js). Pure; the roll comes from the battle's rng.
-import { siegeHpOf, siegeMaxHp, wallsOf, SIEGE_ENGINEERING_TECH, SIEGE_ENGINEERING_MULT } from './sieges';
+import { siegeHpOf, wallsOf, SIEGE_ENGINEERING_MULT } from './sieges';
 import { getRosterCombatMultiplier } from '../data/unitClasses';
-import { getResearched } from './nationState';
 import { powExact } from '../utils/exactMath';
 import { FIRST_AGE_ID } from '../data/ages';
 
@@ -78,15 +77,10 @@ export const cityAttackDamage = (attack, defence) => CITY_HIT_HP * powExact(clam
 
 /**
  * One Auto attack on an empty city. `args`: resolveBattle's arguments (attackerUnits, ages);
- * `ins`: battleInputs (the conditioned attackers, the militia, hpRatio). Returns a resolveBattle-
+ * `facts`: { city, maxHp, hpBefore, siegeEngineering } read by autoBattle.js; `ins`: battleInputs (the conditioned attackers, the militia, hpRatio). Returns a resolveBattle-
  * shaped result: { outcome, attackerUnits, defenderUnits (the militia), report: { cityAttack } }.
  */
-export const resolveCityAttack = (state, args, ins, cityId, rng) => {
-  const city = state.regions[cityId];
-  const maxHp = siegeMaxHp(city, state.greatProjects);
-  const hpBefore = Math.min(maxHp, siegeHpOf(city, state.greatProjects));
-  const attackerNationId = ins.attackerUnits[0]?.ownerId ?? null;
-  const siegeEngineering = !!attackerNationId && getResearched(state, attackerNationId).includes(SIEGE_ENGINEERING_TECH);
+export const resolveCityAttack = ({ city, maxHp, hpBefore, siegeEngineering }, args, ins, rng) => {
   const attack = cityAttackStrength(ins.attackerUnits, { siegeEngineering, attackerAgeId: args.attackerAgeId, defenderAgeId: args.defenderAgeId });
   const defence = cityDefence(city, { militia: ins.militia, hpRatio: ins.hpRatio });
   const roll = 1 - CITY_ROLL_SPREAD / 2 + CITY_ROLL_SPREAD * rng.next();

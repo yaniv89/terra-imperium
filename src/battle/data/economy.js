@@ -180,6 +180,11 @@ const NAMES = {
     tradePost: 'Trade post', farm: 'Farm', mine: 'Mine', barracks: 'Barracks', range: 'Archery range', stable: 'Chariot yard',
     siegeWorkshop: 'Siege workshop', aidPost: 'Aid post', tower: 'Tower', worker: 'Laborer'
   },
+  // Stone (eight ages plan, Appendix C); no stable: Stone has no cavalry to train.
+  stone: {
+    camp: 'Fire Circle', hall: 'Longhouse', house: 'Hut', foodDepot: 'Storage Pit', materialsYard: 'Stone Pile', tradePost: 'Barter Ground',
+    farm: 'Garden Plot', mine: 'Flint Pit', barracks: 'Warrior Lodge', range: "Hunters' Camp", siegeWorkshop: 'Ladder Yard', aidPost: "Healer's Hut", tower: 'Lookout'
+  },
   kingdoms: { stable: 'Stable', worker: 'Villager' },
   classical: { stable: 'Stable' },
   gunpowder: { range: 'Musketry yard', stable: 'Stable', siegeWorkshop: 'Gun foundry', camp: 'Headquarters tent' },

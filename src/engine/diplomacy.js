@@ -25,6 +25,8 @@ import { conquerRegion } from './conquest';
 import { pactAllies } from './pacts';
 import { canSeeTile } from './sight';
 import { msg, sub, people, cityRef } from './messages';
+import { lawRulesOf } from './lawRules';
+import { clampStability } from './nationalPower';
 
 const nationRef = (nations, id) => people(id, nations?.[id]?.name || id);
 const regionRef = (id) => cityRef(id, REGIONS_DATA[id]?.name || id);
@@ -34,7 +36,7 @@ const listOfRefs = (refs) => refs.reduce((acc, r) => (acc == null ? r : sub('m.d
 // Trade Pact capacity (plan §M8.3/§M12): Globalism > 40 grants +1, Isolationism > 40 costs -1,
 // floored at 0 so a committed isolationist can be locked out of trade pacts entirely.
 export const getTradePactCapacity = (nation) =>
-  Math.max(0, TRADE_PACT_BASE_CAPACITY + (leansPositive(nation?.identity, 'globalism') ? 1 : 0) - (leansNegative(nation?.identity, 'globalism') ? 1 : 0));
+  Math.max(0, TRADE_PACT_BASE_CAPACITY + (leansPositive(nation?.identity, 'globalism') ? 1 : 0) - (leansNegative(nation?.identity, 'globalism') ? 1 : 0) + (lawRulesOf(nation).tradePacts || 0)); // Merchant Prince (rulerVirtues.js)
 
 // Truces (plan §M13's own truce rules, pulled forward into M12 since this is where wars first get
 // a redeclare-cooldown at all): mirrored on both former belligerents so either side's own
@@ -176,7 +178,10 @@ export const checkWarGoal = (war, state) => {
 // it, is in a truce with it, or is already fighting the most wars a nation takes on at once.
 export const MAX_PACT_FRONTS = 2;
 export const declareWar = (state, nationId, opts = {}) => {
-  const after = declareWarOnly(state, nationId, opts);
+  const declared = declareWarOnly(state, nationId, opts);
+  // Arbiter of Nations (rulerVirtues.js warStability): declaring a war costs the aggressor stability.
+  const warStability = declared === state ? 0 : lawRulesOf(declared.nations?.[opts.aggressor]).warStability || 0;
+  const after = warStability ? { ...declared, nations: { ...declared.nations, [opts.aggressor]: { ...declared.nations[opts.aggressor], stability: clampStability((declared.nations[opts.aggressor].stability || 0) + warStability) } } } : declared;
   if (after === state || opts.noCallToArms) return after;
   const aggressor = opts.aggressor;
   let out = after;
@@ -299,8 +304,9 @@ const TICK_SCORE_GRACE_TURNS = 5;
 // battle — or even a long streak of them — can single-handedly force a peace on its own; occupation
 // and ticking goal-progress (below) matter too. `winnerId` is a nation id (war.aggressor or
 // war.enemy), NOT a literal "attacker/defender" role — either side of a war can win an engagement.
-export const recordBattle = (war, winnerId, lossShare) => {
-  const magnitude = 2 + Math.min(8, 10 * Math.max(0, Math.min(1, lossShare)));
+// `mult`: the winner's ruler (Terror of the Field, rulerVirtues.js battleWarScore).
+export const recordBattle = (war, winnerId, lossShare, mult = 1) => {
+  const magnitude = (2 + Math.min(8, 10 * Math.max(0, Math.min(1, lossShare)))) * mult;
   const signedDelta = winnerId === war.aggressor ? magnitude : -magnitude;
   return Math.max(-BATTLE_SCORE_CLAMP, Math.min(BATTLE_SCORE_CLAMP, (war.battleScore || 0) + signedDelta));
 };

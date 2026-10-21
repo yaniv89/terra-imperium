@@ -32,6 +32,7 @@ import { NAVAL_BOMBARD, navalBombards } from '../data/navalLines';
 import { isSettler } from './settlers';
 import { cityWonderTotal } from '../data/greatProjects';
 import { BUILDING_CATEGORIES } from '../data/buildings';
+import { lawRulesOf } from './lawRules';
 
 export const SIEGE_HP_BASE = 200;
 export const SIEGE_STRENGTH_SIEGE = 40;
@@ -186,7 +187,8 @@ export const processSieges = (state, regions, units, { turn }) => {
     const stacks = [...by].sort((a, b) => b[1].length - a[1].length || (a[0] < b[0] ? -1 : 1));
     const leader = stacks[0][0];
     const bombard = bombardStrength(view, city, units, [...by.keys()]); // warships on the port waters (navalLines.js)
-    const strength = stacks.reduce((s, [nid, list]) => s + siegeStrength(state, nid, list), 0) + bombard;
+    // Siege Lord (rulerVirtues.js siegeDamage): each besieger's strength x (1 + its ruler's rule).
+    const strength = stacks.reduce((s, [nid, list]) => s + siegeStrength(state, nid, list) * (1 + (lawRulesOf(state.nations?.[nid]).siegeDamage || 0)), 0) + bombard;
     const encircled = isEncircled(view, city, leader, units, byTile);
     const regen = encircled ? 0 : WALL_REGEN * wallsOf(city);
     const damage = Math.max(0, Math.round((strength - regen) * (encircled ? ENCIRCLE_MULT : 1)));

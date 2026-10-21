@@ -13,7 +13,7 @@ export default [
   ['p1.achunit.iron_grip', 'turns at +3', 'תורות ב־+3'],
   ['p1.achunit.phoenix', 'gold after bankruptcy', 'זהב אחרי פשיטת רגל'],
   ['p1.achunit.builder_of_wonders', 'tier 3 projects', 'פרויקטים ברמה 3'],
-  ['p1.achunit.dynasty', 'rulers of one house', 'שליטים מבית אחד'],
+  ['p1.achunit.dynasty', 'ruler level', 'דרגת שליט'],
   ['p1.achunit.master_diplomat', 'nations at peace or trading', 'אומות בשלום או בסחר'],
   ['p1.achunit.tech_titan', 'techs', 'טכנולוגיות'],
   ['p1.achunit.three_front_war', 'wars at once', 'מלחמות בו בזמן'],

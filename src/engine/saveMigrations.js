@@ -22,6 +22,7 @@ import { withAgesResearched, inResearchWindow } from './research';
 import { ageOf } from './nationState';
 import { displayYear } from './displayYear';
 import { createRuler } from './rulers';
+import { decreeCap, decreesOf } from './decrees';
 import { PEOPLES } from '../data/peoples';
 
 // Bump this once per milestone that changes the STATE SHAPE in a way plain backfill can't handle
@@ -38,7 +39,7 @@ import { PEOPLES } from '../data/peoples';
 // migrate10to11). Version 12 adds fog of war (src/engine/fog.js: explored maps, contacts, the
 // last-seen picture, arrays saved run-length encoded); a save from before it loads and starts its
 // fog from where its cities stand now (migrate11to12). A version 10 save runs both steps.
-export const CURRENT_SAVE_VERSION = 18;
+export const CURRENT_SAVE_VERSION = 19;
 export const OLDEST_LOADABLE_SAVE_VERSION = 10;
 // The first version of the tile world: older saves are the province map ('tooOld'), newer ones up
 // to OLDEST_LOADABLE_SAVE_VERSION a coarser hex grid ('oldGrid').
@@ -171,11 +172,13 @@ export const migrate14to15 = (state) => {
 
 // v16: one ruler a game (differentiation plan U5, RULER-PLAN 7.3). Every ruler takes the fixed shape:
 // the people's ruler (a legacy nation keeps its name), attributes 3/3/3/0/0/0; the house, the reign
-// and the rolled traits go, with the dynasty streak.
+// and the rolled traits go, with the dynasty streak; each old positive trait comes back as a virtue
+// point (RULER-PLAN 7.3, U11).
+const OLD_POSITIVE_TRAITS = new Set(['just', 'scholar', 'warrior', 'diplomat', 'architect', 'merchant', 'administrator', 'strategist', 'kind', 'builder', 'genius']);
 export const migrate15to16 = (state) => ({
   ...state,
   nations: Object.fromEntries(Object.entries(state.nations || {}).map(([id, n]) => [id, n.ruler
-    ? { ...omit(n, ['sameDynastyStreak']), ruler: { ...createRuler(id), name: PEOPLES[id]?.ruler?.name || n.ruler.name } }
+    ? { ...omit(n, ['sameDynastyStreak']), ruler: { ...createRuler(id), name: PEOPLES[id]?.ruler?.name || n.ruler.name, bonusVirtuePoints: (n.ruler.traits || []).filter((t) => OLD_POSITIVE_TRAITS.has(t)).length } }
     : omit(n, ['sameDynastyStreak'])]))
 });
 
@@ -212,9 +215,25 @@ export const migrate17to18 = (state) => {
   return { ...state, regions, ...(fog ? { fog } : {}) };
 };
 
+// Version 19 retires the ADM/DIP/MIL pools (differentiation plan U7, KTD6): every nation's banked
+// pool points become decrees, one per POOL_POINTS_PER_DECREE combined, up to the bank cap, and the
+// pool fields go (the player's state.resources, an AI's nation.economy).
+export const POOL_POINTS_PER_DECREE = 300;
+const POOL_KEYS = new Set(['adm', 'dip', 'mil', 'maxAdm', 'maxDip', 'maxMil']);
+const dropPools = (o) => (o ? Object.fromEntries(Object.entries(o).filter(([k]) => !POOL_KEYS.has(k))) : o);
+export const migrate18to19 = (state) => {
+  const nations = Object.fromEntries(Object.entries(state.nations || {}).map(([id, n]) => {
+    const pool = (id === state.playerNationId ? state.resources : n.economy) || {};
+    const earned = Math.floor(((pool.adm || 0) + (pool.dip || 0) + (pool.mil || 0)) / POOL_POINTS_PER_DECREE);
+    const ruler = n.ruler && earned ? { ...n.ruler, decrees: Math.min(decreeCap(n), decreesOf(n) + earned) } : n.ruler;
+    return [id, { ...n, ...(ruler ? { ruler } : {}), ...(n.economy ? { economy: dropPools(n.economy) } : {}) }];
+  }));
+  return { ...state, nations, resources: dropPools(state.resources) };
+};
+
 // Versions 1 to 9 are never migrated (the province map or an older grid, a clean break: OLDEST_LOADABLE_SAVE_VERSION).
 
-const MIGRATIONS = { 10: migrate10to11, 11: migrate11to12, 12: migrate12to13, 13: migrate13to14, 14: migrate14to15, 15: migrate15to16, 16: migrate16to17, 17: migrate17to18 };
+const MIGRATIONS = { 10: migrate10to11, 11: migrate11to12, 12: migrate12to13, 13: migrate13to14, 14: migrate14to15, 15: migrate15to16, 16: migrate16to17, 17: migrate17to18, 18: migrate18to19 };
 
 // Plain objects only: the fog's packed arrays (TileBits, TileInts) are class instances and are
 // never merged key by key.

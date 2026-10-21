@@ -11,6 +11,7 @@ import { TECH_TREE } from '../data/techTree';
 import { TechCategories } from '../data/types';
 import { TAX_RATES } from '../data/taxRates';
 import { getOwnedRegionIds } from '../data/regions';
+import { lawRulesOf } from './lawRules';
 
 export const STABILITY_MIN = -3;
 export const STABILITY_MAX = 3;
@@ -62,28 +63,17 @@ export const getOverextension = (state, nationId, reformCapacityBonus = 0) => {
   return Math.max(0, ((owned - capacity) / capacity) * 100);
 };
 
-// Plan's own formula for this one action, verbatim: 100 ADM x (1 + overextension%) x (1 + 0.1 x
-// (stability + 3)) x (1 + national.stabilityCost). The plan's broader "+overextension%/2 on ADM
-// and DIP costs" for EVERY action is deferred: every other action's cost is still a flat table
-// read by canAfford/applyCosts (src/data/actionCosts.js), with no per-action modifier-aware cost
-// pipeline yet — retrofitting one just for this single multiplier would be a bigger, separate
-// refactor, not an M4-sized change. `stabilityCostMult` is caller-supplied (via getModifier)
+// Plan's formula for this one action: 100 gold x (1 + overextension%) x (1 + 0.1 x (stability + 3))
+// x (1 + national.stabilityCost), plus one decree (the gold was ADM before differentiation plan U7). `stabilityCostMult` is caller-supplied (via getModifier)
 // rather than looked up here, so this file (and nationalPower.js in general) never has to import
 // the modifier engine — src/engine/modifiers/sources.js already imports FROM this file
-// (getOverextension/getRulerBestPool), and importing back would be a real circular dependency.
+// (getOverextension), and importing back would be a real circular dependency.
 export const getIncreaseStabilityCost = (state, nationId, stabilityCostMult = 0) => {
   const overextension = getOverextension(state, nationId);
   const stability = state.nations?.[nationId]?.stability || 0;
-  return Math.round(100 * (1 + overextension / 100) * (1 + 0.1 * (stability + 3)) * (1 + stabilityCostMult));
+  return { gold: Math.round(100 * (1 + overextension / 100) * (1 + 0.1 * (stability + 3)) * (1 + stabilityCostMult)), decrees: 1 }; // gold plus one decree (differentiation plan U7)
 };
 
-// The pool a ruler is best at (adm > dip > mil on ties) — used by the legitimacy-below-50 penalty,
-// which the plan aims at "the ruler's best pool" rather than a fixed one.
-export const getRulerBestPool = (ruler) => {
-  if (!ruler) return null;
-  const pools = ['adm', 'dip', 'mil'];
-  return pools.reduce((best, pool) => (ruler[pool] > ruler[best] ? pool : best), 'adm');
-};
 
 // Runs once per nation per turn (resolveTurn.js): pure, no state dependency beyond what's passed in, caller writes the result back.
 export const processNationalPowerTurn = (nation) => {
@@ -126,7 +116,8 @@ export const processNationalPowerTurn = (nation) => {
       : type === 'republic' ? 0.5 // republican tradition
       : 0.3; // a dictatorship's
     const prestigeGain = (nation.prestige || 0) / 500; // plan: "prestige ... legitimacy gain"
-    legitimacy = clampLegitimacy(legitimacy + baseGain + prestigeGain);
+    const rulerGain = lawRulesOf(nation).legitimacy || 0; // Majesty and Anointed (rulerVirtues.js)
+    legitimacy = clampLegitimacy(legitimacy + baseGain + prestigeGain + rulerGain);
   }
 
   // Math.trunc, not Math.round: rounding to the NEAREST integer has a fixed point below 10 in

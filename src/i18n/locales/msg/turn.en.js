@@ -8,6 +8,8 @@ export default {
   'log.foldNote': '({count} times so far, since {year})',
 
   'm.turn.newEra': 'A new era dawns: the world enters the {age}.',
+  'm.turn.ambition': 'Ambition fulfilled: {ambition}. Renown and a decree are ours.',
+  'm.turn.rulerLevel': '{name} reaches ruler level {level}: new points wait to be spent.',
   'm.turn.governorMoved': 'Governor {name} now serves from {city}: your cities were regrouped.',
   'm.turn.governorMerged': 'Governor {name} has left office: the group of {city} joined a group that already has a governor.',
   'm.turn.governorLeft': 'Governor {name} has left office: {city} is no longer yours.',
@@ -39,7 +41,7 @@ export default {
   'm.turn.wonderBuilt': '{wonder} (tier {tier}) stands at {city}!{prestige}',
   'm.turn.eliminated': '{nation} has been eliminated — no territory remains under its control.',
   'm.turn.rivalFallen': 'Your rival {nation} has fallen. (+{n} prestige)',
-  'm.turn.conqueredAll': 'You have conquered {nation} entirely! +{gold:money}, +{dip} DIP.',
+  'm.turn.conqueredAll': 'You have conquered {nation} entirely! +{gold:money}.',
   'm.turn.defeat': 'DEFEAT: your nation has fallen — no territory remains under your control.',
   'm.turn.victory': 'VICTORY: {victory} achieved!',
   'm.turn.scoreVictory': 'VICTORY: Score Victory achieved — your nation leads the world!',

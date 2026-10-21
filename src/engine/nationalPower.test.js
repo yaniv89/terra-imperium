@@ -3,7 +3,7 @@ import {
   STABILITY_MIN, STABILITY_MAX, LEGITIMACY_MIN, LEGITIMACY_MAX, PRESTIGE_MIN, PRESTIGE_MAX,
   clampStability, clampLegitimacy, clampPrestige,
   getGoverningCapacity, getOwnedRegionCount, getOverextension, getIncreaseStabilityCost,
-  getRulerBestPool, processNationalPowerTurn
+  processNationalPowerTurn
 } from './nationalPower';
 
 describe('clamp helpers', () => {
@@ -61,44 +61,29 @@ describe('getGoverningCapacity / getOwnedRegionCount / getOverextension', () => 
 });
 
 describe('getIncreaseStabilityCost', () => {
-  it('is exactly 100 ADM at 0 overextension and minimum stability (the plan\'s own baseline)', () => {
+  it('is exactly 100 gold and one decree at 0 overextension and minimum stability (the plan\'s own baseline)', () => {
     // The plan's formula is 100 x (1 + overextension%) x (1 + 0.1 x (stability + 3)) — the
     // (stability + 3) term is only 0 at the minimum stability (-3), which is where it reduces to
-    // exactly the bare 100 ADM the plan states as its baseline.
+    // exactly the bare 100 the plan states as its baseline.
     const state = { playerNationId: 'fr', nations: { fr: { startRegionCount: 10, stability: -3 } }, regions: {}, techTree: {} };
-    expect(getIncreaseStabilityCost(state, 'fr')).toBe(100);
+    expect(getIncreaseStabilityCost(state, 'fr')).toEqual({ gold: 100, decrees: 1 });
   });
 
   it('scales up with current stability (harder to push further from neutral)', () => {
     const base = { playerNationId: 'fr', regions: {}, techTree: {} };
     const atZero = getIncreaseStabilityCost({ ...base, nations: { fr: { startRegionCount: 10, stability: 0 } } }, 'fr');
     const atTwo = getIncreaseStabilityCost({ ...base, nations: { fr: { startRegionCount: 10, stability: 2 } } }, 'fr');
-    expect(atTwo).toBeGreaterThan(atZero);
+    expect(atTwo.gold).toBeGreaterThan(atZero.gold);
   });
 
   it('scales up with overextension', () => {
     const ownedRegionIds = Array.from({ length: 25 }, (_, i) => `r${i}`);
     const regions = ownedRegionIds.reduce((acc, id) => ({ ...acc, [id]: { owner: 'fr' } }), {});
     const state = { playerNationId: 'fr', nations: { fr: { startRegionCount: 10, stability: 0 } }, regions, techTree: {} };
-    expect(getIncreaseStabilityCost(state, 'fr')).toBeGreaterThan(100);
+    expect(getIncreaseStabilityCost(state, 'fr').gold).toBeGreaterThan(100);
   });
 });
 
-describe('getRulerBestPool', () => {
-  it('returns the pool with the highest skill', () => {
-    expect(getRulerBestPool({ adm: 1, dip: 5, mil: 2 })).toBe('dip');
-    expect(getRulerBestPool({ adm: 3, dip: 1, mil: 6 })).toBe('mil');
-  });
-
-  it('ties break toward adm, then dip', () => {
-    expect(getRulerBestPool({ adm: 3, dip: 3, mil: 3 })).toBe('adm');
-    expect(getRulerBestPool({ adm: 1, dip: 4, mil: 4 })).toBe('dip');
-  });
-
-  it('returns null for a nation with no ruler', () => {
-    expect(getRulerBestPool(null)).toBeNull();
-  });
-});
 
 describe('processNationalPowerTurn', () => {
   it('does not decay stability before 10 turns of no source', () => {

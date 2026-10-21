@@ -11,7 +11,8 @@ import { HISTORICAL_EVENTS } from '../../../src/data/events';
 import { auditGameState } from '../../../src/engine/stateAudit';
 import { getTiles } from '../../../src/data/geo/tiles';
 import { RESOURCES_ON_TILES } from '../../../src/data/tileYields';
-import { worldHealth, kaplanMeier } from '../../../scripts/simStats.mjs';
+import { worldHealth, kaplanMeier, rulerStats } from '../../../scripts/simStats.mjs';
+import * as RULERS from '../../../src/engine/rulers'; // read through the namespace: a base before U11 has no levels
 import { installGeneratedWorld } from '../../../src/worldgen/nodeWorld';
 import { createScriptedPlayer, createTelemetry } from '../../../scripts/campaignTelemetry.mjs';
 import { chooseProduction, nationCounts } from '../../../src/engine/aiProduction';
@@ -22,6 +23,7 @@ import { authorityOf } from '../../../src/engine/authority';
 import { getOverextension } from '../../../src/engine/nationalPower';
 import { metNations } from '../../../src/engine/fog';
 import { opinionOf } from '../../../src/engine/opinion';
+import { decreeCap } from '../../../src/engine/decrees';
 import { isIndependentNation } from '../../../src/data/independents';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -89,6 +91,21 @@ const ageStats = (s, counters) => {
   return out;
 };
 
+// Ambitions (differentiation plan U12): fulfilled per age entered (ages = the nation's age index + 1),
+// the AI majors' mean beside the player's; ambitionsDone sums every major. Empty on a base without them.
+const ambitionStats = (s) => {
+  const rate = (n) => (n.ambitions?.done?.length || 0) / (AGES.getAgeIndex(nationAge(s, n.id)) + 1);
+  const majors = livingMajors(s).filter((n) => n.ruler);
+  if (!majors.some((n) => n.ambitions)) return {};
+  const ai = majors.filter((n) => n.id !== s.playerNationId);
+  const me = s.nations[s.playerNationId];
+  return {
+    ambitionsDone: majors.reduce((a, n) => a + (n.ambitions?.done?.length || 0), 0),
+    ambitionsPerMajorAge: +(ai.reduce((a, n) => a + rate(n), 0) / Math.max(1, ai.length)).toFixed(2),
+    playerAmbitionsPerAge: me?.ambitions ? +rate(me).toFixed(2) : null
+  };
+};
+
 const snapshot = (s, t, counters, ms, lives, telemetry) => {
   const regs = Object.values(s.regions);
   const nations = Object.values(s.nations);
@@ -129,6 +146,8 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     devastatedShare: +(dev.length / Math.max(1, regs.length)).toFixed(3), unclaimedShare: +((counts.null || 0) / Math.max(1, regs.length)).toFixed(3),
     ...(telemetry ? telemetry.snapshot(s) : {}),
     ...worldHealth(s, { isLand, landTiles: LAND_TILES, playerId: s.playerNationId }),
+    ...(RULERS.rulerLevel ? rulerStats(s.nations, { levelOf: (r) => RULERS.rulerLevel(r.renown), pointsOf: RULERS.rulerPoints, branchOf: (v) => RULERS.VIRTUES[v]?.branch, playerId: s.playerNationId }) : {}),
+    ...ambitionStats(s),
     nationsAliveShare: +kaplanMeier(lives, [t]).at[t].toFixed(3), leadChanges: counters.leadChanges,
     // Plague: cities carrying the 'plague' mark now, and distinct cities struck so far (the old
     // independent roll in cityDisasters.js and the SIR epidemic in plague.js both set the mark).
@@ -253,19 +272,29 @@ SEEDS.forEach((seed) => {
       const byOwner = {}; Object.values(s.regions).forEach((r) => { if (r.owner != null) byOwner[r.owner] = (byOwner[r.owner] || 0) + 1; });
       const top = Object.entries(byOwner).reduce((best, e) => (e[1] > best[1] || (e[1] === best[1] && e[0] === leader) ? e : best), [null, -1])[0];
       if (leader != null && top !== leader) counters.leadChanges += 1;
-      // Decrees granted this turn (decrees.js decreeLog, newest first; U6): deeds versus the trickle floor.
-      counters.decrees ||= { heads: new Map(), deeds: 0, trickle: 0 };
+      // Decrees this turn (decrees.js decreeLog, newest first; U6, U8): deeds versus the trickle floor,
+      // decrees spent on acts of state, and AI major-turns spent with a full bank.
+      counters.decrees ||= { heads: new Map(), deeds: 0, trickle: 0, spent: 0, full: 0, majorTurns: 0, laws: new Map(), lawChanges: 0, govs: new Map(), govChanges: 0 };
       Object.values(s.nations).forEach((n) => {
         const log = n.ruler?.decreeLog || []; const head = counters.decrees.heads.get(n.id);
-        for (const e of log) { if (e === head) break; if (e.deed) counters.decrees[e.deed === 'trickle' ? 'trickle' : 'deeds'] += 1; }
+        for (const e of log) { if (e === head) break; if (e.deed) counters.decrees[e.deed === 'trickle' ? 'trickle' : 'deeds'] += 1; else if (e.n < 0) { counters.decrees.spent -= e.n; counters.decrees.acts = counters.decrees.acts || {}; counters.decrees.acts[e.act] = (counters.decrees.acts[e.act] || 0) + 1; } }
         counters.decrees.heads.set(n.id, log[0]);
+        if (n.ruler && !n.isEliminated && n.kind !== 'independent' && n.id !== s.playerNationId) {
+          counters.decrees.majorTurns += 1; if ((n.ruler.decrees || 0) >= decreeCap(n)) counters.decrees.full += 1;
+          // Acts of state, counted the same way before and after the pools went (U8): law and government changes.
+          const laws = JSON.stringify(n.laws || {}); const gov = JSON.stringify(n.government || null);
+          if (counters.decrees.laws.has(n.id) && counters.decrees.laws.get(n.id) !== laws) counters.decrees.lawChanges += 1;
+          if (counters.decrees.govs.has(n.id) && counters.decrees.govs.get(n.id) !== gov) counters.decrees.govChanges += 1;
+          counters.decrees.laws.set(n.id, laws); counters.decrees.govs.set(n.id, gov);
+          const claiming = (n.claimsInProgress || []).length; counters.decrees.claims = (counters.decrees.claims || 0) + Math.max(0, claiming - (counters.decrees.claiming?.get(n.id) || 0)); (counters.decrees.claiming ||= new Map()).set(n.id, claiming);
+        }
       });
       leader = top;
       if (t % EVERY === 0 || t === TURNS || s.gameStatus !== GameStatus.ACTIVE) {
         // The game ending early (a passive France falls to a siege around turn 100) still prints a
         // final snapshot with its real status, not the last round number's.
         last = snapshot(s, t, counters, (performance.now() - t0 - telemMs) / Math.max(1, turnsSince), lives, telemetry);
-        last = { ...last, decreeDeeds: counters.decrees.deeds, decreeTrickle: counters.decrees.trickle, decreeDeedShare: +(counters.decrees.deeds / Math.max(1, counters.decrees.deeds + counters.decrees.trickle)).toFixed(3) };
+        last = { ...last, decreeDeeds: counters.decrees.deeds, decreeTrickle: counters.decrees.trickle, decreeDeedShare: +(counters.decrees.deeds / Math.max(1, counters.decrees.deeds + counters.decrees.trickle)).toFixed(3), decreeSpent: counters.decrees.spent, aiLawChanges: counters.decrees.lawChanges, aiGovChanges: counters.decrees.govChanges, aiClaimsStarted: counters.decrees.claims || 0, aiDevTotal: Object.values(s.regions).reduce((a, r) => a + (r.owner && r.owner !== s.playerNationId && r.dev ? (r.dev.tax || 0) + (r.dev.production || 0) + (r.dev.manpower || 0) : 0), 0), ...Object.fromEntries(Object.entries(counters.decrees.acts || {}).map(([k, v]) => [`act_${k}`, v])), decreeFullShare: +(counters.decrees.full / Math.max(1, counters.decrees.majorTurns)).toFixed(3) };
         if (RUSH && scripted) last = { ...last, playerRushes: scripted.log.rushes || 0, playerRushGold: scripted.log.rushGold || 0 };
         console.log(`STATS seed=${seed} ${Object.entries(last).map(([k, v]) => `${k}=${v}`).join(' ')}`);
         t0 = performance.now(); turnsSince = 0; telemMs = 0;

@@ -16,12 +16,11 @@ import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes, ACTION_AGE_GATES } from '../../data/types';
 import {
   ACTION_COSTS, SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, ESPIONAGE_SUCCESS_CHANCE, INTEL_DURATION_TURNS, ESPIONAGE_TECH_POINTS_STOLEN,
-  MAX_RIVALS, VASSALIZE_HOSTILITY_CEILING, VASSALIZE_STRENGTH_RATIO, VASSAL_ANNEX_COOLDOWN_TURNS, VASSAL_ANNEX_DIP_PER_DEV
+  MAX_RIVALS, VASSALIZE_HOSTILITY_CEILING, VASSALIZE_STRENGTH_RATIO, VASSAL_ANNEX_COOLDOWN_TURNS
 } from '../../data/actionCosts';
 import { hasCasusBelli, isAtWarWithPlayer, isInTruce, isWarBetween, getTradePactCapacity } from '../../engine/diplomacy';
-import { getTotalDev } from '../../engine/development';
 import { getNationCapital, getBorderingNationIds } from '../../data/regions';
-import { canAfford, formatNumber, getFieldedStrength } from '../../utils/helpers';
+import { formatNumber, getFieldedStrength } from '../../utils/helpers';
 import { hasIntel } from '../../engine/intel';
 import { opinionOf, opinionBreakdown } from '../../engine/opinion';
 import { getEffectiveMilitaryPower } from '../../engine/aiEconomy';
@@ -40,6 +39,7 @@ import { opinionLabel, opinionDetail } from './opinionText';
 import { ageOf } from '../../engine/nationState';
 import { ageVersusPlayer } from '../ui/ageProgress';
 import { shortAge } from './researchSheetModel';
+import { canPay, walletOf } from '../../utils/costs';
 
 // Plan feedback ("I don't understand why I can't start a war, I have plenty of resources"): the
 // player was reading the top-bar Gold total and assuming that meant "affordable," when most
@@ -50,7 +50,7 @@ import { shortAge } from './researchSheetModel';
 // specific reason instead of a generic "Not enough resources" — both readable without a hover
 // tooltip, which mobile touch has no equivalent of.
 
-const UNIT_KEYS = new Set(['gold', 'dip', 'adm', 'mil']);
+const UNIT_KEYS = new Set(['gold', 'decrees']);
 const unitOf = (key) => (UNIT_KEYS.has(key) ? ` ${tNow(`nc.unit.${key}`)}` : key);
 const formatCost = (costs) => Object.entries(costs)
   .filter(([, amount]) => amount > 0)
@@ -113,7 +113,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
   const [peaceOpen, setPeaceOpen] = useState(false);
 
   const dispatchIfAffordable = (type, costs, extra = {}) => {
-    if (!canAfford(state.resources, costs)) return addLog(t('nc.notEnough', { list: describeShortfall(state.resources, costs) }), 'action');
+    if (!canPay(state, costs)) return addLog(t('nc.notEnough', { list: describeShortfall(walletOf(state), costs) }), 'action');
     const effectType = DIPLOMACY_EFFECT_BY_ACTION[type];
     if (effectType) triggerEffect(effectType, { from: getNationCapital(state.playerNationId), to: getNationCapital(nation.id) });
     dispatch({ type, payload: { nationId: nation.id, ...extra } });
@@ -126,7 +126,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
   const playerWarScore = activeWar ? (activeWar.aggressor === state.playerNationId ? activeWar.score : -activeWar.score) : 0;
   const justified = hasCasusBelli(state, state.playerNationId, nation.id);
   const declareWarCosts = justified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
-  const sueForPeaceCosts = { gold: Math.max(SUE_FOR_PEACE_MIN_GOLD, Math.round(SUE_FOR_PEACE_BASE_GOLD - (nation.warExhaustion || 0) * 2)), dip: 1 };
+  const sueForPeaceCosts = { gold: Math.max(SUE_FOR_PEACE_MIN_GOLD, Math.round(SUE_FOR_PEACE_BASE_GOLD - (nation.warExhaustion || 0) * 2)) };
 
   const player = state.nations[state.playerNationId];
   const isRival = (player.rivals || []).includes(nation.id);
@@ -159,8 +159,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
   const canVassalize = !atWarWithPlayer && !nation.vassalOf && nation.id !== state.playerNationId
     && (nation.hostility || 0) <= VASSALIZE_HOSTILITY_CEILING
     && getEffectiveMilitaryPower(state, state.playerNationId) >= getEffectiveMilitaryPower(state, nation.id) * VASSALIZE_STRENGTH_RATIO;
-  const vassalTotalDev = isVassalOfPlayer ? Object.values(state.regions).reduce((s, r) => s + (r.owner === nation.id ? getTotalDev(r) : 0), 0) : 0;
-  const annexCost = { dip: Math.round(VASSAL_ANNEX_DIP_PER_DEV * vassalTotalDev) };
+  const annexCost = ACTION_COSTS.annexVassal;
   const canAnnex = isVassalOfPlayer && state.turnNumber >= (nation.vassalizedTurn || 0) + VASSAL_ANNEX_COOLDOWN_TURNS;
 
   // Secondary actions only apply in the "at peace, not a vassal" branch — vassal/at-war branches
@@ -250,10 +249,10 @@ export const NationCard = ({ nation, hideTitle = false }) => {
       <div className="grid grid-cols-2 gap-2">
         {isVassalOfPlayer ? (
           <>
-            <Tile label={t('nc.annex', { n: formatNumber(annexCost.dip) })} sub={canAnnex ? t('nc.annexSub') : t('nc.fromTurn', { n: (nation.vassalizedTurn || 0) + VASSAL_ANNEX_COOLDOWN_TURNS })} looksDisabled={!canAnnex || !canAfford(state.resources, annexCost)}
+            <Tile label={t('nc.annex', { n: annexCost.decrees })} sub={canAnnex ? t('nc.annexSub') : t('nc.fromTurn', { n: (nation.vassalizedTurn || 0) + VASSAL_ANNEX_COOLDOWN_TURNS })} looksDisabled={!canAnnex || !canPay(state, annexCost)}
               onClick={() => {
                 if (!canAnnex) return addLog(t('nc.cantAnnex', { n: (nation.vassalizedTurn || 0) + VASSAL_ANNEX_COOLDOWN_TURNS }), 'action');
-                if (!canAfford(state.resources, annexCost)) return addLog(t('nc.notEnoughNeed', { list: describeShortfall(state.resources, annexCost) }), 'action');
+                if (!canPay(state, annexCost)) return addLog(t('nc.notEnoughNeed', { list: describeShortfall(walletOf(state), annexCost) }), 'action');
                 dispatch({ type: ActionTypes.ANNEX_VASSAL, payload: { nationId: nation.id } });
                 return undefined;
               }} />
@@ -262,7 +261,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
         ) : atWarWithPlayer ? (
           <>
             <Tile label={t('nc.peaceDeal')} sub={t('nc.peaceDealSub')} onClick={() => setPeaceOpen(true)} />
-            <Tile label={t('nc.sue', { n: sueForPeaceCosts.gold })} sub={t('nc.sueSub')} looksDisabled={!canAfford(state.resources, sueForPeaceCosts)}
+            <Tile label={t('nc.sue', { n: sueForPeaceCosts.gold })} sub={t('nc.sueSub')} looksDisabled={!canPay(state, sueForPeaceCosts)}
               onClick={() => dispatchIfAffordable(ActionTypes.SUE_FOR_PEACE, sueForPeaceCosts)} />
             <TopLayer>{peaceOpen && activeWar && <PeaceDealSheet warId={activeWar.id} onClose={() => setPeaceOpen(false)} />}</TopLayer>
           </>
@@ -270,10 +269,10 @@ export const NationCard = ({ nation, hideTitle = false }) => {
           <>
             <Tile label={t('nc.declareWar')} testId="declare-war"
               sub={t('nc.declareSub', { cause: justified ? t('nc.cause') : t('nc.noCause'), cost: formatCost(declareWarCosts), fighting: theirOtherEnemies.length ? t('nc.alreadyFighting', { list: theirOtherEnemies.join(', ') }) : '' })}
-              looksDisabled={!canAfford(state.resources, declareWarCosts) || !!player.vassalOf}
+              looksDisabled={!canPay(state, declareWarCosts) || !!player.vassalOf}
               onClick={() => {
                 if (player.vassalOf) return addLog(t('nc.vassalNoWar'), 'action');
-                if (!canAfford(state.resources, declareWarCosts)) return dispatchIfAffordable(ActionTypes.DECLARE_WAR, declareWarCosts);
+                if (!canPay(state, declareWarCosts)) return dispatchIfAffordable(ActionTypes.DECLARE_WAR, declareWarCosts);
                 // Two taps: the card shows the cost and the opinion hit first (H-08).
                 askConfirm(declareWarConfirm(state, nation.id), () => dispatchIfAffordable(ActionTypes.DECLARE_WAR, declareWarCosts));
                 return undefined;
@@ -281,7 +280,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
             {nation.hasMilitaryPact ? (
               <Tile label={t('nc.breakPact')} sub={t('nc.breakPactSub')} onClick={() => dispatchIfAffordable(ActionTypes.BREAK_ALLIANCE, {})} />
             ) : (
-              <Tile label={t('nc.offerPact')} sub={allianceAnswer ? t('nc.wouldAcceptCost', { cost: formatCost(ACTION_COSTS.militaryAlliance) }) : t('nc.wouldRefuse')} refuse={!allianceAnswer} looksDisabled={!canAfford(state.resources, ACTION_COSTS.militaryAlliance)}
+              <Tile label={t('nc.offerPact')} sub={allianceAnswer ? t('nc.wouldAcceptCost', { cost: formatCost(ACTION_COSTS.militaryAlliance) }) : t('nc.wouldRefuse')} refuse={!allianceAnswer} looksDisabled={!canPay(state, ACTION_COSTS.militaryAlliance)}
                 onClick={() => {
                   if (!allianceAnswer) return addLog(t('nc.noAlliance', { name: nameNow('people', nation.id, nation.name) }), 'action');
                   dispatchIfAffordable(ActionTypes.MILITARY_ALLIANCE, ACTION_COSTS.militaryAlliance);
@@ -289,7 +288,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
                 }} />
             )}
             {!nation.hasTradeAgreement && (
-              <Tile label={t('nc.trade')} sub={tradeBlock || t('nc.tradeSub', { cost: formatCost(ACTION_COSTS.tradeAgreement), a: activeTradePactCount, b: tradePactCapacity })} refuse={!!tradeBlock} looksDisabled={!canAfford(state.resources, ACTION_COSTS.tradeAgreement)}
+              <Tile label={t('nc.trade')} sub={tradeBlock || t('nc.tradeSub', { cost: formatCost(ACTION_COSTS.tradeAgreement), a: activeTradePactCount, b: tradePactCapacity })} refuse={!!tradeBlock} looksDisabled={!canPay(state, ACTION_COSTS.tradeAgreement)}
                 onClick={() => {
                   if (nation.isAtWar) return addLog(t('nc.atWarNoTrade', { name: nameNow('people', nation.id, nation.name) }), 'action');
                   if (activeTradePactCount >= tradePactCapacity) return addLog(t('nc.tradeCapacity', { a: activeTradePactCount, b: tradePactCapacity }), 'action');
@@ -298,7 +297,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
                 }} />
             )}
             <Tile label={t('nc.demandTribute')} sub={tributeReason || (tribute.accepted ? t('nc.wouldYieldCost', { cost: formatCost(ACTION_COSTS.demand) }) : t('nc.wouldRefuseCause'))} refuse={!tribute.accepted}
-              looksDisabled={!!tribute.reason || !canAfford(state.resources, ACTION_COSTS.demand)}
+              looksDisabled={!!tribute.reason || !canPay(state, ACTION_COSTS.demand)}
               onClick={() => (tribute.reason ? addLog(tributeReason, 'action') : dispatchIfAffordable(ActionTypes.DEMAND, ACTION_COSTS.demand, { kind: 'tribute', cityId: null }))} />
           </>
         )}
@@ -324,14 +323,14 @@ export const NationCard = ({ nation, hideTitle = false }) => {
                 icon={Target}
                 label={site ? t('nc.fabricate', { name: nameNow('city', null, site.city.name), cost: formatCost(ACTION_COSTS.fabricateClaim) }) : t('nc.fabricateNone')}
                 title={site ? t('nc.fabricateTitle', { name: nameNow('city', null, site.city.name), n: CLAIM_FABRICATE_TURNS }) : t('nc.fabricateNeed', { n: CLAIM_RANGE_RINGS })}
-                disabled={!site || !canAfford(state.resources, ACTION_COSTS.fabricateClaim)}
+                disabled={!site || !canPay(state, ACTION_COSTS.fabricateClaim)}
                 onClick={() => site && dispatchIfAffordable(ActionTypes.FABRICATE_CLAIM, ACTION_COSTS.fabricateClaim, { cityId: site.city.id })}
               />
             );
           })()}
           {bordersOpen
             ? <IconButton icon={DoorOpen} label={t('nc.closeBorders')} title={t('nc.closeBordersTitle')} onClick={() => dispatch({ type: ActionTypes.CLOSE_BORDERS, payload: { nationId: nation.id } })} />
-            : <IconButton icon={DoorOpen} label={t('nc.openBordersLabel', { cost: formatCost(ACTION_COSTS.openBorders), refuse: borders.accepted ? '' : t('nc.wouldRefuseShort') })} title={borders.accepted ? t('nc.openBordersAccept') : t('nc.openBordersRefuse', { opinion: borders.opinion, needed: borders.needed, war: borders.atWar ? t('nc.andAtWar') : '' })} disabled={!canAfford(state.resources, ACTION_COSTS.openBorders)} onClick={() => dispatchIfAffordable(ActionTypes.OPEN_BORDERS, ACTION_COSTS.openBorders)} />}
+            : <IconButton icon={DoorOpen} label={t('nc.openBordersLabel', { cost: formatCost(ACTION_COSTS.openBorders), refuse: borders.accepted ? '' : t('nc.wouldRefuseShort') })} title={borders.accepted ? t('nc.openBordersAccept') : t('nc.openBordersRefuse', { opinion: borders.opinion, needed: borders.needed, war: borders.atWar ? t('nc.andAtWar') : '' })} disabled={!canPay(state, ACTION_COSTS.openBorders)} onClick={() => dispatchIfAffordable(ActionTypes.OPEN_BORDERS, ACTION_COSTS.openBorders)} />}
           {hasStele(state, player.id, nation.id)
             ? <IconButton icon={Milestone} label={t('nc.steleStands', { turn: player.steles[nation.id] })} title={t('nc.steleTitle')} disabled onClick={() => {}} />
             : (() => {
@@ -339,7 +338,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
               const village = !pastVillage(state, player.id);
               return <IconButton icon={Milestone} label={t('nc.stele', { cost: formatCost(ACTION_COSTS.borderStele), refuse: stele.accepted ? '' : t('nc.wouldRefuseShort') })}
                 title={village ? t('nc.steleVillage') : stele.accepted ? t('nc.steleTitle') : t('nc.openBordersRefuse', { opinion: stele.opinion, needed: stele.needed, war: stele.atWar ? t('nc.andAtWar') : '' })}
-                disabled={village || !canAfford(state.resources, ACTION_COSTS.borderStele)} onClick={() => dispatchIfAffordable(ActionTypes.PROPOSE_STELE, ACTION_COSTS.borderStele)} />;
+                disabled={village || !canPay(state, ACTION_COSTS.borderStele)} onClick={() => dispatchIfAffordable(ActionTypes.PROPOSE_STELE, ACTION_COSTS.borderStele)} />;
             })()}
           {Object.keys(DEMANDS).filter((kind) => kind !== 'tribute').map((kind) => {
             const claimed = kind === 'city' ? claimsAgainst(state, player.id, nation.id).filter((c) => nation.capitalRegionId !== c.id)[0] : null;
@@ -348,14 +347,14 @@ export const NationCard = ({ nation, hideTitle = false }) => {
             return (
               <IconButton key={kind} icon={Scale} label={t('nc.demandLine', { label: kind === 'city' ? t('nc.demandCity', { name: nameNow('city', null, claimed.name) }) : t(`nc.demandLabel.${kind}`), cost: formatCost(ACTION_COSTS.demand), tail: answer.reason ? '' : answer.accepted ? t('nc.wouldYield') : t('nc.wouldRefuseShort') })}
                 title={answer.reason ? reasonText(answer) : t('nc.demandTitleScore', { verdict: answer.accepted ? t('nc.demandTitleYield') : t('nc.demandTitleRefuse'), score: answer.score, ratio: answer.ratio, opinion: answer.opinion })}
-                disabled={!!answer.reason || !canAfford(state.resources, ACTION_COSTS.demand)}
+                disabled={!!answer.reason || !canPay(state, ACTION_COSTS.demand)}
                 onClick={() => dispatchIfAffordable(ActionTypes.DEMAND, ACTION_COSTS.demand, { kind, cityId: claimed?.id || null })} />
             );
           })}
-          <IconButton icon={Gift} label={t('nc.gift', { cost: formatCost(ACTION_COSTS.giftBribe) })} title={t('nc.giftTitle')} disabled={!canAfford(state.resources, ACTION_COSTS.giftBribe)} onClick={() => dispatchIfAffordable(ActionTypes.GIFT_BRIBE, ACTION_COSTS.giftBribe)} />
+          <IconButton icon={Gift} label={t('nc.gift', { cost: formatCost(ACTION_COSTS.giftBribe) })} title={t('nc.giftTitle')} disabled={!canPay(state, ACTION_COSTS.giftBribe)} onClick={() => dispatchIfAffordable(ActionTypes.GIFT_BRIBE, ACTION_COSTS.giftBribe)} />
           <IconButton icon={Eye} label={t('nc.espionage', { cost: formatCost(ACTION_COSTS.espionage) })}
             title={t('nc.espionageTitle', { n: ESPIONAGE_TECH_POINTS_STOLEN, p: Math.round(ESPIONAGE_SUCCESS_CHANCE * 100), t: INTEL_DURATION_TURNS })}
-            disabled={!canAfford(state.resources, ACTION_COSTS.espionage)} onClick={() => dispatchIfAffordable(ActionTypes.ESPIONAGE, ACTION_COSTS.espionage)} />
+            disabled={!canPay(state, ACTION_COSTS.espionage)} onClick={() => dispatchIfAffordable(ActionTypes.ESPIONAGE, ACTION_COSTS.espionage)} />
           <IconButton icon={AlertTriangle} label={t('nc.insult')} title={t('nc.insultTitle')} onClick={() => dispatchIfAffordable(ActionTypes.INSULT, {})} />
           <IconButton icon={Target} label={isRival ? t('nc.unrival') : t('nc.rivalN', { a: (player.rivals || []).length, b: MAX_RIVALS })}
             title={isRival ? t('nc.unrivalTitle') : t('nc.rivalTitle')}
@@ -366,20 +365,20 @@ export const NationCard = ({ nation, hideTitle = false }) => {
               dispatchIfAffordable(isRival ? ActionTypes.UNRIVAL_NATION : ActionTypes.RIVAL_NATION, {});
               return undefined;
             }} />
-          {canMarry && <IconButton icon={Heart} label={t('nc.marriage', { cost: formatCost(ACTION_COSTS.proposeMarriage) })} title={t('nc.marriageTitle')} disabled={!canAfford(state.resources, ACTION_COSTS.proposeMarriage)} onClick={() => dispatchIfAffordable(ActionTypes.PROPOSE_MARRIAGE, ACTION_COSTS.proposeMarriage)} />}
+          {canMarry && <IconButton icon={Heart} label={t('nc.marriage', { cost: formatCost(ACTION_COSTS.proposeMarriage) })} title={t('nc.marriageTitle')} disabled={!canPay(state, ACTION_COSTS.proposeMarriage)} onClick={() => dispatchIfAffordable(ActionTypes.PROPOSE_MARRIAGE, ACTION_COSTS.proposeMarriage)} />}
           {hasDiplomatAssigned ? (
             <IconButton icon={Users} label={t('nc.recall')} onClick={() => dispatch({ type: ActionTypes.RECALL_DIPLOMAT, payload: { nationId: nation.id } })} />
           ) : (
             <IconButton icon={Users} label={t('nc.assign', { cost: formatCost(ACTION_COSTS.assignDiplomat) })}
               title={t('nc.assignTitle', { a: (player.diplomatTasks || []).length, b: player.diplomats || 0 })}
-              disabled={!canAssignDiplomat || !canAfford(state.resources, ACTION_COSTS.assignDiplomat)}
+              disabled={!canAssignDiplomat || !canPay(state, ACTION_COSTS.assignDiplomat)}
               onClick={() => {
                 if (!canAssignDiplomat) return addLog(t('nc.noDiplomats', { a: (player.diplomatTasks || []).length, b: player.diplomats || 0 }), 'action');
                 dispatchIfAffordable(ActionTypes.ASSIGN_DIPLOMAT, ACTION_COSTS.assignDiplomat);
                 return undefined;
               }} />
           )}
-          {canVassalize && <IconButton icon={Crown} label={t('nc.vassalize', { cost: formatCost(ACTION_COSTS.vassalize) })} title={t('nc.vassalizeTitle')} disabled={!canAfford(state.resources, ACTION_COSTS.vassalize)} onClick={() => dispatchIfAffordable(ActionTypes.VASSALIZE, ACTION_COSTS.vassalize)} />}
+          {canVassalize && <IconButton icon={Crown} label={t('nc.vassalize', { cost: formatCost(ACTION_COSTS.vassalize) })} title={t('nc.vassalizeTitle')} disabled={!canPay(state, ACTION_COSTS.vassalize)} onClick={() => dispatchIfAffordable(ActionTypes.VASSALIZE, ACTION_COSTS.vassalize)} />}
         </div>
       )}
     </div>

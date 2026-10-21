@@ -2,14 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { getInvasionBattleContext } from './invasion';
-import { neighbourWorld, rivalOf } from './testWorld';
+import { neighbourWorld, rivalOf, withDecrees } from './testWorld';
 import { GOVERNMENT_REFORMS } from '../data/government';
 
 // Eight-ages plan U6: every rule that belongs to a nation reads that nation's own age, never the
 // calendar (state.year / the old state.age).
 const rich = () => {
   const s = neighbourWorld({ seed: 11 });
-  return { ...s, resources: { ...s.resources, adm: 5000, gold: 5000 } };
+  return withDecrees({ ...s, resources: { ...s.resources, gold: 5000 } });
 };
 
 describe('nation-owned rules read the nation\'s age', () => {

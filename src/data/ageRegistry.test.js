@@ -39,6 +39,8 @@ import enPnl2 from '../i18n/locales/ui/pnl2.en';
 import hePnl2 from '../i18n/locales/ui/pnl2.he';
 
 const ROSTER_CLASSES = ['infantry', 'cavalry', 'ranged', 'siege', 'naval'];
+// Roster classes an age leaves out on purpose: 'age class' -> reason.
+const ROSTER_OPT_OUT = { 'stone cavalry': 'no horses before the Bronze Age (U37): the guard goes on foot, unitClasses.js guardClassOf' };
 
 /** Problems with one table: an age it lacks (and has no opt-out reason for) or a key that is no age. */
 export const tableProblems = (name, keys, optOut = {}) => {
@@ -77,7 +79,7 @@ const OPT_OUT = {
 
 // Tables that cover only some ages by design: unknown keys are still rejected. [keys, reason].
 const PARTIAL = {
-  AGE_OVERRIDES: [Object.keys(AGE_OVERRIDES), 'only the ages that change a class (Gunpowder and Modern turn melee lines into shooters)'],
+  AGE_OVERRIDES: [Object.keys(AGE_OVERRIDES), 'only the ages that change a class (Stone fights without ranks; Gunpowder and Modern turn melee lines into shooters)'],
   'GOVERNMENT_TYPES.minAgeId': [Object.values(GOVERNMENT_TYPES).map((g) => g.minAgeId), 'a government is open from its minimum age, so most ages start none'],
   'BUILDING_ICON_PATHS (every category)': [Object.values(BUILDING_ICON_PATHS).flatMap((t) => Object.keys(t)), 'a category has an icon only for the ages it has a tier in (checked below)'],
   'NAVAL_LINE_STATS.carrier': [Object.keys(NAVAL_LINE_STATS.carrier), 'the carrier line starts in Modern'],
@@ -101,7 +103,7 @@ describe('registry completeness: every per-age table has every age', () => {
   it('every roster age has all five classes with a unit name, power and cost', () => {
     AGE_ORDER.forEach((age) => {
       ROSTER_CLASSES.forEach((cls) => {
-        expect(UNIT_ROSTER[age][cls]?.name, `UNIT_ROSTER ${age} ${cls}`).toBeTruthy();
+        if (!ROSTER_OPT_OUT[`${age} ${cls}`]) expect(UNIT_ROSTER[age][cls]?.name, `UNIT_ROSTER ${age} ${cls}`).toBeTruthy();
         expect(typeof MODELS[cls][age], `procedural model ${cls} ${age}`).toBe('function');
       });
       expect(AGES[age].power.attack, `${age} power`).toBeGreaterThan(0);

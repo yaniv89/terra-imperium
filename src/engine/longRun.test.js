@@ -88,6 +88,6 @@ describe('whole-world long runs', () => {
     // leaves the war list, so the declarations seen along the way are what counts).
     expect(warsDeclared).toBeGreaterThan(0);
     // One ruler a game (differentiation plan U5): no reign ever ends.
-    Object.entries(a.nations).forEach(([id, n]) => { if (rulers[id]) expect({ ...n.ruler, decrees: undefined, decreeWait: undefined, decreeLog: undefined }, id).toEqual(rulers[id]); }); // the decree bank moves (decrees.js)
+    Object.entries(a.nations).forEach(([id, n]) => { if (rulers[id]) expect({ id: n.ruler.id, name: n.ruler.name }, id).toEqual({ id: rulers[id].id, name: rulers[id].name }); }); // decrees and renown move (decrees.js, renown.js)
   }, 600000);
 });

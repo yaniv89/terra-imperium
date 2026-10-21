@@ -154,3 +154,24 @@ export const worldHealth = (state, { isLand, landTiles, playerId, cityOf } = {})
     zipfSlope: round(zipfSlope(cities.map((c) => c.currentPopulation || 0)), 2)
   };
 };
+
+// The rulers of the living majors (RULER-PLAN 8, differentiation plan U11). The engine's own
+// readers come in as functions so this file keeps no imports: levelOf(ruler), pointsOf(ruler) ->
+// { attribute, virtue }, branchOf(virtueId). unspentPoints sums the AI rulers' waiting points.
+export const rulerStats = (nations, { levelOf, pointsOf, branchOf, playerId } = {}) => {
+  const rulers = Object.values(nations || {}).filter((n) => n.ruler && !n.isEliminated && n.kind !== 'independent').map((n) => ({ id: n.id, r: n.ruler }));
+  if (!rulers.length) return {};
+  const levels = rulers.map((x) => levelOf(x.r)).sort((a, b) => a - b);
+  const median = levels[Math.floor((levels.length - 1) / 2)];
+  const branches = {};
+  let taken = 0;
+  rulers.forEach((x) => (x.r.traits || []).forEach((v) => { const b = branchOf(v); if (b) { branches[b] = (branches[b] || 0) + 1; taken += 1; } }));
+  const ai = rulers.filter((x) => x.id !== playerId).map((x) => pointsOf(x.r));
+  return {
+    rulerLevelMean: round(mean(levels), 2), rulerLevelMax: levels[levels.length - 1], rulerLevelMin: levels[0],
+    rulerLevelTopToMedian: round(levels[levels.length - 1] / Math.max(1, median), 2),
+    renownGini: round(gini(rulers.map((x) => x.r.renown || 0))),
+    ...Object.fromEntries(Object.entries(branches).map(([b, n]) => [`branchShare_${b}`, round(n / Math.max(1, taken))])),
+    unspentPoints: ai.reduce((s, p) => s + Math.max(0, p.attribute) + Math.max(0, p.virtue), 0)
+  };
+};

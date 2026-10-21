@@ -27,7 +27,6 @@ import { getNationCapital } from '../../data/regions';
 import { isAgeBefore } from '../../data/ages';
 import { CATCHUP_MAX } from '../../engine/techDiffusion';
 import { researchLeaderAge } from '../../engine/ageRefs';
-import { canAfford } from '../../utils/helpers';
 import { FOCUS_SCIENCE_BONUS } from '../../engine/research';
 import { CollapsibleSection } from '../ui';
 import ActionCard from './ActionCard';
@@ -40,6 +39,7 @@ import { describeTech, formatTurns, formatEta, techInfo, techGraph, GRAPH_NODE_W
 import { researchSheetModel } from './researchSheetModel';
 import { techName, boostLabel, playstyleName, goalUnit, goalBonus } from '../../i18n/gameText';
 import { dataText } from '../../i18n/core';
+import { canPay } from '../../utils/costs';
 
 // The labels are read when asked, so they follow the language (keys tc.<category>).
 export const CATEGORY_LABELS = Object.defineProperties({}, Object.fromEntries(
@@ -48,7 +48,7 @@ export const CATEGORY_LABELS = Object.defineProperties({}, Object.fromEntries(
 ));
 
 const SCIENCE = 'var(--fa-science)';
-const COST_WORDS = { adm: 'administrative power', dip: 'diplomatic power', mil: 'military power', techPoints: 'science', gold: 'gold' };
+const COST_WORDS = { decrees: 'decrees', techPoints: 'science', gold: 'gold' };
 const costWord = (k) => (COST_WORDS[k] ? tNow(`p2.cw.${k}`) : k);
 // What the Fund Scholars button costs ("100 Gold, 1 DIP"), word for word as helpers.getCostString writes it.
 const COST_UNITS = new Set(['gold', 'adm', 'dip', 'mil']);
@@ -204,13 +204,13 @@ const TechPanel = () => {
   const unqueue = (techId) => dispatch({ type: ActionTypes.UNQUEUE_RESEARCH, payload: { techId } });
   const handleFocus = (categoryId) => {
     if (state.researchFocus === categoryId) return undefined;
-    if (!canAfford(state.resources, ACTION_COSTS.setResearchFocus)) return addLog(tNow('p2.log.noRes'), 'action');
+    if (!canPay(state, ACTION_COSTS.setResearchFocus)) return addLog(tNow('p2.log.noRes'), 'action');
     triggerEffect('set_research_focus', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.SET_RESEARCH_FOCUS, payload: { categoryId } });
     return undefined;
   };
   const handleFundScholars = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.fundScholars)) return addLog(tNow('p2.log.noRes'), 'action');
+    if (!canPay(state, ACTION_COSTS.fundScholars)) return addLog(tNow('p2.log.noRes'), 'action');
     triggerEffect('fund_scholars', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.FUND_SCHOLARS, payload: {} });
     return undefined;
@@ -265,13 +265,13 @@ const TechPanel = () => {
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <ActionCard icon={GraduationCap} label={tNow('tech.scholars')} description={tNow('p2.sch.desc')} cost={costText(ACTION_COSTS.fundScholars, n)}
-          effect={scholarsPreview(state, FUND_SCHOLARS_TECHPOINTS).note} onClick={handleFundScholars} disabled={!canAfford(state.resources, ACTION_COSTS.fundScholars)} />
+          effect={scholarsPreview(state, FUND_SCHOLARS_TECHPOINTS).note} onClick={handleFundScholars} disabled={!canPay(state, ACTION_COSTS.fundScholars)} />
         <div className="space-y-1.5">
           <Label>{tNow('p2.fo.label')} <span className="normal-case tracking-normal font-normal">{tNow('p2.fo.hint', { pct: Math.round(FOCUS_SCIENCE_BONUS * 100), cost: focusCost ? tNow('p2.fo.cost', { list: Object.entries(focusCost).map(([k, v]) => `${v} ${costWord(k)}`).join(', ') }) : '' })}</span></Label>
           <div className="flex flex-wrap gap-1.5">
             {Object.values(TechCategories).map((categoryId) => (
               <Chip key={categoryId} pressed={state.researchFocus === categoryId} onClick={() => handleFocus(categoryId)}
-                aria-disabled={state.researchFocus !== categoryId && !canAfford(state.resources, focusCost)}>
+                aria-disabled={state.researchFocus !== categoryId && !canPay(state, focusCost)}>
                 {CATEGORY_LABELS[categoryId]}
               </Chip>
             ))}

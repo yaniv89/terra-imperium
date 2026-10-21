@@ -11,7 +11,7 @@
 import { withAirSupport } from './airPower';
 import { REGIONS_DATA, getNeighborIds, getTouchingIds } from '../data/regions';
 import { getRegionTerrain } from '../data/terrain';
-import { isAgeAtLeast, isAgeBefore } from '../data/ages';
+import { FIRST_AGE_ID, isAgeAtLeast, isAgeBefore } from '../data/ages';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { canAfford } from '../utils/helpers';
 import { isWarBetween } from './diplomacy';
@@ -26,6 +26,7 @@ import { atSea, touchesCoastOf } from './fleets';
 import { LANDING_ATTACK_MULT } from '../battle/setup/battleType';
 import { ageOf } from './nationState';
 import { sideAgeOf } from './ageRefs';
+import { commandGenerals } from '../data/generals';
 
 // Units committed to an in-progress tactical battle can't be moved, disbanded or sent into a
 // second fight until it resolves.
@@ -58,6 +59,7 @@ export const getReinforcementSources = (state, targetRegionId, nationId, exclude
 // plan §8.8): everyone can rally; the arrow storm belongs to the early ages; artillery needs a
 // siege unit in the fight; an air strike needs aircraft.
 export const getBattlePowers = (state, nationId, ageId, units = []) => {
+  if (ageId === FIRST_AGE_ID) return [{ id: 'rallyCry', label: 'War Cry' }, { id: 'ambush' }]; // Stone (U39): no massed archery yet
   const out = [{ id: 'rallyCry' }];
   if (isAgeBefore(ageId, 'gunpowder')) out.push({ id: 'arrowStorm' });
   if (isAgeAtLeast(ageId, 'gunpowder') && units.some((u) => u.classId === 'siege')) out.push({ id: 'artilleryBarrage' });
@@ -118,7 +120,7 @@ export const getInvasionBattleContext = (state, { targetRegionId, targetRegion, 
     isDefended,
     isAttackingFortification: (targetRegion.defenseLevel || 0) > 0,
     battleType: (targetRegion.defenseLevel || 0) > 0 ? 'assault' : 'field', // battleType.js
-    generals: state.hiredCommanders,
+    generals: commandGenerals(state),
     // Plan §M14: each side's roster stats are looked up live from its OWNER's own age (KTD1; an
     // independent's from its strongest known major, KTD8).
     attackerAgeId: ageOf(state, state.playerNationId),
@@ -194,7 +196,7 @@ export const getAmphibiousBattleContext = (state, v, defenderLandUnits) => {
   return {
     terrain: getRegionTerrain(v.targetRegionId, REGIONS_DATA),
     isAttackingFortification: (v.targetRegion.defenseLevel || 0) > 0,
-    generals: state.hiredCommanders,
+    generals: commandGenerals(state),
     attackerAgeId: ageOf(state, state.playerNationId),
     defenderAgeId: sideAgeOf(state, v.targetRegion.owner),
     battleType: v.hasBeachhead ? ((v.targetRegion.defenseLevel || 0) > 0 ? 'assault' : 'field') : 'landing',

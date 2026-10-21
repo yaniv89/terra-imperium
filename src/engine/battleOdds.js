@@ -14,6 +14,8 @@ import { resolveSiegeControlDamage, hasMeleeUnitDeployed, isGarrisonBroken } fro
 import { cityFell } from './capture';
 import { getCounterMultiplier, getRosterCombatMultiplier } from '../data/unitClasses';
 import { getTerrainCombatModifier } from '../data/terrain';
+import { menOf } from './battleLedger';
+import parity from '../data/autoParity.json';
 
 const sumStrength = (units) => units.reduce((s, u) => s + Math.max(0, u.strength), 0);
 
@@ -40,6 +42,26 @@ export const explainInvasion = (v, ctx) => {
   return lines.map((l) => ({ ...l, value: Math.round(l.value * 100) / 100 }));
 };
 
+// The factors that moved the odds most, biggest effect first (how far from 1, as a ratio), at most three; a factor of
+// exactly 1 changes nothing and is left out.
+export const rankReasons = (factors, cap = 3) => factors
+  .map((f) => ({ f, effect: Math.max(f.value, 1 / Math.max(0.01, f.value)) - 1 }))
+  .filter((x) => x.effect > 0)
+  .sort((a, b) => b.effect - a.effect)
+  .slice(0, cap)
+  .map((x) => x.f);
+
+// 10th to 90th percentile of a list (nearest rank), widened to hold `mid` so the range always contains the estimate.
+export const spread = (values, mid) => {
+  const v = [...values].sort((a, b) => a - b);
+  if (!v.length) return [mid, mid];
+  const at = (q) => v[Math.min(v.length - 1, Math.floor(q * v.length))];
+  return [Math.min(at(0.1), mid), Math.max(at(0.9), mid)];
+};
+
+/** The committed parity record of a battle kind (parityEco type: field, assault, town, raid, sack, sally, landing, fort), or null when none was recorded. */
+export const autoParityOf = (kind) => parity[kind] || null;
+
 // Runs the real auto-resolve + siege rule `samples` times for an attack described by `v`
 // ({ attackerUnits, defenderUnits, targetRegion }) with resolveBattle `args` and context `ctx`.
 const simulate = (state, v, args, ctx, samples, spec) => {
@@ -47,12 +69,16 @@ const simulate = (state, v, args, ctx, samples, spec) => {
   const attStart = sumStrength(v.attackerUnits); const defStart = sumStrength(inputs.defenderUnits); // the militia stand with the garrison
   const tally = { attacker: 0, defender: 0, stalemate: 0 };
   let attLoss = 0; let defLoss = 0; let captures = 0; let controlLeft = 0;
+  const wins = []; const attLosses = []; const defLosses = [];
   let autoRule = null; let hpAfter = 0; let cityAttack = null;
   for (let i = 1; i <= samples; i++) {
     const r = resolveAutoBattle(state, args, spec, createRng(Math.imul(i, 2654435761) >>> 0), inputs);
     tally[r.outcome] += 1;
-    attLoss += attStart - sumStrength(r.attackerUnits);
-    defLoss += defStart - sumStrength(r.defenderUnits);
+    wins.push(r.outcome === 'attacker' ? 1 : 0);
+    attLosses.push(attStart - sumStrength(r.attackerUnits));
+    defLosses.push(defStart - sumStrength(r.defenderUnits));
+    attLoss += attLosses[i - 1];
+    defLoss += defLosses[i - 1];
     const hasMeleeUnit = hasMeleeUnitDeployed(r.attackerUnits.filter((u) => u.strength > 0 && !u.routed));
     const siege = resolveSiegeControlDamage({
       currentControl: v.targetRegion.control,
@@ -69,6 +95,7 @@ const simulate = (state, v, args, ctx, samples, spec) => {
     else if (cityFell(r, { occupier: hasMeleeUnit, fell: siege.captured })) captures += 1;
     controlLeft += siege.nextControl;
   }
+  const factors = explainInvasion(v, ctx);
   return {
     // How Auto treats this city: 'garrison' (it fights the units inside and never takes the city),
     // 'attack' (an empty city: it batters the defences, `city` the HP before and expected after).
@@ -85,7 +112,15 @@ const simulate = (state, v, args, ctx, samples, spec) => {
     defenderLossShare: defStart ? defLoss / samples / defStart : 0,
     attackerStrength: attStart,
     defenderStrength: defStart,
-    factors: explainInvasion(v, ctx)
+    factors,
+    reasons: rankReasons(factors),
+    // What Auto expects as a range (KTD11): the attacker's win chance by batches of 20 samples, and each side's men lost.
+    range: {
+      win: spread(Array.from({ length: Math.floor(samples / 20) }, (_, b) => wins.slice(b * 20, b * 20 + 20).reduce((x, y) => x + y, 0) / 20), tally.attacker / samples),
+      attackerMen: spread(attLosses.map(menOf), menOf(attLoss / samples)),
+      defenderMen: spread(defLosses.map(menOf), menOf(defLoss / samples))
+    },
+    parity: autoParityOf(spec.kind)
   };
 };
 
