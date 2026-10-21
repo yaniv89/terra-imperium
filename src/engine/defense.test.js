@@ -79,6 +79,7 @@ describe('queueing defenses', () => {
     const out = queue(s);
     expect(out.pendingDefenses).toHaveLength(0);
     expect(out.regions[FR_BORDER].owner).toBe(AGG); // conquered
+    expect(out.logs.some((l) => l.message.includes(s.regions[FR_BORDER].name))).toBe(true); // the player is told (follow-up 22)
   });
 
   it('prefers the aggressor\'s real neighbouring troops over synthetic ones', () => {
@@ -163,6 +164,9 @@ describe('consequences', () => {
     const low = { ...s0, regions: { ...s0.regions, [FR_BORDER]: { ...city, siege: { hp: 5, maxHp: siegeMaxHp(city), by: null, startedTurn: 1 } } }, pendingDefenses: [def] };
     const taken = gameReducer(low, { type: ActionTypes.RESOLVE_DEFENSE_AUTO, payload: { defenseId: def.id } });
     expect(taken.regions[FR_BORDER].owner).toBe(AGG);
+    // Lost in battle: a battle report on the city and a log line naming it (follow-up 22).
+    expect(taken.battleReports[0]).toMatchObject({ targetRegionId: FR_BORDER, captured: true });
+    expect(taken.logs.at(-1).message).toContain(city.name);
   });
 
   it('peace signed before the battle means nothing happens', () => {
@@ -339,6 +343,7 @@ describe('pre-battle choice is never skipped by accident', () => {
     expect(next.pendingDefenses).toHaveLength(0);
     expect(next.regions[FR_BORDER].owner).toBe(AGG);
     expect(next.units.g1.regionId).not.toBe(FR_BORDER);
+    expect(next.logs.at(-1).message).toContain(s.regions[FR_BORDER].name);
     expect(next.regions[next.units.g1.regionId].owner).toBe(FR_ID);
     expect(next.units.g1.morale).toBeLessThan(s.units.g1.morale ?? 100);
     expect(next.units.g1.strength).toBeLessThan(s.units.g1.strength);

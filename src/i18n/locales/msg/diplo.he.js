@@ -49,6 +49,7 @@ export default {
   'm.diplo.tributeToYou': '{target} משלמת {gold} זהב כמס.',
   'm.diplo.tributeTo': '{target} משלמת {gold} זהב כמס ל{nation}.',
   'm.diplo.yieldByYou': 'אתה מוסר את {city} ל{nation}.',
+  'm.diplo.cededInPeace': '{city} נמסרת לידי {nation} בהסכם השלום.',
   'm.diplo.yieldToYou': '{target} מוסרת לך את {city}.',
   'm.diplo.yieldTo': '{target} מוסרת את {city} ל{nation}.',
   'm.diplo.promiseByYou': 'אתה מבטיח ל{nation} לא לייסד עיר ליד עריה למשך {turns} תורות.',

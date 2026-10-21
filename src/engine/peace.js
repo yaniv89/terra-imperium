@@ -26,6 +26,7 @@ import { DECREE_WAR_WON_SCORE } from '../data/decrees';
 import { RENOWN } from '../data/rulers';
 import { grantRenown } from './renown';
 import { lawRulesOf } from './lawRules';
+import { msg, people, cityRef } from './messages';
 import {
   FORCED_VASSALIZE_MIN_MAX_PEACE_COST, CAPITAL_LOST_IN_PEACE_STABILITY_PENALTY
 } from '../data/actionCosts';
@@ -160,6 +161,7 @@ export const applyPeace = (state, war, offererId, terms) => {
   }));
   let nextNations = state.nations;
   let nextResources = state.resources;
+  const logs = []; // the player's cities handed over in this peace, one line each (follow-up 22)
 
   terms.forEach((term) => {
     if (term.type === 'cede') {
@@ -179,6 +181,7 @@ export const applyPeace = (state, war, offererId, terms) => {
       // Plan §M18's "Unbroken" achievement ("never lose a region to a peace deal") needs a real,
       // permanent marker the instant the PLAYER is the one ceding — not derived after the fact from
       // region ownership history, which isn't tracked anywhere.
+      if (recipientId === state.playerNationId) logs.push({ year: state.year, ...msg('m.diplo.cededInPeace', { city: cityRef(term.regionId, region.name || term.regionId), nation: people(offererId, nextNations[offererId]?.name || offererId) }), type: 'diplomacy' });
       if (recipientId === state.playerNationId && nextNations[recipientId]) {
         nextNations = { ...nextNations, [recipientId]: { ...nextNations[recipientId], hasCededRegionInPeace: true } };
       }
@@ -267,7 +270,7 @@ export const applyPeace = (state, war, offererId, terms) => {
   // A defender who comes out of a white peace whole earns some renown too (RULER-PLAN 4.1).
   if (!winnerId && !terms.length && nextNations[war.enemy]) nextNations = { ...nextNations, [war.enemy]: grantRenown(nextNations[war.enemy], 'defenceSurvived', RENOWN.defenceSurvived, state.turnNumber, war.aggressor) };
 
-  return { regions: nextRegions, nations: nextNations, resources: nextResources };
+  return { regions: nextRegions, nations: nextNations, resources: nextResources, logs };
 };
 
 // Greedy AI term-picking (plan §C): the goal region first (if the offerer already occupies it),

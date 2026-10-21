@@ -460,6 +460,7 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
     nextRegions = applied.regions;
     nextNations = applied.nations;
     nextResources = applied.resources;
+    logs.push(...applied.logs);
     const winner = nextNations[offererId];
     const loser = nextNations[recipientId];
     nextNations = {

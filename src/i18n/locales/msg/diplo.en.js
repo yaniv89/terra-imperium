@@ -49,6 +49,7 @@ export default {
   'm.diplo.tributeToYou': '{target} pays {gold} gold in tribute.',
   'm.diplo.tributeTo': '{target} pays {gold} gold in tribute to {nation}.',
   'm.diplo.yieldByYou': 'You yield {city} to {nation}.',
+  'm.diplo.cededInPeace': '{city} is handed over to {nation} in the peace.',
   'm.diplo.yieldToYou': '{target} yields {city} to you.',
   'm.diplo.yieldTo': '{target} yields {city} to {nation}.',
   'm.diplo.promiseByYou': 'You promise {nation} to found no city near theirs for {turns} turns.',
