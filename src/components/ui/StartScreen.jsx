@@ -189,7 +189,7 @@ const StepPanel = ({ id, active, title, fill, children }) => (
 );
 
 // `initialStep`: the step it opens on (tests; a player always starts on People).
-const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
+const StartScreen = ({ onStart, initialStep = 0, onBackToTitle, headerExtra = null }) => {
   const { t, n, year, name: nm, lang } = useT();
   const layout = useLayoutMode();
   const wide = layout === 'desktop';
@@ -455,7 +455,8 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
         <h1 className="fa-heading text-[19px] shrink-0">{t('start.title')}</h1>
         {!phone && <span className="text-[13px] text-fa-muted truncate">{t('start.dawn', { year: year(START_YEAR) })}</span>}
         <StepIndicator step={step} onGo={go} compact={phone} />
-        <LanguageSwitch compact className="ms-auto shrink-0" />
+        {headerExtra || <span className="ms-auto" />}
+        <LanguageSwitch compact className="shrink-0" />
       </header>
       <main className={`flex-1 min-h-0 ${twoCols ? 'overflow-hidden' : 'overflow-y-auto'} ${frame}`}>
         <StepPanel id="people" active={step === 0} fill={twoCols} title={t('start.stepTitle', { i: 1, name: t('start.step.people') })}>{peopleStep}</StepPanel>

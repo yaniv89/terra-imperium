@@ -9,6 +9,7 @@ import { job as events, toEvent } from './event-cards.mjs';
 import { job as factCheck } from './fact-check.mjs';
 import { job as shotsQa } from './screenshot-qa.mjs';
 import { job as playtester } from './playtester.mjs';
+import { job as techUnlocks } from './tech-unlocks.mjs';
 import { createDigest } from '../playtestDigest.mjs';
 import { SCREENS, SIZES } from '../ui/qa-shots.mjs';
 
@@ -32,7 +33,7 @@ describe('AI content jobs (dry run, no network)', () => {
   });
   afterEach(() => { vi.unstubAllEnvs(); fetchSpy.mockRestore(); });
 
-  it.each([hebrew, glossary, events, factCheck, shotsQa, playtester])('$name builds priced requests and never puts the key in them', async (job) => {
+  it.each([hebrew, glossary, events, factCheck, shotsQa, playtester, techUnlocks])('$name builds priced requests and never puts the key in them', async (job) => {
     const lines = [];
     const { requests, est } = await runJob(job, { dryRun: true, limit: 0, maxUsd: 10 }, (l) => lines.push(l));
     expect(requests.length).toBeGreaterThan(0);
@@ -66,6 +67,23 @@ describe('AI content jobs (dry run, no network)', () => {
     expect(est.inTok).toBeGreaterThanOrEqual(images.length * IMAGE_TOKENS_MAX);
     await expect(runJob(shotsQa, { dryRun: false, limit: 0, maxUsd: 10 }, () => {})).rejects.toThrow(/qa-shots/);
     expect(fetchSpy).not.toHaveBeenCalled();
+  }, 60_000);
+
+  it('tech-unlocks sends one request an age and rejects unknown ids', async () => {
+    const { requests } = await runJob(techUnlocks, { dryRun: true, limit: 0, maxUsd: 10 }, () => {});
+    expect(requests.length).toBe(7);
+    const first = JSON.parse(requests[1].params.messages[0].content);
+    expect(first.age).toBe('bronze');
+    expect(first.units.map((u) => u.key)).toContain('bronze.ranged');
+    const src = await techUnlocks.loadData();
+    const dir = fs.mkdtempSync(path.join(TMP, 'tu-'));
+    const ok = { notes: 'n', buildings: [{ building: 'bogus.9', tech: 'economy_agriculture' }], emptyTechs: [{ tech: 'nope', suggestion: 's' }],
+      units: [{ unit: 'bronze.ranged', tech: 'military_composite_bow' }, { unit: 'bronze.cavalry', tech: 'science_computing' }, { unit: 'bronze.infantry', tech: 'military_bronze_casting' }, { unit: 'bronze.siege', tech: 'zzz' }] };
+    techUnlocks.writeOutputs([{ custom_id: 'age-bronze', result: { type: 'succeeded', message: { content: [{ type: 'text', text: JSON.stringify(ok) }] } } }], src, dir);
+    const out = JSON.parse(fs.readFileSync(path.join(dir, 'unlocks.json'), 'utf8'));
+    expect(out.units).toEqual({ 'bronze.ranged': 'military_composite_bow' });
+    expect(out.rejected.length).toBe(5);
+    expect(fs.readFileSync(path.join(dir, 'report.md'), 'utf8')).toContain('## bronze');
   }, 60_000);
 
   it('the spend guard refuses before any call', async () => {

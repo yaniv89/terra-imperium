@@ -11,10 +11,24 @@ Open items found while merging lanes. Kept in sync with the status page.
 7. **Challenge: fast-forward:** Fast-forward in a challenge game gets an honest player rejected; block it in the game instead.
 8. **Challenge: switch on:** Deploy steps in plans/U36-DEPLOY.md need your Supabase and GitHub settings.
 9. **Mobile bugs H-12 and one more:** Need the mobile bug report file from your PC to identify them.
-10. **Hebrew: 22 skipped fixes:** 7 are plural verbs that need a native read; the rest were skipped on purpose.
+10. **Hebrew: 22 skipped fixes:** done. The user checked the 7 plural-verb lines and keeps them as they are (21 Oct); the rest were skipped on purpose.
 11. **Glossary links:** Tap-to-learn still missing in city build lists, unit rows and the Peoples panel.
 12. **Hold for help in battle:** Battle HUD buttons and unit cards do not open help yet.
 13. **AI founded line:** The AI 'founded' line is stored but not shown; decide whether to show it.
 14. **iPhone check: touch:** Circle select (also by double tap), hold for help, the touch tutorial.
 15. **iPhone check: new screens:** World Congress, glossary, crisis banner.
 16. **Screenshot checker and playtester:** Trial runs going; then full runs and fixes from their reports.
+
+## From the AI playtester (3 full games, 21 October, $0.32)
+Akkad seed 1000 to 700 CE, Elam seed 1001 to 1500 CE, Pontic seed 1002 to 900 CE. Report on branch `ai/playtester-39629750171`.
+
+17. **Research stalls after Classical:** one tech takes about 100 turns. Check against the U96 Marathon/Gunpowder calibration first.
+18. **Calendar freezes then jumps:** the year stays put for many turns, then skips centuries.
+19. **Gold piles up:** nothing worth spending it on in mid game.
+20. **Expansion is very slow:** few new cities across the whole game.
+21. **Idle cities build no defenders:** the auto build queue leaves cities empty and they fall.
+22. **City lost with no visible battle:** the player loses cities without a battle report or a war notice.
+23. **Events repeat:** the same card shows several times in one game.
+24. **Era goals feel thin:** few goals and small rewards.
+25. **Crises rarely touch the player.**
+26. **AI declares war with no reason shown.**

@@ -38,6 +38,7 @@ import { msgRefText } from '../battle/battleText';
 import { opinionLabel, opinionDetail } from './opinionText';
 import { ageOf } from '../../engine/nationState';
 import { ageVersusPlayer } from '../ui/ageProgress';
+import GlossaryLink from '../glossary/GlossaryLink';
 import { shortAge } from './researchSheetModel';
 import { canPay, walletOf } from '../../utils/costs';
 import { costLine, shortfallLine } from './empireText';
@@ -167,7 +168,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
       {!hideTitle && <div className="flex items-start gap-2">
         <span className="w-3 h-3 rounded-sm mt-1.5 shrink-0" style={{ backgroundColor: nation.color }} aria-hidden="true" />
         <div className="min-w-0 flex-1">
-          <div className="fa-heading text-[17px] leading-tight">{nameNow('people', nation.id, nation.name)}</div>
+          <div className="fa-heading text-[17px] leading-tight"><GlossaryLink kind="people" id={nation.id}>{nameNow('people', nation.id, nation.name)}</GlossaryLink></div>
           <div className="flex items-center gap-1.5 flex-wrap mt-1">
             <span className={`fa-chip !min-h-[24px] !px-2 !text-[11px] uppercase tracking-wide ${atWarWithPlayer ? 'text-fa-danger-text border-fa-danger' : nation.hasMilitaryPact ? 'text-fa-good border-fa-good/60' : ''}`}>
               {atWarWithPlayer ? t('nc.status.war') : isVassalOfPlayer ? t('nc.status.vassal') : nation.hasMilitaryPact ? t('nc.status.pact') : nation.hasPeaceTreaty ? t('nc.status.peace') : nation.relationStatus ? (hasKey(`nc.rel.${nation.relationStatus}`, 'en') ? t(`nc.rel.${nation.relationStatus}`) : nation.relationStatus) : t('nc.status.met')}
