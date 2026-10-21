@@ -143,6 +143,7 @@ export default {
   'bext.copper': 'מכרה נחושת',
   'bext.iron': 'יצקת ברזל',
   'bext.oil': 'באר נפט',
+  'bext.rareMetals': 'מכרה מתכות נדירות',
 
   // laws (law.<id>, law.<id>.desc)
   'law.tribute': 'מס מנחה',
@@ -306,5 +307,5 @@ export default {
   'res.oil': 'נפט',
   'res.oil.desc': 'יחידות ממוכנות, אוויריות וימיות, ומפעלים. צוואר הבקבוק של אמצע המשחק ואחריו.',
   'res.rareMetals': 'מתכות נדירות',
-  'res.rareMetals.desc': 'מכריית אסטרואידים. אלקטרוניקה מתקדמת, לוויינים ויחידות של סוף המשחק.',
+  'res.rareMetals.desc': 'אלקטרוניקה מתקדמת ויחידות של סוף המשחק.',
 };

@@ -47,11 +47,11 @@ export const RESOURCES = {
     unlockAge: 'modern',
     description: 'Mechanized, air and naval units, factories — the mid-late-game chokepoint.'
   },
-  // Rare Metals has no source until the Information age gives it one (eight ages plan U56).
+  // From Information-age deposits (src/data/deposits.js) and a Rare Metal Mine (eight-ages plan U56, KTD18).
   rareMetals: {
     id: 'rareMetals',
     name: 'Rare Metals',
-    unlockAge: 'modern',
+    unlockAge: 'information',
     description: 'Advanced electronics and late-game units.'
   }
 };

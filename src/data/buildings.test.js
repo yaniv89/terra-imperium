@@ -222,6 +222,6 @@ describe('createEmptyRegionBuildings', () => {
   it('starts every category at -1 (none) and every extraction false', () => {
     const fresh = createEmptyRegionBuildings();
     BUILDING_CATEGORY_IDS.forEach(id => expect(fresh.categories[id]).toBe(-1));
-    expect(fresh.extraction).toEqual({ copper: false, iron: false, oil: false });
+    expect(fresh.extraction).toEqual({ copper: false, iron: false, oil: false, rareMetals: false });
   });
 });

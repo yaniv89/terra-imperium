@@ -882,7 +882,7 @@ const reduceAction = (state, action) => {
       const region = state.regions[regionId];
       const costs = ACTION_COSTS.developResourceSite;
       if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
-      if (region.buildings.extraction[resourceId] === undefined || region.buildings.extraction[resourceId]) return state;
+      if (region.buildings?.extraction?.[resourceId]) return state; // an unknown resource fails canBuildExtraction below
       if (!regionHasDeposit(REGIONS_DATA[regionId], resourceId) || !canBuildExtraction(resourceId, ageOf(state, state.playerNationId))) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {

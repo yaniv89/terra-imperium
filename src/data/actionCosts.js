@@ -201,7 +201,8 @@ export const RECRUIT_STRATEGIC_RESOURCE_BY_AGE = {
   kingdoms: { key: 'iron', amount: 8 },
   gunpowder: { key: 'iron', amount: 8 },
   modern: { key: 'oil', amount: 10 },
-  information: { key: 'oil', amount: 8 } // plus rare metals 2 once they exist (U56)
+  // A list: every entry is needed, else the gold penalty (U56: every Information recruit is a vehicle or a drone).
+  information: [{ key: 'oil', amount: 8 }, { key: 'rareMetals', amount: 2 }]
 };
 export const RECRUIT_MISSING_RESOURCE_GOLD_PENALTY_MULT = 0.5;
 
