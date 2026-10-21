@@ -200,7 +200,8 @@ export const RECRUIT_STRATEGIC_RESOURCE_BY_AGE = {
   classical: { key: 'copper', amount: 5 },
   kingdoms: { key: 'iron', amount: 8 },
   gunpowder: { key: 'iron', amount: 8 },
-  modern: { key: 'oil', amount: 10 }
+  modern: { key: 'oil', amount: 10 },
+  information: { key: 'oil', amount: 8 } // plus rare metals 2 once they exist (U56)
 };
 export const RECRUIT_MISSING_RESOURCE_GOLD_PENALTY_MULT = 0.5;
 

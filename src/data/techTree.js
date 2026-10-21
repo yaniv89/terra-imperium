@@ -150,7 +150,7 @@ const idOfName = (name) => { for (const [category, entries] of Object.entries(CA
 const crossPrerequisites = (name) => (CROSS_PREREQUISITES[name] || []).map(idOfName);
 
 // The old techPoints cost kept on each tech as data (research.js prices techs by age instead).
-const LEGACY_TECH_POINTS_BY_AGE = { stone: 5, bronze: 10, classical: 25, kingdoms: 40, gunpowder: 55, modern: 70 };
+const LEGACY_TECH_POINTS_BY_AGE = { stone: 5, bronze: 10, classical: 25, kingdoms: 40, gunpowder: 55, modern: 70, information: 85 };
 
 const buildLine = (category, entries) => {
   const techs = {};

@@ -163,6 +163,15 @@ export const UNIT_ROSTER = {
     naval: rosterEntry('Destroyer', 'modern'),
     air: rosterEntry('Fighter Jet', 'modern'),
     support: rosterEntry('Anti-Air Battery', 'modern')
+  },
+  information: {
+    infantry: rosterEntry('Mechanized Infantry', 'information'),
+    cavalry: rosterEntry('Tanks', 'information'),
+    ranged: rosterEntry('ATGM Teams', 'information'),
+    siege: rosterEntry('Artillery', 'information'),
+    naval: rosterEntry('Destroyer', 'information'),
+    air: rosterEntry('Fighter Jet', 'information'),
+    support: rosterEntry('Anti-Air Battery', 'information')
   }
 };
 

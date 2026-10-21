@@ -10,7 +10,7 @@ export const START_YEAR = -5000; // 5000 BCE, the Stone Age's first label (U22)
 export const END_YEAR = 2300;
 
 // Ordered oldest -> newest. Index in this array IS the age's rank, used for age-ahead/behind math.
-export const AGE_ORDER = ['stone', 'bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'];
+export const AGE_ORDER = ['stone', 'bronze', 'classical', 'kingdoms', 'gunpowder', 'modern', 'information'];
 
 // Year ranges deliberately non-Euro-centric — "Age of Kingdoms" fits Mali, Khmer, Song and the
 // Abbasids equally, not just European feudalism.
@@ -69,10 +69,20 @@ export const AGES = {
     id: 'modern',
     name: 'Modern Age',
     startYear: 1900,
-    endYear: 2300,
+    endYear: 1990,
     unlocksResources: ['oil'],
     power: { attack: 42, defense: 32 },
     unitCostMult: 3.4
+  },
+  // Phase D (U48). The label runs to 2300 until the Future exists (KTD19); power from KTD21.
+  information: {
+    id: 'information',
+    name: 'Information Age',
+    startYear: 1990,
+    endYear: 2300,
+    unlocksResources: [],
+    power: { attack: 52, defense: 40 },
+    unitCostMult: 4
   }
 };
 
@@ -135,9 +145,9 @@ export const artAgeFor = (available, ageId, { kind = null } = {}) => {
 // the old calendar gave them (the reference years per turn over the speed's: Normal Bronze 40/25),
 // so their tuning holds. `turnLimit` is the speed's length of a full game (src/engine/ending.js).
 export const GAME_SPEEDS = {
-  fast: { id: 'fast', name: 'Fast', costMult: { stone: 0.8, bronze: 0.8, classical: 0.8, kingdoms: 10 / 12, gunpowder: 0.8, modern: 1 }, turnLimit: 440, blurb: 'About 440 turns.' },
-  normal: { id: 'normal', name: 'Normal', costMult: { stone: 1.6, bronze: 1.6, classical: 20 / 12, kingdoms: 10 / 6, gunpowder: 2, modern: 2 }, turnLimit: 923, blurb: 'About 920 turns.' },
-  marathon: { id: 'marathon', name: 'Marathon', costMult: { stone: 2, bronze: 4, classical: 4, kingdoms: 10 / 3, gunpowder: 4, modern: 2 }, turnLimit: 1514, blurb: 'About 1,500 turns.' }
+  fast: { id: 'fast', name: 'Fast', costMult: { stone: 0.8, bronze: 0.8, classical: 0.8, kingdoms: 10 / 12, gunpowder: 0.8, modern: 1, information: 1 }, turnLimit: 440, blurb: 'About 440 turns.' },
+  normal: { id: 'normal', name: 'Normal', costMult: { stone: 1.6, bronze: 1.6, classical: 20 / 12, kingdoms: 10 / 6, gunpowder: 2, modern: 2, information: 2 }, turnLimit: 923, blurb: 'About 920 turns.' },
+  marathon: { id: 'marathon', name: 'Marathon', costMult: { stone: 2, bronze: 4, classical: 4, kingdoms: 10 / 3, gunpowder: 4, modern: 2, information: 2 }, turnLimit: 1514, blurb: 'About 1,500 turns.' }
 };
 
 const inTests = typeof process !== 'undefined' && !!process.env?.VITEST;

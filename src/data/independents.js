@@ -106,7 +106,7 @@ export const personalityFor = (tiles, tile, key = '') => {
 // Names (independents 14.2): the people's name plus a form by personality and age band.
 // "{people}" is the adjective ("the Colchian tribes"), "{city}" the city's name.
 
-export const AGE_BAND = { stone: 'early', bronze: 'early', classical: 'early', kingdoms: 'early', gunpowder: 'middle', modern: 'modern' };
+export const AGE_BAND = { stone: 'early', bronze: 'early', classical: 'early', kingdoms: 'early', gunpowder: 'middle', modern: 'modern', information: 'modern' };
 export const INDEPENDENT_TITLE_FORMS = {
   tribal: { early: 'the {people} tribes', middle: 'the {people} confederacy', modern: 'the {people} autonomous region' },
   raiders: { early: 'the {people} horde', middle: 'the {people} horde', modern: '{people} militias' },
@@ -182,7 +182,7 @@ export const RAID_RECOVER_TURNS = 5;
 /** A party that meets an enemy army on its way fights it only when this much stronger, else goes home. */
 export const RAID_FIGHT_RATIO = 1.2;
 /** Late ages raid less (independents 3.4): insurgents and militias. */
-export const RAID_ERA_FACTOR = { stone: 1.2, bronze: 1, classical: 1, kingdoms: 1, gunpowder: 0.8, modern: 0.5 };
+export const RAID_ERA_FACTOR = { stone: 1.2, bronze: 1, classical: 1, kingdoms: 1, gunpowder: 0.8, modern: 0.5, information: 0.4 };
 
 /** Loot, in gold (independents 4.3). An improvement: the threat.js RAID_GOLD of a pillage. A trade
  * route tile: PLUNDER_GOLD x 2 (plunder.js), taken from the victim, and the route is cut while the

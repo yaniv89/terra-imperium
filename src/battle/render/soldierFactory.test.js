@@ -3,6 +3,7 @@
 import { describe, it, expect } from 'vitest';
 import { getSoldierGeometry, getImposterGeometry, createSoldierMaterial, LIMB } from './soldierFactory';
 import { UNIT_ROSTER } from '../../data/unitClasses';
+import { isAgeAtLeast } from '../../data/ages';
 
 describe('soldier models', () => {
   it('preserves smooth anatomical normals after merging', () => {
@@ -31,9 +32,9 @@ describe('soldier models', () => {
         const team = geo.attributes.aTeam.array;
         expect(team.some((v) => v === 1)).toBe(true);
         const limbs = new Set(geo.attributes.aLimb.array);
-        const walker = ['infantry', 'ranged'].includes(classId) || (classId === 'support' && ageId !== 'bronze' && ageId !== 'modern');
+        const walker = ['infantry', 'ranged'].includes(classId) || (classId === 'support' && ageId !== 'bronze' && !isAgeAtLeast(ageId, 'modern'));
         if (walker) { expect(limbs.has(LIMB.LEG_L)).toBe(true); expect(limbs.has(LIMB.ARM_R)).toBe(true); }
-        if (classId === 'cavalry' && ageId !== 'modern' && ageId !== 'stone') expect(limbs.has(LIMB.HORSE_FRONT)).toBe(true); // Stone runners go on foot
+        if (classId === 'cavalry' && !isAgeAtLeast(ageId, 'modern') && ageId !== 'stone') expect(limbs.has(LIMB.HORSE_FRONT)).toBe(true); // Stone runners go on foot
         expect(Number.isFinite(geo.boundingSphere.radius)).toBe(true);
       });
     });

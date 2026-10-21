@@ -104,7 +104,7 @@ export const shipIconUrl = (lineId) => iconUrl('ships', lineId || 'warship');
 export const CITY_SIZES = ['small', 'medium', 'big'];
 export const cityIconUrl = (size, ageId) => iconUrl('cities', `city-${CITY_SIZES.includes(size) ? size : 'small'}-${artAgeFor((a) => URLS.cities?.[`city-small-${a}`], ageId) || 'bronze'}`);
 
-export const ageIconUrl = (ageId) => iconUrl('ages', ageId);
+export const ageIconUrl = (ageId) => iconUrl('ages', artAgeFor((a) => URLS.ages?.[a], ageId) || ageId); // an age without its icon yet shows the nearest one
 export const markerIconUrl = (kind) => iconUrl('markers', kind);
 export const resourceIconUrl = (resourceId) => iconUrl('resources', resourceId);
 export const improvementIconUrl = (improvementId) => iconUrl('improvements', improvementId);

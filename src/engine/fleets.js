@@ -29,7 +29,7 @@ import { reasonOf, cityRef, people, sub } from './messages';
 // A fleet's pace in km a turn by age, turned into water tiles of the loaded grid (gridScale.js):
 // 4, 6, 7, 8, 11 tiles at frequency 75 and 5, 8, 9, 11, 15 at frequency 100. Tech bonuses
 // (techMapEffects navalMoves) are km too and are added before the conversion.
-export const NAVAL_KM_BY_AGE = { stone: 300, bronze: 409, classical: 613, kingdoms: 715, gunpowder: 818, modern: 1124 };
+export const NAVAL_KM_BY_AGE = { stone: 300, bronze: 409, classical: 613, kingdoms: 715, gunpowder: 818, modern: 1124, information: 1300 };
 export const NAVAL_MOVES_BY_AGE = Object.fromEntries(Object.entries(NAVAL_KM_BY_AGE).map(([age, km]) => [age, ringsForKm(km)]));
 export const DEEP_OK_FROM = agesFrom('gunpowder');
 // The shelf (ocean tiles beside the coast) opens from the Classical age, or earlier with a tech

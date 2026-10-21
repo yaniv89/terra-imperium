@@ -102,8 +102,9 @@ export const HELMETS = {
   gunpowder: (y) => [part(cyl(0.1, 0.11, 0.2), C.black, { at: [0, y + 0.1, 0] }), part(cyl(0.13, 0.13, 0.02, 8), C.black, { at: [0, y + 0.0, 0.02] }), part(ball(0.025, 4, 3), C.gold, { at: [0, y + 0.13, 0.1] })],
   modern: (y) => [part(dome(0.114), C.darkOlive, { at: [0, y - 0.005, 0], scale: [1, 0.8, 1.1] })]
 };
-export const BODY_CLOTH = { stone: C.leather, bronze: C.cloth, classical: C.leather, kingdoms: C.darkSteel, gunpowder: C.cloth, modern: C.olive };
-export const LEG_CLOTH = { stone: C.leather, bronze: C.leather, classical: C.leather, kingdoms: C.darkSteel, gunpowder: C.cloth, modern: C.olive };
+HELMETS.information = HELMETS.modern; // the present-day look (KTD15) until U50 dates Modern
+export const BODY_CLOTH = { stone: C.leather, bronze: C.cloth, classical: C.leather, kingdoms: C.darkSteel, gunpowder: C.cloth, modern: C.olive, information: C.olive };
+export const LEG_CLOTH = { stone: C.leather, bronze: C.leather, classical: C.leather, kingdoms: C.darkSteel, gunpowder: C.cloth, modern: C.olive, information: C.olive };
 
 // A standing person: legs (two bones), torso in team colour, belt, head, age helmet, two arm bones.
 // `skin` picks one of four skin tones; `seat` lifts the whole figure (riders) and drops the legs.
@@ -340,6 +341,8 @@ export const MODELS = {
     ]
   }
 };
+// Information wears today's modern models (KTD15) until U50 dates Modern's.
+Object.values(MODELS).forEach((byAge) => { if (byAge.modern) byAge.information = byAge.modern; });
 
 const cache = new Map();
 // Artist models (GLB, via registerSoldierGeometry) take precedence over the procedural ones.

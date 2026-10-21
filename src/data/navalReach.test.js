@@ -33,10 +33,11 @@ describe('isCoastal', () => {
 });
 
 describe('NAVAL_REACH_KM', () => {
-  it('grows monotonically age over age, ending unbounded at Modern', () => {
+  it('grows monotonically age over age, unbounded from Modern', () => {
     const values = AGE_ORDER.map(id => NAVAL_REACH_KM[id]);
     for (let i = 1; i < values.length; i++) {
-      expect(values[i]).toBeGreaterThan(values[i - 1]);
+      if (values[i - 1] === Infinity) expect(values[i]).toBe(Infinity);
+      else expect(values[i]).toBeGreaterThan(values[i - 1]);
     }
     expect(NAVAL_REACH_KM.modern).toBe(Infinity);
   });

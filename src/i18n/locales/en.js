@@ -566,6 +566,7 @@ export default {
   'age.kingdoms': 'Age of Kingdoms',
   'age.gunpowder': 'Age of Gunpowder',
   'age.modern': 'Modern Age',
+  'age.information': 'Information Age',
 
   // ---- tab rail, resources, map card (H2) ----
   'rail.panels': 'Panels',

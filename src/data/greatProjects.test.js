@@ -17,7 +17,7 @@ describe('GREAT_PROJECTS data integrity', () => {
   it('has 19 world projects, 4 in the Stone Age and 3 per later age, plus national ones tied to a homeland', () => {
     const world = Object.values(GREAT_PROJECTS).filter((p) => !p.national);
     expect(world.length).toBe(19);
-    AGE_ORDER.forEach((ageId) => {
+    AGE_ORDER.filter((ageId) => ageId !== 'information').forEach((ageId) => { // U51 adds the Information wonders
       expect(world.filter((p) => p.ageId === ageId).length, ageId).toBe(ageId === 'stone' ? 4 : 3);
     });
     const national = Object.values(GREAT_PROJECTS).filter((p) => p.national);

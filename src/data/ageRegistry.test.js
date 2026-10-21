@@ -75,6 +75,11 @@ const KEYED = [
 
 // Opt-outs: table name -> { age: reason }.
 const OPT_OUT = {
+  'building tiers': { information: 'U51 appends the Information tiers' },
+  'government reform tiers': { information: 'U55 adds the Information reforms' },
+  wonders: { information: 'U51 adds the Information wonders' },
+  techs: { information: 'U49 gives the Information Age its techs' },
+  'age icon': { information: 'the icon is held art on claude/art-information' }
 };
 
 // Tables that cover only some ages by design: unknown keys are still rejected. [keys, reason].
@@ -136,8 +141,8 @@ describe('registry completeness: every per-age table has every age', () => {
     const reformAges = new Set(Object.values(GOVERNMENT_REFORMS).flatMap((t) => Object.keys(t)));
     const wonderAges = new Set(Object.values(GREAT_PROJECTS).map((p) => p.ageId));
     expect(tableProblems('building tiers', tierAges, OPT_OUT['building tiers'])).toEqual([]);
-    expect(tableProblems('government reform tiers', reformAges)).toEqual([]);
-    expect(tableProblems('wonders', wonderAges)).toEqual([]);
+    expect(tableProblems('government reform tiers', reformAges, OPT_OUT['government reform tiers'])).toEqual([]);
+    expect(tableProblems('wonders', wonderAges, OPT_OUT.wonders)).toEqual([]);
   });
 
   it('every building tier has an icon for its age', () => {
@@ -154,7 +159,7 @@ describe('registry completeness: every per-age table has every age', () => {
 
   it('every tech belongs to a known age and each age has 10 techs', () => {
     Object.values(TECH_TREE).forEach((t) => expect(AGE_ORDER, `tech ${t.id}`).toContain(t.ageId));
-    AGE_ORDER.forEach((age) => expect(getTechsForAge(age), `techs in ${age}`).toHaveLength(10));
+    AGE_ORDER.filter((age) => !OPT_OUT.techs[age]).forEach((age) => expect(getTechsForAge(age), `techs in ${age}`).toHaveLength(10));
   });
 
   it('every age has its English and Hebrew names in i18n', () => {
@@ -169,7 +174,7 @@ describe('registry completeness: every per-age table has every age', () => {
 
   it('every age has an icon file', () => {
     const dir = path.resolve(__dirname, '../assets/icons/ages');
-    const problems = AGE_ORDER.filter((age) => !fs.existsSync(path.join(dir, `${age}.svg`))).map((age) => `age icon ${age}.svg is missing`);
+    const problems = AGE_ORDER.filter((age) => !OPT_OUT['age icon'][age] && !fs.existsSync(path.join(dir, `${age}.svg`))).map((age) => `age icon ${age}.svg is missing`);
     expect(problems).toEqual([]);
   });
 });

@@ -14,7 +14,8 @@ export const NAVAL_REACH_KM = {
   classical: 500,
   kingdoms: 1000,
   gunpowder: 5000,
-  modern: Infinity
+  modern: Infinity,
+  information: Infinity
 };
 const DEEP_OK_FROM = agesFrom('gunpowder');
 

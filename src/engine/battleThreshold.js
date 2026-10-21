@@ -8,7 +8,7 @@
 import { sideAgeOf } from './ageRefs';
 
 /** Largest town size, by the defender's age, that counts as small. Each is below the age's median city size in a 300-turn peoples run (medians 3, 3, 4, 6; modern not reached, extrapolated). */
-export const SMALL_TOWN_SIZE = { stone: 2, bronze: 2, classical: 2, kingdoms: 3, gunpowder: 4, modern: 5 };
+export const SMALL_TOWN_SIZE = { stone: 2, bronze: 2, classical: 2, kingdoms: 3, gunpowder: 4, modern: 5, information: 5 };
 const SMALL_DEFAULT = 2;
 
 /** Is this city small and open: an outpost, or a size at or below the age's limit with no Defense-line tier? */

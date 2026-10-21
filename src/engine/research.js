@@ -37,7 +37,7 @@ import { AGRICULTURE_TECH } from '../data/hearths';
 // peoples world, Normal, seeds 11 to 13, 300 turns) to KTD9's target turns: about half the majors
 // past Bronze at turn 48 and past Classical at turn 157, Kingdoms ending near 324. Gunpowder and
 // Modern are first guesses past the 300 turns measured (eight-age calibration, U96).
-export const RESEARCH_AGE_BASE = { stone: 12, bronze: 17, classical: 82, kingdoms: 1200, gunpowder: 2400, modern: 6000 };
+export const RESEARCH_AGE_BASE = { stone: 12, bronze: 17, classical: 82, kingdoms: 1200, gunpowder: 2400, modern: 6000, information: 12000 };
 export { SCIENCE_PER_DEV } from '../data/actionCosts';
 export const FOCUS_SCIENCE_BONUS = 0.1;
 // A safety cap on techs completed in one turn (a big bank paid into cheap techs).

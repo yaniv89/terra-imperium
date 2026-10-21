@@ -36,6 +36,10 @@ describe('game speed (KTD9: a cost multiplier per age, a turn limit, no years pe
     expect(['fast', 'normal', 'marathon'].map((sp) => speedCostMult(sp, 'stone'))).toEqual([0.8, 1.6, 2]);
   });
 
+  it('gives the Information Age its multipliers (KTD9)', () => {
+    expect(['fast', 'normal', 'marathon'].map((sp) => speedCostMult(sp, 'information'))).toEqual([1, 2, 2]);
+  });
+
   it('keeps the values the old calendar gave Bronze to Modern exactly', () => {
     const old = { bronze: 40, classical: 20, kingdoms: 10, gunpowder: 4, modern: 2 };
     const years = { fast: { bronze: 50, classical: 25, kingdoms: 12, gunpowder: 5, modern: 2 }, normal: { bronze: 25, classical: 12, kingdoms: 6, gunpowder: 2, modern: 1 }, marathon: { bronze: 10, classical: 5, kingdoms: 3, gunpowder: 1, modern: 1 } };
@@ -98,7 +102,8 @@ describe('age registry helpers', () => {
 
   it("holds each age's unit power and cost, equal to the old position formulas", () => {
     expect(AGES.stone.power).toEqual({ attack: 7, defense: 6 }); // KTD21
-    agesFrom('bronze').forEach((id, i) => {
+    expect(AGES.information.power).toEqual({ attack: 52, defense: 40 });
+    AGE_ORDER.slice(getAgeIndex('bronze'), getAgeIndex('modern') + 1).forEach((id, i) => {
       expect(AGES[id].power, id).toEqual({ attack: 10 + i * 8, defense: 8 + i * 6 });
       expect(AGES[id].unitCostMult, id).toBe(1 + 0.6 * i);
     });
@@ -135,7 +140,7 @@ describe('tech tree listed by age', () => {
     ]);
   });
   it('ten techs an age, two per line, the second after the first', () => {
-    AGE_ORDER.forEach((age) => {
+    AGE_ORDER.filter((age) => age !== 'information').forEach((age) => { // U49 gives Information its techs
       const techs = getTechsForAge(age);
       expect(techs.length, age).toBe(10);
       const perLine = techs.reduce((acc, t) => ({ ...acc, [t.category]: [...(acc[t.category] || []), t] }), {});

@@ -9,7 +9,7 @@ import { TILE } from '../setup/mapgen';
 import { Q } from '../sim/constants';
 
 export const RAID_LANDING_IDS = ['loot-sack', 'exit-marker', 'burnt-field-overlay', 'landing-stone', 'landing-ancient', 'landing-middle', 'landing-modern'];
-export const landingId = (age) => ({ stone: 'landing-stone', bronze: 'landing-ancient', classical: 'landing-ancient', kingdoms: 'landing-middle', gunpowder: 'landing-middle', modern: 'landing-modern' })[age] || null;
+export const landingId = (age) => ({ stone: 'landing-stone', bronze: 'landing-ancient', classical: 'landing-ancient', kingdoms: 'landing-middle', gunpowder: 'landing-middle', modern: 'landing-modern', information: 'landing-modern' })[age] || null;
 export const raidLandingRef = (id, art = ART) => {
   if (!RAID_LANDING_IDS.includes(id)) return null;
   const key = `battle/props/${id}.glb`; const url = art.url(key);

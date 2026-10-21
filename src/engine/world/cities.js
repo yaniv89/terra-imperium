@@ -76,7 +76,7 @@ export const PALACE_YIELDS = { gold: 4, production: 2, science: 2, culture: 1 };
 // 150 km grid was half the size of France); the two border techs add about 100 km each
 // (techMapEffects borderRing, in km), capped at BORDER_KM_MAX. In km, as rings of the loaded grid
 // (gridScale.js): 2 and 3 rings at frequency 75, 3 and 4 at frequency 100.
-export const BORDER_KM_BY_AGE = { stone: 204, bronze: 204, classical: 204, kingdoms: 204, gunpowder: 204, modern: 204 };
+export const BORDER_KM_BY_AGE = { stone: 204, bronze: 204, classical: 204, kingdoms: 204, gunpowder: 204, modern: 204, information: 204 };
 export const BORDER_KM_MAX = 306;
 export const BORDER_RING_BY_AGE = Object.fromEntries(Object.entries(BORDER_KM_BY_AGE).map(([age, km]) => [age, ringsForKm(km)]));
 export const BORDER_RING_MAX = ringsForKm(BORDER_KM_MAX);

@@ -16,12 +16,12 @@ export const PROJECTILES = ['arrow', 'javelin', 'sling-stone', 'bolt', 'stone', 
 export const PROJECTILE_SCALE = CITY_TILES_PER_UNIT * 2;
 // [classId][ageId] -> projectile (null: the tracer). 'tower' is a tower's or keep's shot.
 export const PROJECTILE_TABLE = {
-  ranged: { stone: 'arrow', bronze: 'arrow', classical: 'arrow', kingdoms: 'arrow', gunpowder: null, modern: 'missile' },
+  ranged: { stone: 'arrow', bronze: 'arrow', classical: 'arrow', kingdoms: 'arrow', gunpowder: null, modern: 'missile', information: 'missile' },
   infantry: { stone: 'javelin', bronze: 'javelin', classical: 'javelin' },
   cavalry: { bronze: 'arrow', classical: 'javelin' },
-  siege: { classical: 'bolt', kingdoms: 'stone', gunpowder: 'cannonball', modern: 'shell' },
-  support: { modern: 'missile' },
-  tower: { stone: 'sling-stone', bronze: 'arrow', classical: 'arrow', kingdoms: 'arrow', gunpowder: 'cannonball', modern: null }
+  siege: { classical: 'bolt', kingdoms: 'stone', gunpowder: 'cannonball', modern: 'shell', information: 'shell' },
+  support: { modern: 'missile', information: 'missile' },
+  tower: { stone: 'sling-stone', bronze: 'arrow', classical: 'arrow', kingdoms: 'arrow', gunpowder: 'cannonball', modern: null, information: null }
 };
 /** The projectile a shooter of this class and age throws, or null (the tracer). */
 export const projectileFor = (classId, ageId) => PROJECTILE_TABLE[classId]?.[ageId] ?? null;
