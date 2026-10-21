@@ -18,16 +18,38 @@ import { eraGoalProgress } from '../../engine/eraGoals';
 import { achievementProgress } from '../../data/achievementProgress';
 import { Meter } from '../ui/atlas';
 import { PLAYSTYLES } from '../../data/eraGoals';
+import { LEGACY_PARTS } from '../../data/legacy';
+import { legacyModel } from './legacyModel';
+import { nameNow } from '../../i18n/names';
 
 const LegacyPanel = () => {
   useT(); // redraw when the language changes
   const { state, meta, selectDoctrine, selectDifficulty } = useGame();
   const satisfiedNow = checkAchievements(state);
   const era = eraGoalProgress(state);
+  const score = legacyModel(state);
   const pastEras = Object.entries(state.nations?.[state.playerNationId]?.eraGoals || {});
 
   return (
     <div className="space-y-4">
+      {/* The legacy score (differentiation plan U17): what ranks every major at the ending. */}
+      <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/5" data-testid="legacy-score">
+        <div className="flex items-baseline justify-between text-sm font-semibold text-amber-400">
+          <span>{tNow('legacy.score')}: <span className="font-mono">{score.total}</span></span>
+          <span className="text-[11px] font-mono">{tNow('legacy.rank', { rank: score.rank, of: score.of })}</span>
+        </div>
+        {score.ages.length ? (
+          <ul className="mt-1.5 space-y-0.5 text-[11px]">
+            {score.ages.map((a) => (
+              <li key={a.ageId}>
+                <span className="font-semibold">{tNow('legacy.ageLine', { age: ageName(a.ageId, AGES[a.ageId]?.name), n: a.points })}</span>
+                <span className="text-fa-muted"> · {LEGACY_PARTS.filter((p) => a.counts[`legacy.${p}`]).map((p) => `${tNow(`legacy.${p}`)} ×${a.counts[`legacy.${p}`]}`).join(' · ')}</span>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="mt-1 text-[11px] text-fa-muted">{tNow('legacy.noParts')}</p>}
+        {score.top.length > 0 && <div className="mt-1.5 text-[10px] text-fa-muted">{tNow('legacy.rivals')}: {score.top.map((r) => `${nameNow('people', r.nationId, state.nations[r.nationId]?.name)} ${r.legacy}`).join(' · ')}</div>}
+      </div>
       {/* This era's goals (plans/civ-map-rework.md C9.3): meet two before the age ends for a legacy. */}
       <div className="p-3 rounded-lg border border-sky-500/30 bg-sky-500/5" data-testid="era-goals">
         <div className="flex items-center justify-between text-sm font-semibold text-fa-you">
