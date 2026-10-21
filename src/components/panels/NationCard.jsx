@@ -13,7 +13,6 @@ import { declareWarConfirm } from '../ui/confirmSpecs';
 import TopLayer from '../ui/TopLayer';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
 import { useEffects } from '../../context/EffectsContext';
-import { WORLD_NATIONS } from '../../data/worldNations';
 import { ActionTypes, ACTION_AGE_GATES } from '../../data/types';
 import {
   ACTION_COSTS, SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, ESPIONAGE_SUCCESS_CHANCE, INTEL_DURATION_TURNS, ESPIONAGE_TECH_POINTS_STOLEN,
@@ -101,7 +100,6 @@ export const NationCard = ({ nation, hideTitle = false }) => {
     dispatch({ type, payload: { nationId: nation.id, ...extra } });
   };
 
-  const nationData = WORLD_NATIONS[nation.id];
   const atWarWithPlayer = isAtWarWithPlayer(state, nation.id);
   // War score (plan §M13), shown from the player's own perspective regardless of which side of
   // the war record (aggressor/enemy) the player happens to be.
@@ -167,7 +165,7 @@ export const NationCard = ({ nation, hideTitle = false }) => {
   return (
     <div className="space-y-2.5" data-testid="nation-card" data-nation={nation.id}>
       {!hideTitle && <div className="flex items-start gap-2">
-        <span className="w-3 h-3 rounded-sm mt-1.5 shrink-0" style={{ backgroundColor: nation.color || nationData?.color }} aria-hidden="true" />
+        <span className="w-3 h-3 rounded-sm mt-1.5 shrink-0" style={{ backgroundColor: nation.color }} aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <div className="fa-heading text-[17px] leading-tight">{nameNow('people', nation.id, nation.name)}</div>
           <div className="flex items-center gap-1.5 flex-wrap mt-1">

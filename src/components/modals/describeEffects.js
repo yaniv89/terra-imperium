@@ -13,7 +13,6 @@
 // would mean either forking this function into two incompatible key sets or renaming every
 // ActionButton call site's effect-hint keys across ~10 panel files for a purely cosmetic change —
 // not an M17-sized edit, so it's deferred rather than force-fit here.
-import { WORLD_NATIONS as NATIONS_DATA } from '../../data/worldNations';
 import { PEOPLES } from '../../data/peoples';
 import { REGIONS_DATA } from '../../data/regions';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
@@ -25,7 +24,7 @@ import { buildingCategoryLabel, lawName } from '../../i18n/gameText';
 
 // Display only (EventModal): it is rebuilt on a language change and never saved, so it lives with the
 // components and may use the names helpers (src/engine may import only i18n/core.js).
-const nationName = (id) => nameNow('nation', id, NATIONS_DATA[id]?.name || PEOPLES[id]?.name || id);
+const nationName = (id) => nameNow('nation', id, PEOPLES[id]?.name || id);
 const regionName = (id) => nameNow('city', null, REGIONS_DATA[id]?.name || id);
 const joinNations = (value) => (Array.isArray(value) ? value : [value]).map(nationName).join(', ');
 const signed = (n) => isolateLtr(`${n >= 0 ? '+' : ''}${n}`);

@@ -41,7 +41,7 @@ import { FxSprites } from '../art/fxSheets';
 import { orderRingState, recordOrderTarget, ORDER_RING_COLOR, MAX_ORDER_TARGETS } from './orderTarget';
 import { recordPendingMark, livePendingMarks } from './pendingMarks';
 import { isAgeAtLeast } from '../../data/ages';
-import { peopleForNationId } from '../../data/peoples';
+import { peopleOf } from '../../data/peoples';
 import { signatureKey, baseClassOf, signatureUnitFor, rigFiguresOf } from '../../data/signatureUnits';
 import { lookKey, unitLookOf, LOOK_CLASS, findUnitModel, findSignatureModel, footprintOf, machineLayout } from './unitModels';
 import { battleGroundSets, groundTextureUniform } from '../../data/groundMaterials';
@@ -1268,7 +1268,7 @@ export class BattleRenderer {
     const stats = s.classId === 'naval' ? getUnitBattleStats({ classId: 'naval', navalLine: s.navalLine }, s.ageId) : getBattleStats(s.classId, s.ageId);
     // the side's people's signature unit draws in place of the base unit when its model is in
     // (data/signatureUnits.js, unitModels.js); without it the base unit's layer
-    const people = this.sidePeople?.[s.side] ?? (this.sidePeople = this.setup.sides.map((sd) => peopleForNationId(sd.nationId)))[s.side];
+    const people = this.sidePeople?.[s.side] ?? (this.sidePeople = this.setup.sides.map((sd) => peopleOf(sd.nationId)?.id))[s.side];
     const sig = people ? signatureKey(s.classId, people) : null;
     // a raid party's riders and a hired band's foot draw their irregular look when its model is in
     const look = lookKey(s.look || unitLookOf(null, this.setup, s.side), s.classId);

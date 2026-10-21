@@ -2,7 +2,7 @@
 // The peoples pool (plans/peoples-and-world-setup.md section 4, phase W0): 150 ancient peoples
 // with new names, none copied from Civilization, that make up the nations of a new game. A world
 // draws its major nations from this pool (src/engine/worldgen/peoplesWorld.js); the legacy
-// 240-country world (src/data/worldNations.js) stays for old saves and for the engine's tests.
+// 240-country world (src/data/peopleNation.js) stays for old saves and for the engine's tests.
 //
 // Each entry: `id` (the slug that becomes the nation id), `name` (as the picker shows it),
 // `adjective` (hand-written: logs, titles, unit names), `capital` (real name and approximate
@@ -15,7 +15,7 @@
 // MAJOR_TIER below: one of the 50 major peoples, else a city-state people; decision 42).
 // `ruler` ({ name, gender, epithet, titles }, from src/data/peopleRulers.json, drafted in
 // plans/data/rulers.json with sources) is the one ruler of the people for the whole game (RULER-PLAN 2.1).
-// Built facts (capital tile, colour, the legacy id table) come from src/data/geo/peopleCapitals.json
+// Built facts (capital tile, colour) come from src/data/geo/peopleCapitals.json
 // (npm run build:peoples). City names: src/data/peopleCities.json (20 a people, capital first).
 import CITY_NAMES from './peopleCities.json';
 import BUILT from './geo/peopleCapitals.json';
@@ -268,21 +268,13 @@ export const kinThemeOf = (peopleId) => {
   return (theme && KIN_THEME[theme]) || theme;
 };
 
-/** The people record of a nation id, or null (a legacy country id). */
+/** The people record of a nation id, or null. */
 export const peopleOf = (nationId) => (nationId && PEOPLES[nationId]) || null;
 export const isPeopleId = (nationId) => !!peopleOf(nationId);
 
-// Old country id (the 240-nation world: 'eg', 'cn', 'fr') -> the people of that land, built by
-// scripts/peoples/build-peoples.mjs: the heaviest people whose land is that country, nearest its
-// capital on ties, else the people whose capital is nearest. One way only: tests and old tables
-// use it to name a people by its modern land; old saves keep their country ids (mode 'full').
-export const LEGACY_NATION_IDS = Object.freeze({ ...(BUILT.legacy || {}) });
-/** A people id for a people id (unchanged) or an old country id; null when unknown. */
-export const peopleForNationId = (id) => (PEOPLES[id] ? id : LEGACY_NATION_IDS[id] || null);
-
-/** The modern country a nation stands for: a people's land, or a legacy id itself. Tables keyed by
+/** The modern country a nation stands for: a people's land. Tables keyed by
  * country (culture groups, doctrines, name pools) read through this. */
 export const countryOfNation = (nationId) => PEOPLES[nationId]?.land || nationId;
 
-/** "in modern Iraq", or null for a legacy nation. */
+/** "in modern Iraq", or null. */
 export const modernLandLine = (nationId) => { const p = peopleOf(nationId); return p ? `in modern ${p.landName}` : null; };

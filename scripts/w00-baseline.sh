@@ -4,13 +4,13 @@
 # <speed>-<seed>.log (STATS and SUMMARY lines), telemetry-<seed>.json, warstacks-<seed>.jsonl.
 #   scripts/w00-baseline.sh                       Normal speed, seeds 11-14, 200 turns
 #   SPEED=marathon SEEDS=11,12 scripts/w00-baseline.sh
-# Env: TURNS (200), SEEDS (11,12,13,14), SPEED (normal), PLAYER (au), DEMANDS (refuse|pay), OUT, JOBS.
+# Env: TURNS (200), SEEDS (11,12,13,14), SPEED (normal), PLAYER (akkad), DEMANDS (refuse|pay), OUT, JOBS.
 set -euo pipefail
-TURNS=${TURNS:-200}; SEEDS=${SEEDS:-11,12,13,14}; SPEED=${SPEED:-normal}; PLAYER=${PLAYER:-au}; DEMANDS=${DEMANDS:-refuse}
+TURNS=${TURNS:-200}; SEEDS=${SEEDS:-11,12,13,14}; SPEED=${SPEED:-normal}; PLAYER=${PLAYER:-akkad}; DEMANDS=${DEMANDS:-refuse}
 OUT=${OUT:-plans/data/playtest-audits-baseline-raw/$SPEED}
 JOBS=${JOBS:-4}
 mkdir -p "$OUT"
-export TURNS PLAYER SPEED DEMANDS SCENARIO=peoples POLICY=scripted TRACE_WARS=1 EVERY=${EVERY:-25}
+export TURNS PLAYER SPEED DEMANDS POLICY=scripted TRACE_WARS=1 EVERY=${EVERY:-25}
 run_one() {
   local seed=$1 dir="$OUT/seed-$1"
   mkdir -p "$dir"

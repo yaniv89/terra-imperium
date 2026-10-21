@@ -14,7 +14,7 @@ import { writeFileSync } from 'node:fs';
 const TURNS = Number(process.env.TURNS || 120);
 const WARMUP = Number(process.env.WARMUP || 10);
 const SEEDS = String(process.env.SEEDS || '11').split(',').map(Number);
-const PLAYER = process.env.PLAYER || 'au';
+const PLAYER = process.env.PLAYER || 'akkad';
 // CPUPROFILE=path writes a V8 .cpuprofile of the measured turns (open in Chrome DevTools).
 const CPUPROFILE = process.env.CPUPROFILE;
 // SAVE_STATE=path writes the last state as JSON (for micro benchmarks of single systems).
@@ -25,7 +25,7 @@ SEEDS.forEach((seed) => {
   it(`profile seed ${seed}`, async () => {
     const session = CPUPROFILE ? new Session() : null;
     if (session) { session.connect(); await session.post('Profiler.enable'); }
-    let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
+    let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, scenario: { mode: 'peoples', size: 'standard', seed } }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
     s = { ...s, research: { ...s.research, auto: true } };
     const sums = {}; const maxes = {}; let measured = 0; let total = 0; let worst = 0;
     const buckets = []; let bucket = { ms: 0, n: 0 };

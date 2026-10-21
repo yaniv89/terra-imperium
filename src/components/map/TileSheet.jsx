@@ -21,7 +21,7 @@ import { tileFacts, IMPROVEMENTS, resourceKnown } from '../../data/tileYields';
 import { DISTRICTS } from '../../engine/districts';
 import { ResourceIcon, ImprovementIcon } from '../ui/icons';
 import { settlerPath, settlersOf, settlersHomeCity, SETTLER_MOVES } from '../../engine/settlers';
-import { WORLD_NATIONS } from '../../data/worldNations';
+import countriesMeta from '../../data/geo/countries-meta.json';
 import { atSea } from '../../engine/fleets';
 import { tileAccess, unitTile } from '../../engine/armies';
 import { declareWarModel } from '../panels/warActions';
@@ -105,7 +105,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
         {settlers.length ? <Tent className="w-5 h-5 mt-1 text-fa-muted shrink-0" aria-hidden="true" /> : <MapPin className="w-5 h-5 mt-1 text-fa-muted shrink-0" aria-hidden="true" />}
         <div className="min-w-0 flex-1">
           <h2 className="fa-heading text-[17px] leading-tight truncate">{name}</h2>
-          <div className="text-[12px] text-fa-muted capitalize">{parts.join(', ')}{country && !ownerCity ? t('mx.tile.lands', { name: nameNow('land', null, WORLD_NATIONS[country]?.name || country) }) : ''}</div>
+          <div className="text-[12px] text-fa-muted capitalize">{parts.join(', ')}{country && !ownerCity ? t('mx.tile.lands', { name: nameNow('land', null, countriesMeta[country]?.name || country) }) : ''}</div>
         </div>
         <CloseButton onClick={onClose} />
       </div>

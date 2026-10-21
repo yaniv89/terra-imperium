@@ -1,16 +1,15 @@
 // Short seeded correctness scenarios run on every PR. Timing budgets run explicitly on a
 // dedicated machine with PERF_CHECKS=1; they retain their original 80 ms/turn target.
 import { describe,it,expect } from 'vitest';
-import { createInitialState,gameReducer } from './gameReducer';
+import { gameReducer } from './gameReducer';
+import { peoplesWorld, neighbourWorld, cloneWorld, rivalOf } from './testWorld';
 import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
 import { assertGameState } from './stateAudit';
 import { HISTORICAL_EVENTS } from '../data/events';
-import { getNationCapital } from '../data/regions';
 import { advanceCampaign } from '../../scripts/simulate.mjs';
 const engine={resolveTurn,gameReducer,ActionTypes,assertGameState};
-// Australia: a passive one-city player with neighbours (France) is besieged and taken within 30 turns now that sieges conclude (sieges.js), which ends these passive runs in a defeat.
-const fresh=(seed=7,playerNationId='au')=>({...createInitialState({playerNationId,rngSeed:seed}),firedEvents:Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map(id=>[id,true])),proceduralEventCooldown:999999,battleSettings:{autoDefend:true}});
+const fresh=(seed=7,world=peoplesWorld({seed}))=>({...cloneWorld(world),firedEvents:Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map(id=>[id,true])),proceduralEventCooldown:999999,battleSettings:{autoDefend:true}});
 const run=(s,count)=>{for(let i=0;i<count;i++){s=advanceCampaign(engine,s);if(s.gameStatus!=='ACTIVE')break;}return s;};
 describe('AI correctness scenarios',()=>{
   it.each([7,4242,2026])('advances actual turns and preserves invariants for seed %i',seed=>{
@@ -19,9 +18,10 @@ describe('AI correctness scenarios',()=>{
     expect(Math.max(...Object.values(counts))/Object.keys(s.regions).length).toBeLessThan(.4);
   },30000);
   it('recruits a counter to a cavalry-heavy neighboring player',()=>{
-    let s=fresh(7,'fr');s.nations.de={...s.nations.de,doctrine:'isolationist',hostility:0,economy:{gold:10000,hr:10000,mil:1000,adm:0,dip:0,techPoints:0}};
-    for(let i=0;i<6;i++)s.units['c'+i]={id:'c'+i,ownerId:'fr',regionId:getNationCapital('fr'),domain:'land',classId:'cavalry',strength:1000,maxStrength:1000,morale:100,movesLeft:1,promotions:[]};
-    s=run(s,20);const army=Object.values(s.units).filter(u=>u.ownerId==='de');
+    const W=neighbourWorld({seed:7,rivals:1,capitals:true});const P=W.playerNationId;const D=rivalOf(W);
+    let s=fresh(7,W);s.nations[D]={...s.nations[D],doctrine:'isolationist',hostility:0,economy:{gold:10000,hr:10000,mil:1000,adm:0,dip:0,techPoints:0}};
+    for(let i=0;i<6;i++)s.units['c'+i]={id:'c'+i,ownerId:P,regionId:s.nations[P].capitalRegionId,domain:'land',classId:'cavalry',strength:1000,maxStrength:1000,morale:100,movesLeft:1,promotions:[]};
+    s=run(s,20);const army=Object.values(s.units).filter(u=>u.ownerId===D);
     expect(army.length).toBeGreaterThan(0);expect(army.filter(u=>u.classId==='infantry').length/army.length).toBeGreaterThanOrEqual(.5);
   },30000);
 });
