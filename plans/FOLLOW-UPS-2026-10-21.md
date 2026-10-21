@@ -11,7 +11,7 @@ Open items found while merging lanes. Kept in sync with the status page.
 7. **Challenge: fast-forward:** Fast-forward in a challenge game gets an honest player rejected; block it in the game instead.
 8. **Challenge: switch on:** Deploy steps in plans/U36-DEPLOY.md need your Supabase and GitHub settings.
 9. **Mobile bugs H-12 and one more:** Need the mobile bug report file from your PC to identify them.
-10. **Hebrew: 22 skipped fixes:** 7 are plural verbs that need a native read; the rest were skipped on purpose.
+10. **Hebrew: 22 skipped fixes:** done. The user checked the 7 plural-verb lines and keeps them as they are (21 Oct); the rest were skipped on purpose.
 11. **Glossary links:** Tap-to-learn still missing in city build lists, unit rows and the Peoples panel.
 12. **Hold for help in battle:** Battle HUD buttons and unit cards do not open help yet.
 13. **AI founded line:** The AI 'founded' line is stored but not shown; decide whether to show it.
