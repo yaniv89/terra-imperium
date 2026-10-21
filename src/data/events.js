@@ -1,7 +1,6 @@
 // src/data/events.js
-// Scripted historical events, keyed by id and placed by `year` (its age and its spot in the age; eligibility is the player age and progress, eventEligible). The event SYSTEM (EventModal's
-// per-option effect preview, this registry's shape, resolveTurn.js trigger check) is
-// unchanged from the original campaign.
+// Scripted historical events, keyed by id and placed by `year` (its age and its spot in the age). They are the story cards of the event deck
+// (src/engine/eventDeck.js), which turns the year and `requires` into predicates.
 //
 // This is Phase D3 Layer 1 (plan §9.5) — "world events": anchored to the calendar, firing for
 // every nation regardless of who's playing, so they land differently depending on your situation
@@ -14,10 +13,7 @@
 // "Alt-history tolerant": every event here only ever touches the player's own generic stats, so
 // it still makes sense no matter how unrecognizable the map has become by the year it fires.
 import { getNationCapital } from './regions';
-import { getTiles } from './geo/tiles';
-import { AGE_ORDER, AGES, LAST_AGE_ID, getAgeIndex } from './ages';
-import { getTechsForAge } from './techTree';
-import { ageOf, getResearched } from '../engine/nationState';
+import { AGE_ORDER, AGES, LAST_AGE_ID } from './ages';
 const RAW_HISTORICAL_EVENTS = {
   // ---- Stone Age (-5000 to -2000): generic by people, never tied to a modern country ----
   great_migrations: {
@@ -363,18 +359,17 @@ const RAW_HISTORICAL_EVENTS = {
   },
 
   // ---- Curated national flavor (plan §9.5 Layer 3) — a representative batch of historically
-  // significant nations, not the plan's full ~40: the mechanism (nationId + requiresHomeland gate
-  // below) works identically for any of the 240 nation ids, so extending this list later is pure
-  // data, not new code. Gated on `nationId` (only fires for that specific nation's own player) and
-  // `requiresHomeland` (only fires while that nation still controls its own starting region) —
-  // unlike world events, these already know exactly who's playing, so they're free to use the
-  // identity-specific effect keys world events avoid (see punic_ambitions below for an example).
+  // significant lands, not the plan's full ~40. Keyed by `land` (the modern country code of the
+  // player's people, peoples.js countryOfNation: Egypt's 'eg' fires for kemet) and gated by
+  // `requiresHomeland` (only while the player still holds its original capital). The event deck
+  // (src/engine/eventDeck.js) turns both into requirements. These know roughly who's playing, so they
+  // may use the identity-specific effect keys world events avoid (see punic_ambitions below for an example).
   // Every other nation still gets Task 26's generic world/situational/procedural content — this
   // is bespoke flavor layered on top, not a replacement for it.
   national_egypt_nile_flood: {
     id: 'national_egypt_nile_flood',
     year: -1900,
-    nationId: 'eg',
+    land: 'eg',
     requiresHomeland: true,
     title: "The Nile's Verdict",
     description: 'The annual flood of the Nile arrives lower than expected, threatening the harvest the whole kingdom depends on.',
@@ -386,7 +381,7 @@ const RAW_HISTORICAL_EVENTS = {
   national_punic_ambitions: {
     id: 'national_punic_ambitions',
     year: -264,
-    nationId: 'it',
+    land: 'it',
     requiresHomeland: true,
     title: 'The Case for War',
     description: 'Advisors argue that the rival maritime power across the sea threatens your trade routes and must be dealt with before it grows any stronger.',
@@ -398,7 +393,7 @@ const RAW_HISTORICAL_EVENTS = {
   national_mongol_succession: {
     id: 'national_mongol_succession',
     year: 1227,
-    nationId: 'mn',
+    land: 'mn',
     requiresHomeland: true,
     title: "The Great Khan's Succession",
     description: "With the great khan's death, the empire's constituent hordes must choose between uniting under a new ruler or fracturing into rival domains.",
@@ -410,7 +405,7 @@ const RAW_HISTORICAL_EVENTS = {
   national_japan_sakoku: {
     id: 'national_japan_sakoku',
     year: 1639,
-    nationId: 'jp',
+    land: 'jp',
     requiresHomeland: true,
     title: 'The Sakoku Decision',
     description: 'Foreign traders and missionaries have grown numerous enough to worry the court. Some counsel closing the realm to outside influence entirely.',
@@ -422,7 +417,7 @@ const RAW_HISTORICAL_EVENTS = {
   national_britain_naval_turn: {
     id: 'national_britain_naval_turn',
     year: 1588,
-    nationId: 'gb',
+    land: 'gb',
     requiresHomeland: true,
     title: 'Mastery of the Sea',
     description: 'A hostile fleet approaches to end your independence for good — the outcome will decide whether your future lies on the continent or across the oceans.',
@@ -434,7 +429,7 @@ const RAW_HISTORICAL_EVENTS = {
   national_china_mandate: {
     id: 'national_china_mandate',
     year: 1644,
-    nationId: 'cn',
+    land: 'cn',
     requiresHomeland: true,
     title: 'A Question of the Mandate',
     description: 'Natural disasters, peasant uprisings and a weakening court have many whispering that the Mandate of Heaven has passed to someone else.',
@@ -446,7 +441,7 @@ const RAW_HISTORICAL_EVENTS = {
   national_india_maritime_trade: {
     id: 'national_india_maritime_trade',
     year: 1498,
-    nationId: 'in',
+    land: 'in',
     requiresHomeland: true,
     title: 'Ships From a Distant Sea',
     description: 'Foreign ships arrive by a sea route none of your merchants have used before, eager to trade directly for the spices and cloth that made your ports famous.',
@@ -458,7 +453,7 @@ const RAW_HISTORICAL_EVENTS = {
   national_ottoman_city_between_seas: {
     id: 'national_ottoman_city_between_seas',
     year: 1453,
-    nationId: 'tr',
+    land: 'tr',
     requiresHomeland: true,
     title: 'The City Between Two Seas',
     description: 'An ancient, storied city at the crossing between two continents stands within reach — its walls have held for a thousand years, but not forever.',
@@ -470,7 +465,7 @@ const RAW_HISTORICAL_EVENTS = {
   national_greek_golden_age: {
     id: 'national_greek_golden_age',
     year: -450,
-    nationId: 'gr',
+    land: 'gr',
     requiresHomeland: true,
     title: 'A Golden Age',
     description: 'Philosophy, theater and architecture flourish in your city-states, drawing students and thinkers from across the known world.',
@@ -482,7 +477,7 @@ const RAW_HISTORICAL_EVENTS = {
   national_persian_zenith: {
     id: 'national_persian_zenith',
     year: -500,
-    nationId: 'ir',
+    land: 'ir',
     requiresHomeland: true,
     title: "An Empire's Reach",
     description: 'Royal roads and a standing administration now bind together more peoples and provinces than any realm before it — the question is how tightly to hold them.',
@@ -494,7 +489,7 @@ const RAW_HISTORICAL_EVENTS = {
   national_aztec_founding: {
     id: 'national_aztec_founding',
     year: -1325,
-    nationId: 'mx',
+    land: 'mx',
     requiresHomeland: true,
     title: 'A City on the Lake',
     description: 'Following an old prophecy, your people found a city on an island in the middle of a lake — an unlikely site that will need engineering as much as faith to sustain.',
@@ -506,7 +501,7 @@ const RAW_HISTORICAL_EVENTS = {
   national_inca_roads: {
     id: 'national_inca_roads',
     year: 1438,
-    nationId: 'pe',
+    land: 'pe',
     requiresHomeland: true,
     title: 'Roads of the Sun',
     description: 'A network of roads and rope bridges now threads through the mountains, binding together valleys that would otherwise take weeks to cross on foot.',
@@ -518,7 +513,7 @@ const RAW_HISTORICAL_EVENTS = {
   national_spanish_exploration: {
     id: 'national_spanish_exploration',
     year: 1492,
-    nationId: 'es',
+    land: 'es',
     requiresHomeland: true,
     title: 'An Age of Exploration',
     description: 'A gamble on an unproven westward route across the ocean pays off beyond anyone\'s expectations, opening an entire hemisphere no one at court had known existed.',
@@ -530,7 +525,7 @@ const RAW_HISTORICAL_EVENTS = {
   national_dutch_golden_age: {
     id: 'national_dutch_golden_age',
     year: 1648,
-    nationId: 'nl',
+    land: 'nl',
     requiresHomeland: true,
     title: 'A Golden Age of Trade',
     description: 'Merchant fleets and a new kind of joint-stock company make your ports the busiest in the world, and your merchants some of the wealthiest.',
@@ -542,7 +537,7 @@ const RAW_HISTORICAL_EVENTS = {
   national_russian_reforms: {
     id: 'national_russian_reforms',
     year: 1700,
-    nationId: 'ru',
+    land: 'ru',
     requiresHomeland: true,
     title: "A Ruler's Reforms",
     description: 'A sweeping campaign of westernizing reform remakes the army, the bureaucracy, and the court almost overnight — welcomed by some, resented by many more.',
@@ -571,75 +566,4 @@ export const eventTechsNeeded = (ageId, year) => {
   if (!age) return 0;
   const share = (year - age.startYear) / (age.endYear - age.startYear);
   return Math.round(TECHS_PER_AGE_SPREAD * Math.max(0, Math.min(1, share)));
-};
-const techsHeldInAge = (state, ageId) => {
-  const held = new Set(getResearched(state, state.playerNationId));
-  return getTechsForAge(ageId).filter((t) => held.has(t.id)).length;
-};
-/** True when the player has reached the point of `ageId` that `year` marks: in that age with enough
- * of its techs, or already past it. */
-export const ageProgressReached = (state, ageId, year) => {
-  const mine = getAgeIndex(ageOf(state, state.playerNationId));
-  const wanted = getAgeIndex(ageId);
-  if (mine > wanted) return true;
-  return mine === wanted && techsHeldInAge(state, ageId) >= eventTechsNeeded(ageId, year);
-};
-/** Eligibility by the player's age and progress, never the calendar (KTD6): the event's age is the
- * player's own, and the player holds enough of that age's techs. An age the player has left never
- * shows its events. */
-export const eventEligible = (state, event) => {
-  const ageId = event.ageId ?? ageIdOfYear(event.year);
-  return ageOf(state, state.playerNationId) === ageId && techsHeldInAge(state, ageId) >= eventTechsNeeded(ageId, event.year);
-};
-
-// True once a scripted event is due for the player (eventEligible), it hasn't already fired, any
-// requiresNoWar nations are actually at peace, and, for curated national flavor, the current player
-// is actually that specific nation and, if requiresHomeland is set, still controls their own
-// starting region. state supplies nations, firedEvents, playerNationId and regions (a state
-// without regions gates nothing on the map). pickNextEvent() fires at most one due event per turn,
-// in year order, so simultaneous-year events queue up and fire on consecutive turns.
-// Context prerequisites of a scripted event (playtest audit I222, I223): `requires` is checked
-// against the player's own realm so a sea raid never hits a landlocked player and the Bronze Age
-// Collapse waits for a realm with something to lose.
-//   coastal    the player holds a coastal city
-//   minCities  the player holds at least this many cities (outposts do not count)
-//   orByYear   ...unless the player has reached the age and progress this year marks (a small realm still meets the event)
-export const meetsRequirements = (requires, state) => {
-  const { regions, playerNationId } = state;
-  if (!regions || !playerNationId) return true;
-  const mine = Object.values(regions).filter((c) => c.owner === playerNationId && !c.outpost);
-  if (requires.coastal) {
-    const coastal = getTiles().coastal;
-    if (!mine.some((c) => c.tile != null && coastal[c.tile] === 1)) return false;
-  }
-  if (requires.minCities && mine.length < requires.minCities
-    && !(requires.orByYear != null && ageProgressReached(state, ageIdOfYear(requires.orByYear), requires.orByYear))) return false;
-  return true;
-};
-
-export const shouldEventFire = (state, event) => {
-  const { nations = {}, firedEvents = {}, playerNationId, regions } = state;
-  if (firedEvents[event.id]) return false;
-  if (!eventEligible(state, event)) return false;
-  if (event.requiresNoWar) {
-    const anyAtWar = event.requiresNoWar.some(nId => nations[nId]?.isAtWar);
-    if (anyAtWar) return false;
-  }
-  if (event.requires && !meetsRequirements(event.requires, state)) return false;
-  if (event.nationId) {
-    if (event.nationId !== playerNationId) return false;
-    // "Still holds its homeland": a nation now spans many provinces, so this checks its capital
-    // specifically, the same anchor distanceFromAnchor/overextension already treats as "home".
-    if (event.requiresHomeland && regions?.[getNationCapital(event.nationId)]?.owner !== event.nationId) return false;
-  }
-  return true;
-};
-
-// Pick the single most-overdue eligible event for this turn (earliest scripted year first, then
-// stable declaration order for same-year ties: Array.sort is stable).
-export const pickNextEvent = (state) => {
-  const eligible = Object.values(HISTORICAL_EVENTS).filter(e => shouldEventFire(state, e));
-  if (eligible.length === 0) return null;
-  eligible.sort((a, b) => a.year - b.year);
-  return eligible[0];
 };

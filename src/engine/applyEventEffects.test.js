@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { applyEventEffects } from './applyEventEffects';
 import { getNationCapital } from '../data/regions';
 import { neighbourWorld, rivalOf } from './testWorld';
+import { speedTurns } from '../data/ages';
+import { ageOf } from './nationState';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
 const PEOPLES_WORLD = neighbourWorld({ seed: 11 });
@@ -128,11 +130,13 @@ describe('applyEventEffects', () => {
   });
 
   describe('spawnFollowUp (event chains with memory)', () => {
-    it('schedules a pendingEventChains entry at turnNumber + delayTurns', () => {
+    // The delay is reference turns, scaled by the speed table at the player's age.
+    const six = (s) => speedTurns(6, s.gameSpeed, ageOf(s, s.playerNationId));
+    it('schedules a pendingEventChains entry at turnNumber + delayTurns reference turns', () => {
       const state = { ...neighbourWorld(), turnNumber: 40 };
       const event = fixtureEvent('chain_source', { spawnFollowUp: { id: 'some_chain', delayTurns: 6 } });
       const next = applyEventEffects(state, event, 0);
-      expect(next.pendingEventChains).toEqual([{ id: 'some_chain', dueTurn: 46 }]);
+      expect(next.pendingEventChains).toEqual([{ id: 'some_chain', dueTurn: 40 + six(state) }]);
     });
 
     it('appends to any existing pendingEventChains rather than overwriting them', () => {
@@ -141,7 +145,7 @@ describe('applyEventEffects', () => {
       const next = applyEventEffects(state, event, 0);
       expect(next.pendingEventChains).toEqual([
         { id: 'some_other_chain', dueTurn: 12 },
-        { id: 'some_chain', dueTurn: 16 }
+        { id: 'some_chain', dueTurn: 10 + six(state) }
       ]);
     });
 
@@ -149,6 +153,12 @@ describe('applyEventEffects', () => {
       const state = { ...neighbourWorld(), pendingEventChains: [{ id: 'x', dueTurn: 5 }] };
       const next = applyEventEffects(state, fixtureEvent('no_chain_event', { gold: 10 }), 0);
       expect(next.pendingEventChains).toEqual([{ id: 'x', dueTurn: 5 }]);
+    });
+
+    it('carries the city the event bound, so the link fires there', () => {
+      const state = neighbourWorld();
+      const event = { ...fixtureEvent('chain_source', { spawnFollowUp: { id: 'some_chain', delayTurns: 6 } }), cityId: 'c1' };
+      expect(applyEventEffects(state, event, 0).pendingEventChains.at(-1).cityId).toBe('c1');
     });
   });
 

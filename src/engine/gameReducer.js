@@ -70,8 +70,7 @@ const endWar = (wars, id) => wars.map((w) => (w.id === id ? { ...w, active: fals
 import { getEffectiveMilitaryPower } from './aiEconomy';
 import { applyPeace, getPeaceAcceptance } from './peace';
 import { levyUnit } from './aftermath';
-import { HISTORICAL_EVENTS } from '../data/events';
-import { EVENT_CHAINS } from '../data/eventChains';
+import { cardOf } from './eventDeck';
 import { AGES, FIRST_AGE_ID, isAgeAtLeast, isAgeBefore } from '../data/ages';
 import { endingSignal } from './ending';
 import { ageOf } from './nationState';
@@ -677,11 +676,10 @@ const reduceAction = (state, action) => {
     }
 
     case ActionTypes.RESOLVE_EVENT: {
-      // A procedural event is never in HISTORICAL_EVENTS — it's carried in full on the state
-      // itself since it was generated fresh, not looked up from a static registry. A chain event
-      // IS looked up by id, but from EVENT_CHAINS rather than HISTORICAL_EVENTS.
+      // A story or a link fired by id is a deck card (eventDeck.js cardOf); a drawn card or a link
+      // bound to a city is carried in full on the state.
       const event = state.activeEventId
-        ? (HISTORICAL_EVENTS[state.activeEventId] || EVENT_CHAINS[state.activeEventId])
+        ? cardOf(state.activeEventId)
         : state.activeProceduralEvent;
       if (!event) return state;
       return applyEventEffects(state, event, action.payload.optionIndex);

@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { shouldEventFire, pickNextEvent, eventEligible, eventTechsNeeded, ageIdOfYear, HISTORICAL_EVENTS } from './events';
+import { eventTechsNeeded, ageIdOfYear, HISTORICAL_EVENTS } from './events';
+import { storyDue, storyCard, nextStory } from '../engine/eventDeck';
+import { PEOPLES_LIST } from './peoples';
+import { getTiles } from './geo/tiles';
 import { START_YEAR, END_YEAR, AGE_ORDER, AGES } from './ages';
 import { getTechsForAge } from './techTree';
 import { EVENT_CHAINS } from './eventChains';
@@ -7,14 +10,17 @@ import { REGIONS_DATA, getNationCapital } from './regions';
 import countriesMeta from './geo/countries-meta.json';
 
 // World events (plan §9.5 Layer 1) fire for anyone; curated national flavor (Layer 3) only fires
-// for its own specific nationId. Several invariants below only make sense for one or the other.
-const WORLD_EVENTS = Object.values(HISTORICAL_EVENTS).filter(e => !e.nationId);
-const CURATED_EVENTS = Object.values(HISTORICAL_EVENTS).filter(e => e.nationId);
+// for a people of its own land. Several invariants below only make sense for one or the other.
+const WORLD_EVENTS = Object.values(HISTORICAL_EVENTS).filter(e => !e.land);
+const CURATED_EVENTS = Object.values(HISTORICAL_EVENTS).filter(e => e.land);
 
+// A realm of three coastal cities, so stories that need a coast or a realm can fire.
+const coast = getTiles().coastal.findIndex((c, i) => c === 1 && getTiles().land[i] === 1);
+const REALM = { a: { owner: 'p', tile: coast }, b: { owner: 'p', tile: coast }, c: { owner: 'p', tile: coast } };
 // A player state at an age with n of that age's techs (every earlier age's techs are held).
 const playerAt = (ageId, n = 0, extra = {}) => {
   const owned = [...AGE_ORDER.slice(0, AGE_ORDER.indexOf(ageId)).flatMap((a) => getTechsForAge(a)), ...getTechsForAge(ageId).slice(0, n)];
-  return { playerNationId: 'p', techAgeId: ageId, techTree: Object.fromEntries(owned.map((x) => [x.id, { researched: true }])), nations: {}, firedEvents: {}, ...extra };
+  return { playerNationId: 'p', techAgeId: ageId, techTree: Object.fromEntries(owned.map((x) => [x.id, { researched: true }])), nations: {}, firedEvents: {}, regions: REALM, ...extra };
 };
 const endState = (extra) => playerAt(AGE_ORDER[AGE_ORDER.length - 1], 10, extra);
 const eventAtItsPoint = (event, extra) => playerAt(event.ageId, eventTechsNeeded(event.ageId, event.year), extra);
@@ -23,54 +29,41 @@ const eventAtItsPoint = (event, extra) => playerAt(event.ageId, eventTechsNeeded
 // scheduling mechanism in isolation.
 const FIXTURE_EVENTS = {
   early: { id: 'early', year: 1000, ageId: 'kingdoms', title: 'Early Event', options: [{ label: 'ok', effects: {} }] },
-  late: { id: 'late', year: 2000, ageId: 'modern', title: 'Late Event', options: [{ label: 'ok', effects: {} }] },
-  gated: {
-    id: 'gated',
-    year: 1500,
-    ageId: 'gunpowder',
-    title: 'Peace-Gated Event',
-    requiresNoWar: ['eg'],
-    options: [{ label: 'ok', effects: {} }]
-  }
+  late: { id: 'late', year: 2000, ageId: 'modern', title: 'Late Event', options: [{ label: 'ok', effects: {} }] }
 };
 
-describe('shouldEventFire', () => {
+describe('storyDue', () => {
   it('is false before the player has the age and progress', () => {
-    expect(shouldEventFire(playerAt('bronze', 0), FIXTURE_EVENTS.early)).toBe(false);
-    expect(shouldEventFire(playerAt('kingdoms', 0), FIXTURE_EVENTS.early)).toBe(false);
+    expect(storyDue(playerAt('bronze', 0), storyCard(FIXTURE_EVENTS.early))).toBe(false);
+    expect(storyDue(playerAt('kingdoms', 0), storyCard(FIXTURE_EVENTS.early))).toBe(false);
   });
 
   it("is true inside the event's age once the progress is held", () => {
-    expect(shouldEventFire(playerAt('kingdoms', 3), FIXTURE_EVENTS.early)).toBe(true);
-    expect(shouldEventFire(playerAt('kingdoms', 10), FIXTURE_EVENTS.early)).toBe(true);
+    expect(storyDue(playerAt('kingdoms', 3), storyCard(FIXTURE_EVENTS.early))).toBe(true);
+    expect(storyDue(playerAt('kingdoms', 10), storyCard(FIXTURE_EVENTS.early))).toBe(true);
   });
 
   it('is false once already fired', () => {
-    expect(shouldEventFire(playerAt('kingdoms', 10, { firedEvents: { early: true } }), FIXTURE_EVENTS.early)).toBe(false);
-  });
-
-  it('respects requiresNoWar gating', () => {
-    expect(shouldEventFire(playerAt('gunpowder', 6, { nations: { eg: { isAtWar: false } } }), FIXTURE_EVENTS.gated)).toBe(true);
-    expect(shouldEventFire(playerAt('gunpowder', 6, { nations: { eg: { isAtWar: true } } }), FIXTURE_EVENTS.gated)).toBe(false);
+    expect(storyDue(playerAt('kingdoms', 10, { firedEvents: { early: true } }), storyCard(FIXTURE_EVENTS.early))).toBe(false);
   });
 
   it('does not read the calendar', () => {
-    expect(shouldEventFire({ ...playerAt('bronze', 0), year: 2000 }, FIXTURE_EVENTS.early)).toBe(false);
+    expect(storyDue({ ...playerAt('bronze', 0), year: 2000 }, storyCard(FIXTURE_EVENTS.early))).toBe(false);
   });
 });
 
-describe('eventEligible (events keyed by the player age and progress)', () => {
+describe('story cards (keyed by the player age and progress)', () => {
   const gunpowder1700 = { id: 'g', year: 1700, ageId: 'gunpowder' };
   it('a Gunpowder event dated 1700 needs 3 of 10 Gunpowder techs', () => {
     expect(eventTechsNeeded('gunpowder', 1700)).toBe(3);
-    expect(eventEligible(playerAt('gunpowder', 3), gunpowder1700)).toBe(true);
-    expect(eventEligible(playerAt('gunpowder', 2), gunpowder1700)).toBe(false);
+    expect(storyDue(playerAt('gunpowder', 3), storyCard(gunpowder1700))).toBe(true);
+    expect(storyDue(playerAt('gunpowder', 2), storyCard(gunpowder1700))).toBe(false);
   });
   it("a player past the event's age never sees it", () => {
-    expect(eventEligible(playerAt('modern', 10), gunpowder1700)).toBe(false);
+    expect(storyDue(playerAt('modern', 10), storyCard(gunpowder1700))).toBe(false);
   });
   it("a player short of the event's age does not see it", () => {
-    expect(eventEligible(playerAt('kingdoms', 10), gunpowder1700)).toBe(false);
+    expect(storyDue(playerAt('kingdoms', 10), storyCard(gunpowder1700))).toBe(false);
   });
   it('the last age holds its end year', () => {
     expect(ageIdOfYear(AGES.modern.endYear)).toBe('modern');
@@ -79,36 +72,36 @@ describe('eventEligible (events keyed by the player age and progress)', () => {
   });
 });
 
-describe('pickNextEvent', () => {
+describe('nextStory', () => {
   it('picks the earliest-year eligible event among fixtures', () => {
-    const eligible = Object.values(FIXTURE_EVENTS).filter(e => shouldEventFire(playerAt(e.ageId, 10), e));
+    const eligible = Object.values(FIXTURE_EVENTS).filter(e => storyDue(playerAt(e.ageId, 10), storyCard(e)));
     eligible.sort((x, y) => x.year - y.year);
     expect(eligible[0].id).toBe('early');
   });
 
   it('returns null when nothing is eligible', () => {
-    expect(Object.values(FIXTURE_EVENTS).filter(e => shouldEventFire(playerAt('bronze', 10), e))).toEqual([]);
+    expect(Object.values(FIXTURE_EVENTS).filter(e => storyDue(playerAt('bronze', 10), storyCard(e)))).toEqual([]);
   });
 });
 
-describe('pickNextEvent against real HISTORICAL_EVENTS content', () => {
+describe('nextStory against real HISTORICAL_EVENTS content', () => {
   // No playerNationId/regions passed in this describe block — exercises the generic (world-event)
   // path, where every curated national event is correctly ineligible no matter whose turn it is.
   it('returns null before any real event\'s year has arrived', () => {
-    expect(pickNextEvent(playerAt('bronze', 0))).toBeNull();
+    expect(nextStory(playerAt('bronze', 0))).toBeNull();
   });
 
   it('picks the earliest-year world event once its year has arrived', () => {
     const earliestYear = Math.min(...WORLD_EVENTS.map(e => e.year));
     const first = WORLD_EVENTS.find(e => e.year === earliestYear);
-    const event = pickNextEvent(eventAtItsPoint(first));
+    const event = nextStory(eventAtItsPoint(first));
     expect(event.year).toBe(earliestYear);
-    expect(event.nationId).toBeUndefined();
+    expect(event.land).toBeUndefined();
   });
 
   it('never re-selects an already-fired real event', () => {
     const earliest = WORLD_EVENTS.reduce((a, b) => (a.year <= b.year ? a : b));
-    const next = pickNextEvent(playerAt(earliest.ageId, 10, { firedEvents: { [earliest.id]: true } }));
+    const next = nextStory(playerAt(earliest.ageId, 10, { firedEvents: { [earliest.id]: true } }));
     expect(next?.id).not.toBe(earliest.id);
   });
 
@@ -118,7 +111,7 @@ describe('pickNextEvent against real HISTORICAL_EVENTS content', () => {
     AGE_ORDER.forEach((ageId) => {
       for (let n = 0; n <= 10; n += 1) {
         for (let guard = 0; guard < 50; guard += 1) {
-          const event = pickNextEvent(playerAt(ageId, n, { firedEvents }));
+          const event = nextStory(playerAt(ageId, n, { firedEvents }));
           if (!event) break;
           firedEvents = { ...firedEvents, [event.id]: true };
           firedCount += 1;
@@ -133,7 +126,7 @@ describe('pickNextEvent against real HISTORICAL_EVENTS content', () => {
     const order = [];
     let firedEvents = {};
     for (let i = 0; i < 100; i += 1) {
-      const event = pickNextEvent({ ...state, firedEvents });
+      const event = nextStory({ ...state, firedEvents });
       if (!event) break;
       order.push(event);
       firedEvents = { ...firedEvents, [event.id]: true };
@@ -144,34 +137,41 @@ describe('pickNextEvent against real HISTORICAL_EVENTS content', () => {
   });
 });
 
-describe('pickNextEvent / shouldEventFire for curated national flavor (nationId + requiresHomeland)', () => {
-  it('never fires for a nation other than the one it names', () => {
+describe('curated national stories, keyed by land', () => {
+  // A people of the event's land (peoples.js land), when the pool has one.
+  const peopleOf = (land) => PEOPLES_LIST.find((p) => p.land === land)?.id;
+  const home = (id, owner = id) => ({ [getNationCapital(id)]: { owner } });
+  const withPeople = CURATED_EVENTS.filter((e) => peopleOf(e.land));
+
+  it('a people of the land exists for most of them', () => {
+    expect(withPeople.length).toBeGreaterThanOrEqual(CURATED_EVENTS.length - 2);
+  });
+
+  it('never fires for a people of another land', () => {
     CURATED_EVENTS.forEach(event => {
-      const otherNationId = event.nationId === 'fr' ? 'de' : 'fr';
-      const regions = { [getNationCapital(event.nationId)]: { owner: event.nationId } };
-      expect(shouldEventFire(eventAtItsPoint(event, { playerNationId: otherNationId, regions }), event)).toBe(false);
+      const other = peopleOf(event.land === 'eg' ? 'cn' : 'eg');
+      expect(storyDue(eventAtItsPoint(event, { playerNationId: other, regions: home(other) }), storyCard(event))).toBe(false);
     });
   });
 
-  it('fires for the named nation once its year arrives and it still holds its homeland', () => {
-    CURATED_EVENTS.forEach(event => {
-      const regions = { [getNationCapital(event.nationId)]: { owner: event.nationId } };
-      expect(shouldEventFire(eventAtItsPoint(event, { playerNationId: event.nationId, regions }), event)).toBe(true);
+  it('fires for a people of its land at its point while it holds its capital', () => {
+    withPeople.forEach(event => {
+      const id = peopleOf(event.land);
+      expect(storyDue(eventAtItsPoint(event, { playerNationId: id, regions: home(id) }), storyCard(event))).toBe(true);
     });
   });
 
-  it('does not fire once the nation has lost its own homeland (requiresHomeland)', () => {
-    CURATED_EVENTS.forEach(event => {
+  it('does not fire once the people has lost its capital (requiresHomeland)', () => {
+    withPeople.forEach(event => {
       expect(event.requiresHomeland).toBe(true); // every curated event in this batch requires it
-      const regions = { [getNationCapital(event.nationId)]: { owner: 'someone_else' } };
-      expect(shouldEventFire(eventAtItsPoint(event, { playerNationId: event.nationId, regions }), event)).toBe(false);
+      const id = peopleOf(event.land);
+      expect(storyDue(eventAtItsPoint(event, { playerNationId: id, regions: home(id, 'someone_else') }), storyCard(event))).toBe(false);
     });
   });
 
-  it('pickNextEvent surfaces a curated event ahead of a later-year world event for the matching nation', () => {
+  it('the Nile flood fires for kemet ahead of later world events', () => {
     const egypt = HISTORICAL_EVENTS.national_egypt_nile_flood;
-    const regions = { [getNationCapital('eg')]: { owner: 'eg' } };
-    const event = pickNextEvent(eventAtItsPoint(egypt, { playerNationId: 'eg', regions }));
+    const event = nextStory(eventAtItsPoint(egypt, { playerNationId: 'kemet', regions: home('kemet') }));
     expect(event.id).toBe(egypt.id);
   });
 });
@@ -241,17 +241,14 @@ describe('HISTORICAL_EVENTS data integrity', () => {
     });
   });
 
-  it('curated national events target a real nation id and are a representative, non-trivial batch', () => {
-    // Real ids from src/data/geo/worldRegions.json, sanity-checked directly rather than importing
-    // the whole geo dataset just for an id-existence check.
-    const knownRealNationIds = ['eg', 'it', 'mn', 'jp', 'gb', 'cn', 'in', 'tr', 'gr', 'fr', 'de', 'us', 'ir', 'mx', 'pe', 'es', 'nl', 'ru'];
-    CURATED_EVENTS.forEach(event => expect(knownRealNationIds).toContain(event.nationId));
+  it('curated national events name a real land and are a representative, non-trivial batch', () => {
+    CURATED_EVENTS.forEach(event => expect(countriesMeta[event.land], event.id).toBeDefined());
     expect(CURATED_EVENTS.length).toBeGreaterThanOrEqual(5);
-    expect(new Set(CURATED_EVENTS.map(e => e.nationId)).size).toBe(CURATED_EVENTS.length); // one per nation
+    expect(new Set(CURATED_EVENTS.map(e => e.land)).size).toBe(CURATED_EVENTS.length); // one per land
   });
 
   // Plan §13's "no event references a hardcoded nation/region id that may not exist" — the
-  // nationId/knownRealNationIds check above only covers WHICH nation a curated event targets, not
+  // land check above only covers WHICH land a curated event targets, not
   // any OTHER nation/region id an event's effects reference inside them (e.g. national_punic_
   // ambitions' warWith/tradeWith: ['tn']). A typo or an id that gets removed from REGIONS_DATA
   // later would otherwise silently no-op (every id lookup in applyEventEffects.js already guards
