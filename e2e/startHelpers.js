@@ -20,3 +20,22 @@ export const beginGame = async (page, name = /^Begin as/) => {
   await goToReady(page);
   await page.getByRole('button', { name }).dispatchEvent('click');
 };
+
+/** A new game starts in the Stone Age as a band with no city (eight ages plan U46): let the
+ *  advisor pick research, then tap through the idle chip to the band and found the first village. */
+export const foundFirstCity = async (page) => {
+  const click = (locator) => locator.dispatchEvent('click');
+  const advisor = page.getByTestId('research-let-advisor');
+  await advisor.waitFor({ timeout: 30000 }).catch(() => {});
+  if (await advisor.isVisible().catch(() => false)) await click(advisor);
+  const idle = page.getByTestId('idle-chip');
+  const found = page.getByTestId('found-city');
+  await idle.waitFor({ timeout: 30000 });
+  for (let i = 0; i < 4 && !(await found.isVisible().catch(() => false)); i++) { await click(idle); await page.waitForTimeout(500); }
+  await found.waitFor({ timeout: 30000 });
+  await click(found);
+  await found.waitFor({ state: 'detached', timeout: 30000 });
+  // the tile's sheet stays open over the new village: close it so the map is clear
+  const close = page.getByRole('button', { name: 'Close', exact: true }).first();
+  if (await page.getByTestId('tile-yields').isVisible().catch(() => false)) await click(close);
+};

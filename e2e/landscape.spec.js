@@ -74,12 +74,13 @@ test.describe('phone held sideways', () => {
     await click(closeLog);
 
     // A turn still plays.
-    const year = header.getByText(/^-?\d+ (BCE|CE)$/);
-    const before = await year.textContent();
+    // the year label moves only with research (displayYear.js): watch the turn counter
+    const turn = header.getByRole('button', { name: /^Turn \d+/ });
+    const before = await turn.textContent();
     await answerBlockers(page); // End Turn names what must be answered first (endTurnHelpers.js)
     await click(endTurn);
     // The first turn may still wait for the turn worker to load its engine (prewarmed by TurnDock).
-    await expect(year).not.toHaveText(before, { timeout: 30000 });
+    await expect(turn).not.toHaveText(before, { timeout: 30000 });
 
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(844);
     expect(errors).toEqual([]);
@@ -100,6 +101,9 @@ test.describe('phone held sideways with Safari bars', () => {
     const rail = page.getByTestId('landscape-rail');
     const endTurn = page.getByTestId('end-turn');
     await expect(endTurn).toBeVisible();
+    // A Stone start opens the research choice on its own; the dock is opened over it below.
+    const research = page.getByTestId('research-choice');
+    await expect(research).toBeVisible({ timeout: 30000 });
     const before = await box(endTurn);
 
     // The wide Peoples dock (600 px): End Turn keeps its box and stays on screen.
@@ -113,16 +117,16 @@ test.describe('phone held sideways with Safari bars', () => {
     expect(withDock.bottom).toBeLessThanOrEqual(340);
 
     // The research choice is a card: asked for from End Turn it takes the dock's place at a
-    // readable width, and the dock comes back when it is answered.
+    // readable width. End Turn closes the dock for good (H-17), and the rail opens it again.
     await click(endTurn);
-    const research = page.getByTestId('research-choice');
-    if (await research.isVisible().catch(() => false)) {
-      await expect(dock).toHaveCount(0);
-      expect((await box(research.locator('.sheet-panel'))).width).toBeGreaterThanOrEqual(300);
-      await click(page.getByTestId('research-let-advisor'));
-      await expect(research).toHaveCount(0);
-      await expect(dock).toBeVisible();
-    }
+    await expect(research).toBeVisible();
+    await expect(dock).toHaveCount(0);
+    expect((await box(research.locator('.sheet-panel'))).width).toBeGreaterThanOrEqual(300);
+    await click(page.getByTestId('research-let-advisor'));
+    await expect(research).toHaveCount(0);
+    await expect(dock).toHaveCount(0);
+    await click(rail.getByRole('button', { name: 'Peoples' }));
+    await expect(dock).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(844);
   });
 });

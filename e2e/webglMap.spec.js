@@ -4,7 +4,7 @@
 // city, a tile or a marker, and the world wraps east to west. A phone held sideways (844x390,
 // touch) is the reference screen.
 import { test, expect } from '@playwright/test';
-import { beginGame } from './startHelpers';
+import { beginGame, foundFirstCity } from './startHelpers';
 
 const startGame = async (page, nation = 'Akkad') => {
   await page.addInitScript(() => { window.__E2E_DISABLE_GLOBE_AUTOROTATE__ = true; window.__E2E_MAP_TEST__ = true; try { localStorage.setItem('terra-imperium-minimap-open', '0'); } catch { /* none */ } });
@@ -15,10 +15,8 @@ const startGame = async (page, nation = 'Akkad') => {
   const skip = page.getByRole('button', { name: 'Skip' });
   await skip.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
   if (await skip.isVisible().catch(() => false)) await skip.dispatchEvent('click');
-  // the research choice opens over the map's right side: later
-  const later = page.locator('[data-testid="research-choice"] button[aria-label="Later"]');
-  await later.waitFor({ state: 'visible', timeout: 8000 }).catch(() => {});
-  if (await later.isVisible().catch(() => false)) await later.dispatchEvent('click');
+  // a Stone start has no city yet: the band founds the capital the tests play around
+  await foundFirstCity(page);
   await expect(page.getByTestId('flat-map')).toHaveAttribute('data-renderer', 'webgl', { timeout: 60000 });
   await page.waitForFunction(() => window.__map2DTest?.focus && window.__glMap, null, { timeout: 90000 });
 };
@@ -54,8 +52,8 @@ const capitalOf = (page, nation) => page.evaluate((n) => {
 test.describe('the WebGL map on a desktop', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  test('is the map: no globe switch, wheel zoom, a tap on land picks the city, on open land the tile', async ({ page }) => {
-    test.setTimeout(150000);
+  test('is the map: no globe switch, wheel zoom, a tap on the town picks the city, on its land or open land the tile', async ({ page }) => {
+    test.setTimeout(240000); // a Stone start founds its first village before the map checks
     const errors = [];
     page.on('pageerror', (e) => errors.push(String(e)));
     await startGame(page);
@@ -73,13 +71,20 @@ test.describe('the WebGL map on a desktop', () => {
     const capital = cap.id;
     await page.evaluate(({ lat, lon }) => window.__map2DTest.focus(lat, lon, 20), cap);
     await page.waitForTimeout(500);
-    // a point of its land, away from the town's banner
-    const p = await findPick(page, box, (q, id) => q?.kind === 'city' && q.via === 'land' && q.id === id, capital);
+    // the town picks the city
+    const p = await findPick(page, box, (q, id) => q?.kind === 'city' && q.id === id, capital);
     expect(p).not.toBeNull();
     await page.mouse.click(box.x + p.x, box.y + p.y);
     await expect.poll(() => page.evaluate(() => window.__map2DTest.selected)).toBe(capital);
     await page.getByRole('button', { name: 'Close', exact: true }).click();
     await expect.poll(() => page.evaluate(() => window.__map2DTest.selected)).toBeNull();
+    // from the hex zoom a tile of its land is the tile, whose sheet names the city (playtest audit I077)
+    const land = await findPick(page, box, (q, id) => q?.kind === 'tile' && q.cityId === id, capital);
+    expect(land).not.toBeNull();
+    await page.mouse.click(box.x + land.x, box.y + land.y);
+    await expect(page.getByTestId('tile-yields')).toBeVisible();
+    await expect(page.getByText('Land of', { exact: false })).toBeVisible();
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
     // open land nobody holds, near the capital: the tile sheet
     await page.evaluate(({ lat, lon }) => window.__map2DTest.focus(lat, lon, 6), cap);
     await page.waitForTimeout(500);
@@ -117,8 +122,8 @@ test.describe('the WebGL map on a desktop', () => {
 test.describe('the WebGL map on a phone held sideways', () => {
   test.use({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
 
-  test('pinch zoom, and a tap on the army banner or the land picks the city', async ({ page }) => {
-    test.setTimeout(150000);
+  test('pinch zoom, a tap on the town picks the city, on your army banner the army', async ({ page }) => {
+    test.setTimeout(240000); // a Stone start founds its first village before the map checks
     const errors = [];
     page.on('pageerror', (e) => errors.push(String(e)));
     await startGame(page);
@@ -136,22 +141,22 @@ test.describe('the WebGL map on a phone held sideways', () => {
     for (let d = 30; d <= 120; d += 10) await touch('touchMove', d);
     await touch('touchEnd', 0);
     await expect.poll(() => page.evaluate(() => window.__map2DTest.transform().k)).toBeGreaterThan(k0 * 2);
-    // a tap on the land of the capital
+    // a tap on the capital's town (from the hex zoom its other land is the tile: playtest audit I077)
     await page.evaluate(({ lat, lon }) => window.__map2DTest.focus(lat, lon, 24), cap);
     await page.waitForTimeout(500);
-    const p = await findPick(page, box, (q, id) => q?.kind === 'city' && q.via === 'land' && q.id === id, capital);
+    const p = await findPick(page, box, (q, id) => q?.kind === 'city' && q.id === id, capital);
     expect(p).not.toBeNull();
     await page.touchscreen.tap(box.x + p.x, box.y + p.y);
     await expect.poll(() => page.evaluate(() => window.__map2DTest.selected)).toBe(capital);
     await page.getByRole('button', { name: 'Close', exact: true }).first().dispatchEvent('click');
     await expect.poll(() => page.evaluate(() => window.__map2DTest.selected)).toBeNull();
-    // your army banner over the capital: a garrison opens its city
+    // your army banner over the capital is your army, also on a city (playtest audit I076): its sheet
     await page.evaluate(({ lat, lon }) => window.__map2DTest.focus(lat, lon, 6), cap);
     await page.waitForTimeout(600);
     const army = await findPick(page, box, (q) => q?.kind === 'marker' && q.marker === 'army' && q.own);
     expect(army).not.toBeNull();
     await page.touchscreen.tap(box.x + army.x, box.y + army.y);
-    await expect.poll(() => page.evaluate(() => window.__map2DTest.selected)).toBe(capital);
+    await expect(page.getByTestId('army-where')).toBeVisible();
     expect(errors).toEqual([]);
   });
 });
