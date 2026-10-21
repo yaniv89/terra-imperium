@@ -30,7 +30,8 @@ export const WONDER_TILE_RULE = {
   grand_bazaar: 'any', great_cathedral: 'any', forbidden_city: 'flat', royal_observatory: 'hills', arsenal: 'coastal', palace_of_versailles: 'flat',
   space_program: 'flat', international_exchange: 'any', atomic_research_center: 'any',
   stonehenge: 'flat', catalhoyuk: 'flat', walls_of_jericho: 'river', white_temple_of_uruk: 'any',
-  solomons_temple: 'hills', masada: 'desert'
+  solomons_temple: 'hills', masada: 'desert',
+  world_wide_web: 'any', large_hadron_collider: 'flat', global_seed_vault: 'hills'
 };
 
 export const wonderTileRule = (projectId) => WONDER_TILE_RULES[WONDER_TILE_RULE[projectId] || 'any'];

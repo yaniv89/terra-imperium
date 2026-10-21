@@ -13,6 +13,7 @@ const STACKS = 'ערימות מכילות שתי יחידות נוספות';
 
 export default {
   'mapfx.military_bronze_casting': SIGHT,
+  'mapfx.military_unmanned_systems': SIGHT,
   'mapfx.military_composite_bow': 'גבעות לא עולות תנועה נוספת',
   'mapfx.military_feudal_levies': STACKS,
   'mapfx.military_plate_armor': 'מד האספקה ⁦+20⁩',

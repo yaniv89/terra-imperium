@@ -69,5 +69,16 @@ export const BOOSTS = {
   science_scientific_method: { label: 'Build 3 science buildings', check: (f) => f.scienceBuildings >= 3 },
   science_calculus: { label: 'Build 4 science buildings', check: (f) => f.scienceBuildings >= 4 },
   science_computing: { label: 'Own uranium or rule 10 cities', check: (f) => f.resources.has('uranium') || f.cities >= 10 },
-  science_genomics: { label: 'Grow a city to size 20', check: (f) => f.maxSize >= 20 }
+  science_genomics: { label: 'Grow a city to size 20', check: (f) => f.maxSize >= 20 },
+  // Modern and Information (U49), on existing facts.
+  military_combined_arms: { label: 'Win 5 battles', check: (f) => (f.battlesWon || 0) >= 5 },
+  military_unmanned_systems: { label: 'Win 10 battles', check: (f) => (f.battlesWon || 0) >= 10 },
+  economy_mass_production: { label: 'Own coal and oil', check: (f) => f.resources.has('coal') && f.resources.has('oil') },
+  economy_digital_economy: { label: 'Hold a trade agreement and rule 15 cities', check: (f) => f.trade && f.cities >= 15 },
+  infrastructure_telecom_networks: { label: 'Rule 15 cities', check: (f) => f.cities >= 15 },
+  infrastructure_smart_grids: { label: 'Own coal, oil and uranium', check: (f) => ['coal', 'oil', 'uranium'].every((r) => f.resources.has(r)) },
+  governance_mass_politics: { label: 'Grow a city to size 12', check: (f) => f.maxSize >= 12 },
+  governance_global_institutions: { label: 'Build 4 wonders', check: (f) => f.wonders >= 4 },
+  science_nuclear_physics: { label: 'Own uranium', check: (f) => f.resources.has('uranium') },
+  science_artificial_intelligence: { label: 'Own 10 science buildings', check: (f) => f.scienceBuildings >= 10 }
 };

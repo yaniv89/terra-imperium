@@ -24,7 +24,8 @@ export const AGE_STYLE = {
   classical: { wall: '#ece6d6', roof: '#b5532f', flatRoofs: false, stone: '#d8d2c0', accent: '#8a3b22' },
   kingdoms: { wall: '#d9cfb6', roof: '#5b4636', flatRoofs: false, stone: '#8f8f8a', accent: '#3f4b5c' },
   gunpowder: { wall: '#b4664a', roof: '#5e4334', flatRoofs: false, stone: '#9a8f86', accent: '#3b3f46' },
-  modern: { wall: '#c3c6cc', roof: '#4b5563', flatRoofs: true, stone: '#9ca3af', accent: '#60a5fa' }
+  modern: { wall: '#c3c6cc', roof: '#4b5563', flatRoofs: true, stone: '#9ca3af', accent: '#60a5fa' },
+  information: { wall: '#d4d8de', roof: '#374151', flatRoofs: true, stone: '#a8b0bb', accent: '#38bdf8' }
 };
 
 const tmpColor = new Color();

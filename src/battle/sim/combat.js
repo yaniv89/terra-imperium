@@ -141,6 +141,7 @@ export const attackSquad = (w, a, t) => {
   else if (arc === 2 && !a.stats.noFormation) mult *= REAR_BONUS_MULT;
   if (a.stats.charge && a.movedSinceAttack >= CHARGE_DISTANCE) mult *= CHARGE_BONUS_MULT;
   if (t.routed) mult *= 1 + PURSUIT_EXTRA_LOSS_MULT;
+  if (a.stats.precision && a.lastStrikeTick < 0) mult *= a.stats.precision; // a guided first shot
   mult *= damageDealtMult(w, a) * damageTakenMult(w, t, arc);
   // Shaken (a side that cannot rout, morale.js): weaker blows, more hurt taken.
   if (isShaken(w, a)) mult *= SHAKEN_DAMAGE_DEALT;
@@ -156,6 +157,7 @@ export const attackSquad = (w, a, t) => {
   a.lastStrikeTick = w.tick;
   w.events.push({ t: w.tick, type: a.stats.melee ? 'melee' : 'shot', from: a.idx, to: t.idx, damage, arc });
   if (damage > 0) { applyDamage(w, a, t, damage, arc); tally(w, phase, a, t, damage); }
+  if (a.stats.suppress) t.suppressedUntil = w.tick + a.stats.suppress;
   // Siege splash: half damage to every other enemy squad around the impact.
   if (a.stats.splash) {
     queryRadius(w, t.x, t.y, a.stats.splash).forEach((j) => {

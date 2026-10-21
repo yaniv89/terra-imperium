@@ -35,7 +35,7 @@ import { FIRST_AGE_ID, nextAgeId } from '../../data/ages';
 
 export const CITY_TILES_PER_UNIT = 2.75;
 // Material by the age the city is built in (world plan 10: mud brick 1, masonry 1.4, concrete 2).
-export const MATERIAL_BY_AGE = { stone: 0.8, bronze: 1, classical: 1.4, kingdoms: 1.4, gunpowder: 1.4, modern: 2 };
+export const MATERIAL_BY_AGE = { stone: 0.8, bronze: 1, classical: 1.4, kingdoms: 1.4, gunpowder: 1.4, modern: 2, information: 2.2 };
 // Base HP (world plan 10): a small dwelling 800, a larger one 1,400, a shop-sized one 1,600, a
 // civic landmark 2,400, the palace and wonders 5,000; walls and the gate by the fortification level.
 export const HOUSE_HP = [[0.45, 800], [0.9, 1400], [Infinity, 1600]];

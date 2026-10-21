@@ -175,6 +175,15 @@ describe('getBuildingSlots / getUsedBuildingSlots', () => {
   it('counts 0 used slots for a fresh region', () => {
     expect(getUsedBuildingSlots(createEmptyRegionBuildings())).toBe(0);
   });
+
+  it('the Energy line takes no slot and survives a save round trip (U51)', () => {
+    const buildings = createEmptyRegionBuildings();
+    buildings.categories.energy = 2; // Nuclear Plant
+    buildings.categories.food = 0;
+    const loaded = JSON.parse(JSON.stringify(buildings));
+    expect(loaded.categories.energy).toBe(2);
+    expect(getUsedBuildingSlots(loaded)).toBe(1);
+  });
 });
 
 describe('getCategoryTierName', () => {

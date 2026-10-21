@@ -103,7 +103,9 @@ export const damageDealtMult = (w, q) => {
   if (q.ambushReady) { m *= AMBUSH_FIRST_STRIKE; q.ambushReady = false; }
   return m;
 };
-export const attackRateMult = (w, q) => effectMult(w, q, 'selfRate') * (q.classId === 'siege' ? effectMult(w, q, 'siegeRate') : 1);
+// A squad under machine-gun fire (combat.js `suppress`) fires at SUPPRESSED_RATE.
+export const SUPPRESSED_RATE = 0.75;
+export const attackRateMult = (w, q) => effectMult(w, q, 'selfRate') * (q.classId === 'siege' ? effectMult(w, q, 'siegeRate') : 1) * (q.suppressedUntil > w.tick ? SUPPRESSED_RATE : 1);
 export const speedMult = (w, q) => effectMult(w, q, 'speed') * (hasPerk(q, 'forcedMarch') ? 1.2 : 1);
 
 export const updateEffects = (w) => {

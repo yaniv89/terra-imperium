@@ -155,14 +155,24 @@ export const UNIT_ROSTER = {
     siege: rosterEntry('Field Cannon', 'gunpowder'),
     naval: rosterEntry('Frigate', 'gunpowder')
   },
+  // Modern is the 20th century; today's units are the Information roster (eight ages U50, KTD15).
   modern: {
-    infantry: rosterEntry('Mechanized Infantry', 'modern'),
+    infantry: rosterEntry('Rifle Infantry', 'modern'), // the plan's Infantry, named apart from the class
     cavalry: rosterEntry('Tanks', 'modern'),
-    ranged: rosterEntry('ATGM Teams', 'modern'),
+    ranged: rosterEntry('Machine Gun Teams', 'modern'),
     siege: rosterEntry('Artillery', 'modern'),
     naval: rosterEntry('Destroyer', 'modern'),
-    air: rosterEntry('Fighter Jet', 'modern'),
-    support: rosterEntry('Anti-Air Battery', 'modern')
+    air: rosterEntry('Fighters', 'modern'),
+    support: rosterEntry('AA Guns', 'modern')
+  },
+  information: {
+    infantry: rosterEntry('Mechanized Infantry', 'information'),
+    cavalry: rosterEntry('Main Battle Tanks', 'information'),
+    ranged: rosterEntry('ATGM Teams', 'information'),
+    siege: rosterEntry('Rocket Artillery', 'information'),
+    naval: rosterEntry('Guided-Missile Destroyer', 'information'),
+    air: rosterEntry('Strike Drones', 'information'),
+    support: rosterEntry('SAM Battery', 'information')
   }
 };
 

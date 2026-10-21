@@ -3,7 +3,7 @@ import { eventTechsNeeded, ageIdOfYear, HISTORICAL_EVENTS } from './events';
 import { storyDue, storyCard, nextStory } from '../engine/eventDeck';
 import { PEOPLES_LIST } from './peoples';
 import { getTiles } from './geo/tiles';
-import { START_YEAR, END_YEAR, AGE_ORDER, AGES } from './ages';
+import { START_YEAR, END_YEAR, AGE_ORDER, AGES, LAST_AGE_ID } from './ages';
 import { getTechsForAge } from './techTree';
 import { EVENT_CHAINS } from './eventChains';
 import { REGIONS_DATA, getNationCapital } from './regions';
@@ -66,7 +66,8 @@ describe('story cards (keyed by the player age and progress)', () => {
     expect(storyDue(playerAt('kingdoms', 10), storyCard(gunpowder1700))).toBe(false);
   });
   it('the last age holds its end year', () => {
-    expect(ageIdOfYear(AGES.modern.endYear)).toBe('modern');
+    expect(ageIdOfYear(AGES[LAST_AGE_ID].endYear)).toBe(LAST_AGE_ID);
+    expect(ageIdOfYear(AGES.modern.endYear - 1)).toBe('modern');
     expect(ageIdOfYear(1500)).toBe('gunpowder');
     expect(ageIdOfYear(1499)).toBe('kingdoms');
   });
@@ -132,7 +133,7 @@ describe('nextStory against real HISTORICAL_EVENTS content', () => {
       firedEvents = { ...firedEvents, [event.id]: true };
     }
     expect(order.length).toBeGreaterThan(0);
-    expect(order.every(e => e.ageId === 'modern')).toBe(true);
+    expect(order.every(e => e.ageId === LAST_AGE_ID)).toBe(true);
     expect(order.map(e => e.year)).toEqual([...order.map(e => e.year)].sort((x, y) => x - y));
   });
 });

@@ -205,7 +205,7 @@ const tryConstructBuilding = (state, nation, regions) => {
   for (const categoryId of priority) {
     if (BUILDING_CATEGORIES[categoryId]?.coastalOnly && !REGIONS_DATA[regionId]?.isCoastal) continue;
     const currentTier = region.buildings?.categories?.[categoryId] ?? -1;
-    if (currentTier === -1 && used >= slots) continue; // no free slot for a brand-new category
+    if (currentTier === -1 && used >= slots && !BUILDING_CATEGORIES[categoryId]?.freeSlot) continue; // no free slot for a brand-new category
     const nextTier = currentTier + 1;
     if (!canBuildTier(categoryId, researchedSet, nextTier)) continue;
     const cost = getBuildingTierCost(categoryId, nextTier, buildingCostMult);

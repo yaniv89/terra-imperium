@@ -52,5 +52,6 @@ export const TECH_MAP_EFFECTS = {
   science_scientific_method: { label: 'Half the food stays when a city grows', granaryKeep: 0.25 },
   science_calculus: { label: 'Fleets sail one tile further a turn', navalMoves: 102 },
   science_computing: { label: 'Everything in sight reaches one tile further', sight: 102 },
-  science_genomics: { label: 'Stacks hold two more units', stackCap: 2 }
+  science_genomics: { label: 'Stacks hold two more units', stackCap: 2 },
+  military_unmanned_systems: { label: 'Armies see one tile further', sight: 102 } // drones scout (U49)
 };

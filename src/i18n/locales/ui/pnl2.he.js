@@ -64,6 +64,7 @@ export default {
   'p2.ageShort.kingdoms': 'ממלכות',
   'p2.ageShort.gunpowder': 'אבק שריפה',
   'p2.ageShort.modern': 'מודרני',
+  'p2.ageShort.information': 'מידע',
   'p2.web.lines': 'קווים',
   'p2.web.web': 'רשת',
   'p2.web.known': 'ידועה',

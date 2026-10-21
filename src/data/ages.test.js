@@ -36,6 +36,10 @@ describe('game speed (KTD9: a cost multiplier per age, a turn limit, no years pe
     expect(['fast', 'normal', 'marathon'].map((sp) => speedCostMult(sp, 'stone'))).toEqual([0.8, 1.6, 2]);
   });
 
+  it('gives the Information Age its multipliers (KTD9)', () => {
+    expect(['fast', 'normal', 'marathon'].map((sp) => speedCostMult(sp, 'information'))).toEqual([1, 2, 2]);
+  });
+
   it('keeps the values the old calendar gave Bronze to Modern exactly', () => {
     const old = { bronze: 40, classical: 20, kingdoms: 10, gunpowder: 4, modern: 2 };
     const years = { fast: { bronze: 50, classical: 25, kingdoms: 12, gunpowder: 5, modern: 2 }, normal: { bronze: 25, classical: 12, kingdoms: 6, gunpowder: 2, modern: 1 }, marathon: { bronze: 10, classical: 5, kingdoms: 3, gunpowder: 1, modern: 1 } };
@@ -98,7 +102,8 @@ describe('age registry helpers', () => {
 
   it("holds each age's unit power and cost, equal to the old position formulas", () => {
     expect(AGES.stone.power).toEqual({ attack: 7, defense: 6 }); // KTD21
-    agesFrom('bronze').forEach((id, i) => {
+    expect(AGES.information.power).toEqual({ attack: 52, defense: 40 });
+    AGE_ORDER.slice(getAgeIndex('bronze'), getAgeIndex('modern') + 1).forEach((id, i) => {
       expect(AGES[id].power, id).toEqual({ attack: 10 + i * 8, defense: 8 + i * 6 });
       expect(AGES[id].unitCostMult, id).toBe(1 + 0.6 * i);
     });
@@ -127,11 +132,11 @@ describe('artAgeFor (KTD14 art fallback)', () => {
 describe('tech tree listed by age', () => {
   it('keeps every tech id, in order', () => {
     expect(Object.keys(TECH_TREE)).toEqual([
-      'military_hunting_bands', 'military_copper_working', 'military_bronze_casting', 'military_composite_bow', 'military_iron_weapons', 'military_siege_engineering', 'military_feudal_levies', 'military_plate_armor', 'military_gunpowder_weapons', 'military_standing_armies', 'military_mechanized_warfare', 'military_precision_guidance',
-      'economy_agriculture', 'economy_animal_husbandry', 'economy_bronze_trade_routes', 'economy_granary_storage', 'economy_minted_coinage', 'economy_silk_road_trade', 'economy_guild_charters', 'economy_banking_houses', 'economy_joint_stock_companies', 'economy_colonial_trade', 'economy_industrial_capital', 'economy_global_markets',
-      'infrastructure_pottery', 'infrastructure_the_wheel', 'infrastructure_irrigation_canals', 'infrastructure_mudbrick_roads', 'infrastructure_paved_roads', 'infrastructure_aqueducts', 'infrastructure_stone_bridges', 'infrastructure_postal_relay', 'infrastructure_canal_locks', 'infrastructure_turnpike_roads', 'infrastructure_rail_networks', 'infrastructure_highway_systems',
-      'governance_chiefdoms', 'governance_sacred_kingship', 'governance_code_of_laws', 'governance_scribal_bureaucracy', 'governance_civic_assemblies', 'governance_provincial_administration', 'governance_feudal_charters', 'governance_royal_chancery', 'governance_bureaucratic_reform', 'governance_constitutional_law', 'governance_civil_service', 'governance_digital_administration',
-      'science_star_lore', 'science_proto_writing', 'science_cuneiform_records', 'science_early_astronomy', 'science_geometry', 'science_natural_philosophy', 'science_scholastic_method', 'science_optics', 'science_scientific_method', 'science_calculus', 'science_computing', 'science_genomics'
+      'military_hunting_bands', 'military_copper_working', 'military_bronze_casting', 'military_composite_bow', 'military_iron_weapons', 'military_siege_engineering', 'military_feudal_levies', 'military_plate_armor', 'military_gunpowder_weapons', 'military_standing_armies', 'military_mechanized_warfare', 'military_combined_arms', 'military_precision_guidance', 'military_unmanned_systems',
+      'economy_agriculture', 'economy_animal_husbandry', 'economy_bronze_trade_routes', 'economy_granary_storage', 'economy_minted_coinage', 'economy_silk_road_trade', 'economy_guild_charters', 'economy_banking_houses', 'economy_joint_stock_companies', 'economy_colonial_trade', 'economy_industrial_capital', 'economy_mass_production', 'economy_global_markets', 'economy_digital_economy',
+      'infrastructure_pottery', 'infrastructure_the_wheel', 'infrastructure_irrigation_canals', 'infrastructure_mudbrick_roads', 'infrastructure_paved_roads', 'infrastructure_aqueducts', 'infrastructure_stone_bridges', 'infrastructure_postal_relay', 'infrastructure_canal_locks', 'infrastructure_turnpike_roads', 'infrastructure_rail_networks', 'infrastructure_highway_systems', 'infrastructure_telecom_networks', 'infrastructure_smart_grids',
+      'governance_chiefdoms', 'governance_sacred_kingship', 'governance_code_of_laws', 'governance_scribal_bureaucracy', 'governance_civic_assemblies', 'governance_provincial_administration', 'governance_feudal_charters', 'governance_royal_chancery', 'governance_bureaucratic_reform', 'governance_constitutional_law', 'governance_civil_service', 'governance_mass_politics', 'governance_digital_administration', 'governance_global_institutions',
+      'science_star_lore', 'science_proto_writing', 'science_cuneiform_records', 'science_early_astronomy', 'science_geometry', 'science_natural_philosophy', 'science_scholastic_method', 'science_optics', 'science_scientific_method', 'science_calculus', 'science_nuclear_physics', 'science_computing', 'science_genomics', 'science_artificial_intelligence'
     ]);
   });
   it('ten techs an age, two per line, the second after the first', () => {

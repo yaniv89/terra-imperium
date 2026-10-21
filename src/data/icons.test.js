@@ -25,9 +25,13 @@ import { BUILDING_MODEL_IDS } from '../components/map/closeView/buildingModels';
 
 // Ids with no delivered art, on purpose: each falls back to its old glyph (src/components/ui/icons.jsx).
 const NO_ART = {
-  buildings: ['cathedral'], // not in the delivery yet: the line's old silhouette stays
+  buildings: ['cathedral', // not in the delivery yet: the line's old silhouette stays
+    // Information tiers and the Energy line (eight ages U51): no art made yet
+    'vertical_farm', 'tech_hub', 'simulation_center', 'supercomputer_center', 'automated_plant', 'media_center', 'drone_port', 'logistics_hub',
+    'coal_plant', 'oil_plant', 'nuclear_plant', 'power_grid'],
   units: ['naval'], // drawn by its line (ships)
-  wonders: ['solomons_temple', 'masada'] // scenario wonders outside art spec section 5: lucide glyphs
+  wonders: ['solomons_temple', 'masada', // scenario wonders outside art spec section 5: lucide glyphs
+    'world_wide_web', 'large_hadron_collider', 'global_seed_vault'] // Information: no icon art yet (their models are held art)
 };
 
 describe('icon index', () => {

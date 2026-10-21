@@ -40,12 +40,23 @@ export const AGE_OVERRIDES = {
     infantry: { range: 4 * Q, melee: false, attackTicks: S(1.6) },
     cavalry: { speed: T(3.0) }
   },
+  // Modern (U50): Machine Gun Teams suppress what they hit (`suppress` ticks: it fires slower,
+  // sim/effects.js attackRateMult).
   modern: {
     infantry: { range: 5 * Q, melee: false, speed: T(1.9), attackTicks: S(1.0) },
     cavalry: { range: 6 * Q, melee: false, speed: T(3.0), soldiers: 4, attackTicks: S(1.8), charge: false },
-    ranged: { range: 9 * Q, attackTicks: S(2.0) },
+    ranged: { range: 9 * Q, attackTicks: S(2.0), suppress: S(2) },
     support: { range: 8 * Q, attackTicks: S(1.0), airOnly: true, supplyAura: 0 }
   }
+};
+// Information (U50): guided weapons land their first shot harder (`precision`, sim/combat.js);
+// Strike Drones are a swarm of small, quick, fragile craft; a SAM Battery reaches further.
+AGE_OVERRIDES.information = {
+  ...AGE_OVERRIDES.modern,
+  ranged: { range: 9 * Q, attackTicks: S(2.0), precision: 1.5 },
+  siege: { precision: 1.5 },
+  air: { speed: T(5.5), range: 5 * Q, attackTicks: S(1.0), soldiers: 6, moraleLoss: 1.25 },
+  support: { ...AGE_OVERRIDES.modern.support, range: 10 * Q }
 };
 
 export const getBattleStats = (classId, ageId) => ({ ...(CLASS_BASE[classId] || CLASS_BASE.infantry), ...(AGE_OVERRIDES[ageId]?.[classId] || {}) });
@@ -62,7 +73,8 @@ export const NAVAL_LINE_STATS = {
     classical: { ...SHIP, speed: T(2.3), range: MELEE_REACH, sight: 8, attackTicks: S(1.1), melee: true, charge: true },
     kingdoms: { ...SHIP, speed: T(2.0), range: 3 * Q, sight: 9, attackTicks: S(1.4), melee: false },
     gunpowder: { ...SHIP, speed: T(2.4), range: 6 * Q, sight: 10, attackTicks: S(2.0), melee: false },
-    modern: { ...SHIP, speed: T(4.0), range: 10 * Q, sight: 12, attackTicks: S(1.6), melee: false }
+    modern: { ...SHIP, speed: T(4.0), range: 10 * Q, sight: 12, attackTicks: S(1.6), melee: false },
+    information: { ...SHIP, speed: T(4.0), range: 10 * Q, sight: 12, attackTicks: S(1.6), melee: false }
   },
   transport: {
     stone: { ...SHIP, speed: T(1.6), range: MELEE_REACH, sight: 6, attackTicks: S(1.5), melee: true },
@@ -70,7 +82,8 @@ export const NAVAL_LINE_STATS = {
     classical: { ...SHIP, speed: T(2.0), range: MELEE_REACH, sight: 7, attackTicks: S(1.4), melee: true },
     kingdoms: { ...SHIP, speed: T(1.8), range: 2 * Q, sight: 8, attackTicks: S(1.6), melee: false },
     gunpowder: { ...SHIP, speed: T(2.0), range: 4 * Q, sight: 8, attackTicks: S(2.4), melee: false },
-    modern: { ...SHIP, speed: T(3.0), range: 5 * Q, sight: 9, attackTicks: S(2.0), melee: false }
+    modern: { ...SHIP, speed: T(3.0), range: 5 * Q, sight: 9, attackTicks: S(2.0), melee: false },
+    information: { ...SHIP, speed: T(3.0), range: 5 * Q, sight: 9, attackTicks: S(2.0), melee: false }
   },
   raider: {
     stone: { ...SHIP, speed: T(2.4), range: MELEE_REACH, sight: 9, attackTicks: S(1.2), melee: true },
@@ -78,10 +91,12 @@ export const NAVAL_LINE_STATS = {
     classical: { ...SHIP, speed: T(2.8), range: MELEE_REACH, sight: 10, attackTicks: S(1.1), melee: true, charge: true },
     kingdoms: { ...SHIP, speed: T(2.6), range: 3 * Q, sight: 11, attackTicks: S(1.3), melee: false },
     gunpowder: { ...SHIP, speed: T(3.0), range: 5 * Q, sight: 12, attackTicks: S(1.8), melee: false },
-    modern: { ...SHIP, speed: T(3.4), range: 8 * Q, sight: 13, attackTicks: S(2.2), melee: false }
+    modern: { ...SHIP, speed: T(3.4), range: 8 * Q, sight: 13, attackTicks: S(2.2), melee: false },
+    information: { ...SHIP, speed: T(3.4), range: 8 * Q, sight: 13, attackTicks: S(2.2), melee: false }
   },
   carrier: {
-    modern: { ...SHIP, speed: T(3.0), range: 11 * Q, sight: 14, attackTicks: S(2.4), melee: false }
+    modern: { ...SHIP, speed: T(3.0), range: 11 * Q, sight: 14, attackTicks: S(2.4), melee: false },
+    information: { ...SHIP, speed: T(3.0), range: 11 * Q, sight: 14, attackTicks: S(2.4), melee: false }
   }
 };
 /** The stats of a ship squad: its line's entry for the age, else the nearest earlier age's. */

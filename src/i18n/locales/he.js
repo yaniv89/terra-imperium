@@ -568,6 +568,7 @@ export default {
   'age.kingdoms': 'תקופת הממלכות',
   'age.gunpowder': 'תקופת אבק השריפה',
   'age.modern': 'העת החדשה',
+  'age.information': 'עידן המידע',
 
   // ---- tab rail, resources, map card (H2) ----
   'rail.panels': 'לוחות',

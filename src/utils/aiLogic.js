@@ -72,7 +72,8 @@ export const AI_MAX_STANDING_UNITS_BY_AGE = {
   classical: 10,
   kingdoms: 14,
   gunpowder: 20,
-  modern: 30
+  modern: 30,
+  information: 34
 };
 const AI_MAX_STANDING_UNITS_DEFAULT = 8;
 const getAIMaxStandingUnits = (ageId) => AI_MAX_STANDING_UNITS_BY_AGE[ageId] || AI_MAX_STANDING_UNITS_DEFAULT;

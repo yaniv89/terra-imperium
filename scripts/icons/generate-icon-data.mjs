@@ -41,19 +41,21 @@ const UNIT_ICONS = {
   classical: { infantry: 'gladius', cavalry: 'elephant', ranged: 'bowman', siege: 'catapult', naval: 'trireme', support: 'trowel' },
   kingdoms: { infantry: 'pikeman', cavalry: 'mounted-knight', ranged: 'crossbow', siege: 'trebuchet', naval: 'drakkar', support: 'toolbox' },
   gunpowder: { infantry: 'musket', cavalry: 'saber-and-pistol', ranged: 'crossed-pistols', siege: 'cannon', naval: 'galleon', support: 'dynamite' },
-  modern: { infantry: 'rifle', cavalry: 'battle-tank', ranged: 'machine-gun', siege: 'artillery-shell', naval: 'battleship', air: 'jet-fighter', support: 'anti-aircraft-gun' }
+  modern: { infantry: 'rifle', cavalry: 'battle-tank', ranged: 'machine-gun', siege: 'artillery-shell', naval: 'battleship', air: 'jet-fighter', support: 'anti-aircraft-gun' },
+  information: { infantry: 'kevlar-vest', cavalry: 'tank', ranged: 'missile-launcher', siege: 'missile-pod', naval: 'battleship', air: 'delivery-drone', support: 'radar-sweep' }
 };
 
 const BUILDING_ICONS = {
-  food: { stone: 'dig-hole', bronze: 'wheat', classical: 'aqueduct', kingdoms: 'windmill', gunpowder: 'granary', modern: 'farm-tractor' },
-  economy: { classical: 'trade', kingdoms: 'coins-pile', gunpowder: 'bank', modern: 'banknote' },
-  military: { stone: 'stone-axe', bronze: 'battle-axe', classical: 'spartan-helmet', gunpowder: 'crossed-sabres', modern: 'brodie-helmet' },
-  defense: { stone: 'spiky-pit', bronze: 'stone-wall', classical: 'roman-shield', gunpowder: 'defensive-wall', modern: 'bunker' },
-  science: { stone: 'stone-tablet', classical: 'scroll-unfurled', kingdoms: 'open-book', gunpowder: 'bubbling-flask', modern: 'observatory' },
-  industry: { classical: 'anvil', gunpowder: 'factory', modern: 'factory-arm' },
-  culture: { stone: 'menhir', bronze: 'egyptian-temple', classical: 'greek-temple', kingdoms: 'saint-basil-cathedral', modern: 'theater-curtains' },
-  naval: { stone: 'canoe', classical: 'wooden-pier', kingdoms: 'harbor-dock', gunpowder: 'anchor', modern: 'cargo-ship' },
-  logistics: { stone: 'stone-stack', bronze: 'old-wagon', kingdoms: 'mine-wagon', modern: 'forklift' }
+  food: { stone: 'dig-hole', bronze: 'wheat', classical: 'aqueduct', kingdoms: 'windmill', gunpowder: 'granary', modern: 'farm-tractor', information: 'greenhouse' },
+  economy: { classical: 'trade', kingdoms: 'coins-pile', gunpowder: 'bank', modern: 'banknote', information: 'cpu' },
+  military: { stone: 'stone-axe', bronze: 'battle-axe', classical: 'spartan-helmet', gunpowder: 'crossed-sabres', modern: 'brodie-helmet', information: 'radar-dish' },
+  defense: { stone: 'spiky-pit', bronze: 'stone-wall', classical: 'roman-shield', gunpowder: 'defensive-wall', information: 'bunker' },
+  science: { stone: 'stone-tablet', classical: 'scroll-unfurled', kingdoms: 'open-book', gunpowder: 'bubbling-flask', modern: 'observatory', information: 'server-rack' },
+  industry: { classical: 'anvil', gunpowder: 'factory', modern: 'factory-arm', information: 'robot-grab' },
+  culture: { stone: 'menhir', bronze: 'egyptian-temple', classical: 'greek-temple', kingdoms: 'saint-basil-cathedral', modern: 'theater-curtains', information: 'tv' },
+  naval: { stone: 'canoe', classical: 'wooden-pier', kingdoms: 'harbor-dock', gunpowder: 'anchor', modern: 'cargo-ship', information: 'delivery-drone' },
+  logistics: { stone: 'stone-stack', bronze: 'old-wagon', kingdoms: 'mine-wagon', modern: 'forklift', information: 'cargo-crate' },
+  energy: { gunpowder: 'coal-wagon', modern: 'power-generator', information: 'power-lightning' } // Oil and Nuclear Plant share Modern's
 };
 
 const EXTRACTION_ICONS = { copper: 'ore', iron: 'minerals', oil: 'oil-rig' };

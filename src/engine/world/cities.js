@@ -76,7 +76,7 @@ export const PALACE_YIELDS = { gold: 4, production: 2, science: 2, culture: 1 };
 // 150 km grid was half the size of France); the two border techs add about 100 km each
 // (techMapEffects borderRing, in km), capped at BORDER_KM_MAX. In km, as rings of the loaded grid
 // (gridScale.js): 2 and 3 rings at frequency 75, 3 and 4 at frequency 100.
-export const BORDER_KM_BY_AGE = { stone: 204, bronze: 204, classical: 204, kingdoms: 204, gunpowder: 204, modern: 204 };
+export const BORDER_KM_BY_AGE = { stone: 204, bronze: 204, classical: 204, kingdoms: 204, gunpowder: 204, modern: 204, information: 204 };
 export const BORDER_KM_MAX = 306;
 export const BORDER_RING_BY_AGE = Object.fromEntries(Object.entries(BORDER_KM_BY_AGE).map(([age, km]) => [age, ringsForKm(km)]));
 export const BORDER_RING_MAX = ringsForKm(BORDER_KM_MAX);
@@ -361,7 +361,7 @@ export const cityYields = (city, tiles, world, worked, researched = [], ctx = {}
   const foodTier = (city.buildings?.categories?.food ?? -1) + 1;
   const dm = disasterMults(city, ctx.turnNumber); // a flood or a fire (cityDisasters.js)
   const food = Math.round((sum.food * dm.food + foodTier + (ctx.foodBonus || 0) + (city.marketFood || 0) - FOOD_PER_CITIZEN * city.size) * 10) / 10; // marketFood: world/market.js
-  const production = Math.round((sum.production + palace.production) * (1 + tierEffect(city, 'industry', 'local.productionIncome') + (ctx.productionMult || 0)) * dm.production * 10) / 10;
+  const production = Math.round((sum.production + palace.production) * (1 + tierEffect(city, 'industry', 'local.productionIncome') + tierEffect(city, 'energy', 'local.productionIncome') + (ctx.productionMult || 0)) * dm.production * 10) / 10;
   const gold = Math.round(((sum.gold + palace.gold) * (1 + tierEffect(city, 'economy', 'local.taxIncome') + (ctx.goldMult || 0)) + tierEffect(city, 'economy', 'local.flatGold') + tierEffect(city, 'industry', 'local.flatGold') + tierEffect(city, 'naval', 'local.tradeIncome')) * 10) / 10;
   // The ruler (lawRules.js rulerCityCtx): Learning and the Sage virtues.
   const science = Math.round(((SCIENCE_PER_SIZE * city.size + palace.science + tierEffect(city, 'science', 'local.techPoints') + districts.science) * (1 + (ctx.scienceMult || 0)) + (city.isCapital ? ctx.capitalScience || 0 : 0)) * 10) / 10;
