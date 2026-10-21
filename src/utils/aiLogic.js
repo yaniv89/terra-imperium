@@ -253,6 +253,8 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
   const nextUnits = { ...units };
   const nextNations = { ...nations };
   const logs = [];
+  const standing = new Map(); // units per owner, kept with nextUnits (one walk instead of one per nation)
+  Object.values(nextUnits).forEach((u) => standing.set(u.ownerId, (standing.get(u.ownerId) || 0) + 1));
 
   Object.keys(nations).forEach(nationId => {
     const nation = nextNations[nationId];
@@ -265,7 +267,7 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
     const usesRealEconomy = !!nation.economy;
     const ageId = ageOf(state, nationId);
     if (usesRealEconomy ? !canAffordAIRecruit(nation, state, ageId) : nation.militaryStrength < AI_RECRUIT_MILITARY_STRENGTH_COST) return;
-    const standingCount = Object.values(nextUnits).filter(u => u.ownerId === nationId).length;
+    const standingCount = standing.get(nationId) || 0;
     if (standingCount >= getAIMaxStandingUnits(ageId)) return;
     if (rng.next() >= AI_RECRUIT_CHANCE) return;
 
@@ -275,6 +277,9 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
     if (!regionId) return;
 
     const unitId = `unit_ai_${nationId}_${state.turnNumber}`;
+    const replaced = nextUnits[unitId];
+    if (replaced) standing.set(replaced.ownerId, standing.get(replaced.ownerId) - 1);
+    standing.set(nationId, (standing.get(nationId) || 0) + 1);
     nextUnits[unitId] = {
       id: unitId, regionId, homeRegionId: regionId, tile: regions[regionId]?.tile ?? null, ownerId: nationId, domain: 'land', classId,
       strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1,

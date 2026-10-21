@@ -106,7 +106,7 @@ export const aiSally = (state, nationId, rng, byTile = null) => {
   let next = state;
   const tiles = getTiles();
   const camped = (c) => c.tile != null && !!byTile && tiles.neighbors[c.tile].some((t) => (byTile.get(t) || []).some((u) => u.ownerId !== nationId));
-  for (const city of Object.values(state.regions).filter((c) => c.owner === nationId && (c.siege?.by || camped(c))).sort((a, b) => (a.id < b.id ? -1 : 1))) {
+  for (const city of getOwnedRegionIds(state.regions, nationId).map((id) => state.regions[id]).filter((c) => c.siege?.by || camped(c)).sort((a, b) => (a.id < b.id ? -1 : 1))) {
     const by = besiegersOf(next, city);
     if (!by.size) continue;
     const garrison = Object.values(next.units).filter((u) => u.ownerId === nationId && u.regionId === city.id && u.domain === 'land' && !u.embarkedOn && u.classId !== 'settler' && u.strength > 0 && (u.movesLeft ?? 1) > 0 && unitTile(next, u) === city.tile);
