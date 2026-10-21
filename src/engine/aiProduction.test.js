@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { getNeighborIds } from '../data/regions';
 import { neighbourWorld, rivalOf, majorIds } from './testWorld';
-import { buildingOrder, BUILDING_PRIORITY, chooseProduction } from './aiProduction';
+import { buildingOrder, BUILDING_PRIORITY, chooseProduction, garrisonOf } from './aiProduction';
 import { DOCTRINE_BUILDING_PRIORITY, DOCTRINE_IDS } from '../data/nations';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 import { TECH_TREE } from '../data/techTree';
@@ -54,6 +54,27 @@ describe('AI production by utility (plans/math/ai.md)', () => {
   };
   const ctx = (st, landUnits = 9, researched = ALL_TECHS) => ({ researched, ageId: 'bronze', citiesOwned: 1, turnNumber: 2, units: st.units, counts: { settlers: 1, outposts: 0, landUnits } });
 
+  // Follow-up 21: the idle-city queue left empty border cities to fall to the first siege.
+  it('an empty city trains a defender first: at war above every building, in peace beside an independent under the cap', () => {
+    const { st, city } = setup('cautious');
+    const units = {}; // nobody based in the city
+    expect(garrisonOf(units, city.id, D)).toBe(0);
+    const war = { ...st, units, wars: [{ id: 'w', active: true, aggressor: FAR, enemy: D }] };
+    expect(chooseProduction(war, city, { ...ctx(war, 1), citiesOwned: 3 })).toMatchObject({ kind: 'unit' }); // the army's mix: archers first here (RANGED_SHARE)
+    // Berlin borders the player: in peace a major neighbour must declare war first, so it builds...
+    const peace = { ...st, units };
+    expect(chooseProduction(peace, city, { ...ctx(peace, 1), citiesOwned: 3 }).kind).toBe('building');
+    // ...but beside an independent (who raids without a war) it trains one while under the army cap, not at it.
+    const indep = { ...peace, nations: { ...peace.nations, [P]: { ...peace.nations[P], kind: 'independent' } } };
+    expect(chooseProduction(indep, city, { ...ctx(indep, 1), citiesOwned: 3 })).toMatchObject({ kind: 'unit' });
+    expect(chooseProduction(indep, city, { ...ctx(indep, 3), citiesOwned: 3 }).kind).toBe('building');
+    const held = { ...st, wars: war.wars, units: { g: { id: 'g', ownerId: D, regionId: city.id, domain: 'land', classId: 'infantry' } } };
+    expect(garrisonOf(held.units, city.id, D)).toBe(1);
+    // At war with the army at its cap: the empty city still trains one, the held one builds.
+    expect(chooseProduction({ ...war }, city, { ...ctx(war, 3), citiesOwned: 3 })).toMatchObject({ kind: 'unit' });
+    expect(chooseProduction(held, city, { ...ctx(held, 3), citiesOwned: 3 }).kind).toBe('building');
+  });
+
   it('a starving city builds food before its doctrine\'s first line', () => {
     const { st, city } = setup('cautious', { lastYields: { production: 30, food: -1 } });
     expect(chooseProduction(st, city, ctx(st))).toMatchObject({ kind: 'building', category: 'food' });
@@ -68,7 +89,9 @@ describe('AI production by utility (plans/math/ai.md)', () => {
     const { st: s0, city } = setup('attrition');
     const war = { ...s0, wars: [{ id: 'w', active: true, aggressor: FAR, enemy: D }] };
     expect(chooseProduction(war, city, ctx(war, 0))).toMatchObject({ kind: 'unit' });
-    expect(chooseProduction(s0, city, ctx(s0, 0)).kind).toBe('building');
+    // In peace a city with a regiment at home builds first (an empty border city trains its defender: below).
+    const held = { ...s0, units: { g: { id: 'g', ownerId: D, regionId: city.id, domain: 'land', classId: 'infantry' } } };
+    expect(chooseProduction(held, city, ctx(held, 0)).kind).toBe('building');
   });
   it('from Modern an army at war keeps a share of aircraft beside its archers (U57)', () => {
     const { st: s0, city } = setup('attrition');

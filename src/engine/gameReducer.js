@@ -2224,7 +2224,7 @@ const reduceAction = (state, action) => {
         nations: refreshWarFlags(nextNations, endWar(state.wars, war.id), [war.aggressor, war.enemy]),
         wars: endWar(state.wars, war.id),
         pendingPeaceOffer: null,
-        logs: [...state.logs, { year: state.year, ...msg('m.act.peaceAccepted', { nation: people(offer.from, nextNations[offer.from]?.name || offer.from) }), type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.peaceAccepted', { nation: people(offer.from, nextNations[offer.from]?.name || offer.from) }), type: LogTypes.DIPLOMACY }, ...applied.logs]
       };
     }
 

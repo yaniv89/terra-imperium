@@ -38,6 +38,7 @@ import { DOCTRINE_WONDERS, DOCTRINE_BUILDING_PRIORITY } from '../data/nations';
 import { rulerBuildOrder } from './rulerBias';
 import { getNeighborIds } from '../data/regions';
 import { claimsInProgressOf } from './claims';
+import { canFight } from './hostility';
 
 export const SETTLER_FROM_SIZE = 2;
 export const SETTLER_THINK_PERIOD = 3; // a city looks for a site one turn in three (the site search is the costly part)
@@ -67,6 +68,13 @@ export const ARMING_UNIT_UTILITY = 1.1;
 export const WAR_UNIT_UTILITY = 1.6;
 export const GARRISON_UNIT_UTILITY = 1.4; // an independent below its garrison target trains first (independents.js)
 export const MUSTER_UNIT_UTILITY = 1.6; // a major mustering against an independent (phase W3, indepPolicy.js) trains as at war
+// A city with no land unit of its own (follow-up 21: the idle-city queue left border cities empty
+// and they fell to the first siege or raid) trains a defender first: DEFEND_UNIT_UTILITY at war
+// (above every building and the settler), up to the army cap plus one per city; in peace a city
+// touching one that may attack it without a war (an independent's: hostility.js canFight) at
+// BORDER_DEFEND_UTILITY, under the cap. (Every border, majors at peace too, doubled AI wars in the sim.)
+export const DEFEND_UNIT_UTILITY = 2.5;
+export const BORDER_DEFEND_UTILITY = 1.4;
 // Resource improvements (lead's ruling, lane W6): a resource on the city's land pays only with its
 // improvement (cityEconomy.js resourceNeed: a luxury's amenity and gold, a strategic resource's
 // supply, a bonus's yields), and the AI never built one, so its luxuries and iron did nothing. A
@@ -99,6 +107,19 @@ export const nationCounts = (state) => {
     else if (c.production?.current?.kind === 'unit') of(c.owner).queuedUnits += 1; // regiments in training (a war plan counts them)
   });
   return out;
+};
+
+// Land units (not settlers) per city they are based in, once per units map: the garrison readers
+// (invasion.js, defense.js) count a city's defenders by unit.regionId.
+const garrisonCache = new WeakMap();
+export const garrisonOf = (units, cityId, ownerId) => {
+  let m = garrisonCache.get(units);
+  if (!m) {
+    m = new Map();
+    Object.values(units).forEach((u) => { if (u.domain === 'land' && u.classId !== 'settler' && u.regionId != null) { const k = `${u.ownerId}|${u.regionId}`; m.set(k, (m.get(k) || 0) + 1); } });
+    garrisonCache.set(units, m);
+  }
+  return m.get(`${ownerId}|${cityId}`) || 0;
 };
 
 /** The item an AI city with an empty queue should build, or null. `ctx`: { researched, ageId,
@@ -229,12 +250,21 @@ export const chooseProduction = (state, city, ctx) => {
   // Under a war plan the regiments already in training count toward its cap: every idle city queued
   // one at once against the same count and the army overshot what the budget carries.
   const fielded = counts.landUnits + (plan && unitCap === plan.cap ? counts.queuedUnits || 0 : 0);
-  if (fielded < unitCap && classes.includes('infantry')) {
+  // An empty city trains its defender first (see DEFEND_UNIT_UTILITY), in the army's usual mix
+  // (archers and aircraft by their shares), never a siege engine.
+  let defend = 0;
+  if (!independent && classes.includes('infantry') && garrisonOf(units, city.id, nationId) === 0) {
+    const queued = counts.landUnits + (counts.queuedUnits || 0);
+    if (sit.atWar) defend = queued < unitCap + ctx.citiesOwned ? DEFEND_UNIT_UTILITY : 0;
+    else if (queued < unitCap && getNeighborIds(city.id).some((n) => canFight(state, state.regions[n]?.owner, nationId))) defend = BORDER_DEFEND_UTILITY;
+  }
+  if ((fielded < unitCap || defend) && classes.includes('infantry')) {
     const mounted = independent && ctx.personality === 'raiders' && counts.landUnits >= ctx.garrisonTarget && classes.includes('cavalry');
-    const score = independent ? GARRISON_UNIT_UTILITY : muster ? MUSTER_UNIT_UTILITY : sit.atWar ? WAR_UNIT_UTILITY : sit.arming ? ARMING_UNIT_UTILITY : UNIT_UTILITY;
+    const usual = fielded < unitCap ? (independent ? GARRISON_UNIT_UTILITY : muster ? MUSTER_UNIT_UTILITY : sit.atWar ? WAR_UNIT_UTILITY : sit.arming ? ARMING_UNIT_UTILITY : UNIT_UTILITY) : 0;
+    const score = Math.max(usual, defend);
     if (score > bestScore) {
       const options = [];
-      if (plan && plan.siege && !(counts.siege > 0) && classes.includes('siege')) options.push('siege');
+      if (score === usual && plan && plan.siege && !(counts.siege > 0) && classes.includes('siege')) options.push('siege');
       if (!independent && classes.includes('ranged') && (counts.ranged || 0) < RANGED_SHARE * (counts.landUnits + 1)) options.push('ranged');
       if (!independent && classes.includes('air') && (counts.air || 0) < AIR_SHARE * (counts.landUnits + 1)) options.push('air');
       options.push(mounted ? 'cavalry' : 'infantry');
