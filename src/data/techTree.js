@@ -144,13 +144,17 @@ const TECH_EFFECTS = {
   'Artificial Intelligence': { techPointsMult: 0.25, researchCost: -0.10 },
   // Future (eight-ages plan U65, effects from plans/eras-origins-and-future.md 5.4; admBonus maps
   // to decreePace per KTD20). Directed Energy, Fusion Power, Orbital Infrastructure and Planetary
-  // Federation pay through what they unlock (U69, U71); the two robot techs through U67.
+  // Federation pay through what they unlock (U69, U71). Until the robot variants (U67) and the
+  // Planetary Council (U71) exist, the robot techs and Planetary Federation carry a small effect.
   'Powered Exoskeletons': { hrMult: -0.2 }, // fewer, stronger soldiers
   'Automated Industry': { goldMult: 0.25 }, // the automation meter comes with U70
   'Post-Scarcity Fabrication': { goldMult: 0.25, stabilityBonus: 1 },
   'Algorithmic Governance': { decreePace: 1, developmentCost: -0.25 },
   'Quantum Computing': { techPointsMult: 0.30 },
-  'Synthetic Biology': { popGrowthBonus: 0.003 }
+  'Synthetic Biology': { popGrowthBonus: 0.003 },
+  'Planetary Federation': { opinion: 2 },
+  'Autonomous Warfare': { hrMult: 0.1 }, // machines fill the ranks; U67 turns the roster into robots
+  'Machine Consciousness': { techPointsMult: 0.1 }
 };
 
 const slug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
