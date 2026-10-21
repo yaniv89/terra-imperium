@@ -202,6 +202,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
 
         {blockedReason && <div role="status" className="mx-2.5 mb-1.5 text-[12.5px] text-fa-brass rounded-[8px] border border-fa-brass/50 px-2.5 py-1.5" data-testid="battle-blocked-reason">{blockedReason}</div>}
         {!blockedReason && m.siegeAdvice && <div role="status" className="mx-2.5 mb-1.5 text-[12px] leading-snug text-fa-brass" data-testid="pre-battle-siege-advice">{m.siegeAdvice}</div>}
+        {!blockedReason && m.consequences.length > 0 && <div role="status" className="mx-2.5 mb-1.5 text-[11.5px] leading-snug text-fa-brass" data-testid="pre-battle-consequences">{m.consequences.map((c) => <p key={c.id} data-testid={`pre-battle-${c.id}`}>{c.text}</p>)}</div>}
         {!blockedReason && !affordable && <div role="status" className="mx-2.5 mb-1.5 text-[12.5px] text-fa-danger-text">{t('bt.pre.notEnoughLaunch')}</div>}
         {landing && blockedAtSea && <div className="mx-2.5 mb-1.5 text-[11.5px] text-fa-muted">{t('bt.pre.fleetGuardsLanding')}</div>}
         {noMansLand && (

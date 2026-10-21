@@ -28,6 +28,7 @@ import { scoutsEstimate } from './battleReportView';
 import { armyView, battleSize, cityWallsView, oddsSource, scoutsRange, siegeAdvice } from './warModel';
 import { sideAgeOf } from '../../engine/ageRefs';
 import { canPay } from '../../utils/costs';
+import { consequenceLines } from './consequenceText';
 
 const nationLabel = (state, id) => (id === 'rebels' ? t('bt.pre.rebels') : state.nations?.[id]?.name ? nameNow('people', id, state.nations[id].name) : t('bt.pre.theEnemy'));
 const verb = (name, one, many) => (/[^s]s$/.test(name) ? many : one);
@@ -132,6 +133,7 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
     },
     size,
     walls,
+    consequences: field || fleet || !v.ok ? [] : consequenceLines(state, targetRegionId),
     chance,
     // I213: a walled city and no siege engine in the army.
     siegeAdvice: walls ? siegeAdvice({ wallLevel: walls.level, units: mineUnits, ageId: myAge }) : null,

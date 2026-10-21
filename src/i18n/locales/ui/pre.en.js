@@ -311,4 +311,9 @@ export default {
   'bt.cap.waiting.two': '{count} more cities wait for your decision after this one.',
   'bt.cap.waiting.other': '{count} more cities wait for your decision after this one.',
   'bt.cap.turnWaits': 'The turn waits for this choice. It cannot be undone.',
+  'bt.pre.coalition.one': 'Taking it would anger {names}, who may join a league against you.',
+  'bt.pre.coalition.other': 'Taking it would anger {count} peoples ({names}), who may join a league against you.',
+  'bt.pre.loyaltyBreaks.one': 'Its people may rise up and leave you within {count} turn.',
+  'bt.pre.loyaltyBreaks.other': 'Its people may rise up and leave you within {count} turns.',
+  'bt.pre.loyaltyLow': 'Its people are not yours. Loyalty settles near {n} unless you garrison it.',
 };

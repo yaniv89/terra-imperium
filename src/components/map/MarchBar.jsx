@@ -14,6 +14,7 @@ import { REGIONS_DATA } from '../../data/regions';
 import { getTiles } from '../../data/geo/tiles';
 import { accessOf, marchingUnits, marchOrigin, moveNowCheck } from '../../engine/routes';
 import { attackReach } from '../../engine/marchAttack';
+import { consequenceLines } from '../battle/consequenceText';
 import { canSeeTile } from '../../engine/sight';
 import { enemyStackAt, validateFieldAttack } from '../../engine/fieldBattle';
 import { validateInvasion } from '../../engine/invasion';
@@ -68,6 +69,7 @@ export const marchBarModel = (state, march, plan) => {
     canMarchAttack: enemyCity && reach === 'far' && !!plan?.ok,
     attackBlocked,
     marchAttackBlocked,
+    consequences: enemyCity && !marchAttackBlocked && !attackBlocked ? consequenceLines(state, target) : [],
     stopsAt: plan?.ok && plan.haltAt && plan.haltAt !== target ? plan.haltAt : null
   };
 };
@@ -130,7 +132,10 @@ const MarchBar = () => {
     <div data-testid="march-bar" data-map-hud="" className="absolute left-1/2 -translate-x-1/2 top-[calc(var(--header-height,4.5rem)+0.5rem)] z-30 w-[min(560px,calc(100%-1rem))] pl:w-[min(520px,calc(100%-9rem))] rounded-xl border border-emerald-500/50 bg-fa-panel/95 shadow-2xl px-3 py-2 pl:py-1 text-[12px] pl:text-[11px] text-fa-text flex items-center gap-2">
       <Flag className="w-4 h-4 text-fa-good shrink-0" />
       {/* A phone held sideways: two lines at most, so the bar stays a strip and the route under it shows (I083); the title holds the rest. */}
-      <div className="flex-1 min-w-0 leading-snug pl:line-clamp-2" data-testid="march-line">{line}</div>
+      <div className="flex-1 min-w-0 leading-snug">
+        <div className="pl:line-clamp-2" data-testid="march-line">{line}</div>
+        {m.consequences.map((c) => <div key={c.id} className="text-fa-brass pl:line-clamp-1" data-testid={`march-${c.id}`}>{c.text}</div>)}
+      </div>
       {!naval && <button onClick={() => ctx.setPathMode(!march.pathMode)} aria-pressed={!!march.pathMode} data-testid="march-path-mode" className={`shrink-0 min-h-[36px] px-3 rounded-lg font-semibold flex items-center gap-1.5 ${march.pathMode ? 'bg-emerald-600 text-fa-text' : 'bg-fa-hover hover:bg-fa-line'}`}><Spline className="w-3.5 h-3.5" aria-hidden="true" />{t('march.path')}</button>}
       {m.canAttackNow && <button onClick={attack} disabled={!!m.attackBlocked} title={m.attackBlocked || undefined} data-testid="march-attack-now" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:hover:bg-red-600 font-semibold text-fa-text">{t('march.attack')}</button>}
       {m.canMarchAttack && (
