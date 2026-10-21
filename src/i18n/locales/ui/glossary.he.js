@@ -14,5 +14,6 @@ export default {
   'gloss.needs': 'דורשת קודם: {list}',
   'gloss.unitLine': 'יחידת {class} של {age}.',
   'gloss.power': 'התקפה {attack}, הגנה {defense}.',
+  'gloss.uncertain': 'לא ודאי',
   'gloss.open': 'למדו על {name}'
 };

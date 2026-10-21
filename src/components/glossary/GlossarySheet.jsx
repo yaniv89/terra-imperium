@@ -15,7 +15,7 @@ import GlossaryLink from './GlossaryLink';
 const joined = (nodes) => nodes.flatMap((n, i) => (i ? [', ', n] : [n]));
 
 const GlossarySheet = () => {
-  const { t, name: nm, dt } = useT();
+  const { t, lang, name: nm, dt } = useT();
   const [cur, setCur] = useState(null); // { kind, id }
   useEffect(() => {
     const onOpen = (e) => setCur(e.detail);
@@ -37,7 +37,8 @@ const GlossarySheet = () => {
   if (e.kind === 'people') {
     title = people(e.id, e.name);
     body = (<>
-      <p>{t('gloss.trueStart', { capital: city(e.capital), land: nm('land', null, e.land) })}</p>
+      {e.note && <p>{e.note[lang] || e.note.en}{e.uncertain && <small className="ml-1 opacity-70">({t('gloss.uncertain')})</small>}</p>}
+      {e.capital && e.land ? <p>{t('gloss.trueStart', { capital: city(e.capital), land: nm('land', null, e.land) })}</p> : e.founded && <p>{e.founded[lang] || e.founded.en}</p>}
       <p>{rich(t('gloss.otherCities'), { list: joined(e.cities.slice(1).map((c) => <GlossaryLink key={c} kind="city" id={c}>{city(c)}</GlossaryLink>)) })}</p>
     </>);
   } else if (e.kind === 'city') {
