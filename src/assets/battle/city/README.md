@@ -1,6 +1,7 @@
 # City destruction: walls, ruins, damaged houses, forts
 
-Read by `src/battle/render/cityLayer.js` (the battle), `src/components/map/closeView/townDamage.js`
+Files carry the age as a suffix, any of the eight (`stone bronze classical kingdoms gunpowder modern
+information future`). Read by `src/battle/render/cityLayer.js` (the battle), `src/components/map/closeView/townDamage.js`
 (the close view of the map) and `src/battle/art/structureArt.js` (forts). Rules in
 `src/battle/art/cityArt.js`. Spec: `plans/ART-MODELS-PLAN.md` section 6, `plans/ART-PRODUCTION-PLAN.md` S6, S7.
 

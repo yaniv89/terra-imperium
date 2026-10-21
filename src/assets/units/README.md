@@ -116,7 +116,7 @@ changes needed.
 | `modern-infantry.glb` | Modern infantry, e.g. a rifleman |
 | `cavalry.glb` | Cavalry of every age that has no `{age}-cavalry.glb` |
 
-Ages: `bronze classical kingdoms gunpowder modern`. Classes: `infantry ranged cavalry siege support air`.
+Ages (the eight of `src/data/ages.js`): `stone bronze classical kingdoms gunpowder modern information future`. A missing file falls back by `artAgeFor` (same unit kind only, never a later age), then to the procedural soldier. Classes: `infantry ranged cavalry siege support air`.
 
 ## Generals and signature units
 
