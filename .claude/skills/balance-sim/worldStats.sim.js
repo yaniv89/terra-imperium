@@ -106,6 +106,24 @@ const ambitionStats = (s) => {
   };
 };
 
+// AMB_DETAIL=1: per template and age, offers made, completed, and the turns each took from its offer
+// (turns <= 1 = met at once). The historical ambitions are grouped as 'historical'.
+const trackAmbitions = (s, t, seen) => {
+  Object.values(s.nations).forEach((n) => (n.ambitions?.offers || []).forEach((o) => {
+    const key = `${n.id}|${n.ambitions.ageId}|${o.id}`;
+    const e = (seen[key] ||= { id: o.id.endsWith('Ambition') ? 'historical' : o.id, age: n.ambitions.ageId, from: t, turns: null, player: n.id === s.playerNationId });
+    if (o.done && e.turns == null) e.turns = t - e.from + 1;
+  }));
+};
+const ambitionDetail = (seen) => {
+  const out = {};
+  Object.values(seen).forEach((e) => {
+    const k = `${e.id}@${e.age}`; const r = (out[k] ||= { offered: 0, done: 0, instant: 0, turns: [] });
+    r.offered += 1; if (e.turns != null) { r.done += 1; r.turns.push(e.turns); if (e.turns <= 1) r.instant += 1; }
+  });
+  return Object.fromEntries(Object.entries(out).map(([k, r]) => [k, { offered: r.offered, done: r.done, instant: r.instant, medianTurns: r.turns.sort((a, b) => a - b)[r.turns.length >> 1] ?? null }]));
+};
+
 const snapshot = (s, t, counters, ms, lives, telemetry) => {
   const regs = Object.values(s.regions);
   const nations = Object.values(s.nations);
@@ -216,6 +234,7 @@ SEEDS.forEach((seed) => {
     const lives = []; const open = {};
     Object.values(s.nations).forEach((n) => { if (!n.isEliminated) { open[n.id] = { born: 0, died: null }; lives.push(open[n.id]); } });
     let leader = null;
+    const ambSeen = {};
     let inWar = new Set(Object.values(s.nations).filter((n) => n.civilWar?.active).map((n) => n.id));
     let last;
     let owners = Object.fromEntries(Object.values(s.regions).map((r) => [r.id, r.owner]));
@@ -290,6 +309,7 @@ SEEDS.forEach((seed) => {
         }
       });
       leader = top;
+      if (process.env.AMB_DETAIL) trackAmbitions(s, t, ambSeen);
       if (t % EVERY === 0 || t === TURNS || s.gameStatus !== GameStatus.ACTIVE) {
         // The game ending early (a passive France falls to a siege around turn 100) still prints a
         // final snapshot with its real status, not the last round number's.
@@ -304,6 +324,7 @@ SEEDS.forEach((seed) => {
     const km = kaplanMeier(lives, checkpoints());
     const survival = Object.fromEntries(checkpoints().map((c) => [`survivalT${c}`, +km.at[c].toFixed(3)]));
     console.log(`SUMMARY ${JSON.stringify({ seed, policy: POLICY, ...last, ...survival, medianNationLife: km.median })}`);
+    if (process.env.AMB_DETAIL) console.log(`AMB ${JSON.stringify({ seed, detail: ambitionDetail(ambSeen), player: Object.values(ambSeen).filter((e) => e.player).map((e) => `${e.id}@${e.age}:${e.turns ?? '-'}`) })}`);
     if (traceStream != null) fs.closeSync(traceStream);
     if (OUT_DIR) {
       const rep = telemetry.report(s);
