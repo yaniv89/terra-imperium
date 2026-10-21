@@ -96,7 +96,7 @@ describe("the winner's renown (differentiation plan U11)", () => {
     expect(r.deeds[0]).toMatchObject({ id: 'battleWon', turn: s.turnNumber });
     expect(r.renown).toBeGreaterThan(s.nations[AGG].ruler.renown || 0);
     expect(applyBattleOutcome(once, o)).toBe(once);
-    expect(once.nations.fr.ruler.renown || 0).toBe(s.nations.fr.ruler.renown || 0);
+    expect(once.nations[P].ruler.renown || 0).toBe(s.nations[P].ruler.renown || 0);
   });
 });
 
