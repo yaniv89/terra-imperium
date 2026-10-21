@@ -3,6 +3,7 @@ import { ACHIEVEMENTS, checkAchievements } from './achievements';
 import { GameStatus } from './types';
 import { getNationCapital } from './regions';
 import { peoplesWorld, rivalOf } from '../engine/testWorld';
+import { renownForLevel } from './rulers';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
 const WORLD = peoplesWorld();
@@ -55,12 +56,11 @@ describe('checkAchievements', () => {
     expect(checkAchievements(wonAgainstLarger)).toContain('great_game');
   });
 
-  it('detects dynasty once the same royal house has held for 10 consecutive rulers', () => {
+  it('detects Living Legend (id dynasty) once the ruler reaches level 20', () => {
     const state = peoplesWorld();
-    const short = { ...state, nations: { ...state.nations, [FR]: { ...state.nations[FR], sameDynastyStreak: 9 } } };
-    expect(checkAchievements(short)).not.toContain('dynasty');
-    const long = { ...state, nations: { ...state.nations, [FR]: { ...state.nations[FR], sameDynastyStreak: 10 } } };
-    expect(checkAchievements(long)).toContain('dynasty');
+    const at = (renown) => ({ ...state, nations: { ...state.nations, [FR]: { ...state.nations[FR], ruler: { ...state.nations[FR].ruler, renown } } } });
+    expect(checkAchievements(at(renownForLevel(20) - 1))).not.toContain('dynasty');
+    expect(checkAchievements(at(renownForLevel(20)))).toContain('dynasty');
   });
 
   it('detects builder_of_wonders only once 3 owned Great Projects reach tier 3', () => {

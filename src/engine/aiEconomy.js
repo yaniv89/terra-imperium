@@ -39,6 +39,7 @@ import { clampStability, getIncreaseStabilityCost } from './nationalPower';
 import { createRng } from '../utils/rng';
 import { applyRush, rushGold, rushHeat, rushAffordable } from './spending';
 import { autoGovern } from './governors';
+import { rulerCityCtx } from './lawRules';
 
 // Plan §M21 balance harness (scripts/simulate.mjs) found that a 150-turn AI-vs-AI run produced
 // roughly one civil war per 3 nations — this file's own scope-trim list above never actually named
@@ -266,7 +267,7 @@ const tryRushProduction = (state, nation, regions, skip = null) => {
   const city = regions[best];
   const p = city.production;
   const ageId = ageOf(state, nation.id);
-  const cost = productionCost(p.current, { ageId, citiesOwned: owned.length || 1, speedMult: speedCostMult(state.gameSpeed, ageId), trainMult: speedTrainMult(state.gameSpeed, ageId) });
+  const cost = productionCost(p.current, { ageId, citiesOwned: owned.length || 1, speedMult: speedCostMult(state.gameSpeed, ageId), trainMult: speedTrainMult(state.gameSpeed, ageId), costMult: rulerCityCtx(nation).costMult });
   const missing = cost - (p.progress || 0);
   const perTurn = city.lastYields?.production || 0;
   if (!(missing > 0) || (perTurn > 0 && missing / perTurn <= AI_RUSH_MIN_TURNS)) return null;

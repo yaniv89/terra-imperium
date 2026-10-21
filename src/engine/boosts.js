@@ -8,6 +8,7 @@ import { getTiles } from '../data/geo/tiles';
 import { TECH_TREE } from '../data/techTree';
 import { BOOSTS, BOOST_SHARE } from '../data/boosts';
 import { getResearchCost } from './research';
+import { lawRulesOf } from './lawRules';
 
 // Cities by owner and the nations besieging a city, once per regions map: a scan of every city
 // per nation was 240 x 700 reads a turn.
@@ -80,7 +81,7 @@ export const applyBoosts = (state, nationId, research, researched) => {
     if (!BOOSTS[techId].check(facts)) return;
     const cost = getResearchCost(state, nationId, techId);
     if (next === research) next = { ...research, progress: { ...(research.progress || {}) }, boosted: { ...(research.boosted || {}) } };
-    next.progress[techId] = Math.min(cost, (next.progress[techId] || 0) + Math.round(cost * BOOST_SHARE));
+    next.progress[techId] = Math.min(cost, (next.progress[techId] || 0) + Math.round(cost * BOOST_SHARE * (1 + (lawRulesOf(state.nations?.[nationId]).boostMult || 0)))); // Patron of Learning (rulerVirtues.js)
     next.boosted[techId] = true;
     applied.push(techId);
   });

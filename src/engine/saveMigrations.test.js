@@ -277,7 +277,7 @@ describe('migrateSave v15 to v16: one ruler a game (differentiation plan U5)', (
     majors.forEach((id, i) => { nations[id] = { ...nations[id], sameDynastyStreak: 4, ruler: { id: `ruler_${id}_7`, name: `Old ${i}`, dynasty: 'Capet', adm: 6, dip: 0, mil: 2, traits: ['warrior', 'sickly'], reignStartTurn: 7, reignEndsTurn: 30 } }; });
     const loaded = migrateSave({ version: 13, state: { ...base, nations } }).state;
     majors.forEach((id) => {
-      expect(loaded.nations[id].ruler).toEqual({ id: `ruler_${id}`, name: base.nations[id].ruler.name, adm: 3, dip: 3, mil: 3, cmd: 0, lrn: 0, maj: 0 });
+      expect(loaded.nations[id].ruler).toEqual({ id: `ruler_${id}`, name: base.nations[id].ruler.name, adm: 3, dip: 3, mil: 3, cmd: 0, lrn: 0, maj: 0, renown: 0, traits: [], bonusVirtuePoints: 1 }); // Warrior refunded, Sickly gone (U11)
       expect(loaded.nations[id]).not.toHaveProperty('sameDynastyStreak');
     });
     expect(() => assertGameState(loaded)).not.toThrow();

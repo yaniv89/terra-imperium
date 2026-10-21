@@ -11,6 +11,7 @@ import { TECH_TREE } from '../data/techTree';
 import { TechCategories } from '../data/types';
 import { TAX_RATES } from '../data/taxRates';
 import { getOwnedRegionIds } from '../data/regions';
+import { lawRulesOf } from './lawRules';
 
 export const STABILITY_MIN = -3;
 export const STABILITY_MAX = 3;
@@ -126,7 +127,8 @@ export const processNationalPowerTurn = (nation) => {
       : type === 'republic' ? 0.5 // republican tradition
       : 0.3; // a dictatorship's
     const prestigeGain = (nation.prestige || 0) / 500; // plan: "prestige ... legitimacy gain"
-    legitimacy = clampLegitimacy(legitimacy + baseGain + prestigeGain);
+    const rulerGain = lawRulesOf(nation).legitimacy || 0; // Majesty and Anointed (rulerVirtues.js)
+    legitimacy = clampLegitimacy(legitimacy + baseGain + prestigeGain + rulerGain);
   }
 
   // Math.trunc, not Math.round: rounding to the NEAREST integer has a fixed point below 10 in

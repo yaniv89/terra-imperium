@@ -26,6 +26,7 @@ import { resolveAutoBattle } from './autoBattle';
 import { makeBattleOutcome, battleIdOf } from './battleOutcome';
 import { cityManifestOf, cityDamageOf } from './cityManifest';
 import { cityMilitia } from './battleInputs';
+import { commandGenerals } from '../data/generals';
 
 export const RAID_BATTLE_KINDS = ['raid', 'sack'];
 export const isRaidKind = (kind) => RAID_BATTLE_KINDS.includes(kind);
@@ -50,7 +51,7 @@ export const raidBattleContext = (state, b) => {
     defenderDamageReductionMultiplier: b.kind === 'sack' ? getDefenseLevelDamageReductionMultiplier(walls) : 1,
     attackerAgeId: sideAgeOf(state, b.attackerId),
     defenderAgeId: sideAgeOf(state, b.defenderId),
-    generals: state.hiredCommanders
+    generals: commandGenerals(state)
   };
 };
 

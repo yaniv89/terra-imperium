@@ -10,7 +10,7 @@ export default {
   'p1.achunit.iron_grip': 'תורות ב־⁦+3⁩',
   'p1.achunit.phoenix': 'זהב אחרי פשיטת רגל',
   'p1.achunit.builder_of_wonders': 'פרויקטים ברמה 3',
-  'p1.achunit.dynasty': 'שליטים מבית אחד',
+  'p1.achunit.dynasty': 'דרגת שליט',
   'p1.achunit.master_diplomat': 'אומות בשלום או בסחר',
   'p1.achunit.tech_titan': 'טכנולוגיות',
   'p1.achunit.three_front_war': 'מלחמות בו בזמן',

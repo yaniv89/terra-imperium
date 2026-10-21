@@ -35,6 +35,7 @@ import { canQueue, productionCost } from './world/cities';
 import { bestSites, outpostsOf, outpostSlots, settlersOf } from './settlers';
 import { wonderOptions, wonderItem } from './wonders';
 import { DOCTRINE_WONDERS, DOCTRINE_BUILDING_PRIORITY } from '../data/nations';
+import { rulerBuildOrder } from './rulerBias';
 import { getNeighborIds } from '../data/regions';
 import { claimsInProgressOf } from './claims';
 
@@ -156,7 +157,7 @@ export const chooseProduction = (state, city, ctx) => {
   const units = ctx.units || state.units || {};
   const counts = ctx.counts || { settlers: settlersOf(units, nationId).length, outposts: outpostsOf(state.regions, nationId).length, landUnits: Object.values(units).filter((u) => u.ownerId === nationId && u.domain === 'land' && u.classId !== 'settler').length };
   const production = Math.max(1, city.lastYields?.production ?? city.dev?.production ?? city.size ?? 1);
-  const costOf = (item) => productionCost(item, { ageId: ctx.ageId, citiesOwned: ctx.citiesOwned, speedMult: ctx.speedMult, trainMult: ctx.trainMult });
+  const costOf = (item) => productionCost(item, { ageId: ctx.ageId, citiesOwned: ctx.citiesOwned, speedMult: ctx.speedMult, trainMult: ctx.trainMult, costMult: ctx.costMult });
   const affordable = (item) => costOf(item) / production <= MAX_BUILD_TURNS * (ctx.speedMult || 1);
   const situation = situationOf(state, nationId);
   const threatened = situation.atWar && getNeighborIds(city.id).some((n) => situation.enemies.has(state.regions[n]?.owner));
@@ -176,7 +177,7 @@ export const chooseProduction = (state, city, ctx) => {
     const item = { kind: 'settler' };
     if (site && canQueue(city, tiles, world, item, ctx).ok) offer(item, SETTLER_UTILITY * (sit.atWar ? WAR_SETTLER_MULT : 1)); // bestSites already holds the quality floor
   }
-  const order = buildingOrder(state.nations?.[nationId]?.doctrine);
+  const order = rulerBuildOrder(state.nations?.[nationId], buildingOrder(state.nations?.[nationId]?.doctrine)); // the ruler's branches first (rulerBias.js)
   order.forEach((category, rank) => {
     const tier = (city.buildings?.categories?.[category] ?? -1) + 1;
     if (!BUILDING_CATEGORIES[category]?.tiers[tier]) return;

@@ -24,6 +24,7 @@ import { applyBattleOutcome, makeBattleOutcome } from './battleOutcome';
 import { validateAmphibious, getAmphibiousBattleContext, applyAmphibiousLanding } from './invasion';
 import { cityMilitia } from './battleInputs';
 import { hashRoll } from './aftermath';
+import { commandGenerals } from '../data/generals';
 
 export const LANDING_KINDS = ['intercept', 'landing'];
 export const isLandingKind = (kind) => LANDING_KINDS.includes(kind);
@@ -64,7 +65,7 @@ export const interceptArmies = (state, def) => {
 /** resolveBattle's arguments for the interception. */
 export const interceptArgs = (state, def, armies) => ({
   attackerUnits: armies.attackerUnits, defenderUnits: armies.defenderUnits, terrain: getRegionTerrain(def.regionId, REGIONS_DATA), isAttackingFortification: false,
-  generals: state.hiredCommanders, attackerAgeId: ageOf(state, def.aggressorId), defenderAgeId: ageOf(state, state.playerNationId)
+  generals: commandGenerals(state), attackerAgeId: ageOf(state, def.aggressorId), defenderAgeId: ageOf(state, state.playerNationId)
 });
 
 /** Fight (or apply) the interception: `battle` is the commanded result or null for Auto. */

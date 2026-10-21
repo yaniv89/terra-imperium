@@ -33,6 +33,7 @@ import { getRegionModifier } from './modifiers/sheet';
 import { cityHousingCap } from './cityManifest';
 import { getReinforcementSources } from './invasion';
 import { unitsWithinRings, REINFORCE_RINGS } from './armies';
+import { lawRulesOf } from './lawRules';
 import { isWarBetween } from './diplomacy';
 
 export const SUPPLY_MORALE_LOSS = 20;
@@ -82,6 +83,7 @@ export const conditionUnit = (state, u, { starved = false } = {}) => {
   if (starved) loss += STARVED_MORALE_LOSS;
   if (hasPlague(state.regions?.[u.regionId])) loss += PLAGUE_MORALE_LOSS;
   if (loss <= 0) return u;
+  loss = Math.round(loss * (1 + (lawRulesOf(state.nations?.[u.ownerId]).battleMoraleLoss || 0))); // the ruler's Command and Iron Discipline (rulerVirtues.js)
   const morale = u.morale ?? 100;
   const next = Math.max(Math.min(morale, MIN_START_MORALE), morale - loss);
   return next === morale ? u : { ...u, morale: next };

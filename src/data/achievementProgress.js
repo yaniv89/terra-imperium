@@ -3,6 +3,8 @@
 // achievement without an entry here is a yes/no one (the panel shows "Not yet" / "Earned"). Each
 // function returns { value, target } from the same fields the achievement's own check reads.
 import { GREAT_PROJECTS, getGreatProjectOwner } from './greatProjects';
+import { rulerLevel } from './rulers';
+import { LIVING_LEGEND_LEVEL } from './achievements';
 
 export const ACHIEVEMENT_PROGRESS = {
   iron_grip: (s) => ({ value: s.nations[s.playerNationId]?.stability3Streak || 0, target: 20, unit: 'turns at +3' }),
@@ -12,7 +14,7 @@ export const ACHIEVEMENT_PROGRESS = {
     target: 3,
     unit: 'tier 3 projects'
   }),
-  dynasty: (s) => ({ value: s.nations[s.playerNationId]?.sameDynastyStreak || 0, target: 10, unit: 'rulers of one house' }),
+  dynasty: (s) => ({ value: rulerLevel(s.nations[s.playerNationId]?.ruler?.renown), target: LIVING_LEGEND_LEVEL, unit: 'ruler level' }),
   master_diplomat: (s) => {
     const truces = s.nations[s.playerNationId]?.truces || {};
     const n = Object.values(s.nations).filter((x) => !x.isPlayer && (x.hasTradeAgreement || (x.hasPeaceTreaty && truces[x.id] !== undefined))).length;

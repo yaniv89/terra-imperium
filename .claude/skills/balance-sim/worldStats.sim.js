@@ -11,7 +11,8 @@ import { HISTORICAL_EVENTS } from '../../../src/data/events';
 import { auditGameState } from '../../../src/engine/stateAudit';
 import { getTiles } from '../../../src/data/geo/tiles';
 import { RESOURCES_ON_TILES } from '../../../src/data/tileYields';
-import { worldHealth, kaplanMeier } from '../../../scripts/simStats.mjs';
+import { worldHealth, kaplanMeier, rulerStats } from '../../../scripts/simStats.mjs';
+import * as RULERS from '../../../src/engine/rulers'; // read through the namespace: a base before U11 has no levels
 import { installGeneratedWorld } from '../../../src/worldgen/nodeWorld';
 import { createScriptedPlayer, createTelemetry } from '../../../scripts/campaignTelemetry.mjs';
 import { chooseProduction, nationCounts } from '../../../src/engine/aiProduction';
@@ -132,6 +133,7 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     devastatedShare: +(dev.length / Math.max(1, regs.length)).toFixed(3), unclaimedShare: +((counts.null || 0) / Math.max(1, regs.length)).toFixed(3),
     ...(telemetry ? telemetry.snapshot(s) : {}),
     ...worldHealth(s, { isLand, landTiles: LAND_TILES, playerId: s.playerNationId }),
+    ...(RULERS.rulerLevel ? rulerStats(s.nations, { levelOf: (r) => RULERS.rulerLevel(r.renown), pointsOf: RULERS.rulerPoints, branchOf: (v) => RULERS.VIRTUES[v]?.branch, playerId: s.playerNationId }) : {}),
     nationsAliveShare: +kaplanMeier(lives, [t]).at[t].toFixed(3), leadChanges: counters.leadChanges,
     // Plague: cities carrying the 'plague' mark now, and distinct cities struck so far (the old
     // independent roll in cityDisasters.js and the SIR epidemic in plague.js both set the mark).

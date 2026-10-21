@@ -419,7 +419,8 @@ export const foundOutpost = (state, regions, world, settler, turn, inPlace = fal
 /**
  * The settlers phase of a turn: every settler with a target walks towards it; one that arrives
  * on a legal site founds an outpost (when a slot is free); every outpost grows. Works on the
- * turn's working copies and returns { regions, units, world, logs } (logs carry nationId).
+ * turn's working copies and returns { regions, units, world, logs, grown } (logs carry nationId;
+ * grown: the outposts that became cities, { nationId, cityId }, for the founder's renown).
  */
 export const processSettlers = (state, regions, units, world, ageById, turn) => {
   const tiles = getTiles();
@@ -486,18 +487,20 @@ export const processSettlers = (state, regions, units, world, ageById, turn) => 
     nextUnits[u.id] = settler;
   });
   // Outposts grow into cities (one copy of the cities map, written in place).
-  const grown = Object.values(nextRegions).filter((c) => c.outpost);
-  if (grown.length) nextRegions = { ...nextRegions };
-  grown.forEach((c) => {
+  const outposts = Object.values(nextRegions).filter((c) => c.outpost);
+  const grown = [];
+  if (outposts.length) nextRegions = { ...nextRegions };
+  outposts.forEach((c) => {
     // Per calendar year, not per turn: the speed table's multiplier for the owner's age (ages.js),
     // the same one production costs carry, so outposts keep pace with the rest of the city.
     const progress = c.outpost.progress + (OUTPOST_PROGRESS * terrainFactor(tiles, c.tile)) / speedCostMult(state.gameSpeed, ageById(c.owner));
     if (progress >= OUTPOST_DONE) {
       nextRegions[c.id] = { ...c, outpost: null, size: Math.max(1, c.size) };
+      grown.push({ nationId: c.owner, cityId: c.id });
       logs.push({ nationId: c.owner, ...msg('m.world.outpostGrown', { city: cityRef(c.id, c.name) }) });
     } else nextRegions[c.id] = { ...c, outpost: { ...c.outpost, progress: Math.round(progress * 10) / 10 } };
   });
-  return { regions: nextRegions, units: nextUnits, world: nextWorld, logs };
+  return { regions: nextRegions, units: nextUnits, world: nextWorld, logs, grown };
 };
 
 /** The id a city founded on `tile` will have (for the UI to follow it). */

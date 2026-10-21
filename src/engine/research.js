@@ -20,6 +20,7 @@ import { applyBoosts } from './boosts';
 import { BOOSTS, BOOST_SHARE } from '../data/boosts';
 import { TECH_TREE, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
 import { AGES, AGE_ORDER, getAgeIndex, speedCostMult } from '../data/ages';
+import { grantRenown, techRenown } from './renown';
 import { DOCTRINE_TECH_CATEGORY_PRIORITY } from '../data/nations';
 import { LogTypes } from '../data/types';
 import { msg, thing, carry, people } from './messages';
@@ -230,6 +231,9 @@ const onAgeAdvance = (state, nation, fromAgeId, toAgeId, logs, world) => {
   return { ...n, ageSince: state.turnNumber };
 };
 
+// Each tech completed earns the ruler renown by the tech's own age (renown.js).
+const withTechRenown = (nation, completed, turn) => completed.reduce((n, id) => grantRenown(n, 'tech', techRenown(getAgeIndex(TECH_TREE[id]?.ageId)), turn, id), nation);
+
 // Runs every nation's research for the turn (the player's and every AI nation with an economy).
 export const applyResearchTurn = (state) => {
   let next = state;
@@ -251,7 +255,8 @@ export const applyResearchTurn = (state) => {
     if (p.techAgeId !== before) logs.push({ year: state.year, ...msg('m.world.techAge', { age: thing('age', p.techAgeId, AGES[p.techAgeId]?.name) }), type: LogTypes.MILESTONE });
     next = { ...next, techTree, techAgeId: p.techAgeId, research: p.research, resources: { ...next.resources, techPoints: p.stock }, logs };
     const me = next.nations?.[state.playerNationId];
-    if (p.techAgeId !== before && me) next = { ...next, nations: { ...next.nations, [state.playerNationId]: onAgeAdvance(next, me, before, p.techAgeId, logs, world) } };
+    if (me && p.completed.length) next = { ...next, nations: { ...next.nations, [state.playerNationId]: withTechRenown(me, p.completed, state.turnNumber) } };
+    if (p.techAgeId !== before && me) next = { ...next, nations: { ...next.nations, [state.playerNationId]: onAgeAdvance(next, next.nations[state.playerNationId], before, p.techAgeId, logs, world) } };
   }
   // AI nations.
   let nations = null;
@@ -269,7 +274,7 @@ export const applyResearchTurn = (state) => {
     const scored = advanced ? onAgeAdvance(state, nation, techAgeOf(state, id), r.techAgeId, logs, world) : nation;
     if (logs && logs.length !== next.logs.length) next = { ...next, logs };
     nations[id] = {
-      ...scored,
+      ...withTechRenown(scored, r.completed, state.turnNumber),
       research: r.research,
       economy: { ...nation.economy, techPoints: r.stock },
       // The same researched list while nothing completed: its identity keys the tile-yield memos.

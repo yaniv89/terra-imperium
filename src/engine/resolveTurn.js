@@ -27,7 +27,7 @@ import { invalidateRegionsCache } from '../data/regions';
 // infantry/armor/air model this replaced.
 
 import { GameStatus, LogTypes } from '../data/types';
-import { speedCostMult, speedTrainMult, isAgeAtLeast } from '../data/ages';
+import { speedCostMult, speedTrainMult, isAgeAtLeast, speedTurns } from '../data/ages';
 import { displayYear } from './displayYear';
 import { endingSignal } from './ending';
 import { awardEraLegacy } from './eraGoals';
@@ -75,7 +75,9 @@ import {
   ECONOMIC_COLLAPSE_STABILITY_PENALTY,
   POWER_POOL_CAP
 } from '../data/actionCosts';
-import { getAdvisorSalary } from './rulers';
+import { getAdvisorSalary, aiDevelopRuler, rulerLevel } from './rulers';
+import { grantRenown, timeRenown } from './renown';
+import { RENOWN, STABILITY_RENOWN_REF_TURNS, STABILITY_RENOWN_GAP_REF_TURNS } from '../data/rulers';
 import { grantDecree, tickDecrees } from './decrees';
 import { applyResearchTurn, researchesThisTurn } from './research';
 import { processNationalPowerTurn, clampStability, clampPrestige, STABILITY_MAX, getOverextension } from './nationalPower';
@@ -102,7 +104,7 @@ import { settleOpenCaptures } from './capture';
 import { processColonies } from './colonies';
 import { hasPerk } from '../data/promotions';
 import { governorEffects, governorOf, regroupGovernors, generateGovernorCandidates, GOVERNOR_UNREST_MULT, GOVERNOR_REFRESH_TURNS } from './governors';
-import { lawRulesOf } from './lawRules';
+import { lawRulesOf, rulerCityCtx } from './lawRules';
 import { advanceTradeDisruptions } from './tradeDisruptions';
 import { authorityRisksCivilWar } from './authority';
 import { rollCityDisasters } from './cityDisasters';
@@ -154,6 +156,7 @@ const runCitiesPhase = (state, newTurnNumber) => {
         greatProjects: state.greatProjects || {},
         ...forageCtx(nid ? getResearched(state, nid) : []), // no Agriculture: a size cap (hearths.js)
         ...stonePhaseCtx(state, nid), // the first cities: river food (stonePhase.js)
+        ...rulerCityCtx(state.nations[nid]), // the ruler's yields and costs (lawRules.js)
         // An independent's city: capped size, a small border, a garrison and buildings only (independents.js).
         ...(isIndependent(state.nations, nid) ? independentCityCtx(state, nid) : {})
       });
@@ -226,7 +229,7 @@ const runCitiesPhase = (state, newTurnNumber) => {
   // Outposts are founded into the turn's own maps (copied here if the cities pass wrote nothing).
   const settled = processSettlers(afterCities, regions, units, privateWorld(afterCities.world, result.world), (nid) => ctxFor({ owner: nid }).ageId, newTurnNumber);
   settled.logs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push(carry(l)); });
-  return { state: { ...afterCities, regions: settled.regions, units: settled.units, world: { tileOwner: settled.world.tileOwner, tileState: settled.world.tileState } }, logs, wonders };
+  return { state: { ...afterCities, regions: settled.regions, units: settled.units, world: { tileOwner: settled.world.tileOwner, tileState: settled.world.tileState } }, logs, wonders, grown: settled.grown };
 };
 
 // The log keeps the last LOG_CAP lines (the turn report and the log panel show recent turns only).
@@ -700,18 +703,41 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   });
   mark('aiEconomy');
 
-  // --- rulers (plan §M3) --- runs for every nation (cheap: a number comparison for the vast
-  // majority whose reign isn't ending this turn), but only the player's new ruler is logged.
-  // When a reign ends a new ruler takes over (rulers.js): no heirs, claims or crises.
+  // --- rulers (plan §M3) --- runs for every nation. Renown (renown.js): the cities founded this
+  // turn, the time trickle while the capital is held, years of order; a ruler below the median level
+  // of the living majors is a rising star; every AI ruler spends its points (rulers.js
+  // aiDevelopRuler: a compare when none wait); the player's level-ups are logged.
   // Governors (governors.js): the player's court offers fresh candidates every GOVERNOR_REFRESH_TURNS
   // turns, and a governor whose seat was lost leaves.
   {
     const me = state.playerNationId;
     const view = { ...state, regions, nations };
+    (cityTurn.grown || []).forEach((g) => { if (nations[g.nationId]?.ruler) nations[g.nationId] = grantRenown(nations[g.nationId], 'cityFounded', RENOWN.cityFounded, newTurnNumber, g.cityId); });
+    const levels = Object.values(nations).filter((n) => n.ruler && !n.isEliminated).map((n) => rulerLevel(n.ruler.renown)).sort((a, b) => a - b);
+    const median = levels.length ? levels[Math.floor((levels.length - 1) / 2)] : 1;
     Object.keys(nations).forEach((nId) => {
       const r = regroupGovernors(view, nations[nId]);
       if (r.nation !== nations[nId]) nations[nId] = r.nation;
       nations[nId] = tickDecrees(view, nId, nations[nId], newTurnNumber); // the decree floor (decrees.js)
+      const ruler = nations[nId].ruler;
+      if (ruler && !nations[nId].isEliminated) {
+        const risingStar = rulerLevel(ruler.renown) < median;
+        if (!!ruler.risingStar !== risingStar) nations[nId] = { ...nations[nId], ruler: { ...ruler, risingStar } };
+        if (regions[nations[nId].capitalRegionId]?.owner === nId) nations[nId] = grantRenown(nations[nId], 'time', timeRenown(state.gameSpeed, ageOf(view, nId), newTurnNumber), newTurnNumber);
+        const lastOrder = nations[nId].ruler.stabilityRenownTurn ?? -Infinity;
+        if ((nations[nId].stability3Streak || 0) >= speedTurns(STABILITY_RENOWN_REF_TURNS, state.gameSpeed, ageOf(view, nId)) && newTurnNumber - lastOrder >= speedTurns(STABILITY_RENOWN_GAP_REF_TURNS, state.gameSpeed, ageOf(view, nId))) {
+          const granted = grantRenown(nations[nId], 'stability', RENOWN.stability, newTurnNumber);
+          nations[nId] = { ...granted, ruler: { ...granted.ruler, stabilityRenownTurn: newTurnNumber } };
+        }
+        if (nId !== me) nations[nId] = aiDevelopRuler(view, nId).nations[nId];
+        else {
+          const level = rulerLevel(nations[nId].ruler.renown);
+          if (level > (nations[nId].ruler.loggedLevel || 1)) {
+            logs.push({ year: newYear, ...msg('m.turn.rulerLevel', { name: person(nations[nId].ruler.name), level }), type: LogTypes.MILESTONE });
+            nations[nId] = { ...nations[nId], ruler: { ...nations[nId].ruler, loggedLevel: level } };
+          }
+        }
+      }
       if (nId !== me) return;
       r.changes.forEach((c) => {
         const city = cityRef(c.kind === 'moved' ? c.to : c.city, regions[c.kind === 'moved' ? c.to : c.city]?.name || '');
@@ -969,7 +995,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     greatProjects[w.projectId] = { regionId: w.city, tier: w.tier, tile: w.tile };
     const ownerId = regions[w.city]?.owner;
     if (ownerId && nations[ownerId] && tierSpec?.completionPrestige) nations[ownerId] = { ...nations[ownerId], prestige: clampPrestige((nations[ownerId].prestige || 0) + tierSpec.completionPrestige) };
-    if (ownerId && nations[ownerId]) nations[ownerId] = grantDecree(nations[ownerId], 'wonder', newTurnNumber, w.projectId);
+    if (ownerId && nations[ownerId]) nations[ownerId] = grantRenown(grantDecree(nations[ownerId], 'wonder', newTurnNumber, w.projectId), 'wonder', RENOWN.wonderTier, newTurnNumber, w.projectId);
     if (ownerId === state.playerNationId) logs.push({ year: newYear, ...msg('m.turn.wonderBuilt', { wonder: thing('wonder', w.projectId, project?.name || w.projectId), tier: w.tier, city: cityRef(w.city, regions[w.city]?.name), prestige: tierSpec?.completionPrestige ? sub('m.prestigeGain', { n: tierSpec.completionPrestige }) : '' }), type: LogTypes.MILESTONE });
   });
   mark('greatProjects');

@@ -15,6 +15,7 @@
 // score. Pure.
 import { LAW_CATEGORIES, getLaw } from '../data/laws';
 import { getOverextension } from './nationalPower';
+import { lawRulesOf } from './lawRules';
 
 export const AUTHORITY_BASE = 50;
 export const AUTHORITY_PER_STABILITY = 8;
@@ -39,7 +40,7 @@ export const authorityOf = (state, nationId) => {
   if (stability) parts.push({ id: 'stability', label: 'Stability', value: AUTHORITY_PER_STABILITY * stability });
   const legitimacy = n.legitimacy ?? 50;
   if (legitimacy !== 50) parts.push({ id: 'legitimacy', label: 'Legitimacy', value: r1((legitimacy - 50) / AUTHORITY_LEGITIMACY_DIV) });
-  if (n.ruler) { const skill = (n.ruler.adm || 0) + (n.ruler.dip || 0) + (n.ruler.mil || 0) - AUTHORITY_RULER_PAR + (n.ruler.maj || 0); if (skill) parts.push({ id: 'ruler', label: `${n.ruler.name}'s skill`, value: skill }); }
+  if (n.ruler) { const skill = (n.ruler.adm || 0) + (n.ruler.dip || 0) + (n.ruler.mil || 0) - AUTHORITY_RULER_PAR + (n.ruler.maj || 0) + (lawRulesOf(n).authority || 0); if (skill) parts.push({ id: 'ruler', label: `${n.ruler.name}'s skill`, value: skill }); } // Living God: rulerVirtues.js
   const lawBonus = Object.keys(LAW_CATEGORIES).reduce((s, cat) => s + (getLaw(cat, n.laws?.[cat])?.effects?.stabilityBonus || 0), 0);
   if (lawBonus) parts.push({ id: 'laws', label: 'Laws', value: AUTHORITY_PER_LAW_STABILITY * lawBonus });
   if (n.warExhaustion > 0) parts.push({ id: 'warExhaustion', label: 'War exhaustion', value: -r1(n.warExhaustion / AUTHORITY_WAR_EXHAUSTION_DIV) });

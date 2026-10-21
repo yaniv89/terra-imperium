@@ -23,6 +23,9 @@ import { canAnnex } from './stonePhase';
 import { clampPrestige, clampStability } from './nationalPower';
 import { grantDecree } from './decrees';
 import { DECREE_WAR_WON_SCORE } from '../data/decrees';
+import { RENOWN } from '../data/rulers';
+import { grantRenown } from './renown';
+import { lawRulesOf } from './lawRules';
 import {
   FORCED_VASSALIZE_MIN_MAX_PEACE_COST, CAPITAL_LOST_IN_PEACE_STABILITY_PENALTY
 } from '../data/actionCosts';
@@ -123,7 +126,8 @@ export const getPeaceAcceptance = (state, war, offererId, terms) => {
     { id: 'odds', pct: Math.round(100 * (1 - p)), label: 'Odds if the war goes on', value: Math.round(outlook), detail: `${Math.round(100 * (1 - p))}% to win it` },
     { id: 'weariness', label: 'War weariness', value: Math.round(Math.min(10, turnsAtWar / 5)) },
     { id: 'capital', label: 'Capital secure', value: recipientCapitalOccupied ? 0 : -10 },
-    { id: 'demandsCapital', label: 'Demands include capital', value: cedesCapital ? -15 : 0 }
+    { id: 'demandsCapital', label: 'Demands include capital', value: cedesCapital ? -15 : 0 },
+    ...(lawRulesOf(state.nations[offererId]).peaceScore ? [{ id: 'peacemaker', label: 'A peacemaking ruler', value: lawRulesOf(state.nations[offererId]).peaceScore }] : []) // Peacemaker (rulerVirtues.js)
   ];
   const total = Math.round(breakdown.reduce((sum, line) => sum + line.value, 0));
   const cost = getPeaceCost(state, war, offererId, terms);
@@ -257,9 +261,11 @@ export const applyPeace = (state, war, offererId, terms) => {
   // A war won (war score at least DECREE_WAR_WON_SCORE for the winner) grants its ruler one decree (U6).
   const winnerId = (war.score || 0) >= DECREE_WAR_WON_SCORE ? war.aggressor : (war.score || 0) <= -DECREE_WAR_WON_SCORE ? war.enemy : null;
   if (winnerId && nextNations[winnerId]) {
-    const granted = grantDecree(nextNations[winnerId], 'warWon', state.turnNumber, otherSide(war, winnerId));
+    const granted = grantRenown(grantDecree(nextNations[winnerId], 'warWon', state.turnNumber, otherSide(war, winnerId)), 'warWon', RENOWN.warWon, state.turnNumber, otherSide(war, winnerId));
     if (granted !== nextNations[winnerId]) nextNations = { ...nextNations, [winnerId]: granted };
   }
+  // A defender who comes out of a white peace whole earns some renown too (RULER-PLAN 4.1).
+  if (!winnerId && !terms.length && nextNations[war.enemy]) nextNations = { ...nextNations, [war.enemy]: grantRenown(nextNations[war.enemy], 'defenceSurvived', RENOWN.defenceSurvived, state.turnNumber, war.aggressor) };
 
   return { regions: nextRegions, nations: nextNations, resources: nextResources };
 };

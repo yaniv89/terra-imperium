@@ -117,14 +117,14 @@ import { applyEventEffects } from './applyEventEffects';
 import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier } from './siege';
 import { pillageTile } from './threat';
 import { canPromote, getPerk } from '../data/promotions';
-import { generateGeneral } from '../data/generals';
+import { generateGeneral, commandGenerals } from '../data/generals';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { randomSeed, createRng } from '../utils/rng';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
 import { initFog, updateFog, fogOn, hasMet } from './fog';
-import { createRuler, generateAdvisorCandidates, getAdvisorHireCost, courtNames } from './rulers';
+import { createRuler, generateAdvisorCandidates, getAdvisorHireCost, courtNames, raiseAttribute, takeVirtue, reshapeRuler } from './rulers';
 import { clampStability, clampPrestige, getIncreaseStabilityCost } from './nationalPower';
 import { getTotalDev, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO, applyDevelopment } from './development';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
@@ -812,6 +812,11 @@ const reduceAction = (state, action) => {
       if (next === nation) return state;
       return { ...state, nations: { ...state.nations, [state.playerNationId]: next }, logs: [...state.logs, { year: state.year, ...msg('m.act.governorRecalled', { city: cityRef(seatId, state.regions[seatId]?.name) }), type: LogTypes.ACTION }] };
     }
+
+    // The ruler's growth (rulers.js, differentiation plan U11): each refused move returns the same state.
+    case ActionTypes.RAISE_RULER_ATTRIBUTE: return raiseAttribute(state, state.playerNationId, action.payload?.attr);
+    case ActionTypes.TAKE_RULER_VIRTUE: return takeVirtue(state, state.playerNationId, action.payload?.virtueId);
+    case ActionTypes.RESHAPE_RULER: return reshapeRuler(state, state.playerNationId);
 
     case ActionTypes.HIRE_ADVISOR: {
       // Plan §M3: hires one of the 3 current candidates for a slot, replacing whoever (if anyone)
@@ -1789,7 +1794,7 @@ const reduceAction = (state, action) => {
           defenderUnits: defenderNavalUnits,
           terrain,
           isAttackingFortification: false,
-          generals: state.hiredCommanders,
+          generals: commandGenerals(state),
           attackerAgeId,
           defenderAgeId: sideAgeOf(state, defenderNavalUnits[0].ownerId)
         }, { kind: 'lane' }, rng);
@@ -1819,7 +1824,7 @@ const reduceAction = (state, action) => {
         defenderUnits: defenderLandUnits,
         terrain,
         isAttackingFortification: (targetRegion.defenseLevel || 0) > 0,
-        generals: state.hiredCommanders,
+        generals: commandGenerals(state),
         attackerAgeId,
         defenderAgeId: sideAgeOf(state, targetRegion.owner),
         attackerPenaltyMultiplier: 1,
@@ -1859,7 +1864,7 @@ const reduceAction = (state, action) => {
         defenderUnits: defenderNavalUnits,
         terrain: getRegionTerrain(targetRegionId, REGIONS_DATA),
         isAttackingFortification: false,
-        generals: state.hiredCommanders,
+        generals: commandGenerals(state),
         attackerAgeId: ageOf(state, state.playerNationId),
         defenderAgeId: sideAgeOf(state, defenderNavalUnits[0].ownerId)
       }, { kind: 'lane' }, rng);
@@ -1890,7 +1895,7 @@ const reduceAction = (state, action) => {
         defenderUnits: rebelUnits,
         terrain: getRegionTerrain(regionId, REGIONS_DATA),
         isAttackingFortification: false,
-        generals: state.hiredCommanders,
+        generals: commandGenerals(state),
         attackerAgeId: ageOf(state, state.playerNationId),
         defenderAgeId: ageOf(state, region.owner) // rebels fight at their host's age
       }, { kind: 'suppress' }, rng);

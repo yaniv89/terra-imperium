@@ -131,7 +131,8 @@ describe('processCivilWarTurn (plan §M15)', () => {
     expect(final.result).toBe('lost');
     expect(final.nation.civilWar).toBeNull();
     expect(final.nation.prestige).toBe((nation.prestige || 0) - 20);
-    expect(final.nation.ruler).toBe(nation.ruler); // one ruler a game (differentiation plan U5)
+    expect(final.nation.ruler).toEqual({ ...nation.ruler, reshapeAge: final.nation.ruler.reshapeAge }); // one ruler a game (U5), humbled (U11)
+    expect(final.nation.ruler.reshapeAge).toBeTruthy();
     expect(final.nation.laws).toBeDefined();
     // Every insurgent unit and its occupation marker are cleared as part of the regime change.
     expect(Object.values(final.units).some((u) => u.isInsurgent)).toBe(false);

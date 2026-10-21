@@ -26,6 +26,7 @@ import { economySizes, tileKm } from './tradeValue';
 import { AGE_ORDER, getAgeIndex } from '../data/ages';
 import { ageOf } from './nationState';
 import { researchLeaderIndex } from './ageRefs';
+import { lawRulesOf } from './lawRules';
 
 export const DIFFUSION_MAX = 0.3;
 export const CATCHUP_MAX = 0.45;
@@ -112,7 +113,7 @@ export const getTechDiffusion = (state, nationId, techId) => {
     withIt += w; knownWithIt += 1;
     if (getAgeIndex(ageOf(state, id)) > mine) catchUp = true;
   });
-  const share = total > 0 ? withIt / total : 0;
+  const share = total > 0 ? Math.min(1, (withIt / total) * (1 + (lawRulesOf(state.nations?.[nationId]).diffusionMult || 0))) : 0; // Academy (rulerVirtues.js)
   return { mult: 1 - (catchUp ? CATCHUP_MAX : DIFFUSION_MAX) * share, share, knownWithIt, known: known.size, pioneer: false, catchUp };
 };
 

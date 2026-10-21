@@ -85,6 +85,19 @@ const fieldState = (extra = []) => {
   return { ...S, units, wars: [...S.wars, { id: 'w-f', aggressor: 'in', enemy: 'pk', active: true, startYear: S.year, battleScore: 0 }], nations: { ...S.nations, in: { ...S.nations.in, isAtWar: true }, pk: { ...S.nations.pk, isAtWar: true } } };
 };
 
+describe("the winner's renown (differentiation plan U11)", () => {
+  it('is granted once, through the one outcome service, by operation id', () => {
+    const s = armies();
+    const o = invasion(s, 'defender', { a1: 300 }, { d1: 900, d2: 700 }, { id: 'op-renown' });
+    const once = applyBattleOutcome(s, o);
+    const r = once.nations[AGG].ruler;
+    expect(r.deeds[0]).toMatchObject({ id: 'battleWon', turn: s.turnNumber });
+    expect(r.renown).toBeGreaterThan(s.nations[AGG].ruler.renown || 0);
+    expect(applyBattleOutcome(once, o)).toBe(once);
+    expect(once.nations.fr.ruler.renown || 0).toBe(s.nations.fr.ruler.renown || 0);
+  });
+});
+
 describe('a Stone raid (eight-ages plan U32)', () => {
   it('a village-phase winner takes loot, not the city, and is remembered for the raid', () => {
     const s0 = armies();
