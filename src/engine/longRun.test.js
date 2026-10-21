@@ -15,6 +15,8 @@ import { HISTORICAL_EVENTS } from '../data/events';
 import { REGIONS_DATA } from '../data/regions';
 import { POPULATION_FLOOR_RATIO } from './population';
 import { assertGameState } from './stateAudit';
+import { ageOf } from './nationState';
+import { FIRST_AGE_ID } from '../data/ages';
 
 const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {});
 // The passive player is the world's default people (akkad): a passive player with neighbours is
@@ -62,6 +64,9 @@ describe('whole-world long runs', () => {
     let a = world(4242); let b = world(4242);
     const prints = [];
     let warsDeclared = 0;
+    // Every game starts in the Stone Age (eight ages plan U46): all majors, the player included.
+    const majors = Object.keys(a.nations).filter((id) => a.nations[id].kind !== 'independent');
+    majors.forEach((id) => expect(ageOf(a, id), id).toBe(FIRST_AGE_ID));
     const rulers = Object.fromEntries(Object.entries(a.nations).map(([id, n]) => [id, n.ruler]));
     for (let t = 0; t < TURNS && a.gameStatus === GameStatus.ACTIVE; t++) {
       a = advance(a); b = advance(b);
@@ -87,6 +92,8 @@ describe('whole-world long runs', () => {
     // Wars happen over 150 turns (on the Dawn world a one-city war ends within a few turns and
     // leaves the war list, so the declarations seen along the way are what counts).
     expect(warsDeclared).toBeGreaterThan(0);
+    // The world leaves the Stone Age: no stall in the first age's research.
+    expect(majors.some((id) => ageOf(a, id) !== FIRST_AGE_ID)).toBe(true);
     // One ruler a game (differentiation plan U5): no reign ever ends.
     Object.entries(a.nations).forEach(([id, n]) => { if (rulers[id]) expect({ id: n.ruler.id, name: n.ruler.name }, id).toEqual({ id: rulers[id].id, name: rulers[id].name }); }); // decrees and renown move (decrees.js, renown.js)
   }, 600000);
