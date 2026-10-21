@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { TECH_TREE, CROSS_PREREQUISITES, getTechsByCategory, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from './techTree';
-import { techGraph } from '../components/panels/researchView';
+import { techGraph, GRAPH_COL_W, GRAPH_THIN_W } from '../components/panels/researchView';
 import { canStartTech, RESEARCH_AGE_BASE } from '../engine/research';
 import { AGE_ORDER, getAgeIndex, LAST_AGE_ID } from './ages';
 import { TechCategories } from './types';
@@ -179,6 +179,18 @@ describe('getTechsByCategory', () => {
 });
 
 describe('techGraph (the research web view)', () => {
+  it('a collapsed age is one thin column with no techs and the edges to it are gone (jump strip)', () => {
+    const state = peoplesWorld({ seed: 11 });
+    const open = techGraph(state);
+    const thin = techGraph(state, ['stone']);
+    expect(thin.nodes.length).toBe(open.nodes.length - 10);
+    expect(thin.nodes.some((n) => n.ageId === 'stone')).toBe(false);
+    expect(thin.ages[0]).toMatchObject({ ageId: 'stone', x: 0, width: GRAPH_THIN_W, collapsed: true });
+    expect(thin.ages[1].x).toBe(GRAPH_THIN_W);
+    expect(thin.width).toBe(open.width - 2 * GRAPH_COL_W + GRAPH_THIN_W);
+    thin.edges.forEach((e) => expect(e.x2 > e.x1 || (e.x1 === e.x2 && e.y1 !== e.y2)).toBe(true));
+  });
+
   it('lays out one row per line, two columns per age, with one edge per prerequisite and the cross edges marked', () => {
     const state = peoplesWorld({ seed: 11 });
     const graph = techGraph(state);

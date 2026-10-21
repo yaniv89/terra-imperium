@@ -57,6 +57,7 @@ export default {
   'p2.era.met': 'הושגו {met} מתוך {needed} הנדרשים. אחר כך כל יעד שהושג נותן את המורשת שלו למשך {turns} תורות.',
   'p2.era.legacy': 'מורשת: {bonus}',
   'p2.as.title': '{name}: {known} מתוך {total} טכנולוגיות ידועות',
+  'p2.jump.to': 'מעבר ל{name} ברשת',
   'p2.ageShort.stone': 'אבן',
   'p2.ageShort.bronze': 'ארד',
   'p2.ageShort.classical': 'קלאסי',
