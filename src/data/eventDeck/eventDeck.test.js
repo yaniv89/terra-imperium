@@ -6,6 +6,8 @@ import { factsUsed, FACTS } from '../../engine/predicates';
 import { AGE_ORDER, getAgeIndex } from '../ages';
 import { dataTable } from '../../i18n/core';
 import { peoplesWorld } from '../../engine/testWorld';
+import { AI_DRAWS } from '../eventsAi';
+import { PEOPLES } from '../peoples';
 import { createRng } from '../../utils/rng';
 
 const he = dataTable('he');
@@ -50,6 +52,27 @@ describe('event deck stories (U27)', () => {
     for (let seed = 0; seed < 300; seed++) {
       const e = drawCard({ ...state, eventHistory: Object.fromEntries(seen.map((id) => [`t:${id}`, 0])) }, createRng(seed));
       if (e && DECK_DRAWS.some((d) => d.id === e.templateId)) { expect(seen).not.toContain(e.templateId); seen.push(e.templateId); expect(e.cityId).toBeDefined(); }
+    }
+  });
+
+  it('the 612 AI cards have Hebrew, safe effects, and only reach their theme', () => {
+    expect(AI_DRAWS).toHaveLength(612);
+    AI_DRAWS.forEach((d) => {
+      const e = d.build();
+      expect(he[`pevt.${d.id}.title`], d.id).toBeDefined();
+      e.options.forEach((o, k) => {
+        expect(he[`pevt.${d.id}.opt${k}`], d.id).toBeDefined();
+        expect(o.effects.diplomacyPoints).toBeUndefined();
+        expect(o.effects.gold ?? 0).toBeLessThanOrEqual(200);
+        expect(o.effects.hr ?? 0).toBeLessThanOrEqual(60);
+      });
+    });
+    const state = { ...peoplesWorld({ seed: 5 }), turnNumber: 50 };
+    const theme = PEOPLES[state.playerNationId]?.theme;
+    for (let seed = 0; seed < 200; seed++) {
+      const e = drawCard(state, createRng(seed));
+      const ai = e && AI_DRAWS.find((d) => d.id === e.templateId);
+      if (ai) expect(ai.theme).toBe(theme);
     }
   });
 });
