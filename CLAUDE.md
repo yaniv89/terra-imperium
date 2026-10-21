@@ -16,6 +16,10 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
 - `balance-sim`: whole-world headless runs and before/after comparisons for balance changes.
 - `battle-lab`: tactical battle bugs and changes (headless squad traces, parity, browser screenshot).
 - `ship`: commits, merging, rebuilding docs, the final summary.
+- `perf`: turn time, map frame time and soaks, always against the base commit.
+- `mobile-check`: real-browser shots at 844x390 and 1600x900, en and he, after UI changes.
+- Agent `engine-rules-reviewer`: read-only check of an engine diff against the rules below, before merging.
+- Hooks: lint runs on every edited .js/.jsx file; hand edits to generated map and layout files are blocked.
 
 ## Architecture
 - `src/engine/` is the deterministic macro engine. `resolveTurn(state)` (resolveTurn.js) runs one
