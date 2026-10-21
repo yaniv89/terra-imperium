@@ -12,6 +12,7 @@
 // on an error. The world goes to the worker with the page's own grid (worldLoader.js
 // worldMessage), so the worker never fetches and unzips it again.
 import { reviveFog } from '../engine/fog';
+import { reviveTileMaps } from '../engine/world/tileIndex';
 import { worldMessage } from '../worldgen/worldLoader';
 
 export const TURN_WORKER_TIMEOUT_MS = 30000;
@@ -191,7 +192,7 @@ const client = createTurnClient({
   // Vite bundles the worker from this exact `new Worker(new URL(...))` shape.
   makeWorker: () => new Worker(new URL('../engine/worker/turn.worker.js', import.meta.url), { type: 'module' }),
   worldMsg: worldMessage,
-  revive: (state) => (state?.fog ? { ...state, fog: reviveFog(state.fog) } : state),
+  revive: (state) => reviveTileMaps(state?.fog ? { ...state, fog: reviveFog(state.fog) } : state),
   supported: browserSupported
 });
 

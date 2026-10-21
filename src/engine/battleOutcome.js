@@ -64,6 +64,7 @@ import { mapEffectsFor } from './techMapEffects';
 import { sackCityDamage } from './raidBattle';
 import { cityFell, openCapture } from './capture';
 import { spendBattleCards } from '../data/battleCards';
+import { copyTileMap } from './world/tileIndex';
 
 export const OUTCOME_VERSION = 1;
 export const APPLIED_MEMORY = 64;
@@ -681,7 +682,9 @@ export const applyBattleOutcome = (state, o) => {
   const name = o.name || battleNameOf(state, { kind: o.kind, regionId: o.regionId, tile: o.tile });
   if (placed.markTile != null && s.world) {
     const ts = s.world.tileState || {};
-    s = { ...s, world: { ...s.world, tileState: { ...ts, [placed.markTile]: { ...(ts[placed.markTile] || {}), battle: { turn: state.turnNumber, until: (state.turnNumber || 0) + BATTLE_MARK_TURNS, outcome: out.outcome, name } } } } };
+    const tileState = copyTileMap(ts);
+    tileState[placed.markTile] = { ...(ts[placed.markTile] || {}), battle: { turn: state.turnNumber, until: (state.turnNumber || 0) + BATTLE_MARK_TURNS, outcome: out.outcome, name } };
+    s = { ...s, world: { ...s.world, tileState } };
   }
 
   // row 15: each nation's battle record (research boosts read it)

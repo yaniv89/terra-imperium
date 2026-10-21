@@ -30,6 +30,7 @@ import { isIndependentNation, RAZE_SIZE_PER_TURN, GRUDGE_RAZE_KIN, RAZE_AI_MAX_S
 import { getCapital } from '../data/regions';
 import { addGrudge, kinOf } from './grudges';
 import { ringsAround, sizeToPeople } from './world/cities';
+import { copyTileMap } from './world/tileIndex';
 
 const themeOfPeople = (id) => kinThemeOf(id);
 /** The kin theme of a city: its founder's people (a people id or a nation with a `people`). */
@@ -88,8 +89,8 @@ export const removeCity = (cityId, { regions, nations, units, world, wars }) => 
   const city = regions[cityId];
   if (!city) return;
   const owned = city.tiles || [city.tile];
-  const tileOwner = { ...(world.tileOwner || {}) };
-  const tileState = { ...(world.tileState || {}) };
+  const tileOwner = copyTileMap(world.tileOwner);
+  const tileState = copyTileMap(world.tileState);
   owned.forEach((t) => { if (tileOwner[t] === cityId) delete tileOwner[t]; delete tileState[t]; });
   world.tileOwner = tileOwner; world.tileState = tileState;
   delete regions[cityId];

@@ -11,6 +11,7 @@ import { checkLog } from './actionLog';
 // The whole state as one string, keys sorted (the balance-sim stateHash method). Typed arrays
 // (the world's tile columns) are written as their numbers.
 const stable = (v) => {
+  if (Array.isArray(v) && v.toJSON) return stable(v.toJSON()); // a tile map (tileIndex.js copyTileMap) hashes as the object it saves as
   if (Array.isArray(v)) return `[${v.map(stable).join(',')}]`;
   if (v && typeof v === 'object') {
     if (ArrayBuffer.isView(v)) return `<${Array.from(v).join(',')}>`;
