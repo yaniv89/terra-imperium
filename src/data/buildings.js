@@ -35,7 +35,7 @@ export const BUILDING_CATEGORIES = {
       { age: 'classical', name: 'Irrigation', requiresTech: 'infrastructure_aqueducts' },
       { age: 'kingdoms', name: 'Farm Estate', requiresTech: 'governance_feudal_charters' },
       { age: 'gunpowder', name: 'Crop Rotation Farm', requiresTech: 'infrastructure_canal_locks' },
-      { age: 'modern', name: 'Mechanized Farm', requiresTech: 'science_genomics' }
+      { age: 'modern', name: 'Mechanized Farm', requiresTech: 'economy_mass_production' }
     ]
   },
   // The income lines pay a flat yield on top of their percentage: most provinces start with a
@@ -48,7 +48,7 @@ export const BUILDING_CATEGORIES = {
       { age: 'classical', name: 'Market', requiresTech: 'economy_minted_coinage', effects: { 'local.taxIncome': 0.15, 'local.flatGold': 3 } },
       { age: 'kingdoms', name: 'Bazaar', requiresTech: 'economy_guild_charters', effects: { 'local.taxIncome': 0.25, 'local.flatGold': 5 } },
       { age: 'gunpowder', name: 'Bank', requiresTech: 'economy_joint_stock_companies', effects: { 'local.taxIncome': 0.35, 'local.flatGold': 8 } },
-      { age: 'modern', name: 'Stock Exchange', requiresTech: 'economy_global_markets', effects: { 'local.taxIncome': 0.50, 'local.flatGold': 12 } }
+      { age: 'modern', name: 'Stock Exchange', requiresTech: 'economy_industrial_capital', effects: { 'local.taxIncome': 0.50, 'local.flatGold': 12 } }
     ]
   },
   military: {

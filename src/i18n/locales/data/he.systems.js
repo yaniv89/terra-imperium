@@ -64,6 +64,16 @@ export default {
   'tech.science_calculus': 'חשבון אינפיניטסימלי',
   'tech.science_computing': 'מחשוב',
   'tech.science_genomics': 'גנומיקה',
+  'tech.military_combined_arms': 'כוחות משולבים',
+  'tech.military_unmanned_systems': 'מערכות בלתי מאוישות',
+  'tech.economy_mass_production': 'ייצור המוני',
+  'tech.economy_digital_economy': 'כלכלה דיגיטלית',
+  'tech.infrastructure_telecom_networks': 'רשתות תקשורת',
+  'tech.infrastructure_smart_grids': 'רשתות חשמל חכמות',
+  'tech.governance_mass_politics': 'פוליטיקת המונים',
+  'tech.governance_global_institutions': 'מוסדות עולמיים',
+  'tech.science_nuclear_physics': 'פיזיקה גרעינית',
+  'tech.science_artificial_intelligence': 'בינה מלאכותית',
 
   // building categories (bcat.<id>) and tiers (btier.<id>.<index>)
   'bcat.food': 'מזון וצמיחה',

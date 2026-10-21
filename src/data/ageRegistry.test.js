@@ -78,7 +78,6 @@ const OPT_OUT = {
   'building tiers': { information: 'U51 appends the Information tiers' },
   'government reform tiers': { information: 'U55 adds the Information reforms' },
   wonders: { information: 'U51 adds the Information wonders' },
-  techs: { information: 'U49 gives the Information Age its techs' },
   'age icon': { information: 'the icon is held art on claude/art-information' }
 };
 
@@ -159,7 +158,7 @@ describe('registry completeness: every per-age table has every age', () => {
 
   it('every tech belongs to a known age and each age has 10 techs', () => {
     Object.values(TECH_TREE).forEach((t) => expect(AGE_ORDER, `tech ${t.id}`).toContain(t.ageId));
-    AGE_ORDER.filter((age) => !OPT_OUT.techs[age]).forEach((age) => expect(getTechsForAge(age), `techs in ${age}`).toHaveLength(10));
+    AGE_ORDER.forEach((age) => expect(getTechsForAge(age), `techs in ${age}`).toHaveLength(10));
   });
 
   it('every age has its English and Hebrew names in i18n', () => {

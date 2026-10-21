@@ -32,7 +32,8 @@ const CATEGORY_LINES = {
     { name: 'Iron Weapons', age: 'classical' }, { name: 'Siege Engineering', age: 'classical' },
     { name: 'Feudal Levies', age: 'kingdoms' }, { name: 'Plate Armor', age: 'kingdoms' },
     { name: 'Gunpowder Weapons', age: 'gunpowder' }, { name: 'Standing Armies', age: 'gunpowder' },
-    { name: 'Mechanized Warfare', age: 'modern' }, { name: 'Precision Guidance', age: 'modern' }
+    { name: 'Mechanized Warfare', age: 'modern' }, { name: 'Combined Arms', age: 'modern' },
+    { name: 'Precision Guidance', age: 'information' }, { name: 'Unmanned Systems', age: 'information' }
   ],
   [TechCategories.ECONOMY]: [
     { name: 'Agriculture', age: 'stone' }, { name: 'Animal Husbandry', age: 'stone' },
@@ -40,7 +41,8 @@ const CATEGORY_LINES = {
     { name: 'Minted Coinage', age: 'classical' }, { name: 'Silk Road Trade', age: 'classical' },
     { name: 'Guild Charters', age: 'kingdoms' }, { name: 'Banking Houses', age: 'kingdoms' },
     { name: 'Joint-Stock Companies', age: 'gunpowder' }, { name: 'Colonial Trade', age: 'gunpowder' },
-    { name: 'Industrial Capital', age: 'modern' }, { name: 'Global Markets', age: 'modern' }
+    { name: 'Industrial Capital', age: 'modern' }, { name: 'Mass Production', age: 'modern' },
+    { name: 'Global Markets', age: 'information' }, { name: 'Digital Economy', age: 'information' }
   ],
   [TechCategories.INFRASTRUCTURE]: [
     { name: 'Pottery', age: 'stone' }, { name: 'The Wheel', age: 'stone' },
@@ -48,7 +50,8 @@ const CATEGORY_LINES = {
     { name: 'Paved Roads', age: 'classical' }, { name: 'Aqueducts', age: 'classical' },
     { name: 'Stone Bridges', age: 'kingdoms' }, { name: 'Postal Relay', age: 'kingdoms' },
     { name: 'Canal Locks', age: 'gunpowder' }, { name: 'Turnpike Roads', age: 'gunpowder' },
-    { name: 'Rail Networks', age: 'modern' }, { name: 'Highway Systems', age: 'modern' }
+    { name: 'Rail Networks', age: 'modern' }, { name: 'Highway Systems', age: 'modern' },
+    { name: 'Telecom Networks', age: 'information' }, { name: 'Smart Grids', age: 'information' }
   ],
   [TechCategories.GOVERNANCE]: [
     { name: 'Chiefdoms', age: 'stone' }, { name: 'Sacred Kingship', age: 'stone' },
@@ -56,7 +59,8 @@ const CATEGORY_LINES = {
     { name: 'Civic Assemblies', age: 'classical' }, { name: 'Provincial Administration', age: 'classical' },
     { name: 'Feudal Charters', age: 'kingdoms' }, { name: 'Royal Chancery', age: 'kingdoms' },
     { name: 'Bureaucratic Reform', age: 'gunpowder' }, { name: 'Constitutional Law', age: 'gunpowder' },
-    { name: 'Civil Service', age: 'modern' }, { name: 'Digital Administration', age: 'modern' }
+    { name: 'Civil Service', age: 'modern' }, { name: 'Mass Politics', age: 'modern' },
+    { name: 'Digital Administration', age: 'information' }, { name: 'Global Institutions', age: 'information' }
   ],
   [TechCategories.SCIENCE]: [
     { name: 'Star Lore', age: 'stone' }, { name: 'Proto-Writing', age: 'stone' },
@@ -64,7 +68,8 @@ const CATEGORY_LINES = {
     { name: 'Geometry', age: 'classical' }, { name: 'Natural Philosophy', age: 'classical' },
     { name: 'Scholastic Method', age: 'kingdoms' }, { name: 'Optics', age: 'kingdoms' },
     { name: 'Scientific Method', age: 'gunpowder' }, { name: 'Calculus', age: 'gunpowder' },
-    { name: 'Computing', age: 'modern' }, { name: 'Genomics', age: 'modern' }
+    { name: 'Nuclear Physics', age: 'modern' }, { name: 'Computing', age: 'modern' },
+    { name: 'Genomics', age: 'information' }, { name: 'Artificial Intelligence', age: 'information' }
   ]
 };
 
@@ -117,7 +122,17 @@ const TECH_EFFECTS = {
   'Natural Philosophy': { techPointsMult: 0.10 },
   'Scientific Method': { researchCost: -0.10 },
   'Computing': { techPointsMult: 0.20 },
-  'Genomics': { popGrowthBonus: 0.002 }
+  'Genomics': { popGrowthBonus: 0.002 },
+  // Modern and Information (eight-ages plan U49, effects from plans/eras-origins-and-future.md 5.4).
+  // Pool bonuses map per KTD20: milBonus to hrMult, dipBonus to opinion (TODO sibling plan KTD5).
+  // Nuclear Physics, Unmanned Systems and Smart Grids pay through what they unlock (U50, U51).
+  'Combined Arms': { hrMult: 0.05 },
+  'Mass Production': { goldMult: 0.15, stabilityBonus: -0.5 },
+  'Mass Politics': { opinion: 2 },
+  'Digital Economy': { goldMult: 0.15 },
+  'Telecom Networks': { opinion: 2 },
+  'Global Institutions': { opinion: 2 },
+  'Artificial Intelligence': { techPointsMult: 0.25, researchCost: -0.10 }
 };
 
 const slug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
@@ -133,6 +148,9 @@ export const CROSS_PREREQUISITES = {
   'Gunpowder Weapons': ['Natural Philosophy'],
   'Standing Armies': ['Royal Chancery'],
   'Mechanized Warfare': ['Industrial Capital'],
+  'Combined Arms': ['Industrial Capital'],
+  'Smart Grids': ['Computing'],
+  'Artificial Intelligence': ['Digital Economy'],
   'Precision Guidance': ['Computing'],
   'Silk Road Trade': ['Paved Roads'],
   'Banking Houses': ['Provincial Administration'],

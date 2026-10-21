@@ -108,6 +108,16 @@ export default {
   'boost.science_calculus': 'לבנות 4 מבני מדע',
   'boost.science_computing': 'להחזיק אורניום או לשלוט ב-10 ערים',
   'boost.science_genomics': 'להגדיל עיר לגודל 20',
+  'boost.military_combined_arms': 'לנצח ב-5 קרבות',
+  'boost.military_unmanned_systems': 'לנצח ב-10 קרבות',
+  'boost.economy_mass_production': 'להחזיק פחם ונפט',
+  'boost.economy_digital_economy': 'להחזיק הסכם סחר ולשלוט ב-15 ערים',
+  'boost.infrastructure_telecom_networks': 'לשלוט ב-15 ערים',
+  'boost.infrastructure_smart_grids': 'להחזיק פחם, נפט ואורניום',
+  'boost.governance_mass_politics': 'להגדיל עיר לגודל 12',
+  'boost.governance_global_institutions': 'לבנות 4 פלאים',
+  'boost.science_nuclear_physics': 'להחזיק אורניום',
+  'boost.science_artificial_intelligence': 'להחזיק 10 מבני מדע',
 
   // era goals (playstyle.<id>, goalunit.<id>, goalnext.<id>, goalbonus.<id>)
   'playstyle.expand': 'התרחבות',
