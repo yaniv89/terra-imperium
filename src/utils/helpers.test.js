@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canAfford, applyCosts, scaleCosts, calcIncome, getPlayerControl, getCostString, getResourceStrain, formatNumber, formatMoney, getSupplyCapacity, getStability, nextUnrest, getNationBonusTotal, getPowerIncome, getPowerBreakdown, getFieldedStrength, getDisplayPopulation } from './helpers';
+import { canAfford, applyCosts, scaleCosts, calcIncome, getPlayerControl, getCostString, getResourceStrain, formatNumber, formatMoney, getSupplyCapacity, getStability, nextUnrest, getNationBonusTotal, getFieldedStrength, getDisplayPopulation } from './helpers';
 import { createInitialState } from '../context/GameContext';
 import { getNationCapital, REGIONS_DATA } from '../data/regions';
 import { regionHasDeposit } from '../data/deposits';
@@ -221,86 +221,6 @@ describe('getNationBonusTotal', () => {
   });
 });
 
-// Regression: AP was a flat 3/turn regardless of empire size or maturity — a 50-region late-game
-// empire acted exactly as often per turn as a 1-region start. Administrative Capacity fixes that via
-// two real levers: government maturity (apBonus) and the Governance tech line. Plan §M2 replaced
-// the single AP pool with three (adm/dip/mil); apBonus applies equally to all three since neither
-// government nor tech differentiates between them yet (M3/M7 are what eventually will).
-describe('getPowerIncome', () => {
-  // M3's ruler/advisor generation adds nonzero adm/dip/mil skill to createInitialState's nations —
-  // real for gameplay, but it would make these exact-value assertions depend on the seeded RNG roll
-  // for 'fr' specifically. Zero the ruler and clear advisors so this suite still isolates apBonus/
-  // tech math the way it did before M3.
-  const baseState = () => {
-    const state = createInitialState({ playerNationId: 'fr' });
-    state.nations.fr.ruler = { ...state.nations.fr.ruler, adm: 0, dip: 0, mil: 0, traits: [] };
-    state.nations.fr.advisors = { adm: null, dip: null, mil: null };
-    return state;
-  };
-
-  it('is the flat base of 3 per pool with no government and no researched Governance tech', () => {
-    expect(getPowerIncome(baseState())).toEqual({ adm: 3, dip: 3, mil: 3 });
-  });
-
-  it('adds an enacted reform\'s admBonus/dipBonus/milBonus to their respective pools', () => {
-    const state = baseState();
-    state.nations.fr.government = { type: 'republic', reforms: { modern: 'presidential_republic' } }; // +1 adm/dip/mil each
-    expect(getPowerIncome(state)).toEqual({ adm: 4, dip: 4, mil: 4 });
-  });
-
-  it('adds +1 ADM per researched Governance tech with a real admBonus effect (Code of Laws), ignoring other techs', () => {
-    // Plan §M7 replaced the old flat "+1 per 3 Governance techs" rule with each tech's own real
-    // effect — Code of Laws gives +1 admBonus; Scribal Bureaucracy and Civic Assemblies don't
-    // touch any power pool (their own effects are developmentCost and an unlock respectively).
-    const state = baseState();
-    ['governance_code_of_laws', 'governance_scribal_bureaucracy', 'governance_civic_assemblies'].forEach((id) => {
-      state.techTree[id] = { ...state.techTree[id], researched: true };
-    });
-    // A non-Governance tech researched too, to prove only techs with a real admBonus effect count.
-    state.techTree.military_bronze_casting = { ...state.techTree.military_bronze_casting, researched: true };
-    expect(getPowerIncome(state)).toEqual({ adm: 4, dip: 3, mil: 3 }); // 3 base + 1 (Code of Laws)
-  });
-
-  it('stacks a reform\'s admBonus with per-tech admBonus effects together', () => {
-    const state = baseState();
-    // imperial_bureaucracy and absolutism each give +1 ADM/turn.
-    state.nations.fr.government = { type: 'monarchy', reforms: { classical: 'imperial_bureaucracy', gunpowder: 'absolutism' } };
-    // Of these 6, only Code of Laws and Royal Chancery have their own +1 admBonus effect.
-    ['governance_code_of_laws', 'governance_scribal_bureaucracy', 'governance_civic_assemblies',
-      'governance_provincial_administration', 'governance_feudal_charters', 'governance_royal_chancery'].forEach((id) => {
-      state.techTree[id] = { ...state.techTree[id], researched: true };
-    });
-    expect(getPowerIncome(state)).toEqual({ adm: 7, dip: 3, mil: 3 }); // 3 base + 2 reforms (adm only) + 2 admBonus (adm only)
-  });
-});
-
-// Plan §M20: getPowerBreakdown exposes the real per-source lines behind one getPowerIncome pool, for
-// the Tooltip v2 / Breakdown UI. Its rows must always sum to the matching getPowerIncome total —
-// that's the whole point of reusing getModifier's own breakdown arrays instead of re-deriving them.
-describe('getPowerBreakdown', () => {
-  const baseState = () => {
-    const state = createInitialState({ playerNationId: 'fr' });
-    state.nations.fr.ruler = { ...state.nations.fr.ruler, adm: 0, dip: 0, mil: 0, traits: [] };
-    state.nations.fr.advisors = { adm: null, dip: null, mil: null };
-    return state;
-  };
-
-  const sumRows = (rows) => rows.reduce((sum, r) => sum + r.value, 0);
-
-  it('is just a "Base" row of 3 with no government and no researched Governance tech', () => {
-    const rows = getPowerBreakdown(baseState(), 'fr', 'adm');
-    expect(rows).toEqual([{ label: 'Base', value: 3 }]);
-  });
-
-  it('sums to the same total getPowerIncome returns once a reform and a tech both add ADM', () => {
-    const state = baseState();
-    state.nations.fr.government = { type: 'monarchy', reforms: { classical: 'imperial_bureaucracy' } }; // +1 adm reform
-    state.techTree.governance_code_of_laws = { ...state.techTree.governance_code_of_laws, researched: true }; // +1 admBonus
-    const rows = getPowerBreakdown(state, 'fr', 'adm');
-    expect(sumRows(rows)).toBe(getPowerIncome(state).adm);
-    expect(rows.length).toBeGreaterThan(1); // Base + at least one real source line, not a flat total
-  });
-});
 
 // Regression: player-facing "power" comparisons used to read nation.militaryStrength directly —
 // an abstract, unbounded AI economy score (aiLogic.js's processAINationTurn) that has no cap tied to
@@ -368,19 +288,7 @@ describe('getDisplayPopulation', () => {
 
 describe('getResourceStrain', () => {
   it('is null when nothing crosses the 50% threshold', () => {
-    expect(getResourceStrain({ gold: 10, adm: 1 }, { gold: 1000, adm: 5, maxAdm: 5 })).toBeNull();
-  });
-
-  it('measures a power-pool cost against its banked amount, not its per-turn income', () => {
-    // maxMil is per-turn income (pools bank up to POWER_POOL_CAP), so a 40-MIL tech against a 100
-    // bank is 40% — not "8x one turn's income".
-    expect(getResourceStrain({ mil: 40 }, { mil: 100, maxMil: 5 })).toBeNull();
-    expect(getResourceStrain({ mil: 60 }, { mil: 100, maxMil: 5 })).toEqual({ level: 'high', label: 'MIL' });
-  });
-
-  it('measures a power pool with no income recorded yet against its current amount', () => {
-    const result = getResourceStrain({ dip: 9 }, { dip: 10 });
-    expect(result).toEqual({ level: 'critical', label: 'DIP' }); // 9/10 = 90%
+    expect(getResourceStrain({ gold: 10 }, { gold: 1000 })).toBeNull();
   });
 
   it('measures every other resource against its current on-hand amount (no cap)', () => {
@@ -389,14 +297,14 @@ describe('getResourceStrain', () => {
   });
 
   it('reports only the worst-strained resource among several costs', () => {
-    const result = getResourceStrain({ gold: 100, mil: 4 }, { gold: 1000, mil: 5, maxMil: 3 });
-    expect(result.label).toBe('MIL'); // 4/5 = 80% beats gold's 10%
+    const result = getResourceStrain({ gold: 100, hr: 4 }, { gold: 1000, hr: 5 });
+    expect(result.label).toBe('HR'); // 4/5 = 80% beats gold's 10%
   });
 });
 
 describe('getCostString', () => {
   it('formats known resource and meta-currency costs', () => {
-    expect(getCostString({ gold: 1500, techPoints: 5, adm: 2, dip: 1, mil: 3 })).toBe('1.5K Gold, 5 TP, 2 ADM, 1 DIP, 3 MIL');
+    expect(getCostString({ gold: 1500, techPoints: 5, decrees: 2 })).toBe('1.5K Gold, 5 TP, 2 decrees');
   });
 
   it('omits zero/falsy costs', () => {

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { getNationSheet, getModifier, getRegionModifier, getNationBonusTotal, explainNationBonus } from './sheet';
 import { createEmptyRegionBuildings } from '../../data/buildings';
 
-const monarchyDespotic = { type: 'monarchy', reforms: { bronze: 'despotic_rule' } }; // milBonus 1, stabilityBonus -1
+const monarchyDespotic = { type: 'monarchy', reforms: { bronze: 'despotic_rule' } }; // hrMult 0.05, stabilityBonus -1
 const merchantRepublic = { type: 'republic', reforms: { classical: 'merchant_republic' } }; // goldMult 0.25
 
 describe('getNationBonusTotal / explainNationBonus (the legacy shim)', () => {

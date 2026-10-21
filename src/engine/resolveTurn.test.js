@@ -13,7 +13,7 @@ import { getTechsForAge } from '../data/techTree';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { applyEventEffects } from './applyEventEffects';
 import { getNationCapital } from '../data/regions';
-import { UNIT_UPKEEP_GOLD_PER_TURN, POWER_POOL_CAP } from '../data/actionCosts';
+import { UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
 import { NATION_ELIMINATION_REWARD } from './elimination';
 
 // A nation now spans many real provinces, not one region matching its own id — these tests use
@@ -156,39 +156,6 @@ describe('resolveTurn resource income', () => {
     expect(next.resources.iron).toBeDefined();
   });
 
-  // Regression guard: adm/dip/mil aren't in RESOURCE_IDS, so createEmptyResourcePool never zeroes
-  // them and calcIncome never returns them — nothing refreshed them before this fix, meaning a
-  // fresh game's starting power was, in effect, the player's ENTIRE budget for the whole
-  // ~500-turn game once spent, permanently locking out every action (recruiting, building,
-  // diplomacy, research, all of which cost adm/dip/mil — src/data/actionCosts.js). Every other
-  // action-cost test in this codebase manually stuffs the relevant pool before dispatching, which
-  // is exactly why nothing else caught this.
-  it('tops adm/dip/mil up by the per-turn budget when none was left over', () => {
-    const state = { ...createInitialState({ playerNationId: 'fr' }), resources: { ...createInitialState({ playerNationId: 'fr' }).resources, adm: 0, dip: 0, mil: 0 } };
-    const next = resolveTurn(state);
-    // Compared against next's OWN maxAdm/maxDip/maxMil, not state's: createInitialState hardcodes
-    // maxAdm/maxDip/maxMil to the flat BASE_POWER_PER_TURN at creation, while resolveTurn recomputes
-    // them from getPowerIncome (which includes the nation's seeded ruler's adm/dip/mil skill, M3) —
-    // so state's own pre-turn max is stale the moment a nonzero ruler skill exists.
-    expect(next.resources.adm).toBe(next.resources.maxAdm);
-    expect(next.resources.dip).toBe(next.resources.maxDip);
-    expect(next.resources.mil).toBe(next.resources.maxMil);
-  });
-
-  it('a whole long run never runs out of ADM to spend', () => {
-    // Spending only 1 ADM/turn on a single action banks the rest every turn, so the balance keeps
-    // climbing toward the flat POWER_POOL_CAP (src/data/actionCosts.js) — enough, over time, to pay
-    // for a 40-160 power tech or a 300-ADM government change, which the old 2x-income cap never
-    // allowed. Either way, the player is never starved of ADM to spend.
-    let state = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    for (let i = 0; i < 50; i++) {
-      state = gameReducer(state, { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: cap('fr') } });
-      state = resolveTurn(state);
-      expect(state.resources.adm).toBeGreaterThan(0);
-    }
-    expect(state.resources.adm).toBeGreaterThan(state.resources.maxAdm * 2);
-    expect(state.resources.adm).toBeLessThanOrEqual(POWER_POOL_CAP);
-  }, 30000); // 50 real turns at the 4,482-region world's per-turn cost — see aiQualityBenchmark.test.js's own comment
 });
 
 // Regression/feature: RECRUIT_UNIT/DISBAND_UNIT only ever charged a one-time cost — a standing
@@ -1048,14 +1015,10 @@ describe('resolveTurn nation elimination (src/engine/elimination.js)', () => {
     const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
     const state = strip(base, 'de', 'fr');
     const goldBefore = state.resources.gold;
-    const dpBefore = state.resources.dip || 0;
     const next = resolveTurn(state);
     expect(next.nations.de.isEliminated).toBe(true);
     expect(next.playerEliminatedNationId).toBe('de');
     expect(next.resources.gold - goldBefore).toBeGreaterThanOrEqual(NATION_ELIMINATION_REWARD.gold);
-    // >= rather than exact equality: the pool also banks its normal per-turn DIP income this same
-    // turn (getPowerIncome/resolveTurn.js's power-banking step), on top of the elimination reward.
-    expect(next.resources.dip).toBeGreaterThanOrEqual(dpBefore + NATION_ELIMINATION_REWARD.dip);
   });
 
   it('never eliminates the player nation itself, however few regions remain', () => {
@@ -1101,16 +1064,7 @@ describe('resolveTurn capitals (plan §M15)', () => {
       nations: { ...base.nations, fr: { ...base.nations.fr, stability: -1, capitalOccupied: true } }
     };
     const next = resolveTurn(state);
-    expect(next.nations.fr.stability).toBe(-1); // unchanged — only the pool penalty recurs
-  });
-
-  it('deducts 1 ADM/DIP/MIL every turn the player\'s capital stays occupied', () => {
-    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    const free = resolveTurn(base);
-    const occupied = resolveTurn({ ...base, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], occupiedBy: 'de' } } });
-    expect(occupied.resources.adm).toBe(free.resources.adm - 1);
-    expect(occupied.resources.dip).toBe(free.resources.dip - 1);
-    expect(occupied.resources.mil).toBe(free.resources.mil - 1);
+    expect(next.nations.fr.stability).toBe(-1); // unchanged: the penalty does not recur
   });
 
   it('clears the occupied flag and stops the penalty once the capital is liberated', () => {

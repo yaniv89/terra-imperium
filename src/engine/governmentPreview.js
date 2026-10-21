@@ -12,6 +12,9 @@ import { AGES } from '../data/ages';
 import { ageOf } from './nationState';
 import { stonePhaseOf } from './stonePhase';
 import { authorityOf, canEnactLaws, AUTHORITY_NO_LAWS } from './authority';
+import { canPay } from '../utils/costs';
+import { decreesOf } from './decrees';
+import { getCostString } from '../utils/helpers';
 
 const snapshot = (state, me) => {
   const nation = state.nations[me];
@@ -34,9 +37,9 @@ export const previewGovernmentChange = (state, typeId, picks = null) => {
   if (!nation || !type) return { ok: false, reason: 'Unknown government', cost, lines: [] };
   if (!canChangeGovernmentType(nation, typeId, ageOf(state, state.playerNationId), stonePhaseOf(state, me))) return { ok: false, reason: 'Not available to you yet', typeName: type.name, cost, lines: [] };
 
-  const affordable = Object.entries(cost).every(([k, v]) => (state.resources?.[k] || 0) >= v);
-  // Run the real action with the cost covered, so the preview works even when it is not affordable yet.
-  const funded = { ...state, resources: { ...state.resources, ...Object.fromEntries(Object.entries(cost).map(([k, v]) => [k, Math.max(state.resources?.[k] || 0, v)])) } };
+  const affordable = canPay(state, cost);
+  // Run the real action with the decrees covered, so the preview works even when it is not affordable yet.
+  const funded = nation.ruler ? { ...state, nations: { ...state.nations, [me]: { ...nation, ruler: { ...nation.ruler, decrees: Math.max(decreesOf(nation), cost.decrees) } } } } : state;
   const next = gameReducer(funded, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId, reforms: picks || undefined } });
   if (next === funded) return { ok: false, reason: 'The change is not allowed', typeName: type.name, cost, lines: [] };
 
@@ -46,7 +49,7 @@ export const previewGovernmentChange = (state, typeId, picks = null) => {
   const authorityChange = after.authority - before.authority;
   const locksLaws = before.canEnactLaws && !after.canEnactLaws;
   const lines = [];
-  lines.push(`Costs ${Object.entries(cost).map(([k, v]) => `${v} ${k.toUpperCase()}`).join(', ')}.`);
+  lines.push(`Costs ${getCostString(cost)}.`);
   if (stabilityChange) lines.push(`Stability ${stabilityChange > 0 ? '+' : ''}${stabilityChange} (to ${after.stability}).`);
   if (authorityChange) lines.push(`Authority ${before.authority} to ${after.authority}.`);
   if (locksLaws) lines.push(`Authority falls under ${AUTHORITY_NO_LAWS}: you cannot enact laws until it recovers.`);

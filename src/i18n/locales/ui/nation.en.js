@@ -2,9 +2,7 @@
 // UI text: nation (phase H5). Plural forms use .one / .two / .other with { count }.
 export default {
   'nc.unit.gold': 'gold',
-  'nc.unit.dip': 'DIP',
-  'nc.unit.adm': 'ADM',
-  'nc.unit.mil': 'MIL',
+  'nc.unit.decrees': 'decrees',
   'nc.shortfallItem': '{n} {unit} (have {have})',
   'nc.notEnough': 'Not enough resources — need {list}',
   'nc.notEnoughNeed': 'Not enough resources: need {list}',
@@ -101,7 +99,7 @@ export default {
   'nc.refusalBorders': 'Open borders: opinion {opinion}, needs {needed}.',
   'nc.tradeBlockWar': 'At war: no trade',
   'nc.tradeBlockFull': 'No free trade pact ({a} of {b} in use)',
-  'nc.annex': 'Annex ({n} DIP)',
+  'nc.annex': 'Annex ({n} decree)',
   'nc.annexSub': 'Their land becomes yours',
   'nc.fromTurn': 'From turn {n}',
   'nc.release': 'Release',

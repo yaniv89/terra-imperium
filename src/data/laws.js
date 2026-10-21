@@ -4,7 +4,7 @@ import { getResearched } from '../engine/nationState';
 // categories holds exactly one law at a time (`nation.laws = { taxation, conscription, religion,
 // trade, land, justice }`), rather than a shared slot pool a government's slot count limits — every
 // nation always has a law in every category, defaulting to that category's tier-1 (DEFAULT_LAWS).
-// Changing a law costs `50 x its tier` ADM (see getLawChangeCost's discounts) and has a cooldown
+// Changing a law needs authority (canEnactLaw) and costs one decree (ACTION_COSTS.changeLaw), with a cooldown
 // (LAW_CHANGE_COOLDOWN_TURNS) before that category can change again.
 //
 // Tiers within a category aren't a prerequisite chain the way techs are — you can switch straight to
@@ -13,7 +13,6 @@ import { getResearched } from '../engine/nationState';
 // loyalty, army upkeep, war exhaustion, trade gold, partners' opinion, raids).
 import { TECH_TREE } from './techTree';
 import { leansPositive, leansNegative } from './identity';
-import { getGovernmentReformEffectSum } from './government';
 import { canEnactLaws } from '../engine/authority';
 import { stonePhaseOf, VILLAGE_LAW_CATEGORIES } from '../engine/stonePhase';
 
@@ -59,7 +58,7 @@ export const LAW_CATEGORIES = {
     { id: 'rule_of_law', name: 'Rule of Law', tier: 3, requiresTech: 'governance_constitutional_law', description: '+4 loyalty in every city; -1 unrest.', effects: { stabilityBonus: 1 }, rules: { loyaltyBonus: 4 } },
     // "-1 stability to enact" is a one-time cost applied directly by gameReducer.js's CHANGE_LAW
     // case (not part of `effects`, which are ongoing per-turn bonuses, not one-shot costs).
-    { id: 'martial_law', name: 'Martial Law', tier: 4, requiresTech: null, description: '-20% tax, -1 DIP/turn; -1 stability to enact; +2 unrest; +6 loyalty in every city; war exhaustion rises 20% slower.', effects: { goldMult: -0.2, dipBonus: -1, stabilityBonus: -2 }, rules: { loyaltyBonus: 6, warExhaustionMult: -0.2 } }
+    { id: 'martial_law', name: 'Martial Law', tier: 4, requiresTech: null, description: '-20% tax, -5 opinion with every nation; -1 stability to enact; +2 unrest; +6 loyalty in every city; war exhaustion rises 20% slower.', effects: { goldMult: -0.2, opinion: -5, stabilityBonus: -2 }, rules: { loyaltyBonus: 6, warExhaustionMult: -0.2 } }
   ]
 };
 
@@ -96,20 +95,6 @@ export const canEnactLaw = (state, nationId, category, lawId) => {
   return (state.turnNumber || 0) >= cooldownUntil;
 };
 
-// 50 x tier ADM (plan §M2), discounted by any active lawCostMult reform (Parliamentary Monarchy/
-// Democracy) and by identity leaning the "natural" direction for that category (plan §M8.3:
-// collectivism discounts Conscription/Land, individualism discounts Taxation/Trade, religiosity
-// discounts Religion) — each discount is -25%, stacking additively before the floor at 0.
-export const getLawChangeCost = (state, nationId, category, lawId) => {
-  const nation = state.nations?.[nationId];
-  const law = getLaw(category, lawId);
-  if (!nation || !law) return Infinity;
-  let mult = 1 + getGovernmentReformEffectSum(nation, 'lawCostMult');
-  if (category === 'religion' && leansPositive(nation.identity, 'secularism')) mult -= 0.25;
-  if ((category === 'conscription' || category === 'land') && leansPositive(nation.identity, 'collectivism')) mult -= 0.25;
-  if ((category === 'taxation' || category === 'trade') && leansNegative(nation.identity, 'collectivism')) mult -= 0.25;
-  return Math.max(0, Math.round(50 * law.tier * Math.max(0, mult)));
-};
 
 // Referenced by the tech-gating UI/tests the same way buildings.js's canBuildTier callers show a
 // greyed-out requirement — kept here so callers don't need to reach into TECH_TREE themselves.

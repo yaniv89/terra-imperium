@@ -13,7 +13,7 @@ import {
   hasOpenBorders, openBordersAcceptance, setOpenBorders, demandAcceptance, applyDemand, settlingBarred, hasDemandCasusBelli,
   OPEN_BORDERS_OPINION, demandCbTurns, demandCooldownTurns, demandTruceTurns, tributeQuote, cityIncomeOf, DEMAND_STOP_SETTLING_TURNS, DEMAND_TRIBUTE_MIN, DEMAND_TRIBUTE_BANK_CAP, DEMAND_TRIBUTE_INCOME_SHARE
 } from './accords';
-import { neighbourWorld, rivalOf } from './testWorld';
+import { neighbourWorld, rivalOf, withDecrees } from './testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
 const PEOPLES_WORLD = neighbourWorld({ seed: 3 });
@@ -22,7 +22,7 @@ const PK_ID = rivalOf(PEOPLES_WORLD, 0);
 
 const base = () => {
   const s = neighbourWorld({ seed: 3, fog: false });
-  return { ...s, resources: { ...s.resources, gold: 100000, dip: 500 } };
+  return withDecrees({ ...s, resources: { ...s.resources, gold: 100000 } });
 };
 const neighbour = (s) => claimableCities(s, IN_ID)[0].city.owner;
 

@@ -1,13 +1,14 @@
 import { districtYields } from './districts';
 import { getTiles } from '../data/geo/tiles';
-import { LAW_CATEGORIES, LAW_CATEGORY_IDS, canEnactLaw, getLawChangeCost, LAW_CHANGE_COOLDOWN_TURNS } from '../data/laws';
+import { LAW_CATEGORIES, LAW_CATEGORY_IDS, canEnactLaw, LAW_CHANGE_COOLDOWN_TURNS } from '../data/laws';
+import { decreesOf, spendDecree } from './decrees';
 import { generateAdvisorCandidates, getAdvisorHireCost, getAdvisorSalary } from './rulers';
 import { getNeighborIds } from '../data/regions';
 import { getRecruitUnitCost, calcNationBalance, getLoanCapacity, getLoanInterestRate, applyBankruptcy } from './economy';
 import { canAfford, applyCosts, EXTRACTION_BASE_YIELD } from '../utils/helpers';
 import { regionHasDeposit } from '../data/deposits';
 // src/engine/aiEconomy.js
-// Plan §M16: AI parity. Gives AI nations a real, spendable economy — gold/hr/techPoints/adm/dip/mil
+// Plan §M16: AI parity. Gives AI nations a real, spendable economy — gold/hr/techPoints
 // on their own `nation.economy` (src/engine/nationState.js's own long-scaffolded accessor layer,
 // built in M0.2 and unused in production until this milestone) — and a decision cadence, so every
 // one of the 240 nations gets a real turn's income and, on its own schedule, a real spending
@@ -26,7 +27,7 @@ import { getResearched, ageOf } from './nationState';
 import { getModifier, getRegionModifierTotals } from './modifiers/sheet';
 const INCOME_KEYS = ['local.taxIncome', 'local.productionIncome', 'local.manpower', 'local.techPoints', 'local.flatGold', 'local.flatManpower', 'local.tradeIncome'];
 import {
-  getPopFactor, seedDevelopment, getTotalDev, DEV_TYPE_IDS, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO, applyDevelopment
+  getPopFactor, seedDevelopment, getTotalDev, DEV_TYPE_IDS, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO, applyDevelopment
 } from './development';
 import { REGIONS_DATA, getOwnedRegionIds } from '../data/regions';
 import {
@@ -44,18 +45,18 @@ import { rulerCityCtx } from './lawRules';
 // Plan §M21 balance harness (scripts/simulate.mjs) found that a 150-turn AI-vs-AI run produced
 // roughly one civil war per 3 nations — this file's own scope-trim list above never actually named
 // stability management as an intentional omission (unlike loans/bankruptcy, which does), so this was
-// a real parity gap rather than a deliberate trim: nothing ever gave the AI a reason to spend ADM on
+// a real parity gap rather than a deliberate trim: nothing ever gave the AI a reason to pay for
 // the player's own Increase Stability action, so a nation drifting toward the M15 civil-war floor
 // (stability <= -3 for 3 turns) had no counterplay at all. -1, not 0 or -3: low enough that a nation
-// merely having a rough patch doesn't burn ADM it would rather spend building/researching, but high
+// merely having a rough patch doesn't burn the gold and the decree it would rather spend building/researching, but high
 // enough to give a nation real turns to recover before it nears the actual civil-war trigger.
 const AI_STABILITY_RAISE_THRESHOLD = -1;
 const tryIncreaseStability = (state, nation) => {
   if ((nation.stability || 0) > AI_STABILITY_RAISE_THRESHOLD) return null;
   const stabilityCostMult = getModifier(state, nation.id, 'national.stabilityCost').total;
   const cost = getIncreaseStabilityCost(state, nation.id, stabilityCostMult);
-  if ((nation.economy.adm || 0) < cost) return null;
-  return { ...nation, economy: { ...nation.economy, adm: nation.economy.adm - cost }, stability: clampStability((nation.stability || 0) + 1) };
+  if ((nation.economy.gold || 0) < cost.gold || decreesOf(nation) < cost.decrees) return null;
+  return spendDecree({ ...nation, economy: { ...nation.economy, gold: nation.economy.gold - cost.gold }, stability: clampStability((nation.stability || 0) + 1) }, 'increaseStability', state.turnNumber, cost.decrees);
 };
 
 // Plan §C: "a nation thinks when (turn + fnv1a(nationId)) % period === 0" — Tier 1 every turn,
@@ -80,7 +81,7 @@ const GARRISON_STRENGTH_WEIGHT = 0.1;
 export const getEffectiveMilitaryPower = (state, nationId) =>
   getFieldedStrength(state, nationId) + (state.nations[nationId]?.militaryStrength || 0) * GARRISON_STRENGTH_WEIGHT;
 
-const emptyAIPool = () => ({ gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 });
+const emptyAIPool = () => ({ gold: 0, hr: 0, techPoints: 0 });
 
 // One O(regions) pass computing real {gold, hr, techPoints} income for every non-player nation that
 // owns at least one region — the player keeps calcIncome (helpers.js) unchanged; this is a separate,
@@ -204,11 +205,12 @@ const tryConstructBuilding = (state, nation, regions) => {
 
 
 // Develops the nation's own highest-dev owned region (same placement convention as
-// tryConstructBuilding above) by +1 in whichever of tax/production/manpower its corresponding power
-// pool (adm/dip/mil — see DEV_TYPE_POOL) can most easily afford, mirroring the player's own
+// tryConstructBuilding above) by +1 for gold (AI_DEVELOP_GOLD_RESERVE kept back), in the type its doctrine
+// leans to by a hash of id and turn, mirroring the player's own
 // DEVELOP_PROVINCE action/cost curve exactly (src/engine/gameReducer.js's case, and
 // getDevelopProvinceCost) so an AI nation's economic base actually grows over a long game instead of
 // staying pinned at its seeded starting value.
+export const AI_DEVELOP_GOLD_RESERVE = 300;
 const tryDevelopProvince = (state, nation, regions) => {
   const ownedRegionIds = getOwnedRegionIds(regions, nation.id).filter((id) => !regions[id].occupiedBy);
   if (ownedRegionIds.length === 0) return null;
@@ -217,17 +219,12 @@ const tryDevelopProvince = (state, nation, regions) => {
   const developmentCostMult = getModifier(state, nation.id, 'national.developmentCost').total;
   const cost = getDevelopProvinceCost(region, developmentCostMult);
   const pool = { ...emptyAIPool(), ...nation.economy };
-  // Whichever pool can afford it AND currently has the largest balance — a simple, doctrine-free
-  // "spend your fullest currency" heuristic rather than a fourth priority table.
-  const devType = DEV_TYPE_IDS
-    .filter((type) => (pool[DEV_TYPE_POOL[type]] || 0) >= cost)
-    .sort((a, b) => (pool[DEV_TYPE_POOL[b]] || 0) - (pool[DEV_TYPE_POOL[a]] || 0))[0];
-  if (!devType) return null;
-  const poolKey = DEV_TYPE_POOL[devType];
+  if ((pool.gold || 0) - cost < AI_DEVELOP_GOLD_RESERVE) return null;
+  const devType = DEV_TYPE_IDS[fnv1a(`${nation.id}|${state.turnNumber}`) % DEV_TYPE_IDS.length];
   const modernBaseline = REGIONS_DATA[regionId]?.population || 0;
   const popGain = Math.round(modernBaseline * DEVELOP_PROVINCE_POP_GAIN_RATIO);
   return {
-    nation: { ...nation, economy: { ...pool, [poolKey]: pool[poolKey] - cost } },
+    nation: { ...nation, economy: { ...pool, gold: pool.gold - cost } },
     regionId,
     updatedRegion: {
       // The same lasting investment the player's Develop buys (development.js applyDevelopment, I031).
@@ -277,11 +274,10 @@ const tryRushProduction = (state, nation, regions, skip = null) => {
   return { nation: { ...nation, economy: { ...nation.economy, gold: gold - bought.gold } }, regionId: best, updatedRegion: applyRush(city, 0, { cost: (p.progress || 0) + bought.hammers, heat }, state.turnNumber) };
 };
 
-export const AI_LAW_ADM_RESERVE = 50;
-/** The law an AI nation enacts this think, { category, id } or null (see the think's own note). */
-export const pickAILaw = (state, nationId, nation, pool) => {
+/** The law an AI nation enacts this think, { category, id } or null (see the think's own note). It needs a decree. */
+export const pickAILaw = (state, nationId, nation) => {
   const liked = DOCTRINE_LAWS[nation.doctrine] || {};
-  const affordable = (category, l) => (pool.adm || 0) >= getLawChangeCost(state, nationId, category, l.id) + AI_LAW_ADM_RESERVE;
+  const affordable = () => decreesOf(nation) >= ACTION_COSTS.changeLaw.decrees;
   const order = [...Object.keys(liked), ...LAW_CATEGORY_IDS.filter((c) => !liked[c])]; // the doctrine's own categories first
   for (const category of order) {
     const current = nation.laws?.[category];
@@ -313,18 +309,18 @@ export const processAIEconomyTurn = (state, regions, nationId) => {
 
 
   // A nation on the brink of civil war (see this function's own AI_STABILITY_RAISE_THRESHOLD
-  // comment) gets first call on its ADM, ahead of government/building/research — those can all
+  // comment) gets first call on its gold and decrees, ahead of government/building/research — those can all
   // wait a think; losing regions to an insurgent army cannot.
   const stabilityResult = tryIncreaseStability(state, nextNation);
   if(stabilityResult)return {nation:stabilityResult};
   if(state.scenario?.mode==='emergent' && getOwnedRegionIds(regions,nationId).some(id=>getNeighborIds(id).some(n=>regions[n]?.owner===null))) return {nation:nextNation};
-  // Keep power and cash for movement, recruitment and the next upkeep bill during wars.
-  if(nextNation.isAtWar && ((pool.gold || 0)<Math.max(200,-(nextNation.lastNetIncome || 0)*3) || (pool.mil || 0)<10))return {nation:nextNation};
+  // Keep cash for movement, recruitment and the next upkeep bill during wars.
+  if(nextNation.isAtWar && (pool.gold || 0)<Math.max(200,-(nextNation.lastNetIncome || 0)*3))return {nation:nextNation};
   if(!stabilityResult && (nextNation.stability || 0)>=0){
     // Laws by doctrine (plan C4.5, DOCTRINE_LAWS): the first preferred law the nation can enact,
     // else the highest tier that costs no stability; the AI never moves back to a law it holds.
-    const law=pickAILaw(state,nationId,nextNation,pool);
-    if(law)return {nation:{...nextNation,economy:{...pool,adm:pool.adm-getLawChangeCost(state,nationId,law.category,law.id)},laws:{...nextNation.laws,[law.category]:law.id},lawCooldowns:{...nextNation.lawCooldowns,[law.category]:state.turnNumber+LAW_CHANGE_COOLDOWN_TURNS}}};
+    const law=pickAILaw(state,nationId,nextNation);
+    if(law)return {nation:spendDecree({...nextNation,economy:pool,laws:{...nextNation.laws,[law.category]:law.id},lawCooldowns:{...nextNation.lawCooldowns,[law.category]:state.turnNumber+LAW_CHANGE_COOLDOWN_TURNS}},'changeLaw',state.turnNumber)};
     const advisorPool=nextNation.isAtWar?'mil':'adm';
     if(!nextNation.advisors?.[advisorPool] && (pool.gold || 0)>500 && (nextNation.lastNetIncome || 0)>20){
       const advisor=generateAdvisorCandidates(nationId,createRng(fnv1a(nationId+state.turnNumber)))[advisorPool].sort((a,b)=>a.level-b.level)[0];

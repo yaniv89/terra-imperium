@@ -38,7 +38,7 @@ export default {
   'm.turn.wonderBuilt': '{wonder} (דרגה {tier}) עומד ב{city}!{prestige}',
   'm.turn.eliminated': '{nation} חוסלה: לא נותר בידיה שום שטח.',
   'm.turn.rivalFallen': 'יריבתך {nation} נפלה. (+{n} יוקרה)',
-  'm.turn.conqueredAll': 'כבשת את {nation} כולה! +{gold:money}, +{dip} דיפ.',
+  'm.turn.conqueredAll': 'כבשת את {nation} כולה! +{gold:money}.',
   'm.turn.defeat': 'תבוסה: אומתך נפלה, לא נותר בידיך שום שטח.',
   'm.turn.victory': 'ניצחון: {victory} הושג!',
   'm.turn.scoreVictory': 'ניצחון: ניצחון ניקוד הושג, אומתך מובילה את העולם!',

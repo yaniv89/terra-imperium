@@ -64,11 +64,6 @@ describe('ACT-01 march bar: an army beside a city', () => {
     expect(m.attackBlocked).toMatch(/End the turn before attacking again\./);
   });
 
-  it('not enough resources: the bar says why', () => {
-    s.resources = {};
-    expect(marchBarModel(s, march(), PLAN).attackBlocked).toBe('Not enough resources to launch this attack.');
-  });
-
   it('at peace with a major: no attack is offered, and the bar says declare war first', () => {
     s.wars = [];
     const m = marchBarModel(s, march(), PLAN);

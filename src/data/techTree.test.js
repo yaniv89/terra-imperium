@@ -154,8 +154,8 @@ describe('real TECH_TREE content integrity', () => {
     // LEGACY_HOOK actually maps, or it would silently do nothing once researched.
     Object.values(TECH_TREE).forEach((tech) => {
       Object.keys(tech.effects || {}).forEach((hook) => {
-        expect(['goldMult', 'hrMult', 'techPointsMult', 'stabilityBonus', 'popGrowthBonus', 'apBonus',
-          'admBonus', 'dipBonus', 'milBonus', 'developmentCost', 'buildingCost', 'researchCost',
+        expect(['goldMult', 'hrMult', 'techPointsMult', 'stabilityBonus', 'popGrowthBonus', 'decreePace',
+          'opinion', 'developmentCost', 'buildingCost', 'researchCost',
           'stabilityCost', 'supplyRange', 'attrition']).toContain(hook);
       });
     });

@@ -90,12 +90,6 @@ describe('attack buttons follow the engine validation', () => {
     expect(button(renderBattle(), 'battle-choice-auto')).toContain('disabled=""');
     expect(renderBattle()).toContain('End the turn before attacking again.');
   });
-  it('blocks an unaffordable attack before opening a battle', () => {
-    game.state.units.army.movesLeft = 1;
-    game.state.resources = {};
-    expect(renderBattle()).toContain('Not enough resources to launch this attack.');
-    expect(button(renderBattle(), 'battle-choice-auto')).toContain('disabled=""');
-  });
   it('blocks stale battle dialogs when the war has ended', () => {
     game.state.wars[0].active = false;
     expect(button(renderBattle(), 'battle-choice-auto')).toContain('disabled=""');

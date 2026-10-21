@@ -40,7 +40,8 @@ const makeAiNation = (overrides = {}) => ({
   government: null,
   stability: 0,
   legitimacy: 50,
-  economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 },
+  economy: { gold: 0, hr: 0, techPoints: 0 },
+  ruler: { adm: 3, dip: 3, mil: 3, decrees: 0 },
   tech: { researched: [], ageId: 'bronze' },
   ...overrides
 });
@@ -127,7 +128,7 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
   it('does not charge upkeep again during a spending decision', () => {
     const state = makeState({
       regions: { [REGION_A]: makeRegion(REGION_A) },
-      nations: { [ID_ID]: makeAiNation({ economy: { gold: 1, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 }, government: { type: 'dictatorship', reforms: {} } }) },
+      nations: { [ID_ID]: makeAiNation({ economy: { gold: 1, hr: 0, techPoints: 0 }, government: { type: 'dictatorship', reforms: {} } }) },
       units: { u1: { ownerId: ID_ID, strength: 10 }, u2: { ownerId: ID_ID, strength: 10 } }
     });
     const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
@@ -148,7 +149,7 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
     const state = makeState({
       age: 'bronze',
       regions: { [REGION_A]: makeRegion(REGION_A) },
-      nations: { [ID_ID]: makeAiNation({ government: null, economy: { gold: 1000, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 } }) }
+      nations: { [ID_ID]: makeAiNation({ government: null, economy: { gold: 1000, hr: 0, techPoints: 0 } }) }
     });
     const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
     // No government decision fires, so the very next priority (construct a building) should have run.
@@ -175,7 +176,7 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
       nations: {
         [ID_ID]: makeAiNation({
           government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } }, // already reformed -> falls through to building
-          economy: { gold: 1000, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 }
+          economy: { gold: 1000, hr: 0, techPoints: 0 }
         })
       }
     });
@@ -192,7 +193,7 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
       nations: {
         [ID_ID]: makeAiNation({
           government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } },
-          economy: { gold: 1000, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 }
+          economy: { gold: 1000, hr: 0, techPoints: 0 }
         })
       }
     });
@@ -209,7 +210,7 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
       nations: {
         [ID_ID]: makeAiNation({
           government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } },
-          economy: { gold: 1000, hr: 0, techPoints: 1000, adm: 0, dip: 0, mil: 1000 }
+          economy: { gold: 1000, hr: 0, techPoints: 1000 }
         })
       }
     });
@@ -222,9 +223,9 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
   // seeded starting value before this — nothing in the decision chain ever spent ADM/DIP/MIL on it,
   // even once government/building/tech all had nothing left to do that turn.
   describe('province development (plan feedback: AI parity gap — dev never grew past its seeded value)', () => {
-    const blockedBuildings = { categories: { food: 0, economy: 0, military: 0, defense: 0, science: 0, industry: 0, culture: 0, naval: 0, logistics: 0 } };
+    const blockedBuildings = { categories: { food: 99, economy: 99, military: 99, defense: 99, science: 99, industry: 99, culture: 99, naval: 99, logistics: 99 } }; // every line past its top tier
 
-    it('develops the highest-dev owned region using whichever power pool can afford it, once nothing else fires', () => {
+    it('develops the highest-dev owned region for gold, once nothing else fires', () => {
       const state = makeState({
         age: 'bronze',
         regions: {
@@ -234,14 +235,15 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
         nations: {
           [ID_ID]: makeAiNation({
             government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } }, // already reformed -> falls through
-            economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 1000 } // only MIL is funded
+            economy: { gold: 5000, hr: 0, techPoints: 0 }
           })
         }
       });
       const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
-      expect(nation.economy.mil).toBeLessThan(1000); // spent on development
-      expect(state.regions[REGION_B].dev.manpower).toBe(31); // the higher-dev region, +1 manpower (the only affordable pool)
-      expect(state.regions[REGION_A].dev.manpower).toBe(seedDevelopment(REGION_A).manpower); // the OTHER owned region is untouched
+      expect(nation.economy.gold).toBeLessThan(5000); // spent on development
+      const d = state.regions[REGION_B].dev;
+      expect(d.tax + d.production + d.manpower).toBe(91); // the higher-dev region, +1
+      expect(state.regions[REGION_A].dev).toEqual(seedDevelopment(REGION_A)); // the OTHER owned region is untouched
     });
 
     it('never touches a region it does not own', () => {
@@ -251,7 +253,7 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
         nations: {
           [ID_ID]: makeAiNation({
             government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } },
-            economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 1000 }
+            economy: { gold: 5000, hr: 0, techPoints: 0 }
           })
         }
       });
@@ -259,14 +261,14 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
       expect(state.regions[REGION_C].dev.manpower).toBe(99);
     });
 
-    it('never goes into debt — no-op when no power pool can afford the development cost', () => {
+    it('never goes into debt — no-op when the gold cannot cover the development cost', () => {
       const state = makeState({
         age: 'bronze',
         regions: { [REGION_A]: makeRegion(REGION_A, { buildings: blockedBuildings }) },
         nations: {
           [ID_ID]: makeAiNation({
             government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } },
-            economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 }
+            economy: { gold: 0, hr: 0, techPoints: 0 }
           })
         }
       });
@@ -282,11 +284,11 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
   });
 
   // Plan §M21: scripts/simulate.mjs's 150-turn AI-vs-AI runs found roughly one civil war per three
-  // nations before this — nothing ever gave the AI a reason to spend ADM raising stability, so a
+  // nations before this — nothing ever gave the AI a reason to pay for raising stability, so a
   // nation drifting toward the M15 civil-war floor had no counterplay. These pin the fix's priority
   // (ahead of government/building/research) and its threshold/affordability edges.
   describe('stability management (plan §M21 balance fix)', () => {
-    it('spends ADM to raise stability instead of any other decision when at the AI threshold and affordable', () => {
+    it('spends gold and a decree to raise stability instead of any other decision when at the AI threshold and affordable', () => {
       const state = makeState({
         regions: { [REGION_A]: makeRegion(REGION_A) },
         nations: {
@@ -294,14 +296,16 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
             tech: { researched: [], ageId: 'classical' }, // old enough that a government decision would otherwise win priority
             government: null,
             stability: -1,
-            economy: { gold: 1000, hr: 0, techPoints: 0, adm: 1000, dip: 0, mil: 0 }
+            economy: { gold: 1000, hr: 0, techPoints: 0 },
+            ruler: { adm: 3, dip: 3, mil: 3, decrees: 1 }
           })
         }
       });
       const cost = getIncreaseStabilityCost(state, ID_ID, 0);
       const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
       expect(nation.stability).toBe(0);
-      expect(nation.economy.adm).toBe(1000 - cost);
+      expect(nation.economy.gold).toBe(1000 - cost.gold);
+      expect(nation.ruler.decrees).toBe(0);
       expect(nation.government).toBeFalsy(); // the government decision never got a turn
     });
 
@@ -313,7 +317,7 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
           [ID_ID]: makeAiNation({
             stability: 0,
             government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } },
-            economy: { gold: 1000, hr: 0, techPoints: 0, adm: 1000, dip: 0, mil: 0 }
+            economy: { gold: 1000, hr: 0, techPoints: 0 }
           })
         }
       });
@@ -325,28 +329,27 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
     it('never goes into debt — no-op when it cannot afford the cost, even at the threshold', () => {
       const state = makeState({
         regions: { [REGION_A]: makeRegion(REGION_A) },
-        nations: { [ID_ID]: makeAiNation({ tech: { researched: [], ageId: 'classical' }, government: null, stability: -1, economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 } }) }
+        nations: { [ID_ID]: makeAiNation({ tech: { researched: [], ageId: 'classical' }, government: null, stability: -1, economy: { gold: 0, hr: 0, techPoints: 0 } }) }
       });
       const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
       expect(nation.stability).toBe(-1);
-      expect(nation.economy.adm).toBe(0);
+      expect(nation.economy.gold).toBe(0);
     });
   });
 });
 
 describe('canAffordAIRecruit / applyAIRecruitCost (plan §M16: real recruit cost once an economy exists)', () => {
-  it('affords recruitment only when gold, manpower, and MIL power all clear the real cost', () => {
-    const rich = { economy: { gold: 1000, hr: 1000, mil: 10 } };
-    const poor = { economy: { gold: 0, hr: 0, mil: 0 } };
+  it('affords recruitment only when gold and manpower clear the real cost', () => {
+    const rich = { economy: { gold: 1000, hr: 1000 } };
+    const poor = { economy: { gold: 0, hr: 0 } };
     expect(canAffordAIRecruit(rich)).toBe(true);
     expect(canAffordAIRecruit(poor)).toBe(false);
   });
 
   it('deducts exactly the recruit cost from the nation pool', () => {
-    const nation = { economy: { gold: 1000, hr: 1000, mil: 10 } };
+    const nation = { economy: { gold: 1000, hr: 1000 } };
     const result = applyAIRecruitCost(nation);
     expect(result.economy.gold).toBe(1000 - 60);
     expect(result.economy.hr).toBe(1000 - 100);
-    expect(result.economy.mil).toBe(10 - 1);
   });
 });

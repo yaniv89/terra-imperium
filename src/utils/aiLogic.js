@@ -33,6 +33,7 @@ import { claimsOf, claimsInProgressOf, claimableCities, startClaim } from '../en
 import { hasOpenDemand, hasStele } from '../engine/accords';
 import { canAnnex } from '../engine/stonePhase';
 import { ACTION_COSTS } from '../data/actionCosts';
+import { decreesOf, spendDecree } from '../engine/decrees';
 import { UNIT_CLASSES, UNIT_CLASS_IDS, getAvailableClasses } from '../data/unitClasses';
 import { AE_COALITION_ROLL_SCALE, AE_COALITION_ROLL_CAP } from '../data/actionCosts';
 import { independenceChance } from '../engine/vassals';
@@ -431,15 +432,15 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     // Recent wars nearby raise the roll (warContagion.js, a Hawkes process).
     if (!readyTarget && !shouldDeclareWar(activeNation, rng, aggressionMult, coalitionMult * warContagionMult(activeNation) * (fronts > 0 ? SECOND_FRONT_ROLL_MULT : 1), warRollOpinionMult(opinionOf(view, nationId, targetId)))) return;
     if (!hasCasusBelli(view, nationId, targetId)) {
-      // No justification yet: fabricate a claim on the nearest city of the target when the DIP is
-      // there, and come back for the war when it is ready; a nation that cannot (no city within
-      // reach, no DIP) declares unjustified as before.
+      // No justification yet: fabricate a claim on the nearest city of the target when the gold and a
+      // decree are there, and come back for the war when it is ready; a nation that cannot (no city
+      // within reach, no decree) declares unjustified as before.
       if (claimsInProgressOf(activeNation).length) return;
       const site = claimableCities(view, nationId, targetId)[0];
       const cost = ACTION_COSTS.fabricateClaim;
       const pool = activeNation.economy;
-      if (site && pool && (pool.dip || 0) >= (cost.dip || 0) && (pool.gold || 0) >= (cost.gold || 0)) {
-        currentNations = { ...currentNations, [nationId]: startClaim({ ...activeNation, economy: { ...pool, dip: pool.dip - (cost.dip || 0), gold: pool.gold - (cost.gold || 0) } }, site.city.id, state.turnNumber) };
+      if (site && pool && decreesOf(activeNation) >= cost.decrees && (pool.gold || 0) >= cost.gold) {
+        currentNations = { ...currentNations, [nationId]: startClaim(spendDecree({ ...activeNation, economy: { ...pool, gold: pool.gold - cost.gold } }, 'fabricateClaim', state.turnNumber), site.city.id, state.turnNumber) };
         return;
       }
     }

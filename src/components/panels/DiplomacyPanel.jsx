@@ -30,7 +30,6 @@ import {
 } from '../../data/actionCosts';
 import { getNationCapital } from '../../data/regions';
 import { isAgeAtLeast } from '../../data/ages';
-import { canAfford } from '../../utils/helpers';
 import ActionCard from './ActionCard';
 import { Button } from '../ui/atlas';
 import { peoplesModel, RELATION_LABEL } from './peoplesModel';
@@ -49,9 +48,10 @@ import { mapOfferTerms } from '../../engine/mapTrade';
 import IndependentsList from '../independents/IndependentsList';
 import { openTributeDemand, openJoinOffer, openIndependent } from '../independents/independentEvents';
 import { ageOf } from '../../engine/nationState';
+import { canPay, walletOf } from '../../utils/costs';
 
 
-const COST_UNITS = new Set(['gold', 'adm', 'dip', 'mil']);
+const COST_UNITS = new Set(['gold', 'decrees']);
 const unitOf = (key) => (COST_UNITS.has(key) ? ` ${tNow(`nc.unit.${key}`)}` : key);
 const describeShortfall = (resources, costs, n) => Object.entries(costs)
   .filter(([key, amount]) => (resources[key] || 0) < amount)
@@ -70,7 +70,7 @@ const DiplomacyPanel = () => {
   const [picked, setPicked] = useState(null);
 
   const handleCulturalExport = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.culturalExport)) return addLog(tNow('nc.notEnoughNeed', { list: describeShortfall(state.resources, ACTION_COSTS.culturalExport, n) }), 'action');
+    if (!canPay(state, ACTION_COSTS.culturalExport)) return addLog(tNow('nc.notEnoughNeed', { list: describeShortfall(walletOf(state), ACTION_COSTS.culturalExport, n) }), 'action');
     triggerEffect('cultural_export', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.CULTURAL_EXPORT });
     return undefined;
@@ -219,7 +219,7 @@ const DiplomacyPanel = () => {
             <ActionCard icon={Sparkles} label={tNow('dip.export')}
               description={tNow('p2.pp.exportDesc', { h: CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION, g: CULTURAL_EXPORT_INFLUENCE_GAIN, n: n(playerNation?.culturalInfluence || 0) })}
               cost={costText(ACTION_COSTS.culturalExport, n)} onClick={handleCulturalExport}
-              disabled={!canAfford(state.resources, ACTION_COSTS.culturalExport)} />
+              disabled={!canPay(state, ACTION_COSTS.culturalExport)} />
           )}
         </div>
       </div>

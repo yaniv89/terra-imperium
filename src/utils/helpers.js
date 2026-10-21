@@ -73,16 +73,6 @@ export const getPlayerControl = (state) => state.regions[getCapital(state, state
 // before the same control%/infrastructure scaling every other resource gets.
 export const EXTRACTION_BASE_YIELD = 20;
 
-// Administrative Capacity, now split three ways (plan §M2): a flat pool/turn regardless of empire
-// size meant a 50-region late-game empire acted exactly as often per turn as its 1-region start —
-// nothing about maturing your state ever expanded what you could actually DO in a turn. This adds
-// a real, already-existing lever on top of the base: government maturity (apBonus on
-// GOVERNMENT_TYPES' effect object) and the Governance tech line (Code of Laws through Digital
-// Administration), applied to all three pools equally since neither source differentiates by pool
-// yet — M3's rulers and M7's per-line tech effects are what eventually make ADM/DIP/MIL grow at
-// different rates from each other.
-export const BASE_POWER_PER_TURN = 3;
-
 // Real fielded army strength for a nation — the sum of every unit it actually owns' `strength`
 // (src/context/GameContext.jsx's flat state.units dict). This is what's shown to the player for any
 // "my power vs. their power" comparison (ResourceBar, MilitaryPanel, DiplomacyPanel,
@@ -121,42 +111,6 @@ const getFieldedStrengthIndex = (units) => {
 };
 export const getFieldedStrength = (state, nationId) => getFieldedStrengthIndex(state.units || {})[nationId]?.strength || 0;
 export const getUnitCount = (state, nationId) => getFieldedStrengthIndex(state.units || {})[nationId]?.count || 0;
-
-// Plan §M2/§M3: replaces the old single-pool getMaxActionPoints with the three power pools' per-
-// turn income. Recomputed fresh from current government/ruler/advisors/tech every turn rather than
-// read from a stored field, so adopting a government, a new ruler, or finishing a Governance tech
-// all take effect on the very next turn automatically. `national.apBonus` (government maturity,
-// Governance techs) applies equally to all three pools; `national.admBonus`/`dipBonus`/`milBonus`
-// (ruler skill, advisors, pool-specific traits — src/engine/modifiers/sources.js) each touch only
-// their own pool, which is what actually makes ADM/DIP/MIL grow at different rates from each other.
-//
-// `nationId` defaults to the player (every existing call site omits it) but plan §M16's AI economy
-// (src/engine/resolveTurn.js's own AI-economy phase) passes an AI nation id through the same
-// formula.
-export const getPowerIncome = (state, nationId = state.playerNationId) => {
-  const allPoolsBonus = getModifier(state, nationId, 'national.apBonus').total;
-  const admBonus = getModifier(state, nationId, 'national.admBonus').total;
-  const dipBonus = getModifier(state, nationId, 'national.dipBonus').total;
-  const milBonus = getModifier(state, nationId, 'national.milBonus').total;
-  return {
-    adm: BASE_POWER_PER_TURN + allPoolsBonus + admBonus,
-    dip: BASE_POWER_PER_TURN + allPoolsBonus + dipBonus,
-    mil: BASE_POWER_PER_TURN + allPoolsBonus + milBonus
-  };
-};
-
-// Plan §M20: the real per-source lines behind one pool's getPowerIncome total, for the Tooltip v2 /
-// Breakdown UI ("every number explains itself"). Reuses getModifier's own breakdown arrays instead
-// of re-deriving them, so this can never drift out of sync with the total getPowerIncome returns.
-const POOL_BONUS_KEY = { adm: 'national.admBonus', dip: 'national.dipBonus', mil: 'national.milBonus' };
-export const getPowerBreakdown = (state, nationId = state.playerNationId, pool) => {
-  const rows = [{ label: 'Base', value: BASE_POWER_PER_TURN }];
-  const allPools = getModifier(state, nationId, 'national.apBonus');
-  allPools.breakdown.forEach((l) => rows.push({ label: l.label, value: l.value }));
-  const poolSpecific = getModifier(state, nationId, POOL_BONUS_KEY[pool]);
-  poolSpecific.breakdown.forEach((l) => rows.push({ label: l.label, value: l.value }));
-  return rows;
-};
 
 // A realistic DISPLAY population for a region at the game's CURRENT year — region.currentPopulation
 // itself is always seeded from the modern (~2024) figure regardless of start year, since it also
@@ -200,8 +154,7 @@ export const calcIncome = (state) => {
     // clamped popFactor (development.js) replaces the old unclamped popGrowthMult specifically to
     // stop population and development from compounding without limit, per the plan's own concern.
     // `local.*` lines come from M6's building tiers (Economy/Industry/Military, src/data/
-    // buildings.js), read generically the same way national.apBonus's Governance-tech line already
-    // was before M2 gave it a reader.
+    // buildings.js), read generically through getRegionModifier.
     if (income.gold !== undefined && income.hr !== undefined) {
       const dev = region.dev || seedDevelopment(region.id);
       const popFactor = getPopFactor(region, regData) * devastationIncomeMult(region); // a battlefield earns less while it recovers
@@ -373,15 +326,12 @@ export const scaleCosts = (costs, mult) =>
   Object.fromEntries(Object.entries(costs).map(([key, value]) => [key, Math.round(value * mult)]));
 
 const RESOURCE_LABELS = { gold: 'Gold', hr: 'HR', copper: 'Copper', iron: 'Iron', oil: 'Oil', rareMetals: 'Rare Metals' };
-// Plan §M2: the three power pools' display labels.
-const POWER_POOL_LABELS = { adm: 'ADM', dip: 'DIP', mil: 'MIL' };
+// Decrees (src/engine/decrees.js) are counted from the ruler's bank, not from resources.
 
 // How much of the player's CURRENT on-hand amount a cost would consume — the binary canAfford()
 // check above says nothing about a cost that's affordable but still eats most/all of what the player
 // has right now (e.g. turn-1 government adoption using most of the banked ADM, or a first unit recruit
-// that costs exactly 100% of starting HR). Power pools are measured the same way as every other
-// resource now that they bank up to a flat POWER_POOL_CAP: their per-turn income (maxAdm/...) is no
-// longer a ceiling, so "cost vs. one turn's income" would flag every 40+ power tech as critical.
+// that costs exactly 100% of starting HR).
 // Returns null when the cost isn't a meaningful strain (below 50% of any pool), so callers can just
 // check truthiness rather than branching on a 'normal' level themselves.
 export const getResourceStrain = (costs, resources) => {
@@ -395,8 +345,8 @@ export const getResourceStrain = (costs, resources) => {
     if (fraction > worst.fraction) worst = { fraction, key };
   });
   if (!worst.key || worst.fraction < 0.5) return null;
-  const english = POWER_POOL_LABELS[worst.key] || RESOURCE_LABELS[worst.key] || worst.key;
-  const label = getLanguage() === 'he' && (POWER_POOL_LABELS[worst.key] || RESOURCE_LABELS[worst.key]) ? tNow(`res.${worst.key}`) : english;
+  const english = RESOURCE_LABELS[worst.key] || worst.key;
+  const label = getLanguage() === 'he' && RESOURCE_LABELS[worst.key] ? tNow(`res.${worst.key}`) : english;
   return { level: worst.fraction >= 0.9 ? 'critical' : 'high', label };
 };
 
@@ -406,7 +356,7 @@ export const getCostString = (costs) => {
     if (!value) return;
     if (RESOURCE_LABELS[key]) parts.push(`${formatNumber(value)} ${getLanguage() === 'he' ? tNow(`res.${key}`) : RESOURCE_LABELS[key]}`);
     else if (key === 'techPoints') parts.push(`${value} ${getLanguage() === 'he' ? tNow('res.techPoints') : 'TP'}`);
-    else if (POWER_POOL_LABELS[key]) parts.push(`${value} ${getLanguage() === 'he' ? tNow(`res.${key}`) : POWER_POOL_LABELS[key]}`);
+    else if (key === 'decrees') parts.push(`${value} ${getLanguage() === 'he' ? tNow('res.decrees') : value === 1 ? 'decree' : 'decrees'}`);
   });
   return parts.join(', ');
 };

@@ -29,7 +29,8 @@ export const DECREE_DEEDS = {
   warWon: 'War won',
   eraGoal: 'Era goal met',
   wonder: 'Wonder completed',
-  trickle: 'Quiet years at court'
+  trickle: 'Quiet years at court',
+  doctrine: 'Starting doctrine'
 };
 
 // The acts of state that spend decrees (Appendix A). Ids match ACTION_COSTS where one exists;

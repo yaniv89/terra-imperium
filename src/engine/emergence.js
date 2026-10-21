@@ -27,7 +27,7 @@ export const processEmergence = state => {
   const region = { ...city, founderId: id, owner: id, control: 100, currentPopulation: sizeToPeople(2), currentInfrastructure: 0, underInvasion: false, unrest: 0, defenseLevel: 0, climateResilience: 0, dev: { tax: 2, production: 2, manpower: 2 } };
   const unitId = `emerged_${id}_${state.turnNumber}`;
   const unit = { id: unitId, ownerId: id, regionId, homeRegionId: regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, rank: 'recruit', commanderId: null, promotions: [], xp: 0 };
-  const nation = { ...fresh.nations[id], capitalRegionId: regionId, startRegionCount: 1, militaryStrength: 5000, frontierClaims: 0, economy: { gold: 500, hr: 100, techPoints: 0, adm: 3, dip: 3, mil: 3, supplies: 20 }, tech: { researched: [], ageId: FIRST_AGE_ID } };
+  const nation = { ...fresh.nations[id], capitalRegionId: regionId, startRegionCount: 1, militaryStrength: 5000, frontierClaims: 0, economy: { gold: 500, hr: 100, techPoints: 0, supplies: 20 }, tech: { researched: [], ageId: FIRST_AGE_ID } };
   // It arrives knowing what the world's research leader's earlier ages know (a nation's age is its
   // research, eight-ages plan KTD1).
   return withAgesResearched({

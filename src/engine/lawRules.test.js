@@ -9,8 +9,7 @@ import { calcNationBalance } from './economy';
 import { opinionReasons } from './opinion';
 import { pillageTile, RAID_GOLD } from './threat';
 import { calcIncome } from '../utils/helpers';
-import { pickAILaw, AI_LAW_ADM_RESERVE } from './aiEconomy';
-import { getLawChangeCost } from '../data/laws';
+import { pickAILaw } from './aiEconomy';
 import { getCapital } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
 import { peoplesWorld, rivalOf } from './testWorld';
@@ -105,7 +104,7 @@ describe('the AI picks by doctrine', () => {
   it('a conqueror with the tech takes Mass Conscription first, a merchant waits for Free Trade and never moves backwards', () => {
     const s = base();
     const researched = ['military_feudal_levies', 'military_standing_armies', 'military_mechanized_warfare', 'economy_minted_coinage', 'economy_joint_stock_companies'];
-    const mk = (doctrine, laws = {}) => ({ ...s.nations[DE_ID], doctrine, tech: { ...s.nations[DE_ID].tech, researched }, laws: { ...s.nations[DE_ID].laws, ...laws }, lawCooldowns: {}, stability: 1, economy: { ...s.nations[DE_ID].economy, adm: 10000 } });
+    const mk = (doctrine, laws = {}) => ({ ...s.nations[DE_ID], doctrine, tech: { ...s.nations[DE_ID].tech, researched }, laws: { ...s.nations[DE_ID].laws, ...laws }, lawCooldowns: {}, stability: 1, ruler: { ...s.nations[DE_ID].ruler, decrees: 3 } });
     const state = (nation) => ({ ...s, nations: { ...s.nations, [DE_ID]: nation } });
     const conqueror = mk('conqueror');
     const pick = pickAILaw(state(conqueror), DE_ID, conqueror, conqueror.economy);
@@ -118,7 +117,7 @@ describe('the AI picks by doctrine', () => {
     const settled = mk('conqueror', { conscription: 'mass_conscription', justice: 'martial_law', taxation: 'head_tax' });
     const again = pickAILaw(state(settled), DE_ID, settled, settled.economy);
     expect(again?.category).not.toBe('conscription');
-    const poor = { ...conqueror, economy: { ...conqueror.economy, adm: getLawChangeCost(state(conqueror), DE_ID, 'conscription', 'mass_conscription') + AI_LAW_ADM_RESERVE - 1 } };
-    expect(pickAILaw(state(poor), DE_ID, poor, poor.economy)?.id).not.toBe('mass_conscription');
+    const poor = { ...conqueror, ruler: { ...conqueror.ruler, decrees: 0 } };
+    expect(pickAILaw(state(poor), DE_ID, poor)).toBeNull();
   });
 });
