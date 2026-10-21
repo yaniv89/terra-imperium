@@ -34,11 +34,13 @@ import { declareWarConfirm } from '../ui/confirmSpecs';
 import { settlerStatus } from './settleRoutes';
 import { useReportInset } from '../../context/MapInsetsContext';
 import { ageOf, getResearched } from '../../engine/nationState';
+import { settleKey } from '../../engine/stonePhase';
 
 // `settleUnitId`: the settler whose site is being chosen (the settle mode, settleMode.js): it is
 // the one that goes, whatever other settlers wait. `onSettle(unit)` starts the mode for a settler.
 const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettle = null }) => {
   const { state, dispatch } = useGame();
+  const sk = (key) => settleKey(state, state.playerNationId, key);
   const { t, lang } = useT();
   const [attackFrom, setAttackFrom] = React.useState(null);
   const [confirmDisband, setConfirmDisband] = React.useState(null); // a settler's id: "Send them home?"
@@ -94,9 +96,9 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
   // at 844x340: playtest audit I090).
   const sendGoer = () => dispatch({ type: ActionTypes.SET_SETTLER_TARGET, payload: { unitId: goer.u.id, tile } });
   const main = here.length > 0 && !ownerCity
-    ? <Button variant="primary" hero className="w-full" disabled={!site?.ok} onClick={() => dispatch({ type: ActionTypes.FOUND_CITY, payload: { unitId: (here.find((u) => u.id === settleUnitId) || here[0]).id } })} data-testid="found-city"><Flag className="w-4 h-4" aria-hidden="true" /> {t('mx.tile.foundHere')}</Button>
+    ? <Button variant="primary" hero className="w-full" disabled={!site?.ok} onClick={() => dispatch({ type: ActionTypes.FOUND_CITY, payload: { unitId: (here.find((u) => u.id === settleUnitId) || here[0]).id } })} data-testid="found-city"><Flag className="w-4 h-4" aria-hidden="true" /> {t(sk('mx.tile.foundHere'))}</Button>
     : !ownerCity && goer
-      ? <Button variant="primary" hero className="w-full" onClick={sendGoer} data-testid="send-settler"><Tent className="w-4 h-4" aria-hidden="true" /> {t('mx.tile.goFound', { turns: turnsText(goer.turns) })}</Button>
+      ? <Button variant="primary" hero className="w-full" onClick={sendGoer} data-testid="send-settler"><Tent className="w-4 h-4" aria-hidden="true" /> {t(sk('mx.tile.goFound'), { turns: turnsText(goer.turns) })}</Button>
       : null;
 
   const body = (
@@ -127,7 +129,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
       )}
       {attackFrom && <PreBattleModal fromRegionId={attackFrom} tile={tile} onClose={() => setAttackFrom(null)} />}
 
-      {facts.land && <Label className="mb-1">{asSite ? t('mx.tile.chosenSite') : t('mx.tile.thisTile')}</Label>}
+      {facts.land && <Label className="mb-1">{asSite ? t(sk('mx.tile.chosenSite')) : t('mx.tile.thisTile')}</Label>}
       <div className="grid grid-cols-3 gap-1.5 mb-2" data-testid="tile-yields">
         <Stat value={`+${yields.food}`} label={t('mx.tile.food')} color="var(--fa-good)" />
         <Stat value={`+${yields.production}`} label={t('mx.tile.production')} />
@@ -171,11 +173,11 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
           ) : <div className="text-[12px] text-fa-muted">{tNow('st.noOneAtSea')}</div>}
           {coming.map((u) => (
             <div key={u.id} className="flex items-center justify-between gap-2 text-[13px] fa-card px-3 min-h-[44px]">
-              <span className="flex items-center gap-1.5"><Tent className="w-4 h-4" /> {t('mx.tile.arrive', { turns: turnsText(turnsFor(u)) })}</span>
+              <span className="flex items-center gap-1.5"><Tent className="w-4 h-4" /> {t(sk('mx.tile.arrive'), { turns: turnsText(turnsFor(u)) })}</span>
               <Button size="sm" variant="ghost" onClick={() => dispatch({ type: ActionTypes.SET_SETTLER_TARGET, payload: { unitId: u.id, tile: null } })}>{t('mx.cancel')}</Button>
             </div>
           ))}
-          {!here.length && goer && <div className="text-[12px] text-fa-muted">{t('mx.tile.arriveFrom', { from: state.regions[goer.u.regionId]?.name ? cityText(goer.u.regionId, state.regions[goer.u.regionId].name) : t('mx.tile.road'), turns: turnsText(goer.turns) })}</div>}
+          {!here.length && goer && <div className="text-[12px] text-fa-muted">{t(sk('mx.tile.arriveFrom'), { from: state.regions[goer.u.regionId]?.name ? cityText(goer.u.regionId, state.regions[goer.u.regionId].name) : t('mx.tile.road'), turns: turnsText(goer.turns) })}</div>}
           {cannotReach && <div className="text-[12px] text-fa-danger-text" data-testid="settler-no-way">{t('mx.tile.noWay')}</div>}
           {!here.length && site?.ok && !chosen && idle.filter((u) => u !== goer?.u).map((u) => {
             const turns = turnsFor(u);

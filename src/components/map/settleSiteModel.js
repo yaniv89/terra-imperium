@@ -17,6 +17,7 @@ import { CITY_SPACING_KM, citySpacingRings, sameLandmass } from '../../data/geo/
 import { ringsAround } from '../../engine/world/cities';
 import { tileFacts, tileYields, resourceKnown } from '../../data/tileYields';
 import { getResearched } from '../../engine/nationState';
+import { settleKey } from '../../engine/stonePhase';
 import { canSettle, bandsOf, canFoundVillage, siteQualityParts, siteRatingOf, bestSites, siteOutlook, outpostTurns, MAX_SETTLE_RINGS } from '../../engine/settlers';
 import { pickCityName } from '../../engine/cityNames';
 import { isExplored } from '../../engine/fog';
@@ -119,7 +120,7 @@ export const settleSiteModel = (state, tile, ageId) => {
   // What founding here would start (only for land nobody owns: a site).
   const stage = free && !band ? outpostTurns(state, tile, ageId) : null;
   const cityName = band?.band.home === tile ? band.band.name : free ? pickCityName(state.regions, tiles, tile, me) : null;
-  if (can.ok && cityName) lines.push({ id: 'name', text: t('st.named', { name: nameNow('city', null, cityName) }) });
+  if (can.ok && cityName) lines.push({ id: 'name', text: t(settleKey(state, me, 'st.named'), { name: nameNow('city', null, cityName) }) });
   if (can.ok && stage) lines.push({ id: 'outpost', text: t('st.outpost', { count: stage }) });
   return {
     ok: can.ok,
