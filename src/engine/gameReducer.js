@@ -2953,10 +2953,7 @@ const reduceAction = (state, action) => {
       // playerNationId/gameSpeed/difficultyId come from the start screen; doctrineId comes from
       // meta-progression localStorage via the component layer — see GameProvider.resetGame below.
       // This keeps gameReducer a pure function of (state, action).
-      const { playerNationId, gameSpeed, doctrineId, difficultyId, scenario, rngSeed, guided, exploredWorld } = action.payload || {};
-      const fresh = createInitialState({ playerNationId, gameSpeed, scenario, rngSeed, guided, fog: !exploredWorld });
-      const withDoctrine = doctrineId ? applyStartingDoctrine(fresh, doctrineId) : fresh;
-      return difficultyId ? applyDifficulty(withDoctrine, difficultyId) : withDoctrine;
+      return startState(action.payload);
     }
 
     case ActionTypes.MARK_TUTORIAL_STEP:
@@ -3087,6 +3084,13 @@ const CONTACT_ACTIONS = new Set([
 // Actions after which the player's own sight is refreshed at once (an army moved, a city rose):
 // exploring and meeting peoples happen as you move, not only at the end of the turn.
 const NO_FOG_REFRESH = new Set([ActionTypes.ADVANCE_TURN, ActionTypes.FAST_FORWARD, ActionTypes.RESET_GAME, ActionTypes.LOAD_GAME]);
+
+// The state a new game starts from, out of RESET_GAME's payload (also a macro log's start, macroVerify.js).
+export const startState = ({ playerNationId, gameSpeed, doctrineId, difficultyId, scenario, rngSeed, guided, exploredWorld } = {}) => {
+  const fresh = createInitialState({ playerNationId, gameSpeed, scenario, rngSeed, guided, fog: !exploredWorld });
+  const withDoctrine = doctrineId ? applyStartingDoctrine(fresh, doctrineId) : fresh;
+  return difficultyId ? applyDifficulty(withDoctrine, difficultyId) : withDoctrine;
+};
 
 export const gameReducer = (state, action) => {
   // A turn the worker resolved from `from` (src/services/turnClient.js): taken only while the game
