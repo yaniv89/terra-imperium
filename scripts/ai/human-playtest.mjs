@@ -289,7 +289,7 @@ export const perform = async ({ page, cdp, mobile }, { name, args: a }) => {
 };
 
 const ask = async (key, body) => (await call(API, { key, method: 'POST', body })).json();
-const line = (d) => `#${d.step} [${d.segment}] ${d.name}${d.args ? ` ${JSON.stringify(d.args)}` : ''}${d.error ? ` (refused: ${d.error})` : ''} | ${d.thought || ''} | fun ${d.fun ?? '-'} frustration ${d.frustration ?? '-'}`;
+const line = (d) => `#${d.step} [${d.segment}] ${d.name}${d.args ? ` ${JSON.stringify(d.args)}` : ''}${d.error ? ` (refused: ${d.error})` : ''} | ${d.thought || ''} | fun ${d.fun ?? '-'} frustration ${d.frustration ?? '-'}${d.area ? ` | ${d.area}` : ''}`;
 
 const play = async (opts, log = console.log) => {
   const key = process.env.ANTHROPIC_API_KEY;
