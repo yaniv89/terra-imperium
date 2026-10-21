@@ -38,7 +38,7 @@ import { enableTownDamage, setTownDamage, syncTownDamage, moundGeometry, enableG
 const PASSIVE_KINDS = new Set(['house', 'landmark', 'palace', 'wonder']);
 /** The structure kinds this layer draws (BattleRenderer leaves them out). */
 export const CITY_KINDS = new Set([...PASSIVE_KINDS, 'wall', 'gate']);
-const STONE = { bronze: '#b39a72', classical: '#cfc6b0', kingdoms: '#9b968c', gunpowder: '#958b80', modern: '#8f9194', information: '#8f9194' };
+const STONE = { bronze: '#b39a72', classical: '#cfc6b0', kingdoms: '#9b968c', gunpowder: '#958b80', modern: '#8f9194', information: '#8f9194', future: '#d5dbe2' };
 const tmp = new Object3D();
 const tint = new Color();
 const M = new Matrix4(); const V = new Vector3();

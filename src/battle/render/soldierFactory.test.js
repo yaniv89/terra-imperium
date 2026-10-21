@@ -3,7 +3,7 @@
 import { describe, it, expect } from 'vitest';
 import { getSoldierGeometry, getImposterGeometry, createSoldierMaterial, LIMB } from './soldierFactory';
 import { UNIT_ROSTER } from '../../data/unitClasses';
-import { isAgeAtLeast } from '../../data/ages';
+import { AGE_ORDER, isAgeAtLeast } from '../../data/ages';
 
 describe('soldier models', () => {
   it('preserves smooth anatomical normals after merging', () => {
@@ -44,5 +44,16 @@ describe('soldier models', () => {
     expect(clipped.defines.USE_CLIPS).toBeDefined();
     expect(clipped.flatShading).toBe(false);
     expect(createSoldierMaterial({}).flatShading).toBe(false);
+  });
+  // No age or class is ever empty: every registered age and Future (not registered yet) draw a rigged model.
+  [...new Set([...AGE_ORDER, 'future'])].forEach((ageId) => ['infantry', 'ranged', 'cavalry', 'siege', 'support', 'worker', 'air'].forEach((classId) => {
+    it(`${ageId} ${classId} has a procedural fallback`, () => {
+      expect(getSoldierGeometry(ageId, classId).attributes.position.count).toBeGreaterThan(30);
+    });
+  }));
+  it('Information and Future infantry wear their own look, not Modern\'s', () => {
+    const colours = (a) => [...getSoldierGeometry(a, 'infantry').attributes.color.array].join();
+    expect(colours('information')).not.toBe(colours('modern'));
+    expect(colours('future')).not.toBe(colours('information'));
   });
 });

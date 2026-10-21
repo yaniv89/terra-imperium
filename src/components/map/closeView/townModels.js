@@ -9,7 +9,7 @@
 //   Age         the colours and shapes follow the age: mud brick and thatch, white walls and
 //               terracotta, timber and slate, brick, concrete and glass towers.
 // Units: one house is about 1 wide; the town is about TOWN_RADIUS[tier] x 2 across; y is up.
-import { BoxGeometry, ConeGeometry, CylinderGeometry, Color, Float32BufferAttribute } from 'three';
+import { BoxGeometry, ConeGeometry, CylinderGeometry, SphereGeometry, Color, Float32BufferAttribute } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 import { TOWN_TIERS } from './townTiers';
@@ -25,7 +25,8 @@ export const AGE_STYLE = {
   kingdoms: { wall: '#d9cfb6', roof: '#5b4636', flatRoofs: false, stone: '#8f8f8a', accent: '#3f4b5c' },
   gunpowder: { wall: '#b4664a', roof: '#5e4334', flatRoofs: false, stone: '#9a8f86', accent: '#3b3f46' },
   modern: { wall: '#c3c6cc', roof: '#4b5563', flatRoofs: true, stone: '#9ca3af', accent: '#60a5fa' },
-  information: { wall: '#d4d8de', roof: '#374151', flatRoofs: true, stone: '#a8b0bb', accent: '#38bdf8' }
+  information: { wall: '#d4d8de', roof: '#374151', flatRoofs: true, stone: '#a8b0bb', accent: '#38bdf8' },
+  future: { wall: '#e6ebf0', roof: '#cbd5e1', flatRoofs: true, stone: '#cfd8e3', accent: '#22d3ee', dome: true } // white shells, glowing trim, domes
 };
 
 const tmpColor = new Color();
@@ -74,7 +75,7 @@ const wallRing = (parts, style, radius, bronze) => {
 export const buildTownGeometry = (regionId, tierId, { ageId = FIRST_AGE_ID, walls = false, capital = false } = {}) => {
   const tier = TOWN_TIERS.find((t) => t.id === tierId) || TOWN_TIERS[0];
   const style = AGE_STYLE[ageId] || AGE_STYLE[FIRST_AGE_ID];
-  const modern = isAgeAtLeast(ageId, 'modern');
+  const modern = isAgeAtLeast(ageId, 'modern') || !!style.dome; // Future may not be in the registry yet
   const rand = seeded(`${regionId}|${tier.id}`);
   const parts = [];
   // Fields round the town (more of them for a small one, which is mostly farmland), then a
@@ -92,7 +93,10 @@ export const buildTownGeometry = (regionId, tierId, { ageId = FIRST_AGE_ID, wall
     parts.push(paint(new BoxGeometry(1.36, 0.12, 1.06).translate(0, 0.96, 0), '#d4af37'));
     tower(parts, style, -0.55, -0.4, 0.2, 1.5); tower(parts, style, 0.55, -0.4, 0.2, 1.5);
   } else if (tier.id === 'big') {
-    tower(parts, style, 0, 0, 0.42, modern ? 3 : 1.6);
+    if (style.dome) { // a glass-and-shell dome on a drum
+      parts.push(paint(new CylinderGeometry(0.5, 0.55, 0.5, 16).translate(0, 0.25, 0), style.stone));
+      parts.push(paint(new SphereGeometry(0.5, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2).translate(0, 0.5, 0), style.accent));
+    } else tower(parts, style, 0, 0, 0.42, modern ? 3 : 1.6);
   } else if (tier.id === 'medium') {
     parts.push(paint(new BoxGeometry(1.1, 0.04, 1.1).translate(0, 0.08, 0), '#b9a27a'));
     [[-0.3, -0.3], [0.3, 0.25]].forEach(([x, z]) => parts.push(paint(new ConeGeometry(0.22, 0.3, 4).translate(x, 0.25, z), '#c2410c')));
