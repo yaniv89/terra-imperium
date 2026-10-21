@@ -126,8 +126,8 @@ describe('action counter', () => {
 
 describe('simulate.mjs options', () => {
   it('parses the telemetry options and rejects bad values', () => {
-    expect(parseArgs(['--scenario', 'peoples', '--policy=scripted', '--demands', 'pay', '--speed', 'marathon', '--player', 'au'])).toMatchObject({ scenario: 'peoples', policy: 'scripted', demands: 'pay', speed: 'marathon', player: 'au' });
-    expect(parseArgs([])).toMatchObject({ scenario: 'legacy', policy: 'passive' });
+    expect(parseArgs(['--policy=scripted', '--demands', 'pay', '--speed', 'marathon', '--player', 'akkad'])).toMatchObject({ policy: 'scripted', demands: 'pay', speed: 'marathon', player: 'akkad' });
+    expect(parseArgs([])).toMatchObject({ policy: 'passive' });
     expect(() => parseArgs(['--policy', 'bogus'])).toThrow('Invalid --policy');
   });
 });

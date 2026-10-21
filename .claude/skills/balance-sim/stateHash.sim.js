@@ -17,7 +17,7 @@ const EVERY = Number(process.env.EVERY || 20);
 const SEEDS = String(process.env.SEEDS || '11').split(',').map(Number);
 const SPEED = process.env.SPEED || 'fast';
 const JUMP = process.env.JUMP ? Number(process.env.JUMP) : null;
-const PLAYER = process.env.PLAYER || 'au';
+const PLAYER = process.env.PLAYER || 'akkad';
 const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((a, id) => ({ ...a, [id]: true }), {});
 
 const stable = (v) => {
@@ -33,7 +33,7 @@ const hash = (s) => createHash('sha1').update(stable(s)).digest('hex').slice(0, 
 
 SEEDS.forEach((seed) => {
   it(`state hash seed ${seed}`, () => {
-    let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, gameSpeed: SPEED }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
+    let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, gameSpeed: SPEED, scenario: { mode: 'peoples', size: 'standard', seed } }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
     s = { ...s, research: { ...s.research, auto: true } };
     // JUMP sets the calendar on an old engine (a base commit); the ages-by-tech engine has none.
     if (JUMP != null) s = { ...s, year: JUMP, ...(AGES.getCalendarAgeId ? { age: AGES.getCalendarAgeId(JUMP) } : {}) };
