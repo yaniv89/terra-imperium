@@ -27,7 +27,7 @@ import { BUILDING_MODEL_IDS } from '../components/map/closeView/buildingModels';
 const NO_ART = {
   buildings: ['cathedral', 'storage_pits', 'warrior_lodge', 'tablet_house', 'stone_circle', 'canoe_landing', 'trail_cairns'], // not in the delivery yet: the line's old silhouette stays
   units: ['naval'], // drawn by its line (ships)
-  wonders: ['solomons_temple', 'masada', 'stonehenge', 'catalhoyuk', 'walls_of_jericho', 'white_temple_of_uruk'] // scenario wonders outside art spec section 5, and the Stone wonders until their icons arrive: lucide glyphs
+  wonders: ['solomons_temple', 'masada'] // scenario wonders outside art spec section 5: lucide glyphs
 };
 
 describe('icon index', () => {
