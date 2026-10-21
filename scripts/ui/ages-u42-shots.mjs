@@ -14,7 +14,7 @@ fs.mkdirSync(OUT, { recursive: true });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const click = (loc) => loc.dispatchEvent('click');
 
-const run = async (browser, name, viewport, mobile) => {
+const run = async (browser, name, viewport, mobile, he = false) => {
   const ctx = await browser.newContext({ viewport, isMobile: mobile, hasTouch: mobile, deviceScaleFactor: 2 });
   const page = await ctx.newPage();
   const errors = [];
@@ -24,22 +24,23 @@ const run = async (browser, name, viewport, mobile) => {
   await page.evaluate(() => localStorage.clear());
   await page.goto(URL_BASE);
   await page.locator('[data-people]').first().waitFor({ timeout: 120000 });
-  await page.fill('input[aria-label="Search peoples"]', 'Akkad');
+  if (he) await click(page.getByTestId('lang-he'));
+  await page.fill(he ? 'input[aria-label="חיפוש עמים"]' : 'input[aria-label="Search peoples"]', he ? 'אכד' : 'Akkad');
   await click(page.locator('[data-people]').first());
   await page.getByTestId('start-step-ready').dispatchEvent('click');
   await shot('1-start');
-  await click(page.getByRole('button', { name: /^Begin as/ }));
-  const next = page.getByRole('button', { name: 'Next', exact: true });
+  await click(page.getByRole('button', { name: he ? /^מתחילים/ : /^Begin as/ }));
+  const next = page.getByRole('button', { name: he ? 'הבא' : 'Next', exact: true });
   await next.waitFor({ state: 'visible', timeout: 30000 });
   await click(next);
   await shot('2-onboarding-band');
-  await click(page.getByRole('button', { name: 'Skip' }));
+  await click(page.getByRole('button', { name: he ? 'דילוג' : 'Skip' }));
   await page.getByTestId('world-top-bar').waitFor({ timeout: 60000 });
   await wait(2500);
   await shot('3-band-prompt');
   // The research sheet, web view: Tech tab.
   await page.evaluate(() => window.__openTab?.('tech'));
-  const tab = page.getByRole('button', { name: /^(Tech|Research)/ }).first();
+  const tab = page.getByRole('button', { name: he ? /^מחקר/ : /^(Tech|Research)/ }).first();
   await click(tab);
   await page.getByTestId('research-web-toggle').waitFor({ timeout: 15000 });
   await click(page.getByTestId('research-web-toggle'));
@@ -55,4 +56,5 @@ const run = async (browser, name, viewport, mobile) => {
 const browser = await launchBrowser({ executablePath: CHROME, headless: true });
 await run(browser, 'phone', { width: 844, height: 390 }, true);
 await run(browser, 'desktop', { width: 1280, height: 800 }, false);
+await run(browser, 'phone-he', { width: 844, height: 390 }, true, true);
 await browser.close();
