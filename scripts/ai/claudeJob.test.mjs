@@ -71,7 +71,7 @@ describe('AI content jobs (dry run, no network)', () => {
 
   it('tech-unlocks sends one request an age and rejects unknown ids', async () => {
     const { requests } = await runJob(techUnlocks, { dryRun: true, limit: 0, maxUsd: 10 }, () => {});
-    expect(requests.length).toBe(7);
+    expect(requests.length).toBe(8);
     const first = JSON.parse(requests[1].params.messages[0].content);
     expect(first.age).toBe('bronze');
     expect(first.units.map((u) => u.key)).toContain('bronze.ranged');
