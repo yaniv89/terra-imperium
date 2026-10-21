@@ -11,7 +11,7 @@
 // The side's colour still comes from instanceColor (vertices tagged aTeam = 1). The atlas is one
 // small texture (4 × 4 cells) drawn procedurally on a canvas — no art files, one texture bind.
 import { CanvasTexture, DataTexture, RGBAFormat, SRGBColorSpace, Color, LinearMipmapLinearFilter, LinearFilter } from 'three';
-import { PEOPLES, peopleForNationId } from '../../data/peoples';
+import { peopleOf } from '../../data/peoples';
 
 export const SKIN_TONES = ['#f1cfae', '#e0ac82', '#c68b5f', '#a8714a', '#8d5a3b', '#5e3a24'];
 
@@ -23,7 +23,7 @@ const REGION_SKIN = {
   europe: 0.6, eastasia: 1.1, centralasia: 1.4, neareast: 2, northafrica: 2.5, americas: 2.5,
   southeastasia: 2.6, southasia: 3.1, oceania: 3.6, africa: 4.4
 };
-export const skinToneFor = (nationId) => REGION_SKIN[PEOPLES[peopleForNationId(nationId)]?.region] ?? DEFAULT_SKIN_TONE;
+export const skinToneFor = (nationId) => REGION_SKIN[peopleOf(nationId)?.region] ?? DEFAULT_SKIN_TONE;
 export const EMBLEM_GRID = 4;             // 4 × 4 cells
 export const EMBLEM_CELLS = EMBLEM_GRID * EMBLEM_GRID;
 export const EMBLEM_INSET = 0.05;         // keep samples off the cell edges (mip bleeding)

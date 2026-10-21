@@ -25,7 +25,7 @@ import { ageOf } from '../../../engine/nationState';
 import { getSoldierGeometry, hasSoldierOverride, packForGPU, createSoldierMaterial, MODEL_SCALE } from '../../../battle/render/soldierFactory';
 import { findUnitModel, preloadSoldierModel, preloadSignatureModel } from '../../../battle/render/unitModels';
 import { signatureUnitFor, signatureKey, rigFiguresOf } from '../../../data/signatureUnits';
-import { peopleForNationId } from '../../../data/peoples';
+import { peopleOf } from '../../../data/peoples';
 import { soldierLodGeometries, triangleCount } from '../../../battle/render/soldierLod';
 import { skinToneFor, soldierSkinTone, emblemCellFor } from '../../../battle/render/unitVariants';
 import { getNationColor } from '../../../data/nationColors';
@@ -662,7 +662,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         // ONE model per tile: the top unit's class (a soldier over a settler, the picked or strongest soldier)
         const classId = m.own && (m.topClass || (m.mainClass && m.mainClass !== 'mixed' && m.mainClass)) || 'infantry';
         const ageId = ageOf(state, m.ownerId);
-        const peopleId = m.ownerId ? peopleForNationId(m.ownerId) : null;
+        const peopleId = m.ownerId ? peopleOf(m.ownerId)?.id : null;
         const sigKey = signatureLayerKey(peopleId, ageId, classId);
         // war elephants: at most two full-size figures, wider apart
         const rigFig = sigKey ? rigFiguresOf(signatureUnitFor(peopleId, ageId, classId)) : null;

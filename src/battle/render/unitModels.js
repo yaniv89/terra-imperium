@@ -27,7 +27,7 @@ import { trainableRoles } from '../data/economy';
 import { UNIT_ROSTER } from '../../data/unitClasses';
 import { ART } from '../art/artFiles';
 import { signatureUnitFor, signatureKey, SIGNATURE_UNITS, QUADRUPED_RIGS } from '../../data/signatureUnits';
-import { peopleForNationId } from '../../data/peoples';
+import { peopleOf } from '../../data/peoples';
 import { AGE_ORDER } from '../../data/ages';
 
 // { '../../assets/units/bronze-infantry.glb': '/terra-imperium/assets/bronze-infantry-abc123.glb' }
@@ -110,7 +110,7 @@ export const battleExtraModels = (setup, { findGeneral = findGeneralModel, findS
     if (units.some((u) => u?.commanderId)) push(sd.ageId, 'general', 'cavalry', findGeneral(sd.ageId));
     const side = setup.sides.indexOf(sd);
     units.forEach((u) => { const key = lookKey(unitLookOf(u, setup, side), u?.classId); if (key) push(sd.ageId, key, u.classId, findLook(sd.ageId, key)); });
-    const people = peopleForNationId(sd.nationId);
+    const people = peopleOf(sd.nationId)?.id;
     if (!people) return;
     const classes = new Set(units.map((u) => u?.classId).filter(Boolean));
     if (setup.economy) trainableRoles(sd.ageId).forEach((c) => classes.add(c));

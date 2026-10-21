@@ -34,8 +34,8 @@ import { msg, carry, sub, people, cityRef, person, place, thing } from './messag
 // existing import site (`from '../context/GameContext'`) keeps working unchanged.
 import { GameStatus, ActionTypes, RelationStatus, LogTypes, TechCategories, ACTION_AGE_GATES } from '../data/types';
 import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, getNationCapital, getCapital, getBorderingNationIds } from '../data/regions';
-import { WORLD_NATIONS, peopleNationRecord } from '../data/worldNations';
-import { peopleForNationId } from '../data/peoples';
+import { PEOPLES } from '../data/peoples';
+import { peopleNationRecord } from '../data/peopleNation';
 import { DEFAULT_WORLD_SIZE, CITY_STATE_DENSITIES, DEFAULT_CITY_STATES, CITY_STATES_PACKED } from '../data/worldSizes';
 import { pickMajors } from './worldgen/peoplesWorld';
 import { placeGeneratedPeoples } from './worldgen/generatedPeoples';
@@ -146,13 +146,13 @@ import { tradeMaps, answerMapOffer } from './mapTrade';
 
 // Any of the 240 nations works as a fallback default — only used when no explicit choice (from
 // the country-select start screen) or saved game is present yet.
-const DEFAULT_PLAYER_NATION_ID = 'us';
+const DEFAULT_PLAYER_NATION_ID = 'akkad';
 
 // ============ INITIAL STATE FACTORY ============
 // Exported (not just used internally) so it doubles as test fixture data — resolveTurn.test.js
 // and applyEventEffects.test.js build realistic states from it rather than hand-rolling partial
 // mocks that could silently drift from the real shape.
-export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, gameSpeed = 'normal', rngSeed, scenario, guided = false, fog = true } = {}) => {
+export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, gameSpeed = 'normal', rngSeed, scenario = { mode: 'peoples' }, guided = false, fog = true } = {}) => {
   // Every nation starts in the first age by research (KTD1); the year is only its label (KTD3).
   const age = FIRST_AGE_ID;
   const year = AGES[age].startYear;
@@ -170,42 +170,34 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
   const baseSeed = rngSeed ?? randomSeed();
   const rulerRng = createRng(baseSeed);
 
-  // A peoples world (new games, phase W0: src/engine/worldgen/peoplesWorld.js) draws its majors
-  // from the 150-people pool with the world seed; an old country id for the player maps to the
-  // people of that land (LEGACY_NATION_IDS). The legacy worlds keep all 240 country records.
-  const peoplesMode = scenario?.mode === 'peoples';
-  if (peoplesMode) {
-    const mapped = peopleForNationId(playerNationId);
-    if (!mapped) throw new Error(`Unknown people ${playerNationId}`);
-    playerNationId = mapped;
-  }
-  const worldSeed = peoplesMode ? (scenario?.seed ?? baseSeed) : (scenario?.seed ?? rngSeed ?? 1);
+  // Every world is a peoples world (src/engine/worldgen/peoplesWorld.js): the majors are drawn from
+  // the 150-people pool with the world seed.
+  if (scenario.mode !== 'peoples') throw new Error('Every world is a peoples world (scenario.mode "peoples")');
+  if (!PEOPLES[playerNationId]) throw new Error(`Unknown people ${playerNationId}`);
+  const worldSeed = scenario.seed ?? baseSeed;
   // The world (plans/MAP-VARIATIONS-PLAN.md 3.2): the real Earth, or a generated world, which must
   // be the one this page (or test) has loaded; peoples then stand on its fair sites by affinity
   // (generatedPeoples.js) instead of their real capitals, and the site table is saved.
   const mapSpec = normalizeSpec(scenario?.map);
   const generated = mapSpec.kind === 'generated';
   if (generated) {
-    if (!peoplesMode) throw new Error('A generated world needs the peoples mode');
     if (!sameWorld(loadedWorldSpec(), mapSpec)) throw new Error('This generated world is not the loaded one: boot into it first (src/worldgen/worldLoader.js)');
   }
   const mapRecord = generated ? { ...mapSpec, worldHash: loadedWorldSpec().worldHash } : { kind: 'earth' };
   // City-states: Few / Normal / Many (decision 42); absent = Normal.
   const cityStates = CITY_STATE_DENSITIES[scenario?.cityStates] || scenario?.cityStates === CITY_STATES_PACKED ? scenario.cityStates : DEFAULT_CITY_STATES;
   const generatedPlacement = generated ? placeGeneratedPeoples(playerNationId, scenario.size || DEFAULT_WORLD_SIZE, worldSeed, getTiles(), { independents: scenario.independents !== false, density: cityStates }) : null;
-  const majorIds = generatedPlacement ? generatedPlacement.majors.slice() : peoplesMode ? pickMajors(playerNationId, scenario.size || DEFAULT_WORLD_SIZE, worldSeed, { tiles: getTiles() }) : null;
+  const majorIds = generatedPlacement ? generatedPlacement.majors.slice() : pickMajors(playerNationId, scenario.size || DEFAULT_WORLD_SIZE, worldSeed, { tiles: getTiles() });
   // City-state peoples become independent cities (phase W1, src/engine/independents.js; on Earth
   // spaced by START_MIN_GAP_KM, some moved off their real capital: `sites`);
   // `independents: false` in the scenario leaves them out (majors only, as phase W0 built it).
   const independentPick = generatedPlacement ? { ids: generatedPlacement.independents, late: generatedPlacement.late }
-    : peoplesMode && scenario.independents !== false ? placeCityStatesOnEarth(majorIds, scenario.size || DEFAULT_WORLD_SIZE, worldSeed, { density: cityStates, tiles: getTiles() }) : { ids: [], late: [] };
+    : scenario.independents !== false ? placeCityStatesOnEarth(majorIds, scenario.size || DEFAULT_WORLD_SIZE, worldSeed, { density: cityStates, tiles: getTiles() }) : { ids: [], late: [] };
   const startSites = generatedPlacement ? generatedPlacement.sites : (independentPick.sites && Object.keys(independentPick.sites).length ? independentPick.sites : null);
-  const nationSource = peoplesMode
-    ? Object.fromEntries([
-      ...majorIds.sort().map((id) => [id, peopleNationRecord(id)]),
-      ...independentPick.ids.map((id) => [id, asIndependentSource(peopleNationRecord(id))])
-    ])
-    : WORLD_NATIONS;
+  const nationSource = Object.fromEntries([
+    ...majorIds.sort().map((id) => [id, peopleNationRecord(id)]),
+    ...independentPick.ids.map((id) => [id, asIndependentSource(peopleNationRecord(id))])
+  ]);
 
   // Plan §M4: overextension is measured relative to each nation's OWN starting size, so a 50-region
   // nation and a 1-region nation are equally "at capacity" at the same overextension% — captured
@@ -476,7 +468,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     ]
   };
   // Fog of war (fog.js): each people knows its homeland; `fog: false` is the "explored world" option.
-  const built = refreshPeopleNames(syncWorldRegistry(finalizeIndependents(withCityStates(applyScenario(initial, { ...scenario, seed: worldSeed, map: mapRecord, ...(startSites ? { sites: startSites } : {}) }), peoplesMode ? cityStates : null), { late: independentPick.late })));
+  const built = refreshPeopleNames(syncWorldRegistry(finalizeIndependents(withCityStates(applyScenario(initial, { ...scenario, seed: worldSeed, map: mapRecord, ...(startSites ? { sites: startSites } : {}) }), cityStates), { late: independentPick.late })));
   // A Stone Age start (U26): the tribal camps, away from every band's home and every city.
   const homes = [...Object.values(built.units).filter(isBand).map((u) => u.band.home), ...Object.values(built.regions).map((c) => c.tile)];
   const started = initFog(built.scenario?.band ? { ...built, tribalCamps: placeCamps(worldSeed, homes), pendingCamp: null } : built, { on: fog });

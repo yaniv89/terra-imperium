@@ -1,6 +1,6 @@
 # Retiring the legacy 240-country world
 
-Status: phase 1 (this document, start paths closed, first test batch). Phases 2 and 3 are proposals.
+Status: phases 1, 2 and 3 done except the balanced-regions file deletions (see section 6).
 
 ## What "legacy world" means here
 
@@ -162,3 +162,13 @@ Engine findings from the migration (not changed here):
 3. `getNationCapital` and friends read the registry of the last synced state. A test file that builds more than
    one world can read the wrong capital; read it from the state (`state.nations[id].capitalRegionId`).
 4. `backfillDefaults` rebuilt a saved peoples world at the default size (fixed, saveMigrations.js).
+
+## 6. Progress log (phases 2d and 3, 2026-10-21)
+
+- Phase 2: the last 31 legacy test files moved (resolveTurn, GameContext, helpers, ai*, settlers, wonders, battleOutcome and more); no test calls `createInitialState` without a scenario. Full suite: 434 files, 4,153 tests green.
+- Phase 2d: scripts/simulate.mjs (always a standard peoples world, `--scenario` removed, players rotate over the 150-pool majors), audit-scenarios.mjs (small, standard, large), and the balance-sim / perf harnesses (default player akkad). **Every balance baseline is reset: rerun the base commit with the new harness.** stateHash no longer crashes on a people id (it builds a peoples world).
+- Engine finding 2 (deposits) was already fixed by pa-w9-deposits: a city's deposits follow `landCode`, the land its tile stands on.
+- Phase 3 done: non-peoples branch of `createInitialState` (a missing scenario means peoples; other modes throw), `applyScenario` non-peoples branch, `generateStarts`, emergence.js, `WORLD_NATIONS` (worldNations.js became peopleNation.js with only `peopleNationRecord`), `LEGACY_NATION_IDS` and `peopleForNationId` (and the `legacy` table in peopleCapitals.json and build-peoples.mjs), save migrations 1 to 5 (the v6 merge included), src/test/fixtures.js. Readers (TileSheet, TileViewer, NationCard, describeEffects, applyEventEffects) use countries-meta or the state.
+- Still to delete (a tool permission block stopped the delete): scripts/geo/build-balanced-regions.mjs, build-world-regions.mjs, build-region-coordinates.mjs, build-game-regions.mjs, scripts/geo/source/, src/data/geo/regionMerge.json, gameRegions.json, worldRegions.json, and the `build:world-regions` npm script. Nothing reads them at runtime. `subregions-*.json` stay (loadWorldFeatures.js reads them).
+- Leftover: the `mode === 'emergent'` guards in colonies.js, aiEconomy.js, aiOperations.js, ColonyBlock.jsx, RegionInfoModal.jsx are dead in new games (the frontier expedition needs an emergent world). Remove with the frontier expedition.
+- Engine findings: (a) curated national events (`HISTORICAL_EVENTS` with `nationId` like 'eg') never fire in a peoples world, ids are people slugs; (b) Israel's national wonders need `homeland: 'il'` but Jerusalem's tile is country `ps` on the Earth map; (c) `getNationCapital(id)` after `makeCapital` can return the old capital until the registry is synced.

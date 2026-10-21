@@ -1,7 +1,7 @@
 // src/engine/elimination.js
 // Nation elimination: once a nation holds no regions at all, it's declared dead rather than
 // removed from state.nations (the 240-nation roster is referenced by id everywhere — aiLogic.js,
-// diplomacy.js, worldNations.js — so deleting the entry would break every one of those lookups).
+// diplomacy.js, peopleNation.js — so deleting the entry would break every one of those lookups).
 // Checked once per turn in resolveTurn.js against BOTH AI-vs-AI conquest (resolveWarProgress,
 // same file) and the player's own invasions — those land immediately via gameReducer.js, so this
 // turn-end sweep is what actually notices a player conquest reduced someone to zero regions.

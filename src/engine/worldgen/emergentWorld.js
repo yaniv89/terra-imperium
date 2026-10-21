@@ -1,55 +1,23 @@
 // src/engine/worldgen/emergentWorld.js
-// World scenarios on the tile grid (plans/civ-map-rework.md, B6). Mode 'peoples' (new games, phase
-// W0) builds its cities from peoplesWorld.js: the majors drawn from the 150-people pool, one equal
-// city each at the Dawn start. The legacy modes build from src/data/scenarios.js's starts: the
-// full world is all 240 countries with one city each at the Dawn start; an emergent world is a
-// subset of `nationCount` of them chosen for geographic spread (the player always included), the
-// rest dormant until emergence (emergence.js). Old saves keep their legacy mode.
-// Deterministic: the spread pick uses the seeded rng only for tie-breaks.
+// World scenarios on the tile grid (plans/civ-map-rework.md, B6). The peoples world (phase W0)
+// builds its cities from peoplesWorld.js: the majors drawn from the 150-people pool, one equal
+// city each (or a band, U23).
 import { getTiles } from '../../data/geo/tiles';
-import { buildScenarioStarts, DEFAULT_SCENARIO_ID, SCENARIOS } from '../../data/scenarios';
+import { DEFAULT_SCENARIO_ID, SCENARIOS } from '../../data/scenarios';
 import { foundCity, emptyWorld, sizeToPeople } from '../world/cities';
-import { makeSettler, makeBand } from '../settlers';
-import { createRng } from '../../utils/rng';
 import { distanceKm } from '../../data/geo/geodesic';
+import { makeSettler, makeBand } from '../settlers';
 import { buildPeoplesStarts } from './peoplesWorld';
 import { DEFAULT_WORLD_SIZE } from '../../data/worldSizes';
-import { withAgesResearched, withTechsResearched } from '../research';
+import { withTechsResearched } from '../research';
 import { hearthOfTile, AGRICULTURE_TECH } from '../../data/hearths';
-import { FIRST_AGE_ID } from '../../data/ages';
 import { isIndependentNation } from '../../data/independents';
 
-export const NATION_COUNTS = [15, 30, 45, 60, 75];
 export const GENERATION_VERSION = 2;
-
-// Which nations take part in an emergent world: the player, then repeatedly the nation whose
-// capital is farthest from every chosen capital (ties by the seeded roll).
-export const generateStarts = (playerNationId, nationCount, seed) => {
-  if (!NATION_COUNTS.includes(nationCount)) throw new Error('Unsupported nation count');
-  const tiles = getTiles();
-  if (tiles.capitals[playerNationId] == null) throw new Error('Unknown player nation');
-  const rng = createRng(seed);
-  const all = Object.keys(tiles.capitals).sort();
-  const chosen = [playerNationId];
-  const candidates = all.filter((id) => id !== playerNationId).map((id) => ({ id, tie: rng.next() }));
-  const sep = (a, b) => distanceKm(tiles.centres[tiles.capitals[a]], tiles.centres[tiles.capitals[b]]);
-  while (chosen.length < nationCount && candidates.length) {
-    let best = null;
-    candidates.forEach((c) => {
-      const score = Math.min(...chosen.map((s) => sep(s, c.id)));
-      if (!best || score > best.score || (score === best.score && c.tie > best.tie)) best = { ...c, score };
-    });
-    chosen.push(best.id);
-    candidates.splice(candidates.findIndex((c) => c.id === best.id), 1);
-  }
-  const starts = {};
-  chosen.forEach((id) => { starts[id] = tiles.capitals[id]; });
-  return { starts, relocations: [] };
-};
 
 // Turns scenario starts into the city world: regions (one record per city, with the fields the
 // rest of the engine reads), world.tileOwner, nations' capitals, and one starting army each.
-// `starts`: scenarios.js buildScenarioStarts' shape (the legacy worlds) or peoplesWorld.js's.
+// `starts`: peoplesWorld.js's shape.
 const buildCityWorld = (initial, starts) => {
   const tiles = getTiles();
   let world = emptyWorld();
@@ -166,35 +134,8 @@ const applyPeoplesScenario = (initial, { size = DEFAULT_WORLD_SIZE, seed = 1, st
   };
 };
 
-export const applyScenario = (initial, { mode = 'full', nationCount = 45, seed = 1, start = DEFAULT_SCENARIO_ID, size, map = { kind: 'earth' }, sites = null, band = false } = {}) => {
+export const applyScenario = (initial, { mode, seed = 1, start = DEFAULT_SCENARIO_ID, size, map = { kind: 'earth' }, sites = null, band = false } = {}) => {
   if (!SCENARIOS[start]) throw new Error(`Unsupported start ${start}`);
-  if (mode === 'peoples') return applyPeoplesScenario(initial, { size, seed, start, map, sites, band });
-  if (mode !== 'full' && mode !== 'emergent') throw new Error('Unsupported world mode');
-  const allIds = Object.keys(initial.nations);
-  const nationIds = mode === 'emergent' ? Object.keys(generateStarts(initial.playerNationId, nationCount, seed).starts) : allIds;
-  // The player's nation is placed first on its real capital (scenarios.js spreadCapitals); a nation
-  // with no room at the start (the legacy full world's crowded small lands) is absent.
-  const built = buildCityWorld(initial, buildScenarioStarts(getTiles(), start, nationIds, { priority: initial.playerNationId }).starts);
-  const dormantNationIds = allIds.filter((id) => !built.activeNationIds.includes(id));
-  // An emergent world carries only its active peoples; the dormant ones return through emergence.
-  // The full world leaves out the nations with no room at the start (settle-rules R4, option A):
-  // they are listed as dormant and never emerge (emergence runs in emergent worlds only).
-  built.nations =Object.fromEntries(built.activeNationIds.map((id) => [id, built.nations[id]]));
-  const starts = {};
-  built.activeNationIds.forEach((id) => { starts[id] = built.nations[id].capitalRegionId; });
-  const applied = {
-    ...initial,
-    nations: built.nations,
-    regions: built.regions,
-    units: built.units,
-    world: built.world,
-    resources: { ...initial.resources, supplies: 20 },
-    scenario: { mode, start, generationVersion: GENERATION_VERSION, seed, nationCount: mode === 'emergent' ? nationCount : allIds.length, activeNationIds: built.activeNationIds, starts, relocations: [], dormantNationIds, map: { kind: 'earth' } }
-  };
-  // An era start (a test and sandbox fixture; the legacy world's Dawn is a Bronze start): every
-  // nation knows the earlier ages' techs, so its research puts it in the start's age (a nation's age
-  // is only its research, eight-ages plan KTD1). Only the peoples world starts in the Stone Age (R10).
-  const eraAge = SCENARIOS[start].age;
-  return eraAge === FIRST_AGE_ID ? applied
-    : [applied.playerNationId, ...built.activeNationIds].reduce((s, id) => withAgesResearched(s, id, eraAge), applied);
+  if (mode !== 'peoples') throw new Error('Unsupported world mode: every world is a peoples world');
+  return applyPeoplesScenario(initial, { size, seed, start, map, sites, band });
 };

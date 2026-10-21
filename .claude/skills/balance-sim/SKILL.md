@@ -1,6 +1,6 @@
 ---
 name: balance-sim
-description: Run whole-world headless Terra Imperium games (all 240 nations, 50-150+ turns, fixed seeds) and report wars, pacts, rebellions, conquests, devastation, unrest, war exhaustion, runaway nations, the player's economy and ms per turn, or compare those numbers between a base commit and the working tree. Use to validate any balance, economy, AI, diplomacy or per-turn formula change, to check for snowballing, collapse, NaN or stalls, and when the user asks how the world plays out or whether a change made things better or worse.
+description: Run whole-world headless Terra Imperium games (a standard peoples world, 50-150+ turns, fixed seeds) and report wars, pacts, rebellions, conquests, devastation, unrest, war exhaustion, runaway nations, the player's economy and ms per turn, or compare those numbers between a base commit and the working tree. Use to validate any balance, economy, AI, diplomacy or per-turn formula change, to check for snowballing, collapse, NaN or stalls, and when the user asks how the world plays out or whether a change made things better or worse.
 ---
 
 # Balance sim
@@ -10,7 +10,7 @@ accepts free white peaces and refuses costly ones; enemy assaults auto-resolve.
 
 ## One run
 ```bash
-TURNS=150 SEEDS=11,12 EVERY=50 PLAYER=fr \
+TURNS=150 SEEDS=11,12 EVERY=50 PLAYER=akkad \
   npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/balance-sim
 ```
 Prints `STATS seed=… turn=… key=value …` every EVERY turns and one `SUMMARY {json}` per seed.
@@ -38,7 +38,7 @@ Roughly 0.1-0.3 s per turn, so 150 turns x 2 seeds takes a few minutes. Keys:
 
 ## Before vs after (paired seeds, with confidence intervals)
 ```bash
-PLAYER=au .claude/skills/balance-sim/compare.sh <base-ref> 150 11-18
+PLAYER=akkad .claude/skills/balance-sim/compare.sh <base-ref> 150 11-18
 ```
 Checks the base out in a temporary git worktree (sharing node_modules, running the current
 harness so both sides report the same keys), runs every (side, seed) as its own process, `JOBS`
@@ -60,7 +60,7 @@ when it is starred; with 2 seeds the t value is 12.7 and almost nothing is, so u
 seeds (6 to 8 for wars and conquests, which are rare events), and when an unstarred row matters,
 rerun with the seeds@80% count. msPerTurn is never starred: parallel runs share the CPU, so judge
 timing with `JOBS=1` or the PERF_CHECKS tests. Seeds that end early (a fallen player) make the
-pair unequal: use PLAYER=au. Report the table (or its starred rows) in the commit message.
+pair unequal: use a fixed PLAYER (default akkad). Report the table (or its starred rows) in the commit message.
 
 ## Also in the repo
 `node scripts/simulate.mjs --games 5 --turns 150` (the M21 harness: N seeded games with a
@@ -80,17 +80,16 @@ src/engine/stateAudit.js for invariant checks inside any test.
 - Report to the user as a small before/after table and say plainly what got better or worse.
 
 
-Note: the passive player defaults to France (`PLAYER=fr`), a one-city nation with neighbours that
-often falls to a siege around turn 100 on the frequency-75 grid, which ends the run early (the
-SUMMARY then carries the real turn and status). Use `PLAYER=au` for full-length runs.
+Note: every run is a standard peoples world (the old 240-country world is retired). Balance numbers
+before the retirement are not comparable: rerun the base commit as well (compare.sh does).
 
 ## Campaign telemetry (W00, the peoples world with a scripted player)
 ```bash
-SCENARIO=peoples PLAYER=au POLICY=scripted SPEED=normal TURNS=200 EVERY=25 SEEDS=11 \
+PLAYER=akkad POLICY=scripted SPEED=normal TURNS=200 EVERY=25 SEEDS=11 \
   OUT_DIR=/tmp/w00 TRACE_WARS=1 \
   npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/balance-sim/worldStats.sim.js
 scripts/w00-baseline.sh            # seeds 11-14, 200 turns, Normal, 4 at a time (SPEED=marathon too)
-node scripts/simulate.mjs --games 2 --turns 100 --scenario peoples --policy scripted --player au
+node scripts/simulate.mjs --games 2 --turns 100 --policy scripted --player akkad
 ```
 - `POLICY=passive` (default) is the old harness. `POLICY=scripted` answers every blocker in
   turnBlockers.js (events, peace, defenses, demands, tribute, join offers; `DEMANDS=pay` pays them,
