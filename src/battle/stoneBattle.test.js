@@ -9,6 +9,9 @@ import { runHeadless } from './sim/headless';
 import { createWorld } from './sim/world';
 import { battleModelPairs } from './render/unitModels';
 import { navalLinesFor } from '../data/navalLines';
+import { buildableFor, buildingArt, ecoName, trainableRoles } from './data/economy';
+import { ART } from './art/artFiles';
+import { projectileFor } from './art/projectiles';
 
 const army = (prefix, classes, commanderId = null) => classes.map((classId, i) => ({
   id: `${prefix}${i}`, classId, strength: 800, maxStrength: 1000, morale: 100, promotions: [], commanderId: i === 0 ? commanderId : null, domain: 'land', xp: 0
@@ -49,5 +52,26 @@ describe('Stone roster and battle stats (U37)', () => {
     const b = runHeadless(stoneSetup(7));
     expect(a.world.ended).toBeTruthy();
     expect(a.hash).toBe(b.hash);
+  });
+});
+
+describe('Stone battle economy and art (U38)', () => {
+  it('trains no cavalry, offers no stable, and names its buildings', () => {
+    expect(trainableRoles('stone')).not.toContain('cavalry');
+    expect(buildableFor('stone')).not.toContain('stable');
+    expect(ecoName('hall', 'stone')).toBe('Longhouse');
+    expect(ecoName('hall', 'bronze')).toBe('Town hall');
+  });
+
+  it('every Stone building resolves to the Stone file', () => {
+    buildableFor('stone').forEach((id) => expect(buildingArt(id, 'stone', (a) => ART.rts(a)?.ageId === a)?.file, id).toBe('rts-stone'));
+  });
+
+  it('Hunters loose arrows, a Warband throws javelins, a lookout slings stones; Stone crosses at a ford', () => {
+    expect(projectileFor('ranged', 'stone')).toBe('arrow');
+    expect(projectileFor('infantry', 'stone')).toBe('javelin');
+    expect(projectileFor('tower', 'stone')).toBe('sling-stone');
+    expect(ART.projectiles('stone')?.ageId).toBe('stone');
+    expect(ART.bridge('stone')?.material).toBe('ford');
   });
 });
