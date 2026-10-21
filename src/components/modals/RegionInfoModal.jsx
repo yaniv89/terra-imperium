@@ -29,6 +29,7 @@ import { getRankForXp } from '../../data/promotions';
 import { regionDeposits } from '../../data/deposits';
 import { GREAT_PROJECTS } from '../../data/greatProjects';
 import { askConfirm } from '../ui/ConfirmActionDialog';
+import { payWhy } from '../panels/empireText';
 import { declareWarConfirm } from '../ui/confirmSpecs';
 import { BuildingIcon, ExtractionIcon, ResourceIcon, UnitIcon, WonderIcon } from '../ui/icons';
 import { getTotalDev } from '../../engine/development';
@@ -441,7 +442,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
                 </div>
                 {!kind && !pending && can.ok && (
                   <ActionButton icon={Target} label={t('ri.fabricate', { city: nameNow('city', null, regionState.name) })} description={turnsOf(CLAIM_FABRICATE_TURNS)} costs={ACTION_COSTS.fabricateClaim}
-                    onClick={() => dispatch({ type: ActionTypes.FABRICATE_CLAIM, payload: { cityId: regionId } })} disabled={!canPay(state, ACTION_COSTS.fabricateClaim)} size="small" />
+                    onClick={() => dispatch({ type: ActionTypes.FABRICATE_CLAIM, payload: { cityId: regionId } })} disabled={!canPay(state, ACTION_COSTS.fabricateClaim)} why={payWhy(state, ACTION_COSTS.fabricateClaim)} size="small" />
                 )}
               </div>
             );
@@ -459,6 +460,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
                 costs={declareWarCosts}
                 onClick={handleDeclareWar}
                 disabled={!!warBlockedReason || !canPay(state, declareWarCosts)}
+                why={warBlockedReason || payWhy(state, declareWarCosts)}
                 variant="danger"
                 size="small"
               />
@@ -475,6 +477,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               description={march.ok ? t('ri.marchDesc', { turns: turnsOf(march.turns), stops: march.stopsAt ? t('ri.stopsAt', { city: state.regions[march.stopsAt]?.name ? nameNow('city', null, state.regions[march.stopsAt].name) : t('ri.anEnemyCity') }) : '' }) : reasonText(march)}
               onClick={() => dispatch({ type: ActionTypes.SET_ROUTE, payload: { fromRegionId: srcId, toRegionId: regionId, attack: true } })}
               disabled={!march.ok}
+              why={march.ok ? null : reasonText(march)}
               variant="danger"
               size="small"
             />
@@ -487,6 +490,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               costs={ACTION_COSTS.launchInvasion}
               onClick={() => handleInvade(srcId)}
               disabled={!!blockedReason}
+              why={blockedReason}
               variant="danger"
               size="small"
             />
@@ -500,6 +504,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               costs={ACTION_COSTS.amphibiousAssault}
               onClick={() => handleAmphibiousAssault(unit.id)}
               disabled={!!blockedReason}
+              why={blockedReason}
               variant="danger"
               size="small"
             />
@@ -513,6 +518,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               costs={ACTION_COSTS.navalEngagement}
               onClick={() => handleNavalEngagement(srcId)}
               disabled={!canPay(state, ACTION_COSTS.navalEngagement)}
+              why={payWhy(state, ACTION_COSTS.navalEngagement)}
               variant="danger"
               size="small"
             />
@@ -525,6 +531,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               costs={ACTION_COSTS.settleColonize}
               onClick={handleSettleColonize}
               disabled={!canPay(state, ACTION_COSTS.settleColonize)}
+              why={payWhy(state, ACTION_COSTS.settleColonize)}
               size="small"
             />
           )}
@@ -572,6 +579,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             costs={ACTION_COSTS.espionage}
             onClick={handleGatherIntel}
             disabled={!canPay(state, ACTION_COSTS.espionage)}
+            why={payWhy(state, ACTION_COSTS.espionage)}
             resources={state.resources}
             size="small"
           />

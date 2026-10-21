@@ -2,9 +2,12 @@
 // Reusable action button component with cost and effect display
 
 import React from 'react';
+import { useGame } from '../../context/GameContext';
+import { payWhy } from '../panels/empireText';
 import { getCostString, getResourceStrain } from '../../utils/helpers';
 import { t as tNow } from '../../i18n';
 import { useT } from '../../i18n/useT';
+import { useWhy } from './WhyTip';
 
 const VARIANT_STYLES = {
   // Field Atlas (plans/UI-DESIGN.md): actions are raised cards with a line border; only a screen's
@@ -51,9 +54,14 @@ const ActionButton = ({
   // Optional: pass the current resources pool to surface a "this uses most/all of your X" warning
   // (turn-1 government adoption, first unit recruit) — inert when omitted, every other call site
   // is unaffected.
-  resources = null
+  resources = null,
+  why: reason = null // the reason a disabled action is blocked, shown on tap (WhyTip.jsx)
 }) => {
   useT(); // redraw when the language changes
+  const [why, bubble] = useWhy();
+  const game = useGame(); // every ActionButton sits in a game screen
+  // With no reason given, a cost the player cannot pay is the reason.
+  const whyText = reason || (disabled && costs && game?.state ? payWhy(game.state, costs) : null);
   const costString = formatCost(costs);
   const effectString = formatEffect(effects);
   const strain = costs && resources ? getResourceStrain(costs, resources) : null;
@@ -71,9 +79,9 @@ const ActionButton = ({
   };
 
   return (
+    <>
     <button
-      onClick={onClick}
-      disabled={disabled}
+      {...why(disabled, whyText, onClick)}
       className={`
         w-full rounded-lg border transition-all flex items-start text-start
         ${sizeClasses[size]}
@@ -129,6 +137,8 @@ const ActionButton = ({
         )}
       </div>
     </button>
+    {bubble}
+    </>
   );
 };
 

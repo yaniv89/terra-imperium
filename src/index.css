@@ -218,7 +218,7 @@ body {
     outline: 2px solid var(--fa-text);
     outline-offset: 2px;
   }
-  .fa-btn:disabled { opacity: 0.45; }
+  .fa-btn:disabled, .fa-btn[aria-disabled="true"] { opacity: 0.45; }
   .fa-btn-sm { min-height: 32px; padding: 0 0.75rem; font-size: 0.75rem; }
   .fa-btn-primary { background: var(--fa-brass); color: var(--fa-ink); }
   .fa-btn-primary:hover:not(:disabled) { background: #E6B65A; }
@@ -550,7 +550,7 @@ button:active:not(:disabled) {
   transform: scale(0.98);
 }
 
-button:disabled {
+button:disabled, button[aria-disabled="true"] {
   cursor: not-allowed;
 }
 

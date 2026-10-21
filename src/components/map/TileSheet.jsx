@@ -6,6 +6,7 @@
 // action is "Found City here" (settlers on it) or "Go and found city" (idle settlers elsewhere).
 // Also the armies on the tile (attack, declare war) and a fleet's landing. Docked on the left as
 // a corner card; a bottom sheet on a phone held upright.
+import { reasonOfAttack } from './armySheetModel';
 import { t as tNow } from '../../i18n/core';
 import { useT } from '../../i18n/useT';
 import { nameNow } from '../../i18n/names';
@@ -96,7 +97,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
   // at 844x340: playtest audit I090).
   const sendGoer = () => dispatch({ type: ActionTypes.SET_SETTLER_TARGET, payload: { unitId: goer.u.id, tile } });
   const main = here.length > 0 && !ownerCity
-    ? <Button variant="primary" hero className="w-full" disabled={!site?.ok} onClick={() => dispatch({ type: ActionTypes.FOUND_CITY, payload: { unitId: (here.find((u) => u.id === settleUnitId) || here[0]).id } })} data-testid="found-city"><Flag className="w-4 h-4" aria-hidden="true" /> {t(sk('mx.tile.foundHere'))}</Button>
+    ? <Button variant="primary" hero className="w-full" disabled={!site?.ok} why={site?.reason} onClick={() => dispatch({ type: ActionTypes.FOUND_CITY, payload: { unitId: (here.find((u) => u.id === settleUnitId) || here[0]).id } })} data-testid="found-city"><Flag className="w-4 h-4" aria-hidden="true" /> {t(sk('mx.tile.foundHere'))}</Button>
     : !ownerCity && goer
       ? <Button variant="primary" hero className="w-full" onClick={sendGoer} data-testid="send-settler"><Tent className="w-4 h-4" aria-hidden="true" /> {t(sk('mx.tile.goFound'), { turns: turnsText(goer.turns) })}</Button>
       : null;
@@ -115,7 +116,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
         <div className="mb-2 space-y-1.5" data-testid="enemy-army-here">
           <div className="text-[13px] text-fa-danger-text font-semibold flex items-center gap-1.5"><Swords className="w-4 h-4" /> {t('mx.tile.enemyArmy', { count: enemyHere.length, name: state.nations[enemyHere[0].ownerId]?.name ? nameNow('people', enemyHere[0].ownerId, state.nations[enemyHere[0].ownerId].name) : t('mx.tile.rebel') })}</div>
           {attackSources.map(({ regionId, v }) => (
-            <Button key={regionId} variant="danger" className="w-full" disabled={!v.ok && v.reason !== 'cost'} onClick={() => setAttackFrom(regionId)} data-testid="attack-army">
+            <Button key={regionId} variant="danger" className="w-full" disabled={!v.ok && v.reason !== 'cost'} why={v.ok ? null : reasonOfAttack(v.reason)} onClick={() => setAttackFrom(regionId)} data-testid="attack-army">
               {t('mx.tile.attackWith', { name: cityText(regionId, state.regions[regionId]?.name), extra: v.ok ? t('mx.tile.attackUnits', { count: v.attackerUnits.length }) : v.reason === 'no_moves' ? t('mx.tile.attackMoved') : '' })}
             </Button>
           ))}
@@ -124,7 +125,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
       {foreignWar && (
         <div className="mb-2 space-y-1.5" data-testid="foreign-army-here">
           <div className="text-[13px] text-fa-enemy font-semibold">{t('mx.tile.foreignArmy', { name: foreignWar.shown, count: foreignHere.length })}</div>
-          <Button variant="danger" className="w-full" disabled={!foreignWar.enabled} onClick={() => askConfirm(declareWarConfirm(state, foreignWar.nationId), () => dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: foreignWar.nationId } }))} title={foreignWar.note} data-testid="tile-declare-war"><Swords className="w-4 h-4" /> {foreignWar.label}</Button>
+          <Button variant="danger" className="w-full" disabled={!foreignWar.enabled} why={foreignWar.why} onClick={() => askConfirm(declareWarConfirm(state, foreignWar.nationId), () => dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: foreignWar.nationId } }))} title={foreignWar.note} data-testid="tile-declare-war"><Swords className="w-4 h-4" /> {foreignWar.label}</Button>
         </div>
       )}
       {attackFrom && <PreBattleModal fromRegionId={attackFrom} tile={tile} onClose={() => setAttackFrom(null)} />}
@@ -183,7 +184,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
             const turns = turnsFor(u);
             const from = state.regions[u.regionId]?.name ? cityText(u.regionId, state.regions[u.regionId].name) : t('mx.tile.road');
             return (
-              <Button key={u.id} className="w-full" disabled={turns == null} onClick={() => dispatch({ type: ActionTypes.SET_SETTLER_TARGET, payload: { unitId: u.id, tile } })} data-testid="send-settler">
+              <Button key={u.id} className="w-full" disabled={turns == null} why={t('mx.tile.noWay')} onClick={() => dispatch({ type: ActionTypes.SET_SETTLER_TARGET, payload: { unitId: u.id, tile } })} data-testid="send-settler">
                 <Tent className="w-4 h-4" /> {turns == null ? t('mx.tile.cannotReach', { from }) : t('mx.tile.sendFrom', { from, turns: turnsText(turns) })}
               </Button>
             );

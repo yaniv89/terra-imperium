@@ -23,6 +23,10 @@ import { researchNeedsChoice } from './researchStatus';
 import { pendingCapturesOf } from './capture';
 import { t as tNow } from '../i18n/core';
 import { nameNow } from '../i18n/names';
+import { getTiles } from '../data/geo/tiles';
+import { BUILDING_CATEGORIES } from '../data/buildings';
+import { canQueue } from './world/cities';
+import { getResearched, ageOf } from './nationState';
 
 const nameOf = (state, id) => nameNow('people', id, state.nations?.[id]?.name || tNow('prompt.aPeople'));
 const cityNameOf = (state, id, fallback) => { const c = state.regions?.[id]; return c?.name ? nameNow('city', null, c.name) : fallback; };
@@ -39,11 +43,23 @@ const defenseLabel = (state, def) => {
 /** Is research idle while something could be researched (and no advisor picks)? One truth: researchStatus.js. */
 export const researchIdle = (state) => researchNeedsChoice(state);
 
-/** The player's cities with nothing to build (outposts and burning cities build nothing), by id. */
+// Could the city queue anything at all (scouts, infantry, settlers, a next building tier)? A city
+// with nothing valid to build never blocks the turn (playtest issue 9: no soft lock).
+const canBuildSomething = (state, city) => {
+  const ctx = { researched: getResearched(state, city.owner), ageId: ageOf(state, city.owner) };
+  const tiles = getTiles();
+  const world = { cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} };
+  const items = [{ kind: 'unit', classId: 'support', explorer: true }, { kind: 'unit', classId: 'infantry' }, { kind: 'settler' },
+    ...Object.keys(BUILDING_CATEGORIES).map((category) => ({ kind: 'building', category, tier: (city.buildings?.categories?.[category] ?? -1) + 1 }))];
+  return items.some((item) => canQueue(city, tiles, world, item, ctx).ok);
+};
+
+/** The player's cities with nothing to build (outposts and burning cities build nothing; a city
+ * that could queue nothing valid is not asked to), by id. */
 export const idleCities = (state) => {
   const me = state.playerNationId;
   return Object.values(state.regions || {})
-    .filter((c) => c.owner === me && c.tile != null && !c.outpost && !c.razing && !c.production?.current)
+    .filter((c) => c.owner === me && c.tile != null && !c.outpost && !c.razing && !c.production?.current && c.tiles && canBuildSomething(state, c))
     .sort((a, b) => (a.id < b.id ? -1 : 1));
 };
 

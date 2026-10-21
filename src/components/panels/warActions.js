@@ -7,6 +7,7 @@ import { hasCasusBelli, isInTruce, isAtWarWithPlayer } from '../../engine/diplom
 import { t } from '../../i18n/core';
 import { nameNow } from '../../i18n/names';
 import { canPay } from '../../utils/costs';
+import { payWhy } from './empireText';
 
 export const declareWarModel = (state, nationId) => {
   const me = state.playerNationId;
@@ -24,6 +25,7 @@ export const declareWarModel = (state, nationId) => {
     shown,
     label: `${t('mx.war.label', { name: shown })}${justified ? '' : t('mx.war.unjustified')}`,
     note: blocked || (justified ? t('mx.war.cause') : t('mx.war.noCause')) + (breaksTruce ? t('mx.war.breaksTruce') : ''),
-    enabled: !blocked && affordable
+    enabled: !blocked && affordable,
+    why: blocked || payWhy(state, costs) // what a tap on the greyed button says (WhyTip.jsx)
   };
 };

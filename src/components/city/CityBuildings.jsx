@@ -13,6 +13,7 @@ import { ActionButton } from '../ui';
 import { TrendingUp } from 'lucide-react';
 import { BuildingIcon, ExtractionIcon } from '../ui/icons';
 import { useT } from '../../i18n/useT';
+import { useWhy } from '../ui/WhyTip';
 import { rich } from '../../i18n/rich';
 
 // ActionButton takes an icon component; this one draws the deposit's extraction building.
@@ -25,6 +26,7 @@ const CityBuildings = ({ cityId }) => {
   const { triggerEffect } = useEffects();
   const { t } = useT();
   const R = (key, nodes, vars) => rich(t(key, vars), nodes);
+  const [why, whyBubble] = useWhy(); // a greyed "+" says why on tap
   const rows = cityBuildingsModel(state, cityId);
   if (!rows) return null;
   const mine = state.regions[cityId]?.owner === state.playerNationId;
@@ -41,6 +43,7 @@ const CityBuildings = ({ cityId }) => {
   };
   return (
     <div className="space-y-3">
+    {whyBubble}
     <ul className="space-y-1" data-testid="city-buildings">
       {rows.map((r) => (
         <li key={r.category} className="flex items-center gap-2 rounded-lg px-2 py-1.5 min-h-[44px] text-xs bg-fa-raised/60 border border-fa-line/60">
@@ -61,7 +64,7 @@ const CityBuildings = ({ cityId }) => {
           </div>
           {r.next && mine && !r.next.blocked && (r.next.queued
             ? <span className="text-fa-good flex items-center gap-1"><Check className="w-3.5 h-3.5" /> {t('cy.queued')}</span>
-            : <button type="button" disabled={!r.next.canBuild} onClick={() => dispatch({ type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId, item: { kind: 'building', category: r.category, tier: r.built.length } } })} aria-label={t('cy.queueAria', { name: r.next.name })} className="min-w-[44px] min-h-[44px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:opacity-40 text-fa-text flex items-center justify-center"><Plus className="w-4 h-4" /></button>)}
+            : <button type="button" {...why(!r.next.canBuild, r.next.needs ? t('cy.needsLower', { name: r.next.needs }) : null, () => dispatch({ type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId, item: { kind: 'building', category: r.category, tier: r.built.length } } }))} aria-label={t('cy.queueAria', { name: r.next.name })} className="min-w-[44px] min-h-[44px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:opacity-40 aria-disabled:opacity-40 text-fa-text flex items-center justify-center"><Plus className="w-4 h-4" /></button>)}
         </li>
       ))}
     </ul>
@@ -69,7 +72,7 @@ const CityBuildings = ({ cityId }) => {
       <div className="space-y-1" data-testid="city-development">
         <div className="text-xs font-semibold text-fa-text">{t('cy.devTotal', { n: dev.totalDev })}</div>
         {dev.rows.map((r) => <ActionButton key={r.id} icon={TrendingUp} label={r.label} description={r.description} costs={r.costs} onClick={() => invest(r)} disabled={!r.enabled} resources={state.resources} size="small" />)}
-        {dev.deposits.map((d) => <ActionButton key={d.resourceId} icon={depositIcon(d.resourceId)} label={`${d.name}${d.built ? ` ${t('cy.built')}` : ''}`} description={t('cy.devDeposit', { resource: tileResourceName(d.resourceId) })} costs={d.built ? null : ACTION_COSTS.developResourceSite} onClick={() => developSite(d)} disabled={!d.enabled} resources={state.resources} size="small" />)}
+        {dev.deposits.map((d) => <ActionButton key={d.resourceId} icon={depositIcon(d.resourceId)} label={`${d.name}${d.built ? ` ${t('cy.built')}` : ''}`} description={t('cy.devDeposit', { resource: tileResourceName(d.resourceId) })} costs={d.built ? null : ACTION_COSTS.developResourceSite} onClick={() => developSite(d)} disabled={!d.enabled} why={d.built ? t('cy.alreadyDeveloped') : null} resources={state.resources} size="small" />)}
       </div>
     )}
     </div>

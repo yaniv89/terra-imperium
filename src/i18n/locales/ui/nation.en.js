@@ -109,7 +109,7 @@ export default {
   'nc.sueSub': 'White peace: you give up the land you hold',
   'nc.declareWar': 'Declare war',
   'nc.cause': 'A cause for war',
-  'nc.noCause': 'No cause for war: costs more, hurts relations',
+  'nc.noCause': 'No cause for war: costs more, hurts relations (a refused tribute demand gives one)',
   'nc.declareSub': '{cause}, {cost}{fighting}',
   'nc.alreadyFighting': '. Already fighting {list}',
   'nc.breakPact': 'Break the pact',

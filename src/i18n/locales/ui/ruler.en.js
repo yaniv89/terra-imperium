@@ -38,6 +38,7 @@ export default {
   'ruler.pickVirtue': 'Pick a virtue to see what it gives.',
   'ruler.drawback': 'Drawback: {text}',
   'ruler.block.Opens in a later age': 'Opens in a later age',
+  'ruler.opensIn': 'Opens in the {age}: each row of virtues opens with a later age (research takes you there).',
   'ruler.block.Needs the tier before it': 'Needs the virtue before it',
   'ruler.block.One capstone only': 'One last virtue only',
   'ruler.block.Not enough virtue points': 'Needs more virtue points',

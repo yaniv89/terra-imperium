@@ -109,7 +109,7 @@ export default {
   'nc.sueSub': 'שלום לבן: אתם מוותרים על האדמה שבידיכם',
   'nc.declareWar': 'הכרזת מלחמה',
   'nc.cause': 'עילה למלחמה',
-  'nc.noCause': 'אין עילה למלחמה: עולה יותר ופוגע ביחסים',
+  'nc.noCause': 'אין עילה למלחמה: עולה יותר ופוגע ביחסים (דרישת מס שנדחתה נותנת עילה)',
   'nc.declareSub': '{cause}, {cost}{fighting}',
   'nc.alreadyFighting': '. כבר נלחמים נגד {list}',
   'nc.breakPact': 'שברו את הברית',

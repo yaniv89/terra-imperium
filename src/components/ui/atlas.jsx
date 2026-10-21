@@ -9,14 +9,22 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { t as tNow } from '../../i18n/core';
+import { useWhy } from './WhyTip';
 
 const cx = (...parts) => parts.filter(Boolean).join(' ');
 
-export const Button = React.forwardRef(({ variant = 'secondary', size, hero, className, type = 'button', children, ...rest }, ref) => (
-  <button ref={ref} type={type} className={cx('fa-btn', `fa-btn-${variant}`, size === 'sm' && 'fa-btn-sm', hero && 'fa-btn-hero', className)} {...rest}>
-    {children}
-  </button>
-));
+// `why`: the reason a disabled button is blocked, shown on tap (WhyTip.jsx).
+export const Button = React.forwardRef(({ variant = 'secondary', size, hero, className, type = 'button', children, why: reason, disabled, onClick, ...rest }, ref) => {
+  const [why, bubble] = useWhy();
+  return (
+    <>
+      <button ref={ref} type={type} className={cx('fa-btn', `fa-btn-${variant}`, size === 'sm' && 'fa-btn-sm', hero && 'fa-btn-hero', className)} {...rest} {...why(disabled, reason, onClick)}>
+        {children}
+      </button>
+      {bubble}
+    </>
+  );
+});
 Button.displayName = 'Button';
 
 /** A square 44 px icon button; `label` is its accessible name. */

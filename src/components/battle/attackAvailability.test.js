@@ -57,7 +57,7 @@ describe('attack buttons follow the engine validation', () => {
     const html = renderToStaticMarkup(React.createElement(RegionInfoModal, { regionId: target, onClose: vi.fn() }));
     const action = [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].map(m => m[0]).find(b => b.includes(`Invade ${game.state.regions[target].name}`));
     expect(action).toBeDefined();
-    expect(action).toContain('disabled=""');
+    expect(action).toContain('aria-disabled="true"'); // blocked with its reason: still tappable, says why (WhyTip.jsx)
     expect(html).toContain('End the turn before attacking again.');
     // the label names the target and where the army stands, never the city it is based at
     expect(action).toContain('(army ');

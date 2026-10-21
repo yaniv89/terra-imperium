@@ -13,7 +13,8 @@
 // "Research" makes a tech the target (queuing its missing earlier techs first); "Queue" adds it
 // after what's already planned. Pure numbers come from researchView.js and researchSheetModel.js.
 import { t as tNow, isolateLtr } from '../../i18n';
-import { costLine } from './empireText';
+import { costLine, payWhy } from './empireText';
+import { useWhy } from '../ui/WhyTip';
 import { useT } from '../../i18n/useT';
 import { rich } from '../../i18n/rich';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -210,6 +211,7 @@ const TechPanel = () => {
   };
   const queue = (techId) => dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId } });
   const unqueue = (techId) => dispatch({ type: ActionTypes.UNQUEUE_RESEARCH, payload: { techId } });
+  const [why, whyBubble] = useWhy(); // a blocked action says why on tap
   const handleFocus = (categoryId) => {
     if (state.researchFocus === categoryId) return undefined;
     if (!canPay(state, ACTION_COSTS.setResearchFocus)) return addLog(tNow('p2.log.noRes'), 'action');
@@ -229,6 +231,7 @@ const TechPanel = () => {
 
   return (
     <div className="px-3 sm:px-4 pt-3" data-testid="research-tab">
+      {whyBubble}
       <div className="flex items-baseline gap-2 flex-wrap mb-2.5">
         <h2 className="fa-heading text-[19px]">{tNow('rail.tech')}</h2>
         <span className="fa-label" data-testid="research-header">{tNow('p2.th.header', { age: m.header.ageName, known: m.header.known, total: m.header.total, next: m.header.nextAgeName ? tNow('p2.th.next', { name: m.header.nextAgeName, n: m.header.techsLeft }) : '' })}</span>
@@ -273,12 +276,13 @@ const TechPanel = () => {
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <ActionCard icon={GraduationCap} label={tNow('tech.scholars')} description={tNow('p2.sch.desc')} cost={costLine(ACTION_COSTS.fundScholars)}
-          effect={scholarsPreview(state, FUND_SCHOLARS_TECHPOINTS).note} onClick={handleFundScholars} disabled={!canPay(state, ACTION_COSTS.fundScholars)} />
+          effect={scholarsPreview(state, FUND_SCHOLARS_TECHPOINTS).note} onClick={handleFundScholars} disabled={!canPay(state, ACTION_COSTS.fundScholars)} why={payWhy(state, ACTION_COSTS.fundScholars)} />
         <div className="space-y-1.5">
           <Label>{tNow('p2.fo.label')} <span className="normal-case tracking-normal font-normal">{tNow('p2.fo.hint', { pct: Math.round(FOCUS_SCIENCE_BONUS * 100), cost: focusCost ? tNow('p2.fo.cost', { list: costLine(focusCost) }) : '' })}</span></Label>
           <div className="flex flex-wrap gap-1.5">
             {Object.values(TechCategories).map((categoryId) => (
-              <Chip key={categoryId} pressed={state.researchFocus === categoryId} onClick={() => handleFocus(categoryId)}
+              <Chip key={categoryId} pressed={state.researchFocus === categoryId}
+                onClick={why(state.researchFocus !== categoryId && !canPay(state, focusCost), payWhy(state, focusCost), () => handleFocus(categoryId)).onClick}
                 aria-disabled={state.researchFocus !== categoryId && !canPay(state, focusCost)}>
                 {CATEGORY_LABELS[categoryId]}
               </Chip>

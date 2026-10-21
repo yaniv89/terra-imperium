@@ -429,7 +429,7 @@ export const canQueue = (city, tiles, world, item, { researched = [], ageId = FI
       return canImprove(facts, item.improvement, researched) ? { ok: true } : { ok: false, ...reasonOf('m.why.cannotBuildHere') };
     }
     case 'settler':
-      return city.size >= SETTLER_MIN_SIZE ? { ok: true } : { ok: false, ...reasonOf('m.why.needsSize', { n: SETTLER_MIN_SIZE }) };
+      return city.size >= SETTLER_MIN_SIZE ? { ok: true } : { ok: false, ...reasonOf('m.why.needsSize', { n: SETTLER_MIN_SIZE, size: city.size }) };
     case 'army':
       return validateTemplate(item, ageId, researched);
     case 'wonder':
@@ -659,7 +659,8 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
     const item = production.current;
     const cost = productionCost(item, { ageId, citiesOwned: ctx.citiesOwned || 1, speedMult: ctx.speedMult || 1, trainMult: ctx.trainMult, costMult: ctx.costMult });
     if (production.progress < cost) break;
-    if (unitWaitsForTech(item, ageId, researched, ctx.techFree)) break; // the new age's unit waits for its tech, never the old one
+    // The new age's unit waits for its tech, never the old one; a held order banks no more than its cost.
+    if (unitWaitsForTech(item, ageId, researched, ctx.techFree)) { production = { ...production, progress: cost }; break; }
     production = { ...production, progress: production.progress - cost };
     if (item.kind === 'building') {
       buildings = { ...buildings, categories: { ...buildings.categories, [item.category]: item.tier } };
@@ -674,7 +675,7 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
       logs.push(msg('m.city.improvement', { city: cityRef(c.id, c.name), improvement: thing('improvement', item.improvement, IMPROVEMENTS[item.improvement]?.name || item.improvement) }));
     } else if (item.kind === 'settler') {
       if (next.size >= SETTLER_MIN_SIZE) { next = { ...next, size: next.size - 1 }; completed.push({ ...item, city: c.id, tile: c.tile }); logs.push(msg('m.city.settlers', { city: cityRef(c.id, c.name) })); }
-      else { production = { ...production, progress: production.progress + cost }; break; } // wait for people
+      else { production = { ...production, progress: cost }; break; } // wait for people, with no more than the cost stored
     } else if (item.kind === 'wonder') {
       const built = ctx.greatProjects?.[item.projectId];
       if (item.tier === 1 && built && built.regionId !== c.id) {

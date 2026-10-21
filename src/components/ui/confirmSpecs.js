@@ -10,7 +10,9 @@ import { getLaw } from '../../data/laws';
 import { declareWarModel } from '../panels/warActions';
 import { costLine, lawEffectText } from '../panels/empireText';
 import { lawName, lawLine } from '../../i18n/gameText';
-import { t } from '../../i18n/core';
+import { t, dataText } from '../../i18n/core';
+import { VIRTUES } from '../../data/rulerVirtues';
+import { rulerPoints, virtueBlock } from '../../engine/rulers';
 
 /** Their opinion of you before and after the war, from the real reducer on a funded copy. */
 export const warOpinionHit = (state, nationId, costs) => {
@@ -56,5 +58,21 @@ export const changeLawConfirm = (state, category, lawId, cost) => {
     ],
     notes: [],
     confirmLabel: t('cf.law.ok')
+  };
+};
+
+/** Taking a ruler virtue (playtest issue 10): its cost in virtue points, what is left, its drawback. */
+export const virtueConfirm = (state, virtueId) => {
+  const id = state.playerNationId;
+  const virtue = VIRTUES[virtueId];
+  if (!virtue || virtueBlock(state, id, virtueId)) return null;
+  const have = rulerPoints(state.nations[id].ruler).virtue;
+  const name = dataText(`virtue.${virtueId}`, virtue.name);
+  return {
+    id: `take-virtue:${virtueId}`,
+    title: t('cf.virtue.title', { name }),
+    rows: [{ label: t('cf.virtue.points'), value: t('cf.virtue.left', { cost: virtue.cost, have, left: have - virtue.cost }) }],
+    notes: [...(virtue.drawback ? [t('cf.virtue.drawback', { text: dataText(`virtue.${virtueId}.drawback`, virtue.drawback) })] : []), t('cf.virtue.keep')],
+    confirmLabel: t('cf.virtue.ok')
   };
 };

@@ -35,8 +35,10 @@ import { logisticGrowthMult } from './population';
 import { nextTemplateUnit, templateProgress } from './armyTemplates';
 import {
   FOCUS, MAX_SIZE, FOOD_PER_CITIZEN, allocateTiles, cityYields, housingOf, amenitiesOf, growthThreshold, productionCost,
-  claimCandidates, buyTileCost, itemProgress, itemKey, addFood
+  claimCandidates, buyTileCost, itemProgress, itemKey, addFood, SETTLER_MIN_SIZE, unitWaitsForTech
 } from './world/cities';
+import { reasonOf, thing } from './messages';
+import { unitUnlockTech } from '../data/unitClasses';
 
 export const worldOf = (state) => ({ cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} });
 
@@ -149,10 +151,20 @@ const armyRemainingCost = (item, costCtx) => {
 
 const turnsFor = (hammers, production) => (production > 0 ? Math.max(1, Math.ceil(Math.max(0, hammers) / production)) : null);
 
-/** The queue with its numbers: [{ index, item, key, cost, progress, turns, pieceTurns }] for
+/** Why an order cannot finish however much is stored ({ reason, reasonMsg } or null), as cityTurn
+ * holds it (cities.js): settlers below SETTLER_MIN_SIZE, a unit (or army piece) waiting for its tech. */
+export const orderWait = (city, item, ctx) => {
+  if (item.kind === 'settler' && city.size < SETTLER_MIN_SIZE) return reasonOf('m.why.needsSize', { n: SETTLER_MIN_SIZE, size: city.size });
+  if (!unitWaitsForTech(item, ctx.ageId, ctx.researched, ctx.techFree)) return null;
+  const tech = unitUnlockTech(ctx.ageId, item.kind === 'army' ? nextTemplateUnit(item) : item.classId);
+  return reasonOf('m.why.waitsTech', { tech: thing('tech', tech, TECH_TREE[tech]?.name || tech || '?') });
+};
+
+/** The queue with its numbers: [{ index, item, key, cost, progress, turns, pieceTurns, wait }] for
  * [current, ...queue]. `cost` is what the turn asks for (the next piece of an army), `turns` the
  * turn the whole order is done counting everything ahead of it, `pieceTurns` (armies only) the
- * turns to its next unit. `turns` is null while the city makes no production. */
+ * turns to its next unit. `turns` is null while the city makes no production. `wait` (orderWait)
+ * replaces the turn count while the order is held. */
 export const queueView = (state, cityId, live = cityLive(state, cityId)) => {
   if (!live) return [];
   const { city, ctx, yields } = live;
@@ -168,7 +180,8 @@ export const queueView = (state, cityId, live = cityLive(state, cityId)) => {
       index, item, key: itemKey(item), cost, progress,
       turns: turnsFor(ahead, yields.production),
       pieceTurns: item.kind === 'army' ? turnsFor(cost - progress, yields.production) : null,
-      pieces: item.kind === 'army' ? templateProgress(item) : null
+      pieces: item.kind === 'army' ? templateProgress(item) : null,
+      wait: orderWait(city, item, ctx)
     };
   });
 };
