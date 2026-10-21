@@ -9,6 +9,7 @@ import { settlersOf, settlerPath, SETTLER_MOVES } from '../../engine/settlers';
 import { turnMarks } from '../../utils/marchLines';
 import { getTiles } from '../../data/geo/tiles';
 import { t } from '../../i18n/core';
+import { settleKey } from '../../engine/stonePhase';
 import { nameNow } from '../../i18n/names';
 
 /** The tiles a settler still has to walk (its own tile excluded), or null. */
@@ -34,11 +35,11 @@ export const settlerStatus = (state, unit) => {
     const turns = settlerEta(state, unit);
     const named = getTiles().names[unit.target];
     const to = named ? nameNow('place', null, named) : t('mx.set.chosenSite');
-    return { state: 'travelling', turns, text: turns == null ? t('mx.set.noWay', { to }) : t('mx.set.heading', { to, turns: t('march.turns', { count: turns }) }) };
+    return { state: 'travelling', turns, text: turns == null ? t('mx.set.noWay', { to }) : t(settleKey(state, unit.ownerId, 'mx.set.heading'), { to, turns: t('march.turns', { count: turns }) }) };
   }
-  if (unit.target != null) return { state: 'travelling', turns: 0, text: t('mx.set.onSite') };
+  if (unit.target != null) return { state: 'travelling', turns: 0, text: t(settleKey(state, unit.ownerId, 'mx.set.onSite')) };
   if (unit.hold) return { state: 'waiting', turns: null, text: t('mx.set.holding') };
-  return { state: 'idle', turns: null, text: t('mx.set.idle') };
+  return { state: 'idle', turns: null, text: t(settleKey(state, unit.ownerId, 'mx.set.idle')) };
 };
 
 /** [{ key, kind: 'settlers', points, marks, unitId }] for the player's settlers under way. */

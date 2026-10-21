@@ -128,6 +128,7 @@ export default {
   'st.unseenCity': 'a city you have not seen',
   'st.tooClose': 'Too close to {who}: {rings} tiles ({km} km), needs {need}',
   'st.named': 'The city will be named {name}',
+  'st.namedVillage': 'The village will be named {name}',
   'st.outpost.one': 'Starts as an outpost: it claims its land at once, and builds and yields as a city after about {count} turn',
   'st.outpost.two': 'Starts as an outpost: it claims its land at once, and builds and yields as a city after about {count} turns',
   'st.outpost.other': 'Starts as an outpost: it claims its land at once, and builds and yields as a city after about {count} turns',

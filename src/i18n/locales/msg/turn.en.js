@@ -80,6 +80,7 @@ export default {
   'report.enemy': 'enemy',
   'report.founded': '{city} founded',
   'report.foundedSub': 'A new city of yours.',
+  'report.foundedSubVillage': 'A new village of yours.',
   'report.taken': '{city} is yours',
   'report.takenFrom': 'Taken from the {nation}.',
   'report.lost': '{city} lost',

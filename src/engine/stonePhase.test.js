@@ -1,6 +1,6 @@
 // The Stone Age's village and first-cities phases (eight-ages plan U25).
 import { describe, it, expect } from 'vitest';
-import { stonePhaseOf, stonePhaseCtx, FIRST_CITIES_TECHS, WRITING_TECH, NO_WRITING_COST_MULT, VILLAGE_LAW_CATEGORIES } from './stonePhase';
+import { stonePhaseOf, stonePhaseCtx, settleKey, FIRST_CITIES_TECHS, WRITING_TECH, NO_WRITING_COST_MULT, VILLAGE_LAW_CATEGORIES } from './stonePhase';
 import { withTechsResearched, getResearchCost } from './research';
 import { getAvailableGovernmentTypes } from '../data/government';
 import { LAW_CATEGORIES, canEnactLaw } from '../data/laws';
@@ -18,6 +18,11 @@ describe('Stone Age phases (U25)', () => {
     expect(stonePhaseOf(withTechsResearched(S, ME, FIRST_CITIES_TECHS.slice(0, 1)), ME)).toBe('village');
     expect(stonePhaseOf(cities, ME)).toBe('cities');
     expect(stonePhaseOf(peoplesWorld({ seed: 7, age: 'bronze' }), ME)).toBeNull();
+  });
+
+  it('the settle wording says village in the village phase, city after it', () => {
+    expect(settleKey(S, ME, 'mx.tile.foundHere')).toBe('mx.tile.foundHereVillage');
+    expect(settleKey(cities, ME, 'mx.tile.foundHere')).toBe('mx.tile.foundHere');
   });
 
   it('a village is offered only Tribal; the first cities open Monarchy', () => {

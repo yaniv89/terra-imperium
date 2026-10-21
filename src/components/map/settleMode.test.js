@@ -139,7 +139,7 @@ describe('settlers on the road', () => {
     const site = settleSites(s, settleModeFor(s.units.u_set))[0];
     const st = settlerStatus(s, { ...s.units.u_set, target: site.tile });
     expect(st.state).toBe('travelling');
-    expect(st.text).toMatch(/turns?, then they found a city/);
+    expect(st.text).toMatch(/turns?, then they found a village/); // a Stone village people (stonePhase.js settleKey)
     expect(st.text).not.toMatch(/morale|supply|recruit/i);
   });
 });
@@ -155,7 +155,7 @@ describe('the site card', () => {
     expect(m.centre.production).toBeGreaterThanOrEqual(1);
     expect(m.cityName).toBeTruthy();
     expect(m.outpostTurns).toBeGreaterThan(0);
-    expect(m.lines.find((l) => l.id === 'name').text).toBe(`The city will be named ${m.cityName}`);
+    expect(m.lines.find((l) => l.id === 'name').text).toBe(`The village will be named ${m.cityName}`); // the base world is in the village phase
     expect(m.lines.find((l) => l.id === 'outpost').text).toMatch(/Starts as an outpost/);
     // the name is the one founding gives
     const s = { ...withSettler({ tile: legal() }) };

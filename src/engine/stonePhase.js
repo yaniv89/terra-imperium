@@ -28,3 +28,6 @@ export const canAnnex = (state, nationId) => stonePhaseOf(state, nationId) !== '
 
 /** The city context of a nation's phase (resolveTurn nationCtx, cityEconomy cityCtx). */
 export const stonePhaseCtx = (state, nationId) => (stonePhaseOf(state, nationId) === 'cities' ? { riverFood: RIVER_FOOD } : {});
+
+/** The settle wording follows the age's settlement: in the village phase `key` + 'Village' ("Found Village here"). */
+export const settleKey = (state, nationId, key) => (stonePhaseOf(state, nationId) === 'village' ? `${key}Village` : key);

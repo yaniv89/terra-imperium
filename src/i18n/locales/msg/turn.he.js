@@ -78,6 +78,7 @@ export default {
   'report.enemy': 'האויב',
   'report.founded': '{city} נוסדה',
   'report.foundedSub': 'עיר חדשה שלך.',
+  'report.foundedSubVillage': 'כפר חדש שלך.',
   'report.taken': '{city} בידיך',
   'report.takenFrom': 'נלקחה מ{nation}.',
   'report.lost': '{city} אבדה',

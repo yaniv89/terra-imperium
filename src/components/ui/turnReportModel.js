@@ -14,6 +14,7 @@ import { LogTypes } from '../../data/types';
 import { TECH_TREE } from '../../data/techTree';
 import { AGES } from '../../data/ages';
 import { ageOf } from '../../engine/nationState';
+import { settleKey } from '../../engine/stonePhase';
 import { playerWon } from '../../engine/battleReports';
 import { newContacts, contactCard } from '../modals/firstContactModel';
 import { isExplored, fogOn, hasMet } from '../../engine/fog';
@@ -150,7 +151,7 @@ export const turnReportModel = (before, after, lang = getLanguage()) => {
   const grown = [];
   Object.values(now).forEach((c) => {
     const old = was[c.id];
-    if (c.owner === me && !old) add('cities', { tone: 'good', title: tr('report.founded', { city: cityName(c) }), sub: tr('report.foundedSub'), place: cityPlace(c) });
+    if (c.owner === me && !old) add('cities', { tone: 'good', title: tr('report.founded', { city: cityName(c) }), sub: tr(settleKey(after, me, 'report.foundedSub')), place: cityPlace(c) });
     else if (c.owner === me && old && old.owner !== me) add('cities', { tone: 'good', title: tr('report.taken', { city: cityName(c) }), sub: tr('report.takenFrom', { nation: nationName(old.owner, tr('report.enemy')) }), place: cityPlace(c) });
     else if (old && old.owner === me && c.owner !== me) add('cities', { tone: 'danger', title: tr('report.lost', { city: cityName(c) }), sub: tr('report.heldBy', { nation: nationName(c.owner, tr('report.enemy')) }), place: cityPlace(c) });
     else if (c.owner === me && old && (c.size || 1) > (old.size || 1)) grown.push(c);
