@@ -55,6 +55,7 @@ describe('wonders as tiles', () => {
     expect(s.world.tileState[can.tile].wonder).toBe('great_pyramids');
     expect(getGreatProjectOwner(s, 'great_pyramids')).toBe('eg');
     expect(s.nations.eg.prestige).toBeGreaterThan(prestige);
+    expect(s.nations.eg.ruler.decreeLog.filter((e) => e.deed === 'wonder' && e.detail === 'great_pyramids')).toHaveLength(1); // a wonder is a deed (decrees.js)
     expect(s.logs.some((l) => /Pyramids .*stands at/.test(l.message))).toBe(true);
     const up = canQueueWonder(s, s.regions[capId], 'great_pyramids', 2);
     expect(up).toMatchObject({ ok: true, tile: can.tile });

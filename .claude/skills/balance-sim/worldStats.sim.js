@@ -256,11 +256,19 @@ SEEDS.forEach((seed) => {
       const byOwner = {}; Object.values(s.regions).forEach((r) => { if (r.owner != null) byOwner[r.owner] = (byOwner[r.owner] || 0) + 1; });
       const top = Object.entries(byOwner).reduce((best, e) => (e[1] > best[1] || (e[1] === best[1] && e[0] === leader) ? e : best), [null, -1])[0];
       if (leader != null && top !== leader) counters.leadChanges += 1;
+      // Decrees granted this turn (decrees.js decreeLog, newest first; U6): deeds versus the trickle floor.
+      counters.decrees ||= { heads: new Map(), deeds: 0, trickle: 0 };
+      Object.values(s.nations).forEach((n) => {
+        const log = n.ruler?.decreeLog || []; const head = counters.decrees.heads.get(n.id);
+        for (const e of log) { if (e === head) break; if (e.deed) counters.decrees[e.deed === 'trickle' ? 'trickle' : 'deeds'] += 1; }
+        counters.decrees.heads.set(n.id, log[0]);
+      });
       leader = top;
       if (t % EVERY === 0 || t === TURNS || s.gameStatus !== GameStatus.ACTIVE) {
         // The game ending early (a passive France falls to a siege around turn 100) still prints a
         // final snapshot with its real status, not the last round number's.
         last = snapshot(s, t, counters, (performance.now() - t0 - telemMs) / Math.max(1, turnsSince), lives, telemetry);
+        last = { ...last, decreeDeeds: counters.decrees.deeds, decreeTrickle: counters.decrees.trickle, decreeDeedShare: +(counters.decrees.deeds / Math.max(1, counters.decrees.deeds + counters.decrees.trickle)).toFixed(3) };
         if (RUSH && scripted) last = { ...last, playerRushes: scripted.log.rushes || 0, playerRushGold: scripted.log.rushGold || 0 };
         console.log(`STATS seed=${seed} ${Object.entries(last).map(([k, v]) => `${k}=${v}`).join(' ')}`);
         t0 = performance.now(); turnsSince = 0; telemMs = 0;

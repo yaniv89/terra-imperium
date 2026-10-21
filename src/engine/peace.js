@@ -21,6 +21,8 @@ import { warOdds, exposure, prizeOf, DECISIVE } from './warOdds';
 import { getPool } from './nationState';
 import { canAnnex } from './stonePhase';
 import { clampPrestige, clampStability } from './nationalPower';
+import { grantDecree } from './decrees';
+import { DECREE_WAR_WON_SCORE } from '../data/decrees';
 import {
   FORCED_VASSALIZE_MIN_MAX_PEACE_COST, CAPITAL_LOST_IN_PEACE_STABILITY_PENALTY
 } from '../data/actionCosts';
@@ -250,6 +252,13 @@ export const applyPeace = (state, war, offererId, terms) => {
         }
       };
     }
+  }
+
+  // A war won (war score at least DECREE_WAR_WON_SCORE for the winner) grants its ruler one decree (U6).
+  const winnerId = (war.score || 0) >= DECREE_WAR_WON_SCORE ? war.aggressor : (war.score || 0) <= -DECREE_WAR_WON_SCORE ? war.enemy : null;
+  if (winnerId && nextNations[winnerId]) {
+    const granted = grantDecree(nextNations[winnerId], 'warWon', state.turnNumber, otherSide(war, winnerId));
+    if (granted !== nextNations[winnerId]) nextNations = { ...nextNations, [winnerId]: granted };
   }
 
   return { regions: nextRegions, nations: nextNations, resources: nextResources };

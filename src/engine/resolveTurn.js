@@ -76,6 +76,7 @@ import {
   POWER_POOL_CAP
 } from '../data/actionCosts';
 import { getAdvisorSalary } from './rulers';
+import { grantDecree, tickDecrees } from './decrees';
 import { applyResearchTurn, researchesThisTurn } from './research';
 import { processNationalPowerTurn, clampStability, clampPrestige, STABILITY_MAX, getOverextension } from './nationalPower';
 import { GREAT_PROJECTS, cityWonderTotal } from '../data/greatProjects';
@@ -710,6 +711,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     Object.keys(nations).forEach((nId) => {
       const r = regroupGovernors(view, nations[nId]);
       if (r.nation !== nations[nId]) nations[nId] = r.nation;
+      nations[nId] = tickDecrees(view, nId, nations[nId], newTurnNumber); // the decree floor (decrees.js)
       if (nId !== me) return;
       r.changes.forEach((c) => {
         const city = cityRef(c.kind === 'moved' ? c.to : c.city, regions[c.kind === 'moved' ? c.to : c.city]?.name || '');
@@ -967,6 +969,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     greatProjects[w.projectId] = { regionId: w.city, tier: w.tier, tile: w.tile };
     const ownerId = regions[w.city]?.owner;
     if (ownerId && nations[ownerId] && tierSpec?.completionPrestige) nations[ownerId] = { ...nations[ownerId], prestige: clampPrestige((nations[ownerId].prestige || 0) + tierSpec.completionPrestige) };
+    if (ownerId && nations[ownerId]) nations[ownerId] = grantDecree(nations[ownerId], 'wonder', newTurnNumber, w.projectId);
     if (ownerId === state.playerNationId) logs.push({ year: newYear, ...msg('m.turn.wonderBuilt', { wonder: thing('wonder', w.projectId, project?.name || w.projectId), tier: w.tier, city: cityRef(w.city, regions[w.city]?.name), prestige: tierSpec?.completionPrestige ? sub('m.prestigeGain', { n: tierSpec.completionPrestige }) : '' }), type: LogTypes.MILESTONE });
   });
   mark('greatProjects');
