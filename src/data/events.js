@@ -2,11 +2,11 @@
 // Scripted historical events, keyed by id and placed by `year` (its age and its spot in the age). They are the story cards of the event deck
 // (src/engine/eventDeck.js), which turns the year and `requires` into predicates.
 //
-// This is Phase D3 Layer 1 (plan §9.5) — "world events": anchored to the calendar, firing for
+// This is Phase D3 Layer 1 (plan §9.5), "world events": anchored to the calendar, firing for
 // every nation regardless of who's playing, so they land differently depending on your situation
 // rather than assuming a particular civilization. Every effect here deliberately uses only the
 // nation-agnostic keys applyEventEffects.js supports (gold/hr/copper/iron/oil/techPoints/
-// diplomacyPoints/militaryStrengthBonus/defenseBonus/controlBonus/controlPenalty) — never
+// diplomacyPoints/militaryStrengthBonus/defenseBonus/controlBonus/controlPenalty), never
 // captureRegions/peaceWith/tradeWith/warWith/nationHostility, which name specific nations or
 // regions and only make sense for content that already knows who you're playing (situational/
 // procedural events, src/data/proceduralEvents.js; curated national flavor, a later task).
@@ -43,7 +43,7 @@ const RAW_HISTORICAL_EVENTS = {
     description: 'A turning disc of wood, first for the potter and then for the cart, changes what one pair of hands can move and make.',
     options: [
       { label: 'Build carts for harvest and market', effects: { gold: -40, cityFood: 10 } },
-      { label: 'Keep the craft to the potters\' guild', effects: { gold: 40, techPoints: 10 } }
+      { label: 'Keep the craft to the potters', effects: { gold: 40, techPoints: 10 } }
     ]
   },
   uruk_expansion: {
@@ -101,7 +101,7 @@ const RAW_HISTORICAL_EVENTS = {
     id: 'bronze_trade_networks',
     year: -1600,
     title: 'The Tin Trade',
-    description: 'Tin, scarce and found in only a handful of places, is now the single resource every bronze-working kingdom cannot do without — and the routes that carry it are worth fighting over.',
+    description: 'Tin, scarce and found in only a handful of places, is now the single resource every bronze-working kingdom cannot do without, and the routes that carry it are worth fighting over.',
     options: [
       { label: 'Secure the trade routes with garrisons', effects: { gold: -100, defenseBonus: 0.05 } },
       { label: 'Let merchants handle it themselves', effects: { gold: 60 } }
@@ -189,7 +189,7 @@ const RAW_HISTORICAL_EVENTS = {
     id: 'migration_period',
     year: 400,
     title: 'The Great Migrations',
-    description: 'Whole peoples uproot and move, pressed by famine, climate, and pressure from further east — and wherever they settle, they press in turn on whoever was there first.',
+    description: 'Whole peoples uproot and move, pressed by famine, climate, and pressure from further east, and wherever they settle, they press in turn on whoever was there first.',
     options: [
       { label: 'Absorb the newcomers as subjects', effects: { hr: 50, controlPenalty: 10 } },
       { label: 'Turn them away at the border', effects: { gold: -80, defenseBonus: 0.05 } }
@@ -242,7 +242,7 @@ const RAW_HISTORICAL_EVENTS = {
     id: 'printing_press',
     year: 1450,
     title: 'The Printing Press',
-    description: 'A new method of reproducing text with movable type spreads rapidly, putting books — and ideas — within reach of far more people than ever before.',
+    description: 'A new method of reproducing text with movable type spreads rapidly, putting books, and ideas, within reach of far more people than ever before.',
     options: [
       { label: 'Fund printing houses in your major cities', effects: { gold: -80, techPoints: 40 } },
       { label: 'Leave it to the church and the guilds', effects: { gold: 50 } }
@@ -257,7 +257,7 @@ const RAW_HISTORICAL_EVENTS = {
     description: 'New crops, animals and diseases begin crossing the oceans in both directions, reshaping diets, economies and populations across every continent they touch.',
     options: [
       // Adopting the new crops aggressively means backing the merchants and adventurers eager to
-      // chase the new trade routes the exchange opens up — the seed of a colonial venture
+      // chase the new trade routes the exchange opens up, the seed of a colonial venture
       // (event chain, src/data/eventChains.js's colonial_venture_1).
       { label: 'Adopt the new crops aggressively', effects: { hr: 60, gold: -50, spawnFollowUp: { id: 'colonial_venture_1', delayTurns: 5 } } },
       { label: 'Proceed cautiously', effects: { gold: 40, stability: 1 } }
@@ -411,13 +411,13 @@ const RAW_HISTORICAL_EVENTS = {
     ]
   },
 
-  // ---- Curated national flavor (plan §9.5 Layer 3) — a representative batch of historically
+  // ---- Curated national flavor (plan §9.5 Layer 3), a representative batch of historically
   // significant lands, not the plan's full ~40. Keyed by `land` (the modern country code of the
   // player's people, peoples.js countryOfNation: Egypt's 'eg' fires for kemet) and gated by
   // `requiresHomeland` (only while the player still holds its original capital). The event deck
   // (src/engine/eventDeck.js) turns both into requirements. These know roughly who's playing, so they
   // may use the identity-specific effect keys world events avoid (see punic_ambitions below for an example).
-  // Every other nation still gets Task 26's generic world/situational/procedural content — this
+  // Every other nation still gets Task 26's generic world/situational/procedural content, this
   // is bespoke flavor layered on top, not a replacement for it.
   national_egypt_nile_flood: {
     id: 'national_egypt_nile_flood',
@@ -473,7 +473,7 @@ const RAW_HISTORICAL_EVENTS = {
     land: 'gb',
     requiresHomeland: true,
     title: 'Mastery of the Sea',
-    description: 'A hostile fleet approaches to end your independence for good — the outcome will decide whether your future lies on the continent or across the oceans.',
+    description: 'A hostile fleet approaches to end your independence for good. The outcome will decide whether your future lies on the continent or across the oceans.',
     options: [
       { label: 'Commit everything to the fleet', effects: { gold: -150, militaryStrengthBonus: 250, prestige: 15 } },
       { label: 'Rely on fortified ports and coastal defense', effects: { gold: -80, defenseBonus: 0.1 } }
@@ -509,7 +509,7 @@ const RAW_HISTORICAL_EVENTS = {
     land: 'tr',
     requiresHomeland: true,
     title: 'The City Between Two Seas',
-    description: 'An ancient, storied city at the crossing between two continents stands within reach — its walls have held for a thousand years, but not forever.',
+    description: 'An ancient, storied city at the crossing between two continents stands within reach. Its walls have held for a thousand years, but not forever.',
     options: [
       { label: 'Commit to a prolonged siege', effects: { gold: -200, militaryStrengthBonus: 200, controlBonus: 10 } },
       { label: 'Focus on consolidating existing territory instead', effects: { gold: 60, stability: 1 } }
@@ -533,7 +533,7 @@ const RAW_HISTORICAL_EVENTS = {
     land: 'ir',
     requiresHomeland: true,
     title: "An Empire's Reach",
-    description: 'Royal roads and a standing administration now bind together more peoples and provinces than any realm before it — the question is how tightly to hold them.',
+    description: 'Royal roads and a standing administration now bind together more peoples and provinces than any realm before it. The question is how tightly to hold them.',
     options: [
       { label: 'Rule through tolerance and local custom', effects: { gold: 100, controlBonus: 5 } },
       { label: 'Impose uniform law across every province', effects: { gold: -100, controlBonus: 15 } }
@@ -541,11 +541,11 @@ const RAW_HISTORICAL_EVENTS = {
   },
   national_aztec_founding: {
     id: 'national_aztec_founding',
-    year: -1325,
+    year: 1325,
     land: 'mx',
     requiresHomeland: true,
     title: 'A City on the Lake',
-    description: 'Following an old prophecy, your people found a city on an island in the middle of a lake — an unlikely site that will need engineering as much as faith to sustain.',
+    description: 'Following an old prophecy, your people found a city on an island in the middle of a lake, an unlikely site that will need engineering as much as faith to sustain.',
     options: [
       { label: 'Build causeways and floating gardens', effects: { gold: -100, hr: 40 } },
       { label: 'Expand cautiously along the shore instead', effects: { gold: 40, stability: 1 } }
@@ -593,7 +593,7 @@ const RAW_HISTORICAL_EVENTS = {
     land: 'ru',
     requiresHomeland: true,
     title: "A Ruler's Reforms",
-    description: 'A sweeping campaign of westernizing reform remakes the army, the bureaucracy, and the court almost overnight — welcomed by some, resented by many more.',
+    description: 'A sweeping campaign of westernizing reform remakes the army, the bureaucracy, and the court almost overnight, welcomed by some, resented by many more.',
     options: [
       { label: 'Push the reforms through regardless of resistance', effects: { gold: -150, militaryStrengthBonus: 150, controlPenalty: 10 } },
       { label: 'Phase them in gradually', effects: { gold: -60, controlBonus: 5 } }
