@@ -6,12 +6,13 @@ import { Trophy, Skull, FlagOff, RotateCcw, PlayCircle, Copy, Check } from 'luci
 import { GameStatus } from '../../data/types';
 import { VICTORY_CONDITIONS } from '../../data/victoryConditions';
 import { endingSignal } from '../../engine/ending';
-import { calcNationScore, rankNations } from '../../engine/score';
+import { rankNations } from '../../engine/score';
 import { formatNumber, getPlayerControl, getPlayerRegions } from '../../utils/helpers';
 import { t as tNow } from '../../i18n';
 import { useT } from '../../i18n/useT';
 import { victoryName, victoryDescription } from '../../i18n/gameText';
 import { nameNow } from '../../i18n/names';
+import { legacyModel } from '../panels/legacyModel';
 
 const GameOverModal = ({ status, state, onReset, onContinue }) => {
   const { lang, year: yearText } = useT();
@@ -38,13 +39,14 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
   // same formula applies to the AI." — a real, comparative score against the rest of the world,
   // not the old single-run "one number that goes up" tally.
   const ranked = rankNations(state);
-  const playerScore = calcNationScore(state, state.playerNationId);
+  const legacy = legacyModel(state);
+  const endingText = state.ending?.reason === 'futureGoal' ? tNow('legacy.end.futureGoal', { name: nameNow('people', state.ending.nationId, state.nations[state.ending.nationId]?.name) }) : state.ending?.reason === 'turnLimit' ? tNow('legacy.end.turnLimit') : null;
   const rank = isComplete ? (state.finalRank || ranked.findIndex(r => r.nationId === state.playerNationId) + 1) : null;
 
   const handleCopySummary = () => {
     const lines = [
       tNow('p1.go.copyHead', { game: tNow('title.name'), name: nationText, result: isVictory ? tNow('p1.go.copyVictory', { name: victoryTitle || victoryName('finalScore', 'Score Victory') }) : isComplete ? tNow('p1.go.copyComplete', { rank, total: ranked.length }) : tNow('p1.go.defeat') }),
-      tNow('p1.go.copyScore', { n: formatNumber(playerScore.total) }),
+      tNow('p1.go.copyScore', { n: formatNumber(legacy.total) }),
       tNow('p1.go.copyYears', { year: yearValue, turns: formatNumber(state.turnNumber) }),
       tNow('p1.go.copyRegions', { regions: regionsHeld, control: getPlayerControl(state) }),
       tNow('p1.go.copyTech', { a: techResearched, b: Object.keys(state.techTree).length }),
@@ -60,7 +62,7 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
       <div
-        className={`bg-fa-panel rounded-xl border-2 max-w-md w-full shadow-2xl p-6 text-center ${
+        className={`bg-fa-panel rounded-xl border-2 max-w-md w-full max-h-full overflow-y-auto shadow-2xl p-6 pl:p-3 text-center ${
           isVictory ? 'border-green-500' : isComplete ? 'border-amber-500' : 'border-red-500'
         }`}
       >
@@ -82,7 +84,9 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
               ? tNow('p1.go.finished', { name: nationText, rank, total: ranked.length, year: yearValue })
               : tNow('p1.go.fallen', { name: nationText })}
         </p>
-        <p className="text-amber-400 font-mono text-sm mb-6">{tNow('p1.go.score', { n: formatNumber(playerScore.total) })}</p>
+        <p className="text-amber-400 font-mono text-sm mb-1">{tNow('legacy.score')}: {formatNumber(legacy.total)} · {tNow('legacy.rank', { rank: legacy.rank, of: legacy.of })}</p>
+        {endingText && <p className="text-fa-muted text-xs mb-5">{endingText}</p>}
+        {legacy.top.length > 0 && <p className="text-fa-muted text-[11px] mb-4" data-testid="go-rivals">{tNow('legacy.rivals')}: {legacy.top.map((r) => `${nameNow('people', r.nationId, state.nations[r.nationId]?.name)} ${formatNumber(r.legacy)}`).join(' · ')}</p>}
 
         <div className="grid grid-cols-2 gap-3 text-start mb-6">
           <Stat label={tNow('p1.go.finalYear')} value={yearValue} />

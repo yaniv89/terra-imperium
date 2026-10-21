@@ -29,6 +29,8 @@ import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { BOOSTS } from '../data/boosts';
 import { PEOPLES_LIST } from '../data/peoples';
+import { VIRTUES } from '../data/rulerVirtues';
+import { RENOWN_DEED_LABELS } from '../data/rulers';
 import { AMBITION_TEMPLATES } from '../data/ambitions';
 import { HISTORICAL_AMBITIONS } from '../data/ambitionsByPeople';
 import { GOVERNMENT_TITLES, titleFor } from '../data/nationTitles';
@@ -75,6 +77,10 @@ describe('Hebrew game data covers every id', () => {
   });
   it('ambitions: every template and every historical one', () => {
     [...Object.keys(AMBITION_TEMPLATES), ...Object.values(HISTORICAL_AMBITIONS).map((a) => a.id)].forEach((id) => { need(`ambition.${id}`); expect(he[`ambition.${id}`], id).not.toMatch(LATIN); });
+  });
+  it('ruler: every virtue (name, text, drawback) and deed label', () => {
+    Object.values(VIRTUES).forEach((v) => { need(`virtue.${v.id}`); need(`virtue.${v.id}.text`); if (v.drawback) need(`virtue.${v.id}.drawback`); });
+    Object.keys(RENOWN_DEED_LABELS).forEach((id) => need(`renown.${id}`));
   });
   it('events: every historical event, chain event and procedural template', () => {
     [...Object.values(HISTORICAL_EVENTS), ...Object.values(EVENT_CHAINS)].forEach((e) => {
