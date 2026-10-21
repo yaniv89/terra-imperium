@@ -32,6 +32,14 @@ const usd = (model, inTok, outTok) => {
   return ((inTok * p.in + outTok * p.out) / 1e6) * BATCH_DISCOUNT;
 };
 
+/** A live (non-batch) request's cost from its usage: cache writes bill 1.25x input, cache reads 0.1x. */
+export const liveUsd = (model, u = {}) => {
+  const p = PRICES[model];
+  if (!p) throw new Error(`No price for ${model}: add it to PRICES`);
+  const inTok = (u.input_tokens || 0) + 1.25 * (u.cache_creation_input_tokens || 0) + 0.1 * (u.cache_read_input_tokens || 0);
+  return (inTok * p.in + (u.output_tokens || 0) * p.out) / 1e6;
+};
+
 // shortcut: a character-count guess (Hebrew costs more tokens a character), with a 25% margin;
 // the exact count needs the API key (count_tokens), so upgrade if estimates and bills drift apart.
 export const estTokens = (text) => {

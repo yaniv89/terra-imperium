@@ -18,8 +18,9 @@ on:
           - screenshot-qa
           - playtester
           - tech-unlocks
+          - human-playtest
       limit:
-        description: Only the first N requests (a small trial run); empty for the full job
+        description: Only the first N requests (a small trial run); empty for the full job. human-playtest, the most steps (default 60)
         required: false
         default: ''
       max_usd:
@@ -34,6 +35,26 @@ on:
         description: playtester only, how many 300-turn games to play (seeds 1000, 1001, ...)
         required: false
         default: '1'
+      persona:
+        description: human-playtest only, who plays
+        required: false
+        type: choice
+        default: newcomer-phone
+        options: [newcomer-phone, civ-veteran, warmonger, builder, rts-commander, hebrew-speaker]
+      slices:
+        description: human-playtest only, extra late-game sessions, e.g. bronze,classical,gunpowder,modern,information (empty = the start only)
+        required: false
+        default: ''
+      size:
+        description: human-playtest only, phone (844x390 touch) or desktop (1600x900)
+        required: false
+        type: choice
+        default: phone
+        options: [phone, desktop]
+      lang:
+        description: human-playtest only, en or he (empty = the persona's)
+        required: false
+        default: ''
 permissions:
   contents: write
 concurrency:
@@ -59,24 +80,33 @@ jobs:
           MAX_USD: ${{ inputs.max_usd }}
           CARDS_REF: ${{ inputs.cards_ref }}
           SEEDS: ${{ inputs.seeds }}
+          SLICES: ${{ inputs.slices }}
+          LANG_UI: ${{ inputs.lang }}
         run: |
           [[ -z "$LIMIT" || "$LIMIT" =~ ^[0-9]+$ ]] || { echo "limit must be a whole number"; exit 1; }
           [[ "$MAX_USD" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "max_usd must be a number"; exit 1; }
           [[ "$CARDS_REF" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "cards_ref must be a plain git ref"; exit 1; }
           [[ "$SEEDS" =~ ^[1-9]$ ]] || { echo "seeds must be 1 to 9"; exit 1; }
+          [[ "$SLICES" =~ ^[a-z,\ ]*$ ]] || { echo "slices must be age ids separated by commas"; exit 1; }
+          [[ -z "$LANG_UI" || "$LANG_UI" =~ ^(en|he)$ ]] || { echo "lang must be en or he"; exit 1; }
       # screenshot-qa: a build with the QA state hook (VITE_QA_HOOK, never the deployed site), served
       # by the static preview, shot by scripts/ui/qa-shots.mjs in Playwright's Chromium (software WebGL).
-      - name: Capture the screenshots
-        if: inputs.job == 'screenshot-qa'
+      # human-playtest plays the same build in the job step (the preview keeps running between steps).
+      - name: Build and serve the QA game
+        if: inputs.job == 'screenshot-qa' || inputs.job == 'human-playtest'
         env:
           VITE_QA_HOOK: '1'
           NODE_OPTIONS: --max-old-space-size=12288
-          SWGL: '1'
         run: |
           npx playwright install --with-deps chromium
           npx vite build --outDir dist --emptyOutDir
-          npm run preview > preview.log 2>&1 &
+          nohup npm run preview > preview.log 2>&1 &
           for i in $(seq 60); do curl -sf http://localhost:4173/terra-imperium/ > /dev/null && break; sleep 2; done
+      - name: Capture the screenshots
+        if: inputs.job == 'screenshot-qa'
+        env:
+          SWGL: '1'
+        run: |
           node scripts/ui/qa-shots.mjs --url http://localhost:4173/terra-imperium/ --out plans/ai-output/screenshot-qa/shots
           du -sh plans/ai-output/screenshot-qa/shots
       - name: Play the headless games
@@ -91,6 +121,11 @@ jobs:
           LIMIT: ${{ inputs.limit }}
           MAX_USD: ${{ inputs.max_usd }}
           CARDS_REF: ${{ inputs.cards_ref }}
+          PERSONA: ${{ inputs.persona }}
+          SLICES: ${{ inputs.slices }}
+          SIZE: ${{ inputs.size }}
+          LANG_UI: ${{ inputs.lang }}
+          SWGL: '1'
         run: node "scripts/ai/$JOB.mjs" --max-usd "$MAX_USD" ${LIMIT:+--limit "$LIMIT"}
       - name: Push the results to a new branch
         env:

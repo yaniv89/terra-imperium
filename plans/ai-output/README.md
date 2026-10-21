@@ -14,6 +14,7 @@ the lead merges what survives review into the game.
 | `screenshot-qa` | `report.md` (each layout fault with screen, size, language, severity and file) and `shots/` (JPEGs from scripts/ui/qa-shots.mjs, 844x390 at DPR 2 and 1600x900, English and Hebrew, plus `manifest.json`) | Claude Sonnet 5.5, medium effort | Vision on 60 screenshots: the cheaper tier is good enough to spot clipped text, overlaps and RTL mirroring; English and Hebrew go in one request to compare |
 | `tech-unlocks` | `unlocks.json` (`{ units: {"age.class": techId}, buildings: {"category.tier": techId}, emptyTechs, notes, rejected, missing }`) and `report.md` (a table per age); unknown ids are rejected and listed | Claude Opus 5.5, high effort | Historical judgement over the whole tech tree, 7 small requests |
 | `playtester` | `report.md` (findings, a scorecard out of 10 per area and a top 10 fixes, with turn numbers) and `digest.json` (one row per 10 turns plus notable moments, scripts/playtestDigest.mjs) | Claude Opus 5.5, high effort | One long report from a small digest: judgement matters, the cost is cents |
+| `human-playtest` | `report.md` (a score out of 10 per area, the fun curve, ranked top issues with screenshot paths, bugs, what was good), `diary.jsonl` (one line a step: gesture, thought, fun and frustration 1 to 5, area) and `shots/` (the screens noted) | Claude Sonnet 5.5, low effort, plays; Claude Opus 5.5 writes the report | A persona plays the real game (the QA build, phone 844x390 touch by default) through screenshots, one gesture a step; inputs `persona`, `slices` (late-game sessions loaded through `window.__game`), `size`, `lang`, and `limit` = the most steps |
 
 Every job also keeps the raw answers in `results.jsonl`.
 
@@ -37,6 +38,7 @@ gh workflow run claude-content.yml -f job=event-cards
 gh workflow run claude-content.yml -f job=fact-check -f cards_ref=origin/ai/event-cards-39615084757
 gh workflow run claude-content.yml -f job=screenshot-qa
 gh workflow run claude-content.yml -f job=playtester -f seeds=2
+gh workflow run claude-content.yml -f job=human-playtest -f persona=warmonger -f limit=40 -f max_usd=1.5 -f slices=gunpowder
 ```
 
 Start with `limit=5` to check the output, then run the full job.
