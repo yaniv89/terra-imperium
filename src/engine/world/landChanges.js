@@ -10,6 +10,7 @@
 //   - units: normalizeUnitTiles (armies.js) sends a land unit on water, or a fleet on land, home.
 // Pure: returns the same state when nothing applies. Deterministic: ties break by tile id.
 import { normalizeUnitTiles } from '../armies';
+import { copyTileMap } from './tileIndex';
 
 const workable = (tiles, t) => tiles.land[t] === 1 || ['coast', 'lake'].includes(tiles.terrainOf(t));
 
@@ -42,7 +43,7 @@ export const applyLandChanges = (state, { toWater = [], toLand = [] }, tiles) =>
   const copyWorld = () => {
     if (changed) return;
     changed = true;
-    regions = { ...regions }; tileOwner = { ...tileOwner }; tileState = { ...tileState };
+    regions = { ...regions }; tileOwner = copyTileMap(tileOwner); tileState = copyTileMap(tileState);
   };
   wet.forEach((t) => { if (tileState[t] != null) { copyWorld(); delete tileState[t]; } });
   Object.keys(regions).sort().forEach((id) => {

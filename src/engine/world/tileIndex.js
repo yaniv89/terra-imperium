@@ -14,6 +14,40 @@
 // long as every in-place write to a map is recorded (cities.js records its own; a map built with
 // a spread is a new object with no history and is walked). Cost: 4 bytes per tile (225 KB at 56k
 // cells, 400 KB at 100k); a turn's derivation is O(cells / 1,000,000) for the copy plus O(writes).
+import { getTiles } from '../../data/geo/tiles';
+
+// Tile maps ({ tile: value }: world.tileOwner and world.tileState) are copied once a turn and on
+// every battle mark or pillage. As plain objects a copy costs about 1.5 us a key (dictionary
+// elements early, a megamorphic spread later): 15 to 40 ms a turn late in a game. A holey Array
+// with one slot per tile reads, enumerates and spreads the same (indices ascending, holes skipped)
+// and copies as one block (about 1 ms). toJSON writes it as the same object, so saves, the save
+// format and state hashes do not change; a loaded save is an object again until its first copy.
+function tileMapJSON() { return Object.assign({}, this); }
+/** A writable copy of a tile map, as an Array of one slot per tile. A map with a key that is not
+ * a tile id (only hand-built test maps) is copied as an object. */
+export const copyTileMap = (map, count = getTiles().count) => {
+  let out;
+  if (Array.isArray(map)) out = map.slice();
+  else {
+    out = new Array(count);
+    const keys = Object.keys(map || {});
+    for (let i = 0; i < keys.length; i++) {
+      const t = +keys[i];
+      if (!(t >= 0 && t < count && String(t) === keys[i])) return { ...map };
+      out[t] = map[keys[i]];
+    }
+  }
+  Object.defineProperty(out, 'toJSON', { value: tileMapJSON });
+  return out;
+};
+
+/** Gives the tile maps of a structured clone (the turn worker's answer) their toJSON back, so the
+ * page saves them as objects. Mutates `state.world`, which must be the clone's own. */
+export const reviveTileMaps = (state) => {
+  ['tileOwner', 'tileState'].forEach((k) => { const m = state?.world?.[k]; if (Array.isArray(m) && !m.toJSON) Object.defineProperty(m, 'toJSON', { value: tileMapJSON }); });
+  return state;
+};
+
 const cache = new WeakMap();   // tileOwner -> { slot: Int32Array, ids: [cityId], indexOf: Map, pending: [tile] }
 const lineage = new WeakMap(); // tileOwner -> { base, changes: [tile] } until its index is first built
 

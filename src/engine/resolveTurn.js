@@ -117,6 +117,7 @@ import { processAIMapOffers } from './mapTrade';
 import { continueExplorers, EXPLORER_STRENGTH } from './scouting';
 import { repairCityDamage } from './cityManifest';
 import { msg, carry, sub, people, cityRef, thing, person } from './messages';
+import { copyTileMap } from './world/tileIndex';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -969,7 +970,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     if (w.tier === 1 && standing && standing.regionId !== w.city) {
       // Two cities finished the same wonder this turn: the first in id order keeps it, the
       // other's tile mark is cleared and its owner told.
-      if (w.tile != null && state.world?.tileState?.[w.tile]?.wonder === w.projectId) state = { ...state, world: { ...state.world, tileState: { ...state.world.tileState, [w.tile]: { ...state.world.tileState[w.tile], wonder: undefined } } } };
+      if (w.tile != null && state.world?.tileState?.[w.tile]?.wonder === w.projectId) { const tileState = copyTileMap(state.world.tileState); tileState[w.tile] = { ...state.world.tileState[w.tile], wonder: undefined }; state = { ...state, world: { ...state.world, tileState } }; }
       if (regions[w.city]?.owner === state.playerNationId) logs.push({ year: newYear, ...msg('m.turn.wonderLost', { wonder: thing('wonder', w.projectId, project?.name || w.projectId), city: cityRef(w.city, regions[w.city]?.name) }), type: LogTypes.EVENT });
       return;
     }

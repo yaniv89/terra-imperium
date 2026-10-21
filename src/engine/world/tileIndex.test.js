@@ -1,6 +1,6 @@
 // src/engine/world/tileIndex.test.js
 import { describe, it, expect } from 'vitest';
-import { ownerSlots, noteOwnerCopy, noteOwnerWrite } from './tileIndex';
+import { ownerSlots, noteOwnerCopy, noteOwnerWrite, copyTileMap, reviveTileMaps } from './tileIndex';
 import { resolveTurn } from '../resolveTurn';
 import { getTiles } from '../../data/geo/tiles';
 import { peoplesWorld } from '../testWorld';
@@ -42,4 +42,21 @@ describe('tile owner index', () => {
       expect(sameAsWalk(s.world.tileOwner, count)).toBe(-1);
     }
   }, 60000);
+});
+
+describe('tile map copies', () => {
+  it('read, enumerate and save like the object they copy', () => {
+    const map = { 9: 'b', 2: 'a', 40: 'c' };
+    const copy = copyTileMap(map, 50);
+    copy[7] = 'd'; delete copy[40];
+    const plain = { ...map, 7: 'd' }; delete plain[40];
+    expect(Array.isArray(copy)).toBe(true);
+    expect(Object.keys(copy)).toEqual(Object.keys(plain));
+    expect(Object.entries(copyTileMap(copy, 50))).toEqual(Object.entries(plain));
+    expect(copy[3]).toBeUndefined();
+    expect(JSON.stringify({ m: copy })).toBe(JSON.stringify({ m: plain }));
+    expect(copyTileMap({ 1: 'a', x: 'b' }, 50)).toEqual({ 1: 'a', x: 'b' }); // not a tile map: stays an object
+    const cloned = reviveTileMaps(structuredClone({ world: { tileOwner: copy } }));
+    expect(JSON.stringify(cloned.world.tileOwner)).toBe(JSON.stringify(plain));
+  });
 });

@@ -18,6 +18,7 @@ import { landUnitsByTile } from './sieges';
 import { unitTile } from './armies';
 import { lawRulesOf } from './lawRules';
 import { ringsForKm } from '../data/geo/gridScale';
+import { copyTileMap } from './world/tileIndex';
 
 export const THREAT_KM = 612; // km (6 rings at frequency 75)
 export const THREAT_RINGS = ringsForKm(THREAT_KM);
@@ -73,7 +74,9 @@ export const pillageTile = (state, nationId, tile, enemies) => {
   const owner = cityId != null ? state.regions?.[cityId]?.owner : null;
   if (!owner || !enemies.has(owner)) return null;
   const gold = Math.round(RAID_GOLD * Math.max(0, 1 + (lawRulesOf(state.nations?.[nationId]).pillageGoldMult || 0))); // Chieftaincy doubles it (lawRules.js)
-  return { tileState: { ...state.world.tileState, [tile]: { ...entry, pillaged: true, pillagedTurn: state.turnNumber || 0 } }, gold, cityId };
+  const tileState = copyTileMap(state.world.tileState);
+  tileState[tile] = { ...entry, pillaged: true, pillagedTurn: state.turnNumber || 0 };
+  return { tileState, gold, cityId };
 };
 
 /** The tile a unit stands on (a land unit's tile, else its city's centre). */
