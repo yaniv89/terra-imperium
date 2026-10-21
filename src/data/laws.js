@@ -58,7 +58,7 @@ export const LAW_CATEGORIES = {
     { id: 'rule_of_law', name: 'Rule of Law', tier: 3, requiresTech: 'governance_constitutional_law', description: '+4 loyalty in every city; -1 unrest.', effects: { stabilityBonus: 1 }, rules: { loyaltyBonus: 4 } },
     // "-1 stability to enact" is a one-time cost applied directly by gameReducer.js's CHANGE_LAW
     // case (not part of `effects`, which are ongoing per-turn bonuses, not one-shot costs).
-    { id: 'martial_law', name: 'Martial Law', tier: 4, requiresTech: null, description: '-20% tax, -5 opinion with every nation; -1 stability to enact; +2 unrest; +6 loyalty in every city; war exhaustion rises 20% slower.', effects: { goldMult: -0.2, opinion: -5, stabilityBonus: -2 }, rules: { loyaltyBonus: 6, warExhaustionMult: -0.2 } }
+    { id: 'martial_law', name: 'Martial Law', tier: 4, requiresTech: null, description: '-20% tax, -2 opinion with every nation; -1 stability to enact; +2 unrest; +6 loyalty in every city; war exhaustion rises 20% slower.', effects: { goldMult: -0.2, opinion: -2, stabilityBonus: -2 }, rules: { loyaltyBonus: 6, warExhaustionMult: -0.2 } }
   ]
 };
 

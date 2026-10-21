@@ -111,7 +111,7 @@ export default {
   'p1.dom.plusStability': '⁦+1⁩ יציבות',
   'p1.dom.advisorTitle': 'יועץ {pool}',
   'p1.dom.advisorJob.adm': 'כל רמה מקרבת את הצווים.',
-  'p1.dom.advisorJob.dip': 'כל רמה: ⁦+5⁩ ליחס של כל אומה אליכם.',
+  'p1.dom.advisorJob.dip': 'כל רמה: ⁦+2⁩ ליחס של כל אומה אליכם.',
   'p1.dom.advisorJob.mil': 'כל רמה: ⁦+5%⁩ כוח אדם.',
   'p1.dom.level': '(רמה {level})',
   'p1.dom.hire': 'שכירת {name} (רמה {level})',

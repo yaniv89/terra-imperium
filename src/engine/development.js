@@ -64,8 +64,9 @@ export const DEV_TYPE_IDS = ['tax', 'production', 'manpower'];
 const DEVELOP_PROVINCE_BASE_COST = 50;
 const DEVELOP_PROVINCE_DEV_SCALING = 15;
 
-// Gold that one point was worth in the old pools (differentiation plan U7; U8 tunes it).
-export const DEVELOP_PROVINCE_GOLD_PER_POINT = 3;
+// Gold per point of the old pool price (differentiation plan U7; U8 tuned it on balance-sim: the AI
+// had developed for free from its pools, so a dearer point starved its rushes and settlers).
+export const DEVELOP_PROVINCE_GOLD_PER_POINT = 0.5;
 
 // The plan's formula in gold: 50 x (1 + totalDev / 15) x (1 + national.developmentCost) x the gold factor.
 export const getDevelopProvinceCost = (region, developmentCostMult = 0) =>

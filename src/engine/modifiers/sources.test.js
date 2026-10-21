@@ -35,7 +35,7 @@ describe('staticSources', () => {
     expect(lines).toEqual(expect.arrayContaining([
       { key: 'national.goldMult', value: 0.1, sourceType: 'law', sourceId: 'land_tax', label: 'Land Tax' },
       { key: 'national.goldMult', value: -0.2, sourceType: 'law', sourceId: 'martial_law', label: 'Martial Law' },
-      { key: 'national.opinion', value: -5, sourceType: 'law', sourceId: 'martial_law', label: 'Martial Law' }
+      { key: 'national.opinion', value: -2, sourceType: 'law', sourceId: 'martial_law', label: 'Martial Law' }
     ]));
   });
 

@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import {
   AI_THINK_PERIOD, thinksThisTurn, getEffectiveMilitaryPower,
-  calcAllNationIncomes, processAIEconomyTurn, canAffordAIRecruit, applyAIRecruitCost
+  calcAllNationIncomes, processAIEconomyTurn, canAffordAIRecruit, applyAIRecruitCost, spareDecrees, AI_WAR_DECREE_RESERVE
 } from './aiEconomy';
 import { REGIONS_DATA } from '../data/regions';
 import { getNationCapital } from '../data/regions';
 import { addCities } from './testWorld';
 import { seedDevelopment } from './development';
 import { getIncreaseStabilityCost } from './nationalPower';
+import { LAW_CATEGORY_IDS } from '../data/laws';
 import { peoplesWorld, rivalOf } from './testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
@@ -135,14 +136,36 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
     expect(nation.economy.gold).toBe(1);
   });
 
-  it('adopts a real government once old enough to leave Tribal behind', () => {
+  it('adopts a real government once old enough to leave Tribal behind, for two decrees (U8)', () => {
     const state = makeState({
       regions: { [REGION_A]: makeRegion(REGION_A) },
-      nations: { [ID_ID]: makeAiNation({ government: null, tech: { researched: [], ageId: 'classical' } }) }
+      nations: { [ID_ID]: makeAiNation({ ruler: { adm: 3, dip: 3, mil: 3, decrees: 2 }, government: null, tech: { researched: [], ageId: 'classical' } }) }
     });
     const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
     expect(nation.government).toBeTruthy();
     expect(nation.government.type).not.toBe('tribal');
+    expect(nation.ruler.decrees).toBe(0);
+    const poor = makeState({ regions: { [REGION_A]: makeRegion(REGION_A) }, nations: { [ID_ID]: makeAiNation({ ruler: { adm: 3, dip: 3, mil: 3, decrees: 1 }, government: null, tech: { researched: [], ageId: 'classical' } }) } });
+    expect(processAIEconomyTurn(poor, poor.regions, ID_ID).nation.government).toBeFalsy();
+  });
+
+  it('a warlike doctrine keeps one decree back for its wars unless the bank is full (U8)', () => {
+    const nation = (doctrine, decrees) => makeAiNation({ doctrine, ruler: { adm: 3, dip: 3, mil: 3, maj: 0, decrees } });
+    expect(spareDecrees(nation('conqueror', 2))).toBe(2 - AI_WAR_DECREE_RESERVE);
+    expect(spareDecrees(nation('conqueror', 3))).toBe(3);
+    expect(spareDecrees(nation('merchant', 1))).toBe(1);
+    expect(spareDecrees({ ...nation('merchant', 1), stability: -1 })).toBe(0); // kept for stability
+  });
+
+  it('a full decree bank with nothing else to buy raises stability, so no bank sits at the cap (U8)', () => {
+    const state = makeState({
+      age: 'bronze',
+      regions: { [REGION_A]: makeRegion(REGION_A, { buildings: { categories: { food: 99, economy: 99, military: 99, defense: 99, science: 99, industry: 99, culture: 99, naval: 99, logistics: 99 } } }) },
+      nations: { [ID_ID]: makeAiNation({ ruler: { adm: 3, dip: 3, mil: 3, decrees: 3 }, stability: 0, lawCooldowns: Object.fromEntries(LAW_CATEGORY_IDS.map((c) => [c, 999])), government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } }, economy: { gold: 1000, hr: 0, techPoints: 0 } }) }
+    });
+    const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
+    expect(nation.stability).toBe(1);
+    expect(nation.ruler.decrees).toBe(2);
   });
 
   it('stays Tribal before the Classical age (nothing to gain from reforming yet)', () => {
@@ -160,7 +183,7 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
     const state = makeState({
       age: 'bronze',
       regions: { [REGION_A]: makeRegion(REGION_A) },
-      nations: { [ID_ID]: makeAiNation({ government: { type: 'monarchy', reforms: {} } }) }
+      nations: { [ID_ID]: makeAiNation({ ruler: { adm: 3, dip: 3, mil: 3, decrees: 1 }, government: { type: 'monarchy', reforms: {} } }) }
     });
     const { nation } = processAIEconomyTurn(state, state.regions, ID_ID);
     expect(nation.government.reforms.bronze).toBeTruthy();

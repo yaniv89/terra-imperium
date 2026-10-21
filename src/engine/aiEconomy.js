@@ -1,7 +1,7 @@
 import { districtYields } from './districts';
 import { getTiles } from '../data/geo/tiles';
 import { LAW_CATEGORIES, LAW_CATEGORY_IDS, canEnactLaw, LAW_CHANGE_COOLDOWN_TURNS } from '../data/laws';
-import { decreesOf, spendDecree } from './decrees';
+import { decreesOf, spendDecree, decreeCap } from './decrees';
 import { generateAdvisorCandidates, getAdvisorHireCost, getAdvisorSalary } from './rulers';
 import { getNeighborIds } from '../data/regions';
 import { getRecruitUnitCost, calcNationBalance, getLoanCapacity, getLoanInterestRate, applyBankruptcy } from './economy';
@@ -27,7 +27,7 @@ import { getResearched, ageOf } from './nationState';
 import { getModifier, getRegionModifierTotals } from './modifiers/sheet';
 const INCOME_KEYS = ['local.taxIncome', 'local.productionIncome', 'local.manpower', 'local.techPoints', 'local.flatGold', 'local.flatManpower', 'local.tradeIncome'];
 import {
-  getPopFactor, seedDevelopment, getTotalDev, DEV_TYPE_IDS, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO, applyDevelopment
+  getPopFactor, seedDevelopment, getTotalDev, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO, applyDevelopment
 } from './development';
 import { REGIONS_DATA, getOwnedRegionIds } from '../data/regions';
 import {
@@ -36,7 +36,7 @@ import {
 import { speedCostMult, speedTrainMult, isAgeAtLeast } from '../data/ages';
 import { getAvailableGovernmentTypes, getReformChoices, resetReformsForType } from '../data/government';
 import { DOCTRINE_BUILDING_PRIORITY, DOCTRINE_GOVERNMENT, DOCTRINE_LAWS, DOCTRINE_REFORMS } from '../data/nations';
-import { clampStability, getIncreaseStabilityCost } from './nationalPower';
+import { clampStability, getIncreaseStabilityCost, STABILITY_MAX } from './nationalPower';
 import { createRng } from '../utils/rng';
 import { applyRush, rushGold, rushHeat, rushAffordable } from './spending';
 import { autoGovern } from './governors';
@@ -51,8 +51,21 @@ import { rulerCityCtx } from './lawRules';
 // merely having a rough patch doesn't burn the gold and the decree it would rather spend building/researching, but high
 // enough to give a nation real turns to recover before it nears the actual civil-war trigger.
 const AI_STABILITY_RAISE_THRESHOLD = -1;
-const tryIncreaseStability = (state, nation) => {
-  if ((nation.stability || 0) > AI_STABILITY_RAISE_THRESHOLD) return null;
+
+// Decrees (differentiation plan U8): a warlike doctrine keeps AI_WAR_DECREE_RESERVE back for its
+// claims and wars (aiLogic.js), and a nation below 0 stability keeps one for raising it (the old ADM
+// paid for that), except when the bank is full; a full bank with nothing else to buy raises
+// stability (the court's surplus), so no bank sits at the cap.
+export const AI_WAR_DECREE_RESERVE = 1;
+const WAR_DOCTRINES = new Set(['blitz', 'conqueror', 'zealot']);
+export const spareDecrees = (nation) => {
+  const banked = decreesOf(nation);
+  if (banked >= decreeCap(nation)) return banked;
+  return banked - (WAR_DOCTRINES.has(nation.doctrine) ? AI_WAR_DECREE_RESERVE : 0) - ((nation.stability || 0) < 0 ? 1 : 0);
+};
+
+const tryIncreaseStability = (state, nation, surplus = false) => {
+  if (surplus ? decreesOf(nation) < decreeCap(nation) || (nation.stability || 0) >= STABILITY_MAX : (nation.stability || 0) > AI_STABILITY_RAISE_THRESHOLD) return null;
   const stabilityCostMult = getModifier(state, nation.id, 'national.stabilityCost').total;
   const cost = getIncreaseStabilityCost(state, nation.id, stabilityCostMult);
   if ((nation.economy.gold || 0) < cost.gold || decreesOf(nation) < cost.decrees) return null;
@@ -147,13 +160,16 @@ const tryAdoptOrReformGovernment = (state, nation) => {
     if (available.length === 0) return null;
     const preferred = (DOCTRINE_GOVERNMENT[nation.doctrine] || []).map((id) => available.find((t) => t.id === id)).find(Boolean);
     const choice = preferred || available[fnv1a(`${nation.id}gov`) % available.length];
-    return { ...nation, government: { type: choice.id, reforms: resetReformsForType(choice.id, ageId) } };
+    const cost = ACTION_COSTS.changeGovernmentType.decrees;
+    if (spareDecrees(nation) < cost) return null;
+    return spendDecree({ ...nation, government: { type: choice.id, reforms: resetReformsForType(choice.id, ageId) } }, 'changeGovernmentType', state.turnNumber);
   }
   const reforms = getReformChoices(nation.government.type, ageId);
   if (reforms.length > 0 && !nation.government.reforms?.[ageId]) {
     const liked = DOCTRINE_REFORMS[nation.doctrine] || [];
     const pick = reforms.find((r) => liked.includes(r.id)) || reforms[0];
-    return { ...nation, government: { ...nation.government, reforms: { ...nation.government.reforms, [ageId]: pick.id } } };
+    if (spareDecrees(nation) < ACTION_COSTS.enactGovernmentReform.decrees) return null;
+    return spendDecree({ ...nation, government: { ...nation.government, reforms: { ...nation.government.reforms, [ageId]: pick.id } } }, 'enactGovernmentReform', state.turnNumber);
   }
   return null;
 };
@@ -205,12 +221,14 @@ const tryConstructBuilding = (state, nation, regions) => {
 
 
 // Develops the nation's own highest-dev owned region (same placement convention as
-// tryConstructBuilding above) by +1 for gold (AI_DEVELOP_GOLD_RESERVE kept back), in the type its doctrine
-// leans to by a hash of id and turn, mirroring the player's own
+// tryConstructBuilding above) by +1 for gold (AI_DEVELOP_GOLD_RESERVE kept back), in a type drawn from AI_DEVELOP_MIX
+// by a hash of id and turn, mirroring the player's own
 // DEVELOP_PROVINCE action/cost curve exactly (src/engine/gameReducer.js's case, and
 // getDevelopProvinceCost) so an AI nation's economic base actually grows over a long game instead of
 // staying pinned at its seeded starting value.
-export const AI_DEVELOP_GOLD_RESERVE = 300;
+export const AI_DEVELOP_GOLD_RESERVE = 800; // U8 balance-sim: lower, development ate the gold armies are raised with (half the wars)
+// Production first (it builds the settlers and the army), then tax and manpower.
+const AI_DEVELOP_MIX = ['production', 'production', 'tax', 'manpower'];
 const tryDevelopProvince = (state, nation, regions) => {
   const ownedRegionIds = getOwnedRegionIds(regions, nation.id).filter((id) => !regions[id].occupiedBy);
   if (ownedRegionIds.length === 0) return null;
@@ -220,7 +238,7 @@ const tryDevelopProvince = (state, nation, regions) => {
   const cost = getDevelopProvinceCost(region, developmentCostMult);
   const pool = { ...emptyAIPool(), ...nation.economy };
   if ((pool.gold || 0) - cost < AI_DEVELOP_GOLD_RESERVE) return null;
-  const devType = DEV_TYPE_IDS[fnv1a(`${nation.id}|${state.turnNumber}`) % DEV_TYPE_IDS.length];
+  const devType = AI_DEVELOP_MIX[fnv1a(`${nation.id}|${state.turnNumber}`) % AI_DEVELOP_MIX.length];
   const modernBaseline = REGIONS_DATA[regionId]?.population || 0;
   const popGain = Math.round(modernBaseline * DEVELOP_PROVINCE_POP_GAIN_RATIO);
   return {
@@ -277,7 +295,7 @@ const tryRushProduction = (state, nation, regions, skip = null) => {
 /** The law an AI nation enacts this think, { category, id } or null (see the think's own note). It needs a decree. */
 export const pickAILaw = (state, nationId, nation) => {
   const liked = DOCTRINE_LAWS[nation.doctrine] || {};
-  const affordable = () => decreesOf(nation) >= ACTION_COSTS.changeLaw.decrees;
+  const affordable = () => spareDecrees(nation) >= ACTION_COSTS.changeLaw.decrees;
   const order = [...Object.keys(liked), ...LAW_CATEGORY_IDS.filter((c) => !liked[c])]; // the doctrine's own categories first
   for (const category of order) {
     const current = nation.laws?.[category];
@@ -330,7 +348,7 @@ export const processAIEconomyTurn = (state, regions, nationId) => {
   if (stabilityResult) {
     nextNation = stabilityResult;
   } else {
-    const govResult = tryAdoptOrReformGovernment(state, nextNation);
+    const govResult = tryAdoptOrReformGovernment(state, nextNation) || tryIncreaseStability(state, nextNation, true);
     if (govResult) {
       nextNation = govResult;
     } else {

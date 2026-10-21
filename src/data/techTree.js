@@ -102,7 +102,7 @@ const TECH_EFFECTS = {
   // Infrastructure
   'Mudbrick Roads': { supplyRange: 1 },
   'Paved Roads': { supplyRange: 1, attrition: -0.10 },
-  'Postal Relay': { opinion: 5 },
+  'Postal Relay': { opinion: 2 },
   'Canal Locks': { goldMult: 0.10 },
   'Highway Systems': { supplyRange: 1, attrition: -0.15 },
   // Governance
@@ -113,7 +113,7 @@ const TECH_EFFECTS = {
   'Digital Administration': { decreePace: 1, developmentCost: -0.20 },
   // Science
   'Cuneiform Records': { techPointsMult: 0.10 },
-  'Early Astronomy': { opinion: 5 },
+  'Early Astronomy': { opinion: 2 },
   'Natural Philosophy': { techPointsMult: 0.10 },
   'Scientific Method': { researchCost: -0.10 },
   'Computing': { techPointsMult: 0.20 },

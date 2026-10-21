@@ -16,7 +16,7 @@ import { getOverextension } from '../nationalPower';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { VIRTUES } from '../../data/rulerVirtues';
 
-const ADVISOR_JOBS = { adm: { key: 'national.decreePace', per: 1 }, dip: { key: 'national.opinion', per: 5 }, mil: { key: 'national.hrMult', per: 0.05 } };
+const ADVISOR_JOBS = { adm: { key: 'national.decreePace', per: 1 }, dip: { key: 'national.opinion', per: 2 }, mil: { key: 'national.hrMult', per: 0.05 } };
 
 const linesFromEffect = (effect, sourceType, sourceId, label) =>
   Object.entries(effect || {})
@@ -63,7 +63,7 @@ export const staticSources = (nation) => {
     (ruler.traits || []).forEach((id) => { if (VIRTUES[id]) lines.push(...linesFromEffect(VIRTUES[id].effects, 'virtue', id, `${ruler.name} (${VIRTUES[id].name})`)); });
   }
 
-  // An advisor's level feeds its slot's new job (differentiation plan KTD5): decree pace, +5 opinion
+  // An advisor's level feeds its slot's new job (differentiation plan KTD5): decree pace, +2 opinion
   // or +5% manpower a level.
   Object.entries(nation?.advisors || {}).forEach(([slot, advisor]) => {
     const job = ADVISOR_JOBS[slot];

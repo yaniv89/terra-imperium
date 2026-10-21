@@ -439,15 +439,18 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
       const site = claimableCities(view, nationId, targetId)[0];
       const cost = ACTION_COSTS.fabricateClaim;
       const pool = activeNation.economy;
-      if (site && pool && decreesOf(activeNation) >= cost.decrees && (pool.gold || 0) >= cost.gold) {
+      if (site && pool && decreesOf(activeNation) >= cost.decrees && (pool.gold || 0) >= cost.gold) { // the decree a warlike doctrine keeps back (aiEconomy.js spareDecrees)
         currentNations = { ...currentNations, [nationId]: startClaim(spendDecree({ ...activeNation, economy: { ...pool, gold: pool.gold - cost.gold } }, 'fabricateClaim', state.turnNumber), site.city.id, state.turnNumber) };
         return;
       }
     }
+    const justified = hasCasusBelli(view, nationId, targetId);
     const result = declareWar({ ...state, nations: currentNations, wars: currentWars }, targetId, { aggressor: nationId });
     if (result.wars === currentWars) return; // no-op (shouldn't happen given pickWarTarget's filter, but stay defensive)
     draggedIn.add(targetId);
     currentNations = result.nations;
+    // A justified war spends a decree like the player's (U8); a court without one still marches.
+    if (justified && decreesOf(currentNations[nationId]) > 0) currentNations = { ...currentNations, [nationId]: spendDecree(currentNations[nationId], 'declareWarJustified', state.turnNumber) };
     // Every claim on the target is spent by this war (see readyTarget above).
     const claimsOnTarget = claimsOf(currentNations[nationId]).filter((cid) => state.regions[cid]?.owner === targetId);
     if (claimsOnTarget.length) {

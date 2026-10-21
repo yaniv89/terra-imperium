@@ -111,7 +111,7 @@ export default {
   'p1.dom.plusStability': '+1 stability',
   'p1.dom.advisorTitle': '{pool} Advisor',
   'p1.dom.advisorJob.adm': 'Each level brings decrees sooner.',
-  'p1.dom.advisorJob.dip': 'Each level: +5 opinion with every nation.',
+  'p1.dom.advisorJob.dip': 'Each level: +2 opinion with every nation.',
   'p1.dom.advisorJob.mil': 'Each level: +5% manpower.',
   'p1.dom.level': '(level {level})',
   'p1.dom.hire': 'Hire {name} (level {level})',

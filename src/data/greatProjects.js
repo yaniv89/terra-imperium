@@ -213,11 +213,11 @@ export const GREAT_PROJECTS = {
   },
   royal_observatory: {
     id: 'royal_observatory', name: 'The Royal Observatory', ageId: 'gunpowder', siteRule: 'university',
-    description: 'Built in a region with a University. -5/10/15% research cost; +5 opinion with every nation.',
+    description: 'Built in a region with a University. -5/10/15% research cost; +2 opinion with every nation.',
     tiers: [
-      { effects: { researchCost: -0.05, opinion: 5 }, completionPrestige: 10 },
-      { effects: { researchCost: -0.1, opinion: 5 }, completionPrestige: 20 },
-      { effects: { researchCost: -0.15, opinion: 5 }, completionPrestige: 30 }
+      { effects: { researchCost: -0.05, opinion: 2 }, completionPrestige: 10 },
+      { effects: { researchCost: -0.1, opinion: 2 }, completionPrestige: 20 },
+      { effects: { researchCost: -0.15, opinion: 2 }, completionPrestige: 30 }
     ]
   },
   arsenal: {

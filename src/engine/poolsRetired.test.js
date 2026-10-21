@@ -49,7 +49,7 @@ describe('pools retired (U7)', () => {
     const before = opinionReasons(S, other, ME).find((r) => r.id === 'diplomacy');
     const s = { ...S, nations: { ...S.nations, [ME]: { ...S.nations[ME], government: { type: 'republic', reforms: { classical: 'oligarchic_republic' } } } } };
     expect(before).toBeUndefined();
-    expect(opinionReasons(s, other, ME).find((r) => r.id === 'diplomacy')?.value).toBe(5);
+    expect(opinionReasons(s, other, ME).find((r) => r.id === 'diplomacy')?.value).toBe(2);
   });
 
   it('a v18 save with banked pools arrives with decrees (1 per 300, up to the cap) and no pool fields', () => {

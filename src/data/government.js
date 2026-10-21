@@ -57,11 +57,11 @@ export const GOVERNMENT_REFORMS = {
     ],
     kingdoms: [
       { id: 'hereditary_primogeniture', name: 'Hereditary Primogeniture', description: 'A settled royal line: -1 unrest.', effects: { stabilityBonus: 1 } },
-      { id: 'elective_monarchy', name: 'Elective Monarchy', description: 'The great houses elect each new king: +5 opinion with every nation.', effects: { opinion: 5 } }
+      { id: 'elective_monarchy', name: 'Elective Monarchy', description: 'The great houses elect each new king: +2 opinion with every nation.', effects: { opinion: 2 } }
     ],
     gunpowder: [
       { id: 'absolutism', name: 'Absolutism', description: 'Decrees come faster; a firm hand keeps order in the cities.', effects: { decreePace: 1 } },
-      { id: 'parliamentary_monarchy', name: 'Parliamentary Monarchy', description: 'Decrees come much faster; +5 opinion with every nation.', effects: { opinion: 5, decreePace: 2 } }
+      { id: 'parliamentary_monarchy', name: 'Parliamentary Monarchy', description: 'Decrees come much faster; +2 opinion with every nation.', effects: { opinion: 2, decreePace: 2 } }
     ],
     modern: [
       { id: 'constitutional_monarchy', name: 'Constitutional Monarchy', description: '+10% tax; a steady throne keeps the realm calm.', effects: { goldMult: 0.1 } },
@@ -92,7 +92,7 @@ export const GOVERNMENT_REFORMS = {
   },
   republic: {
     classical: [
-      { id: 'oligarchic_republic', name: 'Oligarchic Republic', description: 'Elections every 8 turns; +5 opinion with every nation.', effects: { opinion: 5 } },
+      { id: 'oligarchic_republic', name: 'Oligarchic Republic', description: 'Elections every 8 turns; +2 opinion with every nation.', effects: { opinion: 2 } },
       { id: 'merchant_republic', name: 'Merchant Republic', description: '+25% income; +2 gold per trade pact.', effects: { goldMult: 0.25 }, rules: { tradeGoldPerRoute: 2 } }
     ],
     kingdoms: [
@@ -104,8 +104,8 @@ export const GOVERNMENT_REFORMS = {
       { id: 'revolutionary_republic', name: 'Revolutionary Republic', description: '+25% manpower; -10 opinion with monarchies.', effects: { hrMult: 0.25 } }
     ],
     modern: [
-      { id: 'parliamentary_democracy', name: 'Parliamentary Democracy', description: '+10 opinion with every nation; decrees come faster; a stable, orderly state.', effects: { opinion: 10, decreePace: 1 } },
-      { id: 'presidential_republic', name: 'Presidential Republic', description: 'Decrees come faster, +5 opinion with every nation, +5% manpower; a strong elected head of state.', effects: { decreePace: 1, opinion: 5, hrMult: 0.05 } }
+      { id: 'parliamentary_democracy', name: 'Parliamentary Democracy', description: '+4 opinion with every nation; decrees come faster; a stable, orderly state.', effects: { opinion: 4, decreePace: 1 } },
+      { id: 'presidential_republic', name: 'Presidential Republic', description: 'Decrees come faster, +2 opinion with every nation, +5% manpower; a strong elected head of state.', effects: { decreePace: 1, opinion: 2, hrMult: 0.05 } }
     ]
   },
   dictatorship: {
