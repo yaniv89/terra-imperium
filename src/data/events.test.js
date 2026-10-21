@@ -221,6 +221,14 @@ describe('HISTORICAL_EVENTS data integrity', () => {
     stone.forEach((e) => { const n = eventTechsNeeded('stone', e.year); expect(n).toBeGreaterThanOrEqual(0); expect(n).toBeLessThanOrEqual(6); });
   });
 
+  it('the Information Age has its five generic events, due across its first techs', () => {
+    const ids = ['financial_crisis', 'global_pandemic', 'solar_storm', 'automation_riots', 'first_general_ai'];
+    ids.forEach((id) => expect(HISTORICAL_EVENTS[id]?.ageId, id).toBe('information'));
+    const needed = ids.map((id) => eventTechsNeeded('information', HISTORICAL_EVENTS[id].year));
+    expect(needed).toEqual([...needed].sort((x, y) => x - y));
+    expect(needed[needed.length - 1]).toBeGreaterThan(needed[0]);
+  });
+
   it('never spawns a follow-up that points at a nonexistent chain entry', () => {
     Object.values(HISTORICAL_EVENTS).forEach(event => {
       event.options.forEach(option => {
