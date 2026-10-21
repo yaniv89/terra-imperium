@@ -41,7 +41,9 @@ export const LAW_CATEGORIES = {
     { id: 'barter', name: 'Barter', tier: 1, requiresTech: null, description: 'The baseline exchange.', effects: {} },
     { id: 'mercantilism', name: 'Mercantilism', tier: 2, requiresTech: 'economy_joint_stock_companies', description: '+20% income; +2 gold per trade pact; trade partners -5 opinion.', effects: { goldMult: 0.2 }, rules: { tradeGoldPerRoute: 2, partnerOpinion: -5 } },
     { id: 'free_trade', name: 'Free Trade', tier: 3, requiresTech: 'economy_global_markets', description: '+30% income; trade partners +15 opinion.', effects: { goldMult: 0.3 }, rules: { partnerOpinion: 15 } },
-    { id: 'autarky', name: 'Autarky', tier: 4, requiresTech: 'economy_industrial_capital', description: '-10% income; army upkeep -20%; trade partners -20 opinion.', effects: { goldMult: -0.1 }, rules: { partnerOpinion: -20, unitUpkeepMult: -0.2 } }
+    { id: 'autarky', name: 'Autarky', tier: 4, requiresTech: 'economy_industrial_capital', description: '-10% income; army upkeep -20%; trade partners -20 opinion.', effects: { goldMult: -0.1 }, rules: { partnerOpinion: -20, unitUpkeepMult: -0.2 } },
+    // Information tiers (eight-ages plan U55): data, renewables and privacy.
+    { id: 'open_data', name: 'Open Data', tier: 5, requiresTech: 'economy_digital_economy', description: '+20% income; +10% tech point income; trade partners +10 opinion.', effects: { goldMult: 0.2, techPointsMult: 0.1 }, rules: { partnerOpinion: 10 } }
   ],
   land: [
     { id: 'communal', name: 'Communal', tier: 1, requiresTech: null, description: '+0.1% pop growth.', effects: { popGrowthBonus: 0.001 } },
@@ -50,7 +52,8 @@ export const LAW_CATEGORIES = {
     // "+2 unrest for 10 turns after enacting" is a real timed nation.modifiers[] entry — see the
     // COLLECTIVIZATION_UNREST_MODIFIER/COLLECTIVIZATION_UNREST_TURNS constants below and
     // gameReducer.js's CHANGE_LAW case, which is what actually pushes it.
-    { id: 'collectivization', name: 'Collectivization', tier: 4, requiresTech: 'economy_industrial_capital', description: '-0.1% pop growth; +25% gold income; +2 unrest for 10 turns after enacting.', effects: { popGrowthBonus: -0.001, goldMult: 0.25 } }
+    { id: 'collectivization', name: 'Collectivization', tier: 4, requiresTech: 'economy_industrial_capital', description: '-0.1% pop growth; +25% gold income; +2 unrest for 10 turns after enacting.', effects: { popGrowthBonus: -0.001, goldMult: 0.25 } },
+    { id: 'renewable_mandate', name: 'Renewable Mandate', tier: 5, requiresTech: 'infrastructure_smart_grids', description: '-5% income; -1 unrest; +0.1% pop growth.', effects: { goldMult: -0.05, stabilityBonus: 1, popGrowthBonus: 0.001 } }
   ],
   justice: [
     { id: 'customary_law', name: 'Customary Law', tier: 1, requiresTech: null, description: 'The baseline courts.', effects: {} },
@@ -58,7 +61,8 @@ export const LAW_CATEGORIES = {
     { id: 'rule_of_law', name: 'Rule of Law', tier: 3, requiresTech: 'governance_constitutional_law', description: '+4 loyalty in every city; -1 unrest.', effects: { stabilityBonus: 1 }, rules: { loyaltyBonus: 4 } },
     // "-1 stability to enact" is a one-time cost applied directly by gameReducer.js's CHANGE_LAW
     // case (not part of `effects`, which are ongoing per-turn bonuses, not one-shot costs).
-    { id: 'martial_law', name: 'Martial Law', tier: 4, requiresTech: null, description: '-20% tax, -2 opinion with every nation; -1 stability to enact; +2 unrest; +6 loyalty in every city; war exhaustion rises 20% slower.', effects: { goldMult: -0.2, opinion: -2, stabilityBonus: -2 }, rules: { loyaltyBonus: 6, warExhaustionMult: -0.2 } }
+    { id: 'martial_law', name: 'Martial Law', tier: 4, requiresTech: null, description: '-20% tax, -2 opinion with every nation; -1 stability to enact; +2 unrest; +6 loyalty in every city; war exhaustion rises 20% slower.', effects: { goldMult: -0.2, opinion: -2, stabilityBonus: -2 }, rules: { loyaltyBonus: 6, warExhaustionMult: -0.2 } },
+    { id: 'privacy_rights', name: 'Privacy Rights', tier: 5, requiresTech: 'infrastructure_telecom_networks', description: '+3 loyalty in every city; -1 unrest; +2 opinion with every nation.', effects: { stabilityBonus: 1, opinion: 2 }, rules: { loyaltyBonus: 3 } }
   ]
 };
 

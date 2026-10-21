@@ -73,7 +73,7 @@ import { levyUnit } from './aftermath';
 import { cardOf } from './eventDeck';
 import { AGES, FIRST_AGE_ID, isAgeAtLeast, isAgeBefore } from '../data/ages';
 import { endingSignal } from './ending';
-import { ageOf } from './nationState';
+import { ageOf, getResearched } from './nationState';
 import { sideAgeOf } from './ageRefs';
 import { getRegionTerrain } from '../data/terrain';
 import { createEmptyResourcePool } from '../data/resources';
@@ -1939,7 +1939,7 @@ const reduceAction = (state, action) => {
       const type = GOVERNMENT_TYPES[typeId];
       const nation = state.nations[state.playerNationId];
       const costs = ACTION_COSTS.changeGovernmentType;
-      if (!type || !canChangeGovernmentType(nation, typeId, ageOf(state, state.playerNationId), stonePhaseOf(state, state.playerNationId))) return state;
+      if (!type || !canChangeGovernmentType(nation, typeId, ageOf(state, state.playerNationId), stonePhaseOf(state, state.playerNationId), getResearched(state, state.playerNationId))) return state;
       if (!canPay(state, costs)) return state;
       return payCost({
         ...state,

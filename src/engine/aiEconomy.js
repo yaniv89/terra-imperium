@@ -156,7 +156,7 @@ const tryAdoptOrReformGovernment = (state, nation) => {
   const ageId = ageOf(state, nation.id);
   if (!nation.government || nation.government.type === 'tribal') {
     if (!isAgeAtLeast(ageId, 'classical')) return null;
-    const available = getAvailableGovernmentTypes(ageId, nation.identity).filter((t) => t.id !== 'tribal');
+    const available = getAvailableGovernmentTypes(ageId, nation.identity, null, getResearched(state, nation.id)).filter((t) => t.id !== 'tribal');
     if (available.length === 0) return null;
     const preferred = (DOCTRINE_GOVERNMENT[nation.doctrine] || []).map((id) => available.find((t) => t.id === id)).find(Boolean);
     const choice = preferred || available[fnv1a(`${nation.id}gov`) % available.length];

@@ -28,7 +28,9 @@ export const GOVERNMENT_TYPES = {
   monarchy: { id: 'monarchy', name: 'Monarchy', minAgeId: 'stone', minPhase: 'cities' },
   theocracy: { id: 'theocracy', name: 'Theocracy', minAgeId: 'stone', minPhase: 'cities' },
   republic: { id: 'republic', name: 'Republic', minAgeId: 'classical' },
-  dictatorship: { id: 'dictatorship', name: 'Dictatorship', minAgeId: 'modern' }
+  dictatorship: { id: 'dictatorship', name: 'Dictatorship', minAgeId: 'modern' },
+  // Eight-ages plan U55: rule by experts and their machines.
+  technocracy: { id: 'technocracy', name: 'Technocracy', minAgeId: 'information', requiresTech: 'science_artificial_intelligence' }
 };
 
 export const GOVERNMENT_REFORMS = {
@@ -40,6 +42,9 @@ export const GOVERNMENT_REFORMS = {
     bronze: [
       { id: 'chieftaincy', name: 'Chieftaincy', description: 'Raids on enemy land yield double gold; +1 loyalty in every city.', effects: {}, rules: { pillageGoldMult: 1, loyaltyBonus: 1 } },
       { id: 'warrior_council', name: 'Warrior Council', description: '+20% manpower; morale recovers 10% faster.', effects: { hrMult: 0.2, moraleRecovery: 0.1 } }
+    ],
+    information: [
+      { id: 'networked_clans', name: 'Networked Clans', description: 'The clans keep in touch across the land: -1 unrest; +1 loyalty in every city.', effects: { stabilityBonus: 1 }, rules: { loyaltyBonus: 1 } }
     ]
   },
   monarchy: {
@@ -66,6 +71,9 @@ export const GOVERNMENT_REFORMS = {
     modern: [
       { id: 'constitutional_monarchy', name: 'Constitutional Monarchy', description: '+10% tax; a steady throne keeps the realm calm.', effects: { goldMult: 0.1 } },
       { id: 'autocratic_monarchy', name: 'Autocratic Monarchy', description: '+10% manpower, +2 unrest; -20 opinion with democracies.', effects: { hrMult: 0.1, stabilityBonus: -2 } }
+    ],
+    information: [
+      { id: 'ceremonial_crown', name: 'Ceremonial Crown', description: 'The crown reigns and the cabinet rules: -1 unrest; +10% tax.', effects: { stabilityBonus: 1, goldMult: 0.1 } }
     ]
   },
   theocracy: {
@@ -88,6 +96,9 @@ export const GOVERNMENT_REFORMS = {
     ],
     modern: [
       { id: 'theocratic_republic', name: 'Theocratic Republic', description: 'Faith steadies the realm; secular nations think less of you (-15 opinion).', effects: {} }
+    ],
+    information: [
+      { id: 'broadcast_ministry', name: 'Broadcast Ministry', description: 'Sermons reach every screen: -1 unrest; +2 opinion with every nation.', effects: { stabilityBonus: 1, opinion: 2 } }
     ]
   },
   republic: {
@@ -106,12 +117,23 @@ export const GOVERNMENT_REFORMS = {
     modern: [
       { id: 'parliamentary_democracy', name: 'Parliamentary Democracy', description: '+4 opinion with every nation; decrees come faster; a stable, orderly state.', effects: { opinion: 4, decreePace: 1 } },
       { id: 'presidential_republic', name: 'Presidential Republic', description: 'Decrees come faster, +2 opinion with every nation, +5% manpower; a strong elected head of state.', effects: { decreePace: 1, opinion: 2, hrMult: 0.05 } }
+    ],
+    information: [
+      { id: 'digital_democracy', name: 'Digital Democracy', description: 'Citizens vote and petition online: +4 opinion with every nation; -1 unrest.', effects: { opinion: 4, stabilityBonus: 1 } }
     ]
   },
   dictatorship: {
     modern: [
       { id: 'military_junta', name: 'Military Junta', description: '+10% manpower; morale recovers 20% faster; war exhaustion rises 20% slower.', effects: { hrMult: 0.1, moraleRecovery: 0.2 }, rules: { warExhaustionMult: -0.2 } },
       { id: 'one_party_state', name: 'One-Party State', description: 'Decrees come much faster; +3 unrest; secret police (+50% espionage defense).', effects: { decreePace: 2, stabilityBonus: -3 } }
+    ],
+    information: [
+      { id: 'surveillance_state', name: 'Surveillance State', description: 'Cameras on every street: +3 loyalty in every city; +2 unrest.', effects: { stabilityBonus: -2 }, rules: { loyaltyBonus: 3 } }
+    ]
+  },
+  technocracy: {
+    information: [
+      { id: 'expert_ministries', name: 'Expert Ministries', description: 'Scientists run the ministries: +15% tech point income; decrees come faster.', effects: { techPointsMult: 0.15, decreePace: 1 } }
     ]
   }
 };
@@ -124,8 +146,10 @@ const meetsIdentityGate = (typeId, identity) => typeId !== 'theocracy' || leansP
 
 // `phase`: the nation's Stone Age phase (stonePhase.js stonePhaseOf); a village has no use for a crown.
 const meetsPhase = (type, phase) => !(type.minPhase && phase === 'village');
-export const getAvailableGovernmentTypes = (ageId, identity, phase = null) =>
-  Object.values(GOVERNMENT_TYPES).filter((t) => getAgeIndex(t.minAgeId) <= getAgeIndex(ageId) && meetsIdentityGate(t.id, identity) && meetsPhase(t, phase));
+// `researched`: the nation's researched tech ids (getResearched), for a type with `requiresTech`.
+const meetsTech = (type, researched) => !type.requiresTech || (researched || []).includes(type.requiresTech);
+export const getAvailableGovernmentTypes = (ageId, identity, phase = null, researched = []) =>
+  Object.values(GOVERNMENT_TYPES).filter((t) => getAgeIndex(t.minAgeId) <= getAgeIndex(ageId) && meetsIdentityGate(t.id, identity) && meetsPhase(t, phase) && meetsTech(t, researched));
 
 export const getReformChoices = (typeId, ageId) => GOVERNMENT_REFORMS[typeId]?.[ageId] || [];
 
@@ -141,10 +165,10 @@ export const getActiveReforms = (nation) => {
 };
 
 
-export const canChangeGovernmentType = (nation, newTypeId, nationAgeId, phase = null) => {
+export const canChangeGovernmentType = (nation, newTypeId, nationAgeId, phase = null, researched = []) => {
   const type = GOVERNMENT_TYPES[newTypeId];
   if (!type || nation?.government?.type === newTypeId) return false;
-  if (getAgeIndex(type.minAgeId) > getAgeIndex(nationAgeId) || !meetsPhase(type, phase)) return false;
+  if (getAgeIndex(type.minAgeId) > getAgeIndex(nationAgeId) || !meetsPhase(type, phase) || !meetsTech(type, researched)) return false;
   return meetsIdentityGate(newTypeId, nation?.identity);
 };
 
