@@ -73,7 +73,7 @@ describe('improvement models: files and lookup', () => {
       expect(name.split('-')[1], f).toBe(p.age);
     });
     const base = files.filter((f) => !waiting(f.replace('.glb', ''))).filter((f) => parseImprovementFile(f.replace('.glb', '')).style === 'base').map((f) => f.replace('.glb', '')).sort();
-    expect(base).toEqual(['camp-bronze', 'camp-stone', 'farm-bronze', 'farm-modern', 'farm-stone', 'fishing_boats-bronze', 'fishing_boats-modern', 'fishing_boats-stone', 'fort-classical', 'fort-gunpowder', 'fort-kingdoms', 'fort-modern', 'fort-stone', 'lumber_camp-bronze', 'mine-bronze', 'mine-modern', 'mine-stone',
+    expect(base).toEqual(['camp-bronze', 'camp-stone', 'farm-bronze', 'farm-future', 'farm-information', 'farm-modern', 'farm-stone', 'fishing_boats-bronze', 'fishing_boats-future', 'fishing_boats-information', 'fishing_boats-modern', 'fishing_boats-stone', 'fort-classical', 'fort-future', 'fort-gunpowder', 'fort-information', 'fort-kingdoms', 'fort-modern', 'fort-stone', 'lumber_camp-bronze', 'mine-bronze', 'mine-future', 'mine-information', 'mine-modern', 'mine-stone',
       'pasture-bronze', 'pasture-stone', 'plantation-bronze', 'quarry-bronze', 'road-bronze', 'road-modern']);
     const israelite = files.filter((f) => f.endsWith('-israelite.glb')).sort();
     expect(israelite).toEqual(['farm-bronze-israelite.glb', 'fishing_boats-bronze-israelite.glb', 'fort-bronze-israelite.glb', 'fort-modern-israelite.glb', 'pasture-bronze-israelite.glb', 'plantation-bronze-israelite.glb']);
