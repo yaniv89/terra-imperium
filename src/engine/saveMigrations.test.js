@@ -306,6 +306,41 @@ describe('migrateSave v16 to v17: the Stone Age comes first', () => {
   });
 });
 
+describe('migrateSave v19 to v20: Modern splits into Modern and Information (U62)', () => {
+  // The Modern list before U49; Precision Guidance, Global Markets, Digital Administration and Genomics are later now.
+  const OLD_MODERN = ['Mechanized Warfare', 'Precision Guidance', 'Industrial Capital', 'Global Markets', 'Rail Networks', 'Highway Systems', 'Civil Service', 'Digital Administration', 'Computing', 'Genomics'];
+  const techIdOf = (name) => Object.values(TECH_TREE).find((t) => t.name === name).id;
+  // A late-Modern save: the player had all ten techs of the old Modern list (six are still Modern);
+  // an AI stood in Modern with only part of Gunpowder researched; both chose a Modern reform.
+  const late = () => {
+    const base = JSON.parse(JSON.stringify(peoplesWorld({ seed: 5, age: 'modern' })));
+    const me = base.playerNationId;
+    const ai = Object.keys(base.nations).sort().find((id) => id !== me && base.nations[id].tech && base.nations[id].kind !== 'independent');
+    const techTree = { ...base.techTree };
+    OLD_MODERN.map(techIdOf).forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
+    const reformed = (n, id) => ({ ...n, government: { ...n.government, reforms: { ...(n.government?.reforms || {}), modern: id } } });
+    const below = AGE_ORDER.slice(0, getAgeIndex('gunpowder')).flatMap((a) => getTechsForAge(a).map((t) => t.id));
+    const nations = {
+      ...base.nations,
+      [me]: reformed(base.nations[me], 'parliamentary_democracy'),
+      [ai]: reformed({ ...base.nations[ai], tech: { researched: [...below, ...getTechsForAge('gunpowder').slice(0, 3).map((t) => t.id)], ageId: 'modern' } }, 'military_junta')
+    };
+    return { me, ai, state: { ...base, techTree, techAgeId: 'modern', nations } };
+  };
+
+  it('lands each nation in Modern or Information by its research, never lower, and keeps its reforms', () => {
+    const { me, ai, state } = late();
+    const loaded = migrateSave({ version: 19, state }).state;
+    expect(loaded.techAgeId).toBe('information');
+    expect(ageOf(loaded, ai)).toBe('modern');
+    getTechsForAge('gunpowder').forEach((t) => expect(loaded.nations[ai].tech.researched, t.id).toContain(t.id));
+    expect(loaded.nations[me].government.reforms.modern).toBe('parliamentary_democracy');
+    expect(loaded.nations[ai].government.reforms.modern).toBe('military_junta');
+    Object.keys(state.nations).forEach((id) => expect(getAgeIndex(ageOf(loaded, id)), id).toBeGreaterThanOrEqual(getAgeIndex(ageOf(state, id))));
+    expect(auditGameState(loaded).filter((p) => /age|tech/i.test(p.message || p))).toEqual([]);
+  });
+});
+
 describe('migrateSave v17 to v18: Stone building tiers come first', () => {
   it('moves every built tier, order and stored progress of the seven lines up one', () => {
     const base = JSON.parse(JSON.stringify(peoplesWorld({ seed: 5 })));
