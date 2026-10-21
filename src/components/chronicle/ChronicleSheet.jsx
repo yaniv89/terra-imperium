@@ -8,8 +8,10 @@ import { useT } from '../../i18n/useT';
 import { ageName } from '../../i18n';
 import { formatYear, dataText } from '../../i18n/core';
 import { nameNow } from '../../i18n/names';
+import { rich } from '../../i18n/rich';
 import { AGES } from '../../data/ages';
 import { legacyModel } from '../panels/legacyModel';
+import GlossaryLink from '../glossary/GlossaryLink';
 import { chronicleModel } from './chronicleModel';
 import { chronicleBox, chronicleCanvas, drawBorders, saveCanvas } from './chronicleImage';
 
@@ -32,7 +34,7 @@ const ChronicleSheet = ({ state }) => {
   const box = useMemo(() => (open && chapters.length ? chronicleBox(chapters) : null), [open, chapters]);
   const people = nameNow('people', state.playerNationId, state.nations[state.playerNationId]?.name);
   const title = (c) => t('chron.chapter', { age: ageName(c.age, AGES[c.age]?.name), year: formatYear(c.label, lang) });
-  const list = (a) => a.map((n) => nameNow('city', null, n)).join(', ');
+  const list = (a) => a.map((n, i) => <React.Fragment key={n}>{i ? ', ' : ''}<GlossaryLink kind="city" id={n}>{nameNow('city', null, n)}</GlossaryLink></React.Fragment>);
 
   const save = async () => {
     const score = legacyModel(state);
@@ -56,9 +58,9 @@ const ChronicleSheet = ({ state }) => {
                 <MapCanvas runs={c.runs} box={box} />
                 <div className="font-semibold text-fa-text">{t('chron.battles')}</div>
                 {c.battles.length ? c.battles.map((b, j) => <div key={j}>{t('chron.battleLine', { name: nameNow('battle', null, b.name), n: b.fallen, result: t(`chron.${b.result}`) })}</div>) : <div className="text-fa-muted">{t('chron.noBattles')}</div>}
-                {c.founded.length > 0 && <div>{t('chron.founded', { list: list(c.founded) })}</div>}
-                {c.taken.length > 0 && <div>{t('chron.taken', { list: list(c.taken) })}</div>}
-                {c.lost.length > 0 && <div>{t('chron.lostCities', { list: list(c.lost) })}</div>}
+                {c.founded.length > 0 && <div>{rich(t('chron.founded'), { list: list(c.founded) })}</div>}
+                {c.taken.length > 0 && <div>{rich(t('chron.taken'), { list: list(c.taken) })}</div>}
+                {c.lost.length > 0 && <div>{rich(t('chron.lostCities'), { list: list(c.lost) })}</div>}
                 {c.wars.length > 0 && <div>{t('chron.wars', { list: c.wars.map((n) => nameNow('people', null, n)).join(', ') })}</div>}
                 {c.ambitions.length > 0 && <div>{t('chron.ambitions', { list: c.ambitions.map((a) => dataText(`ambition.${a.id}`, a.label)).join(', ') })}</div>}
               </section>

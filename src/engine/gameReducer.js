@@ -3088,8 +3088,9 @@ const CONTACT_ACTIONS = new Set([
 const NO_FOG_REFRESH = new Set([ActionTypes.ADVANCE_TURN, ActionTypes.FAST_FORWARD, ActionTypes.RESET_GAME, ActionTypes.LOAD_GAME]);
 
 // The state a new game starts from, out of RESET_GAME's payload (also a macro log's start, macroVerify.js).
-export const startState = ({ playerNationId, gameSpeed, doctrineId, difficultyId, scenario, rngSeed, guided, exploredWorld } = {}) => {
-  const fresh = createInitialState({ playerNationId, gameSpeed, scenario, rngSeed, guided, fog: !exploredWorld });
+export const startState = ({ playerNationId, gameSpeed, doctrineId, difficultyId, scenario, rngSeed, guided, exploredWorld, crises } = {}) => {
+  const base = createInitialState({ playerNationId, gameSpeed, scenario, rngSeed, guided, fog: !exploredWorld });
+  const fresh = crises === 'off' ? { ...base, settings: { ...base.settings, crises: 'off' } } : base;
   const withDoctrine = doctrineId ? applyStartingDoctrine(fresh, doctrineId) : fresh;
   return difficultyId ? applyDifficulty(withDoctrine, difficultyId) : withDoctrine;
 };

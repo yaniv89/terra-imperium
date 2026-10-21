@@ -350,6 +350,7 @@ export const GameProvider = ({ children }) => {
         rngSeed: scenario.seed,
         guided: !!options.guided,
         exploredWorld: !!options.exploredWorld, // the "explored world" option: no fog of war (engine/fog.js)
+        crises: options.crises, // 'off' stops the history crises (engine/crises.js)
         doctrineId: meta.selectedDoctrine,
         difficultyId: options.difficultyId || meta.difficulty
       }

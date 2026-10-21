@@ -17,5 +17,7 @@ import decree from './ui/decree.en';
 import ruler from './ui/ruler.en';
 import chronicle from './ui/chronicle.en';
 import challenge from './ui/challenge.en';
+import glossary from './ui/glossary.en';
+import crisis from './ui/crisis.en';
 
-export default { ...hud, ...result, ...pre, ...left, ...nation, ...ind, ...misc, ...region, ...city, ...pnl1, ...pnl2, ...mapx, ...misc2, ...decree, ...ruler, ...chronicle, ...challenge };
+export default { ...hud, ...result, ...pre, ...left, ...nation, ...ind, ...misc, ...region, ...city, ...pnl1, ...pnl2, ...mapx, ...misc2, ...decree, ...ruler, ...chronicle, ...challenge, ...glossary, ...crisis };

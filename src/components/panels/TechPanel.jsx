@@ -40,6 +40,7 @@ import { describeTech, formatTurns, formatEta, techInfo, techGraph, GRAPH_NODE_W
 import { researchSheetModel } from './researchSheetModel';
 import { techName, boostLabel, playstyleName, goalUnit, goalBonus } from '../../i18n/gameText';
 import { dataText } from '../../i18n/core';
+import GlossaryLink from '../glossary/GlossaryLink';
 import { canPay } from '../../utils/costs';
 
 // The labels are read when asked, so they follow the language (keys tc.<category>).
@@ -62,7 +63,7 @@ const TechRow = ({ info, onResearch, onQueue }) => {
     <div className={`fa-card px-2.5 py-2 space-y-1 ${current ? 'fa-selected' : researched ? 'opacity-70' : ''}`} data-testid={`tech-${tech.id}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5 text-[13px] font-semibold text-fa-text"><Icon className={`w-3.5 h-3.5 shrink-0 ${researched ? 'text-fa-good' : 'text-fa-muted'}`} aria-hidden="true" /><span className="truncate">{techName(tech.id, tech.name)}</span></div>
+          <div className="flex items-center gap-1.5 text-[13px] font-semibold text-fa-text"><Icon className={`w-3.5 h-3.5 shrink-0 ${researched ? 'text-fa-good' : 'text-fa-muted'}`} aria-hidden="true" /><span className="truncate"><GlossaryLink kind="tech" id={tech.id}>{techName(tech.id, tech.name)}</GlossaryLink></span></div>
           <div className="text-[11px] text-fa-muted">{status}{diffusionNote}</div>
         </div>
         {!researched && !current && (

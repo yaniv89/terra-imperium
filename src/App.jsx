@@ -12,9 +12,11 @@ import WorldTopBar from './components/ui/WorldTopBar';
 import TurnDock from './components/ui/TurnDock';
 import NextPrompt from './components/ui/NextPrompt';
 import MapGoals from './components/map/MapGoals';
+import CrisisBanner from './components/ui/CrisisBanner';
 import SettingsSheet from './components/ui/SettingsSheet';
 import TurnReportSheet from './components/ui/TurnReportSheet';
 import NationOverviewSheet from './components/ui/NationOverviewSheet';
+import GlossarySheet from './components/glossary/GlossarySheet';
 import { OPEN_SETTINGS } from './components/ui/uiEvents';
 import { SELECT_REGION, openCityOnMap } from './components/map/marchEvents';
 import WaitingChips from './components/ui/WaitingChips';
@@ -307,6 +309,7 @@ const GameLayout = () => {
             <WaitingChips />
             <NextPrompt />
             {/* The map's hint and the era goals under the chips, never under them (I083). */}
+            <CrisisBanner />
             <MapGoals />
           </div>
         )}
@@ -366,6 +369,7 @@ const GameLayout = () => {
 
       {/* The nation overview (W17), from the name on the top bar */}
       <NationOverviewSheet />
+      <GlossarySheet />
 
       {/* Age Advance banner - non-blocking, auto-dismisses (plan §10.5's "showpiece") */}
       <AgeAdvanceBanner ageName={ageBanner} onDismiss={() => setAgeBanner(null)} />

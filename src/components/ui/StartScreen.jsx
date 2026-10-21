@@ -205,6 +205,7 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
   const [gameSpeed, setGameSpeed] = useState('normal');
   const [difficultyId, setDifficultyId] = useState('prince');
   const [exploredWorld, setExploredWorld] = useState(false);
+  const [crises, setCrises] = useState(true);
   // The map (MapPicker): a shared `?map=CODE`, else the page's own world, so a generated world's
   // next game stays on it.
   const [mapSpec, setMapSpec] = useState(() => { const shared = mapFromUrl(); if (shared) return shared; const w = currentWorldSpec(); return w.kind === 'generated' ? { kind: 'generated', generatorVersion: w.generatorVersion, seed: w.seed, params: w.params } : { kind: 'earth' }; });
@@ -227,10 +228,10 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
   const peopleName = (p) => nm('people', p.id, p.name);
   const last = START_STEPS.length - 1;
 
-  const begin = useCallback(() => onStart({ playerNationId: selectedId, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: worldSize, cityStates, seed: newWorldSeed(), map: mapSpec, band: true }, exploredWorld }),
-    [onStart, selectedId, gameSpeed, difficultyId, worldSize, cityStates, mapSpec, exploredWorld]);
+  const begin = useCallback(() => onStart({ playerNationId: selectedId, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: worldSize, cityStates, seed: newWorldSeed(), map: mapSpec, band: true }, exploredWorld, crises: crises ? 'on' : 'off' }),
+    [onStart, selectedId, gameSpeed, difficultyId, worldSize, cityStates, mapSpec, exploredWorld, crises]);
   // The guided start teaches on the Nile: always the real Earth.
-  const guided = () => onStart({ playerNationId: TUTORIAL_NATION, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: TUTORIAL_WORLD_SIZE, seed: newWorldSeed(), map: { kind: 'earth' } }, guided: true, exploredWorld });
+  const guided = () => onStart({ playerNationId: TUTORIAL_NATION, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: TUTORIAL_WORLD_SIZE, seed: newWorldSeed(), map: { kind: 'earth' } }, guided: true, exploredWorld, crises: crises ? 'on' : 'off' });
   const random = () => { const pool = peoples.length ? peoples : MAJOR_PEOPLES_LIST; setSelectedId(pool[Math.floor(Math.random() * pool.length)].id); };
 
   // Moving between steps puts the focus on the new step's heading (read out; Enter then goes on).
@@ -399,6 +400,13 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
           </div>
           <button type="button" role="switch" aria-checked={exploredWorld} aria-label={t('start.explored')} onClick={() => setExploredWorld((v) => !v)} className="fa-switch before:content-[''] before:absolute before:-inset-y-[10px] before:-inset-x-1" data-testid="explored-world" />
         </div>
+        <div className="flex items-center justify-between gap-3 min-h-[44px]">
+          <div className="min-w-0">
+            <div className="text-[14px] font-semibold leading-tight">{t('start.crises')}</div>
+            <div className="text-[12px] text-fa-muted leading-snug">{crises ? t('start.crisesOn') : t('start.crisesOff')}</div>
+          </div>
+          <button type="button" role="switch" aria-checked={crises} aria-label={t('start.crises')} onClick={() => setCrises((v) => !v)} className="fa-switch before:content-[''] before:absolute before:-inset-y-[10px] before:-inset-x-1" data-testid="crises-toggle" />
+        </div>
       </section>
     </div>
   );
@@ -410,7 +418,8 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle }) => {
     { key: 'cityStates', label: t('start.cityStates'), value: t('start.sum.cityStates', { density: densityName(cityStates), n: csCount }), to: 1 },
     { key: 'speed', label: t('start.gameSpeed'), value: t('start.sum.speed', { speed: speedName(gameSpeed), turns: n(speed?.turns) }), to: 2 },
     { key: 'difficulty', label: t('start.difficulty'), value: diffName(difficultyId), to: 2 },
-    { key: 'explored', label: t('start.explored'), value: exploredWorld ? t('start.on') : t('start.off'), to: 2 }
+    { key: 'explored', label: t('start.explored'), value: exploredWorld ? t('start.on') : t('start.off'), to: 2 },
+    { key: 'crises', label: t('start.crises'), value: crises ? t('start.on') : t('start.off'), to: 2 }
   ].filter(Boolean);
   const readyStep = (
     <div className={`${fill} grid gap-3 ${twoCols ? 'grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]' : 'grid-cols-1'}`}>
