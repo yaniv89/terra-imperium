@@ -39,7 +39,9 @@ import { AGRICULTURE_TECH } from '../data/hearths';
 // Modern are first guesses past the 300 turns measured (eight-age calibration, U96).
 // Stone (U47, peoples, scripted, seeds 11 to 14): 15 puts 20% to 27% of majors past Stone at the
 // age's end turn on the three speeds (plan SC3: 10% to 40%; 12 gave 55% to 61%).
-export const RESEARCH_AGE_BASE = { stone: 15, bronze: 17, classical: 82, kingdoms: 1200, gunpowder: 2400, modern: 6000, information: 12000 };
+// Modern (U63, peoples, scripted): 6000 left 14% to 28% of majors past Modern at Fast's turn 315
+// and 36% to 42% at Normal's turn 674 (SC4: 30% to 70%); 5000 is the measured step down.
+export const RESEARCH_AGE_BASE = { stone: 15, bronze: 17, classical: 82, kingdoms: 1200, gunpowder: 2400, modern: 5000, information: 12000 };
 export { SCIENCE_PER_DEV } from '../data/actionCosts';
 export const FOCUS_SCIENCE_BONUS = 0.1;
 // A nation's first tech costs a quarter (U47): a band's first village makes 2 science, and a full
