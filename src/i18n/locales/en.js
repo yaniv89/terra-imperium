@@ -318,7 +318,7 @@ export default {
   'prompt.guide.meet.label': 'Meet a neighbour: tap a foreign city and open its nation',
   'prompt.guide.meet.hint': 'The nation sheet shows their opinion of you with every reason, and what you can offer them.',
   'prompt.guide.battle.label': 'Fight your first battle',
-  'prompt.guide.battle.hint': 'March your army next to an enemy and attack from a river edge: the crossing is harder for the attacker, so defend behind the Nile and attack elsewhere.',
+  'prompt.guide.battle.hint': 'March your army next to an enemy and attack from a river edge: the crossing is harder for the attacker, so defend behind the Nile and attack elsewhere. The battle coach shows the touch controls.',
   'chip.canBuild': '{city} can build',
   'chip.armyIdle': 'Army idle',
   'chip.settlers': 'Settlers wait',

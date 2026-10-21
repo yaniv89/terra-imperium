@@ -45,7 +45,7 @@ export const TUTORIAL_STEPS = [
     done: (state) => state.research?.current === TUTORIAL_TECH || !!state.techTree?.[TUTORIAL_TECH]?.researched || (state.research?.queue || []).includes(TUTORIAL_TECH) },
   { id: 'meet', label: 'Meet a neighbour: tap a foreign city and open its nation', hint: 'The nation sheet shows their opinion of you with every reason, and what you can offer them.', target: 'diplomacy',
     done: () => false },
-  { id: 'battle', label: 'Fight your first battle', hint: 'March your army next to an enemy and attack from a river edge: the crossing is harder for the attacker, so defend behind the Nile and attack elsewhere.', target: 'army',
+  { id: 'battle', label: 'Fight your first battle', hint: 'March your army next to an enemy and attack from a river edge: the crossing is harder for the attacker, so defend behind the Nile and attack elsewhere. The battle coach shows the touch controls.', target: 'army',
     done: (state) => (state.battleReports || []).length > 0 }
 ];
 
