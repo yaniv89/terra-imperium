@@ -597,6 +597,14 @@ const writeTileState = (world, tile, entry, inPlace = false) => {
 };
 
 // ---------------------------------------------------------------------------------------------
+/** A unit order (or an army's next piece) whose class this age's roster has but whose tech is not
+ * known yet: the age moved on since it was queued, and cities build only the current age's unit. */
+export const unitWaitsForTech = (item, ageId, researched, techFree = false) => {
+  if (techFree || item.explorer || (item.kind !== 'unit' && item.kind !== 'army')) return false;
+  const classId = item.kind === 'army' ? nextTemplateUnit(item) : item.classId;
+  return !!classId && !isUnitUnlocked(ageId, classId, researched);
+};
+
 // The turn
 /**
  * One city's turn. `ctx`: { researched, ageId, turnNumber, citiesOwned, luxuries, amenityBonus,
@@ -651,6 +659,7 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
     const item = production.current;
     const cost = productionCost(item, { ageId, citiesOwned: ctx.citiesOwned || 1, speedMult: ctx.speedMult || 1, trainMult: ctx.trainMult, costMult: ctx.costMult });
     if (production.progress < cost) break;
+    if (unitWaitsForTech(item, ageId, researched, ctx.techFree)) break; // the new age's unit waits for its tech, never the old one
     production = { ...production, progress: production.progress - cost };
     if (item.kind === 'building') {
       buildings = { ...buildings, categories: { ...buildings.categories, [item.category]: item.tier } };

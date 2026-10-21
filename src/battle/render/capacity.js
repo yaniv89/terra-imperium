@@ -24,8 +24,9 @@ export const squadSlots = (setup) => Math.max(MIN_SQUAD_SLOTS, (setup.sides || [
 export const soldierSlots = (setup, ageId, classId) => {
   let n = 0;
   (setup.sides || []).forEach((s) => {
+    // a unit keeps the age it was built in (unitUpgrades.js): it is drawn with its own age's figures
+    unitsOf(s).forEach((u) => { if (u.classId === classId && (u.ageId || s.ageId) === ageId) n += getUnitBattleStats(u, ageId).soldiers; });
     if (s.ageId !== ageId) return;
-    unitsOf(s).forEach((u) => { if (u.classId === classId) n += getUnitBattleStats(u, ageId).soldiers; });
     if (classId === guardClassOf(ageId)) n += generalsOf(setup, s) * getBattleStats(classId, ageId).soldiers;
     // Trained squads and workers (the battle economy): room for a whole population of this class.
     if (setup.economy && trainableRoles(ageId).includes(classId)) n += POP_LIMIT * getBattleStats(classId, ageId).soldiers;

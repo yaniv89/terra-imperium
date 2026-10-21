@@ -45,7 +45,7 @@ export const isFighting = (q) => q.alive && q.onField && !q.fled;
 export const canAttack = (q) => isFighting(q) && !q.routed && !q.retreating && q.stats.attackTicks > 0 && !(q.inside >= 0);
 
 // Plain unit view for battle.js's multiplier functions.
-const view = (q) => ({ id: q.unitId, classId: q.classId, navalLine: q.original?.navalLine, strength: q.strength, promotions: q.promotions, commanderId: q.commanderId }); // the line: a transport fights badly, a raider lightly (navalLines.js)
+const view = (q) => ({ id: q.unitId, classId: q.classId, ageId: q.ageId, navalLine: q.original?.navalLine, strength: q.strength, promotions: q.promotions, commanderId: q.commanderId }); // the line: a transport fights badly, a raider lightly (navalLines.js)
 
 // 0 front (±60°: a 120° arc), 1 flank (60–120° either side), 2 rear (±60° behind: 120°).
 // Angles are 256 to the turn, so 60° ≈ 43 and 120° ≈ 85.
@@ -72,14 +72,16 @@ export const inRangeOfStructure = (q, s) => {
 
 const insideDefenderTerritory = (w, q) => distSq(q.x, q.y, w.structures[0].x, w.structures[0].y) <= w.setup.territoryRadius * w.setup.territoryRadius;
 
+// The sides' ages: a squad of an older age than its side fights at its own (unitUpgrades.js).
+const sideAges = (w, a, t) => ({ sourceAgeId: w.setup.sides[a.side]?.ageId, targetAgeId: w.setup.sides[t.side]?.ageId });
 const sideCtx = (w, attacker, target) => {
   const m = w.setup.modifiers;
   if (attacker.side === SIDE_ATTACKER) {
     // Fortifications only shield defenders who are actually fighting from behind them.
     const walls = insideDefenderTerritory(w, target) ? m.defenseReduction : 1;
-    return { sourceIsInvadingFortification: m.isAttackingFortification, targetIsDefendingSide: true, baseMultiplier: m.attackerBase * walls, generals: w.setup.generals };
+    return { sourceIsInvadingFortification: m.isAttackingFortification, targetIsDefendingSide: true, baseMultiplier: m.attackerBase * walls, generals: w.setup.generals, ...sideAges(w, attacker, target) };
   }
-  return { sourceIsInvadingFortification: false, targetIsDefendingSide: false, baseMultiplier: m.defenderBase, generals: w.setup.generals };
+  return { sourceIsInvadingFortification: false, targetIsDefendingSide: false, baseMultiplier: m.defenderBase, generals: w.setup.generals, ...sideAges(w, attacker, target) };
 };
 
 // Blows from the flank or behind do more than kill: they panic (a decisive flank charge breaks a

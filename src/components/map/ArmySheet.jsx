@@ -86,6 +86,12 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
           <Castle className="w-3.5 h-3.5" /> {s.on ? tr('mx.army.liftSiege', { name: nameNow('city', null, s.name) }) : tr('mx.army.laySiege', { name: nameNow('city', null, s.name) })}
         </button>
       ))}
+      {model.upgradeAll && (
+        <div className="mb-2">
+          <button type="button" disabled={!model.upgradeAll.ok} onClick={() => dispatch({ type: ActionTypes.UPGRADE_UNIT, payload: { unitIds: model.unitIds } })} data-testid="army-upgrade-all" className="w-full min-h-[40px] rounded-lg bg-amber-700/70 hover:bg-amber-600 disabled:opacity-50 text-fa-text text-xs font-semibold">{tr('mx.army.upgradeAll', { count: model.upgradeAll.count, gold: model.upgradeAll.gold })}</button>
+          {model.upgradeAll.why && <div className="text-[10px] text-fa-muted mt-0.5">{model.upgradeAll.why}</div>}
+        </div>
+      )}
       {model.groups.map((g) => (
         <div key={g.key || 'none'} className="mb-2" data-testid="army-group">
           <div className="text-[11px] font-semibold text-fa-text mb-1">{g.name} <span className="text-fa-muted">({g.units.length})</span></div>
@@ -93,7 +99,7 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
             {g.units.map((u) => (
               <li key={u.id} data-shown={u.id === shownId ? 'true' : undefined} className={`flex items-center gap-2 rounded-lg px-2 min-h-[40px] text-xs bg-fa-raised/60 border ${order.length > 1 && u.id === shownId ? 'border-amber-400/80' : 'border-fa-line/60'}`}>
                 {model.unitIds.length > 1 && !model.route && <input type="checkbox" aria-label={tr('mx.army.march1', { name: u.name })} checked={!picked || picked.has(u.id)} onChange={() => togglePick(u.id)} className="w-5 h-5 shrink-0" data-testid="army-pick" />}
-                <UnitIcon classId={u.classId} navalLine={u.navalLine} ageId={ageOf(state, state.playerNationId)} size={28} />
+                <UnitIcon classId={u.classId} navalLine={u.navalLine} ageId={u.ageId || ageOf(state, state.playerNationId)} size={28} />
                 <div className="min-w-0 flex-1">
                   <div className="text-fa-text truncate">{u.name}{u.general ? ` · ${u.general}` : ''}{u.promotions ? tr('mx.army.promotions', { count: u.promotions }) : ''}</div>
                   <div className="text-fa-muted">{tr('mx.army.stats', { strength: u.strength, max: u.maxStrength, morale: u.morale, supply: model.naval ? tr('mx.army.aboard', { n: u.cargo }) : tr('mx.army.supply', { n: u.supply, max: u.supplyMax }), moves: u.moves, pace: u.movePoints })}</div>
@@ -107,6 +113,12 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
                       </select>
                     )}
                   {u.air && <button type="button" onClick={() => dispatch({ type: ActionTypes.SET_AIR_PATROL, payload: { unitIds: [u.id], patrol: !u.patrol } })} data-testid="army-patrol" className={`mt-1 px-2 min-h-[32px] rounded text-[11px] ${u.patrol ? 'bg-sky-700/70 text-fa-text' : 'bg-fa-hover text-fa-text hover:bg-fa-line'}`} title={tr('mx.army.patrolTitle')}>{u.patrol ? tr('mx.army.onPatrol') : tr('mx.army.patrol')}</button>}
+                  {u.upgrade && (
+                    <div className="mt-1" data-testid="army-upgrade">
+                      <button type="button" disabled={!u.upgrade.ok} onClick={() => dispatch({ type: ActionTypes.UPGRADE_UNIT, payload: { unitIds: [u.id] } })} className="px-2 min-h-[32px] rounded text-[11px] font-semibold bg-amber-700/70 hover:bg-amber-600 disabled:opacity-50 disabled:hover:bg-amber-700/70 text-fa-text">{tr('mx.army.upgrade', { name: u.upgrade.to, gold: u.upgrade.gold })}</button>
+                      {u.upgrade.why && <span className="ms-1.5 text-[10px] text-fa-muted">{u.upgrade.why}</span>}
+                    </div>
+                  )}
                   {u.perks.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1" data-testid="army-promote">
                       <span className="text-purple-300 flex items-center gap-1"><Award className="w-3 h-3" /> {tr('mx.army.promote')}</span>

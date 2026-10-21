@@ -29,7 +29,7 @@
 // both are inputs this engine already needs for combat width and IS the natural place to fold them
 // into the same per-hit multiplier stack as everything else.
 
-import { getCounterMultiplier, getSiegeMultiplier, getRosterCombatMultiplier } from '../data/unitClasses';
+import { getCounterMultiplier, getSiegeMultiplier, getRosterCombatMultiplier, unitAgeWeight } from '../data/unitClasses';
 import { autoAttackerMult } from '../battle/setup/battleType';
 import { getCombatWidth, getTerrainCombatModifier } from '../data/terrain';
 import {
@@ -75,8 +75,11 @@ const deploy = (units, combatWidth) => {
 // context, and every promotion/general multiplier on both sides. Exported so the real-time tactical
 // sim (src/battle/sim/combat.js) applies exactly the same stack per hit as this engine does per
 // exchange — auto-resolve and commanded battles can never drift apart on "how hard does this hit".
-export const computeHitMultiplier = (unit, target, { phase, sourceIsInvadingFortification, generals = {}, targetIsDefendingSide, baseMultiplier = 1 }) => {
+export const computeHitMultiplier = (unit, target, { phase, sourceIsInvadingFortification, generals = {}, targetIsDefendingSide, baseMultiplier = 1, sourceAgeId, targetAgeId }) => {
   let multiplier = getCounterMultiplier(unit.classId, target.classId) * baseMultiplier;
+  // Each unit at its own age within its side's (unitUpgrades.js): 1 for a side of one age.
+  const ageW = unitAgeWeight(unit, sourceAgeId) / unitAgeWeight(target, targetAgeId);
+  if (ageW !== 1) multiplier *= ageW;
   if (unit.classId === 'naval') multiplier *= navalCombatMult(navalLineOf(unit)); // a transport fights badly, a raider lightly (navalLines.js)
   if (unit.classId === 'siege') {
     multiplier *= applySapperToSiegeMultiplier(unit, sourceIsInvadingFortification, getSiegeMultiplier(sourceIsInvadingFortification));
@@ -249,8 +252,8 @@ export const resolveBattle = ({
   // underfoot), so the stronger side is favoured but an underdog can still carry the day.
   const attackerFortune = 1 + (rng.next() * 2 - 1) * BATTLE_FORTUNE;
   const defenderFortune = 1 + (rng.next() * 2 - 1) * BATTLE_FORTUNE;
-  const attackerCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: isAttackingFortification, generals, targetIsDefendingSide: true, baseMultiplier: attackerPenaltyMultiplier * autoAttackerMult(battleType) * defenderDamageReductionMultiplier * attackerRosterMult * terrainMod.attackerMult * attackerFortune }; // the battle type's own odds (battleType.js)
-  const defenderCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: false, generals, targetIsDefendingSide: false, baseMultiplier: defenderRosterMult * defenderFortune };
+  const attackerCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: isAttackingFortification, generals, targetIsDefendingSide: true, baseMultiplier: attackerPenaltyMultiplier * autoAttackerMult(battleType) * defenderDamageReductionMultiplier * attackerRosterMult * terrainMod.attackerMult * attackerFortune, sourceAgeId: attackerAgeId, targetAgeId: defenderAgeId }; // the battle type's own odds (battleType.js)
+  const defenderCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: false, generals, targetIsDefendingSide: false, baseMultiplier: defenderRosterMult * defenderFortune, sourceAgeId: defenderAgeId, targetAgeId: attackerAgeId };
   const isMelee = (classId) => !isRangedClass(classId);
 
   let attackerBroken = attFront.length === 0;

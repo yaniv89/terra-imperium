@@ -851,7 +851,8 @@ describe('Military tab actions', () => {
       const withDefender = { ...baseline, units: { ...baseline.units, def_gap: defenderUnit } };
       // Same rngSeed on both, so the only difference driving the outcome is the tech gap itself.
       const atCalendar = { ...withDefender, age: 'bronze', techAgeId: 'bronze' };
-      const rushedAhead = { ...withDefender, age: 'bronze', techAgeId: 'classical' }; // effective age becomes classical
+      // effective age becomes classical; the army is upgraded too (units keep their build age, unitUpgrades.js)
+      const rushedAhead = { ...withDefender, age: 'bronze', techAgeId: 'classical', units: { ...withDefender.units, [attackerId]: { ...withDefender.units[attackerId], ageId: 'classical' } } };
 
       const attackerDamage = (result) => result.lastBattleReport.log.find(l => l.attackerId === attackerId).damage;
       const atCalendarDamage = attackerDamage(gameReducer(atCalendar, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } }));

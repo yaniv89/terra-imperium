@@ -127,6 +127,8 @@ export default {
   'mx.army.patrol': 'Patrol',
   'mx.army.promote': 'Promote:',
   'mx.army.disbandOne': 'Disband {name}',
+  'mx.army.upgrade': 'Upgrade to {name} ({gold}g)',
+  'mx.army.upgradeAll': 'Upgrade all ({count}) for {gold}g',
   'mx.army.halt': 'Halt the march',
   'mx.army.sail': 'Sail',
   'mx.army.march': 'March',

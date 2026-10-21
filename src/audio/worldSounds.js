@@ -81,6 +81,7 @@ export const ACTION_SOUNDS = {
   [T.RESOLVE_ALL_DEFENSES_AUTO]: null,
   [T.WITHDRAW_FROM_DEFENSE]: 'battle-lost',
   [T.PROMOTE_UNIT]: 'ui-confirm',
+  [T.UPGRADE_UNIT]: 'ui-confirm',
   [T.HIRE_GENERAL]: 'unit-trained',
   [T.APPOINT_GENERAL]: 'ui-confirm',
   [T.EMBARK_UNIT]: 'army-moved',

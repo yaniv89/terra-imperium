@@ -16,7 +16,7 @@
 // is not (BRIEF.md).
 // This is the AI's estimate, never the combat rule: battles are still fought by battle.js.
 // Pure and cheap (O(units of both sides) for the matchup), no randomness.
-import { getCounterMultiplier, getSiegeMultiplier, getRosterCombatMultiplier } from '../data/unitClasses';
+import { getCounterMultiplier, getSiegeMultiplier, getRosterCombatMultiplier, unitAgeWeight } from '../data/unitClasses';
 import { getTerrainCombatModifier } from '../data/terrain';
 import { autoAttackerMult } from '../battle/setup/battleType';
 import { FIRST_AGE_ID } from '../data/ages';
@@ -56,8 +56,9 @@ const fightingStrength = (units) => {
 };
 
 // The strength-weighted damage multiplier `from` deals to `to` (counters, and siege engines'
-// context: x3 against walls, x0.5 in the open). 1 = an even matchup.
-export const matchupMult = (from, to, attackingFortification = false) => {
+// context: x3 against walls, x0.5 in the open). 1 = an even matchup. With the sides' ages, a unit of
+// an older age than its side counts at its own (battle.js computeHitMultiplier, unitAgeWeight).
+export const matchupMult = (from, to, attackingFortification = false, fromAge = null, toAge = null) => {
   const a = sumStrength(from); const b = sumStrength(to);
   if (!a || !b) return 1;
   let acc = 0;
@@ -66,8 +67,8 @@ export const matchupMult = (from, to, attackingFortification = false) => {
     if (!su) continue;
     const context = u.classId === 'siege' ? getSiegeMultiplier(attackingFortification) : 1;
     let vs = 0;
-    for (const d of to) vs += Math.max(0, d.strength || 0) * getCounterMultiplier(u.classId, d.classId);
-    acc += su * context * (vs / b);
+    for (const d of to) vs += Math.max(0, d.strength || 0) * getCounterMultiplier(u.classId, d.classId) / unitAgeWeight(d, toAge);
+    acc += su * context * unitAgeWeight(u, fromAge) * (vs / b);
   }
   return acc / a;
 };
@@ -78,10 +79,10 @@ export const battleEffectiveness = ({
   attackerAgeId = FIRST_AGE_ID, defenderAgeId = FIRST_AGE_ID, defenderDamageReductionMultiplier = 1,
   attackerPenaltyMultiplier = 1, battleType = 'field'
 }) => ({
-  att: matchupMult(attackerUnits, defenderUnits, isAttackingFortification)
+  att: matchupMult(attackerUnits, defenderUnits, isAttackingFortification, attackerAgeId, defenderAgeId)
     * getTerrainCombatModifier(terrain).attackerMult * defenderDamageReductionMultiplier
     * getRosterCombatMultiplier(attackerAgeId, defenderAgeId) * autoAttackerMult(battleType) * attackerPenaltyMultiplier,
-  def: matchupMult(defenderUnits, attackerUnits, false) * getRosterCombatMultiplier(defenderAgeId, attackerAgeId)
+  def: matchupMult(defenderUnits, attackerUnits, false, defenderAgeId, attackerAgeId) * getRosterCombatMultiplier(defenderAgeId, attackerAgeId)
 });
 
 /** The square law's power ratio (effA x NA²) / (effB x NB²). */

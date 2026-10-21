@@ -86,6 +86,7 @@ export const getMapMarkers = (state, { selected = null } = {}) => {
         stack: orderedStack(g.units).map((u) => u.id),
         top: topUnit(orderedStack(g.units), selected?.tile === g.tile ? selected.unitId : null)?.id,
         topClass: topUnit(orderedStack(g.units), selected?.tile === g.tile ? selected.unitId : null)?.classId,
+        topAge: topUnit(orderedStack(g.units), selected?.tile === g.tile ? selected.unitId : null)?.ageId || null, // its own age's model (unitUpgrades.js)
         civilians: g.domain === 'land' ? civilians.get(g.tile) || 0 : 0,
         count: g.units.length + (g.domain === 'land' ? civilians.get(g.tile) || 0 : 0),
         men: Math.round(strength * MEN_PER_STRENGTH),

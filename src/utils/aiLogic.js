@@ -285,7 +285,8 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
       id: unitId, regionId, homeRegionId: regionId, tile: regions[regionId]?.tile ?? null, ownerId: nationId, domain: 'land', classId,
       strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1,
       xp: 0, rank: 'recruit', promotions: [], commanderId: null,
-      transportCapacity: null, embarkedOn: null
+      transportCapacity: null, embarkedOn: null,
+      ...(isIndependentNation(nation) ? {} : { ageId }) // a major's unit keeps its age (unitUpgrades.js)
     };
     nextNations[nationId] = usesRealEconomy
       ? applyAIRecruitCost(nation, state, ageId)
