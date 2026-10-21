@@ -94,6 +94,9 @@ export const ActionTypes = {
   RESOLVE_ALL_DEFENSES_AUTO: 'RESOLVE_ALL_DEFENSES_AUTO',
   WITHDRAW_FROM_DEFENSE: 'WITHDRAW_FROM_DEFENSE',
   PROMOTE_UNIT: 'PROMOTE_UNIT',
+  // Turn older-age units into the current age's unit of their class for gold (src/engine/
+  // unitUpgrades.js): payload { unitIds } (one unit or a whole stack), on the nation's own tiles.
+  UPGRADE_UNIT: 'UPGRADE_UNIT',
   HIRE_GENERAL: 'HIRE_GENERAL',
   APPOINT_GENERAL: 'APPOINT_GENERAL',
 

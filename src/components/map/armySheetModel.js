@@ -20,6 +20,9 @@ import { locationOf } from '../../engine/unitLocation';
 import { computeSupplyFlow } from '../../engine/supplies';
 import { getResearched, ageOf } from '../../engine/nationState';
 import { mapEffectsFor } from '../../engine/techMapEffects';
+import { upgradeQuote, unitAgeOf } from '../../engine/unitUpgrades';
+import { reasonText } from '../../i18n/messageText';
+import { reasonOf } from '../../engine/messages';
 
 import { pillageTile } from '../../engine/threat';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
@@ -79,10 +82,14 @@ export const armySheetModel = (state, tile, fleet = false) => {
   const ageId = ageOf(state, state.playerNationId);
   const max = SUPPLY_MAX + mapEffectsFor(state, state.playerNationId).supplyMax;
   const researched = getResearched(state, state.playerNationId);
-  const rows = units.map((u) => ({
+  // A unit's name, model and strength are its own age's (unitUpgrades.js): an old Spearman stays one.
+  const nameAt = (a, u) => (naval ? navalName(navalLineOf(u), a) : getUnitDefinition(a, u.classId)?.name || UNIT_CLASSES[u.classId]?.name || u.classId);
+  const rows = units.map((u) => { const uAge = unitAgeOf(state, u); return {
     id: u.id,
+    upgrade: upgradeRow(state, u, ageId, naval, nameAt),
+    ageId: uAge,
     // "3rd Akkadian Spearmen" in a peoples world (regimentNames.js), the plain name otherwise
-    name: u.explorer ? t('mx.army.scouts') : ((en) => regimentLabel(regimentName(state.nations[u.ownerId], u, en), state.nations[u.ownerId]?.people, naval ? navalShipName(navalLineOf(u), ageId, en) : unitRosterName(ageId, u.classId, en), u.regiment))(naval ? navalName(navalLineOf(u), ageId) : getUnitDefinition(ageId, u.classId)?.name || UNIT_CLASSES[u.classId]?.name || u.classId),
+    name: u.explorer ? t('mx.army.scouts') : ((en) => regimentLabel(regimentName(state.nations[u.ownerId], u, en), state.nations[u.ownerId]?.people, naval ? navalShipName(navalLineOf(u), uAge, en) : unitRosterName(uAge, u.classId, en), u.regiment))(nameAt(uAge, u)),
     cargo: naval ? Object.values(state.units).filter((c) => c.embarkedOn === u.id).length : 0,
     classId: u.classId,
     navalLine: naval ? navalLineOf(u) : null,
@@ -100,7 +107,7 @@ export const armySheetModel = (state, tile, fleet = false) => {
     generalId: u.commanderId || null,
     air: u.classId === 'air', patrol: !!u.patrol,
     perks: canPromote(u) ? ALL_PERKS.filter((p) => !hasPerk(u, p.id)).map((p) => ({ id: p.id, name: perkName(p.id, p.name), description: perkDescription(p.id, p.description) })) : []
-  }));
+  }; });
   const generals = Object.entries(state.hiredCommanders || {}).filter(([, g]) => !g.assignedUnitId).map(([id, g]) => ({ id, name: nameNow('person', null, g.name) }));
   const groups = [];
   rows.forEach((r) => {
@@ -171,8 +178,27 @@ export const armySheetModel = (state, tile, fleet = false) => {
     airCover: naval ? 0 : airUnitsInRange(state, state.playerNationId, tile, units).length, airRange: AIR_RANGE,
     targets: scouts ? [] : naval ? fleetTargets(state, tile, units) : attackTargets(state, tile, units),
     siege: naval ? null : siegePressed(state, tile, units),
-    unitIds: units.map((u) => u.id)
+    unitIds: units.map((u) => u.id),
+    upgradeAll: upgradeAllModel(state, units)
   };
+};
+
+/** One unit's Upgrade button (unitUpgrades.js): null for a unit of the current age, else
+ * { ok, gold, to (the new unit's name), why (the reason it is off, in the player's language) }. */
+const upgradeRow = (state, u, ageId, naval, nameAt) => {
+  const q = upgradeQuote(state, u.id);
+  if (!q.older) return null;
+  return { ok: q.ok, gold: q.gold, to: naval ? navalShipName(navalLineOf(u), ageId, nameAt(ageId, u)) : unitRosterName(ageId, u.classId, nameAt(ageId, u)), why: q.ok ? null : reasonText(q) };
+};
+
+/** The whole stack's Upgrade button: every older unit that can be upgraded now, priced together
+ * ({ count, gold, ok }) or null when none is older. The reducer upgrades in order while gold lasts. */
+const upgradeAllModel = (state, units) => {
+  const quotes = units.map((u) => upgradeQuote(state, u.id, Infinity)).filter((q) => q.ok);
+  if (quotes.length < 2) return null;
+  const gold = quotes.reduce((s, q) => s + q.gold, 0);
+  const ok = (state.resources?.gold || 0) >= gold;
+  return { count: quotes.length, gold, ok, why: ok ? null : reasonText(reasonOf('m.why.upgradeGold', { gold })) };
 };
 
 /** Your other stacks on the tiles around, with moves left: the sheet offers to march them in

@@ -84,6 +84,7 @@ import {
 } from '../data/buildings';
 import { regionHasDeposit } from '../data/deposits';
 import { getUnlockedClasses } from '../data/unitClasses';
+import { upgradeUnits, stampUnitAges } from './unitUpgrades';
 import {
   ACTION_COSTS, DISBAND_HR_REFUND_RATIO, FUND_SCHOLARS_TECHPOINTS,
   SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, GIFT_HOSTILITY_REDUCTION,
@@ -458,7 +459,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
   const built = refreshPeopleNames(syncWorldRegistry(finalizeIndependents(withCityStates(applyScenario(initial, { ...scenario, seed: worldSeed, map: mapRecord, ...(startSites ? { sites: startSites } : {}) }), cityStates), { late: independentPick.late })));
   // A Stone Age start (U26): the tribal camps, away from every band's home and every city.
   const homes = [...Object.values(built.units).filter(isBand).map((u) => u.band.home), ...Object.values(built.regions).map((c) => c.tile)];
-  const started = initFog(built.scenario?.band ? { ...built, tribalCamps: placeCamps(worldSeed, homes), pendingCamp: null } : built, { on: fog });
+  const started = stampUnitAges(initFog(built.scenario?.band ? { ...built, tribalCamps: placeCamps(worldSeed, homes), pendingCamp: null } : built, { on: fog })); // the start's units are of the first age (unitUpgrades.js)
   // The guided start (src/engine/tutorial.js): twenty-five turns of prompts for a new player.
   return guided ? { ...started, tutorial: { startTurn: started.turnNumber || 1, done: {}, ended: false } } : started;
 };
@@ -544,6 +545,7 @@ const UNIT_ACTION_IDS = {
   [ActionTypes.MOVE_ARMY]: (p) => [p.unitId],
   [ActionTypes.DISBAND_UNIT]: (p) => [p.unitId],
   [ActionTypes.PROMOTE_UNIT]: (p) => [p.unitId],
+  [ActionTypes.UPGRADE_UNIT]: (p) => (Array.isArray(p.unitIds) ? p.unitIds : []),
   [ActionTypes.APPOINT_GENERAL]: (p) => [p.unitId],
   [ActionTypes.EMBARK_UNIT]: (p) => [p.landUnitId, p.navalUnitId],
   [ActionTypes.DISEMBARK_UNIT]: (p) => [p.landUnitId],
@@ -1110,10 +1112,8 @@ const reduceAction = (state, action) => {
         ownerId: state.playerNationId,
         domain: isNaval ? 'naval' : 'land',
         classId,
-        // Plan §M14: the stale, frozen-at-recruitment ageId is gone — a unit's roster stats
-        // (src/data/unitClasses.js) are now looked up live via its OWNER's current effective age
-        // every time combat needs them, so a unit auto-upgrades as its nation researches forward
-        // instead of being permanently stuck at whatever age it was recruited in.
+        // The age it is built in: it keeps that age's unit until UPGRADE_UNIT (unitUpgrades.js).
+        ageId: ageOf(state, state.playerNationId),
         strength: 1000,
         maxStrength: 1000,
         morale: 100,
@@ -3035,6 +3035,20 @@ const reduceAction = (state, action) => {
       // The capture card (decision 40, capture.js): Conquer, Raze, Make tributary or Free, once.
       const r = resolveCapture(state, action.payload?.captureId, action.payload?.choice);
       return r.reason ? reject(state, r.reasonMsg ? msg(r.reasonMsg.key, r.reasonMsg.vars) : r.reason) : r;
+    }
+
+    case ActionTypes.UPGRADE_UNIT: {
+      // Older-age units become the current age's unit of their class (unitUpgrades.js): every one
+      // that can be, while the gold lasts; the button's quote is revalidated here.
+      const ids = (Array.isArray(action.payload?.unitIds) ? action.payload.unitIds : []).filter((id) => state.units[id]?.ownerId === state.playerNationId);
+      const r = upgradeUnits(state, ids, state.resources.gold || 0);
+      if (!r.count) return reject(state, r.first ? whyOf(r.first) : msg('m.act.no.upgrade'));
+      return {
+        ...state,
+        units: r.units,
+        resources: { ...state.resources, gold: state.resources.gold - r.gold },
+        logs: [...state.logs, { year: state.year, ...msg('m.act.upgraded', { count: r.count, gold: r.gold }), type: LogTypes.ACTION }]
+      };
     }
 
     case ActionTypes.RUSH_PRODUCTION: {

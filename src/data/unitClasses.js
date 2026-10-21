@@ -201,8 +201,8 @@ export const getAvailableClasses = (ageId) => Object.keys(UNIT_ROSTER[ageId] || 
 
 // Civ-style tech unlocks: the tech each age's unit needs (null = open from the age's start, so
 // infantry is always buildable). Pairs from plans/ai-output/tech-unlocks (Riflemen moved to
-// Standing Armies). The gate is read only when a unit is queued or recruited: units already
-// built stay, and they keep following their owner's age as before.
+// Standing Armies). The gate is read when a unit is queued, recruited, finished (an order waits for
+// the new age's tech) or upgraded: units already built keep the age they were built in.
 export const UNIT_UNLOCKS = {
   stone: { infantry: null, ranged: 'military_hunting_bands', siege: 'military_copper_working', naval: 'science_star_lore', support: 'governance_sacred_kingship' },
   bronze: { infantry: null, cavalry: 'infrastructure_the_wheel', ranged: 'military_composite_bow', siege: 'military_bronze_casting', naval: 'science_early_astronomy', support: 'infrastructure_mudbrick_roads' },
@@ -251,3 +251,8 @@ export const getRosterCombatMultiplier = (attackerAgeId, defenderAgeId) => {
   const defenderAttack = UNIT_ROSTER[defenderAgeId]?.[ROSTER_REFERENCE_CLASS]?.baseAttack ?? UNIT_ROSTER[FIRST_AGE_ID][ROSTER_REFERENCE_CLASS].baseAttack;
   return attackerAttack / defenderAttack;
 };
+
+/** A unit's weight inside a side fighting at `sideAgeId`: its own age's roster attack over the side's
+ * (src/engine/unitUpgrades.js: units keep the age they were built in). Exactly 1 for a unit with no
+ * age of its own or of the side's age, so an army of the current age fights as before. */
+export const unitAgeWeight = (unit, sideAgeId) => (!unit?.ageId || unit.ageId === sideAgeId || !UNIT_ROSTER[unit.ageId] ? 1 : getRosterCombatMultiplier(unit.ageId, sideAgeId || FIRST_AGE_ID));

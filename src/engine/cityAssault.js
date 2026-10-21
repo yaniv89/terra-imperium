@@ -31,7 +31,7 @@
 // The HP lives on the city's siege record (city.siege.hp), so it heals SIEGE_HEAL a turn once nobody
 // besieges or attacks it (sieges.js). Pure; the roll comes from the battle's rng.
 import { siegeHpOf, wallsOf, SIEGE_ENGINEERING_MULT } from './sieges';
-import { getRosterCombatMultiplier } from '../data/unitClasses';
+import { getRosterCombatMultiplier, unitAgeWeight } from '../data/unitClasses';
 import { powExact } from '../utils/exactMath';
 import { FIRST_AGE_ID } from '../data/ages';
 
@@ -60,7 +60,7 @@ export const cityAttackStrength = (attackerUnits, { siegeEngineering = false, at
   const raw = alive(attackerUnits).reduce((s, u) => {
     const f = u.classId === 'siege' ? SIEGE_VS_CITY * (siegeEngineering ? SIEGE_ENGINEERING_MULT : 1)
       : u.classId === 'cavalry' ? CAVALRY_VS_CITY : u.classId === 'air' ? AIR_VS_CITY : 1;
-    return s + u.strength * f;
+    return s + u.strength * f * unitAgeWeight(u, attackerAgeId || FIRST_AGE_ID); // each unit at its own age (unitUpgrades.js)
   }, 0);
   return raw * getRosterCombatMultiplier(attackerAgeId || FIRST_AGE_ID, defenderAgeId || FIRST_AGE_ID);
 };

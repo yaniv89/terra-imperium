@@ -44,6 +44,7 @@ import { calcAllNationIncomes, processAIEconomyTurn, settleAIUpkeep, thinksThisT
 import { aiBudgetStep } from './aiBudget';
 import { warBurdenInputs, warExhaustionRise } from './warBurden';
 import { isUnitInBattle } from './invasion';
+import { stampUnitAges, aiUpgradeUnits } from './unitUpgrades';
 import { resolveWarProgress, refreshWarFlags } from './diplomacy';
 import { drainAutoBattles } from './battleQueue';
 import { transferRegion } from './regionTransfer';
@@ -55,7 +56,7 @@ import {
   REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD, REVOLT_RECLAIMED_CONTROL, REVOLT_RECLAIMED_UNREST
 } from '../data/rebellion';
 import { createRng } from '../utils/rng';
-import { processCities, growthThreshold, privateWorld } from './world/cities';
+import { processCities, growthThreshold, privateWorld, unitWaitsForTech } from './world/cities';
 import { makeSettler, processSettlers, bestSites, isSettler, foundAiVillages } from './settlers';
 import { chooseProduction, nationCounts, SETTLER_THINK_PERIOD } from './aiProduction';
 import { syncWorldRegistry } from './world/registry';
@@ -180,7 +181,10 @@ const runCitiesPhase = (state, newTurnNumber) => {
   let cities = state.regions;
   const counts = nationCounts(state);
   Object.values(state.regions).forEach((city) => {
-    if (!city.owner || city.owner === state.playerNationId || city.outpost || city.production?.current) return;
+    if (!city.owner || city.owner === state.playerNationId || city.outpost) return;
+    // An order the new age's tech now holds up (cities.js unitWaitsForTech) is chosen again.
+    const nc = city.production?.current ? nationCtx(city.owner) : null;
+    if (nc && !unitWaitsForTech(city.production.current, nc.ageId, nc.researched, nc.techFree)) return;
     // A city that found nothing to build waits for its next settler-think turn (aiProduction.js
     // SETTLER_THINK_PERIOD) instead of asking again every turn: the ask was a third of the phase.
     if ((city.production?.idleUntil || 0) > newTurnNumber) return;
@@ -219,7 +223,7 @@ const runCitiesPhase = (state, newTurnNumber) => {
     }
     if (item.kind !== 'unit') return;
     const id = `unit_${nextUnitSeq++}`;
-    units[id] = { id, regionId: item.city, homeRegionId: item.city, tile: regions[item.city]?.tile ?? null, ownerId: item.nationId, domain: item.classId === 'naval' ? 'naval' : 'land', classId: item.classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null, ...(item.army ? { army: item.army } : {}), ...(item.explorer ? { explorer: true, strength: EXPLORER_STRENGTH, maxStrength: EXPLORER_STRENGTH } : {}), ...(item.classId === 'naval' ? { navalLine: item.navalLine || 'warship', transportCapacity: navalCargo(item.navalLine || 'warship', ctxFor(regions[item.city] || { owner: item.nationId }).ageId) } : {}) };
+    units[id] = { id, ...(isIndependent(state.nations, item.nationId) ? {} : { ageId: ageOf(state, item.nationId) }), regionId: item.city, homeRegionId: item.city, tile: regions[item.city]?.tile ?? null, ownerId: item.nationId, domain: item.classId === 'naval' ? 'naval' : 'land', classId: item.classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null, ...(item.army ? { army: item.army } : {}), ...(item.explorer ? { explorer: true, strength: EXPLORER_STRENGTH, maxStrength: EXPLORER_STRENGTH } : {}), ...(item.classId === 'naval' ? { navalLine: item.navalLine || 'warship', transportCapacity: navalCargo(item.navalLine || 'warship', ctxFor(regions[item.city] || { owner: item.nationId }).ageId) } : {}) };
   });
   const logs = result.logs.filter((l) => l.nationId === state.playerNationId).map(carry);
   disasterLogs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push(carry(l)); });
@@ -251,6 +255,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   if (state.pendingDefenses?.length) return state;
   // Armies on tiles (armies.js): every unit's tile and city agree before the turn reads them.
   state = normalizeUnitTiles(state);
+  // Units keep the age they were built in (unitUpgrades.js): any major's unit without one gets it now, before research moves on.
+  state = stampUnitAges(state);
   // The Stone Age opening (settlers.js, U23): AI bands found their first village.
   state = foundAiVillages(state);
   state = updateCamps(state); // tribal camps (tribalCamps.js, U26)
@@ -680,6 +686,9 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     if (!thinksThisTurn(nId, tier, newTurnNumber)) return;
     const result = processAIEconomyTurn(aiEconState, regions, nId);
     nations[nId] = result.nation;
+    // Spare gold upgrades old units at home (unitUpgrades.js): a few a think, into the turn's units.
+    const upgradeGold = aiUpgradeUnits(upkeepState, nId, keptUnits, units, nations[nId].economy?.gold || 0);
+    if (upgradeGold) nations[nId] = { ...nations[nId], economy: { ...nations[nId].economy, gold: nations[nId].economy.gold - upgradeGold } };
   });
   mark('aiEconomy');
 

@@ -13,6 +13,7 @@
 //   like `0`, `false`, or `null` — those are real saved data, not "missing"). It runs on every
 //   load, after any numbered migrations, so a save from a build that's only a few commits behind
 //   (no migration needed yet) still gets any new field for free.
+import { stampUnitAges } from './unitUpgrades';
 import { createInitialState } from './gameReducer';
 import { initFog, reviveFog, repairOwnMemory } from './fog';
 import { keepWorldRegistry } from './world/registry';
@@ -383,7 +384,8 @@ const migrateSavePayload = (payload) => {
     state = step(state);
     version += 1;
   }
-  const filled = backfillDefaults(state);
+  // A unit from before units kept their age (unitUpgrades.js) is of its owner's age now: no version bump.
+  const filled = stampUnitAges(backfillDefaults(state));
   // A city the player lost out of sight in a save from before fog.js refreshOwnMemory (P4-C1).
   return { version: CURRENT_SAVE_VERSION, state: filled.fog ? repairOwnMemory(filled) : initFog(filled) };
 };

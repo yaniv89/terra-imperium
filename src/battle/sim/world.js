@@ -39,7 +39,8 @@ const RANK_DEPTH = 2;
 
 const isBackLine = (stats) => !stats.melee && !stats.flying;
 
-export const makeSquad = (w, unit, side, ageId, index) => {
+export const makeSquad = (w, unit, side, sideAgeId, index) => {
+  const ageId = unit.ageId || sideAgeId; // a unit keeps the age it was built in (unitUpgrades.js)
   const stats = getUnitBattleStats(unit, ageId); // a ship by its line (D5b), anything else by its class
   return {
     idx: index,
