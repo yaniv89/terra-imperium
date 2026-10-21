@@ -7,7 +7,7 @@
 // march to attack (marchAttack.js): the route preview and the turns to arrive show here first ("4 turns, stops at Der"), and the assault is offered when it arrives.
 import { reasonText } from '../../i18n/messageText';
 import React, { useState } from 'react';
-import { Flag, Swords, X } from 'lucide-react';
+import { Flag, Spline, Swords, X } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA } from '../../data/regions';
@@ -85,7 +85,7 @@ const MarchBar = () => {
   const { target, isTile, naval } = m;
   const targetName = isTile ? placeLabel(state, target) : name(target);
 
-  const marchNow = () => { dispatch({ type: ActionTypes.SET_ROUTE, payload: { ...(isTile ? { fromRegionId: march.from, toTile: target } : { fromRegionId: march.from, toRegionId: target }), naval, unitIds: march.unitIds || null } }); cancel(); };
+  const marchNow = () => { dispatch({ type: ActionTypes.SET_ROUTE, payload: { ...(isTile ? { fromRegionId: march.from, toTile: target, via: march.via || undefined } : { fromRegionId: march.from, toRegionId: target }), naval, unitIds: march.unitIds || null } }); cancel(); };
   const marchAttack = () => { dispatch({ type: ActionTypes.SET_ROUTE, payload: { fromRegionId: march.from, toRegionId: target, attack: true, unitIds: march.unitIds || null } }); cancel(); };
   const moveNow = () => { m.units.forEach((u) => dispatch({ type: ActionTypes.MOVE_ARMY, payload: { unitId: u.id, toRegionId: target } })); cancel(); };
   const attack = () => { if (!m.attackBlocked) setCityAttack(target); };
@@ -100,7 +100,8 @@ const MarchBar = () => {
   // When it sets out (I066): a march steps at once; a stack that already moved this turn sets out next turn.
   const leaves = plan?.ok ? (plan.spent ? t('march.movedAlready') : t('march.setsOut')) : '';
   let line;
-  if (target == null) line = R(naval ? 'march.tapPort' : 'march.tapCity', { who });
+  if (march.pathMode) line = <span data-testid="march-path-hint">{t('march.pathHint')}</span>;
+  else if (target == null) line = R(naval ? 'march.tapPort' : 'march.tapCity', { who });
   else if (m.canAttackNow) line = m.attackBlocked ? <span data-testid="march-attack-blocked">{R('march.bordersBlocked', { target: <b>{targetName}</b>, reason: danger(m.attackBlocked) })}</span>
     : R('march.bordersNow', { target: <b>{targetName}</b> });
   else if (m.enemyArmy?.adjacent) line = m.enemyArmy.blocked ? <span data-testid="march-attack-blocked">{R('march.foeBlocked', { reason: danger(m.enemyArmy.blocked) }, { owner: m.enemyArmy.owner, n: n(m.enemyArmy.strength) })}</span> : <span data-testid="march-enemy-army">{t('march.foeBeside', { owner: m.enemyArmy.owner, n: n(m.enemyArmy.strength) })}</span>;
@@ -130,6 +131,7 @@ const MarchBar = () => {
       <Flag className="w-4 h-4 text-fa-good shrink-0" />
       {/* A phone held sideways: two lines at most, so the bar stays a strip and the route under it shows (I083); the title holds the rest. */}
       <div className="flex-1 min-w-0 leading-snug pl:line-clamp-2" data-testid="march-line">{line}</div>
+      {!naval && <button onClick={() => ctx.setPathMode(!march.pathMode)} aria-pressed={!!march.pathMode} data-testid="march-path-mode" className={`shrink-0 min-h-[36px] px-3 rounded-lg font-semibold flex items-center gap-1.5 ${march.pathMode ? 'bg-emerald-600 text-fa-text' : 'bg-fa-hover hover:bg-fa-line'}`}><Spline className="w-3.5 h-3.5" aria-hidden="true" />{t('march.path')}</button>}
       {m.canAttackNow && <button onClick={attack} disabled={!!m.attackBlocked} title={m.attackBlocked || undefined} data-testid="march-attack-now" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:hover:bg-red-600 font-semibold text-fa-text">{t('march.attack')}</button>}
       {m.canMarchAttack && (
         <button onClick={marchAttack} data-testid="march-attack" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 font-semibold text-fa-text flex items-center gap-1.5">

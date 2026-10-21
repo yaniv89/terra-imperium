@@ -123,6 +123,25 @@ describe('planning a route', () => {
   });
 });
 
+describe('a drawn path (U38)', () => {
+  it('a march through way points walks them in order, and the route is one contiguous tile path', () => {
+    const ring3 = RINGS[3].filter((t) => free(S, t));
+    const via = ring3[ring3.length - 1]; const to = freeAt(5);
+    const s = withUnits(S, [unit('a', P)]);
+    const direct = planMarch(s, P, to);
+    const drawn = planMarch(s, P, to, null, { via: [via] });
+    expect(drawn.ok).toBe(true);
+    expect(drawn.path).toContain(via);
+    expect(drawn.path.indexOf(via)).toBeLessThan(drawn.path.length - 1);
+    expect(drawn.path[drawn.path.length - 1]).toBe(to);
+    drawn.path.slice(1).forEach((t, i) => expect(tiles.neighbors[drawn.path[i]]).toContain(t));
+    expect(drawn.path.length).toBeGreaterThanOrEqual(direct.path.length);
+    const ordered = gameReducer(s, { type: ActionTypes.SET_ROUTE, payload: { fromRegionId: P, toTile: to, via: [via] } });
+    expect([...(ordered.units.a.route || []), ordered.units.a.tile]).toContain(via);
+    expect(planMarch(s, P, to, null, { via: [-5] }).ok).toBe(false); // a way point off the map: no route
+  });
+});
+
 describe('marching', () => {
   const marchTo = (s, from, target) => gameReducer(s, { type: ActionTypes.SET_ROUTE, payload: typeof target === 'number' ? { fromRegionId: from, toTile: target } : { fromRegionId: from, toRegionId: target } });
   // The route alone, not stepped now (routes.js orderMarch): for the tests of the walk itself.

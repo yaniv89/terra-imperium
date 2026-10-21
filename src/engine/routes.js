@@ -88,6 +88,21 @@ export const findRoute = (state, from, target) => {
   return findTilePath(state, from, to, state.playerNationId, { researched: getResearched(state, state.playerNationId) });
 };
 
+// U38: a drawn path. The route through each `via` tile in turn, then to the target: the cheapest
+// path of each leg, joined. Without `via` it is findRoute. A leg that has no way fails the whole path.
+export const findRouteVia = (state, from, target, via = null) => {
+  if (!via?.length) return findRoute(state, from, target);
+  const path = [from];
+  for (const stop of [...via, target]) {
+    const at = path[path.length - 1];
+    if (targetTile(state, stop) === at) continue;
+    const leg = findRoute(state, at, stop);
+    if (!leg.path) return leg;
+    path.push(...leg.path.slice(1));
+  }
+  return path.length > 1 ? { path } : findRoute(state, from, target);
+};
+
 /** Has the unit already spent this turn's movement (Move now, a march stepped now, the walk at the
  * start of this turn)? It then waits for the next turn (playtest audit I065: no double move). */
 export const marchedThisTurn = (state, u) => u?.movedNowTurn != null && u.movedNowTurn === state.turnNumber;
@@ -181,12 +196,12 @@ export const marchOrigin = (state, fromId, unitIds = null, { naval = false } = {
 // now, when ordered), the arrival (End Turns, 0 = now), the supplies it will eat, and where it will
 // halt (the first enemy tile, and its city). `spent`: the stack cannot step now (it already moved
 // this turn), so it sets out at the next turn's start. Pure.
-export const planMarch = (state, fromId, target, unitIds = null, { naval = false } = {}) => {
+export const planMarch = (state, fromId, target, unitIds = null, { naval = false, via = null } = {}) => {
   const units = marchingUnits(state, fromId, unitIds, { naval });
   if (!units.length) return { ok: false, ...reasonOf(naval ? 'm.why.noFleetSail' : 'm.why.noArmyMarch') };
   const from = mainTile(state, units);
   const to = targetTile(state, target);
-  const found = naval ? (to == null ? reasonOf('m.why.unknownPlace') : findSeaPath(state, from, to, state.playerNationId)) : findRoute(state, from, target);
+  const found = naval ? (to == null ? reasonOf('m.why.unknownPlace') : findSeaPath(state, from, to, state.playerNationId)) : findRouteVia(state, from, target, via);
   if (!found.path) return { ok: false, reason: found.reason, reasonMsg: found.reasonMsg };
   const steps = found.path.slice(1);
   const pace = naval ? units.reduce((m, u) => Math.min(m, fleetPace(state, u)), Infinity) : stackPace(units, getResearched(state, units[0]?.ownerId));
@@ -212,8 +227,8 @@ export const released = (u) => (u.hold || u.siegeOf ? { ...u, hold: false, siege
 
 // Give the order (gameReducer SET_ROUTE). Units standing elsewhere in the city's land get a route
 // of their own. Returns { units, plan } or { reason }.
-export const orderMarch = (state, fromId, target, unitIds = null, { naval = false } = {}) => {
-  const plan = planMarch(state, fromId, target, unitIds, { naval });
+export const orderMarch = (state, fromId, target, unitIds = null, { naval = false, via = null } = {}) => {
+  const plan = planMarch(state, fromId, target, unitIds, { naval, via });
   if (!plan.ok) return { reason: plan.reason, reasonMsg: plan.reasonMsg };
   const units = { ...state.units };
   const to = plan.path[plan.path.length - 1];
