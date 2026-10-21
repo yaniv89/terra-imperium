@@ -295,7 +295,7 @@ export const BuildingActions = ({ building, ageId, stock, eco = null, onTrain, o
       {roles.length > 0 && (
         <div className="flex gap-1">
           {roles.map((role) => (
-            <button key={role} type="button" disabled={!!blockOf(role)} title={blockOf(role) || undefined} onClick={() => train(role)} data-testid={`train-${role}`}
+            <button key={role} type="button" disabled={!!blockOf(role)} title={blockOf(role) || undefined} onClick={() => train(role)} data-testid={`train-${role}`} data-help={`unit:${ageId}_${role}`}
               className="flex-1 min-w-0 h-12 px-1 rounded-[10px] bg-fa-raised border border-fa-line flex items-center gap-1.5 disabled:opacity-45">
               {role === 'worker' ? <Hammer className="w-5 h-5 shrink-0 text-fa-muted" /> : <GameIcon group="units" id={role} url={unitIconUrl(role)} size={24} fallback={null} />}
               <span className="min-w-0 flex flex-col items-start gap-0.5">
