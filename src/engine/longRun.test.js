@@ -1,5 +1,5 @@
 // src/engine/longRun.test.js
-// Whole-world stress runs: 150 turns of all 240 nations from a fixed seed, with a passive player
+// Whole-world stress runs: 150 turns of a small peoples world from a fixed seed, with a passive player
 // who answers peace offers (a free white peace is accepted, anything that costs is refused).
 //   - Deterministic: the same seed twice gives the identical world, turn by turn (a save/load
 //     or a multiplayer replay can never drift).
@@ -8,7 +8,8 @@
 //     systems (levy, casualty scars, devastation) never push a province below its floor.
 import { describe, it, expect } from 'vitest';
 import { resolveTurn } from './resolveTurn';
-import { createInitialState, gameReducer } from '../context/GameContext';
+import { gameReducer } from '../context/GameContext';
+import { peoplesWorld } from './testWorld';
 import { ActionTypes, GameStatus } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { REGIONS_DATA } from '../data/regions';
@@ -16,11 +17,10 @@ import { POPULATION_FLOOR_RATIO } from './population';
 import { assertGameState } from './stateAudit';
 
 const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {});
-// The passive player is Australia: on the Dawn world every nation is one city, so a passive
-// player with neighbours is conquered within 50 turns (one lost city is the game), which would
-// end the run before the world is stressed. Canberra borders nobody.
+// The passive player is the world's default people (akkad): a passive player with neighbours is
+// conquered early (one lost city is the game), which would end the run before the world is stressed.
 const world = (seed) => ({
-  ...createInitialState({ playerNationId: 'au', rngSeed: seed }),
+  ...peoplesWorld({ seed }),
   firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true }
 });
 const advance = (state) => {

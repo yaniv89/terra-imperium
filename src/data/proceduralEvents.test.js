@@ -1,13 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { pickProceduralEvent } from './proceduralEvents';
-import { createInitialState } from '../context/GameContext';
+import { peoplesWorld, rivalOf } from '../engine/testWorld';
 import { createRng } from '../utils/rng';
 import { EVENT_CHAINS } from './eventChains';
-import { getNationCapital } from './regions';
+
+const world = () => peoplesWorld({ seed: 5 });
+const capOf = (s) => s.nations[s.playerNationId].capitalRegionId;
 
 describe('pickProceduralEvent', () => {
   it('returns a real, well-formed event for at least one seed against the initial state', () => {
-    const state = createInitialState({ playerNationId: 'us' });
+    const state = world();
     const results = Array.from({ length: 20 }, (_, seed) => pickProceduralEvent(state, createRng(seed)));
     const hits = results.filter(Boolean);
     expect(hits.length).toBeGreaterThan(0);
@@ -25,24 +27,24 @@ describe('pickProceduralEvent', () => {
   });
 
   it('is deterministic given the same state and seed', () => {
-    const state = createInitialState({ playerNationId: 'us' });
+    const state = world();
     const a = pickProceduralEvent(state, createRng(7));
     const b = pickProceduralEvent(state, createRng(7));
     expect(a).toEqual(b);
   });
 
   it('pins the event to one of the player\'s cities and names it in the description', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+    const state = world();
     const results = Array.from({ length: 20 }, (_, seed) => pickProceduralEvent(state, createRng(seed)));
     const hit = results.find(e => e && e.cityId);
     expect(hit).toBeTruthy();
-    expect(state.regions[hit.cityId].owner).toBe('fr');
+    expect(state.regions[hit.cityId].owner).toBe(state.playerNationId);
     expect(hit.tile).toBe(state.regions[hit.cityId].tile);
     expect(hit.description).toContain(state.regions[hit.cityId].name);
   });
 
   it('only offers the ambitious-general template once a general is actually hired', () => {
-    const withoutGenerals = createInitialState({ playerNationId: 'us' });
+    const withoutGenerals = world();
     const noGeneralHit = Array.from({ length: 30 }, (_, seed) => pickProceduralEvent(withoutGenerals, createRng(seed)))
       .some(e => e?.id.includes('ambitious_general'));
     expect(noGeneralHit).toBe(false);
@@ -55,7 +57,7 @@ describe('pickProceduralEvent', () => {
   });
 
   it('never spawns a follow-up that points at a nonexistent chain entry, across every template it can build', () => {
-    const state = { ...createInitialState({ playerNationId: 'us' }), hiredCommanders: { gen_1: { id: 'gen_1', name: 'Commander 1' } } };
+    const state = { ...world(), hiredCommanders: { gen_1: { id: 'gen_1', name: 'Commander 1' } } };
     for (let seed = 0; seed < 40; seed++) {
       const event = pickProceduralEvent(state, createRng(seed));
       if (!event) continue;
@@ -67,16 +69,16 @@ describe('pickProceduralEvent', () => {
   });
 
   it('offers the refugee-crisis template when a war is active anywhere, even one the player isn\'t in', () => {
-    const state = createInitialState({ playerNationId: 'us' });
-    const withDistantWar = { ...state, wars: [{ active: true, aggressor: 'de', enemy: 'fr' }] };
+    const state = world();
+    const withDistantWar = { ...state, wars: [{ active: true, aggressor: rivalOf(state), enemy: rivalOf(state, 1) }] };
     const hit = Array.from({ length: 40 }, (_, seed) => pickProceduralEvent(withDistantWar, createRng(seed)))
       .some(e => e?.id.includes('refugee_crisis'));
     expect(hit).toBe(true);
   });
 
   it('offers the refugee-crisis template when the home region is badly unsettled, even with no war', () => {
-    const state = createInitialState({ playerNationId: 'us' });
-    const capitalId = getNationCapital('us');
+    const state = world();
+    const capitalId = capOf(state);
     const withUnrest = { ...state, wars: [], regions: { ...state.regions, [capitalId]: { ...state.regions[capitalId], unrest: 50 } } };
     const hit = Array.from({ length: 40 }, (_, seed) => pickProceduralEvent(withUnrest, createRng(seed)))
       .some(e => e?.id.includes('refugee_crisis'));
@@ -84,8 +86,8 @@ describe('pickProceduralEvent', () => {
   });
 
   it('never offers the refugee-crisis template with no war and a settled home region', () => {
-    const state = createInitialState({ playerNationId: 'us' });
-    const capitalId = getNationCapital('us');
+    const state = world();
+    const capitalId = capOf(state);
     const calm = { ...state, wars: [], regions: { ...state.regions, [capitalId]: { ...state.regions[capitalId], unrest: 0 } } };
     const hit = Array.from({ length: 40 }, (_, seed) => pickProceduralEvent(calm, createRng(seed)))
       .some(e => e?.id.includes('refugee_crisis'));
@@ -95,8 +97,8 @@ describe('pickProceduralEvent', () => {
   // Build Climate Resilience (gameReducer.js's BUILD_CLIMATE_RESILIENCE) is what raises this stat —
   // this only tests the resulting eligibility gate, not the action itself.
   it('stops offering failed_harvest/harsh_winter once the home region is climate-resilient', () => {
-    const state = createInitialState({ playerNationId: 'us' });
-    const capitalId = getNationCapital('us');
+    const state = world();
+    const capitalId = capOf(state);
     const resilient = { ...state, regions: { ...state.regions, [capitalId]: { ...state.regions[capitalId], climateResilience: 3 } } };
     const results = Array.from({ length: 60 }, (_, seed) => pickProceduralEvent(resilient, createRng(seed)));
     expect(results.some(e => e?.id.includes('failed_harvest'))).toBe(false);
@@ -104,15 +106,15 @@ describe('pickProceduralEvent', () => {
   });
 
   it('still offers failed_harvest/harsh_winter below the resilience threshold', () => {
-    const state = createInitialState({ playerNationId: 'us' });
-    const capitalId = getNationCapital('us');
+    const state = world();
+    const capitalId = capOf(state);
     const unprepared = { ...state, regions: { ...state.regions, [capitalId]: { ...state.regions[capitalId], climateResilience: 0 } } };
     const results = Array.from({ length: 60 }, (_, seed) => pickProceduralEvent(unprepared, createRng(seed)));
     expect(results.some(e => e?.id.includes('failed_harvest') || e?.id.includes('harsh_winter'))).toBe(true);
   });
 
   it('always has something eligible, even with every conditional template gated off — the plan\'s "always something happening in the quiet turns"', () => {
-    const state = createInitialState({ playerNationId: 'us' });
+    const state = world();
     // Fail every conditional isEligible gate: no coast/control, low infra, high defense, no
     // unrest, no generals. failed_harvest/traveling_merchants/harsh_winter have no gate at all.
     const mostlyIneligible = {
@@ -120,7 +122,7 @@ describe('pickProceduralEvent', () => {
       hiredCommanders: {},
       regions: {
         ...state.regions,
-        [getNationCapital('us')]: { ...state.regions[getNationCapital('us')], control: 0, currentInfrastructure: 0, defenseLevel: 5, unrest: 0 }
+        [capOf(state)]: { ...state.regions[capOf(state)], control: 0, currentInfrastructure: 0, defenseLevel: 5, unrest: 0 }
       }
     };
     for (let seed = 0; seed < 10; seed++) {

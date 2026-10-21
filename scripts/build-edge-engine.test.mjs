@@ -47,25 +47,26 @@ describe('the Deno-bound engine bundle behaves identically to its source', () =>
   // consumes randomness DURING createInitialState itself now, so a post-hoc patch of the stored
   // seed would leave every one of those draws still diverging between the two calls.
   const FIXED_RNG_SEED = 12345;
+  const START = { playerNationId: 'akkad', rngSeed: FIXED_RNG_SEED, scenario: { mode: 'peoples', size: 'small', seed: 11 } };
 
   it('createInitialState produces identical state to the source, for the same inputs', () => {
-    const sourceState = sourceCreateInitialState({ playerNationId: 'fr', rngSeed: FIXED_RNG_SEED });
-    const bundledState = bundled.createInitialState({ playerNationId: 'fr', rngSeed: FIXED_RNG_SEED });
+    const sourceState = sourceCreateInitialState(START);
+    const bundledState = bundled.createInitialState(START);
     expect(bundledState).toEqual(sourceState);
-  }, 60000); // the fog's 240 explored maps make the deep compare slow
+  }, 60000); // the fog's explored maps make the deep compare slow
 
   it('gameReducer resolves a real sequence of actions identically to the source', () => {
     const actions = [
       { type: ActionTypes.ADVANCE_TURN },
-      { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: 'fr' } },
+      { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: sourceCreateInitialState(START).nations.akkad.capitalRegionId } },
       { type: ActionTypes.ADVANCE_TURN }
     ];
 
     // Both sides start from the identical fixed-seed state — resolveTurn.js only ever advances
     // rngSeed deterministically from whatever it's handed (createRng/getSeed, src/utils/rng.js),
     // so this is a real determinism check, not one papering over the seed difference above.
-    let sourceState = sourceCreateInitialState({ playerNationId: 'fr', rngSeed: FIXED_RNG_SEED });
-    let bundledState = bundled.createInitialState({ playerNationId: 'fr', rngSeed: FIXED_RNG_SEED });
+    let sourceState = sourceCreateInitialState(START);
+    let bundledState = bundled.createInitialState(START);
     actions.forEach((action) => {
       sourceState = sourceGameReducer(sourceState, action);
       bundledState = bundled.gameReducer(bundledState, action);

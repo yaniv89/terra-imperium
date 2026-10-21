@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialState, gameReducer } from './gameReducer';
+import { peoplesWorld, addCity, cloneWorld } from './testWorld';
 import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
@@ -10,17 +11,19 @@ import { TUTORIAL_NATION, TUTORIAL_WORLD_SIZE, TUTORIAL_STEPS, TUTORIAL_TURNS, T
 import { nextPrompts } from '../components/ui/nextPromptModel';
 
 const quiet = (s) => ({ ...s, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
-const guided = () => quiet(createInitialState({ playerNationId: 'eg', rngSeed: 11, guided: true }));
+// The guided game as it is really played: Kemet in a Standard peoples world, built once and shared.
+let guidedWorld = null;
+const guided = () => (guidedWorld ||= quiet(createInitialState({ playerNationId: TUTORIAL_NATION, rngSeed: 11, guided: true, scenario: { mode: 'peoples', size: TUTORIAL_WORLD_SIZE, seed: 11 } })));
 
-describe('the guided start as Egypt (plan E9)', () => {
-  it('a guided game carries the guide, a plain one does not, and Egypt starts with its Dawn settler', () => {
+describe('the guided start as Kemet (plan E9, phase W0)', () => {
+  it('a guided game carries the guide, a plain one does not, and nobody starts with a free settler', () => {
     const s = guided();
+    expect(s.playerNationId).toBe('kemet');
+    expect(Object.keys(s.nations).filter((id) => s.nations[id].kind !== 'independent')).toHaveLength(36); // the majors; the rest are independents (W1)
     expect(s.tutorial).toEqual({ startTurn: 1, done: {}, ended: false });
-    expect(createInitialState({ playerNationId: 'eg', rngSeed: 11 }).tutorial).toBeUndefined();
-    const settlers = Object.values(s.units).filter((u) => u.ownerId === 'eg' && isSettler(u));
-    expect(settlers).toHaveLength(1);
-    expect(settlers[0].tile).toBe(s.regions[s.nations.eg.capitalRegionId].tile);
-    expect(Object.values(s.units).some((u) => u.ownerId === 'fr' && isSettler(u))).toBe(false);
+    expect(peoplesWorld({ seed: 11 }).tutorial).toBeUndefined();
+    expect(Object.values(s.units).some((u) => isSettler(u))).toBe(false);
+    expect(tutorialStatus(s).current.id).toBe('settle');
   });
 
   it('is still guiding after turn 11, when the first Settlers walk out (H-22)', () => {
@@ -31,19 +34,17 @@ describe('the guided start as Egypt (plan E9)', () => {
   });
 
   it('the first step is the first prompt and each step is read from the state', () => {
-    let s = guided();
-    const cap = s.regions[s.nations.eg.capitalRegionId];
+    let s = cloneWorld(guided());
+    const cap = s.regions[s.nations.kemet.capitalRegionId];
     const status = tutorialStatus(s);
     expect(status.active).toBe(true);
     expect(status.steps.map((x) => x.id)).toEqual(TUTORIAL_STEPS.map((x) => x.id));
     expect(status.current.id).toBe('settle');
     expect(nextPrompts(s)[0]).toMatchObject({ kind: 'guide', step: 'settle', target: 'settler' });
     expect(tutorialPrompt(s).label).toMatch(/^Guide 1\/6/);
-    // Settle: a settler with a destination counts, so the prompt moves on at once.
-    const settler = Object.values(s.units).find((u) => u.ownerId === 'eg' && isSettler(u));
+    // Settle: a second city counts, so the prompt moves on at once.
     const tiles = getTiles();
-    const target = cap.tiles.find((t) => t !== cap.tile && tiles.land[t]);
-    const withTarget = { ...s, units: { ...s.units, [settler.id]: { ...settler, target } } };
+    const withTarget = addCity(s, 'kemet').state;
     expect(tutorialStatus(withTarget).current.id).toBe('farm');
     // Farm on a floodplain: queued is enough.
     const flood = cap.tiles.find((t) => t !== cap.tile && tileFacts(tiles, t).feature === 'floodplain');
@@ -74,17 +75,7 @@ describe('the guided start as Egypt (plan E9)', () => {
     expect(s.tutorial.ended).toBe(true);
     expect(s.logs.some((l) => /The guide ends/.test(l.message))).toBe(true);
     expect(tutorialStatus(s).active).toBe(false);
-    expect(resolveTurn(createInitialState({ playerNationId: 'eg', rngSeed: 11 })).tutorial).toBeUndefined();
+    expect(resolveTurn(peoplesWorld({ seed: 11 })).tutorial).toBeUndefined();
   }, 60000);
 });
 
-describe('the guided start as Kemet in a peoples world (phase W0)', () => {
-  it('plays Kemet in a Standard world, equal start: no free settler, the guide still opens on settling', () => {
-    const s = quiet(createInitialState({ playerNationId: TUTORIAL_NATION, rngSeed: 11, guided: true, scenario: { mode: 'peoples', size: TUTORIAL_WORLD_SIZE, seed: 11 } }));
-    expect(s.playerNationId).toBe('kemet');
-    expect(Object.keys(s.nations).filter((id) => s.nations[id].kind !== 'independent')).toHaveLength(36); // the majors; the rest are independents (W1)
-    expect(s.tutorial).toEqual({ startTurn: 1, done: {}, ended: false });
-    expect(Object.values(s.units).some((u) => isSettler(u))).toBe(false);
-    expect(tutorialStatus(s).current.id).toBe('settle');
-  });
-});

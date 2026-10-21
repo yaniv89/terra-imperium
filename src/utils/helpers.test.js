@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { canAfford, applyCosts, scaleCosts, calcIncome, getPlayerControl, getCostString, getResourceStrain, formatNumber, formatMoney, getSupplyCapacity, getStability, nextUnrest, getNationBonusTotal, getPowerIncome, getPowerBreakdown, getFieldedStrength, getDisplayPopulation } from './helpers';
-import { createInitialState } from '../context/GameContext';
-import { getNationCapital, REGIONS_DATA } from '../data/regions';
-import { regionHasDeposit } from '../data/deposits';
+import { peoplesWorld, rivalOf, cloneWorld } from '../engine/testWorld';
+import { REGIONS_DATA } from '../data/regions';
+import { syncWorldRegistry } from '../engine/world/registry';
 
-// A nation now spans many real provinces, not one region matching its own id — these tests use
-// each nation's capital as "its" region wherever the old one-region-per-nation model used the
-// nation id directly as a region id.
-const cap = getNationCapital;
+// A fixed small peoples world; the player's capital stands in for "its" region. The state is shared:
+// a test that changes it in place takes cloneWorld first.
+// The registry readers follow the last synced world, so each use re-syncs the shared state.
+const world = (opts = {}) => syncWorldRegistry(peoplesWorld({ seed: 11, ...opts }));
+const capOf = (state, id = state.playerNationId) => state.nations[id].capitalRegionId;
 
 describe('canAfford / applyCosts', () => {
   it('rejects when any single resource is short', () => {
@@ -51,14 +52,14 @@ describe('formatNumber / formatMoney', () => {
 
 describe('getPlayerControl', () => {
   it('reads the player nation\'s own region control', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
-    expect(getPlayerControl(state)).toBe(state.regions[cap('fr')].control);
+    const state = world();
+    expect(getPlayerControl(state)).toBe(state.regions[capOf(state)].control);
   });
 });
 
 describe('calcIncome', () => {
   it('yields only gold and hr in the Bronze Age (copper/iron/oil not unlocked)', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+    const state = world();
     const income = calcIncome(state);
     expect(income.gold).toBeGreaterThan(0);
     expect(income.hr).toBeGreaterThan(0);
@@ -68,13 +69,12 @@ describe('calcIncome', () => {
   });
 
   it('scales with control% — a lower-control empire yields less income than a fully-controlled one', () => {
-    // France now spans many provinces, not one — halving every owned province's control (not just
-    // one of them) is what actually halves the empire-wide picture the way a single region used to.
-    const state = createInitialState({ playerNationId: 'fr' });
+    // Halving every owned city's control (not just one of them) halves the empire-wide picture.
+    const state = world();
     const fullControl = calcIncome(state);
     const halfControlRegions = { ...state.regions };
     Object.keys(halfControlRegions).forEach(id => {
-      if (halfControlRegions[id].owner === 'fr') halfControlRegions[id] = { ...halfControlRegions[id], control: 50 };
+      if (halfControlRegions[id].owner === state.playerNationId) halfControlRegions[id] = { ...halfControlRegions[id], control: 50 };
     });
     const halfControl = calcIncome({ ...state, regions: halfControlRegions });
     expect(halfControl.gold).toBeLessThan(fullControl.gold);
@@ -82,9 +82,9 @@ describe('calcIncome', () => {
 
   it('adds a flat gold bonus per active trade agreement', () => {
     // A Dawn capital pays a few gold a turn, so this gives it a real tax base first.
-    const base = createInitialState({ playerNationId: 'fr', rngSeed: 1 });
-    const state = { ...base, regions: Object.fromEntries(Object.entries(base.regions).map(([id, r]) => [id, r.owner === 'fr' ? { ...r, dev: { ...r.dev, tax: 100, production: 100 } } : r])) };
-    const anyNationId = 'de'; // Adjacent capitals provide an open land route.
+    const base = world({ seed: 1 });
+    const state = { ...base, regions: Object.fromEntries(Object.entries(base.regions).map(([id, r]) => [id, r.owner === base.playerNationId ? { ...r, dev: { ...r.dev, tax: 100, production: 100 } } : r])) };
+    const anyNationId = rivalOf(state);
     const withTrade = calcIncome({
       ...state,
       nations: { ...state.nations, [anyNationId]: { ...state.nations[anyNationId], hasTradeAgreement: true } }
@@ -94,60 +94,60 @@ describe('calcIncome', () => {
   });
 
   it('yields a deposit resource once its extraction building is developed', () => {
-    // Deposits are scarce (one holder per land, src/engine/world/registry.js): use a nation whose
-    // capital holds copper in this world.
-    createInitialState({ playerNationId: 'cl' });
-    const id = ['cl', 'pe', 'us', 'cd', 'zm', 'au', 'ru', 'ca', 'cn', 'mx'].find((n) => regionHasDeposit(REGIONS_DATA[cap(n)], 'copper'));
-    const state = createInitialState({ playerNationId: id });
+    // Deposits are scarce (one holder per land, src/engine/world/registry.js): Shang's capital holds iron.
+    const state = world({ player: 'shang' });
+    expect(REGIONS_DATA[capOf(state)].deposits).toContain('iron');
     const withoutMine = calcIncome(state);
-    expect(withoutMine.copper).toBe(0);
+    expect(withoutMine.iron).toBe(0);
 
     const withMine = calcIncome({
       ...state,
       regions: {
         ...state.regions,
-        [cap(id)]: { ...state.regions[cap(id)], buildings: { ...state.regions[cap(id)].buildings, extraction: { ...state.regions[cap(id)].buildings.extraction, copper: true } } }
+        [capOf(state)]: { ...state.regions[capOf(state)], buildings: { ...state.regions[capOf(state)].buildings, extraction: { ...state.regions[capOf(state)].buildings.extraction, iron: true } } }
       }
     });
-    expect(withMine.copper).toBeGreaterThan(0);
+    expect(withMine.iron).toBeGreaterThan(0);
   });
 
   it('yields nothing from an extraction building in a region with no matching deposit', () => {
-    // France has no copper deposit listed.
-    const state = createInitialState({ playerNationId: 'fr' });
+    // Akkad's capital holds oil, no copper.
+    const state = world();
+    expect(REGIONS_DATA[capOf(state)].deposits).not.toContain('copper');
     const withMine = calcIncome({
       ...state,
       regions: {
         ...state.regions,
-        [cap('fr')]: { ...state.regions[cap('fr')], buildings: { ...state.regions[cap('fr')].buildings, extraction: { ...state.regions[cap('fr')].buildings.extraction, copper: true } } }
+        [capOf(state)]: { ...state.regions[capOf(state)], buildings: { ...state.regions[capOf(state)].buildings, extraction: { ...state.regions[capOf(state)].buildings.extraction, copper: true } } }
       }
     });
     expect(withMine.copper).toBe(0);
   });
 
   it('a city earns by its size, not by a separate people number (one population model); extraction is deposit-driven', () => {
-    const state = createInitialState({ playerNationId: 'cl', rngSeed: 3 }); // Chile has a copper deposit
-    const capital = state.regions[cap('cl')];
-    const withMine = { ...capital, buildings: { ...capital.buildings, extraction: { ...capital.buildings.extraction, copper: true } } };
-    const baseWithMine = calcIncome({ ...state, regions: { ...state.regions, [cap('cl')]: withMine } });
+    const state = world({ player: 'shang', seed: 3 }); // Shang's capital has an iron deposit
+    const capital = state.regions[capOf(state)];
+    const withMine = { ...capital, buildings: { ...capital.buildings, extraction: { ...capital.buildings.extraction, iron: true } } };
+    const baseWithMine = calcIncome({ ...state, regions: { ...state.regions, [capOf(state)]: withMine } });
     // A stale or edited people number on a city changes nothing: people are derived from size.
-    const inflated = calcIncome({ ...state, regions: { ...state.regions, [cap('cl')]: { ...withMine, currentPopulation: Math.round(capital.currentPopulation * 1.5) } } });
+    const inflated = calcIncome({ ...state, regions: { ...state.regions, [capOf(state)]: { ...withMine, currentPopulation: Math.round(capital.currentPopulation * 1.5) } } });
     expect(inflated.gold).toBe(baseWithMine.gold);
     expect(inflated.hr).toBe(baseWithMine.hr);
-    // A bigger economy (the dev a bigger city's yields write) earns more; copper stays the mine's.
-    const developed = calcIncome({ ...state, regions: { ...state.regions, [cap('cl')]: { ...withMine, dev: { tax: withMine.dev.tax * 2, production: withMine.dev.production * 2, manpower: withMine.dev.manpower * 2 } } } });
+    // A bigger economy (the dev a bigger city's yields write) earns more; iron stays the mine's.
+    const developed = calcIncome({ ...state, regions: { ...state.regions, [capOf(state)]: { ...withMine, dev: { tax: withMine.dev.tax * 2, production: withMine.dev.production * 2, manpower: withMine.dev.manpower * 2 } } } });
     expect(developed.gold).toBeGreaterThan(baseWithMine.gold);
     expect(developed.hr).toBeGreaterThan(baseWithMine.hr);
-    expect(developed.copper).toBe(baseWithMine.copper);
+    expect(developed.iron).toBe(baseWithMine.iron);
   });
 
   it('applies Set Tax Rate\'s goldMult on top of government/policy bonuses', () => {
     // A fixed seed and a real tax base: a Dawn capital's few gold a turn can round the same at two rates.
-    const fresh = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
-    const state = { ...fresh, regions: Object.fromEntries(Object.entries(fresh.regions).map(([id, r]) => [id, r.owner === 'fr' ? { ...r, dev: { ...r.dev, tax: 100, production: 100, manpower: 100 } } : r])) };
+    const fresh = world({ seed: 7 });
+    const me = fresh.playerNationId;
+    const state = { ...fresh, regions: Object.fromEntries(Object.entries(fresh.regions).map(([id, r]) => [id, r.owner === me ? { ...r, dev: { ...r.dev, tax: 100, production: 100, manpower: 100 } } : r])) };
     const normal = calcIncome(state);
-    const highTax = calcIncome({ ...state, nations: { ...state.nations, fr: { ...state.nations.fr, taxRate: 'high' } } });
-    const lowTax = calcIncome({ ...state, nations: { ...state.nations, fr: { ...state.nations.fr, taxRate: 'low' } } });
+    const highTax = calcIncome({ ...state, nations: { ...state.nations, [me]: { ...state.nations[me], taxRate: 'high' } } });
+    const lowTax = calcIncome({ ...state, nations: { ...state.nations, [me]: { ...state.nations[me], taxRate: 'low' } } });
     expect(highTax.gold).toBeGreaterThan(normal.gold);
     expect(lowTax.gold).toBeLessThan(normal.gold);
   });
@@ -229,12 +229,13 @@ describe('getNationBonusTotal', () => {
 describe('getPowerIncome', () => {
   // M3's ruler/advisor generation adds nonzero adm/dip/mil skill to createInitialState's nations —
   // real for gameplay, but it would make these exact-value assertions depend on the seeded RNG roll
-  // for 'fr' specifically. Zero the ruler and clear advisors so this suite still isolates apBonus/
+  // for one nation specifically. Zero the ruler and clear advisors so this suite still isolates apBonus/
   // tech math the way it did before M3.
   const baseState = () => {
-    const state = createInitialState({ playerNationId: 'fr' });
-    state.nations.fr.ruler = { ...state.nations.fr.ruler, adm: 0, dip: 0, mil: 0, traits: [] };
-    state.nations.fr.advisors = { adm: null, dip: null, mil: null };
+    const state = cloneWorld(world());
+    state.techTree = structuredClone(state.techTree);
+    state.nations.akkad.ruler = { ...state.nations.akkad.ruler, adm: 0, dip: 0, mil: 0, traits: [] };
+    state.nations.akkad.advisors = { adm: null, dip: null, mil: null };
     return state;
   };
 
@@ -244,7 +245,7 @@ describe('getPowerIncome', () => {
 
   it('adds an enacted reform\'s admBonus/dipBonus/milBonus to their respective pools', () => {
     const state = baseState();
-    state.nations.fr.government = { type: 'republic', reforms: { modern: 'presidential_republic' } }; // +1 adm/dip/mil each
+    state.nations.akkad.government = { type: 'republic', reforms: { modern: 'presidential_republic' } }; // +1 adm/dip/mil each
     expect(getPowerIncome(state)).toEqual({ adm: 4, dip: 4, mil: 4 });
   });
 
@@ -264,7 +265,7 @@ describe('getPowerIncome', () => {
   it('stacks a reform\'s admBonus with per-tech admBonus effects together', () => {
     const state = baseState();
     // imperial_bureaucracy and absolutism each give +1 ADM/turn.
-    state.nations.fr.government = { type: 'monarchy', reforms: { classical: 'imperial_bureaucracy', gunpowder: 'absolutism' } };
+    state.nations.akkad.government = { type: 'monarchy', reforms: { classical: 'imperial_bureaucracy', gunpowder: 'absolutism' } };
     // Of these 6, only Code of Laws and Royal Chancery have their own +1 admBonus effect.
     ['governance_code_of_laws', 'governance_scribal_bureaucracy', 'governance_civic_assemblies',
       'governance_provincial_administration', 'governance_feudal_charters', 'governance_royal_chancery'].forEach((id) => {
@@ -279,24 +280,25 @@ describe('getPowerIncome', () => {
 // that's the whole point of reusing getModifier's own breakdown arrays instead of re-deriving them.
 describe('getPowerBreakdown', () => {
   const baseState = () => {
-    const state = createInitialState({ playerNationId: 'fr' });
-    state.nations.fr.ruler = { ...state.nations.fr.ruler, adm: 0, dip: 0, mil: 0, traits: [] };
-    state.nations.fr.advisors = { adm: null, dip: null, mil: null };
+    const state = cloneWorld(world());
+    state.techTree = structuredClone(state.techTree);
+    state.nations.akkad.ruler = { ...state.nations.akkad.ruler, adm: 0, dip: 0, mil: 0, traits: [] };
+    state.nations.akkad.advisors = { adm: null, dip: null, mil: null };
     return state;
   };
 
   const sumRows = (rows) => rows.reduce((sum, r) => sum + r.value, 0);
 
   it('is just a "Base" row of 3 with no government and no researched Governance tech', () => {
-    const rows = getPowerBreakdown(baseState(), 'fr', 'adm');
+    const rows = getPowerBreakdown(baseState(), 'akkad', 'adm');
     expect(rows).toEqual([{ label: 'Base', value: 3 }]);
   });
 
   it('sums to the same total getPowerIncome returns once a reform and a tech both add ADM', () => {
     const state = baseState();
-    state.nations.fr.government = { type: 'monarchy', reforms: { classical: 'imperial_bureaucracy' } }; // +1 adm reform
+    state.nations.akkad.government = { type: 'monarchy', reforms: { classical: 'imperial_bureaucracy' } }; // +1 adm reform
     state.techTree.governance_code_of_laws = { ...state.techTree.governance_code_of_laws, researched: true }; // +1 admBonus
-    const rows = getPowerBreakdown(state, 'fr', 'adm');
+    const rows = getPowerBreakdown(state, 'akkad', 'adm');
     expect(sumRows(rows)).toBe(getPowerIncome(state).adm);
     expect(rows.length).toBeGreaterThan(1); // Base + at least one real source line, not a flat total
   });
