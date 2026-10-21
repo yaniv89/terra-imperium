@@ -12,6 +12,7 @@ import { t as tNow } from '../../i18n';
 import { useT } from '../../i18n/useT';
 import { victoryName, victoryDescription } from '../../i18n/gameText';
 import { nameNow } from '../../i18n/names';
+import ChronicleSheet from '../chronicle/ChronicleSheet';
 import { legacyModel } from '../panels/legacyModel';
 
 const GameOverModal = ({ status, state, onReset, onContinue }) => {
@@ -99,6 +100,7 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
           <Stat label={tNow('p1.go.treasury')} value={money} />
         </div>
 
+        <div className="mb-3 text-start"><ChronicleSheet state={state} /></div>
         <div className="flex gap-2">
           <button
             onClick={handleCopySummary}

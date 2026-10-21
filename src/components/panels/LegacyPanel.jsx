@@ -20,6 +20,7 @@ import { Meter } from '../ui/atlas';
 import { PLAYSTYLES } from '../../data/eraGoals';
 import { LEGACY_PARTS } from '../../data/legacy';
 import { legacyModel } from './legacyModel';
+import ChronicleSheet from '../chronicle/ChronicleSheet';
 import { nameNow } from '../../i18n/names';
 
 const LegacyPanel = () => {
@@ -50,6 +51,7 @@ const LegacyPanel = () => {
         ) : <p className="mt-1 text-[11px] text-fa-muted">{tNow('legacy.noParts')}</p>}
         {score.top.length > 0 && <div className="mt-1.5 text-[10px] text-fa-muted">{tNow('legacy.rivals')}: {score.top.map((r) => `${nameNow('people', r.nationId, state.nations[r.nationId]?.name)} ${r.legacy}`).join(' · ')}</div>}
       </div>
+      <ChronicleSheet state={state} />
       {/* This era's goals (plans/civ-map-rework.md C9.3): meet two before the age ends for a legacy. */}
       <div className="p-3 rounded-lg border border-sky-500/30 bg-sky-500/5" data-testid="era-goals">
         <div className="flex items-center justify-between text-sm font-semibold text-fa-you">
