@@ -16,5 +16,6 @@ import misc2 from './data/he.misc2';
 import ambitions from './data/he.ambitions';
 import ruler from './data/he.ruler';
 import deck from './data/he.deck';
+import crises from './data/he.crises';
 
-export default Object.freeze({ ...systems, ...world, ...events, ...units, ...tiles, ...battle, ...city, ...pnl1, ...pnl2, ...mapx, ...misc2, ...ambitions, ...ruler, ...deck });
+export default Object.freeze({ ...systems, ...world, ...events, ...units, ...tiles, ...battle, ...city, ...pnl1, ...pnl2, ...mapx, ...misc2, ...ambitions, ...ruler, ...deck, ...crises });

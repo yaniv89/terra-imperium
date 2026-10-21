@@ -32,6 +32,7 @@ import { endingSignal } from './ending';
 import { awardEraLegacy } from './eraGoals';
 import { createEmptyResourcePool } from '../data/resources';
 import { drawEvent } from './eventDeck';
+import { processCrises } from './crises';
 import { calcIncome, nextUnrest, getNationBonusTotal, getFieldedStrength } from '../utils/helpers';
 import { getRegionModifier, getModifier } from './modifiers/sheet';
 import { nextSiegeControlRegen, SIEGE_REGEN_COOLDOWN_TURNS } from './siege';
@@ -1125,6 +1126,19 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     } else if (independentsConquered) state = { ...state, indepStats: stats0 };
   }
   mark('majorsAndIndependents');
+
+  // --- history crises (crises.js): world crises from conditions, carried by loyalty, raids, plague,
+  // the population model and wars; a hit player gets the opening story as a deck link due now.
+  {
+    const crisis = processCrises({ ...state, turnNumber: newTurnNumber, year: newYear, regions, units, nations: nationsAfterWars, wars });
+    if (crisis) {
+      nationsAfterWars = crisis.nations;
+      wars = crisis.wars;
+      state = { ...state, crises: crisis.crises, pendingEventChains: crisis.pendingEventChains };
+      logs.push(...crisis.logs);
+    }
+  }
+  mark('crises');
 
   // --- war exhaustion (plan §9/§11): rises for every nation at war, including the player,
   // decays at peace. Makes a long war's eventual Sue for Peace cheaper (GameContext.jsx) — this

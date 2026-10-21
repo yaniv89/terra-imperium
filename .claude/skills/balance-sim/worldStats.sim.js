@@ -187,6 +187,8 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     // Plague: cities carrying the 'plague' mark now, and distinct cities struck so far (the old
     // independent roll in cityDisasters.js and the SIR epidemic in plague.js both set the mark).
     plagueCitiesNow: regs.filter(isPlagued).length, plagueCitiesStruck: counters.plagued.size,
+    // History crises (crises.js): how many started, and the nations they hit that are gone now.
+    crises: s.crises?.history?.length || 0, crisisNationsLost: new Set((s.crises?.history || []).flatMap((h) => h.nations).filter((id) => s.nations[id]?.isEliminated)).size,
     // Independents (phase W1): how many still stand, and the majors' cities (the expansion check).
     independentsAlive: nations.filter((n) => n.kind === 'independent' && !n.isEliminated).length,
     majorsAlive: nations.filter((n) => n.kind !== 'independent' && !n.isEliminated && !n.id.startsWith('free_')).length,
@@ -250,7 +252,7 @@ SEEDS.forEach((seed) => {
     if (MAP === 'generated') { const w = installGeneratedWorld({ seed, generatorVersion: MAP_VERSION, params: { land: MAP_LAND, shape: MAP_SHAPE } }); map = w.spec; mapReport = w.report; LAND_TILES = countLand(); }
     const scenario = { scenario: { mode: 'peoples', size: SIZE, seed, ...(map ? { map } : {}), ...(process.env.INDEPENDENTS === '0' ? { independents: false } : {}) } };
     if (mapReport) console.log(`MAP seed=${seed} hash=${mapReport.worldHash} continents=${mapReport.continents} startMin=${mapReport.startMin} startMedian=${mapReport.startMedian} startSpread=${mapReport.startSpread.toFixed(3)} repairs=${mapReport.startRepairs}`);
-    let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, ...scenario, ...(SPEED ? { gameSpeed: SPEED } : {}) }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
+    let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, ...scenario, ...(SPEED ? { gameSpeed: SPEED } : {}) }), ...(process.env.CRISES === 'off' ? { settings: { crises: 'off' } } : {}), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
     if (OUT_DIR) fs.mkdirSync(OUT_DIR, { recursive: true });
     const traceStream = TRACE_WARS ? fs.openSync(path.join(OUT_DIR, `warstacks-${seed}.jsonl`), 'w') : null;
     const scripted = POLICY === 'scripted' ? createScriptedPlayer({ engine: { gameReducer, ActionTypes, chooseProduction, nationCounts, bestSites, MAX_SETTLE_RINGS, getResearched, getTechAgeId, getEffectiveAgeId: AGES.getEffectiveAgeId, speedCostMult: AGES.speedCostMult, speedTrainMult: AGES.speedTrainMult, rushQuote: SPENDING?.rushQuote }, demands: DEMANDS, rush: RUSH, opinionOf }) : null;
@@ -285,6 +287,7 @@ SEEDS.forEach((seed) => {
       const pre = s;
       s = resolveTurn(s);
       if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null };
+      if (s.activeEventId) s = { ...s, activeEventId: null }; // a crisis story (crises.js) left unanswered
       const tm0 = performance.now(); telemetry.observe(pre, s); telemMs += performance.now() - tm0;
       turnsSince += 1;
       // The share of living majors past an age at that age's target end turn (SC4); the leader gap
