@@ -8,6 +8,7 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
 - Big features on a side branch. Merge to `main` only when the user asks; the push deploys the site.
 - Mobile-friendly always: phones play in landscape (844x390 is the reference screen).
 - Automate rather than hand the user manual work.
+- Every session, lane and subagent loads the ponytail skill (`ponytail:ponytail`) first and follows it, to save tokens; every lane brief says so in its first line.
 - Plain English in messages to the user, no em dashes.
 
 ## Project skills (in .claude/skills/, use them without being asked)
