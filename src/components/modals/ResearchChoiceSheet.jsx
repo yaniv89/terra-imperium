@@ -56,8 +56,8 @@ const ResearchChoiceSheet = ({ hidden }) => {
     // No dimming backdrop and no click-catcher: the map and End Turn stay usable while the choice
     // waits (a corner card on desktop, a bottom sheet on a tablet, a side sheet on a phone held
     // sideways).
-    <div className="fixed inset-0 z-[65] pointer-events-none flex items-end justify-center sm:justify-end sm:p-4 sheet-backdrop" data-testid="research-choice">
-      <div className="sheet-panel pointer-events-auto w-full sm:max-w-sm max-h-[88dvh] overflow-y-auto bg-fa-panel border border-purple-500/50 rounded-t-2xl sm:rounded-2xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-fa-text shadow-2xl space-y-3">
+    <div className="fixed inset-0 z-[65] pointer-events-none flex items-end justify-center sm:justify-end sm:p-4 sm:pe-[calc(var(--rail-w,0px)+1rem)] sm:pb-[calc(5rem+env(safe-area-inset-bottom))] sheet-backdrop" data-testid="research-choice">
+      <div className="sheet-panel pointer-events-auto w-full sm:max-w-sm max-h-[88dvh] sm:max-h-[calc(100dvh-8rem)] overflow-y-auto bg-fa-panel border border-purple-500/50 rounded-t-2xl sm:rounded-2xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-fa-text shadow-2xl space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div>
             {done ? (

@@ -1,0 +1,38 @@
+[
+ {
+  "lang": "en",
+  "name": "challenge button hidden by the lead (CHALLENGES_ON = false): skipped",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "lang": "en",
+  "name": "top bar clear of notch",
+  "ok": false,
+  "detail": "[0,844]"
+ },
+ {
+  "lang": "en",
+  "name": "hold for help opens the glossary (tech card)",
+  "ok": false,
+  "detail": ""
+ },
+ {
+  "lang": "en",
+  "name": "world run",
+  "ok": false,
+  "detail": "page.screenshot: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - taking page screenshot\u001b[22m\n\u001b[2m  - waiting for fonts to load...\u001b[22m\n\u001b[2m  - fonts loaded\u001b[22m\n"
+ },
+ {
+  "lang": "he",
+  "name": "challenge button hidden by the lead (CHALLENGES_ON = false): skipped",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "lang": "he",
+  "name": "world run",
+  "ok": false,
+  "detail": "locator.dispatchEvent: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /^(Begin as|התחל)/ })\u001b[22m\n"
+ }
+]

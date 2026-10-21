@@ -26,8 +26,8 @@ export const yearLabel = (year) => formatYear(year);
 export const scienceLabel = (current, status = null) => {
   if (!current) return status && !status.needsChoice ? status.shortLabel : tNow('chip.research');
   if (current.gate) return tNow('research.shortWaits', { name: techName(current.tech.id, current.tech.name), gate: current.gate.label });
-  const t = current.finishesIn === Infinity ? '?' : current.finishesIn;
-  return tNow('research.shortTurns', { name: techName(current.tech.id, current.tech.name), n: t });
+  if (!Number.isFinite(current.finishesIn)) return techName(current.tech.id, current.tech.name); // no science yet: no turn count to show
+  return tNow('research.shortTurns', { name: techName(current.tech.id, current.tech.name), n: current.finishesIn });
 };
 
 /** The ruler's decrees: banked, the cap, why each recent one came or went (newest first), and what the acts cost. */
@@ -57,7 +57,7 @@ export const topBarModel = (state) => {
   const age = ageProgress(state, me);
   const foodPerTurn = round1(cities.reduce((s, c) => s + (c.lastYields?.food || 0), 0));
   const cultureRows = cities.map((c) => ({ id: c.id, label: nameNow('city', null, c.name), value: round1(c.lastYields?.culture || 0) })).filter((r) => r.value !== 0);
-  const wars = Object.values(state.nations || {}).filter((n) => !n.isPlayer && n.id !== me && isAtWarWithPlayer(state, n.id)).map((n) => ({ id: n.id, name: nameNow('people', n.id, PEOPLES[n.id]?.name || n.name) }));
+  const wars = Object.values(state.nations || {}).filter((n) => !n.isPlayer && n.id !== me && isAtWarWithPlayer(state, n.id)).map((n) => ({ id: n.id, name: nameNow('people', n.id, PEOPLES[n.id]?.name || n.name || n.id) }));
   return {
     // the short people name in the bar ("Akkad"), the title ("The Akkadian tribes") in its label
     nation: { id: me, name: nameNow('people', me, PEOPLES[me]?.name || nation.name || me), title: nameNow('people', me, nation.name || me), color: nation.color || '#5B9BF0' },

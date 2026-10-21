@@ -26,7 +26,7 @@ export const ChallengeEntry = ({ onStart }) => {
         <Trophy className="w-4 h-4" /> <span className="pl:hidden">{t('chal.button')}</span>
       </button>
       {open && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" data-testid="challenge-sheet">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 py-[max(1rem,env(safe-area-inset-bottom))] ps-[max(1rem,var(--safe-start))] pe-[max(1rem,var(--safe-end))]" data-testid="challenge-sheet">
           <div className="w-full max-w-md max-h-full overflow-y-auto rounded-2xl bg-fa-panel border border-amber-500/40 p-4 text-fa-text">
             <h2 className="text-base font-bold">{t('chal.title', { week: challenge.weekId })}</h2>
             <p className="text-sm mt-1">{t('chal.blurb', { people: nm('people', challenge.people, challenge.people), turns: challenge.turnLimit })}</p>
@@ -61,7 +61,7 @@ export const ChallengeBanner = () => {
   };
   const note = sent === 'sent' ? t('chal.sent') : sent === 'offline' ? t('chal.fail.offline') : sent === 'signin' ? t('chal.fail.signin') : sent && sent !== 'sending' ? t('chal.fail.other', { reason: sent }) : null;
   return (
-    <div className="fixed bottom-20 start-2 z-20 rounded-xl bg-fa-panel border border-amber-500/40 p-2 text-sm text-fa-text" data-testid="challenge-banner">
+    <div className="fixed bottom-20 start-[max(0.5rem,var(--safe-start))] z-20 rounded-xl bg-fa-panel border border-amber-500/40 p-2 text-sm text-fa-text" data-testid="challenge-banner">
       <div>{t('chal.progress', { turns: Math.min(turns, challenge.turnLimit), limit: challenge.turnLimit })}</div>
       {done && sent !== 'sent' && <button type="button" onClick={send} disabled={sent === 'sending'} className={`${btn} mt-1 bg-amber-600 hover:bg-amber-500`}>{sent === 'sending' ? t('chal.sending') : t('chal.submit')}</button>}
       {note && <div className="mt-1">{note}</div>}
