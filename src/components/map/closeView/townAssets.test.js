@@ -1,10 +1,10 @@
 // Artist town models: the file for an (age, size) is found, the zoom picks the brief's LOD, a load
 // happens once per file, and an instance tints only its Team cloth.
 import { describe, it, expect } from 'vitest';
-import { Group, Mesh, BoxGeometry, MeshStandardMaterial } from 'three';
+import { Group, Mesh, BoxGeometry, BufferGeometry, Float32BufferAttribute, MeshStandardMaterial } from 'three';
 import { styleOfLand, styleChain } from '../../../data/architecture';
 import { readGlbJson } from '../../../../scripts/art/glbInfo.mjs';
-import { sharedAssetUrls, townAssetUrl, townVariant, lodForZoom, loadTownAsset, loadAssetObjects, instanceTownAsset, showLod, palaceFor, sharedAssetUrl, wallsFor, isCamp, COLONY_CAMP, fieldsAround, fieldCount, FIELDS_FOR_WORK } from './townAssets';
+import { sharedAssetUrls, townAssetUrl, townVariant, lodForZoom, loadTownAsset, loadAssetObjects, cutBakedRing, instanceTownAsset, showLod, palaceFor, sharedAssetUrl, wallsFor, isCamp, COLONY_CAMP, fieldsAround, fieldCount, FIELDS_FOR_WORK } from './townAssets';
 
 const fakeObject = (name, lodNames = ['LOD0', 'LOD1', 'LOD2']) => {
   const root = new Group(); root.name = name;
@@ -74,6 +74,19 @@ describe('artist town models', () => {
     expect(calls).toBe(1);
     expect(a).toBe(b);
     expect(a.name).toBe('town-small-a');
+  });
+
+  it('cuts a Stone town file\'s baked wall ring (walls show only when built), not its houses', async () => {
+    // a house triangle at the centre, a wall triangle on the edge (radius 1 of a 2-wide town)
+    const g = new BufferGeometry();
+    g.setAttribute('position', new Float32BufferAttribute([0, 0, 0, 0.2, 0, 0, 0, 0.3, 0.2, 1, 0, 0, 0.99, 0.2, 0.1, 0.98, 0, 0.15, -1, 0, 0, 0, 0, 1, 0, 0, -1], 3));
+    g.setIndex([0, 1, 2, 3, 4, 5]);
+    const root = new Group(); root.add(new Mesh(g, new MeshStandardMaterial({ name: 'Town' })));
+    cutBakedRing(root);
+    expect([...g.index.array]).toEqual([0, 1, 2]);
+    const town = await loadTownAsset('test://stone-town-small-a.glb', async () => fakeTown());
+    expect(town.userData.ringCut).toBe(true);
+    expect((await loadTownAsset('test://town.glb', async () => fakeTown())).userData.ringCut).toBeUndefined();
   });
 
   it('tints only Team, shares geometry, and shows one LOD at a time', async () => {

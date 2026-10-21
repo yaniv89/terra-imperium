@@ -115,8 +115,30 @@ export const loadAssetObjects = (url, load = loadGltf) => {
   }
   return files.get(url);
 };
+// The Stone town files bake an earthwork ring round the town (its outermost Town triangles). Walls
+// show only once the city builds them (the shared file's walls-* ring, a Defense building), so the
+// baked ring is cut out of every LOD: the triangles wholly beyond RING_CUT of the Town mesh's half width.
+export const RING_CUT = 0.92;
+/** Cut the outer ring out of a town root's Town meshes (geometry changed in place, once per file). */
+export const cutBakedRing = (root) => root.traverse((o) => {
+  const g = o.isMesh && o.material?.name === 'Town' ? o.geometry : null;
+  if (!g?.index || !g.attributes.position) return;
+  g.computeBoundingBox();
+  const { min, max } = g.boundingBox;
+  const cx = (min.x + max.x) / 2; const cz = (min.z + max.z) / 2;
+  const r = (RING_CUT * Math.max(max.x - min.x, max.z - min.z)) / 2;
+  const p = g.attributes.position; const idx = g.index.array;
+  const out = (i) => Math.hypot(p.getX(i) - cx, p.getZ(i) - cz) > r;
+  const keep = [];
+  for (let t = 0; t + 2 < idx.length; t += 3) if (!(out(idx[t]) && out(idx[t + 1]) && out(idx[t + 2]))) keep.push(idx[t], idx[t + 1], idx[t + 2]);
+  g.setIndex(keep);
+});
 /** Load a town file once; resolves to its root object (the node holding LOD0..LOD2). */
-export const loadTownAsset = (url, load = loadGltf) => loadAssetObjects(url, load).then((objs) => Object.values(objs)[0]);
+export const loadTownAsset = (url, load = loadGltf) => loadAssetObjects(url, load).then((objs) => {
+  const root = Object.values(objs)[0];
+  if (/stone-town-/.test(url) && !root.userData.ringCut) { cutBakedRing(root); root.userData.ringCut = true; }
+  return root;
+});
 
 const instanceMaterials = new Map(); // `${uuid}|${team or tint}` -> material
 // A file dropped from memory (gltfUnitLoader.js, assetMemory.js): its objects and the tinted copies
