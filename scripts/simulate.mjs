@@ -62,7 +62,7 @@ export const parseArgs = (argv) => {
   return args;
 };
 
-export const buildSimEngine = async () => {
+export const buildSimEngine = async (extraExports = []) => {
   const outfile = path.join(os.tmpdir(), `terra-imperium-sim-engine-${process.pid}.mjs`);
   await build({
     stdin: {
@@ -85,7 +85,8 @@ export const buildSimEngine = async () => {
         "export { getOverextension } from '../src/engine/nationalPower.js';",
         "export { metNations } from '../src/engine/fog.js';",
         "export { opinionOf } from '../src/engine/opinion.js';",
-        "export { isIndependentNation } from '../src/data/independents.js';"
+        "export { isIndependentNation } from '../src/data/independents.js';",
+        ...extraExports
       ].join('\n'),
       resolveDir: __dirname,
       loader: 'js'
