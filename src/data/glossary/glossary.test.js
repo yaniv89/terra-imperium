@@ -15,4 +15,10 @@ describe('glossary', () => {
     expect(glossaryEntry('people', p.id)).toMatchObject({ capital: p.capital.name, land: p.landName });
     expect(glossaryEntry('tech', 'nope')).toBeFalsy();
   });
+  it('every people carries an English and Hebrew note and founded line', () => {
+    PEOPLES_LIST.forEach((p) => {
+      const e = glossaryEntry('people', p.id);
+      ['note', 'founded'].forEach((f) => ['en', 'he'].forEach((l) => expect(e[f]?.[l], `${p.id} ${f} ${l}`).toBeTruthy()));
+    });
+  });
 });

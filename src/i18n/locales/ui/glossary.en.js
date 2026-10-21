@@ -14,5 +14,6 @@ export default {
   'gloss.needs': 'Needs first: {list}',
   'gloss.unitLine': 'A {class} unit of the {age}.',
   'gloss.power': 'Attack {attack}, defense {defense}.',
+  'gloss.uncertain': 'Uncertain',
   'gloss.open': 'Learn about {name}'
 };

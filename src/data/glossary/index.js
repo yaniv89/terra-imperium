@@ -5,6 +5,7 @@
 import { PEOPLES, PEOPLES_LIST } from '../peoples';
 import { TECH_TREE } from '../techTree';
 import { UNIT_ROSTER, UNIT_CLASSES } from '../unitClasses';
+import PEOPLE_NOTES from './peopleNotes.json'; // AI-drafted, reviewed: { note, founded: {en, he}, uncertain }
 
 export const GLOSSARY_KINDS = ['people', 'city', 'tech', 'unit'];
 
@@ -23,7 +24,7 @@ PEOPLES_LIST.forEach((p) => p.cities.forEach((c, i) => { if (!CITY_HOME.has(c)) 
 export const glossaryEntry = (kind, id) => {
   if (kind === 'people') {
     const p = PEOPLES[id];
-    return p && { kind, id, name: p.name, capital: p.capital.name, land: p.landName, cities: p.cities.slice(0, 6) };
+    return p && { kind, id, name: p.name, capital: p.capital.name, land: p.landName, cities: p.cities.slice(0, 6), ...PEOPLE_NOTES[id] };
   }
   if (kind === 'city') {
     const home = CITY_HOME.get(id);
