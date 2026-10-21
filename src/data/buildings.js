@@ -35,7 +35,8 @@ export const BUILDING_CATEGORIES = {
       { age: 'classical', name: 'Irrigation', requiresTech: 'infrastructure_aqueducts' },
       { age: 'kingdoms', name: 'Farm Estate', requiresTech: 'governance_feudal_charters' },
       { age: 'gunpowder', name: 'Crop Rotation Farm', requiresTech: 'infrastructure_canal_locks' },
-      { age: 'modern', name: 'Mechanized Farm', requiresTech: 'economy_mass_production' }
+      { age: 'modern', name: 'Mechanized Farm', requiresTech: 'economy_mass_production' },
+      { age: 'information', name: 'Vertical Farm', requiresTech: 'science_genomics' }
     ]
   },
   // The income lines pay a flat yield on top of their percentage: most provinces start with a
@@ -48,7 +49,8 @@ export const BUILDING_CATEGORIES = {
       { age: 'classical', name: 'Market', requiresTech: 'economy_minted_coinage', effects: { 'local.taxIncome': 0.15, 'local.flatGold': 3 } },
       { age: 'kingdoms', name: 'Bazaar', requiresTech: 'economy_guild_charters', effects: { 'local.taxIncome': 0.25, 'local.flatGold': 5 } },
       { age: 'gunpowder', name: 'Bank', requiresTech: 'economy_joint_stock_companies', effects: { 'local.taxIncome': 0.35, 'local.flatGold': 8 } },
-      { age: 'modern', name: 'Stock Exchange', requiresTech: 'economy_industrial_capital', effects: { 'local.taxIncome': 0.50, 'local.flatGold': 12 } }
+      { age: 'modern', name: 'Stock Exchange', requiresTech: 'economy_industrial_capital', effects: { 'local.taxIncome': 0.50, 'local.flatGold': 12 } },
+      { age: 'information', name: 'Tech Hub', requiresTech: 'economy_digital_economy', effects: { 'local.taxIncome': 0.65, 'local.flatGold': 16 } }
     ]
   },
   military: {
@@ -59,7 +61,8 @@ export const BUILDING_CATEGORIES = {
       { age: 'bronze', name: 'Barracks', requiresTech: null, effects: { 'local.manpower': 0.20, 'local.flatManpower': 3 } },
       { age: 'classical', name: 'Drill Yard', requiresTech: 'military_iron_weapons', effects: { 'local.manpower': 0.35, 'local.flatManpower': 5 } },
       { age: 'gunpowder', name: 'Military Academy', requiresTech: 'military_standing_armies', effects: { 'local.manpower': 0.50, 'local.flatManpower': 8 } },
-      { age: 'modern', name: 'War College', requiresTech: 'military_mechanized_warfare', effects: { 'local.manpower': 0.65, 'local.flatManpower': 12 } }
+      { age: 'modern', name: 'War College', requiresTech: 'military_mechanized_warfare', effects: { 'local.manpower': 0.65, 'local.flatManpower': 12 } },
+      { age: 'information', name: 'Simulation Center', requiresTech: 'military_unmanned_systems', effects: { 'local.manpower': 0.80, 'local.flatManpower': 16 } }
     ]
   },
   defense: {
@@ -70,7 +73,7 @@ export const BUILDING_CATEGORIES = {
       { age: 'bronze', name: 'Palisade', requiresTech: null, effects: { 'local.fortLevel': 1 } },
       { age: 'classical', name: 'Stone Walls', requiresTech: 'military_siege_engineering', effects: { 'local.fortLevel': 2 } },
       { age: 'gunpowder', name: 'Star Fort', requiresTech: 'military_gunpowder_weapons', effects: { 'local.fortLevel': 4 } },
-      { age: 'modern', name: 'Bunker Network', requiresTech: 'military_precision_guidance', effects: { 'local.fortLevel': 6 } }
+      { age: 'information', name: 'Bunker Network', requiresTech: 'military_precision_guidance', effects: { 'local.fortLevel': 6 } }
     ]
   },
   science: {
@@ -81,7 +84,8 @@ export const BUILDING_CATEGORIES = {
       { age: 'classical', name: 'Library', requiresTech: 'science_natural_philosophy', effects: { 'local.techPoints': 2 } },
       { age: 'kingdoms', name: 'Scriptorium', requiresTech: 'governance_royal_chancery', effects: { 'local.techPoints': 4 } },
       { age: 'gunpowder', name: 'University', requiresTech: 'science_scientific_method', effects: { 'local.techPoints': 6 } },
-      { age: 'modern', name: 'Research Lab', requiresTech: 'science_computing', effects: { 'local.techPoints': 9 } }
+      { age: 'modern', name: 'Research Lab', requiresTech: 'science_computing', effects: { 'local.techPoints': 9 } },
+      { age: 'information', name: 'Supercomputer Center', requiresTech: 'science_artificial_intelligence', effects: { 'local.techPoints': 13 } }
     ]
   },
   // Industry pays, but crowded workshops and factory towns breed discontent (negative local
@@ -92,7 +96,8 @@ export const BUILDING_CATEGORIES = {
     tiers: [
       { age: 'classical', name: 'Workshop', requiresTech: 'science_geometry', effects: { 'local.productionIncome': 0.20, 'local.flatGold': 3 } },
       { age: 'gunpowder', name: 'Manufactory', requiresTech: 'science_calculus', effects: { 'local.productionIncome': 0.35, 'local.flatGold': 6, 'local.stabilityBonus': -0.5 } },
-      { age: 'modern', name: 'Factory', requiresTech: 'economy_industrial_capital', effects: { 'local.productionIncome': 0.50, 'local.flatGold': 10, 'local.stabilityBonus': -0.75 } }
+      { age: 'modern', name: 'Factory', requiresTech: 'economy_industrial_capital', effects: { 'local.productionIncome': 0.50, 'local.flatGold': 10, 'local.stabilityBonus': -0.75 } },
+      { age: 'information', name: 'Automated Plant', requiresTech: 'economy_global_markets', effects: { 'local.productionIncome': 0.65, 'local.flatGold': 14, 'local.stabilityBonus': -0.75 } }
     ]
   },
   culture: {
@@ -103,7 +108,8 @@ export const BUILDING_CATEGORIES = {
       { age: 'bronze', name: 'Shrine', requiresTech: null, effects: { 'local.stabilityBonus': 1 } },
       { age: 'classical', name: 'Temple', requiresTech: 'governance_civic_assemblies', effects: { 'local.stabilityBonus': 1.5 } },
       { age: 'kingdoms', name: 'Cathedral / Mosque', requiresTech: 'science_scholastic_method', effects: { 'local.stabilityBonus': 2 } },
-      { age: 'modern', name: 'Civic Center', requiresTech: 'governance_civil_service', effects: { 'local.stabilityBonus': 3 } }
+      { age: 'modern', name: 'Civic Center', requiresTech: 'governance_civil_service', effects: { 'local.stabilityBonus': 3 } },
+      { age: 'information', name: 'Media Center', requiresTech: 'infrastructure_telecom_networks', effects: { 'local.stabilityBonus': 4 } }
     ]
   },
   naval: {
@@ -115,7 +121,8 @@ export const BUILDING_CATEGORIES = {
       { age: 'classical', name: 'Harbor', requiresTech: 'economy_silk_road_trade', effects: { 'local.tradeIncome': 1 } },
       { age: 'kingdoms', name: 'Shipyard', requiresTech: 'science_optics', effects: { 'local.tradeIncome': 2 } },
       { age: 'gunpowder', name: 'Naval Base', requiresTech: 'economy_colonial_trade', effects: { 'local.tradeIncome': 3 } },
-      { age: 'modern', name: 'Carrier Dock', requiresTech: 'military_mechanized_warfare', effects: { 'local.tradeIncome': 4 } }
+      { age: 'modern', name: 'Carrier Dock', requiresTech: 'military_mechanized_warfare', effects: { 'local.tradeIncome': 4 } },
+      { age: 'information', name: 'Drone Port', requiresTech: 'military_unmanned_systems', effects: { 'local.tradeIncome': 5 } }
     ]
   },
   logistics: {
@@ -125,7 +132,21 @@ export const BUILDING_CATEGORIES = {
       { age: 'stone', name: 'Trail Cairns', requiresTech: null, effects: { 'local.supplyRange': 0.5 } },
       { age: 'bronze', name: 'Road Post', requiresTech: null, effects: { 'local.supplyRange': 1 } },
       { age: 'kingdoms', name: 'Highway', requiresTech: 'infrastructure_stone_bridges', effects: { 'local.supplyRange': 2 } },
-      { age: 'modern', name: 'Rail Depot', requiresTech: 'infrastructure_rail_networks', effects: { 'local.supplyRange': 3 } }
+      { age: 'modern', name: 'Rail Depot', requiresTech: 'infrastructure_rail_networks', effects: { 'local.supplyRange': 3 } },
+      { age: 'information', name: 'Logistics Hub', requiresTech: 'governance_digital_administration', effects: { 'local.supplyRange': 4 } }
+    ]
+  },
+  // The Energy line (eight ages U51): production only (no carbon while the climate meter, U52, is
+  // deferred), and it takes no building slot (`freeSlot`, getUsedBuildingSlots).
+  energy: {
+    label: 'Energy',
+    costMult: 1.0,
+    freeSlot: true,
+    tiers: [
+      { age: 'gunpowder', name: 'Coal Plant', requiresTech: 'science_calculus', effects: { 'local.productionIncome': 0.10 } },
+      { age: 'modern', name: 'Oil Plant', requiresTech: 'economy_mass_production', effects: { 'local.productionIncome': 0.20 } },
+      { age: 'modern', name: 'Nuclear Plant', requiresTech: 'science_nuclear_physics', effects: { 'local.productionIncome': 0.30 } },
+      { age: 'information', name: 'Power Grid', requiresTech: 'infrastructure_smart_grids', effects: { 'local.productionIncome': 0.40 } }
     ]
   }
 };
@@ -168,7 +189,7 @@ export const getCategoryTierName = (categoryId, tierIndex) => BUILDING_CATEGORIE
 
 // Plan §M6.1's own base cost table (before category multiplier), one entry per rank. A Stone tier
 // (eight-ages plan U28, KTD11) is rank 0, so a line without one starts at rank 1 and keeps its costs.
-const BASE_TIER_COST = [30, 60, 120, 220, 360, 550];
+const BASE_TIER_COST = [30, 60, 120, 220, 360, 550, 800];
 const tierRank = (category, tierIndex) => tierIndex + (category.tiers[0].age === FIRST_AGE_ID ? 0 : 1);
 
 // Gold cost to build/upgrade to `tierIndex` in `categoryId`, before national.buildingCost (e.g.
@@ -191,7 +212,7 @@ export const getBuildingSlots = (totalDev, isCapital) =>
 // actually built (>= 0), regardless of which tier; upgrading an existing category is free of
 // slots (plan §M6.1), which is exactly why this counts CATEGORIES, not tiers.
 export const getUsedBuildingSlots = (regionBuildings) =>
-  Object.values(regionBuildings?.categories || {}).filter((tier) => tier >= 0).length;
+  Object.entries(regionBuildings?.categories || {}).filter(([id, tier]) => tier >= 0 && !BUILDING_CATEGORIES[id]?.freeSlot).length;
 
 // True if `resourceId`'s extraction building can be built right now (age gate only — the deposit
 // check itself is src/data/deposits.js's job). Untouched by M6.

@@ -68,15 +68,16 @@ export const iconIds = (group) => Object.keys(URLS[group] || {});
 // (the same ids as the close view's landmark models). Defense tiers have no icon by design: they
 // are the town's wall ring, not a landmark, and keep the category glyph. Cathedral and the Stone tiers have no art yet.
 export const BUILDING_ICON_IDS = {
-  food: ['storage_pits', 'granary', 'irrigation', 'farm_estate', 'crop_rotation_farm', 'mechanized_farm'],
-  economy: ['market', 'bazaar', 'bank', 'stock_exchange'],
-  military: ['warrior_lodge', 'barracks', 'drill_yard', 'military_academy', 'war_college'],
+  food: ['storage_pits', 'granary', 'irrigation', 'farm_estate', 'crop_rotation_farm', 'mechanized_farm', 'vertical_farm'],
+  economy: ['market', 'bazaar', 'bank', 'stock_exchange', 'tech_hub'],
+  military: ['warrior_lodge', 'barracks', 'drill_yard', 'military_academy', 'war_college', 'simulation_center'],
   defense: [null, null, null, null, null],
-  science: ['tablet_house', 'library', 'scriptorium', 'university', 'research_lab'],
-  industry: ['workshop', 'manufactory', 'factory'],
-  culture: ['stone_circle', 'shrine', 'temple', 'cathedral', 'civic_center'],
-  naval: ['canoe_landing', 'harbor', 'shipyard', 'naval_base', 'carrier_dock'],
-  logistics: ['trail_cairns', 'road_post', 'highway', 'rail_depot']
+  science: ['tablet_house', 'library', 'scriptorium', 'university', 'research_lab', 'supercomputer_center'],
+  industry: ['workshop', 'manufactory', 'factory', 'automated_plant'],
+  culture: ['stone_circle', 'shrine', 'temple', 'cathedral', 'civic_center', 'media_center'],
+  naval: ['canoe_landing', 'harbor', 'shipyard', 'naval_base', 'carrier_dock', 'drone_port'],
+  logistics: ['trail_cairns', 'road_post', 'highway', 'rail_depot', 'logistics_hub'],
+  energy: ['coal_plant', 'oil_plant', 'nuclear_plant', 'power_grid']
 };
 export const EXTRACTION_ICON_IDS = { copper: 'copper_mine', iron: 'iron_foundry', oil: 'oil_well' };
 

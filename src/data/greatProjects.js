@@ -70,6 +70,7 @@ export const SITE_RULES = {
   researchLab: (region) => buildingTier(region, 'science') >= 3,
   stockExchange: (region) => buildingTier(region, 'economy') >= 3,
   factory: (region) => buildingTier(region, 'industry') >= 2,
+  supercomputer: (region) => buildingTier(region, 'science') >= 5,
   // a national wonder: the city's centre stands on its homeland (the tile's country)
   // (a culture zone on a generated world: src/engine/world/cultureZones.js)
   homeland: (region, regionId, project) => !!project?.homeland && region?.tile != null && onHomeland(region.tile, project.homeland)
@@ -263,6 +264,35 @@ export const GREAT_PROJECTS = {
       { effects: { techPointsMult: 0.1 }, completionPrestige: 10 },
       { effects: { techPointsMult: 0.2 }, completionPrestige: 20 },
       { effects: { techPointsMult: 0.3 }, completionPrestige: 30 }
+    ]
+  },
+  // Information (eight ages U51); models are art keys of the same id (U92).
+  world_wide_web: {
+    id: 'world_wide_web', name: 'The World Wide Web', ageId: 'information', siteRule: 'researchLab',
+    description: 'Built in a region with a Research Lab. +5/10/15% income; +2 opinion with every nation.',
+    tiers: [
+      { effects: { goldMult: 0.05, opinion: 2 }, completionPrestige: 10 },
+      { effects: { goldMult: 0.1, opinion: 2 }, completionPrestige: 20 },
+      { effects: { goldMult: 0.15, opinion: 2 }, completionPrestige: 30 }
+    ]
+  },
+  large_hadron_collider: {
+    id: 'large_hadron_collider', name: 'The Large Hadron Collider', ageId: 'information', siteRule: 'supercomputer',
+    description: 'Built in a region with a Supercomputer Center. +10/20/30% tech point income.',
+    tiers: [
+      { effects: { techPointsMult: 0.1 }, completionPrestige: 10 },
+      { effects: { techPointsMult: 0.2 }, completionPrestige: 20 },
+      { effects: { techPointsMult: 0.3 }, completionPrestige: 30 }
+    ]
+  },
+  // Famine protection only (plan U51), but the game has no famine yet: steadier growth stands in.
+  global_seed_vault: {
+    id: 'global_seed_vault', name: 'The Global Seed Vault', ageId: 'information', siteRule: 'capital',
+    description: 'Built at your capital. +0.1/0.2/0.3% population growth, standing in for famine protection.',
+    tiers: [
+      { effects: { popGrowthBonus: 0.001 }, completionPrestige: 10 },
+      { effects: { popGrowthBonus: 0.002 }, completionPrestige: 20 },
+      { effects: { popGrowthBonus: 0.003 }, completionPrestige: 30 }
     ]
   }
 };

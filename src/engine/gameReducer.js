@@ -861,7 +861,7 @@ const reduceAction = (state, action) => {
       if (BUILDING_CATEGORIES[categoryId]?.coastalOnly && !isCoastal(regionId)) return state;
       const researchedTechIds = new Set(Object.keys(state.techTree).filter((id) => state.techTree[id].researched));
       if (!canBuildTier(categoryId, researchedTechIds, nextTier)) return state;
-      if (currentTier < 0) {
+      if (currentTier < 0 && !BUILDING_CATEGORIES[categoryId].freeSlot) {
         const totalDev = getTotalDev(region);
         const slots = getBuildingSlots(totalDev, !!REGIONS_DATA[regionId]?.isCapital);
         if (getUsedBuildingSlots(region.buildings) >= slots) return state;

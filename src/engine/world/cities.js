@@ -361,7 +361,7 @@ export const cityYields = (city, tiles, world, worked, researched = [], ctx = {}
   const foodTier = (city.buildings?.categories?.food ?? -1) + 1;
   const dm = disasterMults(city, ctx.turnNumber); // a flood or a fire (cityDisasters.js)
   const food = Math.round((sum.food * dm.food + foodTier + (ctx.foodBonus || 0) + (city.marketFood || 0) - FOOD_PER_CITIZEN * city.size) * 10) / 10; // marketFood: world/market.js
-  const production = Math.round((sum.production + palace.production) * (1 + tierEffect(city, 'industry', 'local.productionIncome') + (ctx.productionMult || 0)) * dm.production * 10) / 10;
+  const production = Math.round((sum.production + palace.production) * (1 + tierEffect(city, 'industry', 'local.productionIncome') + tierEffect(city, 'energy', 'local.productionIncome') + (ctx.productionMult || 0)) * dm.production * 10) / 10;
   const gold = Math.round(((sum.gold + palace.gold) * (1 + tierEffect(city, 'economy', 'local.taxIncome') + (ctx.goldMult || 0)) + tierEffect(city, 'economy', 'local.flatGold') + tierEffect(city, 'industry', 'local.flatGold') + tierEffect(city, 'naval', 'local.tradeIncome')) * 10) / 10;
   // The ruler (lawRules.js rulerCityCtx): Learning and the Sage virtues.
   const science = Math.round(((SCIENCE_PER_SIZE * city.size + palace.science + tierEffect(city, 'science', 'local.techPoints') + districts.science) * (1 + (ctx.scienceMult || 0)) + (city.isCapital ? ctx.capitalScience || 0 : 0)) * 10) / 10;

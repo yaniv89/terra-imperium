@@ -46,6 +46,12 @@ export default {
   'gp.international_exchange.desc': 'נבנה במחוז עם בורסה. +10/20/30% הכנסות סחר.',
   'gp.atomic_research_center': 'המרכז למחקר אטומי',
   'gp.atomic_research_center.desc': 'נבנה במחוז עם מפעל. +10/20/30% הכנסת נקודות טכנולוגיה.',
+  'gp.world_wide_web': 'הרשת העולמית',
+  'gp.world_wide_web.desc': 'נבנה במחוז עם מעבדת מחקר. +5/10/15% הכנסה; +2 דעה בעיני כל אומה.',
+  'gp.large_hadron_collider': 'מאיץ ההדרונים הגדול',
+  'gp.large_hadron_collider.desc': 'נבנה במחוז עם מרכז מחשבי-על. +10/20/30% הכנסת נקודות טכנולוגיה.',
+  'gp.global_seed_vault': 'כספת הזרעים העולמית',
+  'gp.global_seed_vault.desc': 'נבנה בבירה שלך. +0.1/0.2/0.3% גידול אוכלוסייה, במקום הגנה מרעב.',
 
   // research boosts (boost.<techId>): how to get the boost
   'boost.military_hunting_bands': 'להחזיק יער או גבעות',

@@ -75,9 +75,7 @@ const KEYED = [
 
 // Opt-outs: table name -> { age: reason }.
 const OPT_OUT = {
-  'building tiers': { information: 'U51 appends the Information tiers' },
   'government reform tiers': { information: 'U55 adds the Information reforms' },
-  wonders: { information: 'U51 adds the Information wonders' },
   'age icon': { information: 'the icon is held art on claude/art-information' }
 };
 

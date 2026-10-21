@@ -3,7 +3,7 @@
 // (src/components/ui/icons.jsx) for a wonder with no delivered art (solomons_temple, masada).
 // A wonder without an entry falls back to Landmark.
 import {
-  Triangle, Flower2, Mountain, Library, CircleDot, Lamp, Store, Church, Crown, Orbit, Anchor, Gem, Rocket, Building2, Atom, Landmark, Castle, Home
+  Triangle, Flower2, Mountain, Library, CircleDot, Lamp, Store, Church, Crown, Orbit, Anchor, Gem, Rocket, Building2, Atom, Landmark, Castle, Home, Globe, Sprout
 } from 'lucide-react';
 
 export const WONDER_ICONS = {
@@ -13,7 +13,8 @@ export const WONDER_ICONS = {
   royal_observatory: Orbit, arsenal: Anchor, palace_of_versailles: Gem,
   space_program: Rocket, international_exchange: Building2, atomic_research_center: Atom,
   stonehenge: CircleDot, catalhoyuk: Home, walls_of_jericho: Castle, white_temple_of_uruk: Church,
-  solomons_temple: Landmark, masada: Castle
+  solomons_temple: Landmark, masada: Castle,
+  world_wide_web: Globe, large_hadron_collider: Atom, global_seed_vault: Sprout
 };
 
 /** The icon component for a wonder id. */
