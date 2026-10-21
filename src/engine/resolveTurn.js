@@ -76,6 +76,7 @@ import {
 } from '../data/actionCosts';
 import { getAdvisorSalary, aiDevelopRuler, rulerLevel } from './rulers';
 import { grantRenown, timeRenown } from './renown';
+import { tickAmbitions, ambitionDef } from './ambitions';
 import { RENOWN, STABILITY_RENOWN_REF_TURNS, STABILITY_RENOWN_GAP_REF_TURNS } from '../data/rulers';
 import { grantDecree, tickDecrees } from './decrees';
 import { applyResearchTurn, researchesThisTurn } from './research';
@@ -684,7 +685,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // --- rulers (plan §M3) --- runs for every nation. Renown (renown.js): the cities founded this
   // turn, the time trickle while the capital is held, years of order; a ruler below the median level
   // of the living majors is a rising star; every AI ruler spends its points (rulers.js
-  // aiDevelopRuler: a compare when none wait); the player's level-ups are logged.
+  // aiDevelopRuler: a compare when none wait); ambitions are offered and paid (ambitions.js); the
+  // player's level-ups and fulfilled ambitions are logged.
   // Governors (governors.js): the player's court offers fresh candidates every GOVERNOR_REFRESH_TURNS
   // turns, and a governor whose seat was lost leaves.
   {
@@ -707,6 +709,9 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
           const granted = grantRenown(nations[nId], 'stability', RENOWN.stability, newTurnNumber);
           nations[nId] = { ...granted, ruler: { ...granted.ruler, stabilityRenownTurn: newTurnNumber } };
         }
+        const amb = tickAmbitions(view, nId, nations[nId], newTurnNumber); // offers and completions (ambitions.js)
+        nations[nId] = amb.nation;
+        if (nId === me) amb.done.forEach((id) => logs.push({ year: newYear, ...msg('m.turn.ambition', { ambition: thing('ambition', id, ambitionDef(id).label) }), type: LogTypes.MILESTONE }));
         if (nId !== me) nations[nId] = aiDevelopRuler(view, nId).nations[nId];
         else {
           const level = rulerLevel(nations[nId].ruler.renown);

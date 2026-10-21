@@ -94,6 +94,21 @@ const ageStats = (s, counters) => {
   return out;
 };
 
+// Ambitions (differentiation plan U12): fulfilled per age entered (ages = the nation's age index + 1),
+// the AI majors' mean beside the player's; ambitionsDone sums every major. Empty on a base without them.
+const ambitionStats = (s) => {
+  const rate = (n) => (n.ambitions?.done?.length || 0) / (AGES.getAgeIndex(nationAge(s, n.id)) + 1);
+  const majors = livingMajors(s).filter((n) => n.ruler);
+  if (!majors.some((n) => n.ambitions)) return {};
+  const ai = majors.filter((n) => n.id !== s.playerNationId);
+  const me = s.nations[s.playerNationId];
+  return {
+    ambitionsDone: majors.reduce((a, n) => a + (n.ambitions?.done?.length || 0), 0),
+    ambitionsPerMajorAge: +(ai.reduce((a, n) => a + rate(n), 0) / Math.max(1, ai.length)).toFixed(2),
+    playerAmbitionsPerAge: me?.ambitions ? +rate(me).toFixed(2) : null
+  };
+};
+
 const snapshot = (s, t, counters, ms, lives, telemetry) => {
   const regs = Object.values(s.regions);
   const nations = Object.values(s.nations);
@@ -135,6 +150,7 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     ...(telemetry ? telemetry.snapshot(s) : {}),
     ...worldHealth(s, { isLand, landTiles: LAND_TILES, playerId: s.playerNationId }),
     ...(RULERS.rulerLevel ? rulerStats(s.nations, { levelOf: (r) => RULERS.rulerLevel(r.renown), pointsOf: RULERS.rulerPoints, branchOf: (v) => RULERS.VIRTUES[v]?.branch, playerId: s.playerNationId }) : {}),
+    ...ambitionStats(s),
     nationsAliveShare: +kaplanMeier(lives, [t]).at[t].toFixed(3), leadChanges: counters.leadChanges,
     // Plague: cities carrying the 'plague' mark now, and distinct cities struck so far (the old
     // independent roll in cityDisasters.js and the SIR epidemic in plague.js both set the mark).

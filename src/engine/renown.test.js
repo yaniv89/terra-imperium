@@ -14,6 +14,7 @@ import { gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { assertGameState } from './stateAudit';
+import { ageOf } from './nationState';
 
 const nation = (extra = {}, ruler = {}) => ({ id: 'p', ruler: { ...createRuler('p'), ...ruler }, ...extra });
 const world = (ruler = {}, ageId = FIRST_AGE_ID, extra = {}) => ({ playerNationId: 'p', techAgeId: ageId, turnNumber: 5, nations: { p: nation(extra, ruler) } });
@@ -191,6 +192,7 @@ describe('a quiet peoples world (integration)', () => {
       expect(r.traits.length).toBeGreaterThan(0);
       ['adm', 'dip', 'mil', 'cmd', 'lrn', 'maj'].forEach((a) => expect(r[a]).toBeLessThanOrEqual(attributeCap(s, id)));
       expect(rulerPoints(r).attribute).toBeLessThanOrEqual(1);
+      expect(s.nations[id].ambitions.ageId).toBe(ageOf(s, id)); // U12: every major holds its age's offer
     });
     expect(() => assertGameState(s)).not.toThrow();
   }, 120000);

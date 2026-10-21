@@ -27,8 +27,9 @@ export const DECREE_WAR_WON_SCORE = 25;
 // Recent grants and spends kept on the ruler for the UI's reason lines.
 export const DECREE_LOG_SIZE = 10;
 
-// Deeds that grant one decree each (U12 adds ambitions).
+// Deeds that grant one decree each.
 export const DECREE_DEEDS = {
+  ambition: 'Ambition fulfilled',
   warWon: 'War won',
   eraGoal: 'Era goal met',
   wonder: 'Wonder completed',

@@ -126,7 +126,8 @@ describe('deeds grant one decree each', () => {
     const me = S.playerNationId;
     const nation = S.nations[me];
     const wait = trickleTurns(S, me) - 1;
-    const start = { ...S, nations: { ...S.nations, [me]: { ...nation, ruler: { ...nation.ruler, decrees: 0, decreeWait: wait } } } };
+    // no ambition offer this age, so the only decree is the trickle (ambitions.js would pay one too)
+    const start = { ...S, nations: { ...S.nations, [me]: { ...nation, ambitions: { ageId: S.techAgeId, offers: [], done: [] }, ruler: { ...nation.ruler, decrees: 0, decreeWait: wait } } } };
     const next = resolveTurn(start);
     expect(decreesOf(next.nations[me])).toBe(1);
     expect(next.nations[me].ruler.decreeLog[0].deed).toBe('trickle');
