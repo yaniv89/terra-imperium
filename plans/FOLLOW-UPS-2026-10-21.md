@@ -18,3 +18,17 @@ Open items found while merging lanes. Kept in sync with the status page.
 14. **iPhone check: touch:** Circle select (also by double tap), hold for help, the touch tutorial.
 15. **iPhone check: new screens:** World Congress, glossary, crisis banner.
 16. **Screenshot checker and playtester:** Trial runs going; then full runs and fixes from their reports.
+
+## From the AI playtester (3 full games, 21 October, $0.32)
+Akkad seed 1000 to 700 CE, Elam seed 1001 to 1500 CE, Pontic seed 1002 to 900 CE. Report on branch `ai/playtester-39629750171`.
+
+17. **Research stalls after Classical:** one tech takes about 100 turns. Check against the U96 Marathon/Gunpowder calibration first.
+18. **Calendar freezes then jumps:** the year stays put for many turns, then skips centuries.
+19. **Gold piles up:** nothing worth spending it on in mid game.
+20. **Expansion is very slow:** few new cities across the whole game.
+21. **Idle cities build no defenders:** the auto build queue leaves cities empty and they fall.
+22. **City lost with no visible battle:** the player loses cities without a battle report or a war notice.
+23. **Events repeat:** the same card shows several times in one game.
+24. **Era goals feel thin:** few goals and small rewards.
+25. **Crises rarely touch the player.**
+26. **AI declares war with no reason shown.**
