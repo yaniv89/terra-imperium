@@ -1,26 +1,38 @@
 [
  {
   "lang": "en",
-  "name": "challenge button clear of notch and 44 px",
+  "name": "challenge button hidden by the lead (CHALLENGES_ON = false): skipped",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "lang": "en",
+  "name": "top bar clear of notch",
   "ok": false,
-  "detail": "[642,8,836,52]"
+  "detail": "[0,844]"
  },
  {
   "lang": "en",
-  "name": "challenge sheet fits, inside safe areas",
-  "ok": true,
-  "detail": "[198,98,646,292]"
- },
- {
-  "lang": "en",
-  "name": "challenge sheet buttons >= 44 px",
-  "ok": true,
-  "detail": "[]"
+  "name": "hold for help opens the glossary (tech card)",
+  "ok": false,
+  "detail": ""
  },
  {
   "lang": "en",
   "name": "world run",
   "ok": false,
-  "detail": "locator.waitFor: Timeout 180000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-people]').first() to be visible\u001b[22m\n"
+  "detail": "page.screenshot: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - taking page screenshot\u001b[22m\n\u001b[2m  - waiting for fonts to load...\u001b[22m\n\u001b[2m  - fonts loaded\u001b[22m\n"
+ },
+ {
+  "lang": "he",
+  "name": "challenge button hidden by the lead (CHALLENGES_ON = false): skipped",
+  "ok": true,
+  "detail": ""
+ },
+ {
+  "lang": "he",
+  "name": "world run",
+  "ok": false,
+  "detail": "locator.dispatchEvent: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /^(Begin as|התחל)/ })\u001b[22m\n"
  }
 ]

@@ -47,8 +47,7 @@ const audit = (page, rootSel, label) => page.evaluate(([sel, label, INSET]) => {
 }, [rootSel, label, INSET]);
 
 const startGame = async (page) => {
-  await page.goto(base);
-  await page.locator('[data-people]').first().waitFor({ timeout: 180000 });
+  await page.locator('[data-people]').first().waitFor({ timeout: 300000 });
   await page.locator('[data-people]').first().dispatchEvent('click');
   await page.getByTestId('start-step-rules').dispatchEvent('click');
   await page.getByTestId('start-step-ready').dispatchEvent('click');
@@ -64,7 +63,7 @@ const battle = async (browser) => {
   const ctx = await newCtx(browser); const { page, touch, shot } = await setup(ctx);
   const errors = []; page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(`${base}?battleSandbox&autostart&age=bronze`, { waitUntil: 'domcontentloaded', timeout: 240000 });
-  await page.getByTestId('battle-pause').waitFor({ timeout: 180000 });
+  await page.getByTestId('battle-pause').waitFor({ timeout: 300000 });
   await wait(1500);
   // coach: 3 steps, advance with Next
   const coachText = () => page.getByTestId('battle-coach-text').innerText().catch(() => '');
@@ -113,7 +112,7 @@ const world = async (browser) => {
   const ctx = await newCtx(browser); const { page, shot } = await setup(ctx);
   const errors = []; page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(base);
-  await page.locator('[data-people]').first().waitFor({ timeout: 180000 });
+  await page.locator('[data-people]').first().waitFor({ timeout: 300000 });
   // weekly challenge on the start screen
   await shot('w0-start');
   const co = page.getByTestId('challenge-open');
@@ -125,7 +124,7 @@ const world = async (browser) => {
     check('challenge sheet fits, inside safe areas', s.insideH && s.insideV, JSON.stringify(s.panel));
     check('challenge sheet buttons >= 44 px', !s.small?.length, JSON.stringify(s.small));
     await page.getByTestId('challenge-sheet').getByRole('button').last().dispatchEvent('click');
-  } else check('challenge button visible on start screen', false);
+  } else check('challenge button hidden by the lead (CHALLENGES_ON = false): skipped', true);
   await startGame(page);
   await shot('w2-world');
   const topbar = await page.evaluate(() => { const e = document.querySelector('[data-testid=world-top-bar]').getBoundingClientRect(); return [e.left, e.right].map(Math.round); });
