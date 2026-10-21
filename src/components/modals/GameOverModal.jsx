@@ -85,7 +85,7 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
               : tNow('p1.go.fallen', { name: nationText })}
         </p>
         <p className="text-amber-400 font-mono text-sm mb-1">{tNow('legacy.score')}: {formatNumber(legacy.total)} · {tNow('legacy.rank', { rank: legacy.rank, of: legacy.of })}</p>
-        {endingText && <p className="text-fa-muted text-xs mb-1">{endingText}</p>}
+        {endingText && <p className="text-fa-muted text-xs mb-5">{endingText}</p>}
         {legacy.top.length > 0 && <p className="text-fa-muted text-[11px] mb-4" data-testid="go-rivals">{tNow('legacy.rivals')}: {legacy.top.map((r) => `${nameNow('people', r.nationId, state.nations[r.nationId]?.name)} ${formatNumber(r.legacy)}`).join(' · ')}</p>}
 
         <div className="grid grid-cols-2 gap-3 text-start mb-6">
