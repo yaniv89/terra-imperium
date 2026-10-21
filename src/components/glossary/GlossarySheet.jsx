@@ -38,7 +38,7 @@ const GlossarySheet = () => {
     title = people(e.id, e.name);
     body = (<>
       {e.note && <p>{e.note[lang] || e.note.en}{e.uncertain && <small className="ml-1 opacity-70">({t('gloss.uncertain')})</small>}</p>}
-      {e.capital && e.land ? <p>{t('gloss.trueStart', { capital: city(e.capital), land: nm('land', null, e.land) })}</p> : e.founded && <p>{e.founded[lang] || e.founded.en}</p>}
+      {e.founded ? <p>{e.founded[lang] || e.founded.en}</p> : e.capital && e.land && <p>{t('gloss.trueStart', { capital: city(e.capital), land: nm('land', null, e.land) })}</p>}
       <p>{rich(t('gloss.otherCities'), { list: joined(e.cities.slice(1).map((c) => <GlossaryLink key={c} kind="city" id={c}>{city(c)}</GlossaryLink>)) })}</p>
     </>);
   } else if (e.kind === 'city') {
