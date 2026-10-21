@@ -26,12 +26,13 @@ SEEDS.forEach((seed) => {
     let s = createInitialState({ playerNationId: PLAYER, rngSeed: seed, scenario: { mode: 'peoples', size: 'standard', seed } });
     s = { ...s, research: { ...s.research, auto: true }, battleSettings: { autoDefend: true } };
     const scripted = createScriptedPlayer({ engine: { gameReducer, ActionTypes, chooseProduction, nationCounts, bestSites, MAX_SETTLE_RINGS, getResearched, getTechAgeId, getEffectiveAgeId: AGES.getEffectiveAgeId, speedCostMult: AGES.speedCostMult, speedTrainMult: AGES.speedTrainMult }, demands: 'refuse', opinionOf });
-    const perAge = {}; const kinds = { story: 0, link: 0, draw: 0 }; const lastFamily = {}; let minFamilyGap = Infinity; let stalls = 0;
+    const perAge = {}; const kinds = { story: 0, link: 0, draw: 0 }; const lastFamily = {}; let minFamilyGap = Infinity; const fired = {}; let stalls = 0;
     for (let t = 1; t <= TURNS && s.gameStatus === GameStatus.ACTIVE; t++) {
       if (s.activeEventId || s.activeProceduralEvent) {
         const ev = s.activeProceduralEvent;
         const kind = s.activeEventId ? (HISTORICAL_EVENTS[s.activeEventId] ? 'story' : 'link') : ev.procedural ? 'draw' : 'link';
         kinds[kind] += 1;
+        const cardId = s.activeEventId || ev.templateId || ev.id; fired[cardId] = (fired[cardId] || 0) + 1;
         const age = getTechAgeId(s, s.playerNationId);
         perAge[age] = (perAge[age] || 0) + 1;
         if (kind === 'draw') {
@@ -45,7 +46,9 @@ SEEDS.forEach((seed) => {
       s = resolveTurn(s);
       if (s.turnNumber === turn && s.gameStatus === GameStatus.ACTIVE) stalls += 1;
     }
+    const done = Object.keys(fired).filter((id) => /^deck_.*_4$/.test(id)).length;
+    const maxFires = Math.max(0, ...Object.values(fired));
     const total = kinds.story + kinds.link + kinds.draw;
-    console.log(`EVENTS seed=${seed} turn=${s.turnNumber} total=${total} story=${kinds.story} link=${kinds.link} draw=${kinds.draw} minFamilyGap=${minFamilyGap} familyCooldown=${Math.ceil(5 * AGES.speedCostMult(s.gameSpeed, getTechAgeId(s, s.playerNationId)))} stalls=${stalls} perAge=${JSON.stringify(perAge)}`);
+    console.log(`EVENTS seed=${seed} turn=${s.turnNumber} total=${total} story=${kinds.story} link=${kinds.link} draw=${kinds.draw} minFamilyGap=${minFamilyGap} familyCooldown=${Math.ceil(5 * AGES.speedCostMult(s.gameSpeed, getTechAgeId(s, s.playerNationId)))} stalls=${stalls} storiesDone=${done} maxFiresOfOneCard=${maxFires} perAge=${JSON.stringify(perAge)}`);
   });
 });

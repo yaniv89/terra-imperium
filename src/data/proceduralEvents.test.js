@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { drawCard } from '../engine/eventDeck';
+import { drawCard, CARDS } from '../engine/eventDeck';
 import { peoplesWorld, rivalOf } from '../engine/testWorld';
 import { createRng } from '../utils/rng';
-import { EVENT_CHAINS } from './eventChains';
 
 const world = () => peoplesWorld({ seed: 5 });
 const capOf = (s) => s.nations[s.playerNationId].capitalRegionId;
@@ -63,7 +62,7 @@ describe('drawCard', () => {
       if (!event) continue;
       event.options.forEach(option => {
         const followUp = option.effects.spawnFollowUp;
-        if (followUp) expect(EVENT_CHAINS[followUp.id]).toBeDefined();
+        if (followUp) expect(CARDS[followUp.id]?.kind).toBe('link');
       });
     }
   });

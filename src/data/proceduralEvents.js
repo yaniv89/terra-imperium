@@ -14,10 +14,10 @@ import { getTiles } from './geo/tiles';
 import { CLIMATE_RESILIENCE_THRESHOLD } from './actionCosts';
 import { FIRST_AGE_ID, getAgeIndex } from './ages';
 
-const mine = (state) => Object.values(state.regions || {}).filter((c) => c.owner === state.playerNationId && c.tile != null && !c.outpost).sort((a, b) => (a.id < b.id ? -1 : 1));
-const facts = (c) => { const t = getTiles(); return { river: !!t.rivers[c.tile], coastal: t.coastal[c.tile] === 1, lat: t.latLonOf(c.tile).lat }; };
+export const mine = (state) => Object.values(state.regions || {}).filter((c) => c.owner === state.playerNationId && c.tile != null && !c.outpost).sort((a, b) => (a.id < b.id ? -1 : 1));
+export const facts = (c) => { const t = getTiles(); return { river: !!t.rivers[c.tile], coastal: t.coastal[c.tile] === 1, lat: t.latLonOf(c.tile).lat }; };
 // A city whose land touches land nobody or someone else owns.
-const frontier = (state, c) => { const t = getTiles(); const owner = state.world?.tileOwner || {}; return (c.tiles || [c.tile]).some((x) => t.neighbors[x].some((n) => t.land[n] === 1 && (owner[n] == null || state.regions[owner[n]]?.owner !== c.owner))); };
+export const frontier = (state, c) => { const t = getTiles(); const owner = state.world?.tileOwner || {}; return (c.tiles || [c.tile]).some((x) => t.neighbors[x].some((n) => t.land[n] === 1 && (owner[n] == null || state.regions[owner[n]]?.owner !== c.owner))); };
 const foreignMajority = (c) => { const cu = c.culture || {}; const own = cu[c.owner] || 0; return Object.entries(cu).some(([id, v]) => id !== c.owner && v > own); };
 // Stone Age flavour: the first age's own small troubles and omens (U33).
 const FIRST_AGE = { fact: 'ageIndex', min: 0, max: getAgeIndex(FIRST_AGE_ID) };
