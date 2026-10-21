@@ -306,7 +306,7 @@ const play = async (opts, log = console.log) => {
   const system = [{ type: 'text', text: systemPrompt(opts.persona, opts.size, opts.lang, opts.scene), cache_control: { type: 'ephemeral' } }];
   const saves = opts.slices.length ? await buildSlices(opts.slices, opts.sliceTurns, log) : {};
   const segments = battle
-    ? opts.battleAges.map((a, i) => ({ id: `${a}-${BATTLE_SETUPS[i % BATTLE_SETUPS.length].id}`, what: `the battle sandbox in the ${a} age, set up for ${BATTLE_SETUPS[i % BATTLE_SETUPS.length].what}: set up, tap Fight, and play the battle to its end`, url: battleUrl(opts.url, a, i) }))
+    ? opts.battleAges.map((a, i) => ({ id: `${a}-${BATTLE_SETUPS[i % BATTLE_SETUPS.length].id}`, what: `the battle sandbox in the ${a} age, already set up by the link for ${BATTLE_SETUPS[i % BATTLE_SETUPS.length].what} (the pickers may not show it; change them only if you want): scroll down to Fight if it is below the screen, tap it, and play the battle to its end`, url: battleUrl(opts.url, a, i) }))
     : [{ id: 'start', what: 'a new game from the start screen' }, ...opts.slices.map((a) => ({ id: a, what: `a game already in the ${a} age (turn ${saves[a].turn}${saves[a].boosted ? ', research boosted by the harness' : ''}): carry on from here`, save: saves[a] }))];
   const perSegment = Math.max(1, Math.floor(opts.maxSteps / segments.length));
   const covered = new Set();
