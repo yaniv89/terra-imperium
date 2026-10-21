@@ -40,9 +40,15 @@ on:
         required: false
         type: choice
         default: newcomer-phone
-        options: [newcomer-phone, civ-veteran, warmonger, builder, rts-commander, hebrew-speaker]
+        options: [newcomer-phone, civ-veteran, warmonger, builder, rts-commander, battle-commander, hebrew-speaker]
+      scene:
+        description: human-playtest only, campaign (the game from its start screen) or battle (the battle sandbox, one battle per age)
+        required: false
+        type: choice
+        default: campaign
+        options: [campaign, battle]
       slices:
-        description: human-playtest only, extra late-game sessions, e.g. bronze,classical,gunpowder,modern,information (empty = the start only)
+        description: human-playtest only, campaign = extra late-game sessions (bronze,classical,gunpowder,modern,information; empty = the start only), battle = the ages to fight (empty = all eight)
         required: false
         default: ''
       size:
@@ -58,8 +64,8 @@ on:
 permissions:
   contents: write
 concurrency:
-  # One queue per job and persona: GitHub keeps one waiting run per group and cancels the rest.
-  group: claude-content-${{ inputs.job }}-${{ inputs.persona }}
+  # One queue per job, persona and scene: GitHub keeps one waiting run per group and cancels the rest.
+  group: claude-content-${{ inputs.job }}-${{ inputs.persona }}-${{ inputs.scene }}
   cancel-in-progress: false
 jobs:
   run:
@@ -123,7 +129,9 @@ jobs:
           MAX_USD: ${{ inputs.max_usd }}
           CARDS_REF: ${{ inputs.cards_ref }}
           PERSONA: ${{ inputs.persona }}
+          SCENE: ${{ inputs.scene }}
           SLICES: ${{ inputs.slices }}
+          BATTLE_AGES: ${{ inputs.slices }}
           SIZE: ${{ inputs.size }}
           LANG_UI: ${{ inputs.lang }}
           SWGL: '1'
