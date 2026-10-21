@@ -34,14 +34,6 @@ import ActionCard from './ActionCard';
 import { Button } from '../ui/atlas';
 import { peoplesModel, RELATION_LABEL } from './peoplesModel';
 
-// Plan feedback ("I don't understand why I can't start a war, I have plenty of resources"): the
-// player was reading the top-bar Gold total and assuming that meant "affordable," when most
-// diplomacy actions are actually gated on ADM/DIP/MIL power (separate, far scarcer pools —
-// src/components/ui/ResourceBar.jsx's adm/dip/mil badges) rather than gold. `formatCost` puts the
-// real price directly in the button label (matching the pattern "Sue for Peace (200g)"/"Annex (…
-// DIP)" already used below), and `describeShortfall` turns a failed dispatchIfAffordable into a
-// specific reason instead of a generic "Not enough resources" — both readable without a hover
-// tooltip, which mobile touch has no equivalent of.
 import NationCard from './NationCard';
 import { demandTerms } from '../../engine/aiAccords';
 import { mapOfferTerms } from '../../engine/mapTrade';
@@ -49,16 +41,8 @@ import IndependentsList from '../independents/IndependentsList';
 import { openTributeDemand, openJoinOffer, openIndependent } from '../independents/independentEvents';
 import { ageOf } from '../../engine/nationState';
 import { canPay, walletOf } from '../../utils/costs';
+import { costLine, shortfallLine } from './empireText';
 
-
-const COST_UNITS = new Set(['gold', 'decrees']);
-const unitOf = (key) => (COST_UNITS.has(key) ? ` ${tNow(`nc.unit.${key}`)}` : key);
-const describeShortfall = (resources, costs, n) => Object.entries(costs)
-  .filter(([key, amount]) => (resources[key] || 0) < amount)
-  .map(([key, amount]) => tNow('nc.shortfallItem', { n: n(amount), unit: unitOf(key).trim(), have: n(resources[key] || 0) }))
-  .join(', ');
-// The price of an action in words ("100 Gold, 1 DIP"), as helpers.getCostString writes it.
-const costText = (costs, n) => Object.entries(costs || {}).filter(([, v]) => v).map(([k, v]) => (COST_UNITS.has(k) ? `${n(v)} ${tNow(`p2.cu.${k}`)}` : null)).filter(Boolean).join(', ');
 
 const RELATION_TONE = { war: 'text-fa-danger-text border-fa-danger', pact: 'text-fa-good border-fa-good/60', trade: 'text-fa-you border-fa-you/60', vassal: 'text-fa-indep border-fa-indep/60' };
 
@@ -70,7 +54,7 @@ const DiplomacyPanel = () => {
   const [picked, setPicked] = useState(null);
 
   const handleCulturalExport = () => {
-    if (!canPay(state, ACTION_COSTS.culturalExport)) return addLog(tNow('nc.notEnoughNeed', { list: describeShortfall(walletOf(state), ACTION_COSTS.culturalExport, n) }), 'action');
+    if (!canPay(state, ACTION_COSTS.culturalExport)) return addLog(tNow('nc.notEnoughNeed', { list: shortfallLine(walletOf(state), ACTION_COSTS.culturalExport) }), 'action');
     triggerEffect('cultural_export', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.CULTURAL_EXPORT });
     return undefined;
@@ -212,13 +196,13 @@ const DiplomacyPanel = () => {
             // A vassal's own way out: liberty desire rises the stronger the vassal grows (resolveTurn.js).
             <ActionCard icon={Unlock} label={tNow('dip.independence')}
               description={tNow('p2.pp.liberty', { n: Math.round(playerNation.libertyDesire || 0), name: nameIn('people', playerNation.vassalOf, state.nations[playerNation.vassalOf]?.name || playerNation.vassalOf) })}
-              cost={costText(ACTION_COSTS.declareIndependence, n)} onClick={handleDeclareIndependence}
+              cost={costLine(ACTION_COSTS.declareIndependence)} onClick={handleDeclareIndependence}
               disabled={playerNation.isAtWar || (playerNation.libertyDesire || 0) < 50} />
           )}
           {isModernAge && (
             <ActionCard icon={Sparkles} label={tNow('dip.export')}
               description={tNow('p2.pp.exportDesc', { h: CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION, g: CULTURAL_EXPORT_INFLUENCE_GAIN, n: n(playerNation?.culturalInfluence || 0) })}
-              cost={costText(ACTION_COSTS.culturalExport, n)} onClick={handleCulturalExport}
+              cost={costLine(ACTION_COSTS.culturalExport)} onClick={handleCulturalExport}
               disabled={!canPay(state, ACTION_COSTS.culturalExport)} />
           )}
         </div>

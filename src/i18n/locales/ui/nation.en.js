@@ -1,9 +1,7 @@
 // src/i18n/locales/ui/nation.en.js
 // UI text: nation (phase H5). Plural forms use .one / .two / .other with { count }.
 export default {
-  'nc.unit.gold': 'gold',
-  'nc.unit.decrees': 'decrees',
-  'nc.shortfallItem': '{n} {unit} (have {have})',
+  'nc.shortfallItem': '{cost} (have {have})',
   'nc.notEnough': 'Not enough resources — need {list}',
   'nc.notEnoughNeed': 'Not enough resources: need {list}',
   'nc.cantAnnex': 'Can\'t annex yet: available turn {n}',

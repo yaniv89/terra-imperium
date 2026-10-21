@@ -114,3 +114,10 @@ export const governmentCardLines = (preview) => {
 
 /** A cost object as "2 decrees, 5 Gold" in the current language (the dialog and cards). */
 export const costLine = (cost) => getCostString(cost || {});
+
+/** What is missing for `cost`, as "2 decrees (have 1), 150 Gold (have 90)": the one shortfall line for every button.
+ * `wallet` is walletOf(state): resources plus the ruler's decrees. */
+export const shortfallLine = (wallet, cost) => Object.entries(cost || {})
+  .filter(([key, amount]) => amount > 0 && (wallet[key] || 0) < amount)
+  .map(([key, amount]) => tNow('nc.shortfallItem', { cost: getCostString({ [key]: amount }), have: Math.floor(wallet[key] || 0) }))
+  .join(', ');

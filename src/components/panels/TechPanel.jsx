@@ -13,6 +13,7 @@
 // "Research" makes a tech the target (queuing its missing earlier techs first); "Queue" adds it
 // after what's already planned. Pure numbers come from researchView.js and researchSheetModel.js.
 import { t as tNow, isolateLtr } from '../../i18n';
+import { costLine } from './empireText';
 import { useT } from '../../i18n/useT';
 import { rich } from '../../i18n/rich';
 import React, { useMemo, useState } from 'react';
@@ -48,11 +49,6 @@ export const CATEGORY_LABELS = Object.defineProperties({}, Object.fromEntries(
 ));
 
 const SCIENCE = 'var(--fa-science)';
-const COST_WORDS = { decrees: 'decrees', techPoints: 'science', gold: 'gold' };
-const costWord = (k) => (COST_WORDS[k] ? tNow(`p2.cw.${k}`) : k);
-// What the Fund Scholars button costs ("100 Gold, 1 DIP"), word for word as helpers.getCostString writes it.
-const COST_UNITS = new Set(['gold', 'adm', 'dip', 'mil']);
-const costText = (costs, n) => Object.entries(costs || {}).filter(([, v]) => v).map(([k, v]) => (COST_UNITS.has(k) ? `${n(v)} ${tNow(`p2.cu.${k}`)}` : k === 'techPoints' ? `${v} TP` : null)).filter(Boolean).join(', ');
 // A leading signed number in a Hebrew bonus phrase ("+10% gold") stays left to right.
 const signed = (text) => String(text || '').replace(/^([+-]\d+%?)/, (m) => isolateLtr(m));
 
@@ -186,7 +182,7 @@ const WEB_FILL = { researched: '#1F3A2C', current: '#2B3644', queued: '#1E2C40',
 const WEB_STROKE = { researched: '#6CC28A', current: '#ECE5D3', queued: '#5B9BF0', available: '#B9B19F', locked: '#33404F' };
 
 const TechPanel = () => {
-  const { n } = useT();
+  useT();
   const { state, dispatch, addLog } = useGame();
   const { triggerEffect } = useEffects();
   const categories = getTechsByCategory();
@@ -264,10 +260,10 @@ const TechPanel = () => {
       )}
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        <ActionCard icon={GraduationCap} label={tNow('tech.scholars')} description={tNow('p2.sch.desc')} cost={costText(ACTION_COSTS.fundScholars, n)}
+        <ActionCard icon={GraduationCap} label={tNow('tech.scholars')} description={tNow('p2.sch.desc')} cost={costLine(ACTION_COSTS.fundScholars)}
           effect={scholarsPreview(state, FUND_SCHOLARS_TECHPOINTS).note} onClick={handleFundScholars} disabled={!canPay(state, ACTION_COSTS.fundScholars)} />
         <div className="space-y-1.5">
-          <Label>{tNow('p2.fo.label')} <span className="normal-case tracking-normal font-normal">{tNow('p2.fo.hint', { pct: Math.round(FOCUS_SCIENCE_BONUS * 100), cost: focusCost ? tNow('p2.fo.cost', { list: Object.entries(focusCost).map(([k, v]) => `${v} ${costWord(k)}`).join(', ') }) : '' })}</span></Label>
+          <Label>{tNow('p2.fo.label')} <span className="normal-case tracking-normal font-normal">{tNow('p2.fo.hint', { pct: Math.round(FOCUS_SCIENCE_BONUS * 100), cost: focusCost ? tNow('p2.fo.cost', { list: costLine(focusCost) }) : '' })}</span></Label>
           <div className="flex flex-wrap gap-1.5">
             {Object.values(TechCategories).map((categoryId) => (
               <Chip key={categoryId} pressed={state.researchFocus === categoryId} onClick={() => handleFocus(categoryId)}
