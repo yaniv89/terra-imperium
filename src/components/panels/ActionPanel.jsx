@@ -6,6 +6,7 @@ import React from 'react';
 import DomesticPanel from './DomesticPanel';
 import TechPanel from './TechPanel';
 import LegacyPanel from './LegacyPanel';
+import RulerSheet from '../ruler/RulerSheet';
 import DiplomacyPanel from './DiplomacyPanel';
 import CityList from '../city/CityList';
 import { openCityOnMap } from '../map/marchEvents';
@@ -17,6 +18,9 @@ const ActionPanel = ({ activeTab }) => {
     <div className={`flex-1 overflow-y-auto overscroll-contain relative bg-fa-panel text-fa-text ${activeTab === 'cities' || activeTab === 'tech' || activeTab === 'diplomacy' ? '' : 'p-3 sm:p-4'}`} data-testid="action-panel">
       {activeTab === 'domestic' && (
         <DomesticPanel />
+      )}
+      {activeTab === 'ruler' && (
+        <RulerSheet />
       )}
       {activeTab === 'cities' && (
         <div>

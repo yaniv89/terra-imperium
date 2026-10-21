@@ -1,19 +1,21 @@
 // src/components/panels/ActionPanelTabs.jsx
-// The tabs of the side panel: Empire, Cities, Research, Peoples (diplomacy), Legacy. The
+// The tabs of the side panel: Empire, Ruler, Cities, Research, Peoples (diplomacy), Legacy. The
 // rail (PanelDrawer.jsx) shows them on the right edge on every landscape layout and the desktop;
 // the bottom bar of a phone held upright shows this row. Field Atlas look: a light underline marks
 // the open tab, a small red dot the tabs that need you (plans/UI-DESIGN.md section 2).
 import React from 'react';
-import { Crown, Building2, FlaskConical, HeartHandshake, Trophy } from 'lucide-react';
+import { Crown, Landmark, Building2, FlaskConical, HeartHandshake, Trophy } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
+import { rulerBadge } from '../ruler/rulerSheetModel';
 import { nextPrompts } from '../ui/nextPromptModel';
 import { useT } from '../../i18n/useT';
 
 // The War section stays in the Empire sheet (plans/civ-map-rework.md E4); Diplomacy is its own tab
 // again as "Peoples" (W07), so the Empire sheet no longer repeats it.
 export const TABS = [
-  { id: 'domestic', label: 'Empire', icon: Crown },
+  { id: 'domestic', label: 'Empire', icon: Landmark },
+  { id: 'ruler', label: 'Ruler', icon: Crown },
   { id: 'cities', label: 'Cities', icon: Building2 },
   { id: 'tech', label: 'Research', icon: FlaskConical },
   { id: 'diplomacy', label: 'Peoples', icon: HeartHandshake },
@@ -29,6 +31,7 @@ export const getTabBadge = (state, tabId) => {
       const wars = Object.values(state.nations).filter(n => !n.isPlayer && isAtWarWithPlayer(state, n.id)).length;
       return wars + invasions > 0 ? wars + invasions : null;
     }
+    case 'ruler': return rulerBadge(state) || null;
     case 'cities': {
       const n = nextPrompts(state).filter((p) => p.kind === 'city' || p.kind === 'unrest').length;
       return n || null;

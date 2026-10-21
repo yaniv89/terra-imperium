@@ -8,6 +8,7 @@ import { resolve } from 'node:path';
 
 const CONVERTED = [
   'src/components/panels/DomesticPanel.jsx',
+  'src/components/ruler/RulerSheet.jsx',
   'src/components/panels/GovernmentChangeDialog.jsx',
   'src/components/panels/LegacyPanel.jsx',
   'src/components/panels/MilitaryPanel.jsx',
