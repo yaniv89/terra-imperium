@@ -220,7 +220,7 @@ export class BattleRenderer {
     this.camera = new OrthographicCamera(-1, 1, 1, -1, 0.1, 400);
     this.camera.zoom = 1;
     // Start looking at your own army's front line.
-    this.target = new Vector3(playerSide === 0 ? (this.map.attackerEdge || 1) + 9 : this.map.keep.x - 9, 0, this.map.h / 2);
+    this.target = new Vector3(this.map.naval ? this.map.w / 2 + (playerSide === 0 ? -8 : 8) : playerSide === 0 ? (this.map.attackerEdge || 1) + 9 : this.map.keep.x - 9, 0, this.map.h / 2);
     this.raycaster = new Raycaster();
     this.groundPlane = new Plane(new Vector3(0, 1, 0), 0);
     this.disposables = [];
@@ -377,7 +377,7 @@ export class BattleRenderer {
     const { w, h, height, tiles } = this.map;
     if (!this.tileHeights) {
       this.tileHeights = new Float32Array(w * h);
-      for (let i = 0; i < w * h; i++) this.tileHeights[i] = tiles[i] === TILE.WATER ? -0.5 : Math.max(-0.12, (height[i] / 256) * 0.55);
+      for (let i = 0; i < w * h; i++) this.tileHeights[i] = tiles[i] === TILE.WATER || (this.map.naval && tiles[i] === TILE.OPEN) ? -0.5 : Math.max(-0.12, (height[i] / 256) * 0.55);
     }
     const cx = ix < 0 ? 0 : ix > w - 1 ? w - 1 : ix; const cz = iz < 0 ? 0 : iz > h - 1 ? h - 1 : iz;
     return this.tileHeights[cz * w + cx];
@@ -1292,7 +1292,7 @@ export class BattleRenderer {
     return {
       stats,
       layer: this.soldierLayer(s.ageId, layerKey),
-      general: hasSoldierOverride(s.ageId, 'general') ? this.soldierLayer(s.ageId, 'general') : null,
+      general: s.classId !== 'naval' && hasSoldierOverride(s.ageId, 'general') ? this.soldierLayer(s.ageId, 'general') : null,
       drawn: this.figureScale < 1 || rigFig || machine ? { soldiers: this.figureScale < 1 ? scaledSoldiers(figures, this.figureScale) : figures } : stats,
       big: s.classId === 'cavalry' || s.classId === 'siege' || s.classId === 'support' || s.classId === 'naval' || !!stats.flying,
       // Modern tanks and AA trucks are wider than horses and carts: spread them so they do not overlap

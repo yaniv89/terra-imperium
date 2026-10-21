@@ -152,7 +152,7 @@ export const updateAssimilation = (w) => {
   const keep = w.structures[0];
   // In a battle with bases the keep is one base building among others (base.js, Q4): standing in
   // its ruin takes nothing.
-  if (!keep || keep.alive || w.eco) return;
+  if (!keep || keep.alive || w.eco || w.setup.battleType === 'naval') return; // a sea battle's anchorage is no objective
   let attackers = 0; let defenders = 0;
   queryRadius(w, keep.x, keep.y, ASSIMILATION_RADIUS).forEach((j) => {
     const q = w.squads[j];

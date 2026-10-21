@@ -118,6 +118,7 @@ export default {
   'bt.hud.housingChip': 'Housing',
   'bt.hud.ruinedChip': 'ruined',
   'bt.hud.oneMinuteDef': 'One minute left: hold on!',
+  'bt.hud.oneMinuteSea': 'One minute left: sink or scatter their fleet!',
   'bt.hud.oneMinuteAtk': 'One minute left: take the keep now!',
   'bt.hud.clickStrike': 'Click the battlefield to strike: {label}',
   'bt.hud.tapStrike': 'Tap the battlefield to strike: {label}',

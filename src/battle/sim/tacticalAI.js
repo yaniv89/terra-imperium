@@ -158,7 +158,7 @@ const thinkAttacker = (w, side, cfg, mine, enemies, orders) => {
   idle.forEach((q) => {
     if (q.stats.structureBonus) {
       const tower = w.structures.find((s) => s.alive && s.kind === 'tower' && s.damage > 0); // an armed one
-      const s = tower || (keep.alive ? keep : null);
+      const s = tower || (keep.alive && !keep.passive ? keep : null);
       if (s) { orders.push({ side, type: 'attack', squads: [q.idx], target: { kind: 'structure', index: w.structures.indexOf(s) } }); return; }
       const goal = hasBase(w) ? nearestBase(w, SIDE_DEFENDER, q.x, q.y) : null;
       if (goal) { orders.push({ side, type: 'attack', squads: [q.idx], target: goal }); return; }
@@ -262,6 +262,12 @@ const thinkDefender = (w, side, cfg, mine, enemies, orders) => {
   const keep = w.structures[0];
   if (cfg.abilities && w.assimilation === 0) mine = garrisonBuildings(w, side, mine, orders);
   let threat = nearest(enemies, keep.x, keep.y, DEFENSE_RADIUS);
+  // At sea there is nothing to hold: the fleet goes for the nearest enemy ship it can see, or
+  // sails for where the enemy fleet formed up until it sees one.
+  if (!threat && w.setup.battleType === 'naval') {
+    const z = w.map.attackerZone;
+    threat = nearest(enemies, keep.x, keep.y) || { x: ((z.x0 + z.x1) >> 1) * Q + (Q >> 1), y: keep.y };
+  }
   // Against raiders the loot is what needs guarding: the raider closest to a target still standing.
   if (w.setup.battleType === 'raid' || w.setup.battleType === 'sack') {
     let bestD = Infinity;

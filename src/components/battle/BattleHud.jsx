@@ -193,7 +193,7 @@ const BattleHud = ({
   const base = hud.base ? [hud.base[playerSide], hud.base[1 - playerSide]] : null;
   // Allied reinforcements still marching in on their own (U10: nobody calls them).
   const marching = mine.filter((q) => q.reinforcement && !q.onField && q.enterTick >= 0);
-  const keep = hud.structures[0];
+  const keep = setup?.battleType === 'naval' ? null : hud.structures[0]; // a sea battle's anchorage is no objective
   const supply = hud.supply[playerSide];
   const sup = supplyView(hud, setup, playerSide, supplyRate);
   const enemyLeft = hud.squads.filter((q) => q.side !== playerSide && q.alive && !q.fled).length;
@@ -456,7 +456,7 @@ const BattleHud = ({
       {started && timeLeft > 0 && timeLeft <= 60 && timeLeft > 55 && (
         <div className="absolute inset-x-0 flex justify-center pointer-events-none px-4" style={{ bottom: ABOVE_BOTTOM }}>
           <div className="px-3 py-1.5 rounded-full bg-fa-brass text-fa-ink text-xs font-bold shadow-xl">
-            {playerSide === 1 ? t('bt.hud.oneMinuteDef') : t('bt.hud.oneMinuteAtk')}
+            {setup?.battleType === 'naval' ? t('bt.hud.oneMinuteSea') : playerSide === 1 ? t('bt.hud.oneMinuteDef') : t('bt.hud.oneMinuteAtk')}
           </div>
         </div>
       )}

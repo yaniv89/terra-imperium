@@ -141,6 +141,7 @@ export const deployZone = (w, side) => {
 // Where each side's lines stand before the battle, by battle type (plans/civ-map-rework.md D5,
 // the AI's deployment templates): { front, back } tile x per side, and 'column' for an attacker
 // that must enter an ambush in file. The default is the field template.
+export const NAVAL_GAP = 6; // tiles from the middle of the sea to each fleet's front line
 const DEPLOY_TEMPLATES = {
   field: { attacker: (w, e) => [e + 7, e + 3], defender: (w) => [w.map.keep.x - 10, w.map.keep.x - 6] },
   river: { attacker: (w, e) => [Math.min(e + 7, Math.floor(w.map.w / 2) - 3), e + 3], defender: (w) => [Math.floor(w.map.w / 2) + 2, Math.floor(w.map.w / 2) + 5] }, // the defender holds the far bank
@@ -148,7 +149,8 @@ const DEPLOY_TEMPLATES = {
   assault: { attacker: (w, e) => [e + 7, e + 3], defender: (w) => [w.map.keep.x - 6, w.map.keep.x - 3] }, // the garrison keeps close to its walls
   sally: { attacker: (w, e) => [e + 6, e + 3], defender: (w) => [w.map.keep.x - 10, w.map.keep.x - 6] },
   landing: { attacker: (w, e) => [e + 3, e + 1], defender: (w) => [w.map.keep.x - 8, w.map.keep.x - 4] }, // on the sand; the defender a little inland
-  naval: { attacker: (w, e) => [e + 7, e + 3], defender: (w) => [w.map.keep.x - 12, w.map.keep.x - 7] } // two lines of ships at sea
+  // Two lines of ships facing each other across the middle of the sea, close enough to meet at once.
+  naval: { attacker: (w) => [Math.floor(w.map.w / 2) - NAVAL_GAP, Math.floor(w.map.w / 2) - NAVAL_GAP - 4], defender: (w) => [Math.floor(w.map.w / 2) + NAVAL_GAP, Math.floor(w.map.w / 2) + NAVAL_GAP + 4] }
 };
 export const deployTemplate = (type) => DEPLOY_TEMPLATES[type] || DEPLOY_TEMPLATES.field;
 
@@ -278,7 +280,9 @@ const spawnGenerals = (w) => {
       ? placed.filter((q) => Math.abs(Math.floor(q.x / Q) - genX) < LINE_SPACING).reduce((m, q) => Math.max(m, Math.abs(Math.floor(q.y / Q) - midY)), 0)
       : 0;
     ids.forEach((cid, i) => {
-      const unit = { id: `gen_${cid}`, classId: guardClassOf(s.ageId), strength: GENERAL_GUARD, maxStrength: GENERAL_GUARD, morale: 100, promotions: [], commanderId: cid, domain: 'land' };
+      // At sea the admiral sails in a flagship (a warship), never a land guard on the water.
+      const guard = setup.battleType === 'naval' ? { classId: 'naval', navalLine: 'warship', domain: 'naval' } : { classId: guardClassOf(s.ageId), domain: 'land' };
+      const unit = { id: `gen_${cid}`, ...guard, strength: GENERAL_GUARD, maxStrength: GENERAL_GUARD, morale: 100, promotions: [], commanderId: cid };
       const q = makeSquad(w, unit, side, s.ageId, w.squads.length);
       q.isGeneral = cid; q.eco = 'general';
       q.x = tileCenter(genX);

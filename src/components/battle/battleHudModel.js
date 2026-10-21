@@ -181,7 +181,7 @@ export const enemyObjectives = (hud, setup, playerSide, from = null) => {
   const targets = [];
   const keep = hud?.structures?.[0];
   // The keep (or the town hall standing for it) is the defender's.
-  if (enemy === 1 && keep?.alive && keep.kind === 'keep') targets.push({ x: keep.x / Q, y: keep.y / Q, label: t('bt.obj.theirKeep') });
+  if (enemy === 1 && keep?.alive && keep.kind === 'keep' && setup?.battleType !== 'naval') targets.push({ x: keep.x / Q, y: keep.y / Q, label: t('bt.obj.theirKeep') });
   const ageId = setup?.sides?.[enemy]?.ageId;
   (hud?.eco?.buildings || []).forEach((b) => {
     if (b.side !== enemy || !b.alive || b.proxy || !b.built || !isBaseType(b.type)) return;

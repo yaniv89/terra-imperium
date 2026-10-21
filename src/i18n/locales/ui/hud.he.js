@@ -118,6 +118,7 @@ export default {
   'bt.hud.housingChip': 'דיור',
   'bt.hud.ruinedChip': 'נהרסו',
   'bt.hud.oneMinuteDef': 'נותרה דקה: החזיקו מעמד!',
+  'bt.hud.oneMinuteSea': 'נותרה דקה: הטביעו או פזרו את הצי שלהם!',
   'bt.hud.oneMinuteAtk': 'נותרה דקה: כבשו את המצודה עכשיו!',
   'bt.hud.clickStrike': 'לחצו על שדה הקרב כדי לתקוף: {label}',
   'bt.hud.tapStrike': 'הקישו על שדה הקרב כדי לתקוף: {label}',

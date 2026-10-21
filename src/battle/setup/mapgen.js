@@ -196,13 +196,17 @@ const generateNavalMap = ({ w, h, tileContext, rng }) => {
     }
   }
   const midY = Math.floor(h / 2);
-  const keep = { x: w - 14, y: midY }; // the defender's anchorage (an objective for the AI, no walls, nothing drawn)
+  const midX = Math.floor(w / 2);
+  // The defender's anchorage, behind its line (no walls, nothing drawn, not a target: buildBattleSetup.js).
+  const keep = { x: midX + 14, y: midY };
   for (let y = 1; y < h - 1; y++) for (let x = 1; x < 12; x++) tiles[y * w + x] = TILE.OPEN;
+  // Open water where the two fleets form up facing each other (world.js NAVAL_GAP).
+  for (let y = 2; y < h - 2; y++) for (let x = midX - 18; x <= midX + 18; x++) tiles[y * w + x] = TILE.OPEN;
   carveDisc(tiles, w, h, keep.x, keep.y, 9, TILE.OPEN);
   if (!reachable(tiles, w, h, 6, midY, keep.x - 4, keep.y)) carveLine(tiles, w, h, 6, midY, keep.x - 4, keep.y, 1, TILE.OPEN, { onlyImpassable: true });
   const height = new Int16Array(w * h);
   for (let i = 0; i < w * h; i++) height[i] = tiles[i] === TILE.ROCK ? 40 : tiles[i] === TILE.SAND ? 4 : 0;
-  return { w, h, tiles, height, keep, points: [], landing: false, naval: true, attackerEdge: 1, attackerZone: { x0: 1, y0: 2, x1: 11, y1: h - 3 } };
+  return { w, h, tiles, height, keep, points: [], landing: false, naval: true, attackerEdge: 1, attackerZone: { x0: midX - 16, y0: 2, x1: midX - 4, y1: h - 3 } };
 };
 
 // How far in from the east edge the keep stands (tiles).
