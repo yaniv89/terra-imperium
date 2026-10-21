@@ -43,7 +43,7 @@ export const EVENT_CHAINS = {
     description: 'The venture has taken root and now sends real wealth home. The question is what to make of it — a formal extension of the state, or simply a source of profit.',
     options: [
       { label: 'Formalize it as a full province', effects: { gold: -100, techPoints: 20, controlBonus: 5 } },
-      { label: 'Keep it as a trading post only', effects: { gold: 80, dip: 10 } }
+      { label: 'Keep it as a trading post only', effects: { gold: 130 } }
     ]
   },
 
@@ -64,8 +64,8 @@ export const EVENT_CHAINS = {
     title: 'The Dispute Escalates',
     description: 'The punitive expedition crossed into contested ground, and what began as a raid has hardened into a genuine border dispute with a wary neighbor.',
     options: [
-      { label: 'Press your claim firmly', effects: { dip: -10, militaryStrengthBonus: 30, legitimacy: -5, spawnFollowUp: { id: 'border_dispute_2', delayTurns: 5 } } },
-      { label: 'Offer to submit the dispute to arbitration', effects: { dip: 15, spawnFollowUp: { id: 'border_dispute_2', delayTurns: 7 } } }
+      { label: 'Press your claim firmly', effects: { gold: -50, militaryStrengthBonus: 30, legitimacy: -5, spawnFollowUp: { id: 'border_dispute_2', delayTurns: 5 } } },
+      { label: 'Offer to submit the dispute to arbitration', effects: { gold: 75, spawnFollowUp: { id: 'border_dispute_2', delayTurns: 7 } } }
     ]
   },
   border_dispute_2: {
@@ -73,7 +73,7 @@ export const EVENT_CHAINS = {
     title: 'The Dispute Concludes',
     description: 'The border dispute finally reaches its conclusion, one way or another.',
     options: [
-      { label: 'Accept a compromise line', effects: { controlBonus: 5, dip: 10 } },
+      { label: 'Accept a compromise line', effects: { controlBonus: 5, gold: 50 } },
       { label: 'Hold firm and let tensions simmer', effects: { militaryStrengthBonus: 20, controlPenalty: 5 } }
     ]
   }

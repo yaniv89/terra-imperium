@@ -40,7 +40,7 @@ export default {
   'm.turn.wonderBuilt': '{wonder} (tier {tier}) stands at {city}!{prestige}',
   'm.turn.eliminated': '{nation} has been eliminated — no territory remains under its control.',
   'm.turn.rivalFallen': 'Your rival {nation} has fallen. (+{n} prestige)',
-  'm.turn.conqueredAll': 'You have conquered {nation} entirely! +{gold:money}, +{dip} DIP.',
+  'm.turn.conqueredAll': 'You have conquered {nation} entirely! +{gold:money}.',
   'm.turn.defeat': 'DEFEAT: your nation has fallen — no territory remains under your control.',
   'm.turn.victory': 'VICTORY: {victory} achieved!',
   'm.turn.scoreVictory': 'VICTORY: Score Victory achieved — your nation leads the world!',

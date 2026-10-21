@@ -14,10 +14,9 @@ const fixtureEvent = (id, effects) => ({ id, title: 'Test Event', options: [{ la
 describe('applyEventEffects', () => {
   it('applies resource effects atomically in one state transition', () => {
     const state = neighbourWorld();
-    const event = fixtureEvent('gold_event', { gold: 500, dip: 10 });
+    const event = fixtureEvent('gold_event', { gold: 500 });
     const next = applyEventEffects(state, event, 0);
     expect(next.resources.gold).toBe(state.resources.gold + 500);
-    expect(next.resources.dip).toBe(state.resources.dip + 10);
     expect(next.activeEventId).toBeNull();
     expect(next.firedEvents[event.id]).toBe(true);
   });

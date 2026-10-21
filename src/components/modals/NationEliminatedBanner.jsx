@@ -22,7 +22,7 @@ const NationEliminatedBanner = ({ nationName, onDismiss }) => {
       <div className="flex items-center gap-3 bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 border border-emerald-300/60 rounded-full shadow-2xl shadow-emerald-900/40 ps-4 pe-2 py-2">
         <Crown className="w-4 h-4 text-emerald-50 shrink-0" />
         <div className="text-sm font-semibold text-emerald-50 tracking-wide whitespace-nowrap">
-          {t('p1.elim.text', { name: name('nation', id, nationName), gold: NATION_ELIMINATION_REWARD.gold, dip: NATION_ELIMINATION_REWARD.dip })}
+          {t('p1.elim.text', { name: name('nation', id, nationName), gold: NATION_ELIMINATION_REWARD.gold })}
         </div>
         <button
           onClick={onDismiss}

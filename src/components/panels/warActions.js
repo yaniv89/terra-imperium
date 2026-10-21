@@ -4,9 +4,9 @@
 // the cost, the justification and the reasons it is blocked never differ. Pure.
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { hasCasusBelli, isInTruce, isAtWarWithPlayer } from '../../engine/diplomacy';
-import { canAfford } from '../../utils/helpers';
 import { t } from '../../i18n/core';
 import { nameNow } from '../../i18n/names';
+import { canPay } from '../../utils/costs';
 
 export const declareWarModel = (state, nationId) => {
   const me = state.playerNationId;
@@ -18,7 +18,7 @@ export const declareWarModel = (state, nationId) => {
   const blocked = atWar ? t('mx.war.alreadyAtWar') : state.nations[me]?.vassalOf ? t('mx.war.vassal') : nation.vassalOf === me ? t('mx.war.yourVassal') : null;
   const shown = nameNow('people', nationId, nation.name);
   const breaksTruce = !atWar && isInTruce(state, me, nationId);
-  const affordable = canAfford(state.resources, costs);
+  const affordable = canPay(state, costs);
   return {
     nationId, name: nation.name, atWar, justified, costs, blocked, breaksTruce, affordable,
     shown,

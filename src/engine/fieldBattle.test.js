@@ -109,7 +109,6 @@ describe('field attacks', () => {
   it('ATTACK_ARMY resolves through the reducer and the commanded battle builds from the tile', () => {
     const war = atWar(withUnits(S, [unit('a', IN, { tile: ours }), unit('b', IN, { tile: ours }), unit('e', PK, { ownerId: PK_ID, tile: theirs, strength: 200, maxStrength: 1000 })]));
     const auto = gameReducer(war, { type: ActionTypes.ATTACK_ARMY, payload: { fromRegionId: IN, tile: theirs } });
-    expect(auto.resources.mil).toBe(war.resources.mil - 2);
     expect(auto.battleReports[0].kind).toBe('field');
     assertGameState(auto);
     // Decision 41: on land inside neither side's borders there is no Command, only Auto.

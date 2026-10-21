@@ -35,7 +35,7 @@ import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent, noteEventFired } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { calcIncome, nextUnrest, getNationBonusTotal, getPowerIncome, getFieldedStrength } from '../utils/helpers';
+import { calcIncome, nextUnrest, getNationBonusTotal, getFieldedStrength } from '../utils/helpers';
 import { getRegionModifier, getModifier } from './modifiers/sheet';
 import { nextSiegeControlRegen, SIEGE_REGEN_COOLDOWN_TURNS } from './siege';
 import { getPopulationGrowthRate, nextRegionPopulation, peopleOf } from './population';
@@ -71,9 +71,8 @@ import { TAX_RATES } from '../data/taxRates';
 import {
   UNIT_UPKEEP_GOLD_PER_TURN, ARMY_MAINTENANCE_DEFAULT, FORT_UPKEEP_GOLD_PER_FORT_LEVEL,
   DIPLOMAT_IMPROVE_RELATIONS_HOSTILITY_DECAY_PER_TURN, VASSAL_TRIBUTE_RATE, VASSAL_TRIBUTE_GOLD_PER_DEV_POINT,
-  RIVAL_ELIMINATED_PRESTIGE_REWARD, CAPITAL_OCCUPIED_STABILITY_PENALTY, CAPITAL_OCCUPIED_POOL_PENALTY,
-  ECONOMIC_COLLAPSE_STABILITY_PENALTY,
-  POWER_POOL_CAP
+  RIVAL_ELIMINATED_PRESTIGE_REWARD, CAPITAL_OCCUPIED_STABILITY_PENALTY,
+  ECONOMIC_COLLAPSE_STABILITY_PENALTY
 } from '../data/actionCosts';
 import { getAdvisorSalary, aiDevelopRuler, rulerLevel } from './rulers';
 import { grantRenown, timeRenown } from './renown';
@@ -336,22 +335,6 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // trigger an auto-loan or bankruptcy, both of which need to touch nation/region state that
   // doesn't exist yet this early in the turn.
 
-  // ADM/DIP/MIL (plan §M2) each gain the nation's per-turn income every turn, and unspent power
-  // BANKS up to the flat POWER_POOL_CAP (src/data/actionCosts.js) — saving up across turns is how a
-  // 40-160 power tech, a 300-ADM government change or a 100+ ADM stability increase is ever paid for.
-  // getPowerIncome (Administrative Capacity) is recomputed fresh from current government/tech
-  // every turn rather than read from a stored field, so adopting a government or finishing a
-  // Governance tech takes effect on the very next turn automatically. maxAdm/maxDip/maxMil keep
-  // their old names for save compatibility but hold that per-turn INCOME (what the UI shows as
-  // "+N/turn"), not a ceiling.
-  const powerIncome = getPowerIncome({ ...state, nations: modifierExpiredNations });
-  ['adm', 'dip', 'mil'].forEach((pool) => {
-    const income = powerIncome[pool];
-    // Reads `resources[pool]` (`state.resources[pool]` plus this turn's calcIncome addition), never
-    // `state.resources[pool]` directly, or that addition would be overwritten by this bank-up step.
-    resources[`max${pool[0].toUpperCase()}${pool.slice(1)}`] = income;
-    resources[pool] = Math.min((resources[pool] || 0) + income, POWER_POOL_CAP);
-  });
   mark('maintenanceAndPower');
 
   // --- unrest drift (every region, not just the player's — this is a generic mechanic every
@@ -623,7 +606,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   logs.push(...aiUpdates.logs.map(l => ({ year: newYear, ...l })));
   mark('aiGrowthAndHostility');
 
-  // --- AI economy (plan §M16) --- real gold/hr/techPoints/adm/dip/mil income credits every non-
+  // --- AI economy (plan §M16) --- real gold/hr/techPoints income credits every non-
   // player nation's own economy pool EVERY turn (calcAllNationIncomes is one O(regions) pass, cheap
   // enough to run unconditionally for all 240 nations — the same "one shared pass" perf pattern
   // buildOccupationIndexes/calcAllNationIncomes-style functions already use elsewhere in this
@@ -635,7 +618,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // full list of what's deliberately NOT part of this milestone (laws, identity, advisors,
   // diplomat tasks, AI loans/bankruptcy).
   // ONE shared state snapshot for this whole phase — critically, the SAME object reference for
-  // every nation's calcAllNationIncomes/getPowerIncome/getNationTier/processAIEconomyTurn call.
+  // every nation's calcAllNationIncomes/getNationTier/processAIEconomyTurn call.
   // The modifier engine (src/engine/modifiers/sheet.js) caches a nation's sheet per (state
   // reference, nationId) pair; a fresh `{ ...state, ... }` literal built INSIDE this loop, once per
   // nation, would defeat that cache entirely (each nation's sheet — including its own O(regions)
@@ -672,7 +655,6 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     if (!settling.has(nId)) return;
     const turns = turnsToSettle(nation, newTurnNumber, lodPeriod(tier, nation));
     const income = allIncomes[nId] || { gold: 0, hr: 0, techPoints: 0 };
-    const powerIncome = getPowerIncome(aiEconState, nId);
     const pool = { ...nation.economy };
     pool.gold += income.gold; // the other turns' gold is credited turn by turn in settleAIUpkeep
     pool.hr += income.hr * turns;
@@ -684,10 +666,6 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       pool[aiSupply.metalId]=(pool[aiSupply.metalId] || 0)-aiSupply.metalUsed;
       ['copper', 'iron', 'oil', 'rareMetals'].forEach(key => { pool[key] = (pool[key] || 0) + (income[key] || 0); });
     }
-    // Same flat POWER_POOL_CAP bank the player's own pools use (the maintenanceAndPower phase
-    // above) — the old 2x-income cap here kept every AI pool below the cheapest tech's 40 power,
-    // so no AI nation ever researched anything.
-    ['adm', 'dip', 'mil'].forEach((p) => { pool[p] = Math.min((pool[p] || 0) + powerIncome[p] * turns, POWER_POOL_CAP); });
     nations[nId] = { ...nation, economy: pool, lodSettledTurn: newTurnNumber };
     // A budget that does not add up: cut pay, then disband the weakest units (aiBudget.js, I124).
     const budget = aiBudgetStep(upkeepState, nId, income, ownedUnits, (uid) => isUnitInBattle(upkeepState, uid));
@@ -779,11 +757,6 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       ? { ...nation, capitalOccupied: true, stability: clampStability((nation.stability || 0) - CAPITAL_OCCUPIED_STABILITY_PENALTY) }
       : { ...nation, capitalOccupied: false };
   });
-  if (nations[state.playerNationId].capitalOccupied) {
-    resources.adm = Math.max(0, (resources.adm || 0) - CAPITAL_OCCUPIED_POOL_PENALTY);
-    resources.dip = Math.max(0, (resources.dip || 0) - CAPITAL_OCCUPIED_POOL_PENALTY);
-    resources.mil = Math.max(0, (resources.mil || 0) - CAPITAL_OCCUPIED_POOL_PENALTY);
-  }
   mark('capitals');
 
   // --- disasters & civil war (plan §M15) --- runs for every nation, the same "real for player and
@@ -1099,11 +1072,10 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     }
     if (wasEliminatedByPlayer(regions, state.playerNationId, nId)) {
       resources.gold = (resources.gold || 0) + NATION_ELIMINATION_REWARD.gold;
-      resources.dip = (resources.dip || 0) + NATION_ELIMINATION_REWARD.dip;
       playerEliminatedNationId = nId;
       logs.push({
         year: newYear,
-        ...msg('m.turn.conqueredAll', { nation: people(nId, eliminated.name), gold: NATION_ELIMINATION_REWARD.gold, dip: NATION_ELIMINATION_REWARD.dip }),
+        ...msg('m.turn.conqueredAll', { nation: people(nId, eliminated.name), gold: NATION_ELIMINATION_REWARD.gold }),
         type: LogTypes.MILESTONE
       });
     }

@@ -127,7 +127,6 @@ describe('operational AI',()=>{
     expect(next.pendingDefenses[0].attackerUnitIds).toEqual(['a']);
     expect(next.pendingDefenses[0].synthetic).toEqual([]);
     expect(next.units.a.movesLeft).toBe(0);
-    expect(next.nations.de.economy.mil).toBe(98);
   });
   it('a broken stack does not assault a garrisoned city it would route against (H-15)',()=>{
     const {s,border,target}=setup();
@@ -152,7 +151,6 @@ describe('operational AI',()=>{
     const queued=processAINavalOperations(s);expect(Object.keys(queued.units)).toHaveLength(2);
     expect(queued.pendingDefenses.map(d=>d.kind)).toEqual(['landing']);
     expect(queued.units.army.embarkedOn).toBe('fleet');expect(queued.units.army.movesLeft).toBe(0);expect(queued.units.fleet.movesLeft).toBe(0);
-    expect(queued.nations.gb.economy.mil).toBeLessThan(100);
     const next=resolveAllQueuedAuto(queued);expect(next.pendingDefenses).toHaveLength(0);
     expect(Object.keys(next.units).length).toBeLessThanOrEqual(2);
     if(next.units.army){expect(next.units.army.embarkedOn===null?next.regions[next.units.army.regionId].owner==='gb':next.units.army.embarkedOn==='fleet').toBe(true);}

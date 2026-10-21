@@ -74,9 +74,8 @@ const CATEGORY_LINES = {
 // doesn't yet split tax/production/trade into separate national multipliers (M11's job), so they
 // share the one hook exactly like Set Tax Rate already does.
 const TECH_EFFECTS = {
-  // Stone Age (eight-ages plan U27, effects from plans/eras-origins-and-future.md 5.4). No power-pool
-  // hooks (KTD20): Chiefdoms' +1 ADM, Sacred Kingship's +1 MIL and Star Lore's +1 DIP take a stability,
-  // manpower or gold effect of equal size. TODO(differentiation plan KTD5): map them to its levers.
+  // Stone Age (eight-ages plan U27, effects from plans/eras-origins-and-future.md 5.4). Chiefdoms,
+  // Sacred Kingship and Star Lore keep the stability, manpower and gold effects they took instead of pools.
   'Hunting Bands': { hrMult: 0.10 },
   'Copper Working': { goldMult: 0.05 }, // mines and copper armies come with U31
   'Agriculture': { popGrowthBonus: 0.002 },
@@ -89,7 +88,7 @@ const TECH_EFFECTS = {
   'Proto-Writing': { techPointsMult: 0.10 },
   // Military
   'Feudal Levies': { hrMult: 0.15 },
-  'Standing Armies': { milBonus: 1 },
+  'Standing Armies': { hrMult: 0.05 },
   // Economy
   'Bronze Trade Routes': { goldMult: 0.25 },
   'Granary Storage': { popGrowthBonus: 0.001 },
@@ -103,18 +102,18 @@ const TECH_EFFECTS = {
   // Infrastructure
   'Mudbrick Roads': { supplyRange: 1 },
   'Paved Roads': { supplyRange: 1, attrition: -0.10 },
-  'Postal Relay': { dipBonus: 1 },
+  'Postal Relay': { opinion: 2 },
   'Canal Locks': { goldMult: 0.10 },
   'Highway Systems': { supplyRange: 1, attrition: -0.15 },
   // Governance
-  'Code of Laws': { admBonus: 1 },
+  'Code of Laws': { decreePace: 1 },
   'Scribal Bureaucracy': { developmentCost: -0.10 },
-  'Royal Chancery': { admBonus: 1, stabilityCost: -0.10 },
+  'Royal Chancery': { decreePace: 1, stabilityCost: -0.10 },
   'Constitutional Law': { stabilityBonus: 1 },
-  'Digital Administration': { admBonus: 1, developmentCost: -0.20 },
+  'Digital Administration': { decreePace: 1, developmentCost: -0.20 },
   // Science
   'Cuneiform Records': { techPointsMult: 0.10 },
-  'Early Astronomy': { dipBonus: 1 },
+  'Early Astronomy': { opinion: 2 },
   'Natural Philosophy': { techPointsMult: 0.10 },
   'Scientific Method': { researchCost: -0.10 },
   'Computing': { techPointsMult: 0.20 },

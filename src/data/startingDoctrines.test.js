@@ -38,10 +38,10 @@ describe('applyStartingDoctrine', () => {
     });
   });
 
-  it('administrators_start grants +50 ADM', () => {
+  it('administrators_start banks one decree', () => {
     const state = peoplesWorld();
     const next = applyStartingDoctrine(state, 'administrators_start');
-    expect(next.resources.adm).toBe(state.resources.adm + 50);
+    expect(next.nations[FR].ruler.decrees).toBe((state.nations[FR].ruler.decrees || 0) + 1);
   });
 
   it('restored_reputation grants +10 prestige to the player nation', () => {

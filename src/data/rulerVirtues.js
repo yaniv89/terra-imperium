@@ -55,7 +55,7 @@ export const VIRTUES = Object.fromEntries([
   v('surveyor', 'Surveyor', 'builder', 3, '+5 governing capacity', { effects: { governingCapacity: 5 } }),
   v('granaries', 'Granaries', 'builder', 4, 'Population growth +1', { effects: { popGrowthBonus: 1 } }),
   v('engineerKing', 'Engineer-King', 'builder', 5, 'Wonders cost 15% less', { rules: { wonderCostMult: -0.15 } }),
-  v('builderOfAges', 'Builder of Ages', 'builder', 6, '+10% production in every city', { effects: { milBonus: -1 }, rules: { productionMult: 0.1 }, drawback: 'Military power -1 a turn' }),
+  v('builderOfAges', 'Builder of Ages', 'builder', 6, '+10% production in every city', { effects: { hrMult: -0.05 }, rules: { productionMult: 0.1 }, drawback: 'Manpower -5%' }),
 
   v('scribe', 'Scribe', 'sage', 1, '+5% science', { rules: { scienceMult: 0.05 } }),
   v('patronOfLearning', 'Patron of Learning', 'sage', 2, 'Research boosts from the map worth 10% more', { rules: { boostMult: 0.1 } }),

@@ -2,7 +2,7 @@
 // Individual resource badge component with expand/collapse functionality
 
 import React from 'react';
-import { Coins, Users, Beaker, Swords, Hammer, Flame, Fuel, Gem, ScrollText, Landmark, Package } from 'lucide-react';
+import { Coins, Users, Beaker, Swords, Hammer, Flame, Fuel, Gem, ScrollText, Package } from 'lucide-react';
 import { formatNumber } from '../../utils/helpers';
 import Tooltip from './Tooltip';
 import GameIcon from './GameIcon';
@@ -60,28 +60,13 @@ const RESOURCE_CONFIG = {
     bgColor: 'bg-purple-500/20',
     label: 'Tech Points'
   },
-  // Plan §M2's three power pools, replacing the old single actionPoints + diplomacyPoints pair —
-  // ADM (administration/economy/government), DIP (diplomacy/research/space), MIL (military).
-  adm: {
+  // The ruler's decrees (src/engine/decrees.js), shown as banked / cap.
+  decrees: {
     icon: ScrollText,
     color: 'text-amber-300',
     bgColor: 'bg-amber-500/20',
-    label: 'ADM',
-    description: 'Administrative power: laws, reforms, stability and city actions'
-  },
-  dip: {
-    icon: Landmark,
-    color: 'text-blue-400',
-    bgColor: 'bg-blue-500/20',
-    label: 'DIP',
-    description: 'Diplomatic power: treaties, claims, war declarations, spies and space'
-  },
-  mil: {
-    icon: Swords,
-    color: 'text-red-400',
-    bgColor: 'bg-red-500/20',
-    label: 'MIL',
-    description: 'Military power: recruiting, generals, invasions and sea battles'
+    label: 'Decrees',
+    description: 'Decrees: earned by deeds, spent on the great acts of state'
   },
   militaryStrength: {
     icon: Swords,
@@ -95,12 +80,12 @@ const ResourceBadge = ({
   type,
   value,
   maxValue = null,
-  perTurn = null, // ADM/DIP/MIL: shown as a small "+N" after the banked value (pools bank up to POWER_POOL_CAP)
+  perTurn = null, // shown as a small "+N" after the banked value
   expanded = false,
   onClick = null,
   showLabel = false,
   size = 'normal', // 'small', 'normal', 'large'
-  tooltipContent = null // plan §M20: overrides the flat description with a real breakdown (e.g. ADM/DIP/MIL income)
+  tooltipContent = null // plan §M20: overrides the flat description with a real breakdown (e.g. an income)
 }) => {
   const { t, tx } = useT();
   const config = RESOURCE_CONFIG[type];

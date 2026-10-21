@@ -29,8 +29,9 @@ import { regionDeposits } from '../../data/deposits';
 import { EXTRACTION_BUILDINGS, canBuildExtraction } from '../../data/buildings';
 import { isAgeAtLeast } from '../../data/ages';
 import { DEVASTATION_DECAY } from '../../engine/aftermath';
-import { DEV_TYPE_IDS, DEV_TYPE_POOL, getDevelopProvinceCost, getTotalDev } from '../../engine/development';
-import { canAfford, getSupplyCapacity } from '../../utils/helpers';
+import { DEV_TYPE_IDS, getDevelopProvinceCost, getTotalDev } from '../../engine/development';
+import { getSupplyCapacity } from '../../utils/helpers';
+import { canPay } from '../../utils/costs';
 
 export const UNREST_CONTROL_THRESHOLD = 50;
 export const UNREST_RISE_PER_TURN = 3;
@@ -148,14 +149,14 @@ export const crownActions = (state, cityId) => {
   const garrison = Object.values(state.units || {}).some((u) => u.ownerId === me && u.domain === 'land' && u.regionId === cityId);
   const capital = state.nations?.[me]?.capitalRegionId;
   const out = [];
-  if (rebels.length) out.push({ id: 'suppressRebellion', label: tNow('cy.crown.suppress', { count: rebels.length }), description: city.formerOwner ? tNow('cy.crown.reclaims', { n: Math.max(0, REVOLT_SUCCESS_TURNS - ((state.turnNumber || 0) - (rebels[0].spawnedTurn ?? state.turnNumber))), owner: nameNow('nation', city.formerOwner, state.nations?.[city.formerOwner]?.name || city.formerOwner) }) : tNow('cy.crown.holdOut'), costs: ACTION_COSTS.suppressRebellion, enabled: garrison && canAfford(state.resources, ACTION_COSTS.suppressRebellion), reason: !garrison ? tNow('cy.crown.needsArmy') : null, actionType: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: cityId }, danger: true });
-  out.push({ id: 'gainControl', label: tNow('cy.crown.gain', { n: Math.round(city.control || 0) }), description: tNow('cy.crown.gainDesc'), costs: ACTION_COSTS.gainControl, enabled: (city.control || 0) < 100 && canAfford(state.resources, ACTION_COSTS.gainControl), reason: (city.control || 0) >= 100 ? tNow('cy.crown.fullControl') : null, actionType: ActionTypes.GAIN_CONTROL, payload: { regionId: cityId } });
-  out.push({ id: 'quellUnrest', label: tNow('cy.crown.quell', { n: r1(city.unrest || 0) }), description: tNow('cy.crown.quellDesc'), costs: ACTION_COSTS.quellUnrest, enabled: (city.unrest || 0) > 0 && canAfford(state.resources, ACTION_COSTS.quellUnrest), reason: (city.unrest || 0) <= 0 ? tNow('cy.crown.noUnrest') : null, actionType: ActionTypes.QUELL_UNREST, payload: { regionId: cityId } });
+  if (rebels.length) out.push({ id: 'suppressRebellion', label: tNow('cy.crown.suppress', { count: rebels.length }), description: city.formerOwner ? tNow('cy.crown.reclaims', { n: Math.max(0, REVOLT_SUCCESS_TURNS - ((state.turnNumber || 0) - (rebels[0].spawnedTurn ?? state.turnNumber))), owner: nameNow('nation', city.formerOwner, state.nations?.[city.formerOwner]?.name || city.formerOwner) }) : tNow('cy.crown.holdOut'), costs: ACTION_COSTS.suppressRebellion, enabled: garrison && canPay(state, ACTION_COSTS.suppressRebellion), reason: !garrison ? tNow('cy.crown.needsArmy') : null, actionType: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: cityId }, danger: true });
+  out.push({ id: 'gainControl', label: tNow('cy.crown.gain', { n: Math.round(city.control || 0) }), description: tNow('cy.crown.gainDesc'), costs: ACTION_COSTS.gainControl, enabled: (city.control || 0) < 100 && canPay(state, ACTION_COSTS.gainControl), reason: (city.control || 0) >= 100 ? tNow('cy.crown.fullControl') : null, actionType: ActionTypes.GAIN_CONTROL, payload: { regionId: cityId } });
+  out.push({ id: 'quellUnrest', label: tNow('cy.crown.quell', { n: r1(city.unrest || 0) }), description: tNow('cy.crown.quellDesc'), costs: ACTION_COSTS.quellUnrest, enabled: (city.unrest || 0) > 0 && canPay(state, ACTION_COSTS.quellUnrest), reason: (city.unrest || 0) <= 0 ? tNow('cy.crown.noUnrest') : null, actionType: ActionTypes.QUELL_UNREST, payload: { regionId: cityId } });
   // Invest in growth (I032): what the gold buys, in the city's own terms, before it is spent. The
   // preview is the reducer's own step (cities.js addPeople), so a full bank is refused here too.
   const grow = populationPolicyPreview(state, cityId);
-  out.push({ id: 'populationPolicy', label: tNow('cy.crown.grow'), description: grow.text, costs: grow.costs, enabled: grow.effective && canAfford(state.resources, grow.costs), reason: grow.effective ? null : tNow('cy.crown.bankFull'), actionType: ActionTypes.POPULATION_POLICY, payload: { regionId: cityId } });
-  if (capital && capital !== cityId) out.push({ id: 'moveCapital', label: tNow('cy.crown.move'), description: city.conquest ? tNow('cy.crown.moveConquered') : tNow('cy.crown.moveDesc'), costs: ACTION_COSTS.moveCapital, enabled: !city.occupiedBy && canAfford(state.resources, ACTION_COSTS.moveCapital), reason: city.occupiedBy ? tNow('cy.crown.occupied') : null, actionType: ActionTypes.MOVE_CAPITAL, payload: { regionId: cityId } });
+  out.push({ id: 'populationPolicy', label: tNow('cy.crown.grow'), description: grow.text, costs: grow.costs, enabled: grow.effective && canPay(state, grow.costs), reason: grow.effective ? null : tNow('cy.crown.bankFull'), actionType: ActionTypes.POPULATION_POLICY, payload: { regionId: cityId } });
+  if (capital && capital !== cityId) out.push({ id: 'moveCapital', label: tNow('cy.crown.move'), description: city.conquest ? tNow('cy.crown.moveConquered') : tNow('cy.crown.moveDesc'), costs: ACTION_COSTS.moveCapital, enabled: !city.occupiedBy && canPay(state, ACTION_COSTS.moveCapital), reason: city.occupiedBy ? tNow('cy.crown.occupied') : null, actionType: ActionTypes.MOVE_CAPITAL, payload: { regionId: cityId } });
   return out;
 };
 
@@ -206,16 +207,16 @@ export const cityDevelopmentModel = (state, cityId) => {
   const ageId = ageOf(state, state.playerNationId);
   const deposits = regionDeposits(REGIONS_DATA[cityId] || city).map((resourceId) => ({
     resourceId, name: extractionName(resourceId, EXTRACTION_BUILDINGS[resourceId]?.name), built: !!city.buildings?.extraction?.[resourceId],
-    enabled: !city.buildings?.extraction?.[resourceId] && canBuildExtraction(resourceId, ageId) && canAfford(state.resources, ACTION_COSTS.developResourceSite)
+    enabled: !city.buildings?.extraction?.[resourceId] && canBuildExtraction(resourceId, ageId) && canPay(state, ACTION_COSTS.developResourceSite)
   }));
   // Bought development lasts (development.js, I031): the row says what a point gives and how many
   // the city already holds.
   const inv = investmentOf(city);
-  const rows = DEV_TYPE_IDS.map((devType) => ({ id: `dev:${devType}`, devType, label: tNow(`cy.dev.develop.${devType}`, { n: city.dev?.[devType] || 0 }), description: `${tNow(DEV_GIVES_KEY[devType])}${city.size != null ? ` ${inv[devType] ? tNow('cy.dev.lastingBought', { n: inv[devType] }) : tNow('cy.dev.lasting')}` : ''}`, bought: inv[devType], costs: { [DEV_TYPE_POOL[devType]]: cost }, enabled: (state.resources[DEV_TYPE_POOL[devType]] || 0) >= cost, actionType: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: cityId, devType } }));
+  const rows = DEV_TYPE_IDS.map((devType) => ({ id: `dev:${devType}`, devType, label: tNow(`cy.dev.develop.${devType}`, { n: city.dev?.[devType] || 0 }), description: `${tNow(DEV_GIVES_KEY[devType])}${city.size != null ? ` ${inv[devType] ? tNow('cy.dev.lastingBought', { n: inv[devType] }) : tNow('cy.dev.lasting')}` : ''}`, bought: inv[devType], costs: { gold: cost }, enabled: (state.resources.gold || 0) >= cost, actionType: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: cityId, devType } }));
   // Priced by age, speed and the level already built (spending.js, I021).
   const infra = infrastructureCosts(state, city); const walls = defensesCosts(state, city);
-  rows.push({ id: 'infrastructure', label: tNow('cy.dev.infra', { level: city.currentInfrastructure || 0, supply: getSupplyCapacity(city.currentInfrastructure) }), description: tNow('cy.dev.infraDesc'), costs: infra, enabled: (city.currentInfrastructure || 0) < 10 && canAfford(state.resources, infra), actionType: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: cityId } });
-  rows.push({ id: 'defenses', label: tNow('cy.dev.defenses', { level: city.defenseLevel || 0 }), description: tNow('cy.dev.defensesDesc'), costs: walls, enabled: (city.defenseLevel || 0) < 10 && canAfford(state.resources, walls), actionType: ActionTypes.BUILD_DEFENSES, payload: { regionId: cityId } });
-  if (isAgeAtLeast(ageId, 'modern')) rows.push({ id: 'resilience', label: tNow('cy.dev.resilience', { n: city.climateResilience || 0, max: CLIMATE_RESILIENCE_MAX }), description: tNow('cy.dev.resilienceDesc'), costs: ACTION_COSTS.buildClimateResilience, enabled: (city.climateResilience || 0) < CLIMATE_RESILIENCE_MAX && canAfford(state.resources, ACTION_COSTS.buildClimateResilience), actionType: ActionTypes.BUILD_CLIMATE_RESILIENCE, payload: { regionId: cityId } });
+  rows.push({ id: 'infrastructure', label: tNow('cy.dev.infra', { level: city.currentInfrastructure || 0, supply: getSupplyCapacity(city.currentInfrastructure) }), description: tNow('cy.dev.infraDesc'), costs: infra, enabled: (city.currentInfrastructure || 0) < 10 && canPay(state, infra), actionType: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: cityId } });
+  rows.push({ id: 'defenses', label: tNow('cy.dev.defenses', { level: city.defenseLevel || 0 }), description: tNow('cy.dev.defensesDesc'), costs: walls, enabled: (city.defenseLevel || 0) < 10 && canPay(state, walls), actionType: ActionTypes.BUILD_DEFENSES, payload: { regionId: cityId } });
+  if (isAgeAtLeast(ageId, 'modern')) rows.push({ id: 'resilience', label: tNow('cy.dev.resilience', { n: city.climateResilience || 0, max: CLIMATE_RESILIENCE_MAX }), description: tNow('cy.dev.resilienceDesc'), costs: ACTION_COSTS.buildClimateResilience, enabled: (city.climateResilience || 0) < CLIMATE_RESILIENCE_MAX && canPay(state, ACTION_COSTS.buildClimateResilience), actionType: ActionTypes.BUILD_CLIMATE_RESILIENCE, payload: { regionId: cityId } });
   return { rows, deposits, totalDev: getTotalDev(city) };
 };

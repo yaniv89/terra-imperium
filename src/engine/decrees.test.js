@@ -1,7 +1,7 @@
 // src/engine/decrees.test.js
 import { describe, it, expect } from 'vitest';
 import { decreesOf, decreeCap, decreeCostOf, grantDecree, spendDecree, canSpendDecree, trickleTurns, tickDecrees, decreeReason } from './decrees';
-import { DECREE_ACTS, DECREE_DEEDS, DECREE_TRICKLE_REF_TURNS, DECREE_WAR_WON_SCORE } from '../data/decrees';
+import { DECREE_ACTS, DECREE_DEEDS, DECREE_TRICKLE_REF_TURNS, DECREE_WAR_WON_SCORE, DECREE_TRICKLE_BELOW } from '../data/decrees';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { GAME_SPEEDS, speedCostMult, AGE_ORDER } from '../data/ages';
 import { HISTORICAL_EVENTS } from '../data/events';
@@ -69,7 +69,7 @@ describe('the trickle floor', () => {
     });
   });
 
-  it('fires once the empty bank has waited its turns, and never while the bank holds a decree', () => {
+  it('fires once the bank has waited its turns, up to DECREE_TRICKLE_BELOW, and never past it', () => {
     const s = state('normal');
     const turns = trickleTurns(s, 'x');
     let n = s.nations.x;
@@ -78,8 +78,8 @@ describe('the trickle floor', () => {
     expect(decreesOf(n)).toBe(1);
     expect(n.ruler.decreeLog[0].deed).toBe('trickle');
     for (let t = 0; t < 300; t++) n = tickDecrees(s, 'x', n, turns + t);
-    expect(decreesOf(n)).toBe(1);
-    const held = ruled(1);
+    expect(decreesOf(n)).toBe(DECREE_TRICKLE_BELOW);
+    const held = ruled(DECREE_TRICKLE_BELOW);
     expect(tickDecrees(s, 'x', held, 1)).toBe(held);
   });
 

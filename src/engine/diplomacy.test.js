@@ -6,7 +6,7 @@ import {
 } from './diplomacy';
 import { getNationCapital } from '../data/regions';
 import { addCity } from './testWorld';
-import { neighbourWorld, rivalOf } from './testWorld';
+import { neighbourWorld, rivalOf, withDecrees } from './testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
 const PEOPLES_WORLD = neighbourWorld({ seed: 1, age: 'bronze' });
@@ -660,7 +660,7 @@ describe('nation ids survive turn resolution (regression)', () => {
 
     const { claimableCities } = await import('./claims');
     const site = claimableCities(state, state.playerNationId)[0].city;
-    const rich = { ...state, resources: { ...state.resources, gold: 10000, dip: 100 } };
+    const rich = withDecrees({ ...state, resources: { ...state.resources, gold: 10000 } });
     const next = gameReducer(rich, { type: ActionTypes.FABRICATE_CLAIM, payload: { nationId: site.owner } });
     expect(next.nations[state.playerNationId].claimsInProgress.map((c) => c.cityId)).toContain(site.id);
   });

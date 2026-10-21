@@ -1,18 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import {
   GOVERNMENT_TYPES, GOVERNMENT_REFORMS, getGovernmentType, getAvailableGovernmentTypes, getReformChoices,
-  getActiveReforms, getGovernmentReformEffectSum, canChangeGovernmentType, canEnactReform, resetReformsForType
+  getActiveReforms, canChangeGovernmentType, canEnactReform, resetReformsForType
 } from './government';
 import { AGE_ORDER } from './ages';
 
 const RECOGNIZED_HOOKS = [
-  'goldMult', 'hrMult', 'techPointsMult', 'stabilityBonus', 'popGrowthBonus', 'apBonus', 'admBonus',
-  'dipBonus', 'milBonus', 'developmentCost', 'buildingCost', 'researchCost', 'stabilityCost',
+  'goldMult', 'hrMult', 'techPointsMult', 'stabilityBonus', 'popGrowthBonus', 'decreePace', 'opinion',
+  'developmentCost', 'buildingCost', 'researchCost', 'stabilityCost',
   'supplyRange', 'attrition', 'governingCapacity', 'moraleRecovery'
 ];
 // A raw, non-LEGACY_HOOK key consumed directly by laws.js rather than through the modifier engine
 // (see government.js's header comment).
-const RAW_KEYS = ['lawCostMult'];
+const RAW_KEYS = [];
 
 describe('GOVERNMENT_TYPES / GOVERNMENT_REFORMS data integrity', () => {
   it('every type belongs to a real age', () => {
@@ -93,7 +93,7 @@ describe('getReformChoices', () => {
   });
 });
 
-describe('getActiveReforms / getGovernmentReformEffectSum', () => {
+describe('getActiveReforms', () => {
   it('collects every reform tier the nation has picked, across ages', () => {
     const nation = { government: { type: 'monarchy', reforms: { bronze: 'despotic_rule', classical: 'imperial_bureaucracy' } } };
     expect(getActiveReforms(nation).map((r) => r.id).sort()).toEqual(['despotic_rule', 'imperial_bureaucracy'].sort());
@@ -104,11 +104,6 @@ describe('getActiveReforms / getGovernmentReformEffectSum', () => {
     expect(getActiveReforms(undefined)).toEqual([]);
   });
 
-  it('sums a raw effect key across every active reform', () => {
-    const nation = { government: { type: 'monarchy', reforms: { gunpowder: 'parliamentary_monarchy' } } };
-    expect(getGovernmentReformEffectSum(nation, 'lawCostMult')).toBe(-0.5);
-    expect(getGovernmentReformEffectSum(nation, 'admBonus')).toBe(0);
-  });
 });
 
 describe('canChangeGovernmentType', () => {

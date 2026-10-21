@@ -31,7 +31,7 @@ const DEFENSE_BONUS_DURATION_TURNS = 20;
 
 // Resources an event option costs more of than the player currently holds (negative deltas only).
 // EventModal greys such an option out; the engine refuses it too while any other option is payable.
-const PAYABLE_KEYS = [...RESOURCE_IDS, 'dip', 'techPoints'];
+const PAYABLE_KEYS = [...RESOURCE_IDS, 'techPoints'];
 export const getOptionShortfall = (resources, effects = {}) =>
   PAYABLE_KEYS.filter((id) => (effects[id] || 0) < 0 && (resources?.[id] || 0) < -effects[id]);
 
@@ -57,7 +57,6 @@ export const applyEventEffects = (state, event, optionIndex) => {
   RESOURCE_IDS.forEach(id => {
     if (effects[id] && resources[id] !== undefined) resources[id] += effects[id];
   });
-  if (effects.dip) resources.dip = (resources.dip || 0) + effects.dip;
   if (effects.techPoints) resources.techPoints = (resources.techPoints || 0) + effects.techPoints;
   // Only reachable when NO option was affordable: pay what exists, and the realm feels the default.
   const couldNotPay = shortfall.length > 0;

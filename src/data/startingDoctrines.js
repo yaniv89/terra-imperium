@@ -12,6 +12,7 @@ import { getCapital } from './regions';
 import { clampPrestige, clampLegitimacy } from '../engine/nationalPower';
 import { generateGivenName } from './names';
 import { createRng } from '../utils/rng';
+import { grantDecree } from '../engine/decrees';
 
 export const STARTING_DOCTRINES = {
   none: {
@@ -24,9 +25,9 @@ export const STARTING_DOCTRINES = {
   administrators_start: {
     id: 'administrators_start',
     name: "Administrator's Start",
-    description: '+50 ADM at the start of the game.',
+    description: 'Start with one decree in the bank.',
     requiresAchievement: 'iron_grip',
-    apply: (state) => ({ ...state, resources: { ...state.resources, adm: (state.resources.adm || 0) + 50 } })
+    apply: (state) => ({ ...state, nations: { ...state.nations, [state.playerNationId]: grantDecree(state.nations[state.playerNationId], 'doctrine', state.turnNumber || 0) } })
   },
   restored_reputation: {
     id: 'restored_reputation',

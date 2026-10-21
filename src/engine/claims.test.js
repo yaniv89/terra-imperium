@@ -12,7 +12,7 @@ import {
   claimableCities, canFabricateClaim, claimOn, claimsAgainst, isCore, startClaim, advanceClaims, aeMultFor, nearestCityOf, ringsToBorder,
   CLAIM_RANGE_RINGS, CLAIM_FABRICATE_TURNS, CLAIM_AE_MULT
 } from './claims';
-import { neighbourWorld, rivalOf } from './testWorld';
+import { neighbourWorld, rivalOf, withDecrees } from './testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
 const PEOPLES_WORLD = neighbourWorld({ seed: 3, age: 'bronze' });
@@ -43,7 +43,7 @@ describe('claims on cities', () => {
 
   it('fabricating takes CLAIM_FABRICATE_TURNS turns, then the claim justifies a war on that city and survives the declaration', () => {
     const site = claimableCities(S, IN_ID)[0].city;
-    let s = gameReducer({ ...S, resources: { ...S.resources, gold: 5000, dip: 100 } }, { type: ActionTypes.FABRICATE_CLAIM, payload: { cityId: site.id } });
+    let s = gameReducer(withDecrees({ ...S, resources: { ...S.resources, gold: 5000 } }), { type: ActionTypes.FABRICATE_CLAIM, payload: { cityId: site.id } });
     expect(s.nations[IN_ID].claimsInProgress).toEqual([{ cityId: site.id, done: S.turnNumber + CLAIM_FABRICATE_TURNS }]);
     expect(hasCasusBelli(s, IN_ID, site.owner)).toBe(false);
     expect(gameReducer(s, { type: ActionTypes.FABRICATE_CLAIM, payload: { cityId: site.id } })).toBe(s); // already at work

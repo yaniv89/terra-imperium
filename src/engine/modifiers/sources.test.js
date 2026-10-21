@@ -14,10 +14,10 @@ describe('staticSources', () => {
     const nation = { government: { type: 'monarchy', reforms: { bronze: 'despotic_rule', classical: 'imperial_bureaucracy' } } };
     const lines = staticSources(nation);
     expect(lines).toEqual(expect.arrayContaining([
-      { key: 'national.milBonus', value: 1, sourceType: 'government', sourceId: 'despotic_rule', label: 'Despotic Rule' },
+      { key: 'national.hrMult', value: 0.05, sourceType: 'government', sourceId: 'despotic_rule', label: 'Despotic Rule' },
       { key: 'national.stabilityBonus', value: -1, sourceType: 'government', sourceId: 'despotic_rule', label: 'Despotic Rule' },
       { key: 'national.governingCapacity', value: 10, sourceType: 'government', sourceId: 'imperial_bureaucracy', label: 'Imperial Bureaucracy' },
-      { key: 'national.admBonus', value: 1, sourceType: 'government', sourceId: 'imperial_bureaucracy', label: 'Imperial Bureaucracy' }
+      { key: 'national.decreePace', value: 1, sourceType: 'government', sourceId: 'imperial_bureaucracy', label: 'Imperial Bureaucracy' }
     ]));
   });
 
@@ -35,7 +35,7 @@ describe('staticSources', () => {
     expect(lines).toEqual(expect.arrayContaining([
       { key: 'national.goldMult', value: 0.1, sourceType: 'law', sourceId: 'land_tax', label: 'Land Tax' },
       { key: 'national.goldMult', value: -0.2, sourceType: 'law', sourceId: 'martial_law', label: 'Martial Law' },
-      { key: 'national.dipBonus', value: -1, sourceType: 'law', sourceId: 'martial_law', label: 'Martial Law' }
+      { key: 'national.opinion', value: -2, sourceType: 'law', sourceId: 'martial_law', label: 'Martial Law' }
     ]));
   });
 
@@ -104,7 +104,7 @@ describe('contextSources', () => {
       ...base,
       techTree: { ...base.techTree, governance_code_of_laws: { ...base.techTree.governance_code_of_laws, researched: true } }
     };
-    expect(contextSources(withTech, FR_ID)).toContainEqual({ key: 'national.admBonus', value: 1, sourceType: 'tech', sourceId: 'governance_code_of_laws', label: 'Code of Laws' });
+    expect(contextSources(withTech, FR_ID)).toContainEqual({ key: 'national.decreePace', value: 1, sourceType: 'tech', sourceId: 'governance_code_of_laws', label: 'Code of Laws' });
     expect(contextSources(withTech, DE_ID).some((l) => l.sourceType === 'tech')).toBe(false);
   });
 
@@ -142,9 +142,9 @@ describe('contextSources', () => {
 
   // Plan feedback ("issue with great works"): every one of the 15 projects now grants a real,
   // ongoing effect from an already-wired hook — none is a pure one-time-prestige dead end anymore.
-  it('emits the Great Wall\'s real (stand-in) admBonus effect', () => {
+  it('emits the Great Wall\'s real (stand-in) decree pace effect', () => {
     const state = { playerNationId: FR_ID, nations: { [FR_ID]: {} }, regions: { r1: { owner: FR_ID } }, greatProjects: { great_wall: { regionId: 'r1', tier: 2 } } };
-    expect(contextSources(state, FR_ID)).toContainEqual({ key: 'national.admBonus', value: 2, sourceType: 'greatProject', sourceId: 'great_wall', label: 'The Great Wall' });
+    expect(contextSources(state, FR_ID)).toContainEqual({ key: 'national.decreePace', value: 2, sourceType: 'greatProject', sourceId: 'great_wall', label: 'The Great Wall' });
   });
 
   it('a governingCapacity reform raises the overextension threshold, delaying the overextension penalty line (plan §M8.1)', () => {

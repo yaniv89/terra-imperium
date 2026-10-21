@@ -2,9 +2,7 @@
 // UI text: nation (phase H5). Plural forms use .one / .two / .other with { count }.
 export default {
   'nc.unit.gold': 'זהב',
-  'nc.unit.dip': 'דיפ׳',
-  'nc.unit.adm': 'ניהול',
-  'nc.unit.mil': 'צבא',
+  'nc.unit.decrees': 'צווים',
   'nc.shortfallItem': '{n} {unit} (יש {have})',
   'nc.notEnough': 'אין מספיק משאבים — נדרש {list}',
   'nc.notEnoughNeed': 'אין מספיק משאבים: נדרש {list}',
@@ -101,7 +99,7 @@ export default {
   'nc.refusalBorders': 'גבולות פתוחים: דעה {opinion}, נדרש {needed}.',
   'nc.tradeBlockWar': 'במלחמה: אין סחר',
   'nc.tradeBlockFull': 'אין הסכם סחר פנוי ({a} מתוך {b} בשימוש)',
-  'nc.annex': 'סיפוח ({n} דיפ׳)',
+  'nc.annex': 'סיפוח ({n} צו)',
   'nc.annexSub': 'האדמה שלהם הופכת לשלכם',
   'nc.fromTurn': 'מתור {n}',
   'nc.release': 'שחרור',

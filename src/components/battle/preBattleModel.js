@@ -24,10 +24,10 @@ import { nameNow } from '../../i18n/names';
 import { agreed } from './battleText';
 import { terrainWord } from '../../i18n/gameText';
 import { describeAttackBlock } from '../../utils/attackAvailability';
-import { canAfford } from '../../utils/helpers';
 import { scoutsEstimate } from './battleReportView';
 import { armyView, battleSize, cityWallsView, oddsSource, scoutsRange, siegeAdvice } from './warModel';
 import { sideAgeOf } from '../../engine/ageRefs';
+import { canPay } from '../../utils/costs';
 
 const nationLabel = (state, id) => (id === 'rebels' ? t('bt.pre.rebels') : state.nations?.[id]?.name ? nameNow('people', id, state.nations[id].name) : t('bt.pre.theEnemy'));
 const verb = (name, one, many) => (/[^s]s$/.test(name) ? many : one);
@@ -54,7 +54,7 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
     : field ? validateFieldAttack(state, fromRegionId, tile)
     : validateInvasion(state, fromRegionId, targetRegionId);
   const blockedReason = describeAttackBlock(v);
-  const affordable = canAfford(state.resources, landing ? ACTION_COSTS.amphibiousAssault : fleet ? ACTION_COSTS.navalEngagement : ACTION_COSTS.launchInvasion);
+  const affordable = canPay(state, landing ? ACTION_COSTS.amphibiousAssault : fleet ? ACTION_COSTS.navalEngagement : ACTION_COSTS.launchInvasion);
   // An enemy fleet off the beach must be fought at sea first, which is always auto-resolved.
   const blockedAtSea = landing && Object.values(state.units || {}).some((u) => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
   // Decision 41: a clash outside both sides' borders is fought on Auto only (sea battles are not covered).

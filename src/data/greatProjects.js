@@ -105,11 +105,11 @@ export const GREAT_PROJECTS = {
   },
   white_temple_of_uruk: {
     id: 'white_temple_of_uruk', name: 'The White Temple of Uruk', ageId: 'stone', siteRule: 'capital',
-    description: 'A whitewashed temple on a mud-brick terrace, built at your capital. +1/1/2 Administrative Power per turn.',
+    description: 'A whitewashed temple on a mud-brick terrace, built at your capital. Decrees come faster (1/1/2 steps).',
     tiers: [
-      { effects: { admBonus: 1 }, completionPrestige: 10 },
-      { effects: { admBonus: 1 }, completionPrestige: 20 },
-      { effects: { admBonus: 2 }, completionPrestige: 30 }
+      { effects: { decreePace: 1 }, completionPrestige: 10 },
+      { effects: { decreePace: 1 }, completionPrestige: 20 },
+      { effects: { decreePace: 2 }, completionPrestige: 30 }
     ]
   },
   great_pyramids: {
@@ -132,11 +132,11 @@ export const GREAT_PROJECTS = {
   },
   great_wall: {
     id: 'great_wall', name: 'The Great Wall', ageId: 'bronze', siteRule: 'palisade',
-    description: 'Built in a region with a Palisade. +1/2/3 Administrative Power per turn (a secured, well-administered frontier), standing in for the "enemy stacks lose strength entering your border regions" combat mechanic.',
+    description: 'Built in a region with a Palisade. Decrees come faster, 1/2/3 steps (a secured, well-administered frontier), standing in for the "enemy stacks lose strength entering your border regions" combat mechanic.',
     tiers: [
-      { effects: { admBonus: 1 }, completionPrestige: 10 },
-      { effects: { admBonus: 2 }, completionPrestige: 20 },
-      { effects: { admBonus: 3 }, completionPrestige: 30 }
+      { effects: { decreePace: 1 }, completionPrestige: 10 },
+      { effects: { decreePace: 2 }, completionPrestige: 20 },
+      { effects: { decreePace: 3 }, completionPrestige: 30 }
     ]
   },
   great_library: {
@@ -204,38 +204,38 @@ export const GREAT_PROJECTS = {
   },
   forbidden_city: {
     id: 'forbidden_city', name: 'The Forbidden City', ageId: 'kingdoms', siteRule: 'capital',
-    description: 'Built at your capital. +10/20/30 governing capacity; +1 ADM/turn at tier 3.',
+    description: 'Built at your capital. +10/20/30 governing capacity; decrees come faster at tier 3.',
     tiers: [
       { effects: { governingCapacity: 10 }, completionPrestige: 10 },
       { effects: { governingCapacity: 20 }, completionPrestige: 20 },
-      { effects: { governingCapacity: 30, admBonus: 1 }, completionPrestige: 30 }
+      { effects: { governingCapacity: 30, decreePace: 1 }, completionPrestige: 30 }
     ]
   },
   royal_observatory: {
     id: 'royal_observatory', name: 'The Royal Observatory', ageId: 'gunpowder', siteRule: 'university',
-    description: 'Built in a region with a University. -5/10/15% research cost; +1 DIP/turn.',
+    description: 'Built in a region with a University. -5/10/15% research cost; +2 opinion with every nation.',
     tiers: [
-      { effects: { researchCost: -0.05, dipBonus: 1 }, completionPrestige: 10 },
-      { effects: { researchCost: -0.1, dipBonus: 1 }, completionPrestige: 20 },
-      { effects: { researchCost: -0.15, dipBonus: 1 }, completionPrestige: 30 }
+      { effects: { researchCost: -0.05, opinion: 2 }, completionPrestige: 10 },
+      { effects: { researchCost: -0.1, opinion: 2 }, completionPrestige: 20 },
+      { effects: { researchCost: -0.15, opinion: 2 }, completionPrestige: 30 }
     ]
   },
   arsenal: {
     id: 'arsenal', name: 'The Arsenal', ageId: 'gunpowder', siteRule: 'coastalNavalBase',
-    description: 'Built in a coastal region with a Naval Base. +1/2/3 Military Power per turn, standing in for the ship-cost/naval-morale effects.',
+    description: 'Built in a coastal region with a Naval Base. +5/10/15% manpower, standing in for the ship-cost/naval-morale effects.',
     tiers: [
-      { effects: { milBonus: 1 }, completionPrestige: 10 },
-      { effects: { milBonus: 2 }, completionPrestige: 20 },
-      { effects: { milBonus: 3 }, completionPrestige: 30 }
+      { effects: { hrMult: 0.05 }, completionPrestige: 10 },
+      { effects: { hrMult: 0.1 }, completionPrestige: 20 },
+      { effects: { hrMult: 0.15 }, completionPrestige: 30 }
     ]
   },
   palace_of_versailles: {
     id: 'palace_of_versailles', name: 'The Palace of Versailles', ageId: 'gunpowder', siteRule: 'capital',
-    description: 'Built at your capital. +1/+1/+2 ADM per turn from the court.',
+    description: 'Built at your capital. decrees come faster from the court (1/1/2 steps).',
     tiers: [
-      { effects: { admBonus: 1 }, completionPrestige: 20 },
-      { effects: { admBonus: 1 }, completionPrestige: 35 },
-      { effects: { admBonus: 2 }, completionPrestige: 50 }
+      { effects: { decreePace: 1 }, completionPrestige: 20 },
+      { effects: { decreePace: 1 }, completionPrestige: 35 },
+      { effects: { decreePace: 2 }, completionPrestige: 50 }
     ]
   },
   space_program: {
@@ -269,11 +269,11 @@ export const GREAT_PROJECTS = {
 
 export const GREAT_PROJECT_IDS = Object.keys(GREAT_PROJECTS);
 
-// Plan §M2: gold 500/1000/2000 + ADM 100/150/200, taking 4/6/8 turns per tier.
+// Plan §M2: gold 500/1000/2000, taking 4/6/8 turns per tier (the ADM part went with the pools, U7).
 export const GREAT_PROJECT_TIER_COST = [
-  { gold: 500, adm: 100, turns: 4 },
-  { gold: 1000, adm: 150, turns: 6 },
-  { gold: 2000, adm: 200, turns: 8 }
+  { gold: 500, turns: 4 },
+  { gold: 1000, turns: 6 },
+  { gold: 2000, turns: 8 }
 ];
 
 export const getGreatProject = (id) => GREAT_PROJECTS[id] || null;

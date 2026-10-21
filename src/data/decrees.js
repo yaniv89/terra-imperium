@@ -7,7 +7,10 @@
 export const DECREE_CAP_BASE = 3;
 export const DECREE_CAP_MAJESTY_STEPS = [4, 8];
 
-// The trickle: one decree every this many reference turns (speedTurns), only while the bank is empty.
+// The trickle: one decree every this many reference turns (speedTurns), only while the bank holds
+// fewer than DECREE_TRICKLE_BELOW, the dearest act (a government change), so the floor can reach it
+// (U8 balance-sim: with an empty-bank floor the AI changed governments half as often as with pools).
+export const DECREE_TRICKLE_BELOW = 2;
 export const DECREE_TRICKLE_REF_TURNS = 10;
 // Administration shortens the floor (KTD5): this many reference turns less per point above the
 // start value, never below DECREE_TRICKLE_MIN_REF_TURNS.
@@ -29,7 +32,8 @@ export const DECREE_DEEDS = {
   warWon: 'War won',
   eraGoal: 'Era goal met',
   wonder: 'Wonder completed',
-  trickle: 'Quiet years at court'
+  trickle: 'Quiet years at court',
+  doctrine: 'Starting doctrine'
 };
 
 // The acts of state that spend decrees (Appendix A). Ids match ACTION_COSTS where one exists;

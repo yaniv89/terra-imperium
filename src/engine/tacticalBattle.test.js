@@ -78,7 +78,6 @@ describe('BEGIN_TACTICAL_BATTLE', () => {
     const s = withArmies();
     const next = begin(s);
     expect(next.pendingBattle).toMatchObject({ fromRegionId: FR_BORDER, targetRegionId: BE_REGION, attackerUnitIds: ['a1', 'a2', 'a3'], defenderUnitIds: ['d1', 'd2'], playerSide: 'attacker' });
-    expect(next.resources.mil).toBeLessThan(s.resources.mil);
     // locked: can't move, can't end the turn, can't start a second battle
     const moved = gameReducer(next, { type: ActionTypes.MOVE_ARMY, payload: { unitId: 'a1', toRegionId: FR_BORDER } });
     expect(moved.units.a1.regionId).toBe(FR_BORDER);
@@ -567,7 +566,6 @@ describe('T9: commanded amphibious landing', () => {
     const s = landingState();
     const started = beginLanding(s);
     expect(started.pendingBattle).toMatchObject({ kind: 'amphibious', navalUnitId: 'fleet', attackerUnitIds: ['m1', 'm2'], defenderUnitIds: ['gb1'] });
-    expect(started.resources.mil).toBe(s.resources.mil - 3);
     expect(gameReducer(started, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId: 'fleet', targetRegionId: GB_TARGET } }).units).toEqual(started.units);
     const setup = buildInvasionSetup(started, started.pendingBattle);
     expect(setup.map.landing).toBe(true);
