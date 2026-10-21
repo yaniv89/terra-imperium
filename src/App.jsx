@@ -12,6 +12,7 @@ import WorldTopBar from './components/ui/WorldTopBar';
 import TurnDock from './components/ui/TurnDock';
 import NextPrompt from './components/ui/NextPrompt';
 import MapGoals from './components/map/MapGoals';
+import CrisisBanner from './components/ui/CrisisBanner';
 import SettingsSheet from './components/ui/SettingsSheet';
 import TurnReportSheet from './components/ui/TurnReportSheet';
 import NationOverviewSheet from './components/ui/NationOverviewSheet';
@@ -306,6 +307,7 @@ const GameLayout = () => {
             <WaitingChips />
             <NextPrompt />
             {/* The map's hint and the era goals under the chips, never under them (I083). */}
+            <CrisisBanner />
             <MapGoals />
           </div>
         )}

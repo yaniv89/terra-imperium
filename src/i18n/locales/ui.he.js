@@ -17,5 +17,6 @@ import decree from './ui/decree.he';
 import ruler from './ui/ruler.he';
 import chronicle from './ui/chronicle.he';
 import glossary from './ui/glossary.he';
+import crisis from './ui/crisis.he';
 
-export default { ...hud, ...result, ...pre, ...left, ...nation, ...ind, ...misc, ...region, ...city, ...pnl1, ...pnl2, ...mapx, ...misc2, ...decree, ...ruler, ...chronicle, ...glossary };
+export default { ...hud, ...result, ...pre, ...left, ...nation, ...ind, ...misc, ...region, ...city, ...pnl1, ...pnl2, ...mapx, ...misc2, ...decree, ...ruler, ...chronicle, ...glossary, ...crisis };
