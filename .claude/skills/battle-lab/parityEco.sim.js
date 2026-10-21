@@ -21,6 +21,7 @@ import { createRng } from '../../../src/utils/rng';
 import { buildTownManifest, manifestHousing } from '../../../src/data/townLayout';
 import { getDefenseLevelDamageReductionMultiplier } from '../../../src/engine/siege';
 import { FORT_REDUCTION, FORT_BATTLE_LEVEL } from '../../../src/engine/fieldBattle';
+import { getAvailableClasses } from '../../../src/data/unitClasses';
 
 const N = Number(process.env.N || 32);
 // NOROUT=attacker|defender: that side never routs, as the player's side in a commanded battle
@@ -29,7 +30,7 @@ const NOROUT = process.env.NOROUT === 'attacker' ? 0 : process.env.NOROUT === 'd
 const noRout = (setup) => { if (NOROUT >= 0) setup.sides[NOROUT].canRout = false; return setup; };
 const TIER = process.env.TIER || 'medium';
 const TYPES = (process.env.TYPES || 'field,assault').split(',');
-const AGE_PAIRS = (process.env.AGES || 'bronze:bronze,classical:classical,kingdoms:kingdoms,gunpowder:gunpowder,modern:modern').split(',').map((p) => p.split(':'));
+const AGE_PAIRS = (process.env.AGES || 'stone:stone,stone:bronze,stone:classical,stone:kingdoms,bronze:bronze,classical:classical,kingdoms:kingdoms,gunpowder:gunpowder,modern:modern').split(',').map((p) => p.split(':'));
 const MATCHUPS = [
   [['infantry', 'infantry', 'ranged'], ['infantry', 'infantry', 'ranged']],
   [['infantry', 'infantry', 'infantry', 'cavalry', 'ranged'], ['infantry', 'ranged']],
@@ -52,6 +53,8 @@ const TUNE = { ...AUTO_TUNE, ...(process.env.RAID_SLIP ? { RAID_SLIP: Number(pro
 const FORT = 2;
 const TERRAIN = process.env.TERRAIN || 'mixed';
 
+// A class the side's age does not field (Stone has no cavalry) is its infantry.
+const ofAge = (cls, ageId) => cls.map((c) => (getAvailableClasses(ageId).includes(c) ? c : 'infantry'));
 const mk = (p, cls) => cls.map((classId, i) => ({ id: `${p}${i}`, classId, strength: 1000, maxStrength: 1000, morale: 100, promotions: [], commanderId: null, domain: 'land' }));
 const sum = (units) => units.reduce((x, u) => x + Math.max(0, u.strength), 0);
 
@@ -69,8 +72,8 @@ it('parity with the battle economy', () => {
       const fort = battleType === 'fort'; // a field battle against a manned fort (forts.js): the walled keep on the field
       const cityManifest = assault ? buildTownManifest({ cityId: `parity-${seed}`, ageId: ageD, tierId: TIER, style: 'europe', seed, defenseTier: walled ? 1 : -1 }) : null;
       const militia = assault ? militiaFor({ ownerId: 'defender', cityId: `parity-${seed}`, housing: manifestHousing(cityManifest) }) : [];
-      const attackers = mk('a', att);
-      const defenders = [...mk('d', def), ...militia];
+      const attackers = mk('a', ofAge(att, ageA));
+      const defenders = [...mk('d', ofAge(def, ageD)), ...militia];
       const reduction = walled ? getDefenseLevelDamageReductionMultiplier(FORT) : fort ? FORT_REDUCTION : 1;
       const { result } = runHeadless(noRout(buildSetupFromArmies({
         regionId: `parity-${seed}`, terrain: TERRAIN, seed, attackerUnits: attackers, defenderUnits: defenders, attackerAgeId: ageA, defenderAgeId: ageD,
