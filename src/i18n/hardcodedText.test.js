@@ -11,6 +11,7 @@ const CONVERTED = [
   'src/components/ruler/RulerSheet.jsx',
   'src/components/panels/GovernmentChangeDialog.jsx',
   'src/components/panels/LegacyPanel.jsx',
+  'src/components/panels/WorldCongressSheet.jsx',
   'src/components/panels/MilitaryPanel.jsx',
   'src/components/ui/NationOverviewSheet.jsx',
   'src/components/modals/AgeAdvanceBanner.jsx',
