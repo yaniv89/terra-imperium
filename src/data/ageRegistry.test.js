@@ -43,15 +43,19 @@ const ROSTER_CLASSES = ['infantry', 'cavalry', 'ranged', 'siege', 'naval'];
 const ROSTER_OPT_OUT = { 'stone cavalry': 'no horses before the Bronze Age (U37): the guard goes on foot, unitClasses.js guardClassOf' };
 
 /** Problems with one table: an age it lacks (and has no opt-out reason for) or a key that is no age. */
+// shortcut: U79's art fallbacks name 'future' before Phase E registers it (U64); drop this when it does.
+const PENDING_AGES = ['future'];
+const isKnown = (k) => AGE_ORDER.includes(k) || PENDING_AGES.includes(k);
+
 export const tableProblems = (name, keys, optOut = {}) => {
   const have = new Set(keys);
   const missing = AGE_ORDER.filter((a) => !have.has(a) && !optOut[a]).map((a) => `${name} is missing ${a}`);
-  const unknown = [...have].filter((k) => !AGE_ORDER.includes(k)).map((k) => `${name} names unknown age ${k}`);
+  const unknown = [...have].filter((k) => !isKnown(k)).map((k) => `${name} names unknown age ${k}`);
   return [...missing, ...unknown];
 };
 
 /** Problems with a table that lists ages without having to cover all of them. */
-const knownOnly = (name, keys) => [...new Set(keys)].filter((k) => !AGE_ORDER.includes(k)).map((k) => `${name} names unknown age ${k}`);
+const knownOnly = (name, keys) => [...new Set(keys)].filter((k) => !isKnown(k)).map((k) => `${name} names unknown age ${k}`);
 
 // Tables keyed directly by age id; each must have every age unless OPT_OUT gives a reason.
 const KEYED = [
