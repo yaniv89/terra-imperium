@@ -32,3 +32,15 @@ Akkad seed 1000 to 700 CE, Elam seed 1001 to 1500 CE, Pontic seed 1002 to 900 CE
 24. **Era goals feel thin:** few goals and small rewards.
 25. **Crises rarely touch the player.**
 26. **AI declares war with no reason shown.**
+
+## From the human-style playtests (7 runs, 1,138 steps, $12.51; plans/ai-output/human-playtest/SUMMARY.md)
+27. **No path to a battle:** nobody met a neighbour for many turns; declared wars never showed the enemy.
+28. **Settlers stuck at "1 turn":** progress far over cost because of the hidden size 2 rule.
+29. **Save, load, help and glossary not found:** Menu opens Settings only.
+30. **End Turn covers the bottom of panels on the phone,** including Declare war.
+31. **Exploring is aimless:** armies march into empty land and starve; no supply range shown.
+32. **Disabled actions say nothing:** Declare war, the greyed build plus, Military pact.
+33. **Map goes blank after closing Peoples or signing a pact.**
+34. **Late army rows will not queue; End Turn turns into "Choose production".**
+35. **Virtue choice has no confirm or cost.**
+36. **Playtest era saves too weak:** need real empires, met neighbours, a coast, one save at war.
