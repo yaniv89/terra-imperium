@@ -22,6 +22,8 @@ import { setupKeyOf, SETUP_VERSION } from '../../battle/setup/buildBattleSetup';
 import { battleReceipt, resolveActionOf } from '../../engine/battleReceipt';
 import { saveBattleCheckpoint, loadBattleCheckpoint, clearBattleCheckpoint } from '../../battle/worker/battleStore';
 import TacticalBattleScreen from './TacticalBattleScreen';
+import BattleCard from './BattleCard';
+import { battleCardRows } from './battleCardModel';
 import BattleFailure, { BattleErrorBoundary } from './BattleFailure';
 import { autoOddsForPendingBattle } from './autoCompare';
 import { battleOpenProblem, checkpointFits, safeBattleSetup } from './battleOpenGuard';
@@ -43,6 +45,7 @@ const TacticalBattleHost = () => {
   const pb = state.pendingBattle;
   const [resume, setResume] = useState(undefined); // undefined = still looking for a checkpoint
   const [attempt, setAttempt] = useState(0); // Try again remounts the battle from the start
+  const [cardSeen, setCardSeen] = useState(null); // the id of the battle whose card was answered
   const [afterCrash, setAfterCrash] = useState(() => reopenedAfterCrash());
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -100,6 +103,9 @@ const TacticalBattleHost = () => {
   if (afterCrash) {
     return <BattleFailure title={tNow('bt.host.crashTitle')} message={tNow('bt.host.crashMessage')} retryLabel={tNow('bt.host.resume')} onAuto={() => switchAuto(resume)} onRetry={() => setAfterCrash(false)} />;
   }
+  // U22: a fresh battle (not a resumed one) shows why it differs before the troops deploy.
+  const cardRows = resume === null && cardSeen !== pb.id ? battleCardRows(setup, pb.playerSide === 'defender' ? 1 : 0) : [];
+  if (cardRows.length > 1) return <BattleCard title={nameNow('battle', null, battleName(state, pb))} rows={cardRows} onDeploy={() => setCardSeen(pb.id)} />;
   const setupKey = setupKeyOf(setup);
   // The live battle's own end record goes with the log (battleVerify.js): the rules it ran under,
   // which battle it was and the world it ended on, so the reducer's replay is checked against it.

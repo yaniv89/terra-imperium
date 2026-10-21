@@ -230,6 +230,8 @@ export const buildSetupFromArmies = ({
     ...(raiding ? { raid: { needed: type === 'sack' ? SACK_BURN_NEEDED : RAID_LOOT_NEEDED } } : {}),
     map,
     tile: tileContext?.tile ?? null,
+    // What the campaign handed this battle, for the battle card (BattleCard.jsx); the sim never reads it.
+    campaign: { inputs: economyInputs, ground: tileContext },
     structures,
     // The real city (cityBattle.js): its id, town model, scale and the defender's housing cap
     // (houses plus the town hall, master plan 6.3; the battle economy reads it from phase R1).

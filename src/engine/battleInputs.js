@@ -160,7 +160,8 @@ export const battleInputs = (state, { attackerUnits = [], defenderUnits = [], ci
     attackerUnits: att,
     defenderUnits: [...def, ...mil],
     militia: mil,
-    economyInputs: { supply, development },
+    // `conditions` ride along for the battle card (BattleCard.jsx), which shows exactly these facts.
+    economyInputs: { supply, development, conditions: { starved, plague: hasPlague(city), militia: mil.reduce((n, u) => n + u.strength, 0) } },
     hpRatio: city ? wallsHpRatio(state, city) : 1,
     // Walls the real-time battle stands on the field (the keep's walls from the fort level, the
     // town's wall ring from its Defense line): the auto-resolve's gate rule (autoBattle.js).
