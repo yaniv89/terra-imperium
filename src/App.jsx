@@ -31,8 +31,7 @@ import AdminPage from './components/admin/AdminPage';
 // The commanded-battle screen (three.js + the sim worker) only downloads when a battle starts.
 const TacticalBattleHost = lazyWithReload(() => import('./components/battle/TacticalBattleHost'));
 import { GameStatus, ActionTypes } from './data/types';
-import { HISTORICAL_EVENTS } from './data/events';
-import { EVENT_CHAINS } from './data/eventChains';
+import { cardOf } from './engine/eventDeck';
 import { AGES } from './data/ages';
 import { getNationCapital } from './data/regions';
 import DefenseSheet from './components/battle/DefenseSheet';
@@ -339,12 +338,11 @@ const GameLayout = () => {
           overlay below, opened on demand). */}
       <LogTrigger onClick={handleOpenLogDrawer} unreadCount={Math.max(0, state.logs.length - lastSeenLogCountRef.current)} />
 
-      {/* Event Modal - overlays everything when active. A procedural event (Phase 6) is carried
-          in full on the state itself rather than looked up by id from HISTORICAL_EVENTS. A chain
-          event (Phase 10) is looked up by id too, but from EVENT_CHAINS. */}
+      {/* Event Modal - overlays everything when active. A drawn card (or a link bound to a city) is
+          carried in full on the state; a story or a link fired by id is a deck card (eventDeck.js). */}
       <EventModal
         event={state.activeEventId
-          ? (HISTORICAL_EVENTS[state.activeEventId] || EVENT_CHAINS[state.activeEventId])
+          ? cardOf(state.activeEventId)
           : state.activeProceduralEvent}
         onResolve={resolveEvent}
         resources={state.resources}

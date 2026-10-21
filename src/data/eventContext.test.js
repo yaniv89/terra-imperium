@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { pickProceduralEvent, noteEventFired, cooldownTurns } from './proceduralEvents';
-import { shouldEventFire, HISTORICAL_EVENTS } from './events';
+import { drawCard, noteEventFired, cooldownTurns, storyDue, storyCard } from '../engine/eventDeck';
+import { HISTORICAL_EVENTS } from './events';
 import { createRng } from '../utils/rng';
 import { getNationCapital } from './regions';
 import { getTechsForAge } from './techTree';
@@ -13,7 +13,7 @@ const EG = WORLD.playerNationId;
 
 // Playtest audit I221 (cooldowns), I222 (context prerequisites), I223 (Bronze Age Collapse).
 describe('procedural events: context and cooldowns', () => {
-  const run = (state, n = 80) => Array.from({ length: n }, (_, seed) => pickProceduralEvent(state, createRng(seed))).filter(Boolean);
+  const run = (state, n = 80) => Array.from({ length: n }, (_, seed) => drawCard(state, createRng(seed))).filter(Boolean);
   const unprepared = (state) => ({ ...state, regions: Object.fromEntries(Object.entries(state.regions).map(([id, c]) => [id, { ...c, climateResilience: 0 }])) });
 
   it('never gives a harsh winter to a hot river city', () => {
@@ -66,9 +66,9 @@ describe('scripted events: prerequisites', () => {
     const ev = HISTORICAL_EVENTS.bronze_age_collapse;
     const one = { a: city('p', 1) };
     const three = { a: city('p', 1), b: city('p', 2), c: city('p', 3) };
-    expect(shouldEventFire(at(-1200, one), ev)).toBe(false);
-    expect(shouldEventFire(at(-1200, three), ev)).toBe(true);
-    expect(shouldEventFire(at(-900, one), ev)).toBe(true);
+    expect(storyDue(at(-1200, one), storyCard(ev))).toBe(false);
+    expect(storyDue(at(-1200, three), storyCard(ev))).toBe(true);
+    expect(storyDue(at(-900, one), storyCard(ev))).toBe(true);
   });
 
   it('keeps sea raids away from a player with no coastal city', () => {
@@ -80,7 +80,7 @@ describe('scripted events: prerequisites', () => {
       if (t.coastal[i] === 1 && coast < 0) coast = i;
       if (t.coastal[i] !== 1 && inland < 0) inland = i;
     }
-    expect(shouldEventFire(at(-1100, { a: city('p', inland) }), ev)).toBe(false);
-    expect(shouldEventFire(at(-1100, { a: city('p', coast) }), ev)).toBe(true);
+    expect(storyDue(at(-1100, { a: city('p', inland) }), storyCard(ev))).toBe(false);
+    expect(storyDue(at(-1100, { a: city('p', coast) }), storyCard(ev))).toBe(true);
   });
 });

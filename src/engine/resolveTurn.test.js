@@ -10,7 +10,10 @@ import { TECH_TREE } from '../data/techTree';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD } from '../data/rebellion';
 import { HISTORICAL_EVENTS, eventTechsNeeded } from '../data/events';
 import { getTechsForAge } from '../data/techTree';
-import { EVENT_CHAINS } from '../data/eventChains';
+import { cardOf, CARDS, storyCard } from './eventDeck';
+import { countryOfNation } from '../data/peoples';
+import { speedTurns } from '../data/ages';
+import { ageOf } from './nationState';
 import { applyEventEffects } from './applyEventEffects';
 import { withAgesResearched } from './research';
 import { peoplesWorld, rivalOf, neighbourWorld, borderPair, cloneWorld } from './testWorld';
@@ -914,29 +917,29 @@ describe('resolveTurn event chains', () => {
     expect(next.activeEventId).toBe('colonial_venture_1');
     expect(next.pendingEventChains).toEqual([]);
 
-    const event = HISTORICAL_EVENTS[next.activeEventId] || EVENT_CHAINS[next.activeEventId];
+    const event = cardOf(next.activeEventId);
     expect(event.title).toBe('A Venture Beyond the Horizon');
 
     const resolved = applyEventEffects(next, event, 0); // "Fund it generously" -> schedules colonial_venture_2
-    expect(resolved.pendingEventChains).toEqual([{ id: 'colonial_venture_2', dueTurn: resolved.turnNumber + 8 }]);
+    expect(resolved.pendingEventChains).toEqual([{ id: 'colonial_venture_2', dueTurn: resolved.turnNumber + speedTurns(8, resolved.gameSpeed, ageOf(resolved, P)) }]);
     expect(resolved.activeEventId).toBeNull();
   });
 });
 
 describe('resolveTurn curated national events', () => {
-  it('fires a curated national event for the nation it names, once the player has its age and progress', () => {
-    // The real curated events name legacy country ids, so no peoples nation can own one: a copy of
-    // the Nile flood event is bound to the player's nation for this test. It is chronologically the
-    // earliest of ALL real events, so clearing firedEvents entirely can't let another one preempt it.
-    const ev = { ...HISTORICAL_EVENTS.national_egypt_nile_flood, id: 'national_test_flood', nationId: P };
-    HISTORICAL_EVENTS[ev.id] = ev;
+  it('fires a curated national event for a people of the land it names, once the player has its age and progress', () => {
+    // A copy of the Nile flood event keyed to the player's own land (peoples.js countryOfNation).
+    // It is chronologically the earliest of ALL real events, so clearing firedEvents entirely can't
+    // let another one preempt it.
+    const ev = storyCard({ ...HISTORICAL_EVENTS.national_egypt_nile_flood, id: 'national_test_flood', land: countryOfNation(P) });
+    CARDS[ev.id] = ev;
     try {
       const held = getTechsForAge(ev.ageId).slice(0, eventTechsNeeded(ev.ageId, ev.year));
       const base = withAllEventsFired(world());
       const state = { ...base, techAgeId: ev.ageId, techTree: { ...base.techTree, ...Object.fromEntries(held.map((t) => [t.id, { ...base.techTree?.[t.id], researched: true }])) }, firedEvents: {} };
       const next = resolveTurn(state);
       expect(next.activeEventId).toBe(ev.id);
-    } finally { delete HISTORICAL_EVENTS[ev.id]; }
+    } finally { delete CARDS[ev.id]; }
   });
 
   it('never fires a curated national event for a different nation', () => {

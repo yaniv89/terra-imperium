@@ -16,6 +16,8 @@ import { transferRegion } from './regionTransfer';
 import { grantClaim, nearestCityOf } from './claims';
 import { msg, sub, people, thing } from './messages';
 import { grantRenown } from './renown';
+import { speedTurns } from '../data/ages';
+import { ageOf } from './nationState';
 
 // The resources an option lacks, as a list of names ("gold, hr").
 const shortfallList = (ids) => ids.map((id) => thing('resource', id, id)).reduce((acc, r) => (acc === '' ? r : sub('m.world.listMore', { a: acc, b: r })), '');
@@ -221,14 +223,13 @@ export const applyEventEffects = (state, event, optionIndex) => {
     next.nations = nations;
   }
 
-  // Event chains with memory — schedules a registry entry from eventChains.js to fire delayTurns
-  // turns from now (see resolveTurn.js, which checks state.pendingEventChains every turn).
-  // turnNumber, not year, is the clock here so the delay is exact regardless of game speed.
+  // Links of the event deck (eventDeck.js): schedules a card from eventChains.js delayTurns
+  // reference turns from now (speedTurns at the player's age), carrying the city this event bound.
   if (effects.spawnFollowUp) {
     const { id, delayTurns } = effects.spawnFollowUp;
     next.pendingEventChains = [
       ...(next.pendingEventChains || []),
-      { id, dueTurn: next.turnNumber + delayTurns }
+      { id, dueTurn: next.turnNumber + speedTurns(delayTurns, next.gameSpeed, ageOf(next, playerNationId)), ...(event.cityId != null ? { cityId: event.cityId } : {}) }
     ];
   }
 

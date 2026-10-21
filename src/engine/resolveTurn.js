@@ -31,9 +31,7 @@ import { displayYear } from './displayYear';
 import { endingSignal } from './ending';
 import { awardEraLegacy } from './eraGoals';
 import { createEmptyResourcePool } from '../data/resources';
-import { pickNextEvent } from '../data/events';
-import { pickProceduralEvent, noteEventFired } from '../data/proceduralEvents';
-import { EVENT_CHAINS } from '../data/eventChains';
+import { drawEvent } from './eventDeck';
 import { calcIncome, nextUnrest, getNationBonusTotal, getFieldedStrength } from '../utils/helpers';
 import { getRegionModifier, getModifier } from './modifiers/sheet';
 import { nextSiegeControlRegen, SIEGE_REGEN_COOLDOWN_TURNS } from './siege';
@@ -1148,40 +1146,10 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   const alignmentShare = getDiplomaticAlignmentShare({ ...state, nations: nationsAfterWars });
   const diplomaticLeadershipStreak = alignmentShare >= DIPLOMATIC_LEADERSHIP_SHARE ? (state.diplomaticLeadershipStreak || 0) + 1 : 0;
 
-  // --- events ---
-  const dueEvent = pickNextEvent({ ...state, nations, regions });
+  // --- events --- (eventDeck.js: a due story, else a due link, else sometimes a drawn card)
+  const events = drawEvent({ ...state, nations, regions, turnNumber: newTurnNumber, year: newYear }, rng);
   // The scripted plagues start a real outbreak where history started them (plague.js).
-  if (dueEvent && PLAGUE_EVENT_ORIGINS[dueEvent.id]) seedPlagueNear(regions, PLAGUE_EVENT_ORIGINS[dueEvent.id], newTurnNumber);
-
-  // --- event chains ---
-  // A scripted follow-up scheduled earlier by applyEventEffects.js (effects.spawnFollowUp) fires
-  // as soon as its dueTurn is reached, but only when no scripted historical event is already due
-  // this turn.
-  const pendingEventChains = state.pendingEventChains || [];
-  let chainEventId = null;
-  let nextPendingEventChains = pendingEventChains;
-  if (!dueEvent) {
-    const dueIndex = pendingEventChains.findIndex(c => c.dueTurn <= newTurnNumber && EVENT_CHAINS[c.id]);
-    if (dueIndex !== -1) {
-      chainEventId = pendingEventChains[dueIndex].id;
-      nextPendingEventChains = pendingEventChains.filter((_, i) => i !== dueIndex);
-    }
-  }
-
-  // --- procedural events ---
-  // Only rolled when no scripted event or chain event is already due this turn. Gated behind a
-  // cooldown (a random few turns after each firing) so these don't cluster.
-  let proceduralEventCooldown = Math.max(0, (state.proceduralEventCooldown || 0) - 1);
-  let activeProceduralEvent = null;
-  let eventHistory = state.eventHistory || {}; // which event templates, families and cities rested when (proceduralEvents.js)
-  if (!dueEvent && !chainEventId && proceduralEventCooldown <= 0 && rng.next() < 0.3) {
-    const candidate = pickProceduralEvent({ ...state, nations, turnNumber: newTurnNumber, year: newYear }, rng);
-    if (candidate) {
-      activeProceduralEvent = candidate;
-      eventHistory = noteEventFired(eventHistory, candidate, newTurnNumber);
-      proceduralEventCooldown = 3 + Math.floor(rng.next() * 5);
-    }
-  }
+  if (PLAGUE_EVENT_ORIGINS[events.activeEventId]) seedPlagueNear(regions, PLAGUE_EVENT_ORIGINS[events.activeEventId], newTurnNumber);
 
   mark('diplomacyStreakAndEvents');
 
@@ -1209,11 +1177,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     regionModifiers,
     diplomaticLeadershipStreak,
     playerEliminatedNationId,
-    activeEventId: dueEvent ? dueEvent.id : chainEventId,
-    activeProceduralEvent,
-    proceduralEventCooldown,
-    eventHistory,
-    pendingEventChains: nextPendingEventChains,
+    ...events,
     nextLoanSeq,
     lodPeriods, // world/lod.js: next turn's loyalty pass reads which nations are far and quiet
     rngSeed: rng.getSeed(),

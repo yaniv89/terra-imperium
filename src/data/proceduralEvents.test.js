@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickProceduralEvent } from './proceduralEvents';
+import { drawCard } from '../engine/eventDeck';
 import { peoplesWorld, rivalOf } from '../engine/testWorld';
 import { createRng } from '../utils/rng';
 import { EVENT_CHAINS } from './eventChains';
@@ -7,10 +7,10 @@ import { EVENT_CHAINS } from './eventChains';
 const world = () => peoplesWorld({ seed: 5 });
 const capOf = (s) => s.nations[s.playerNationId].capitalRegionId;
 
-describe('pickProceduralEvent', () => {
+describe('drawCard', () => {
   it('returns a real, well-formed event for at least one seed against the initial state', () => {
     const state = world();
-    const results = Array.from({ length: 20 }, (_, seed) => pickProceduralEvent(state, createRng(seed)));
+    const results = Array.from({ length: 20 }, (_, seed) => drawCard(state, createRng(seed)));
     const hits = results.filter(Boolean);
     expect(hits.length).toBeGreaterThan(0);
     hits.forEach(event => {
@@ -28,14 +28,14 @@ describe('pickProceduralEvent', () => {
 
   it('is deterministic given the same state and seed', () => {
     const state = world();
-    const a = pickProceduralEvent(state, createRng(7));
-    const b = pickProceduralEvent(state, createRng(7));
+    const a = drawCard(state, createRng(7));
+    const b = drawCard(state, createRng(7));
     expect(a).toEqual(b);
   });
 
   it('pins the event to one of the player\'s cities and names it in the description', () => {
     const state = world();
-    const results = Array.from({ length: 20 }, (_, seed) => pickProceduralEvent(state, createRng(seed)));
+    const results = Array.from({ length: 20 }, (_, seed) => drawCard(state, createRng(seed)));
     const hit = results.find(e => e && e.cityId);
     expect(hit).toBeTruthy();
     expect(state.regions[hit.cityId].owner).toBe(state.playerNationId);
@@ -45,13 +45,13 @@ describe('pickProceduralEvent', () => {
 
   it('only offers the ambitious-general template once a general is actually hired', () => {
     const withoutGenerals = world();
-    const noGeneralHit = Array.from({ length: 30 }, (_, seed) => pickProceduralEvent(withoutGenerals, createRng(seed)))
+    const noGeneralHit = Array.from({ length: 30 }, (_, seed) => drawCard(withoutGenerals, createRng(seed)))
       .some(e => e?.id.includes('ambitious_general'));
     expect(noGeneralHit).toBe(false);
 
     const general = { id: 'gen_1', name: 'Commander 1' };
     const withGenerals = { ...withoutGenerals, hiredCommanders: { gen_1: general } };
-    const generalHit = Array.from({ length: 30 }, (_, seed) => pickProceduralEvent(withGenerals, createRng(seed)))
+    const generalHit = Array.from({ length: 30 }, (_, seed) => drawCard(withGenerals, createRng(seed)))
       .some(e => e?.id.includes('ambitious_general'));
     expect(generalHit).toBe(true);
   });
@@ -59,7 +59,7 @@ describe('pickProceduralEvent', () => {
   it('never spawns a follow-up that points at a nonexistent chain entry, across every template it can build', () => {
     const state = { ...world(), hiredCommanders: { gen_1: { id: 'gen_1', name: 'Commander 1' } } };
     for (let seed = 0; seed < 40; seed++) {
-      const event = pickProceduralEvent(state, createRng(seed));
+      const event = drawCard(state, createRng(seed));
       if (!event) continue;
       event.options.forEach(option => {
         const followUp = option.effects.spawnFollowUp;
@@ -71,7 +71,7 @@ describe('pickProceduralEvent', () => {
   it('offers the refugee-crisis template when a war is active anywhere, even one the player isn\'t in', () => {
     const state = world();
     const withDistantWar = { ...state, wars: [{ active: true, aggressor: rivalOf(state), enemy: rivalOf(state, 1) }] };
-    const hit = Array.from({ length: 40 }, (_, seed) => pickProceduralEvent(withDistantWar, createRng(seed)))
+    const hit = Array.from({ length: 40 }, (_, seed) => drawCard(withDistantWar, createRng(seed)))
       .some(e => e?.id.includes('refugee_crisis'));
     expect(hit).toBe(true);
   });
@@ -80,7 +80,7 @@ describe('pickProceduralEvent', () => {
     const state = world();
     const capitalId = capOf(state);
     const withUnrest = { ...state, wars: [], regions: { ...state.regions, [capitalId]: { ...state.regions[capitalId], unrest: 50 } } };
-    const hit = Array.from({ length: 40 }, (_, seed) => pickProceduralEvent(withUnrest, createRng(seed)))
+    const hit = Array.from({ length: 40 }, (_, seed) => drawCard(withUnrest, createRng(seed)))
       .some(e => e?.id.includes('refugee_crisis'));
     expect(hit).toBe(true);
   });
@@ -89,7 +89,7 @@ describe('pickProceduralEvent', () => {
     const state = world();
     const capitalId = capOf(state);
     const calm = { ...state, wars: [], regions: { ...state.regions, [capitalId]: { ...state.regions[capitalId], unrest: 0 } } };
-    const hit = Array.from({ length: 40 }, (_, seed) => pickProceduralEvent(calm, createRng(seed)))
+    const hit = Array.from({ length: 40 }, (_, seed) => drawCard(calm, createRng(seed)))
       .some(e => e?.id.includes('refugee_crisis'));
     expect(hit).toBe(false);
   });
@@ -100,7 +100,7 @@ describe('pickProceduralEvent', () => {
     const state = world();
     const capitalId = capOf(state);
     const resilient = { ...state, regions: { ...state.regions, [capitalId]: { ...state.regions[capitalId], climateResilience: 3 } } };
-    const results = Array.from({ length: 60 }, (_, seed) => pickProceduralEvent(resilient, createRng(seed)));
+    const results = Array.from({ length: 60 }, (_, seed) => drawCard(resilient, createRng(seed)));
     expect(results.some(e => e?.id.includes('failed_harvest'))).toBe(false);
     expect(results.some(e => e?.id.includes('harsh_winter'))).toBe(false);
   });
@@ -109,7 +109,7 @@ describe('pickProceduralEvent', () => {
     const state = world();
     const capitalId = capOf(state);
     const unprepared = { ...state, regions: { ...state.regions, [capitalId]: { ...state.regions[capitalId], climateResilience: 0 } } };
-    const results = Array.from({ length: 60 }, (_, seed) => pickProceduralEvent(unprepared, createRng(seed)));
+    const results = Array.from({ length: 60 }, (_, seed) => drawCard(unprepared, createRng(seed)));
     expect(results.some(e => e?.id.includes('failed_harvest') || e?.id.includes('harsh_winter'))).toBe(true);
   });
 
@@ -126,7 +126,7 @@ describe('pickProceduralEvent', () => {
       }
     };
     for (let seed = 0; seed < 10; seed++) {
-      expect(pickProceduralEvent(mostlyIneligible, createRng(seed))).not.toBeNull();
+      expect(drawCard(mostlyIneligible, createRng(seed))).not.toBeNull();
     }
   });
 });

@@ -1,14 +1,17 @@
 // src/engine/predicates.js
 // Predicates over a nation's facts (differentiation plan KTD8 and KTD13): the one test language of
-// ambitions (ambitions.js), and later the event deck (U26) and crises (U31). A predicate is data:
-//   leaf      { fact, min = 1, gain = false }   met when the fact (a number; true = 1) is >= min;
+// ambitions (ambitions.js), the event deck (eventDeck.js) and later crises (U31). A predicate is data:
+//   leaf      { fact, min = 1, max, gain = false }   met when the fact (a number; true = 1) is >= min
+//             (and <= max when given);
 //             with gain, only what came after the base counts (gainBase, taken when it was offered)
 //   compound  { all: [p] } | { any: [p] } | { not: p }
 // Facts are read lazily, once per context (factContext): only the facts a predicate names are
 // computed, so a check costs nothing beyond what it reads. Pure.
 import { nationFacts } from './boosts';
 import { citiesTakenThisAge } from './eraGoals';
-import { getResearched } from './nationState';
+import { ageOf, ageIndexOf, getResearched } from './nationState';
+import { getTechsForAge } from '../data/techTree';
+import { getNationCapital } from '../data/regions';
 
 const map = (k) => (ctx) => (ctx.map ||= nationFacts(ctx.state, ctx.nationId))[k];
 
@@ -29,7 +32,12 @@ export const FACTS = {
   battlesWon: map('battlesWon'),
   citiesTaken: ({ state, nationId }) => citiesTakenThisAge(state, nationId),
   techs: ({ state, nationId }) => getResearched(state, nationId).length,
-  wonders: ({ state, nationId }) => Object.values(state.greatProjects || {}).filter((p) => state.regions?.[p.regionId]?.owner === nationId).length
+  wonders: ({ state, nationId }) => Object.values(state.greatProjects || {}).filter((p) => state.regions?.[p.regionId]?.owner === nationId).length,
+  // The event deck's age rule (KTD19): the nation's research age and how far into it it is.
+  ageIndex: ({ state, nationId }) => ageIndexOf(state, nationId),
+  ageTechs: ({ state, nationId }) => { const held = new Set(getResearched(state, nationId)); return getTechsForAge(ageOf(state, nationId)).filter((t) => held.has(t.id)).length; },
+  homeland: ({ state, nationId }) => state.regions?.[getNationCapital(nationId)]?.owner === nationId,
+  generals: ({ state, nationId }) => (nationId === state.playerNationId ? Object.keys(state.hiredCommanders || {}).length : 0)
 };
 
 /** The facts of `nationId` in `state`, read on demand. */
@@ -56,5 +64,6 @@ export const predicateMet = (p, ctx, base = {}) => {
   if (p.all) return p.all.every((q) => predicateMet(q, ctx, base));
   if (p.any) return p.any.some((q) => predicateMet(q, ctx, base));
   if (p.not) return !predicateMet(p.not, ctx, base);
-  return fact(ctx, p.fact) - (p.gain ? base[p.fact] || 0 : 0) >= (p.min ?? 1);
+  const v = fact(ctx, p.fact) - (p.gain ? base[p.fact] || 0 : 0);
+  return v >= (p.min ?? 1) && (p.max == null || v <= p.max);
 };
