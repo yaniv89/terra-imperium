@@ -119,6 +119,13 @@ describe('artist town models', () => {
     });
   });
 
+  it('gives Stone towns their own shared file: the Earthwork Ditch rings, palaces, camp and fields', () => {
+    expect(sharedAssetUrl('stone')).toMatch(/shared-stone/);
+    const json = readGlbJson('src/assets/map/shared/shared-stone.glb');
+    const roots = json.scenes[0].nodes.map((i) => json.nodes[i].name);
+    expect(roots).toEqual(expect.arrayContaining(['palace-small', 'palace', 'walls-small', 'walls-medium', 'walls-big', 'colony-camp', 'field-1', 'field-2', 'field-3', 'field-4']));
+  });
+
   it('rings each town size with its own wall ring', () => {
     expect(wallsFor('small')).toBe('walls-small');
     expect(wallsFor('medium')).toBe('walls-medium');
