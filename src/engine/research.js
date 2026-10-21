@@ -37,9 +37,14 @@ import { AGRICULTURE_TECH } from '../data/hearths';
 // peoples world, Normal, seeds 11 to 13, 300 turns) to KTD9's target turns: about half the majors
 // past Bronze at turn 48 and past Classical at turn 157, Kingdoms ending near 324. Gunpowder and
 // Modern are first guesses past the 300 turns measured (eight-age calibration, U96).
-export const RESEARCH_AGE_BASE = { stone: 12, bronze: 17, classical: 82, kingdoms: 1200, gunpowder: 2400, modern: 6000 };
+// Stone (U47, peoples, scripted, seeds 11 to 14): 15 puts 20% to 27% of majors past Stone at the
+// age's end turn on the three speeds (plan SC3: 10% to 40%; 12 gave 55% to 61%).
+export const RESEARCH_AGE_BASE = { stone: 15, bronze: 17, classical: 82, kingdoms: 1200, gunpowder: 2400, modern: 6000 };
 export { SCIENCE_PER_DEV } from '../data/actionCosts';
 export const FOCUS_SCIENCE_BONUS = 0.1;
+// A nation's first tech costs a quarter (U47): a band's first village makes 2 science, and a full
+// price first tech (about 50 on Normal, writing not yet known) left it waiting 25 turns.
+export const FIRST_TECH_COST_MULT = 0.25;
 // A safety cap on techs completed in one turn (a big bank paid into cheap techs).
 const MAX_COMPLETIONS_PER_TURN = 6;
 // AI nations pay their banked science into research every AI_RESEARCH_PERIOD turns, staggered by
@@ -65,8 +70,10 @@ export const getResearchCost = (state, nationId, techId) => {
   const base = RESEARCH_AGE_BASE[tech.ageId] ?? RESEARCH_AGE_BASE.modern;
   const speed = speedCostMult(state.gameSpeed, techAgeOf(state, nationId)); // the speed table (ages.js, KTD9): keyed by the paying nation's own age
   const mult = withDiffusion(state, nationId, techId, getModifier(state, nationId, 'national.researchCost').total);
-  const writing = getResearched(state, nationId).includes(WRITING_TECH) ? 1 : NO_WRITING_COST_MULT; // stonePhase.js: no writing, half the science
-  return Math.max(1, Math.round(base * speed * (1 + mult) * writing));
+  const known = getResearched(state, nationId);
+  const writing = known.includes(WRITING_TECH) ? 1 : NO_WRITING_COST_MULT; // stonePhase.js: no writing, half the science
+  const first = known.some((id) => id !== AGRICULTURE_TECH) ? 1 : FIRST_TECH_COST_MULT; // a hearth people starts with Agriculture: its first chosen tech is still the first
+  return Math.max(1, Math.round(base * speed * (1 + mult) * writing * first));
 };
 
 /** The research window (eight-ages plan KTD4): a nation may start techs of its own age and the next. */
