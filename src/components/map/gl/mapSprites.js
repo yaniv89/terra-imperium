@@ -3,10 +3,13 @@
 // each in src/assets/map/sprites/<id>/ as frames (<id>-0.png, <id>-1.png, ...) plus sheet.json
 // ({ "frame": [w, h], "frames": n, "fps": 12 }). Grey #BFBFBF where the nation colour goes.
 // Until a sheet is delivered, spriteArt.js draws its placeholder. The ids the map asks for:
+import { AGE_ORDER, FIRST_AGE_ID } from '../../../data/ages';
+
+const STANDARD_AGES = [...new Set([...AGE_ORDER, 'future'])]; // Future before it joins the registry
 export const MAP_SPRITE_IDS = [
   'badge-plate',        // the city badge's plate (placeholder: the drawn disc)
   'army-base',          // the army marker's base (placeholder: the drawn shield)
-  'standard-bronze', 'standard-classical', 'standard-kingdoms', 'standard-gunpowder', 'standard-modern', // army standards per age (placeholder: the shield)
+  ...STANDARD_AGES.map((a) => `standard-${a}`), // army standards per age (placeholder: the shield)
   'ai-battle-clash',    // AI against AI battle in sight (placeholder: crossed swords on a disc)
   'ai-battle-smoke',    // its smoke loop (placeholder: none)
   'battle-result',      // the flash when a battle ends (placeholder: none)
@@ -14,7 +17,6 @@ export const MAP_SPRITE_IDS = [
 ];
 // Map marker icons (spec S1), through src/data/icons.js: src/assets/icons/markers/siege.svg and
 // src/assets/icons/markers/sea-battle.svg (placeholders: the battle marker).
-
 const sheets = import.meta.glob('../../../assets/map/sprites/*/sheet.json', { eager: true, import: 'default' });
 const frames = import.meta.glob('../../../assets/map/sprites/*/*.png', { eager: true, query: '?url', import: 'default' });
 
@@ -32,5 +34,5 @@ Object.entries(frames).forEach(([file, url]) => {
 export const spriteSheet = (id) => (SHEETS[id]?.urls?.length ? SHEETS[id] : null);
 /** The URL of one frame of a delivered sheet, or null. */
 export const spriteFrameUrl = (id, frame = 0) => spriteSheet(id)?.urls[frame % spriteSheet(id).urls.length] || null;
-/** The age's army standard id (decision: five ages now). */
-export const standardFor = (ageId) => `standard-${['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'].find((a) => String(ageId || '').includes(a)) || 'bronze'}`;
+/** The age's army standard id (the placeholder shield draws for an age without a sheet). */
+export const standardFor = (ageId) => `standard-${STANDARD_AGES.includes(ageId) ? ageId : FIRST_AGE_ID}`;

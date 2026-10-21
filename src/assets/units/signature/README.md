@@ -5,6 +5,8 @@ Each of the 150 peoples has ONE signature unit in ONE age (user decision 2026-10
 role; in every other age the people fields the ordinary base units. The role may be any base role,
 vehicles included (Israel: the Merkava tank, Modern, the mobile role, on the base Tank's rig).
 
+Late-age files (Information, Future; plan U86) are named `signature/<people>-<age>.glb`, with any of the eight age ids; wonder models (U92) keep the ids the plan fixes.
+
 The table is `src/data/signatureUnits.js`: `{ [peopleId]: { ageId, classId, model, rig, name } }`,
 seeded from the roster. The file is named by `model`, the roster's id:
 `src/assets/units/signature/<model>.glb` (for example `kingdom-of-israel.glb`, `mari.glb`,

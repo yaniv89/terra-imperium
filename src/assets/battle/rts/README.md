@@ -1,7 +1,8 @@
 # Battle buildings: `rts-<age>.glb`
 
-One file per age (`rts-bronze.glb`, `rts-classical.glb`, `rts-kingdoms.glb`, `rts-gunpowder.glb`,
-`rts-modern.glb`). Read by `src/battle/render/economyLayer.js` through `src/battle/art/artIndex.js`.
+One file per age, any of the eight (`rts-stone.glb`, `rts-bronze.glb`, `rts-classical.glb`,
+`rts-kingdoms.glb`, `rts-gunpowder.glb`, `rts-modern.glb`, `rts-information.glb`, `rts-future.glb`); an age
+without a file uses the nearest earlier age's. Read by `src/battle/render/economyLayer.js` through `src/battle/art/artIndex.js`.
 Spec: `plans/ART-MODELS-PLAN.md` section 5, `plans/ART-PRODUCTION-PLAN.md` S5.
 
 ## Objects (root names)

@@ -14,6 +14,12 @@ describe('map and battle models', { timeout: 60000 }, () => { // reads every GLB
     expect(packFlags('src/assets/units/bronze-infantry.glb')).toContain('-noq');
     expect(packFlags('src\\assets\\units\\bronze-siege.glb')).toContain('-noq');
     expect(packFlags('src/assets/battle/city/walls-bronze.glb')).not.toContain('-noq');
+    // the eight ages (stone, information, future too): no folder or rule names an age
+    ['stone', 'information', 'future'].forEach((a) => {
+      expect(needsLods(`src/assets/units/${a}-infantry.glb`)).toBe(false);
+      expect(packFlags(`src/assets/units/signature/akkad-${a}.glb`)).toContain('-noq');
+      expect(needsLods(`src/assets/battle/rts/rts-${a}.glb`)).toBe(true);
+    });
     // unit clips keep their 20 fps keys (no resampling)
     expect(packFlags('src/assets/units/bronze-worker.glb').join(' ')).toContain('-af 0');
     expect(packFlags('src/assets/battle/city/walls-bronze.glb')).not.toContain('-af');
