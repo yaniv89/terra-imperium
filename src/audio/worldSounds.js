@@ -111,6 +111,7 @@ export const ACTION_SOUNDS = {
   [T.CHANGE_GOVERNMENT_TYPE]: 'ui-confirm',
   [T.ENACT_GOVERNMENT_REFORM]: 'ui-confirm',
   [T.CHANGE_LAW]: 'ui-confirm',
+  [T.WORLD_CONGRESS_VOTE]: 'ui-confirm',
   [T.DECLARE_WAR]: null, // the war itself: from the state
   [T.FABRICATE_CLAIM]: 'ui-confirm',
   [T.SUE_FOR_PEACE]: null, // peace signed (or not): from the state

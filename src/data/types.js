@@ -122,6 +122,7 @@ export const ActionTypes = {
   CHANGE_GOVERNMENT_TYPE: 'CHANGE_GOVERNMENT_TYPE',
   ENACT_GOVERNMENT_REFORM: 'ENACT_GOVERNMENT_REFORM',
   CHANGE_LAW: 'CHANGE_LAW',
+  WORLD_CONGRESS_VOTE: 'WORLD_CONGRESS_VOTE', // the player's vote on the Congress's next resolution (worldCongress.js)
 
   // Diplomacy tab (plan §8) — casus belli, war/peace lifecycle, and the first tier of agreements.
   DECLARE_WAR: 'DECLARE_WAR',

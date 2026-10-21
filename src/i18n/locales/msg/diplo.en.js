@@ -192,5 +192,13 @@ export default {
   'm.diplo.ownStaysYours': '{city} stays yours.',
   'm.diplo.ownStaysTheirs': "{city} stays {nation}'s.",
   'm.diplo.moneyGold': 'You pay {nation} {gold} gold',
-  'm.diplo.moneyReparations': 'You pay reparations: a tenth of your gold income for 10 turns'
+  'm.diplo.moneyReparations': 'You pay reparations: a tenth of your gold income for 10 turns',
+
+  // the World Congress (worldCongress.js)
+  'm.diplo.congressFormed': 'The World Congress meets for the first time, hosted by {nation}.',
+  'm.diplo.congressPropose.tradeStandard': 'The World Congress will vote on a trade standard on turn {turn}.',
+  'm.diplo.congressPropose.armsLimit': 'The World Congress will vote on an arms limit on turn {turn}.',
+  'm.diplo.congressPropose.sanctions': 'The World Congress will vote on sanctions on {nation} on turn {turn}.',
+  'm.diplo.congressPassed': 'The World Congress passes the resolution, {yes} votes to {no}.',
+  'm.diplo.congressFailed': 'The World Congress rejects the resolution, {yes} votes to {no}.'
 };

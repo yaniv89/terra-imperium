@@ -57,3 +57,5 @@ export const RAZED_OUR_KIN = -40;            // a major razed a city of its peop
 export const GAVE_US_MAP = 6;
 export const SWAPPED_MAPS = 3;
 export const SHARED_MAP_FADE_TURNS = 4;
+// The World Congress (worldCongress.js): the target of sanctions thinks this of every signer while they stand.
+export const SANCTIONED_US = -25;
