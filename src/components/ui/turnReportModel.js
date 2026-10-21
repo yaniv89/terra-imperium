@@ -155,7 +155,9 @@ export const turnReportModel = (before, after, lang = getLanguage()) => {
     else if (c.owner === me && old && old.owner !== me) add('cities', { tone: 'good', title: tr('report.taken', { city: cityName(c) }), sub: tr('report.takenFrom', { nation: nationName(old.owner, tr('report.enemy')) }), place: cityPlace(c) });
     else if (old && old.owner === me && c.owner !== me) {
       // Why it was lost, from the engine's own line about it (a battle, a flip, a peace, an uprising).
-      const why = fresh.find((l) => l.type !== LogTypes.ACTION && String(l.message || '').includes(c.name));
+      // By the city's own ref in the line (a name match could quote "New York" for York); old lines without vars by name.
+      const namesCity = (l) => (l.msgVars ? Object.values(l.msgVars).some((v) => v?.k === 'city' && v.id === c.id) : String(l.message || '').includes(c.name));
+      const why = fresh.find((l) => l.type !== LogTypes.ACTION && namesCity(l));
       add('cities', { tone: 'danger', title: tr('report.lost', { city: cityName(c) }), sub: why ? logText(why, lang) : tr('report.heldBy', { nation: nationName(c.owner, tr('report.enemy')) }), place: cityPlace(c) });
     }
     else if (c.owner === me && old && (c.size || 1) > (old.size || 1)) grown.push(c);
