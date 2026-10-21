@@ -33,7 +33,7 @@ import { getCapital } from '../data/regions';
 import { ringsForKm } from '../data/geo/gridScale';
 import { isIndependentNation } from '../data/independents';
 import { canAttack } from './hostility';
-import { aiScout, marchScouts } from './aiScouting';
+import { aiScout, marchScouts, scoutsThisTurn } from './aiScouting';
 import { cityAttackStrength, cityAttackDamage, cityDefence } from './cityAssault';
 import { cityMilitia, wallsHpRatio } from './battleInputs';
 import { siegeHpOf } from './sieges';
@@ -316,6 +316,10 @@ export const processAIOperations = (state, rng) => {
   let unitsByRegion = null; let unitsByRegionFor = null;
   const raidTiles = raidPartyTiles(state);
   const sallyIndex = landUnitsByTile(state); // where foreign stacks stand at the start of the phase (aiSally)
+  // Who has a scout out: only aiScout makes one, in its own nation's step, so a nation outside this
+  // set with no scouting turn has nothing for aiScout to do (it skips the walk of every unit).
+  const scouting = new Set();
+  for (const id in state.units) if (state.units[id].scout) scouting.add(state.units[id].ownerId);
   for (const nationId of Object.keys(state.nations).sort()) {
     if (nationId === state.playerNationId || state.nations[nationId].isEliminated) continue;
     if (state.scenario?.mode === 'emergent') {
@@ -346,7 +350,7 @@ export const processAIOperations = (state, rng) => {
     next = aiSally(next, nationId, rng, sallyIndex);
     // At peace a major scouts (aiScouting.js, CB09 I122): one unit at a time explores and makes contact.
     if (!wars.length) {
-      if (!isIndependentNation(next.nations[nationId]) && aiScout(next, nationId)) marchScouts(next, nationId);
+      if (!isIndependentNation(next.nations[nationId]) && (scouting.has(nationId) || scoutsThisTurn(nationId, next.turnNumber || 0)) && aiScout(next, nationId)) marchScouts(next, nationId);
       // Arming for a war (a claim in the making): spare regiments gather at the muster point.
       if (plan) next = gatherForPlan(next, nationId, plan, committed);
       continue;
