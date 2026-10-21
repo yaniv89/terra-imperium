@@ -48,6 +48,8 @@ import { unlockSfx } from './audio/sfx';
 import { installUiSounds } from './audio/uiSounds';
 import { getSupabaseClient, isCloudSaveConfigured } from './services/supabaseClient';
 import { ChallengeEntry, ChallengeBanner } from './components/challenges/ChallengeSheet';
+// shortcut: weekly challenge hidden until its Supabase deploy (plans/U36-DEPLOY.md) is done; flip to true then.
+const CHALLENGES_ON = false;
 import { getCurrentUser, onAuthStateChange, getProfile } from './services/auth';
 import { lazyWithReload } from './utils/lazyWithReload';
 import RotateOverlay from './components/ui/RotateOverlay';
@@ -284,7 +286,7 @@ const GameLayout = () => {
     );
   }
   if (showStartScreen) {
-    return <><StartScreen onStart={handleStart} onBackToTitle={cameFromTitle ? backToTitle : undefined} headerExtra={<ChallengeEntry onStart={handleStart} />} /><OldSaveNotice /></>;
+    return <><StartScreen onStart={handleStart} onBackToTitle={cameFromTitle ? backToTitle : undefined} headerExtra={CHALLENGES_ON ? <ChallengeEntry onStart={handleStart} /> : null} /><OldSaveNotice /></>;
   }
 
   return (
