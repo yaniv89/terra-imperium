@@ -189,6 +189,33 @@ export const getUnitDefinition = (ageId, classId) => UNIT_ROSTER[ageId]?.[classI
 // Every class recruitable at (and including) the given age — Air only exists from Modern on.
 export const getAvailableClasses = (ageId) => Object.keys(UNIT_ROSTER[ageId] || {});
 
+// Civ-style tech unlocks: the tech each age's unit needs (null = open from the age's start, so
+// infantry is always buildable). Pairs from plans/ai-output/tech-unlocks (Riflemen moved to
+// Standing Armies). The gate is read only when a unit is queued or recruited: units already
+// built stay, and they keep following their owner's age as before.
+export const UNIT_UNLOCKS = {
+  stone: { infantry: null, ranged: 'military_hunting_bands', siege: 'military_copper_working', naval: 'science_star_lore', support: 'governance_sacred_kingship' },
+  bronze: { infantry: null, cavalry: 'infrastructure_the_wheel', ranged: 'military_composite_bow', siege: 'military_bronze_casting', naval: 'science_early_astronomy', support: 'infrastructure_mudbrick_roads' },
+  classical: { infantry: null, cavalry: 'military_iron_weapons', ranged: 'military_composite_bow', siege: 'military_siege_engineering', naval: 'economy_minted_coinage', support: 'infrastructure_paved_roads' },
+  kingdoms: { infantry: null, cavalry: 'governance_feudal_charters', ranged: 'military_feudal_levies', siege: 'military_plate_armor', naval: null, support: 'infrastructure_postal_relay' },
+  gunpowder: { infantry: null, cavalry: 'military_standing_armies', ranged: 'military_standing_armies', siege: 'military_gunpowder_weapons', naval: 'economy_joint_stock_companies', support: 'infrastructure_turnpike_roads' },
+  modern: { infantry: null, cavalry: 'military_mechanized_warfare', ranged: 'economy_industrial_capital', siege: 'infrastructure_rail_networks', naval: 'economy_mass_production', air: 'military_combined_arms', support: 'military_combined_arms' },
+  information: { infantry: null, cavalry: null, ranged: 'military_precision_guidance', siege: 'military_combined_arms', naval: 'science_computing', air: 'military_unmanned_systems', support: 'infrastructure_telecom_networks' }
+};
+
+/** The tech that opens the age's `classId` unit, or null when it is open from the start. */
+export const unitUnlockTech = (ageId, classId) => UNIT_UNLOCKS[ageId]?.[classId] || null;
+
+/** Can a nation at `ageId` that knows `researched` (array or Set of tech ids) build `classId`? */
+export const isUnitUnlocked = (ageId, classId, researched) => {
+  if (!UNIT_ROSTER[ageId]?.[classId]) return false;
+  const tech = unitUnlockTech(ageId, classId);
+  return !tech || (researched?.has ? researched.has(tech) : !!researched?.includes?.(tech));
+};
+
+/** The classes of the age a nation can build now: getAvailableClasses filtered by its techs. */
+export const getUnlockedClasses = (ageId, researched) => getAvailableClasses(ageId).filter((c) => isUnitUnlocked(ageId, c, researched));
+
 // The class a general's guard rides as: the age's cavalry, else its infantry (Stone has no horses).
 export const guardClassOf = (ageId) => (!UNIT_ROSTER[ageId] || UNIT_ROSTER[ageId].cavalry ? 'cavalry' : 'infantry');
 

@@ -23,7 +23,7 @@ import { ActionTypes } from '../../data/types';
 import { getTiles } from '../../data/geo/tiles';
 import { getResearched, ageOf } from '../../engine/nationState';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
-import { getAvailableClasses } from '../../data/unitClasses';
+import { getUnlockedClasses } from '../../data/unitClasses';
 import { IMPROVEMENTS, tileFacts, tileYields } from '../../data/tileYields';
 import { DISTRICTS } from '../../engine/districts';
 import { templatesOf, nextTemplateUnit, templateSize } from '../../engine/armyTemplates';
@@ -433,7 +433,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
 const ArmyTemplateEditor = ({ state, dispatch, ageId }) => {
   const { t } = useT();
   const templates = templatesOf(state.nations[state.playerNationId]);
-  const classes = getAvailableClasses(ageId).filter((c) => c !== 'naval');
+  const classes = getUnlockedClasses(ageId, getResearched(state, state.playerNationId)).filter((c) => c !== 'naval');
   const [draft, setDraft] = React.useState(null);
   const edit = (tpl) => setDraft({ id: tpl?.id || null, name: tpl ? templateName(tpl.id, tpl.name) : '', composition: { ...(tpl?.composition || {}) } });
   const bump = (c, d) => setDraft((x) => ({ ...x, composition: { ...x.composition, [c]: Math.max(0, (x.composition[c] | 0) + d) } }));

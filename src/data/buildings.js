@@ -31,7 +31,7 @@ export const BUILDING_CATEGORIES = {
     // no behavior change.
     tiers: [
       { age: 'stone', name: 'Storage Pits', requiresTech: null },
-      { age: 'bronze', name: 'Granary', requiresTech: null },
+      { age: 'bronze', name: 'Granary', requiresTech: 'economy_granary_storage' },
       { age: 'classical', name: 'Irrigation', requiresTech: 'infrastructure_aqueducts' },
       { age: 'kingdoms', name: 'Farm Estate', requiresTech: 'governance_feudal_charters' },
       { age: 'gunpowder', name: 'Crop Rotation Farm', requiresTech: 'infrastructure_canal_locks' },
@@ -57,8 +57,8 @@ export const BUILDING_CATEGORIES = {
     label: 'Military',
     costMult: 1.0,
     tiers: [
-      { age: 'stone', name: 'Warrior Lodge', requiresTech: null, effects: { 'local.manpower': 0.10, 'local.flatManpower': 2 } },
-      { age: 'bronze', name: 'Barracks', requiresTech: null, effects: { 'local.manpower': 0.20, 'local.flatManpower': 3 } },
+      { age: 'stone', name: 'Warrior Lodge', requiresTech: 'military_hunting_bands', effects: { 'local.manpower': 0.10, 'local.flatManpower': 2 } },
+      { age: 'bronze', name: 'Barracks', requiresTech: 'military_bronze_casting', effects: { 'local.manpower': 0.20, 'local.flatManpower': 3 } },
       { age: 'classical', name: 'Drill Yard', requiresTech: 'military_iron_weapons', effects: { 'local.manpower': 0.35, 'local.flatManpower': 5 } },
       { age: 'gunpowder', name: 'Military Academy', requiresTech: 'military_standing_armies', effects: { 'local.manpower': 0.50, 'local.flatManpower': 8 } },
       { age: 'modern', name: 'War College', requiresTech: 'military_mechanized_warfare', effects: { 'local.manpower': 0.65, 'local.flatManpower': 12 } },
@@ -69,8 +69,8 @@ export const BUILDING_CATEGORIES = {
     label: 'Defense',
     costMult: 1.4,
     tiers: [
-      { age: 'stone', name: 'Earthwork Ditch', requiresTech: null, effects: { 'local.fortLevel': 0.5 } },
-      { age: 'bronze', name: 'Palisade', requiresTech: null, effects: { 'local.fortLevel': 1 } },
+      { age: 'stone', name: 'Earthwork Ditch', requiresTech: 'governance_chiefdoms', effects: { 'local.fortLevel': 0.5 } },
+      { age: 'bronze', name: 'Palisade', requiresTech: 'infrastructure_mudbrick_roads', effects: { 'local.fortLevel': 1 } },
       { age: 'classical', name: 'Stone Walls', requiresTech: 'military_siege_engineering', effects: { 'local.fortLevel': 2 } },
       { age: 'gunpowder', name: 'Star Fort', requiresTech: 'military_gunpowder_weapons', effects: { 'local.fortLevel': 4 } },
       { age: 'information', name: 'Bunker Network', requiresTech: 'military_precision_guidance', effects: { 'local.fortLevel': 6 } }
@@ -104,8 +104,8 @@ export const BUILDING_CATEGORIES = {
     label: 'Culture & Order',
     costMult: 0.9,
     tiers: [
-      { age: 'stone', name: 'Stone Circle', requiresTech: null, effects: { 'local.stabilityBonus': 0.5 } },
-      { age: 'bronze', name: 'Shrine', requiresTech: null, effects: { 'local.stabilityBonus': 1 } },
+      { age: 'stone', name: 'Stone Circle', requiresTech: 'governance_sacred_kingship', effects: { 'local.stabilityBonus': 0.5 } },
+      { age: 'bronze', name: 'Shrine', requiresTech: 'governance_code_of_laws', effects: { 'local.stabilityBonus': 1 } },
       { age: 'classical', name: 'Temple', requiresTech: 'governance_civic_assemblies', effects: { 'local.stabilityBonus': 1.5 } },
       { age: 'kingdoms', name: 'Cathedral / Mosque', requiresTech: 'science_scholastic_method', effects: { 'local.stabilityBonus': 2 } },
       { age: 'modern', name: 'Civic Center', requiresTech: 'governance_civil_service', effects: { 'local.stabilityBonus': 3 } },
@@ -117,11 +117,11 @@ export const BUILDING_CATEGORIES = {
     costMult: 1.3,
     coastalOnly: true,
     tiers: [
-      { age: 'stone', name: 'Canoe Landing', requiresTech: null, effects: { 'local.tradeIncome': 0.5 } },
+      { age: 'stone', name: 'Canoe Landing', requiresTech: 'science_star_lore', effects: { 'local.tradeIncome': 0.5 } },
       { age: 'classical', name: 'Harbor', requiresTech: 'economy_silk_road_trade', effects: { 'local.tradeIncome': 1 } },
       { age: 'kingdoms', name: 'Shipyard', requiresTech: 'science_optics', effects: { 'local.tradeIncome': 2 } },
       { age: 'gunpowder', name: 'Naval Base', requiresTech: 'economy_colonial_trade', effects: { 'local.tradeIncome': 3 } },
-      { age: 'modern', name: 'Carrier Dock', requiresTech: 'military_mechanized_warfare', effects: { 'local.tradeIncome': 4 } },
+      { age: 'modern', name: 'Carrier Dock', requiresTech: 'military_combined_arms', effects: { 'local.tradeIncome': 4 } },
       { age: 'information', name: 'Drone Port', requiresTech: 'military_unmanned_systems', effects: { 'local.tradeIncome': 5 } }
     ]
   },
@@ -129,8 +129,8 @@ export const BUILDING_CATEGORIES = {
     label: 'Logistics',
     costMult: 1.0,
     tiers: [
-      { age: 'stone', name: 'Trail Cairns', requiresTech: null, effects: { 'local.supplyRange': 0.5 } },
-      { age: 'bronze', name: 'Road Post', requiresTech: null, effects: { 'local.supplyRange': 1 } },
+      { age: 'stone', name: 'Trail Cairns', requiresTech: 'infrastructure_the_wheel', effects: { 'local.supplyRange': 0.5 } },
+      { age: 'bronze', name: 'Road Post', requiresTech: 'governance_scribal_bureaucracy', effects: { 'local.supplyRange': 1 } },
       { age: 'kingdoms', name: 'Highway', requiresTech: 'infrastructure_stone_bridges', effects: { 'local.supplyRange': 2 } },
       { age: 'modern', name: 'Rail Depot', requiresTech: 'infrastructure_rail_networks', effects: { 'local.supplyRange': 3 } },
       { age: 'information', name: 'Logistics Hub', requiresTech: 'governance_digital_administration', effects: { 'local.supplyRange': 4 } }
@@ -143,7 +143,7 @@ export const BUILDING_CATEGORIES = {
     costMult: 1.0,
     freeSlot: true,
     tiers: [
-      { age: 'gunpowder', name: 'Coal Plant', requiresTech: 'science_calculus', effects: { 'local.productionIncome': 0.10 } },
+      { age: 'gunpowder', name: 'Coal Plant', requiresTech: 'infrastructure_canal_locks', effects: { 'local.productionIncome': 0.10 } },
       { age: 'modern', name: 'Oil Plant', requiresTech: 'economy_mass_production', effects: { 'local.productionIncome': 0.20 } },
       { age: 'modern', name: 'Nuclear Plant', requiresTech: 'science_nuclear_physics', effects: { 'local.productionIncome': 0.30 } },
       { age: 'information', name: 'Power Grid', requiresTech: 'infrastructure_smart_grids', effects: { 'local.productionIncome': 0.40 } }
@@ -176,7 +176,7 @@ export const canBuildTier = (categoryId, researchedTechIds, tierIndex) => {
 };
 
 // The highest tier index a category has unlocked, given the current researched techs. -1 if
-// nothing beyond what's already built is buildable (tier-1s with no tech gate always return >= 0).
+// nothing is buildable yet (only Storage Pits are open without a tech since the tech unlocks).
 export const maxBuildableTierIndex = (categoryId, researchedTechIds) => {
   const category = BUILDING_CATEGORIES[categoryId];
   if (!category) return -1;

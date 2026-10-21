@@ -40,10 +40,10 @@
 // Deterministic: no randomness at all; ties break by tile id and city id. Returns the same world
 // object when nothing changed.
 import { DISTRICTS, districtSite, districtEntry, districtYields, hasDistrict, repairedDistrict } from '../districts';
-import { AGES, FIRST_AGE_ID, buildSpeedMult } from '../../data/ages';
+import { AGES, FIRST_AGE_ID, buildSpeedMult, isAgeBefore } from '../../data/ages';
 import { ringsForKm, gridSpacing, foundingDisk } from '../../data/geo/gridScale';
 import { BUILDING_CATEGORIES, getBuildingTierCost, canBuildTier, createEmptyRegionBuildings } from '../../data/buildings';
-import { getAvailableClasses } from '../../data/unitClasses';
+import { getAvailableClasses, isUnitUnlocked } from '../../data/unitClasses';
 import { tileFacts, tileYields, canImprove, IMPROVEMENTS, strategicSupply, RESOURCES_ON_TILES } from '../../data/tileYields';
 import { disasterMults } from '../cityDisasters';
 import { mapEffectsOf } from '../techMapEffects';
@@ -404,19 +404,24 @@ const baseProductionCost = (item, { ageId = FIRST_AGE_ID, citiesOwned = 1 } = {}
 export const NEEDS_SEA_COAST = 'Needs a sea coast.';
 export const hasSeaCoast = (tiles, city) => !!city && tiles.coastal[city.tile] === 1;
 
-export const canQueue = (city, tiles, world, item, { researched = [], ageId = FIRST_AGE_ID } = {}) => {
+// Independents research nothing (research.js runs majors only): `techFree` (independentCityCtx)
+// keeps what they built before the tech unlocks, every unit and the Stone and Bronze building tiers.
+const INDEPENDENT_FREE_BEFORE_AGE = 'classical';
+export const canQueue = (city, tiles, world, item, { researched = [], ageId = FIRST_AGE_ID, techFree = false } = {}) => {
   switch (item.kind) {
     case 'building': {
       const current = city.buildings?.categories?.[item.category] ?? -1;
       if (item.tier !== current + 1) return { ok: false, ...reasonOf('m.why.tierOrder') };
-      if (!canBuildTier(item.category, new Set(researched), item.tier)) return { ok: false, ...reasonOf('m.why.needsTech') };
+      const freeTier = techFree && isAgeBefore(BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.age, INDEPENDENT_FREE_BEFORE_AGE);
+      if (!freeTier && !canBuildTier(item.category, new Set(researched), item.tier)) return { ok: false, ...reasonOf('m.why.needsTech') };
       if (BUILDING_CATEGORIES[item.category]?.coastalOnly && !hasSeaCoast(tiles, city)) return { ok: false, ...reasonOf('m.why.needsCoast') };
       return { ok: true };
     }
     case 'unit':
       if (item.classId === 'naval' && !hasSeaCoast(tiles, city)) return { ok: false, ...reasonOf('m.why.needsCoast') };
       if (item.classId === 'naval' && item.navalLine && !navalLinesFor(ageId).includes(item.navalLine)) return { ok: false, ...reasonOf('m.why.notThisAge') };
-      return getAvailableClasses(ageId).includes(item.classId) ? { ok: true } : { ok: false, ...reasonOf('m.why.notThisAge') };
+      if (!getAvailableClasses(ageId).includes(item.classId)) return { ok: false, ...reasonOf('m.why.notThisAge') };
+      return techFree || item.explorer || isUnitUnlocked(ageId, item.classId, researched) ? { ok: true } : { ok: false, ...reasonOf('m.why.needsTech') }; // scouts need no tech
     case 'improvement': {
       if (!city.tiles.includes(item.tile)) return { ok: false, ...reasonOf('m.why.notCityLand') };
       const facts = tileFacts(tiles, item.tile, world.tileState[item.tile]);
@@ -426,7 +431,7 @@ export const canQueue = (city, tiles, world, item, { researched = [], ageId = FI
     case 'settler':
       return city.size >= SETTLER_MIN_SIZE ? { ok: true } : { ok: false, ...reasonOf('m.why.needsSize', { n: SETTLER_MIN_SIZE }) };
     case 'army':
-      return validateTemplate(item, ageId);
+      return validateTemplate(item, ageId, researched);
     case 'wonder':
       // The reducer checks the project's rules with the whole state (wonders.js canQueueWonder); here the tile.
       return item.tile != null && (item.tier > 1 || city.tiles.includes(item.tile)) ? { ok: true } : { ok: false, ...reasonOf('m.why.noSite') };

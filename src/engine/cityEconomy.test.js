@@ -266,7 +266,7 @@ describe('ships need the sea (I039, I040)', () => {
     expect(inland).toBeTruthy(); expect(coastal).toBeTruthy();
     expect(hasSeaCoast(tiles, inland)).toBe(false);
     expect(hasSeaCoast(tiles, coastal)).toBe(true);
-    const ctx = { researched: ['economy_silk_road_trade'], ageId: 'classical' };
+    const ctx = { researched: ['economy_silk_road_trade', 'science_star_lore', 'economy_minted_coinage'], ageId: 'classical' };
     const ship = { kind: 'unit', classId: 'naval', navalLine: 'warship' };
     const harbor = { kind: 'building', category: 'naval', tier: 0 };
     expect(canQueue(inland, tiles, worldOf(s), ship, ctx)).toMatchObject({ ok: false, reason: NEEDS_SEA_COAST });

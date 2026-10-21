@@ -181,7 +181,8 @@ export const independentCityCtx = (state, nationId) => {
     garrisonTarget: garrisonTarget(capital?.size || 1, n?.indep?.personality),
     raidReserve: RAID_RESERVE[n?.indep?.personality] || 0, // the raid party (phase W2, raids.js)
     personality: n?.indep?.personality || 'tribal',
-    wonders: false
+    wonders: false,
+    techFree: true // no research of their own: units and early buildings stay open (cities.js canQueue)
   };
 };
 

@@ -20,6 +20,7 @@ export default {
   'p2.tr.pioneer': '. הראשונים בעולם: עלות גבוהה ב־20%',
   'p2.tr.diffusion': '. קיימת אצל {have} מתוך {known} העמים שאתם מכירים: עלות נמוכה ב־{pct}%',
   'p2.tr.map': 'מפה: {text}',
+  'p2.tr.unlocks': 'פותחת: {list}',
   'p2.tr.boost': 'דחיפה: {label}{tail}',
   'p2.tr.taken': ' (נוצלה)',
   'p2.tr.met': ' (התקיימה, תנחת בסוף התור)',

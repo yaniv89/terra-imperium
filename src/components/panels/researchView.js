@@ -14,7 +14,9 @@ import { researchSchedule, researchStatus, techGate, gateText } from '../../engi
 import { t as tNow } from '../../i18n';
 import { ageName } from '../../i18n/core';
 import { mapEffectLabel } from '../../engine/techMapEffects';
-import { techName } from '../../i18n/gameText';
+import { techName, unitName, buildingTierName } from '../../i18n/gameText';
+import { UNIT_UNLOCKS } from '../../data/unitClasses';
+import { BUILDING_CATEGORIES } from '../../data/buildings';
 
 const pct = (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`;
 const EFFECT_WORDS = {
@@ -40,6 +42,12 @@ export const describeTech = (tech) => {
   if (nextAge) parts.push(tNow('fx.nextAge', { age: ageName(nextAgeId, nextAge) }));
   return parts.join(', ');
 };
+
+/** The units and buildings a tech unlocks, as names in the current language ([] when none). */
+export const techUnlocks = (techId) => [
+  ...Object.entries(UNIT_UNLOCKS).flatMap(([ageId, row]) => Object.keys(row).filter((c) => row[c] === techId).map((c) => unitName(ageId, c))),
+  ...Object.entries(BUILDING_CATEGORIES).flatMap(([cat, def]) => def.tiers.map((tier, i) => (tier.requiresTech === techId ? buildingTierName(cat, i, tier.name) : null)).filter(Boolean))
+];
 
 export const getSciencePerTurn = (state) => Math.round((calcIncome(state).techPoints || 0) * 10) / 10;
 
@@ -75,6 +83,7 @@ export const techInfo = (state, techId, science = getSciencePerTurn(state)) => {
     tech,
     boost,
     mapEffect: mapEffectLabel(techId),
+    unlocks: techUnlocks(techId),
     cost,
     progress,
     share: cost > 0 ? Math.min(1, progress / cost) : 0,

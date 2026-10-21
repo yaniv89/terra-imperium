@@ -30,7 +30,7 @@
 import { getTiles } from '../data/geo/tiles';
 import { RESOURCES_ON_TILES, tileFacts, canImprove } from '../data/tileYields';
 import { BUILDING_CATEGORIES } from '../data/buildings';
-import { getAvailableClasses } from '../data/unitClasses';
+import { getAvailableClasses, getUnlockedClasses } from '../data/unitClasses';
 import { canQueue, productionCost } from './world/cities';
 import { bestSites, outpostsOf, outpostSlots, settlersOf } from './settlers';
 import { wonderOptions, wonderItem } from './wonders';
@@ -225,7 +225,7 @@ export const chooseProduction = (state, city, ctx) => {
   // engine for a walled target; every major keeps a share of archers (RANGED_SHARE) beside the foot.
   const plan = independent ? null : state.nations?.[nationId]?.warPlan;
   const unitCap = independent ? ctx.garrisonTarget + (ctx.raidReserve || 0) : Math.max(ctx.citiesOwned * UNITS_PER_CITY, muster ? goal.cap || 0 : 0, plan?.cap || 0);
-  const classes = getAvailableClasses(ctx.ageId);
+  const classes = independent || ctx.techFree ? getAvailableClasses(ctx.ageId) : getUnlockedClasses(ctx.ageId, ctx.researched); // tech unlocks (unitClasses.js); infantry is always open
   // Under a war plan the regiments already in training count toward its cap: every idle city queued
   // one at once against the same count and the army overshot what the budget carries.
   const fielded = counts.landUnits + (plan && unitCap === plan.cap ? counts.queuedUnits || 0 : 0);

@@ -62,6 +62,8 @@ describe('army templates', () => {
 
   it('the player saves, queues and deletes templates; the built units carry the army on the map', () => {
     let s = quiet(peoplesWorld({ seed: 7 }));
+    const archery = ['military_hunting_bands', 'military_composite_bow']; // ranged is a tech unlock
+    s = { ...s, techTree: { ...s.techTree, ...Object.fromEntries(archery.map((id) => [id, { ...s.techTree[id], researched: true }])) } };
     expect(templatesOf(s.nations[FR_ID])).toBe(DEFAULT_TEMPLATES);
     s = gameReducer(s, { type: ActionTypes.SAVE_ARMY_TEMPLATE, payload: { template: { name: 'Border guard', composition: { infantry: 1, ranged: 1 } } } });
     const mine = templatesOf(s.nations[FR_ID]);
