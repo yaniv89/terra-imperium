@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { researchSheetModel, boostTarget } from './researchSheetModel';
+import { techUnlocks } from './researchView';
 import { AGE_ORDER } from '../../data/ages';
 import { TECH_TREE } from '../../data/techTree';
 import { BOOSTS, BOOST_SHARE } from '../../data/boosts';
@@ -61,4 +62,12 @@ describe('research sheet model (W09)', () => {
   });
 
   function m0boostMet(id) { return researchSheetModel({ ...s, research: { ...(s.research || {}), current: id, queue: [] } }).current?.boost?.met; }
+});
+
+describe('what a tech unlocks (tech unlocks row)', () => {
+  it('names the units and buildings a tech opens', () => {
+    expect(techUnlocks('infrastructure_the_wheel')).toEqual(['Chariots', 'Trail Cairns']);
+    expect(techUnlocks('military_standing_armies')).toEqual(expect.arrayContaining(['Dragoons', 'Riflemen', 'Military Academy']));
+    expect(techUnlocks('economy_agriculture')).toContain('Farm');
+  });
 });

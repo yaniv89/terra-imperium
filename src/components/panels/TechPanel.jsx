@@ -54,7 +54,7 @@ const SCIENCE = 'var(--fa-science)';
 const signed = (text) => String(text || '').replace(/^([+-]\d+%?)/, (m) => isolateLtr(m));
 
 const TechRow = ({ info, onResearch, onQueue }) => {
-  const { tech, researched, current, queuedAt, canStart, reasonText, cost, turns, share, diffusion, boost, mapEffect } = info;
+  const { tech, researched, current, queuedAt, canStart, reasonText, cost, turns, share, diffusion, boost, mapEffect, unlocks } = info;
   const status = researched ? tNow('p2.tr.known') : current ? tNow('p2.tr.researching', { turns: formatTurns(turns) }) : queuedAt >= 0 ? tNow('p2.tr.queued', { n: queuedAt + 2 }) : canStart ? tNow('p2.tr.costTurns', { cost, turns: formatTurns(turns) }) : info.gateText ? `${reasonText}: ${info.gateText}` : reasonText;
   const diffusionNote = !diffusion || researched ? '' : diffusion.pioneer ? tNow('p2.tr.pioneer')
     : diffusion.knownWithIt ? tNow('p2.tr.diffusion', { have: diffusion.knownWithIt, known: diffusion.known, pct: Math.round((1 - diffusion.mult) * 100) }) : '';
@@ -74,6 +74,7 @@ const TechRow = ({ info, onResearch, onQueue }) => {
         )}
       </div>
       <div className="text-[11px] text-fa-muted">{describeTech(tech)}</div>
+      {unlocks?.length > 0 && <div className="text-[11px] text-fa-text" data-testid="tech-unlocks">{tNow('p2.tr.unlocks', { list: unlocks.join(', ') })}</div>}
       {mapEffect && <div className="text-[11px] text-fa-you" data-testid="tech-map-effect">{tNow('p2.tr.map', { text: dataText(`mapfx.${tech.id}`, mapEffect) })}</div>}
       {boost && <div className={`text-[11px] ${boost.taken ? 'text-fa-good' : boost.met ? 'text-fa-good' : 'text-fa-muted'}`} data-testid="tech-boost">{tNow('p2.tr.boost', { label: boostLabel(tech.id, boost.label), tail: boost.taken ? tNow('p2.tr.taken') : boost.met ? tNow('p2.tr.met') : '' })}</div>}
       {current && <Meter value={share} max={1} color={SCIENCE} />}

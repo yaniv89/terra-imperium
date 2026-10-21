@@ -10,6 +10,10 @@ import { getNationCapital, getNeighborIds, getOwnedRegionIds } from '../data/reg
 import { getTouchingIds } from '../data/regions';
 import { createInitialState } from './gameReducer';
 import { withAgesResearched } from './research';
+import { UNIT_UNLOCKS } from '../data/unitClasses';
+import { BUILDING_CATEGORIES } from '../data/buildings';
+import { isAgeBefore } from '../data/ages';
+import { ageOf } from './nationState';
 
 export const cap = (nationId) => getNationCapital(nationId);
 
@@ -197,4 +201,20 @@ export const neighbourWorld = ({ rivals = 4, capitals = false, ...opts } = {}) =
 export const withDecrees = (state, n = 3, nationId = state.playerNationId) => {
   const nation = state.nations[nationId];
   return { ...state, nations: { ...state.nations, [nationId]: { ...nation, ruler: { ...nation.ruler, decrees: n } } } };
+};
+
+/** Every tech that unlocks a unit or a building tier of `maxAge` or before (unitClasses.js
+ * UNIT_UNLOCKS, buildings.js), marked known for `nationId` without moving its age: for tests about
+ * something else that build or recruit what the age offers, as before the tech unlocks. */
+export const knowUnlocks = (state, nationId = state.playerNationId, maxAge = ageOf(state, nationId)) => {
+  const upTo = (a) => !isAgeBefore(maxAge, a);
+  const ids = [...new Set([
+    ...Object.entries(UNIT_UNLOCKS).filter(([a]) => upTo(a)).flatMap(([, row]) => Object.values(row)),
+    ...Object.values(BUILDING_CATEGORIES).flatMap((c) => c.tiers.filter((t) => upTo(t.age)).map((t) => t.requiresTech))
+  ].filter(Boolean))];
+  if (nationId === state.playerNationId) {
+    return { ...state, techTree: { ...state.techTree, ...Object.fromEntries(ids.map((id) => [id, { ...(state.techTree?.[id] || { id }), researched: true }])) } };
+  }
+  const n = state.nations[nationId];
+  return { ...state, nations: { ...state.nations, [nationId]: { ...n, tech: { ...n.tech, researched: [...new Set([...(n.tech?.researched || []), ...ids])] } } } };
 };

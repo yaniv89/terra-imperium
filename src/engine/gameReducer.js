@@ -83,7 +83,7 @@ import {
   getBuildingSlots, getUsedBuildingSlots, getBuildingTierCost, getCategoryTierName
 } from '../data/buildings';
 import { regionHasDeposit } from '../data/deposits';
-import { getAvailableClasses } from '../data/unitClasses';
+import { getUnlockedClasses } from '../data/unitClasses';
 import {
   ACTION_COSTS, DISBAND_HR_REFUND_RATIO, FUND_SCHOLARS_TECHPOINTS,
   SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, GIFT_HOSTILITY_REDUCTION,
@@ -1097,7 +1097,7 @@ const reduceAction = (state, action) => {
       // entry, the same "dynamically-priced action" shape RESEARCH_TECH/CHANGE_LAW already use.
       const costs = getRecruitUnitCost(state, ageOf(state, state.playerNationId));
       if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
-      if (!getAvailableClasses(ageOf(state, state.playerNationId)).includes(classId)) return state;
+      if (!getUnlockedClasses(ageOf(state, state.playerNationId), getResearched(state, state.playerNationId)).includes(classId)) return state;
       if (!canAfford(state.resources, costs)) return state;
       const unitId = `unit_${state.nextUnitSeq}`;
       const isNaval = classId === 'naval';
@@ -2752,7 +2752,7 @@ const reduceAction = (state, action) => {
     case ActionTypes.SAVE_ARMY_TEMPLATE: {
       // Army templates (armyTemplates.js): a named composition the cities build as one order.
       const { template } = action.payload || {};
-      const ok = validateTemplate(template, ageOf(state, state.playerNationId));
+      const ok = validateTemplate(template, ageOf(state, state.playerNationId), getResearched(state, state.playerNationId));
       if (!ok.ok) return reject(state, whyOf(ok));
       const me = state.nations[state.playerNationId];
       return { ...state, nations: { ...state.nations, [state.playerNationId]: saveTemplate(me, template, state.turnNumber) } };

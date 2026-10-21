@@ -34,14 +34,14 @@ import { hasOpenDemand, hasStele } from '../engine/accords';
 import { canAnnex } from '../engine/stonePhase';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { decreesOf, spendDecree } from '../engine/decrees';
-import { UNIT_CLASSES, UNIT_CLASS_IDS, getAvailableClasses } from '../data/unitClasses';
+import { UNIT_CLASSES, UNIT_CLASS_IDS, getUnlockedClasses } from '../data/unitClasses';
 import { AE_COALITION_ROLL_SCALE, AE_COALITION_ROLL_CAP } from '../data/actionCosts';
 import { independenceChance } from '../engine/vassals';
 import { getEffectiveMilitaryPower, canAffordAIRecruit, applyAIRecruitCost } from '../engine/aiEconomy';
 import { warContagionMult } from '../engine/warContagion';
 import { warValue, WAR_COST, armiesByOwner } from '../engine/warOdds';
 import { msg, people } from '../engine/messages';
-import { ageOf } from '../engine/nationState';
+import { ageOf, getResearched } from '../engine/nationState';
 
 const DEFAULT_RNG = { next: () => Math.random() };
 const DEFAULT_DOCTRINE = DOCTRINES.attrition;
@@ -200,7 +200,7 @@ const getCounterClassFor = (classId) => UNIT_CLASS_IDS.find(id => UNIT_CLASSES[i
 export const AI_DOCTRINE_MIX = { infantry: 0.45, ranged: 0.25, cavalry: 0.2, siege: 0.1 };
 export const AI_COUNTER_BONUS = 0.3;
 export const chooseAIRecruitClass = (state, units, nationId, ageId) => {
-  const available = getAvailableClasses(ageId).filter(id => AI_RECRUITABLE_CLASSES.includes(id));
+  const available = getUnlockedClasses(ageId, getResearched(state, nationId)).filter(id => AI_RECRUITABLE_CLASSES.includes(id));
   if (available.length === 0) return null;
   const target = {};
   available.forEach((c) => { target[c] = AI_DOCTRINE_MIX[c] ?? 0.05; });

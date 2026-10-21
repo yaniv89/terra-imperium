@@ -47,13 +47,12 @@ describe('BUILDING_CATEGORIES data integrity', () => {
 // allowance is gone. A tier with no requiresTech (the plan's own "available at start" tier-1s) is
 // always buildable; every other tier needs its specific tech researched.
 describe('canBuildTier', () => {
-  it('allows a tier-1 with no requiresTech, with no techs researched at all', () => {
-    expect(canBuildTier('food', NO_TECHS, 0)).toBe(true); // Storage Pits
-    expect(canBuildTier('food', NO_TECHS, 1)).toBe(true); // Granary
-    expect(canBuildTier('military', NO_TECHS, 1)).toBe(true); // Barracks
-    expect(canBuildTier('defense', NO_TECHS, 1)).toBe(true); // Palisade
-    expect(canBuildTier('culture', NO_TECHS, 1)).toBe(true); // Shrine
-    expect(canBuildTier('logistics', NO_TECHS, 1)).toBe(true); // Road Post
+  it('gates the first tiers by a tech since the tech unlocks, but Storage Pits', () => {
+    expect(canBuildTier('food', NO_TECHS, 0)).toBe(true); // Storage Pits stay open: the guided start queues them on turn 1
+    expect(canBuildTier('food', NO_TECHS, 1)).toBe(false); // Granary
+    expect(canBuildTier('military', NO_TECHS, 0)).toBe(false); // Warrior Lodge
+    expect(canBuildTier('military', new Set(['military_bronze_casting']), 1)).toBe(true); // Barracks
+    expect(canBuildTier('defense', new Set(['infrastructure_mudbrick_roads']), 1)).toBe(true); // Palisade
   });
 
   it('rejects a gated tier with no techs researched', () => {
@@ -99,8 +98,9 @@ describe('maxBuildableTierIndex', () => {
     expect(maxBuildableTierIndex('economy', NO_TECHS)).toBe(-1);
   });
 
-  it('returns the last free tier of a category, with no techs researched', () => {
-    expect(maxBuildableTierIndex('food', NO_TECHS)).toBe(1); // Storage Pits and the Granary are free
+  it('returns -1 with no techs researched when every tier has a gate', () => {
+    expect(maxBuildableTierIndex('military', NO_TECHS)).toBe(-1);
+    expect(maxBuildableTierIndex('food', NO_TECHS)).toBe(0); // Storage Pits
   });
 
   it('advances as more of the category\'s own techs are researched', () => {

@@ -36,7 +36,8 @@ import { MOVE_KM, DEFAULT_MOVE_KM } from './armies';
 import { NAVAL_KM_BY_AGE } from './fleets';
 import { wallsOf } from './sieges';
 import { getTotalDev } from './development';
-import { getAvailableClasses } from '../data/unitClasses';
+import { getUnlockedClasses } from '../data/unitClasses';
+import { getResearched } from './nationState';
 import { UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
 import { claimsInProgressOf } from './claims';
 
@@ -151,7 +152,7 @@ export const updateWarPlan = (state, nationId, wars, ageId, { maxRings = Infinit
   const strike = strikeSize(state, city, ageId);
   const land = landUnitsOf(state, nationId);
   const cap = armyCap(nation, mine.filter((c) => !c.outpost).length || 1, strike, land);
-  const siege = wallsOf(city) > 0 && getAvailableClasses(ageId).includes('siege');
+  const siege = wallsOf(city) > 0 && getUnlockedClasses(ageId, getResearched(state, nationId)).includes('siege');
   const since = keep ? old.since : state.turnNumber;
   const plan = { enemy: city.owner, cityId, staging, strike, cap, siege, since, waves: keep ? (old.waves || 0) : 0 };
   if (old && Object.keys(plan).every((k) => old[k] === plan[k])) return old;

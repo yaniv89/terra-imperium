@@ -199,7 +199,8 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
       nations: {
         [ID_ID]: makeAiNation({
           government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } }, // already reformed -> falls through to building
-          economy: { gold: 1000, hr: 0, techPoints: 0 }
+          economy: { gold: 1000, hr: 0, techPoints: 0 },
+          tech: { researched: ['military_hunting_bands'] } // the Warrior Lodge is a tech unlock
         })
       }
     });

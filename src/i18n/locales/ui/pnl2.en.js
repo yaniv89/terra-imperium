@@ -21,6 +21,7 @@ export default {
   'p2.tr.pioneer': '. First in the world: +20% cost',
   'p2.tr.diffusion': '. {have} of the {known} peoples you know have it: -{pct}%',
   'p2.tr.map': 'Map: {text}',
+  'p2.tr.unlocks': 'Unlocks: {list}',
   'p2.tr.boost': 'Boost: {label}{tail}',
   'p2.tr.taken': ' (taken)',
   'p2.tr.met': ' (met, lands at the end of the turn)',

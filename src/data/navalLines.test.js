@@ -62,7 +62,8 @@ describe('naval lines', () => {
     // Ships are queued only in a city on the sea (cities.js hasSeaCoast, playtest audits I039).
     const harbour = Object.values(s.regions).find((c) => c.tile != null && tiles.coastal[c.tile] === 1);
     expect(canQueue(harbour, tiles, world, { kind: 'unit', classId: 'naval', navalLine: 'carrier' }, { researched: [], ageId: 'bronze' }).ok).toBe(false);
-    expect(canQueue(harbour, tiles, world, { kind: 'unit', classId: 'naval', navalLine: 'warship' }, { researched: [], ageId: 'bronze' }).ok).toBe(true);
+    expect(canQueue(harbour, tiles, world, { kind: 'unit', classId: 'naval', navalLine: 'warship' }, { researched: [], ageId: 'bronze' }).ok).toBe(false); // the War Galley needs Early Astronomy
+    expect(canQueue(harbour, tiles, world, { kind: 'unit', classId: 'naval', navalLine: 'warship' }, { researched: ['science_early_astronomy'], ageId: 'bronze' }).ok).toBe(true);
     const inland = Object.values(s.regions).find((c) => c.tile != null && tiles.coastal[c.tile] !== 1);
     expect(canQueue(inland, tiles, world, { kind: 'unit', classId: 'naval', navalLine: 'warship' }, { researched: [], ageId: 'bronze' }).ok).toBe(false);
   });

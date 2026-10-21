@@ -9,6 +9,9 @@ import { createRng } from './rng';
 import { RelationStatus } from '../data/types';
 import { getNationCapital } from '../data/regions';
 import { opinionOf } from '../engine/opinion';
+import { TECH_TREE } from '../data/techTree';
+
+const ALL_TECHS = Object.keys(TECH_TREE);
 
 const cap = getNationCapital;
 
@@ -493,9 +496,15 @@ describe('chooseAIRecruitClass', () => {
   const state = (overrides = {}) => ({
     playerNationId: 'us',
     wars: [],
-    nations: { de: { id: 'de' }, fr: { id: 'fr' }, us: { id: 'us', isPlayer: true } },
+    nations: { de: { id: 'de', tech: { researched: ALL_TECHS } }, fr: { id: 'fr' }, us: { id: 'us', isPlayer: true } },
     regions: { [cap('de')]: { owner: 'de' }, [cap('fr')]: { owner: 'fr' } },
     ...overrides
+  });
+
+  it('recruits only what its techs unlock: no techs, only infantry', () => {
+    const units = { u1: unit('fr', 'ranged'), u2: unit('fr', 'ranged') };
+    const s = state({ nations: { de: { id: 'de' }, fr: { id: 'fr' }, us: { id: 'us', isPlayer: true } } });
+    expect(chooseAIRecruitClass(s, units, 'de', 'classical')).toBe('infantry');
   });
 
   const unit = (ownerId, classId) => ({ ownerId, classId });
@@ -630,7 +639,7 @@ describe('chooseAIRecruitClass builds a combined-arms army', () => {
   it('recruiting 20 units in a row gives a mix, with no class above 60%', () => {
     let units = {};
     for (let i = 0; i < 20; i++) {
-      const s = { playerNationId: 'us', wars: [], nations: { de: { id: 'de' }, fr: { id: 'fr' }, us: { id: 'us', isPlayer: true } }, regions: { 'de-rp': { owner: 'de' }, 'fr-52': { owner: 'fr' } } };
+      const s = { playerNationId: 'us', wars: [], nations: { de: { id: 'de', tech: { researched: ALL_TECHS } }, fr: { id: 'fr' }, us: { id: 'us', isPlayer: true } }, regions: { 'de-rp': { owner: 'de' }, 'fr-52': { owner: 'fr' } } };
       const classId = chooseAIRecruitClass(s, units, 'de', 'kingdoms');
       units = { ...units, [`u${i}`]: { id: `u${i}`, ownerId: 'de', classId, domain: 'land' } };
     }

@@ -8,9 +8,14 @@ import {
   UNIT_ROSTER,
   getUnitDefinition,
   getAvailableClasses,
-  getRosterCombatMultiplier
+  getRosterCombatMultiplier,
+  UNIT_UNLOCKS,
+  isUnitUnlocked,
+  getUnlockedClasses
 } from './unitClasses';
 import { AGE_ORDER } from './ages';
+import { TECH_TREE } from './techTree';
+import { BUILDING_CATEGORIES } from './buildings';
 
 // The plan's own verification requirement (§13): "a test asserting the counter triangle is
 // closed and non-degenerate (every class has something it beats and something that beats it) —
@@ -163,5 +168,36 @@ describe('getUnitDefinition / getAvailableClasses', () => {
   it('lists exactly the classes available at a given age', () => {
     expect(getAvailableClasses('bronze').sort()).toEqual(['cavalry', 'infantry', 'naval', 'ranged', 'siege', 'support'].sort());
     expect(getAvailableClasses('modern')).toContain('air');
+  });
+});
+
+describe('tech unlocks (UNIT_UNLOCKS and building tiers)', () => {
+  const idx = (a) => AGE_ORDER.indexOf(a);
+  it('every unit has a gate entry, every gate is a real tech of its age or before, infantry is always open', () => {
+    Object.entries(UNIT_ROSTER).forEach(([ageId, row]) => {
+      Object.keys(row).forEach((classId) => {
+        expect(UNIT_UNLOCKS[ageId], ageId).toHaveProperty(classId);
+        const tech = UNIT_UNLOCKS[ageId][classId];
+        if (tech) {
+          expect(TECH_TREE[tech], `${ageId}.${classId} ${tech}`).toBeTruthy();
+          expect(idx(TECH_TREE[tech].ageId)).toBeLessThanOrEqual(idx(ageId));
+        }
+      });
+      expect(UNIT_UNLOCKS[ageId].infantry).toBeNull();
+      Object.keys(UNIT_UNLOCKS[ageId]).forEach((c) => expect(row[c], `${ageId}.${c} not in roster`).toBeTruthy());
+    });
+  });
+  it('every building tier gate is a real tech of its age or before', () => {
+    Object.values(BUILDING_CATEGORIES).forEach((cat) => cat.tiers.forEach((tier) => {
+      if (!tier.requiresTech) return;
+      expect(TECH_TREE[tier.requiresTech], tier.name).toBeTruthy();
+      expect(idx(TECH_TREE[tier.requiresTech].ageId)).toBeLessThanOrEqual(idx(tier.age));
+    }));
+  });
+  it('a class is buildable only with its tech', () => {
+    expect(getUnlockedClasses('bronze', [])).toEqual(['infantry']);
+    expect(getUnlockedClasses('bronze', new Set(['infrastructure_the_wheel']))).toEqual(['infantry', 'cavalry']);
+    expect(isUnitUnlocked('gunpowder', 'ranged', ['military_standing_armies'])).toBe(true);
+    expect(isUnitUnlocked('stone', 'cavalry', Object.keys(TECH_TREE))).toBe(false);
   });
 });

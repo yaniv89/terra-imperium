@@ -5,7 +5,7 @@
 // templateId, name, composition, built }`): the city builds the missing units one by one at
 // each class's own cost (cities.js), every unit carries `army: { id, name }` as it appears on
 // the city tile, and the order leaves the queue when the last piece is done. Pure.
-import { getAvailableClasses, UNIT_CLASSES } from '../data/unitClasses';
+import { getUnlockedClasses, UNIT_CLASSES } from '../data/unitClasses';
 
 export const DEFAULT_TEMPLATES = [
   { id: 'tpl_legion', name: 'Legion', composition: { infantry: 2, ranged: 1, cavalry: 1 } },
@@ -28,15 +28,15 @@ export const nextTemplateUnit = (item) => {
 export const templateProgress = (item) => ({ done: templateSize(item.built), total: templateSize(item.composition) });
 
 /** Is this template a valid order in the age? */
-export const validateTemplate = (template, ageId) => {
+export const validateTemplate = (template, ageId, researched) => {
   const comp = template?.composition || {};
   const size = templateSize(comp);
   if (!template?.name?.trim()) return { ok: false, reason: 'An army needs a name.' };
   if (size < 1) return { ok: false, reason: 'An army needs at least one unit.' };
   if (size > TEMPLATE_MAX_UNITS) return { ok: false, reason: `At most ${TEMPLATE_MAX_UNITS} units.` };
-  const available = new Set(getAvailableClasses(ageId));
+  const available = new Set(getUnlockedClasses(ageId, researched));
   const missing = Object.keys(comp).filter((c) => (comp[c] | 0) > 0 && !available.has(c));
-  if (missing.length) return { ok: false, reason: `${missing.map((c) => UNIT_CLASSES[c]?.name || c).join(', ')} not available in this age.` }; // the class here: the roster has no name for it in this age
+  if (missing.length) return { ok: false, reason: `${missing.map((c) => UNIT_CLASSES[c]?.name || c).join(', ')} not available yet.` }; // the class here: the roster has no name for it in this age, or its tech is not researched
   return { ok: true };
 };
 

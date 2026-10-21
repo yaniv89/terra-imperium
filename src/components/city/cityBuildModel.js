@@ -18,7 +18,7 @@ import { t as tNow, dataText } from '../../i18n/core';
 import { unitName as unitDisplayName } from '../../i18n/gameText';
 import { unitClassRole, navalLineRole, buildingTierName, buildingCategoryLabel, wonderName, wonderDescription, techName, improvementName, terrainWord, tileResourceName } from '../../i18n/gameText';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
-import { getAvailableClasses, UNIT_CLASSES } from '../../data/unitClasses';
+import { getAvailableClasses, isUnitUnlocked, unitUnlockTech, UNIT_CLASSES } from '../../data/unitClasses';
 import { IMPROVEMENTS, tileFacts, canImprove } from '../../data/tileYields';
 import { NAVAL_LINES, navalLinesFor } from '../../data/navalLines';
 import { GREAT_PROJECTS } from '../../data/greatProjects';
@@ -128,13 +128,16 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
   add({ kind: 'settler' }, 'Units', { fields: { noSite, detail: noSite ? tNow('cy.settlerNoSite') : tNow('cy.settlerDetail'), note: city.size < SETTLER_MIN_SIZE ? tNow('cy.settlerMin', { n: SETTLER_MIN_SIZE }) : null } });
   const coast = hasSeaCoast(tiles, city);
   getAvailableClasses(ageId).forEach((classId) => {
+    // A unit whose tech is not known yet shows locked, with the tech's name (unitClasses.js UNIT_UNLOCKS).
+    const need = isUnitUnlocked(ageId, classId, researched) ? null : unitUnlockTech(ageId, classId);
+    const lock = need ? { needsTech: need, needsName: techName(need, TECH_TREE[need]?.name || tNow('cy.aTechnology')) } : {};
     if (classId === 'naval') {
       // Ships are listed only where they can be built: an inland city (river, oasis or lake) has
       // no ship rows at all (I039), instead of rows that look available.
-      if (coast) navalLinesFor(ageId).forEach((navalLine) => add({ kind: 'unit', classId, navalLine }, 'Units', { fields: { detail: unitClassRole('naval', UNIT_CLASSES.naval?.role) || null } }));
+      if (coast) navalLinesFor(ageId).forEach((navalLine) => add({ kind: 'unit', classId, navalLine }, 'Units', { fields: { detail: unitClassRole('naval', UNIT_CLASSES.naval?.role) || null, ...lock } }));
       return;
     }
-    add({ kind: 'unit', classId }, 'Units', { fields: { detail: unitClassRole(classId, UNIT_CLASSES[classId]?.role) || null } });
+    add({ kind: 'unit', classId }, 'Units', { fields: { detail: unitClassRole(classId, UNIT_CLASSES[classId]?.role) || null, ...lock } });
   });
   // Scouts (scouting.js): cheap, no supply, explore at peace, never fight.
   add({ kind: 'unit', classId: 'support', explorer: true }, 'Units', { fields: { detail: tNow('cy.scoutDetail') } });

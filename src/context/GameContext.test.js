@@ -9,7 +9,7 @@ import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 import { regionHasDeposit } from '../data/deposits';
 import { getNationCapital, REGIONS_DATA, getBorderingNationIds, getNeighborIds, getTouchingIds } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
-import { addCity, addCities, withDecrees, neighbourWorld, peoplesWorld, rivalOf, borderPair, cloneWorld } from '../engine/testWorld';
+import { addCity, addCities, withDecrees, neighbourWorld, peoplesWorld, rivalOf, borderPair, cloneWorld, knowUnlocks } from '../engine/testWorld';
 import { syncWorldRegistry } from '../engine/world/registry';
 import { setTruce } from '../engine/diplomacy';
 import { hasIntel, getIntelTurnsLeft, canSeeRegionDetails } from '../engine/intel';
@@ -36,7 +36,7 @@ const FR = BASE.playerNationId;
 const [DE, GB, BE, JP] = [0, 1, 2, 3].map((i) => rivalOf(BASE, i));
 const [US, LU, AT] = [4, 6, 7].map((i) => rivalOf(BASE, i));
 // A fresh, changeable game as `player` (the shared cached world is cloned first).
-const game = (player = FR) => cloneWorld(player === FR ? BASE : peoplesWorld({ seed: SEED, player, age: 'bronze', fog: false }));
+const game = (player = FR) => knowUnlocks(cloneWorld(player === FR ? BASE : peoplesWorld({ seed: SEED, player, age: 'bronze', fog: false }))); // what the age offers is open (tech unlocks)
 
 // Plan §M13: LAUNCH_INVASION/AMPHIBIOUS_ASSAULT now require an active war with the target's owner
 // (a real pre-existing gap this milestone fixes — see gameReducer.js's own comment on those cases),
@@ -1349,8 +1349,8 @@ describe('SUPPRESS_REBELLION', () => {
 });
 
 describe('Research tab actions', () => {
-  const richState = (playerNationId = FR) => {
-    const state = game(playerNationId);
+  const richState = () => {
+    const state = cloneWorld(BASE); // no unlocks pre-known: these tests research them
     state.units = {}; // the Dawn start's own garrison would be "the unit" below
     // Plan §M7: research costs power (age-scaled, up to 160 at Modern) + techPoints — no gold.
     return { ...state, resources: { ...state.resources, techPoints: 100000, mil: 100000, dip: 100000, adm: 100000 } };
@@ -1443,6 +1443,9 @@ describe('Research tab actions', () => {
       });
       expect(state.techAgeId).toBe('modern');
 
+      // Fighters are a tech unlock (Combined Arms): the new age alone does not open them.
+      expect(gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap(FR), classId: 'air' } })).toBe(state);
+      state = { ...state, techTree: { ...state.techTree, military_combined_arms: { ...state.techTree.military_combined_arms, researched: true } } };
       const next = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap(FR), classId: 'air' } });
       const airUnit = Object.values(next.units).find(u => u.classId === 'air');
       expect(airUnit).toBeDefined();
