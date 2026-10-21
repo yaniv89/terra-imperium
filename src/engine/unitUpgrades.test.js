@@ -100,6 +100,13 @@ describe('UPGRADE_UNIT', () => {
     expect(after.resources.gold).toBe(1000 - q.gold);
     expect(upgradeQuote(after, 'old_1').older).toBe(false);
   });
+  it('charges a repeated id once and ignores a payload that is not a list', () => {
+    const s = classical();
+    const q = upgradeQuote(s, 'old_1');
+    const after = gameReducer(s, { type: ActionTypes.UPGRADE_UNIT, payload: { unitIds: ['old_1', 'old_1'] } });
+    expect(after.resources.gold).toBe(1000 - q.gold);
+    expect(() => gameReducer(s, { type: ActionTypes.UPGRADE_UNIT, payload: { unitIds: 'old_1' } })).not.toThrow();
+  });
   it('is refused off its own land', () => {
     const tiles = getTiles();
     let wild = -1;

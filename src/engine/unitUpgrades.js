@@ -98,7 +98,7 @@ export const upgradedUnit = (u, toAge) => ({ ...u, ageId: toAge, ...(u.classId =
  */
 export const upgradeUnits = (state, unitIds, treasury = treasuryOf(state, state.units?.[unitIds[0]]?.ownerId)) => {
   let units = state.units; let gold = 0; let count = 0; let first = null;
-  for (const id of unitIds) {
+  for (const id of new Set(unitIds)) { // a repeated id is one upgrade, charged once
     const q = upgradeQuote(state, id, treasury - gold);
     if (!q.ok) { if (q.older && !first) first = q; continue; }
     if (units === state.units) units = { ...units };
