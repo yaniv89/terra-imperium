@@ -44,3 +44,11 @@ Akkad seed 1000 to 700 CE, Elam seed 1001 to 1500 CE, Pontic seed 1002 to 900 CE
 34. **Late army rows will not queue; End Turn turns into "Choose production".**
 35. **Virtue choice has no confirm or cost.**
 36. **Playtest era saves too weak:** need real empires, met neighbours, a coast, one save at war.
+
+## From the battle sandbox playtests (3 runs plus a trial, $5.94; plans/ai-output/human-playtest/BATTLE-SUMMARY.md)
+37. **Sea battles drawn on land:** grass and road under the ships, tanks in the fleet; fleets never meet.
+38. **Nobody can tell who is winning:** no strength bar, "Base 1 vs 9" unexplained.
+39. **Battles drag with no goal; a sack is lost on the clock with no warning** (loot taken, last raider to catch).
+40. **Battle keeps running after an army is dead;** result screen headline and reason disagree.
+41. **Units tiny and hidden under trees and buildings; melee is a blob.**
+42. **Phone battle HUD:** powers menu clipped, camera buttons misfire, Hebrew labels missing.
