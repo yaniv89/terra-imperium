@@ -1127,8 +1127,13 @@ export class BattleRenderer {
         const to = e.to !== undefined ? view.squads[e.to] : view.structures.find((s) => s.id === e.structure);
         // who shot (the projectile art by class and age; a tower shoots with the defender's age)
         const shooter = e.type === 'towerShot' ? { classId: 'tower', ageId: this.setup.sides[1].ageId } : { classId: from?.classId, ageId: from?.ageId };
-        if (from && to) this.fx.push({ kind: 'tracer', x0: from.x / Q, z0: from.y / Q, x1: to.x / Q, z1: to.y / Q, t: 0, life: 0.22, shooter });
+        const beam = e.type === 'shot' && getBattleStats(shooter.classId, shooter.ageId).beam; // Future plasma and lasers: a line, no projectile (U66)
+        if (from && to) this.fx.push({ kind: beam ? 'beam' : 'tracer', x0: from.x / Q, z0: from.y / Q, x1: to.x / Q, z1: to.y / Q, t: 0, life: beam ? 0.12 : 0.22, shooter });
         if (from && e.type === 'shot' && isAgeAtLeast(shooter.ageId, 'gunpowder') && this.fxSprites.has('muzzle-flash')) this.fx.push({ kind: 'sprite', sheet: 'muzzle-flash', x: from.x / Q, z: from.y / Q, y: 0.5, t: 0, life: 0.15 });
+      } else if (e.type === 'shieldHit') {
+        // a Future shield takes the hit: its bubble flashes cyan (U66)
+        const q = view.squads[e.id];
+        if (q) for (let k = 0; k < 4; k++) this.fx.push({ kind: 'spark', shield: true, x: q.x / Q + (hash01(e.t * 7 + k) - 0.5) * 1.2, z: q.y / Q + (hash01(e.t * 13 + k) - 0.5) * 1.2, t: 0, life: 0.3, seed: k });
       } else if (e.type === 'melee' && e.to !== undefined) {
         const to = view.squads[e.to];
         if (to && this.fxSprites.has('impact-sparks')) this.fx.push({ kind: 'sprite', sheet: 'impact-sparks', x: to.x / Q + (hash01(e.t * 7) - 0.5) * 0.6, z: to.y / Q + (hash01(e.t * 13) - 0.5) * 0.6, y: 0.4, t: 0, life: 0.35 });
@@ -1719,12 +1724,17 @@ export class BattleRenderer {
         tmp.position.set(hx, this.heightAt(hx, hz) + 0.8 + arc, hz);
         tmp.rotation.set(0, -Math.atan2(dz, dx), 0); tmp.scale.set(0.6, 1, 1); tmp.updateMatrix();
         this.tracers.setMatrixAt(tn, tmp.matrix); tn += 1;
+      } else if (f.kind === 'beam' && tn < 64) {
+        const dx = f.x1 - f.x0; const dz = f.z1 - f.z0;
+        tmp.position.set(f.x0, this.heightAt(f.x0, f.z0) + 0.8, f.z0);
+        tmp.rotation.set(0, -Math.atan2(dz, dx), 0); tmp.scale.set(Math.hypot(dx, dz), 1.6 * (1 - k), 1.6 * (1 - k)); tmp.updateMatrix();
+        this.tracers.setMatrixAt(tn, tmp.matrix); tn += 1;
       } else if (f.kind === 'spark' && sn < 128) {
         const rise = f.big ? k * 1.4 : k * 0.6;
         tmp.position.set(f.x, this.heightAt(f.x, f.z) + 0.4 + rise, f.z);
         tmp.rotation.set(k * 4, k * 5, 0); const sc = (f.big ? 2.2 : 1) * (1 - k); tmp.scale.set(sc, sc, sc); tmp.updateMatrix();
         this.sparks.setMatrixAt(sn, tmp.matrix);
-        this.sparks.setColorAt(sn, colorOf(f.fire ? (k < 0.4 ? '#fb923c' : '#57534e') : f.big ? '#a8a29e' : '#fbbf24'));
+        this.sparks.setColorAt(sn, colorOf(f.shield ? '#67e8f9' : f.fire ? (k < 0.4 ? '#fb923c' : '#57534e') : f.big ? '#a8a29e' : '#fbbf24'));
         sn += 1;
       }
     });

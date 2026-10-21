@@ -2,13 +2,15 @@
 import { describe, it, expect } from 'vitest';
 import { buildSetupFromArmies } from '../setup/buildBattleSetup';
 import { createWorld } from './world';
-import { attackSquad } from './combat';
+import { attackSquad, regenShields, squadBehind } from './combat';
+import { buildSpatialHash } from './pathing';
+import { getBattleStats } from '../data/battleStats';
 import { attackRateMult, SUPPRESSED_RATE, firePower, JAM_ORDER_DELAY } from './effects';
 import { runHeadless } from './headless';
 import { replayBattle } from './replay';
 import { step } from './step';
 import { admitOrder } from './orderSchema';
-import { Q } from './constants';
+import { Q, SQUAD_RADIUS } from './constants';
 import { getBattlePowers } from '../../engine/invasion';
 
 const mk = (p, cls) => cls.map((classId, i) => ({ id: `${p}${i}`, classId, strength: 1000, maxStrength: 1000, morale: 100, promotions: [], commanderId: null, domain: 'land' }));
@@ -104,6 +106,68 @@ describe('Modern and Information commander powers (U58)', () => {
       const b = replayBattle(powerSetup(), log);
       expect(a.dropped, power).toBe(0);
       expect(a.hash, power).toBe(b.hash);
+    });
+  });
+});
+
+describe('Future battle rules (U66)', () => {
+  const futurePair = (att, def) => {
+    const w = createWorld(buildSetupFromArmies({ regionId: 'future-test', terrain: 'plains', seed: 7, attackerUnits: mk('a', att), defenderUnits: mk('d', def), attackerAgeId: 'future', defenderAgeId: 'future' }));
+    return w;
+  };
+
+  it('a shield soaks the hit first, then comes back 5% a second once the squad is out of combat', () => {
+    const w = futurePair(['ranged'], ['infantry']);
+    const a = w.squads.find((q) => q.side === 0 && q.classId === 'ranged');
+    const t = w.squads.find((q) => q.side === 1 && q.classId === 'infantry');
+    expect(t.maxShield).toBe(200); // 20% of 1000
+    attackSquad(w, a, t);
+    expect(t.strength).toBe(1000);
+    const soaked = 200 - t.shield;
+    expect(soaked).toBeGreaterThan(0);
+    expect(w.events.some((e) => e.type === 'shieldHit' && e.id === t.idx)).toBe(true);
+    t.shield = 50; t.lastHitTick = 0;
+    w.tick = 40; regenShields(w);
+    expect(t.shield).toBe(50); // still in combat (hit 2 s ago)
+    w.tick = 60; regenShields(w);
+    expect(t.shield).toBe(60); // +5% of 200
+    w.tick = 61; regenShields(w);
+    expect(t.shield).toBe(60); // once a second
+    t.shield = 199; w.tick = 80; regenShields(w);
+    expect(t.shield).toBe(200);
+  });
+
+  it('a railgun shot also hits exactly the squad behind its target, for 30%', () => {
+    const w = futurePair(['ranged'], ['infantry', 'infantry', 'infantry']);
+    const a = w.squads.find((q) => q.side === 0 && q.classId === 'ranged');
+    const [t, behind, aside] = w.squads.filter((q) => q.side === 1);
+    [t, behind, aside].forEach((q) => { q.shield = 0; q.maxShield = 0; });
+    a.x = 10 * Q; a.y = 20 * Q; t.x = 18 * Q; t.y = 20 * Q;
+    behind.x = t.x + 2 * SQUAD_RADIUS + 10; behind.y = t.y; // right behind along the line of fire
+    aside.x = t.x; aside.y = t.y + 6 * Q;                   // beside, not behind
+    buildSpatialHash(w);
+    expect(squadBehind(w, a, t)).toBe(behind);
+    attackSquad(w, a, t);
+    const dealt = 1000 - t.strength;
+    expect(dealt).toBeGreaterThan(0);
+    expect(1000 - behind.strength).toBe(Math.round((dealt * 30) / 100));
+    expect(aside.strength).toBe(1000);
+  });
+
+  it('hover tanks ignore the ground: Future cavalry hovers, others do not; beams are drawn, not flown', () => {
+    expect(getBattleStats('cavalry', 'future').hover).toBe(true);
+    expect(getBattleStats('cavalry', 'information').hover).toBeUndefined();
+    expect(getBattleStats('siege', 'future').beam).toBe(true);
+  });
+
+  it('Future against Future and Information against Future replay to the same hash, twice', () => {
+    const setup = (att) => buildSetupFromArmies({ regionId: 'future-replay', terrain: 'forest', seed: 11, attackerUnits: mk('a', ['infantry', 'cavalry', 'ranged', 'siege', 'support']), defenderUnits: mk('d', ['infantry', 'cavalry', 'ranged', 'siege']), attackerAgeId: att, defenderAgeId: 'future' });
+    ['future', 'information'].forEach((att) => {
+      const one = runHeadless(setup(att), { maxTicks: 1500 });
+      const two = runHeadless(setup(att), { maxTicks: 1500 });
+      expect(one.chain, att).toBe(two.chain);
+      const log = [];
+      expect(replayBattle(setup(att), log).hash, att).toBe(replayBattle(setup(att), log).hash);
     });
   });
 });

@@ -71,6 +71,9 @@ export const makeSquad = (w, unit, side, ageId, index) => {
     cooldown: 0,
     lastHitTick: -10000,
     lastStrikeTick: -10000,                // last tick it swung or fired (drives the strike animation)
+    // Future shields (combat.js): stats.shield is a percent of full strength; it soaks hits first.
+    shield: stats.shield ? Math.round((Math.max(1, Math.round(unit.maxStrength || unit.strength || 1)) * stats.shield) / 100) : 0,
+    maxShield: stats.shield ? Math.round((Math.max(1, Math.round(unit.maxStrength || unit.strength || 1)) * stats.shield) / 100) : 0,
     suppressedUntil: -1,                   // a machine gun's suppression fires slower until this tick (effects.js)
     lastDepositTick: -10000,               // a worker's last drop-off (drawing only: never read by the sim, never hashed)
     noPathTick: -10000,                    // last tick its way to an order's goal was cut off (movement.js; drawing only, never hashed)

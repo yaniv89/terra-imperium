@@ -7,7 +7,7 @@ import { thinkAI } from './tacticalAI';
 import { buildSpatialHash } from './pathing';
 import { advanceHashChain } from './hash';
 import { acquireTargets, enterReserves, moveSquads, separateSquads } from './movement';
-import { resolveAttacks } from './combat';
+import { resolveAttacks, regenShields } from './combat';
 import { resolveStructureFire, updateAssimilation, updateCapturePoints, updateSupply, updateGarrisons, ASSIMILATION_TICKS } from './objectives';
 import { updateMorale, canRout } from './morale';
 import { updateFog } from './fog';
@@ -163,6 +163,7 @@ export const step = (w, orders = []) => {
   buildSpatialHash(w);
   separateSquads(w);
   resolveAttacks(w);
+  regenShields(w);
   resolveStructureFire(w);
   fireEcoTowers(w);
   updateGarrisons(w); // squads that reached their building go in; failing buildings throw theirs out

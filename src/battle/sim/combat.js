@@ -98,7 +98,46 @@ export const elevationMult = (w, a, t) => {
   return 1 + Math.max(-ELEVATION_MAX_BONUS, Math.min(ELEVATION_MAX_BONUS, diff));
 };
 
+// Future shields (eight ages U66): a squad's shield takes a hit first, and comes back
+// SHIELD_REGEN_PCT of its full value a second once the squad has not been hit for SHIELD_CALM_TICKS.
+export const SHIELD_REGEN_PCT = 5;
+export const SHIELD_CALM_TICKS = secondsToTicks(3);
+export const regenShields = (w) => {
+  if (w.tick % TICK_HZ !== 0) return;
+  w.squads.forEach((q) => {
+    if (!q.maxShield || q.shield >= q.maxShield || !q.alive || w.tick - q.lastHitTick < SHIELD_CALM_TICKS) return;
+    q.shield = Math.min(q.maxShield, q.shield + Math.max(1, Math.trunc((q.maxShield * SHIELD_REGEN_PCT) / 100)));
+  });
+};
+const soakShield = (w, q, damage) => {
+  if (!q.shield) return 0;
+  const soaked = Math.min(q.shield, damage);
+  q.shield -= soaked;
+  w.events.push({ t: w.tick, type: 'shieldHit', id: q.idx }); // the bubble flashes (BattleRenderer)
+  return soaked;
+};
+
+// Railguns (U66): a shot goes through and hits the enemy squad right behind its target for
+// stats.pierce percent of the damage: the nearest one within PIERCE_REACH of the point one squad
+// width past the target, along the line of fire (ties to the lowest index).
+export const PIERCE_REACH = 2 * SQUAD_RADIUS;
+export const squadBehind = (w, a, t) => {
+  const dx = t.x - a.x; const dy = t.y - a.y;
+  const len = isqrt(dx * dx + dy * dy);
+  if (!len) return null;
+  const px = t.x + Math.trunc((dx * 2 * SQUAD_RADIUS) / len); const py = t.y + Math.trunc((dy * 2 * SQUAD_RADIUS) / len);
+  let best = null; let bestD = Infinity;
+  queryRadius(w, px, py, PIERCE_REACH).forEach((j) => {
+    const o = w.squads[j];
+    if (j === t.idx || o.side !== t.side || !isFighting(o) || o.inside >= 0 || !!o.stats.flying !== !!t.stats.flying) return;
+    const d = distSq(px, py, o.x, o.y);
+    if (d < bestD || (d === bestD && j < best.idx)) { bestD = d; best = o; }
+  });
+  return best;
+};
+
 const applyDamage = (w, attacker, target, damage, arc = 0) => {
+  damage -= soakShield(w, target, damage);
   loseStrength(target, damage, attacker.stats.melee ? 'melee' : 'ranged');
   const moraleLoss = Math.round(moraleFromLosses(target, damage) * getPromotionMoraleLossMultiplier(view(target)) * moraleLossMult(w, target) * (target.stats.moraleLoss || 1) * ARC_MORALE_MULT[arc]);
   target.morale = Math.max(0, target.morale - moraleLoss);
@@ -158,6 +197,11 @@ export const attackSquad = (w, a, t) => {
   w.events.push({ t: w.tick, type: a.stats.melee ? 'melee' : 'shot', from: a.idx, to: t.idx, damage, arc });
   if (damage > 0) { applyDamage(w, a, t, damage, arc); tally(w, phase, a, t, damage); }
   if (a.stats.suppress) t.suppressedUntil = w.tick + a.stats.suppress;
+  if (a.stats.pierce && damage > 0) {
+    const behind = squadBehind(w, a, t);
+    const through = Math.round((damage * a.stats.pierce) / 100);
+    if (behind && through > 0) applyDamage(w, a, behind, through);
+  }
   // Siege splash: half damage to every other enemy squad around the impact.
   if (a.stats.splash) {
     queryRadius(w, t.x, t.y, a.stats.splash).forEach((j) => {

@@ -58,7 +58,19 @@ AGE_OVERRIDES.information = {
   air: { speed: T(5.5), range: 5 * Q, attackTicks: S(1.0), soldiers: 6, moraleLoss: 1.25 },
   support: { ...AGE_OVERRIDES.modern.support, range: 10 * Q }
 };
-AGE_OVERRIDES.future = AGE_OVERRIDES.information; // U66 gives the Future its own
+// Future (U66): shields soak hits first and come back out of combat (`shield`, percent of full
+// strength, sim/combat.js); Hover Tanks ignore the ground's drag (`hover`, sim/movement.js);
+// Railgun Teams' shots go through to the squad behind (`pierce`, percent); Plasma Artillery and the
+// Shield Projector's point-defence lasers are beams (`beam`: drawn as a line, no projectile).
+AGE_OVERRIDES.future = {
+  ...AGE_OVERRIDES.information,
+  infantry: { ...AGE_OVERRIDES.information.infantry, speed: T(2.0), shield: 20 },
+  cavalry: { ...AGE_OVERRIDES.information.cavalry, speed: T(3.6), hover: true, shield: 20 },
+  ranged: { range: 10 * Q, attackTicks: S(2.2), pierce: 30 },
+  siege: { beam: true },
+  air: { ...AGE_OVERRIDES.information.air, soldiers: 8 },
+  support: { ...AGE_OVERRIDES.information.support, beam: true, shield: 40 }
+};
 
 export const getBattleStats = (classId, ageId) => ({ ...(CLASS_BASE[classId] || CLASS_BASE.infantry), ...(AGE_OVERRIDES[ageId]?.[classId] || {}) });
 
