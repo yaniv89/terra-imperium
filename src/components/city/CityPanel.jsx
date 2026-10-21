@@ -11,6 +11,7 @@
 // price charged and the turns are the turn's. The Build tab keeps a one-line queue bar pinned at
 // the top and never removes a row while it is open, so a second tap lands on the same row (I045).
 import { nameNow } from '../../i18n/names';
+import GlossaryLink from '../glossary/GlossaryLink';
 import { unitName as unitDisplayName, unitClassName } from '../../i18n/gameText';
 import { unitClassLabel as unitClassLabelEn } from '../../data/unitNames';
 import { buildingTierName, wonderName, improvementName, districtName, tileResourceName } from '../../i18n/gameText';
@@ -393,7 +394,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                     <div className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0} aria-expanded={open} onClick={() => toggleRow(o)} onKeyDown={(e) => { if (e.key === 'Enter') toggleRow(o); }} title={o.tile != null ? t('cy.showTileDetails') : t('cy.showDetails')}>
                       <ItemIcon item={o.item} ageId={ageId} />
                       <div className="min-w-0 flex-1">
-                        <div className={clip}>{o.tile != null && <MapPin className="inline w-3 h-3 me-0.5 -mt-0.5 text-fa-muted" aria-hidden="true" />}{o.label}</div>
+                        <div className={clip}>{o.tile != null && <MapPin className="inline w-3 h-3 me-0.5 -mt-0.5 text-fa-muted" aria-hidden="true" />}{o.item.kind === 'unit' && o.item.classId !== 'naval' && !o.item.explorer ? <GlossaryLink kind="unit" id={`${ageId}_${o.item.classId}`}>{o.label}</GlossaryLink> : o.label}</div>
                         {o.detail && <div className={`text-[12px] leading-snug text-fa-text/80 ${clip}`} data-testid="build-effect">{o.detail}</div>}
                         {open && o.note && <div className="text-[12px] leading-snug text-fa-muted">{o.note}.</div>}
                         <div className="text-fa-muted text-[12px]">
@@ -457,7 +458,7 @@ const ArmyTemplateEditor = ({ state, dispatch, ageId }) => {
           <div className="grid grid-cols-2 gap-1">
             {classes.map((c) => (
               <div key={c} className="flex items-center justify-between rounded bg-fa-raised/60 px-2 min-h-[36px]">
-                <span className="text-fa-text inline-flex items-center gap-1 min-w-0" title={unitClassLabel(c)}><UnitIcon classId={c} ageId={ageId} size={18} /><span className="truncate">{unitDisplayName(ageId, c)}</span></span>
+                <span className="text-fa-text inline-flex items-center gap-1 min-w-0" title={unitClassLabel(c)}><UnitIcon classId={c} ageId={ageId} size={18} /><span className="truncate"><GlossaryLink kind="unit" id={`${ageId}_${c}`}>{unitDisplayName(ageId, c)}</GlossaryLink></span></span>
                 <span className="flex items-center gap-1">
                   <button type="button" onClick={() => bump(c, -1)} className="min-w-[32px] min-h-[32px] rounded bg-fa-hover text-fa-text" aria-label={t('cy.fewer', { unit: unitDisplayName(ageId, c) })}>-</button>
                   <span className="w-5 text-center text-fa-text">{draft.composition[c] | 0}</span>
