@@ -15,7 +15,7 @@
 import { t as tNow, isolateLtr } from '../../i18n';
 import { useT } from '../../i18n/useT';
 import { rich } from '../../i18n/rich';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FlaskConical, Check, Lock, X, ListPlus, Sparkles, BookOpen, GraduationCap, MapPin } from 'lucide-react';
 import { ageIconUrl } from '../../data/icons';
 import { useGame } from '../../context/GameContext';
@@ -168,17 +168,21 @@ const EraCard = ({ era }) => {
 };
 
 // The age strip: each age's techs known of its total, the age you are in outlined.
-const AgeStrip = ({ ages }) => (
-  <div className="sticky bottom-0 z-[1] -mx-3 sm:-mx-4 mt-3 px-3 sm:px-4 py-2 bg-fa-panel border-t border-fa-line grid grid-cols-5 gap-1.5" data-testid="research-age-strip">
-    {ages.map((a) => (
-      <div key={a.ageId} className={`rounded-md border px-1.5 py-1 min-w-0 ${a.current ? 'fa-selected' : 'border-fa-line'}`} aria-current={a.current ? 'step' : undefined} title={tNow('p2.as.title', { name: a.name, known: a.known, total: a.total })}>
+// In the web view it is the jump strip: tap an age to scroll to its columns (a collapsed past age opens).
+const AgeStrip = ({ ages, onJump }) => (
+  <div className="sticky bottom-0 z-[1] -mx-3 sm:-mx-4 mt-3 px-3 sm:px-4 py-2 bg-fa-panel border-t border-fa-line flex gap-1.5 overflow-x-auto" data-testid="research-age-strip">
+    {ages.map((a) => {
+      const Cell = onJump ? 'button' : 'div';
+      return (
+      <Cell key={a.ageId} {...(onJump ? { type: 'button', onClick: () => onJump(a.ageId), 'data-testid': `jump-${a.ageId}`, 'aria-label': tNow('p2.jump.to', { name: a.name }) } : {})} className={`rounded-md border px-1.5 py-1 min-w-[6rem] flex-1 text-start ${a.current ? 'fa-selected' : 'border-fa-line'}`} aria-current={a.current ? 'step' : undefined} title={tNow('p2.as.title', { name: a.name, known: a.known, total: a.total })}>
         <div className="flex items-baseline justify-between gap-1">
           <span className={`fa-heading text-[11px] truncate ${a.current || a.known > 0 ? '' : '!text-fa-muted'}`}>{a.name}</span>
           <span className="fa-num text-[10px] text-fa-muted shrink-0">{a.known}/{a.total}</span>
         </div>
         <Meter value={a.known} max={a.total} color={a.known === a.total ? 'var(--fa-good)' : 'var(--fa-text)'} height={3} className="mt-1" />
-      </div>
-    ))}
+      </Cell>
+      );
+    })}
   </div>
 );
 
@@ -193,6 +197,12 @@ const TechPanel = () => {
   const m = useMemo(() => researchSheetModel(state), [state]);
   const science = m.science;
   const [web, setWeb] = useState(false); // the research web (plan C3.1) or the lines as lists
+  // The web's jump strip: a fully known past age is one thin column until its strip cell is tapped.
+  const [opened, setOpened] = useState([]);
+  const [jump, setJump] = useState(null);
+  const webRef = useRef(null);
+  const collapsed = m.ages.filter((a) => a.known === a.total && !a.current && !opened.includes(a.ageId)).map((a) => a.ageId);
+  useEffect(() => { if (jump) webRef.current?.querySelector(`[data-age-head="${jump.ageId}"]`)?.scrollIntoView?.({ inline: 'start', block: 'center' }); }, [jump]);
   // Behind the research leader: known peoples in later ages make their techs cheaper (KTD5).
   const catchingUp = isAgeBefore(state.techAgeId, researchLeaderAge(state));
 
@@ -286,13 +296,14 @@ const TechPanel = () => {
       </div>
 
       {web && (() => {
-        const g = techGraph(state);
+        const g = techGraph(state, collapsed);
         const act = (n) => { if (n.status === 'available') research(n.id); else if (n.status === 'locked') queue(n.id); else if (n.status === 'queued') unqueue(n.id); };
         return (
-          <div className="mt-2 overflow-x-auto rounded-lg border border-fa-line bg-fa-ink/60" data-testid="research-web">
+          <div ref={webRef} className="mt-2 overflow-x-auto rounded-lg border border-fa-line bg-fa-ink/60" data-testid="research-web">
             <svg width={g.width + 16} height={g.height + 36} viewBox={`-8 -28 ${g.width + 16} ${g.height + 36}`} role="img" aria-label={tNow('tech.web')}>
-              {g.ages.map((a) => <text key={a.ageId} x={a.x + a.width / 2} y={-12} textAnchor="middle" fontSize="11" fill="#B9B19F" fontFamily="var(--fa-font-display)">{a.name}</text>)}
+              {g.ages.map((a) => <text key={a.ageId} x={a.x + a.width / 2} y={-12} textAnchor="middle" fontSize={a.collapsed ? 9 : 11} fill="#B9B19F" fontFamily="var(--fa-font-display)">{a.collapsed ? a.name.slice(0, 3) : a.name}</text>)}
               {g.ages.map((a) => ageIconUrl(a.ageId) && <image key={`i${a.ageId}`} href={ageIconUrl(a.ageId)} x={a.x} y={-27} width={20} height={20} data-testid={`web-age-${a.ageId}`} />)}
+              {g.ages.map((a) => <rect key={`h${a.ageId}`} data-age-head={a.ageId} x={a.x - 8} y={-24} width={1} height={1} fill="none" />)}
               {g.ages.map((a, i) => i > 0 && <line key={`v${a.ageId}`} x1={a.x - 9} y1={-24} x2={a.x - 9} y2={g.height} stroke="#33404F" strokeDasharray="3 3" />)}
               {g.edges.map((e) => <path key={`${e.from}-${e.to}`} d={`M ${e.x1} ${e.y1} C ${e.x1 + 24} ${e.y1}, ${e.x2 - 24} ${e.y2}, ${e.x2} ${e.y2}`} fill="none" stroke={e.cross ? '#D8A444' : '#4A5868'} strokeWidth={e.cross ? 1.5 : 1} opacity={0.9} />)}
               {g.nodes.map((n) => (
@@ -320,7 +331,7 @@ const TechPanel = () => {
         );
       })}
 
-      <AgeStrip ages={m.ages} />
+      <AgeStrip ages={m.ages} onJump={web ? (ageId) => { setOpened((o) => (o.includes(ageId) ? o : [...o, ageId])); setJump({ ageId }); } : undefined} />
     </div>
   );
 };

@@ -114,7 +114,7 @@ export default {
   // ---- start steps (H2) ----
   'start.title': 'New game',
   'start.titleBack': 'Title',
-  'start.dawn': 'Dawn, {year}. One city each.',
+  'start.dawn': 'Dawn, {year}. One band each.',
   'start.stepsNav': 'New game steps',
   'start.stepAria': 'Step {i}: {name}',
   'start.stepTitle': 'Step {i} of 4: {name}',
@@ -298,6 +298,7 @@ export default {
   'prompt.research': 'Choose what to research',
   'prompt.cityIdle': '{city} has nothing to build',
   'prompt.settlers': 'Settlers wait for a destination',
+  'prompt.band': 'Your band needs a home: tap it and found your first village',
   'prompt.army': 'An army in the field can still move',
   'prompt.restless': '{city} is restless (unrest {n})',
   'prompt.breaks.one': '{city} could break away in {count} turn: garrison it',

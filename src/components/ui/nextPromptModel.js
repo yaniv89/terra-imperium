@@ -17,7 +17,7 @@
 //             End Turn, stays on screen while other answers are given, and opens Peoples; I117)
 //   maps      a major offers to swap maps (src/engine/mapTrade.js, I116): a notice, never a blocker
 import { unitTile } from '../../engine/armies';
-import { isSettler } from '../../engine/settlers';
+import { isSettler, isBand } from '../../engine/settlers';
 import { tutorialPrompt } from '../../engine/tutorial';
 import { demandWaiting } from '../../engine/aiAccords';
 import { researchNeedsChoice } from '../../engine/researchStatus';
@@ -60,7 +60,7 @@ export const nextPrompts = (state) => {
   cities.forEach((c) => { if (!c.production?.current) out.push({ id: `city:${c.id}`, kind: 'city', label: tNow('prompt.cityIdle', { city: cName(c) }), regionId: c.id }); });
   const units = Object.values(state.units || {}).filter((u) => u.ownerId === me && u.strength > 0).sort((a, b) => (a.id < b.id ? -1 : 1));
   // (settlers told to wait, settlers.js setSettlerHold, are not asked about again: I093)
-  units.forEach((u) => { if (isSettler(u) && u.target == null && u.tile != null && !u.hold) out.push({ id: `settler:${u.id}`, kind: 'settler', label: tNow('prompt.settlers'), tile: u.tile }); });
+  units.forEach((u) => { if (isSettler(u) && u.target == null && u.tile != null && !u.hold) out.push({ id: `settler:${u.id}`, kind: 'settler', label: tNow(isBand(u) ? 'prompt.band' : 'prompt.settlers'), tile: u.tile }); });
   // Idle armies (src/engine/standingOrders.js idleArmyTiles): a stack that marches, holds (the
   // Hold order), besieges a city or garrisons one is busy, not idle.
   idleArmyTiles(state, me).forEach((t) => out.push({ id: `army:${t}`, kind: 'army', label: tNow('prompt.army'), tile: t }));

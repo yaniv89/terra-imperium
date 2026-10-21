@@ -115,15 +115,21 @@ export const GRAPH_COL_W = 150;
 export const GRAPH_ROW_H = 64;
 export const GRAPH_NODE_W = 132;
 export const GRAPH_NODE_H = 44;
-export const techGraph = (state) => {
+export const GRAPH_THIN_W = 40; // a collapsed age (TechPanel's jump strip): one thin column, no techs drawn
+export const techGraph = (state, collapsed = []) => {
   const lines = Object.values(TechCategories);
+  const ageX = {};
+  let cursor = 0;
+  AGE_ORDER.forEach((ageId) => { ageX[ageId] = cursor; cursor += collapsed.includes(ageId) ? GRAPH_THIN_W : 2 * GRAPH_COL_W; });
+  const colX = (ageId, col) => ageX[ageId] + (col - 2 * AGE_ORDER.indexOf(ageId)) * GRAPH_COL_W;
   const science = getSciencePerTurn(state);
   const nodes = [];
   const byId = new Map();
   lines.forEach((category, row) => {
     Object.values(TECH_TREE).filter((t) => t.category === category).sort((a, b) => a.lineIndex - b.lineIndex).forEach((tech, col) => {
+      if (collapsed.includes(tech.ageId)) return;
       const info = techInfo(state, tech.id, science);
-      const node = { id: tech.id, name: techName(tech.id, tech.name), category, row, col, ageId: tech.ageId, x: col * GRAPH_COL_W, y: row * GRAPH_ROW_H, status: info.researched ? 'researched' : info.current ? 'current' : info.queuedAt >= 0 ? 'queued' : info.canStart ? 'available' : 'locked', turns: info.turns, cost: info.cost, reason: info.reason };
+      const node = { id: tech.id, name: techName(tech.id, tech.name), category, row, col, ageId: tech.ageId, x: colX(tech.ageId, col), y: row * GRAPH_ROW_H, status: info.researched ? 'researched' : info.current ? 'current' : info.queuedAt >= 0 ? 'queued' : info.canStart ? 'available' : 'locked', turns: info.turns, cost: info.cost, reason: info.reason };
       nodes.push(node); byId.set(tech.id, node);
     });
   });
@@ -140,7 +146,6 @@ export const techGraph = (state) => {
     } else Object.assign(edge, { x1: from.x + GRAPH_NODE_W, y1: from.y + GRAPH_NODE_H / 2, x2: n.x, y2: n.y + GRAPH_NODE_H / 2 });
     edges.push(edge);
   }));
-  const cols = Math.max(...nodes.map((n) => n.col)) + 1;
-  const ages = AGE_ORDER.map((ageId, i) => ({ ageId, name: ageName(ageId, AGES[ageId]?.name || ageId), x: i * 2 * GRAPH_COL_W, width: 2 * GRAPH_COL_W }));
-  return { nodes, edges, width: cols * GRAPH_COL_W, height: lines.length * GRAPH_ROW_H, ages, rows: lines };
+  const ages = AGE_ORDER.map((ageId) => ({ ageId, name: ageName(ageId, AGES[ageId]?.name || ageId), x: ageX[ageId], width: collapsed.includes(ageId) ? GRAPH_THIN_W : 2 * GRAPH_COL_W, collapsed: collapsed.includes(ageId) }));
+  return { nodes, edges, width: cursor, height: lines.length * GRAPH_ROW_H, ages, rows: lines };
 };

@@ -117,7 +117,7 @@ export default {
   // ---- start steps (H2) ----
   'start.title': 'משחק חדש',
   'start.titleBack': 'מסך פתיחה',
-  'start.dawn': 'עלות השחר, {year}. עיר אחת לכל עם.',
+  'start.dawn': 'עלות השחר, {year}. שבט אחד לכל עם.',
   'start.stepsNav': 'שלבי המשחק החדש',
   'start.stepAria': 'שלב {i}: {name}',
   'start.stepTitle': 'שלב {i} מתוך 4: {name}',
@@ -301,6 +301,7 @@ export default {
   'prompt.research': 'בחרו מה לחקור',
   'prompt.cityIdle': 'אין מה לבנות ב{city}',
   'prompt.settlers': 'המתיישבים ממתינים ליעד',
+  'prompt.band': 'השבט צריך בית: לחצו עליו והקימו את הכפר הראשון',
   'prompt.army': 'צבא בשטח עדיין יכול לנוע',
   'prompt.restless': '{city} סוערת (אי שקט {n})',
   'prompt.breaks.one': '{city} עלולה להיפרד בעוד תור אחד: שימו בה חיל מצב',
