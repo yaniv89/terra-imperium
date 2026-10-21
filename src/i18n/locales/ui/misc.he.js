@@ -33,7 +33,7 @@ export default {
   'td.c.refuse': 'סרבו והתכוננו',
   'td.c.refuseFigure': 'הפסד צפוי',
   'td.c.refuseLoss': 'אם יבואו: {loss}. טינה ⁦+{n}⁩. או פגשו אותם שם עם צבא.',
-  'td.c.refuseNone': 'שום דבר שלכם בהישגם לא שווה פשיטה עכשיו. טינה ⁦+{n}⁩.',
+  'td.c.refuseNone': 'שום דבר שלכם בהשגתם לא שווה פשיטה עכשיו. טינה ⁦+{n}⁩.',
   'td.c.hire': 'סרבו ושכרו שכירי חרב',
   'td.c.hireFigure': '{price} זהב + {upkeep} בתור',
   'td.c.hireText': '{unit} מ{seller} ({kind}), {turns} תורות, מחכים ב{city}. טינה ⁦+{n}⁩.',

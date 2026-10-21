@@ -85,7 +85,7 @@ export default {
   'm.why.alreadyBuilt': 'כבר נבנה.',
   'm.why.cannotBuildHere': 'אי אפשר לבנות את זה כאן.',
   'm.why.needsSize': 'דורש גודל {n}.',
-  'm.why.noSite': 'אין לזה מקום בעיר.',
+  'm.why.noSite': 'אין מקום לזה בעיר.',
   'm.why.unknownItem': 'פריט לא מוכר.',
   'm.why.outpostSlots': 'כל מקומות המוצבים תפוסים ({n} בעידן הזה).',
 };

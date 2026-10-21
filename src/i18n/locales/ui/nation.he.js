@@ -1,7 +1,7 @@
 // src/i18n/locales/ui/nation.he.js
 // UI text: nation (phase H5). Plural forms use .one / .two / .other with { count }.
 export default {
-  'nc.shortfallItem': '{cost} (יש {have})',
+  'nc.shortfallItem': '{cost} (יש לכם {have})',
   'nc.notEnough': 'אין מספיק משאבים — נדרש {list}',
   'nc.notEnoughNeed': 'אין מספיק משאבים: נדרש {list}',
   'nc.cantAnnex': 'עוד אי אפשר לספח: זמין בתור {n}',
@@ -157,7 +157,7 @@ export default {
   'nc.unrival': 'ביטול יריבות',
   'nc.rivalN': 'יריב ({a}/{b})',
   'nc.unrivalTitle': 'להפסיק להתייחס אליהם כיריב',
-  'nc.rivalTitle': 'חייב לגבול בכם; יריב שנפל מעניק יוקרה',
+  'nc.rivalTitle': 'חייב לחלוק גבול איתכם; יריב שנפל מעניק יוקרה',
   'nc.marriage': 'נישואין מלכותיים ({cost})',
   'nc.marriageTitle': 'שתי המלוכות: מוריד את האיבה שלהם',
   'nc.recall': 'החזרת דיפלומט',

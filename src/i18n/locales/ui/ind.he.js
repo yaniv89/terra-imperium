@@ -15,7 +15,7 @@ export default {
   'm.why.indepFortressPays': 'עם מבצר לא משלם לאיש: הם יסרבו ויזכרו את זה.',
   'm.why.indepWouldRefuse': 'הם יסרבו: הצבא שלכם בטווח {km} ק״מ גדול פי {x} משלהם, והם משלמים מפי {r}.',
   'm.why.indepWouldPay': 'הם ישלמו {gold} זהב בתור במשך {turns} תורות.',
-  'm.why.indepOnlyMerc': 'רק עיר סוחרת סוחרת.',
+  'm.why.indepOnlyMerc': 'רק עיר סוחרת יכולה לסחור.',
   'm.why.indepAlreadyTrade': 'אתם כבר סוחרים איתם.',
   'm.why.indepTradeFull': 'הם כבר סוחרים עם {n} אומות.',
   'm.why.indepTradeGrudge': 'יש להם טינה כלפיכם ({g}; הם סוחרים מתחת ל־{max}).',

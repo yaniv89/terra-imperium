@@ -67,7 +67,7 @@ export const AMBITION_ROWS = [
   ['dacia', 'highlands', 'Guard the passes of the mountain arc', 'לשמור על המעברים של קשת ההרים'],
   ['rasenna', 'seaTrade', 'Trade from a league of coastal cities', 'לסחור מליגה של ערי חוף'],
   ['nuragi', 'harbour', 'Hold the island and its coasts', 'להחזיק את האי ואת חופיו'],
-  ['tartessos', 'caravans', 'Trade in silver and tin from the western rivers', 'לסחור בכסף ובבדיל מנהרות המערב'],
+  ['tartessos', 'caravans', 'Trade in silver and tin from the western rivers', 'לסחור בכסף ובבדיל מארצות המערב'],
   ['celtiberia', 'highlands', 'Defend the high country, town by town', 'להגן על הרמה, עיר אחר עיר'],
   ['lusitania', 'seaTrade', 'Sail out from the Atlantic coast', 'להפליג מחוף האוקיינוס'],
   ['arverni', 'realm', 'Unite the tribes of the high country', 'לאחד את שבטי הרמה'],
