@@ -1,0 +1,422 @@
+[
+  {
+    "file": "start-people-phone-en.jpg",
+    "screen": "start-people",
+    "size": "phone",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "start-world-phone-en.jpg",
+    "screen": "start-world",
+    "size": "phone",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "start-rules-phone-en.jpg",
+    "screen": "start-rules",
+    "size": "phone",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "start-ready-phone-en.jpg",
+    "screen": "start-ready",
+    "size": "phone",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "research-card-phone-en.jpg",
+    "screen": "research-card",
+    "size": "phone",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "map-hud-phone-en.jpg",
+    "screen": "map-hud",
+    "size": "phone",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "research-phone-en.jpg",
+    "screen": "research",
+    "size": "phone",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "diplomacy-phone-en.jpg",
+    "screen": "diplomacy",
+    "size": "phone",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "city-phone-en.jpg",
+    "screen": "city",
+    "size": "phone",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "war-map-phone-en.jpg",
+    "screen": "war-map",
+    "size": "phone",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "war-empire-phone-en.jpg",
+    "screen": "war-empire",
+    "size": "phone",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "war-peoples-phone-en.jpg",
+    "screen": "war-peoples",
+    "size": "phone",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "crisis-phone-en.jpg",
+    "screen": "crisis",
+    "size": "phone",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "glossary-phone-en.jpg",
+    "screen": "glossary",
+    "size": "phone",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "battle-phone-en.jpg",
+    "screen": "battle",
+    "size": "phone",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "start-people-phone-he.jpg",
+    "screen": "start-people",
+    "size": "phone",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "start-world-phone-he.jpg",
+    "screen": "start-world",
+    "size": "phone",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "start-rules-phone-he.jpg",
+    "screen": "start-rules",
+    "size": "phone",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "start-ready-phone-he.jpg",
+    "screen": "start-ready",
+    "size": "phone",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "research-card-phone-he.jpg",
+    "screen": "research-card",
+    "size": "phone",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "map-hud-phone-he.jpg",
+    "screen": "map-hud",
+    "size": "phone",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "research-phone-he.jpg",
+    "screen": "research",
+    "size": "phone",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "diplomacy-phone-he.jpg",
+    "screen": "diplomacy",
+    "size": "phone",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "city-phone-he.jpg",
+    "screen": "city",
+    "size": "phone",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "war-map-phone-he.jpg",
+    "screen": "war-map",
+    "size": "phone",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "war-empire-phone-he.jpg",
+    "screen": "war-empire",
+    "size": "phone",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "war-peoples-phone-he.jpg",
+    "screen": "war-peoples",
+    "size": "phone",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "crisis-phone-he.jpg",
+    "screen": "crisis",
+    "size": "phone",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "glossary-phone-he.jpg",
+    "screen": "glossary",
+    "size": "phone",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "battle-phone-he.jpg",
+    "screen": "battle",
+    "size": "phone",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "start-people-desktop-en.jpg",
+    "screen": "start-people",
+    "size": "desktop",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "start-world-desktop-en.jpg",
+    "screen": "start-world",
+    "size": "desktop",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "start-rules-desktop-en.jpg",
+    "screen": "start-rules",
+    "size": "desktop",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "start-ready-desktop-en.jpg",
+    "screen": "start-ready",
+    "size": "desktop",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "research-card-desktop-en.jpg",
+    "screen": "research-card",
+    "size": "desktop",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "map-hud-desktop-en.jpg",
+    "screen": "map-hud",
+    "size": "desktop",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "research-desktop-en.jpg",
+    "screen": "research",
+    "size": "desktop",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "diplomacy-desktop-en.jpg",
+    "screen": "diplomacy",
+    "size": "desktop",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "city-desktop-en.jpg",
+    "screen": "city",
+    "size": "desktop",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "war-map-desktop-en.jpg",
+    "screen": "war-map",
+    "size": "desktop",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "war-empire-desktop-en.jpg",
+    "screen": "war-empire",
+    "size": "desktop",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "war-peoples-desktop-en.jpg",
+    "screen": "war-peoples",
+    "size": "desktop",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "crisis-desktop-en.jpg",
+    "screen": "crisis",
+    "size": "desktop",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "glossary-desktop-en.jpg",
+    "screen": "glossary",
+    "size": "desktop",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "battle-desktop-en.jpg",
+    "screen": "battle",
+    "size": "desktop",
+    "lang": "en",
+    "ok": true
+  },
+  {
+    "file": "start-people-desktop-he.jpg",
+    "screen": "start-people",
+    "size": "desktop",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "start-world-desktop-he.jpg",
+    "screen": "start-world",
+    "size": "desktop",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "start-rules-desktop-he.jpg",
+    "screen": "start-rules",
+    "size": "desktop",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "start-ready-desktop-he.jpg",
+    "screen": "start-ready",
+    "size": "desktop",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "research-card-desktop-he.jpg",
+    "screen": "research-card",
+    "size": "desktop",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "map-hud-desktop-he.jpg",
+    "screen": "map-hud",
+    "size": "desktop",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "research-desktop-he.jpg",
+    "screen": "research",
+    "size": "desktop",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "diplomacy-desktop-he.jpg",
+    "screen": "diplomacy",
+    "size": "desktop",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "city-desktop-he.jpg",
+    "screen": "city",
+    "size": "desktop",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "war-map-desktop-he.jpg",
+    "screen": "war-map",
+    "size": "desktop",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "war-empire-desktop-he.jpg",
+    "screen": "war-empire",
+    "size": "desktop",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "war-peoples-desktop-he.jpg",
+    "screen": "war-peoples",
+    "size": "desktop",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "crisis-desktop-he.jpg",
+    "screen": "crisis",
+    "size": "desktop",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "glossary-desktop-he.jpg",
+    "screen": "glossary",
+    "size": "desktop",
+    "lang": "he",
+    "ok": true
+  },
+  {
+    "file": "battle-desktop-he.jpg",
+    "screen": "battle",
+    "size": "desktop",
+    "lang": "he",
+    "ok": true
+  }
+]
