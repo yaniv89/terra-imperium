@@ -19,6 +19,8 @@ Files to review first: `supabase/migrations/0004_challenges.sql`, `supabase/func
 5. GitHub repo, Settings, Secrets and variables, Actions:
    - Secret `CHALLENGE_VERIFIER_KEY` = the verifier JWT.
    - Variable `SUPABASE_URL` = `https://<project>.supabase.co`.
+   - Variable `SUPABASE_ANON_KEY` = the project's anon (public) key. The API gateway only takes a
+     project key as `apikey`; the verifier JWT goes in the `Authorization` header.
 6. Game build env (already used by cloud saves): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
 7. Run the workflow once by hand (Actions, Verify challenges, Run workflow) and watch the log.
 

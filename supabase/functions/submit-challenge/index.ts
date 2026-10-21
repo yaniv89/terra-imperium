@@ -6,9 +6,13 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const MAX_BODY = 270000; // a little over MAX_LOG_BYTES (src/data/challenges.js)
-const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+// The game calls this from its own site, so the browser's preflight must pass. '*' is safe: the
+// caller is named by its bearer token, never by a cookie.
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
+const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
   if (req.method !== 'POST') return json(405, { error: 'POST only' });
   const auth = req.headers.get('Authorization');
   if (!auth) return json(401, { error: 'sign in to submit' });

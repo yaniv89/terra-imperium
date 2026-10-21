@@ -1,6 +1,9 @@
 // U36 security checks on the server-side text (never run against a project): the workflow and the migration.
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { verifyInChild } from '../../scripts/verifyChallenges.mjs';
 
 const read = (p) => readFileSync(p, 'utf8');
 const wf = read('.github/workflows/verify-challenges.yml');
@@ -15,7 +18,35 @@ describe('challenge workflow', () => {
   });
 });
 
+describe('challenge verifier', () => {
+  it('the replay child gets no environment, so a hostile log can never reach the key', () => {
+    const file = path.join(os.tmpdir(), `chal-env-${process.pid}.mjs`);
+    writeFileSync(file, 'export const verifyChallenge = () => ({ env: Object.keys(process.env) });');
+    process.env.CHALLENGE_VERIFIER_KEY = 'secret';
+    try { expect(verifyInChild(file, {}, 10000, 1000)).toEqual({ env: [] }); } finally { delete process.env.CHALLENGE_VERIFIER_KEY; }
+  });
+  it('a second verified run of a user in a week is ignored, not a 409 that stalls the queue', () => {
+    expect(read('scripts/verifyChallenges.mjs')).toMatch(/challenge_leaderboard\?on_conflict=user_id,week_id/);
+  });
+});
+
+describe('submit-challenge function', () => {
+  it('answers the browser preflight, or every submit from the site fails', () => {
+    const fn = read('supabase/functions/submit-challenge/index.ts');
+    expect(fn).toMatch(/req\.method === 'OPTIONS'/);
+    expect(fn).toMatch(/Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'/);
+  });
+});
+
 describe('challenge migration', () => {
+  it('the weekly cap holds under parallel inserts, and the leaderboard hides user ids', () => {
+    expect(sql).toMatch(/pg_advisory_xact_lock\(hashtextextended\(new\.user_id::text \|\| new\.week_id, 0\)\)/);
+    expect(sql).not.toMatch(/grant select on public\.challenge_leaderboard/);
+  });
+  it('the verifier may post only a pending submission, under its own user and claimed score', () => {
+    expect(sql).not.toMatch(/to verifier with check \(true\)/);
+    expect(sql).toMatch(/s\.status = 'pending' and s\.user_id = challenge_leaderboard\.user_id/);
+  });
   it('turns on row-level security and never lets a client write the leaderboard', () => {
     expect(sql).toMatch(/challenge_submissions enable row level security/);
     expect(sql).toMatch(/challenge_leaderboard enable row level security/);

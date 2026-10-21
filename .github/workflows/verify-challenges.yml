@@ -27,4 +27,5 @@ jobs:
       - run: node scripts/verifyChallenges.mjs
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
           CHALLENGE_VERIFIER_KEY: ${{ secrets.CHALLENGE_VERIFIER_KEY }}

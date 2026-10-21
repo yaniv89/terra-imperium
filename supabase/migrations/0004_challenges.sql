@@ -42,6 +42,8 @@ begin
   if new.user_id is null then raise exception 'sign in to submit'; end if;
   select display_name into new.display_name from public.profiles where id = new.user_id;
   new.status := 'pending'; new.reason := null;
+  -- One insert per user and week at a time, so parallel requests cannot all pass the count below.
+  perform pg_advisory_xact_lock(hashtextextended(new.user_id::text || new.week_id, 0));
   if (select count(*) from public.challenge_submissions where user_id = new.user_id and week_id = new.week_id) >= 3 then
     raise exception 'too many submissions this week';
   end if;
@@ -65,7 +67,7 @@ alter table public.challenge_leaderboard enable row level security;
 revoke all on public.challenge_submissions, public.challenge_leaderboard from anon, authenticated, verifier;
 grant insert (week_id, build, claimed_hash, claimed_score, log) on public.challenge_submissions to authenticated;
 grant select (id, week_id, status, reason, created_at) on public.challenge_submissions to authenticated;
-grant select on public.challenge_leaderboard to anon, authenticated;
+grant select (display_name, week_id, score, created_at) on public.challenge_leaderboard to anon, authenticated;   -- no user ids in public
 grant select (id, user_id, display_name, week_id, build, claimed_hash, claimed_score, log, status, created_at) on public.challenge_submissions to verifier;
 grant update (status, reason) on public.challenge_submissions to verifier;
 grant insert on public.challenge_leaderboard to verifier;
@@ -84,4 +86,9 @@ create policy "submissions: verifier judges pending" on public.challenge_submiss
 drop policy if exists "leaderboard: public read" on public.challenge_leaderboard;
 create policy "leaderboard: public read" on public.challenge_leaderboard for select to anon, authenticated using (true);
 drop policy if exists "leaderboard: verifier inserts" on public.challenge_leaderboard;
-create policy "leaderboard: verifier inserts" on public.challenge_leaderboard for insert to verifier with check (true);
+-- Only a still-pending submission, under its own user, week, name and claimed score: a leaked
+-- verifier key cannot post a score for someone who never submitted it.
+create policy "leaderboard: verifier inserts" on public.challenge_leaderboard for insert to verifier with check (exists (
+  select 1 from public.challenge_submissions s
+  where s.id = challenge_leaderboard.submission_id and s.status = 'pending' and s.user_id = challenge_leaderboard.user_id
+    and s.week_id = challenge_leaderboard.week_id and s.display_name = challenge_leaderboard.display_name and s.claimed_score = challenge_leaderboard.score));
