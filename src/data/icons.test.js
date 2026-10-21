@@ -96,7 +96,7 @@ describe('icon index', () => {
       units: [...UNIT_CLASS_IDS, 'settler'],
       ships: NAVAL_LINE_IDS,
       cities: CITY_SIZES.flatMap((s) => AGE_ORDER.map((a) => `city-${s}-${a}`)),
-      ages: [...AGE_ORDER, 'future'], // the Future icon is art ahead of its age (eight-ages Phase E adds the age)
+      ages: [...AGE_ORDER, 'information', 'future'], // the Information and Future icons are art ahead of their ages (eight-ages Phases D and E add them)
       markers: ['capital', 'wonder', 'event', 'battle'],
       battle: [...Object.values(BATTLE_BUILDINGS).map((b) => b.icon), ...Object.values(BATTLE_STOCK_ICON_IDS), ...BATTLE_GLYPH_IDS],
       ui: UI_ICON_IDS,
