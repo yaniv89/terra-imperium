@@ -284,7 +284,7 @@ const GameLayout = () => {
     );
   }
   if (showStartScreen) {
-    return <><StartScreen onStart={handleStart} onBackToTitle={cameFromTitle ? backToTitle : undefined} /><ChallengeEntry onStart={handleStart} /><OldSaveNotice /></>;
+    return <><StartScreen onStart={handleStart} onBackToTitle={cameFromTitle ? backToTitle : undefined} headerExtra={<ChallengeEntry onStart={handleStart} />} /><OldSaveNotice /></>;
   }
 
   return (

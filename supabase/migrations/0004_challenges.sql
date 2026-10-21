@@ -40,7 +40,10 @@ language plpgsql security definer set search_path = public as $$
 begin
   new.user_id := auth.uid();
   if new.user_id is null then raise exception 'sign in to submit'; end if;
-  select display_name into new.display_name from public.profiles where id = new.user_id;
+  -- A name that is just the start of the email (the 0003 default) is never shown: use "Player" plus a short stable id.
+  select case when nullif(p.display_name, '') is null or p.display_name = split_part(p.email, '@', 1)
+              then 'Player ' || left(p.id::text, 4) else p.display_name end
+    into new.display_name from public.profiles p where p.id = new.user_id;
   new.status := 'pending'; new.reason := null;
   -- One insert per user and week at a time, so parallel requests cannot all pass the count below.
   perform pg_advisory_xact_lock(hashtextextended(new.user_id::text || new.week_id, 0));

@@ -22,8 +22,8 @@ export const ChallengeEntry = ({ onStart }) => {
   useEffect(() => { if (open) fetchLeaderboard(client(), challenge.weekId).then(setBoard); }, [open, challenge]);
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className={`${btn} fixed top-2 end-2 z-20 bg-amber-600 hover:bg-amber-500 text-fa-text flex items-center gap-2`} data-testid="challenge-open">
-        <Trophy className="w-4 h-4" /> {t('chal.button')}
+      <button type="button" onClick={() => setOpen(true)} aria-label={t('chal.button')} className={`${btn} ms-auto shrink-0 pl:px-3 bg-amber-600 hover:bg-amber-500 text-fa-text flex items-center gap-2`} data-testid="challenge-open">
+        <Trophy className="w-4 h-4" /> <span className="pl:hidden">{t('chal.button')}</span>
       </button>
       {open && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" data-testid="challenge-sheet">
@@ -33,7 +33,7 @@ export const ChallengeEntry = ({ onStart }) => {
             <h3 className="text-sm font-semibold mt-3">{t('chal.board')}</h3>
             {board && !board.connected && <p className="text-sm text-amber-300" data-testid="challenge-offline">{t('chal.offline')}</p>}
             {board?.connected && !board.rows.length && <p className="text-sm text-fa-muted">{t('chal.empty')}</p>}
-            {board?.connected && <ol className="text-sm mt-1">{board.rows.map((r, i) => <li key={i} className="flex justify-between"><span>{i + 1}. {r.display_name}</span><span>{r.score}</span></li>)}</ol>}
+            {board?.connected && <ol className="text-sm mt-1">{board.rows.map((r, i) => <li key={i} className="flex justify-between"><span>{i + 1}. {r.display_name || 'Player'}</span><span>{r.score}</span></li>)}</ol>}
             <div className="flex gap-2 mt-4">
               <button type="button" onClick={() => onStart({ challenge })} className={`${btn} flex-1 bg-amber-600 hover:bg-amber-500`} data-testid="challenge-start">{t('chal.start')}</button>
               <button type="button" onClick={() => setOpen(false)} className={`${btn} bg-fa-hover hover:bg-fa-line`}>{t('chal.close')}</button>

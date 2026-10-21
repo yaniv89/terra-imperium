@@ -11,4 +11,12 @@ describe('hold for help target', () => {
     expect(helpTarget(el('tech:nope'))).toBeNull();
     expect(helpTarget(el(null))).toBeNull();
   });
+
+  it('every trainable battle role has a unit entry in its age (train buttons, city unit rows)', () => {
+    for (const role of ['infantry', 'ranged', 'cavalry', 'siege', 'support']) {
+      const ids = glossaryIds('unit').filter((id) => id.endsWith(`_${role}`));
+      expect(ids.length).toBeGreaterThan(0);
+      expect(helpTarget(el(`unit:${ids[0]}`))).toEqual(['unit', ids[0]]);
+    }
+  });
 });
