@@ -97,7 +97,7 @@ export const rushQuote = (state, cityId, index = 0, nationId = state.playerNatio
   if (!(cost > 0) || cost >= 9999) return { ok: false, reason: 'This cannot be bought.', ...base };
   const list = [city.production.current, ...(city.production.queue || [])].filter(Boolean);
   if (index > 0 && list.findIndex((it) => itemKey(it) === key) !== index) return { ok: false, reason: 'Rush the first order of this kind first.', ...base };
-  const can = canQueue(city, getTiles(), worldOf(state), item, { researched: live.ctx.researched, ageId: live.ctx.ageId });
+  const can = canQueue(city, getTiles(), worldOf(state), item, { researched: live.ctx.researched, ageId: live.ctx.ageId, techFree: item.kind === 'unit' }); // a queued unit was allowed when queued (old saves): rushing does not re-gate it
   // A later building tier waits for the tier queued before it.
   if (!can.ok) return { ok: false, reason: item.kind === 'building' && index > 0 && can.reason === 'Tiers are built in order.' ? 'Rush the tier before it first.' : can.reason, ...base };
   const hammers = Math.max(0, Math.round((cost - progress) * 10) / 10);
