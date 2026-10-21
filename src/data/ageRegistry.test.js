@@ -120,7 +120,7 @@ describe('registry completeness: every per-age table has every age', () => {
   });
 
   it('the Stone Age per-age macro tables hold the plan values (Appendix B, U35)', () => {
-    expect(RESEARCH_AGE_BASE.stone).toBe(12);
+    expect(RESEARCH_AGE_BASE.stone).toBe(15);
     expect(COLONY_SLOTS_BY_AGE.stone).toBe(0);
     expect(OUTPOST_SLOTS_BY_AGE.stone).toBe(1);
     expect(NAVAL_KM_BY_AGE.stone).toBe(300);

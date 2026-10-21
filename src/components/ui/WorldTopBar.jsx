@@ -13,6 +13,8 @@ import { useGame } from '../../context/GameContext';
 import { useOnInteractionOpen } from '../../hooks/useExclusivePanel';
 import { useReportInset } from '../../context/MapInsetsContext';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { useAgeTheme } from '../../hooks/useAgeTheme';
+import { ageOf } from '../../engine/nationState';
 import { openPanelTab } from '../panels/panelEvents';
 import { openNationOverview, openTurnReport } from './uiEvents';
 import { topBarModel } from './topBarModel';
@@ -84,6 +86,7 @@ const WorldTopBar = () => {
     return () => observer.disconnect();
   }, []);
   useReportInset(`game-header-${layoutMode}`, 'top', ref);
+  useAgeTheme(state.playerNationId ? ageOf(state, state.playerNationId) : null);
   const toggle = (id) => setOpen((v) => (v === id ? null : id));
   const close = useCallback(() => setOpen(null), []);
   // A card, sheet or dock that opens closes the reasons popover: it used to stay open over them
@@ -93,7 +96,7 @@ const WorldTopBar = () => {
 
   return (
     <header ref={ref} data-testid="world-top-bar" data-map-hud=""
-      className="fixed top-0 inset-x-0 z-20 bg-fa-panel/95 border-b border-fa-line text-fa-text
+      className="age-strip fixed top-0 inset-x-0 z-20 bg-fa-panel/95 border-b border-fa-line text-fa-text
                  pt-[env(safe-area-inset-top)] ps-[max(var(--safe-start),0.75rem)] pe-[max(var(--safe-end),0.75rem)]">
       <div className="h-9 flex items-center gap-3 sm:gap-3.5">
         <button type="button" onClick={() => openNationOverview()} className="shrink-0 min-w-0 flex items-center gap-1.5 h-8 px-1 -ms-1 rounded-md hover:bg-fa-raised" aria-label={t('topbar.nationAria', { title: m.nation.title })} title={t('topbar.nationAria', { title: m.nation.title })} data-testid="top-bar-nation">

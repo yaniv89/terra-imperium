@@ -204,6 +204,19 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     indepUnrestMean: (() => { const c = regs.filter((r) => r.owner && s.nations[r.owner]?.kind === 'independent'); return +(c.reduce((a, r) => a + (r.unrest || 0), 0) / Math.max(1, c.length)).toFixed(2); })(),
     // Cities per AI major (outposts not counted, the player left out), and the player's buildings.
     citiesPerAiMajor: (() => { const ms = new Set(nations.filter((n) => n.kind !== 'independent' && !n.isEliminated && !n.id.startsWith('free_') && n.id !== 'rebels' && n.id !== s.playerNationId).map((n) => n.id)); const c = regs.filter((r) => r.owner && !r.outpost && ms.has(r.owner)).length; return +(c / Math.max(1, ms.size)).toFixed(2); })(),
+    // SC3 (eight ages plan, the Stone Age's end: Normal 60, Fast 30, Marathon 75): over living
+    // majors, the player included: median capital size, median and largest city count, share with
+    // Agriculture; the share past Stone is 1 - ageShare_stone.
+    ...(() => {
+      const ms = livingMajors(s);
+      const med = (a) => { const v = [...a].sort((x, y) => x - y); return v[Math.floor(v.length / 2)] || 0; };
+      const cities = ms.map((n) => regs.filter((r) => r.owner === n.id && !r.outpost).length);
+      return {
+        majorCapitalSizeMedian: med(ms.map((n) => s.regions[n.capitalRegionId]?.size || 0)),
+        majorCitiesMedian: med(cities), majorCitiesMax: Math.max(0, ...cities),
+        majorsAgricultureShare: +(ms.filter((n) => getResearched(s, n.id).includes('economy_agriculture')).length / Math.max(1, ms.length)).toFixed(3)
+      };
+    })(),
     playerBuildings: regs.filter((r) => r.owner === s.playerNationId).reduce((a, c) => a + Object.values(c.buildings?.categories || {}).reduce((k, v) => k + (Number.isFinite(v) ? v + 1 : 0), 0), 0),
     // Action gaps (I029): turns on which the scripted player had a decision (a city to queue, a
     // settler to send, a tech done, a blocker to answer); the longest run of turns without one.

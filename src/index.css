@@ -52,6 +52,54 @@
   --fa-topbar: 36px;
 }
 
+/* A theme per age (eight ages plan U43): src/hooks/useAgeTheme.js writes the player's age to
+   <html data-age>; the top bar (.age-strip) shows a 3 px ornament under its border in the age's
+   accent. Decoration only: no text takes these colours, so contrast never changes. */
+:root { --fa-age: var(--fa-brass); --fa-age-strip: none; }
+:root[data-age="stone"] {
+  --fa-age: #C27C3A;
+  --fa-age-strip: linear-gradient(135deg, var(--fa-age) 25%, transparent 25%) 0 0 / 8px 3px,
+                  linear-gradient(225deg, var(--fa-age) 25%, transparent 25%) 0 0 / 8px 3px;
+}
+:root[data-age="bronze"] {
+  --fa-age: #2F5FA8;
+  --fa-age-strip: radial-gradient(circle, #D8A444 1px, transparent 1.5px) 0 0 / 10px 3px, var(--fa-age);
+}
+:root[data-age="classical"] {
+  --fa-age: #D9D4C7;
+  --fa-age-strip: repeating-linear-gradient(90deg, var(--fa-age) 0 10px, #9C978C 10px 12px);
+}
+:root[data-age="kingdoms"] {
+  --fa-age: #B3262E;
+  --fa-age-strip: repeating-linear-gradient(90deg, var(--fa-age) 0 6px, #D8A444 6px 12px);
+}
+:root[data-age="gunpowder"] {
+  --fa-age: #D9C49A;
+  --fa-age-strip: linear-gradient(90deg, transparent, var(--fa-age) 12%, var(--fa-age) 88%, transparent);
+}
+:root[data-age="modern"] {
+  --fa-age: #6B7A3A;
+  --fa-age-strip: repeating-linear-gradient(90deg, var(--fa-age) 0 18px, transparent 18px 22px);
+}
+:root[data-age="information"] {
+  --fa-age: #5A86B4;
+  --fa-age-strip: repeating-linear-gradient(90deg, var(--fa-age) 0 2px, transparent 2px 5px, var(--fa-age) 5px 14px, transparent 14px 16px);
+}
+:root[data-age="future"] {
+  --fa-age: #3FE0E8;
+  --fa-age-strip: linear-gradient(90deg, rgba(63, 224, 232, 0.35) 1px, transparent 1px) 0 0 / 6px 3px,
+                  linear-gradient(var(--fa-age), var(--fa-age)) bottom / 100% 1px no-repeat;
+}
+.age-strip::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: -4px;
+  height: 3px;
+  background: var(--fa-age-strip);
+  pointer-events: none;
+}
+
 * {
   box-sizing: border-box;
 }

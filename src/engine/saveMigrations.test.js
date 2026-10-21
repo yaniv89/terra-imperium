@@ -323,3 +323,21 @@ describe('migrateSave v17 to v18: Stone building tiers come first', () => {
     expect(loaded.production.stored).toEqual({ 'building:food:2': 7, 'unit:infantry': 3 });
   });
 });
+
+describe('migrateSave v13 to now: the Stone steps run in the chain (U45)', () => {
+  it('a calendar-Bronze save with a Granary gains the Stone techs and tier and stays Bronze', () => {
+    const base = JSON.parse(JSON.stringify(peoplesWorld({ independents: true, seed: 5 })));
+    const me = base.playerNationId;
+    const techTree = { ...base.techTree };
+    getTechsForAge('bronze').slice(0, 3).forEach((t) => { techTree[t.id] = { ...techTree[t.id], researched: true }; });
+    const id = capOf(base, me);
+    const city = base.regions[id];
+    const regions = { ...base.regions, [id]: { ...city, buildings: { ...city.buildings, categories: { ...city.buildings.categories, food: 0, economy: 0 } } } };
+    const loaded = migrateSave({ version: 13, state: { ...base, age: 'bronze', year: -1500, techAgeId: 'bronze', techTree, regions } });
+    expect(loaded.version).toBe(CURRENT_SAVE_VERSION);
+    expect(loaded.state.regions[id].buildings.categories).toMatchObject({ food: 1, economy: 0 });
+    getTechsForAge('stone').forEach((t) => expect(loaded.state.techTree[t.id].researched, t.id).toBe(true));
+    expect(ageOf(loaded.state, me)).toBe('bronze');
+    expect(() => assertGameState(loaded.state)).not.toThrow();
+  });
+});

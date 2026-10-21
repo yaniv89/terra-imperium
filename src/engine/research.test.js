@@ -4,7 +4,7 @@ import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { TECH_TREE } from '../data/techTree';
-import { applyResearchTurn, getResearchCost, getResearchPath, stepResearch, suggestTechs, canStartTech } from './research';
+import { applyResearchTurn, getResearchCost, getResearchPath, stepResearch, suggestTechs, canStartTech, FIRST_TECH_COST_MULT } from './research';
 import { peoplesWorld, rivalOf } from './testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
@@ -128,5 +128,19 @@ describe('speed is keyed by the paying nation (KTD9)', () => {
     const asBronze = getResearchCost({ ...s, techAgeId: 'bronze' }, FR_ID, tech);
     const asClassical = getResearchCost({ ...s, techAgeId: 'classical' }, FR_ID, tech);
     expect(asClassical / asBronze).toBeCloseTo((20 / 12) / 1.6, 1);
+  });
+});
+
+describe('the first tech (U47)', () => {
+  it('costs FIRST_TECH_COST_MULT of the full price until a nation knows a tech', () => {
+    const s = fresh();
+    const me = s.playerNationId;
+    const stone = Object.values(TECH_TREE).filter((t) => t.ageId === 'stone' && t.id !== 'economy_agriculture' && canStartTech(t.id, new Set(), 'stone').ok).map((t) => t.id);
+    const [a, b] = stone;
+    const first = getResearchCost(s, me, b);
+    const known = { ...s, techTree: { ...s.techTree, [a]: { ...s.techTree[a], researched: true } } };
+    const full = getResearchCost(known, me, b);
+    expect(first).toBeLessThan(full);
+    expect(first).toBeCloseTo(full * FIRST_TECH_COST_MULT, -1);
   });
 });
