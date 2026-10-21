@@ -27,6 +27,15 @@ export const CLASS_BASE = {
 // Gunpowder and Modern turn the melee lines into shooters; Modern cavalry are tanks and Modern
 // support is an Anti-Air battery (it only ever targets aircraft).
 export const AGE_OVERRIDES = {
+  // Stone (U37): no drilled ranks, so no flank or rear bonus for its blows (`noFormation`); Hunters
+  // shoot short and fast; a Warband loses heart faster (morale only, a soft penalty: the player's
+  // side turns Shaken, never routs, morale.js).
+  stone: {
+    infantry: { noFormation: true, moraleLoss: 1.25 },
+    ranged: { noFormation: true, range: 5 * Q, attackTicks: S(1.0) },
+    siege: { noFormation: true },
+    support: { noFormation: true }
+  },
   gunpowder: {
     infantry: { range: 4 * Q, melee: false, attackTicks: S(1.6) },
     cavalry: { speed: T(3.0) }

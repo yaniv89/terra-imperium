@@ -119,10 +119,9 @@ const rosterEntry = (name, ageId) => ({
 });
 
 export const UNIT_ROSTER = {
-  // First names (U37 designs the roster and drops the Stone cavalry; until then runners stand in).
+  // No horses yet: Stone has no cavalry line (U37).
   stone: {
     infantry: rosterEntry('Warband', 'stone'),
-    cavalry: rosterEntry('Runners', 'stone'),
     ranged: rosterEntry('Hunters', 'stone'),
     siege: rosterEntry('Ladder Crews', 'stone'),
     naval: rosterEntry('Dugout Canoes', 'stone'),
@@ -179,6 +178,9 @@ export const getUnitDefinition = (ageId, classId) => UNIT_ROSTER[ageId]?.[classI
 
 // Every class recruitable at (and including) the given age — Air only exists from Modern on.
 export const getAvailableClasses = (ageId) => Object.keys(UNIT_ROSTER[ageId] || {});
+
+// The class a general's guard rides as: the age's cavalry, else its infantry (Stone has no horses).
+export const guardClassOf = (ageId) => (!UNIT_ROSTER[ageId] || UNIT_ROSTER[ageId].cavalry ? 'cavalry' : 'infantry');
 
 // Plan §M14: roster stats wired into combat, replacing the old flat "ages-behind" combat malus
 // (src/data/ages.js's now-removed getAgesBehindCombatMultiplier) — that malus only ever penalized

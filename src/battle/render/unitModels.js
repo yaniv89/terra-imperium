@@ -24,7 +24,7 @@ import { composeUnitModel } from './unitComposer';
 import { registerSoldierGeometry, hasSoldierOverride, getProceduralSoldierGeometry, MODEL_SCALE } from './soldierFactory';
 import { soldierLodReady } from './soldierLod';
 import { trainableRoles } from '../data/economy';
-import { UNIT_ROSTER } from '../../data/unitClasses';
+import { UNIT_ROSTER, guardClassOf } from '../../data/unitClasses';
 import { ART } from '../art/artFiles';
 import { signatureUnitFor, signatureKey, SIGNATURE_UNITS, QUADRUPED_RIGS } from '../../data/signatureUnits';
 import { peopleForNationId } from '../../data/peoples';
@@ -90,9 +90,9 @@ export const battleModelPairs = (setup) => {
   (setup?.sides || []).forEach((sd) => [...(sd.units || []), ...(sd.reinforcements || [])].forEach((u) => {
     if (u?.classId && u.classId !== 'naval') seen.add(`${u.ageId || sd.ageId}:${u.classId}`);
   }));
-  // A general's guard (sim/world.js spawnGenerals) is a cavalry squad, also in an army with no cavalry.
+  // A general's guard (sim/world.js spawnGenerals) is a cavalry squad (Stone: infantry), also in an army without one.
   (setup?.sides || []).forEach((sd) => {
-    if ([...(sd.units || []), ...(sd.reinforcements || [])].some((u) => u?.commanderId)) seen.add(`${sd.ageId}:cavalry`);
+    if ([...(sd.units || []), ...(sd.reinforcements || [])].some((u) => u?.commanderId)) seen.add(`${sd.ageId}:${guardClassOf(sd.ageId)}`);
   });
   // With a battle economy every class the side can train (workers too) may take the field.
   if (setup?.economy) (setup.sides || []).forEach((sd) => trainableRoles(sd.ageId).forEach((c) => seen.add(`${sd.ageId}:${c}`)));
@@ -107,7 +107,7 @@ export const battleExtraModels = (setup, { findGeneral = findGeneralModel, findS
   const push = (ageId, key, classId, model) => { if (model && !seen.has(`${ageId}:${key}`)) { seen.add(`${ageId}:${key}`); out.push({ ageId, key, classId, model }); } };
   (setup?.sides || []).forEach((sd) => {
     const units = [...(sd.units || []), ...(sd.reinforcements || [])];
-    if (units.some((u) => u?.commanderId)) push(sd.ageId, 'general', 'cavalry', findGeneral(sd.ageId));
+    if (units.some((u) => u?.commanderId)) push(sd.ageId, 'general', guardClassOf(sd.ageId), findGeneral(sd.ageId));
     const side = setup.sides.indexOf(sd);
     units.forEach((u) => { const key = lookKey(unitLookOf(u, setup, side), u?.classId); if (key) push(sd.ageId, key, u.classId, findLook(sd.ageId, key)); });
     const people = peopleForNationId(sd.nationId);
