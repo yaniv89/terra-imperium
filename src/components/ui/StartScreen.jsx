@@ -416,7 +416,7 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle, headerExtra = nu
     mapChoice && { key: 'map', label: t('start.map'), value: generatedMap ? t('start.sum.generated') : t('start.sum.earth'), to: 1 },
     { key: 'world', label: t('start.worldSize'), value: t('start.sum.world', { size: sizeName(worldSize), others: size.majors - 1 }), to: 1 },
     { key: 'cityStates', label: t('start.cityStates'), value: t('start.sum.cityStates', { density: densityName(cityStates), n: csCount }), to: 1 },
-    { key: 'speed', label: t('start.gameSpeed'), value: t('start.sum.speed', { speed: speedName(gameSpeed), turns: n(speed?.turns) }), to: 2 },
+    { key: 'speed', label: t('start.gameSpeed'), value: t('start.sum.speed', { speed: speedName(gameSpeed), turns: n(speed?.turnLimit) }), to: 2 },
     { key: 'difficulty', label: t('start.difficulty'), value: diffName(difficultyId), to: 2 },
     { key: 'explored', label: t('start.explored'), value: exploredWorld ? t('start.on') : t('start.off'), to: 2 },
     { key: 'crises', label: t('start.crises'), value: crises ? t('start.on') : t('start.off'), to: 2 }

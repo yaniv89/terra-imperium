@@ -33,12 +33,19 @@ describe('the world top bar (U1, plans/UI-DESIGN.md section 2)', () => {
     expect(m.warLabel).toMatch(/^At war: /);
   });
 
+  it('never shows a raw placeholder when the enemy has no name', () => {
+    const enemy = Object.keys(base.nations).find((id) => id !== base.playerNationId && base.nations[id].capitalRegionId && !base.nations[id].indep);
+    const atWar = declareWar(base, enemy, { aggressor: base.playerNationId });
+    const nameless = { ...atWar, nations: { ...atWar.nations, [enemy]: { ...atWar.nations[enemy], name: undefined } } };
+    expect(topBarModel(nameless).warLabel).not.toMatch(/[{}]|undefined/);
+  });
+
   it('formats the year and the science label', () => {
     expect(yearLabel(-1984)).toBe('1984 BCE');
     expect(yearLabel(5)).toBe('5 CE');
     expect(scienceLabel(null)).toBe('Choose research');
     expect(scienceLabel({ tech: { name: 'Bronze Working' }, finishesIn: 3 })).toBe('Bronze Working 3t');
-    expect(scienceLabel({ tech: { name: 'Writing' }, finishesIn: Infinity })).toBe('Writing ?t');
+    expect(scienceLabel({ tech: { name: 'Writing' }, finishesIn: Infinity })).toBe('Writing');
   });
 });
 

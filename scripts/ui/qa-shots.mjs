@@ -118,7 +118,7 @@ const capture = async (browser, size, lang, out, manifest) => {
       await wait(1200);
     });
     await step('war-map', async () => { await closeAll(); await patch(page, WAR); await page.getByTestId('war-pill').waitFor({ timeout: 10000 }); });
-    await step('war-empire', tab('military'));
+    await step('war-empire', async () => { await tab('domestic')(); await fire(page, 'ti:open-section', 'war'); await wait(600); }); // 'military' is only an alias inside openPanelTab: the raw event needs the real tab
     await step('war-peoples', tab('diplomacy'));
     await step('crisis', async () => {
       await closeAll();

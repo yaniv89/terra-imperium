@@ -152,7 +152,7 @@ const EraCard = ({ era }) => {
       {era.goals.map((g) => (
         <li key={g.id}>
           <div className="flex items-baseline justify-between gap-2 text-[12px]" title={tNow('p2.era.legacy', { bonus: signed(goalBonus(g.id, g.bonus)) })}>
-            <span className="min-w-0 truncate"><span className="font-semibold">{playstyleName(g.id, g.label)}</span> <span className="text-fa-muted">{goalUnit(g.id, g.unit)}</span></span>
+            <span className="min-w-0 break-words"><span className="font-semibold">{playstyleName(g.id, g.label)}</span> <span className="text-fa-muted">{goalUnit(g.id, g.unit)}</span></span>
             <span className={`fa-num shrink-0 ${g.done ? 'text-fa-good' : 'text-fa-muted'}`}>{Math.min(g.value, g.target)} / {g.target}</span>
           </div>
           <Meter value={g.value} max={g.target} color={g.done ? 'var(--fa-good)' : 'var(--fa-you)'} height={4} />
@@ -171,8 +171,8 @@ const AgeStrip = ({ ages, onJump }) => (
     {ages.map((a) => {
       const Cell = onJump ? 'button' : 'div';
       return (
-      <Cell key={a.ageId} {...(onJump ? { type: 'button', onClick: () => onJump(a.ageId), 'data-testid': `jump-${a.ageId}`, 'aria-label': tNow('p2.jump.to', { name: a.name }) } : {})} className={`rounded-md border px-1.5 py-1 min-w-[6rem] flex-1 text-start ${a.current ? 'fa-selected' : 'border-fa-line'}`} aria-current={a.current ? 'step' : undefined} title={tNow('p2.as.title', { name: a.name, known: a.known, total: a.total })}>
-        <div className="flex items-baseline justify-between gap-1">
+      <Cell key={a.ageId} {...(onJump ? { type: 'button', onClick: () => onJump(a.ageId), 'data-testid': `jump-${a.ageId}`, 'aria-label': tNow('p2.jump.to', { name: a.name }) } : {})} className={`rounded-md border px-1.5 py-1 min-w-[6rem] pl:min-w-[4.5rem] flex-1 text-start ${a.current ? 'fa-selected' : 'border-fa-line'}`} aria-current={a.current ? 'step' : undefined} title={tNow('p2.as.title', { name: a.name, known: a.known, total: a.total })}>
+        <div className="flex items-baseline justify-between gap-1 pl:flex-col pl:items-start pl:gap-0">
           <span className={`fa-heading text-[11px] truncate ${a.current || a.known > 0 ? '' : '!text-fa-muted'}`}>{a.name}</span>
           <span className="fa-num text-[10px] text-fa-muted shrink-0">{a.known}/{a.total}</span>
         </div>

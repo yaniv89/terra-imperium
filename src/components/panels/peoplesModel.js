@@ -37,10 +37,10 @@ export const peoplesModel = (state, search = '') => {
   Object.values(state.regions || {}).forEach((c) => { if (c.owner && c.owner !== me && isExplored(state, c.tile)) cityCount[c.owner] = (cityCount[c.owner] || 0) + 1; });
   const rows = known.map((n) => ({
     id: n.id,
-    name: nameNow('people', n.id, PEOPLES[n.id]?.name || n.name),
-    title: nameNow('people', n.id, n.name),
-    nameEn: PEOPLES[n.id]?.name || n.name,
-    titleEn: n.name,
+    name: nameNow('people', n.id, PEOPLES[n.id]?.name || n.name || n.id),
+    title: nameNow('people', n.id, n.name || n.id),
+    nameEn: PEOPLES[n.id]?.name || n.name || n.id,
+    titleEn: n.name || n.id,
     color: n.color || '#EE8A3A',
     relation: relationOf(state, n),
     // the people's own age (never a world age) and how it stands against yours
