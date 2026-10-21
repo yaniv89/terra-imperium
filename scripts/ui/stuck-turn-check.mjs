@@ -36,7 +36,7 @@ const skip = page.getByRole('button', { name: 'Skip' });
 await skip.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
 if (await skip.isVisible().catch(() => false)) await skip.dispatchEvent('click');
 await page.getByTestId('end-turn').waitFor({ timeout: 60000 });
-const year = () => page.locator('header').getByText(/^-?\d+ (BCE|CE)$/).textContent();
+const year = () => page.locator('header').getByText(/^(c\. )?-?\d+ (BCE|CE)$/).textContent();
 for (let t = 1; t <= 3; t++) {
   await answerBlockers(page);
   const before = await year();

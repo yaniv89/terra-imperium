@@ -72,19 +72,21 @@ test('a randomly chosen nation can play several turns with no console errors and
   await click(nationButton);
   await beginGame(page, `Begin as ${nationName}`);
 
-  const yearLabel = page.locator('header').getByText(/^-?\d+ (BCE|CE)$/);
+  const yearLabel = page.locator('header').getByText(/^(c\. )?-?\d+ (BCE|CE)$/);
   await expect(yearLabel).toBeVisible();
-  const initialYear = await yearLabel.textContent();
+  // the year label moves only with research (displayYear.js): the turn counter shows play
+  const turnLabel = page.locator('header').getByRole('button', { name: /^Turn \d+/ });
+  const initialTurn = await turnLabel.textContent();
 
 
-  let finalYear = initialYear;
+  let finalTurn = initialTurn;
   for (let i = 0; i < TURNS_TO_PLAY; i++) {
     await resolveAnyPendingEvent(page);
     await endTurn(page); // answers what blocks End Turn first (endTurnHelpers.js)
-    finalYear = await yearLabel.textContent();
+    finalTurn = await turnLabel.textContent();
   }
 
-  expect(finalYear, `the calendar year never advanced across ${TURNS_TO_PLAY} turns`).not.toBe(initialYear);
+  expect(finalTurn, `the turn never advanced across ${TURNS_TO_PLAY} turns`).not.toBe(initialTurn);
 
   expect(consoleErrors, `browser console/page errors during play:\n${consoleErrors.join('\n')}`).toEqual([]);
 });

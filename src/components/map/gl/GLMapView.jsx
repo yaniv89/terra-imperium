@@ -931,7 +931,7 @@ const GLMapView = ({
       // what a tap at this screen point picks first: { kind, id } of a marker, city badge or banner
       hitAt: (x, y) => { const h = pickHit(view(), gl.current?.hits || [], x, y); return h ? { kind: h.kind, id: h.id ?? h.marker?.regionId ?? null } : null; },
       // what a tap there does: { kind: marker | cluster | settler | city | tile, id, tile, land, via }
-      pickAt: (x, y) => { const p = tapAtRef.current(x, y); return p ? { kind: p.kind, id: p.id ?? null, tile: p.tile ?? null, land: p.land ?? null, explored: p.explored ?? null, via: p.via ?? null, marker: p.marker?.kind ?? null, own: p.marker?.own ?? null } : null; },
+      pickAt: (x, y) => { const p = tapAtRef.current(x, y); return p ? { kind: p.kind, id: p.id ?? null, tile: p.tile ?? null, land: p.land ?? null, explored: p.explored ?? null, via: p.via ?? null, marker: p.marker?.kind ?? null, own: p.marker?.own ?? null, cityId: p.cityId ?? null } : null; },
       transform: () => ({ ...transformRef.current }),
       // jump to a transform (clamped by the zoom behaviour), for look screenshots
       setTransform: ({ x, y, k: kk }) => { if (zoomBehaviorRef.current && containerRef.current) select(containerRef.current).call(zoomBehaviorRef.current.transform, zoomIdentity.translate(x, y).scale(kk)); },

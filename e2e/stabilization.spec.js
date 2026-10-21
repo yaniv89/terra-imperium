@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-import {beginGame} from './startHelpers';
+import {beginGame,foundFirstCity} from './startHelpers';
 const startIsrael=async(page)=>{
   await page.goto('/');
   await page.getByRole('textbox',{name:'Search peoples',exact:true}).fill('Israel');
@@ -11,9 +11,8 @@ const startIsrael=async(page)=>{
   const skip=page.getByRole('button',{name:'Skip',exact:true});
   await skip.waitFor({state:'visible',timeout:20000}).catch(()=>{});
   if(await skip.isVisible().catch(()=>false))await skip.dispatchEvent('click');
-  const later=page.locator('[data-testid="research-choice"] button[aria-label="Later"]');
-  await later.waitFor({state:'visible',timeout:8000}).catch(()=>{});
-  if(await later.isVisible().catch(()=>false))await later.dispatchEvent('click');
+  // a Stone start has no city yet: the band founds the capital whose land the tests tap
+  await foundFirstCity(page);
   return ownerId;
 };
 const interior = feature => {
@@ -41,8 +40,8 @@ const clearPoint=async(page,feature,id)=>{
   const bounds=await page.getByTestId('flat-map').boundingBox();
   for(const point of interior(feature).slice(0,40)){
     const p=await page.evaluate(point=>window.__map2DTest.project(point.lat,point.lng),point);
-    // the WebGL map answers what a tap there picks (hitAt); the SVG map has DOM banners and badges
-    const covered=await page.evaluate(({x,y,id,sx,sy})=>{if(window.__map2DTest.hitAt){const h=window.__map2DTest.hitAt(sx,sy);return !!h&&h.id!==id;}const el=document.elementFromPoint(x,y);const other=el?.closest('[data-city-banner],[data-city-badge]');return !!other&&(other.dataset.cityBanner||other.dataset.cityBadge)!==id;},{x:bounds.x+p.x,y:bounds.y+p.y,id,sx:p.x,sy:p.y});
+    // the WebGL map answers what a tap there picks (pickAt: an army banner on the land opens the army); the SVG map has DOM banners and badges
+    const covered=await page.evaluate(({x,y,id,sx,sy})=>{if(window.__map2DTest.pickAt){const q=window.__map2DTest.pickAt(sx,sy);return !(q?.kind==='city'&&q.id===id);}const el=document.elementFromPoint(x,y);const other=el?.closest('[data-city-banner],[data-city-badge]');return !!other&&(other.dataset.cityBanner||other.dataset.cityBadge)!==id;},{x:bounds.x+p.x,y:bounds.y+p.y,id,sx:p.x,sy:p.y});
     if(!covered)return {x:bounds.x+p.x,y:bounds.y+p.y,point};
   }
   throw new Error(`every interior point of ${id} is under another city`);

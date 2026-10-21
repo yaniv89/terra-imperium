@@ -30,21 +30,24 @@ test('a generated world: chosen on the start screen, played for turns, saved and
   await beginGame(page);
 
   // the page reloads into the generated world, then the game starts
-  const yearLabel = page.locator('header').getByText(/^-?\d+ (BCE|CE)$/);
+  const yearLabel = page.locator('header').getByText(/^(c\. )?-?\d+ (BCE|CE)$/);
   await expect(yearLabel).toBeVisible({ timeout: 180000 });
   const world = await page.evaluate(() => JSON.parse(localStorage.getItem('terra-imperium-world') || 'null'));
   expect(world).toMatchObject({ kind: 'generated', generatorVersion: 2, params: { shape: 'pangaea' } });
-  const startYear = await yearLabel.textContent();
-  for (let i = 0; i < 5; i++) { await resolveAnyPendingEvent(page); await endTurn(page); }
-  const year = await yearLabel.textContent();
-  expect(year).not.toBe(startYear);
+  // the year label moves only with research (displayYear.js): the turn counter shows play
+  const turnLabel = page.locator('header').getByRole('button', { name: /^Turn \d+/ });
+  const startTurn = await turnLabel.textContent();
+  // each turn lands before the next (endTurn only clicks), so the autosave below holds the last one
+  for (let i = 0; i < 5; i++) { const before = await turnLabel.textContent(); await resolveAnyPendingEvent(page); await endTurn(page); await expect(turnLabel).not.toHaveText(before, { timeout: 60000 }); }
+  const turn = await turnLabel.textContent();
+  expect(turn).not.toBe(startTurn);
 
   // the autosave brings the same world and turn back after a reload
   await page.reload();
   const continueBtn = page.getByTestId('title-continue'); // X26: a reload always shows the title screen
   await expect(continueBtn).toBeVisible({ timeout: 60000 });
   await click(continueBtn);
-  await expect(yearLabel).toHaveText(year, { timeout: 180000 });
+  await expect(turnLabel).toHaveText(turn, { timeout: 180000 });
   const again = await page.evaluate(() => JSON.parse(localStorage.getItem('terra-imperium-world') || 'null'));
   expect(again.seed).toBe(world.seed);
   expect(errors, errors.join('\n')).toEqual([]);
