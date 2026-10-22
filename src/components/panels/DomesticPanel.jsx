@@ -15,7 +15,7 @@ import { techName, taxRateName, taxRateDescription, wonderName, wonderDescriptio
 import { t as tNow } from '../../i18n';
 import React from 'react';
 import { WonderIcon } from '../ui/icons';
-import { Landmark, ScrollText, Coins, ShieldAlert, Crown, Users, TrendingUp, Globe2, Swords } from 'lucide-react';
+import { Landmark, ScrollText, Coins, ShieldAlert, Crown, Users, TrendingUp, Globe2, Swords, Bot } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import EmpireOverview from './EmpireOverview';
 import MilitaryPanel from './MilitaryPanel';
@@ -50,6 +50,7 @@ import { changeLawConfirm } from '../ui/confirmSpecs';
 import { ageOf, getResearched } from '../../engine/nationState';
 import { stonePhaseOf } from '../../engine/stonePhase';
 import { canPay } from '../../utils/costs';
+import { automationView } from './automationModel';
 
 const DomesticPanel = () => {
   useT(); // redraw when the language changes
@@ -240,6 +241,25 @@ const DomesticPanel = () => {
     );
   })();
 
+  // Automation (automation.js): the meter, its yields, and the riots and the uprising with the way out.
+  const auto = automationView(state, state.playerNationId);
+  const automationBox = auto && (
+    <div className="bg-fa-raised/60 rounded-lg p-3 text-xs space-y-1" data-testid="automation">
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-1.5 text-fa-text font-semibold"><Bot size={14} className="text-sky-300 shrink-0" />{tNow('dom.automation')}</span>
+        <span className="font-mono font-semibold text-fa-text">{auto.value}/{auto.max}</span>
+      </div>
+      <div className="h-1.5 rounded bg-fa-line overflow-hidden"><div className={`h-full ${auto.value >= auto.uprisingAt ? 'bg-red-500' : auto.value >= auto.riotAt ? 'bg-amber-400' : 'bg-sky-400'}`} style={{ width: `${auto.value}%` }} /></div>
+      <div className="text-fa-muted">{tNow('p1.dom.autoMeter', { count: auto.robots, target: auto.target })}</div>
+      <div className="text-fa-good">{tNow('p1.dom.autoYields', { prod: auto.production, sci: auto.science })}</div>
+      {auto.warningTurns != null
+        ? <div className="text-fa-danger-text font-semibold" data-testid="automation-warning">{tNow('p1.dom.autoWarn', { count: auto.warningTurns, stab: isolateLtr(auto.uprisingStability), at: auto.uprisingAt })}</div>
+        : auto.rioting
+          ? <div className="text-amber-300">{tNow('p1.dom.autoRiots', { unrest: auto.riotUnrest, stab: isolateLtr(auto.riotStability) })}</div>
+          : <div className="text-[10px] text-fa-muted">{tNow('p1.dom.autoRisk', { riot: auto.riotAt, riotStab: isolateLtr(auto.riotStability), at: auto.uprisingAt, stab: isolateLtr(auto.uprisingStability) })}</div>}
+    </div>
+  );
+
   const authority = authorityOf(state, state.playerNationId);
   const courtSection = (
     <div className="space-y-2">
@@ -289,6 +309,7 @@ const DomesticPanel = () => {
           size="small"
         />
       </div>
+      {automationBox}
 
       <div className="text-xs font-semibold text-fa-text pt-1">{tNow('dom.advisors')}</div>
       {['adm', 'dip', 'mil'].map((pool) => {

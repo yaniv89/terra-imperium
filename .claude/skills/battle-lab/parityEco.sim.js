@@ -54,8 +54,8 @@ const SACK_MATCHUPS = [
   [['infantry', 'infantry', 'cavalry'], []],
   [['cavalry', 'cavalry', 'cavalry'], ['ranged']]
 ].filter((_, i) => !process.env.MATCH || process.env.MATCH.split(',').map(Number).includes(i));
-// Tuning overrides for the raid auto-resolve (autoBattle.js AUTO_TUNE): RAID_SLIP, RAID_MULT, SACK_MULT.
-const TUNE = { ...AUTO_TUNE, ...(process.env.RAID_SLIP ? { RAID_SLIP: Number(process.env.RAID_SLIP) } : {}), ...(process.env.RAID_MULT ? { RAID_MULT: Number(process.env.RAID_MULT) } : {}), ...(process.env.SACK_MULT ? { SACK_MULT: Number(process.env.SACK_MULT) } : {}) };
+// Tuning overrides for the auto-resolve (autoBattle.js AUTO_TUNE): RAID_SLIP, RAID_MULT, SACK_MULT, BREACH (ASSAULT_BREACH_SHARE, 0 = off).
+const TUNE = { ...AUTO_TUNE, ...(process.env.BREACH ? { ASSAULT_BREACH_SHARE: Number(process.env.BREACH) } : {}), ...(process.env.RAID_SLIP ? { RAID_SLIP: Number(process.env.RAID_SLIP) } : {}), ...(process.env.RAID_MULT ? { RAID_MULT: Number(process.env.RAID_MULT) } : {}), ...(process.env.SACK_MULT ? { SACK_MULT: Number(process.env.SACK_MULT) } : {}) };
 const FORT = 2;
 const TERRAIN = process.env.TERRAIN || 'mixed';
 

@@ -410,6 +410,49 @@ const RAW_HISTORICAL_EVENTS = {
       { label: 'Keep it boxed under strict law', effects: { prestige: 20, legitimacy: 5 } }
     ]
   },
+  // ---- Future Age (from 2100; eight-ages plan U73). Generic, never current politics; the KTD6
+  // predicate spreads them over the age's first techs.
+  // ----
+  first_fusion_ignition: {
+    id: 'first_fusion_ignition',
+    year: 2120,
+    title: 'The First Fusion Ignition',
+    description: 'A reactor holds a small star for an hour and gives back more power than it took. Cheap, clean energy is suddenly within reach.',
+    options: [
+      { label: 'Build reactors in every province', effects: { gold: -200, addModifier: { label: 'Fusion grid', mods: { 'national.goldMult': 0.1 }, duration: 12 } } },
+      { label: 'Share the design with the world', effects: { prestige: 25, techPoints: 60 } }
+    ]
+  },
+  first_mars_landing: {
+    id: 'first_mars_landing',
+    year: 2160,
+    title: 'The First Crewed Mars Landing',
+    description: 'After months in the dark, a crew sets foot on red dust. Billions watch the first footprints on another world.',
+    options: [
+      { label: 'Fund a permanent base', effects: { gold: -250, prestige: 30, stability: 1 } },
+      { label: 'Plant the flag and come home', effects: { prestige: 15, techPoints: 40 } }
+    ]
+  },
+  asteroid_scare: {
+    id: 'asteroid_scare',
+    year: 2200,
+    title: 'The Asteroid Scare',
+    description: 'Telescopes find a mountain of rock on a path toward Earth. The odds of impact are small, but the panic is not.',
+    options: [
+      { label: 'Launch a mission to push it aside', effects: { gold: -200, prestige: 20, stability: 1 } },
+      { label: 'Trust the numbers and calm the public', effects: { stability: -1, legitimacy: -5 } }
+    ]
+  },
+  machine_minds_vote: {
+    id: 'machine_minds_vote',
+    year: 2250,
+    title: 'Machines Ask for a Voice',
+    description: 'The minds that run the factories and the fleets ask for a say in the laws that bind them. Half the country cheers, half is afraid.',
+    options: [
+      { label: 'Give them a seat in the assembly', effects: { techPoints: 120, stability: -1, legitimacy: -5 } },
+      { label: 'Refuse and tighten the code that limits them', effects: { stability: 1, prestige: -10 } }
+    ]
+  },
 
   // ---- Curated national flavor (plan §9.5 Layer 3), a representative batch of historically
   // significant lands, not the plan's full ~40. Keyed by `land` (the modern country code of the

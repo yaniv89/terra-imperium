@@ -104,7 +104,7 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
                 <UnitIcon classId={u.classId} navalLine={u.navalLine} ageId={u.ageId || ageOf(state, state.playerNationId)} size={28} />
                 <div className="min-w-0 flex-1">
                   <div className="text-fa-text truncate">{u.name}{u.general ? ` · ${u.general}` : ''}{u.promotions ? tr('mx.army.promotions', { count: u.promotions }) : ''}</div>
-                  <div className="text-fa-muted">{tr('mx.army.stats', { strength: u.strength, max: u.maxStrength, morale: u.morale, supply: model.naval ? tr('mx.army.aboard', { n: u.cargo }) : tr('mx.army.supply', { n: u.supply, max: u.supplyMax }), moves: u.moves, pace: u.movePoints })}</div>
+                  <div className="text-fa-muted">{tr(u.robot ? 'mx.army.statsRobot' : 'mx.army.stats', { strength: u.strength, max: u.maxStrength, morale: u.morale, supply: model.naval ? tr('mx.army.aboard', { n: u.cargo }) : tr('mx.army.supply', { n: u.supply, max: u.supplyMax }), moves: u.moves, pace: u.movePoints })}</div>
                   <div className="text-fa-muted capitalize">{u.rank}{u.nextRankAt ? tr('mx.army.xp', { xp: u.xp, next: u.nextRankAt }) : ''}{u.general ? tr('mx.army.commands', { general: u.general }) : ''}</div>
                   {u.general
                     ? <button type="button" onClick={() => dispatch({ type: ActionTypes.APPOINT_GENERAL, payload: { generalId: u.generalId, unitId: null } })} className="text-fa-muted underline min-h-[32px]">{tr('mx.army.recall')}</button>

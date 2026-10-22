@@ -75,6 +75,7 @@ const TechRow = ({ info, onResearch, onQueue }) => {
         )}
       </div>
       <div className="text-[11px] text-fa-muted">{describeTech(tech)}</div>
+      {info.repeats > 0 && <div className="text-[11px] text-fa-good" data-testid="tech-repeats">{tNow('p2.tr.repeats', { count: info.repeats })}</div>}
       {unlocks?.length > 0 && <div className="text-[11px] text-fa-text" data-testid="tech-unlocks">{tNow('p2.tr.unlocks', { list: unlocks.join(', ') })}</div>}
       {mapEffect && <div className="text-[11px] text-fa-you" data-testid="tech-map-effect">{tNow('p2.tr.map', { text: dataText(`mapfx.${tech.id}`, mapEffect) })}</div>}
       {boost && <div className={`text-[11px] ${boost.taken ? 'text-fa-good' : boost.met ? 'text-fa-good' : 'text-fa-muted'}`} data-testid="tech-boost">{tNow('p2.tr.boost', { label: boostLabel(tech.id, boost.label), tail: boost.taken ? tNow('p2.tr.taken') : boost.met ? tNow('p2.tr.met') : '' })}</div>}

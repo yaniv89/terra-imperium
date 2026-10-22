@@ -341,6 +341,28 @@ describe('migrateSave v19 to v20: Modern splits into Modern and Information (U62
   });
 });
 
+describe('migrateSave: the Future needs no step (U76)', () => {
+  // A late-Information save from before Phase E: every Information tech, no Future field anywhere.
+  it('loads as Information or Future by research, never lower, and reads the missing Future fields as none', () => {
+    const base = JSON.parse(JSON.stringify(peoplesWorld({ seed: 5, age: 'information' })));
+    const me = base.playerNationId;
+    const techTree = { ...base.techTree };
+    getTechsForAge('information').forEach((t) => { techTree[t.id] = { ...techTree[t.id], researched: true }; });
+    const future = getTechsForAge('future').map((t) => t.id);
+    future.forEach((id) => { delete techTree[id]; }); // the save predates the Future techs
+    const state = { ...base, techTree, techAgeId: 'information' };
+    const loaded = migrateSave({ version: CURRENT_SAVE_VERSION, state }).state;
+    expect(loaded.techAgeId).toBe('information');
+    future.forEach((id) => expect(loaded.techTree[id]?.researched, id).toBe(false));
+    Object.keys(state.nations).forEach((id) => expect(getAgeIndex(ageOf(loaded, id)), id).toBeGreaterThanOrEqual(getAgeIndex(ageOf(state, id))));
+    expect(loaded.nations[me].automation || 0).toBe(0);
+    expect(Object.values(loaded.units).some((u) => u.robot)).toBe(false);
+    // The same save with the Future's techs known loads in the Future.
+    const ahead = { ...state, techTree: { ...techTree, ...Object.fromEntries(future.map((id) => [id, { ...base.techTree[id], researched: true }])) }, techAgeId: 'future' };
+    expect(migrateSave({ version: CURRENT_SAVE_VERSION, state: ahead }).state.techAgeId).toBe('future');
+  });
+});
+
 describe('migrateSave v17 to v18: Stone building tiers come first', () => {
   it('moves every built tier, order and stored progress of the seven lines up one', () => {
     const base = JSON.parse(JSON.stringify(peoplesWorld({ seed: 5 })));

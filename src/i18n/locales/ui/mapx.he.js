@@ -115,6 +115,7 @@ export default {
   'mx.army.promotions.other': ' · {count} קידומים',
   'mx.army.march1': 'צעדו עם {name}',
   'mx.army.stats': '{strength}/{max} · מורל {morale}{supply} · תנועה {moves}/{pace}',
+  'mx.army.statsRobot': '{strength}/{max} · רובוט, בלי מורל{supply} · תנועה {moves}/{pace}',
   'mx.army.aboard': ' · על הסיפון {n}',
   'mx.army.supply': ' · אספקה {n}/{max}',
   'mx.army.xp': ' · {xp}/{next} ניסיון',
