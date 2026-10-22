@@ -7,5 +7,8 @@ export default {
   'crisis.hitOthers': '{n} peoples are hit. Yours is spared for now.',
   'start.crises': 'History crises',
   'start.crisesOn': 'Plagues, raiders and collapses can strike the world.',
-  'start.crisesOff': 'No world crises.'
+  'start.crisesOff': 'No world crises.',
+  'start.explore': 'Explore mode',
+  'start.exploreOn': 'Peaceful: no wars, raids or crises. Build, trade and read the story.',
+  'start.exploreOff': 'Off: wars and raids are part of the game.'
 };

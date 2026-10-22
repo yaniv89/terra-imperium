@@ -74,6 +74,11 @@ Decision of 2026-10-07:
 39. **One ruler per nation, never changing**, developed by the player in a new **Ruler** menu
     (attributes, costs and benefits): the design is `plans/RULER-PLAN.md` (phase RU), its open
     questions in its section 10.
+    Extended (differentiation U5 to U17, built): one ruler gets **decrees** (a bank on the ruler that
+    replaces the admin, diplomatic and military pools in every cost, src/engine/decrees.js),
+    **ambitions** (age goals, ambitions.js) and **renown** that feeds the Virtue tree; attribute caps
+    follow the nation's research age, not the calendar; the **legacy score** (legacy.js) ranks every
+    major at the one ending signal.
 
 ## 3. Contradictions between the plans, resolved
 

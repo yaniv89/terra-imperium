@@ -34,6 +34,7 @@ import { awardEraLegacy } from './eraGoals';
 import { createEmptyResourcePool } from '../data/resources';
 import { drawEvent } from './eventDeck';
 import { processCrises } from './crises';
+import { exploreOn } from './hostility';
 import { calcIncome, nextUnrest, getNationBonusTotal, getFieldedStrength } from '../utils/helpers';
 import { getRegionModifier, getModifier } from './modifiers/sheet';
 import { nextSiegeControlRegen, SIEGE_REGEN_COOLDOWN_TURNS } from './siege';
@@ -438,7 +439,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   Object.values(units).forEach(u => { if (u.ownerId === REBEL_OWNER_ID && !u.isInsurgent) rebelUnitIdByRegion[u.regionId] = u.id; });
   Object.entries(regions).forEach(([regionId, region]) => {
     const existingRebelId = rebelUnitIdByRegion[regionId];
-    if (region.unrest >= REBELLION_UNREST_THRESHOLD) {
+    if (region.unrest >= REBELLION_UNREST_THRESHOLD && !exploreOn(state)) { // explore mode: unrest never arms a rebel
       if (existingRebelId) {
         const rebel = units[existingRebelId];
         const turnsActive = newTurnNumber - (rebel.spawnedTurn ?? newTurnNumber);
@@ -833,7 +834,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     }
 
     const lowStabilityStreak = nextLowStabilityStreak(nations[nId], authorityRisksCivilWar({ ...state, regions, nations }, nId));
-    const shouldStart = (triggersCivilWar || isStabilityCivilWarTrigger(lowStabilityStreak)) && !inCivilWarCooldown(nations[nId], newTurnNumber) && !isIndependentNation(nations[nId]); // an independent has no civil wars (one city, no court)
+    const shouldStart = !exploreOn(state) && (triggersCivilWar || isStabilityCivilWarTrigger(lowStabilityStreak)) && !inCivilWarCooldown(nations[nId], newTurnNumber) && !isIndependentNation(nations[nId]); // an independent has no civil wars (one city, no court)
     if (shouldStart) {
       const started = startCivilWar(regions, units, nId, getFieldedStrength({ units }, nId), rng, newTurnNumber);
       if (started) {

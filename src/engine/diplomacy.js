@@ -205,6 +205,7 @@ export const declareWar = (state, nationId, opts = {}) => {
 
 const declareWarOnly = (state, nationId, { aggressor, goal = null } = {}) => {
   const nation = state.nations[nationId];
+  if (state.settings?.explore === true) return state; // explore mode: no wars (hostility.js exploreOn)
   if (!nation || nationId === aggressor || hasActiveWarBetween(state, nationId, aggressor)) return state;
   // Independents are never in state.wars (plans/independent-cities.md 6): they are fought without a
   // declaration (hostility.js canFight) and never declare one.

@@ -124,6 +124,13 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   Every tree is wood (W12): each 5-tile forest square is one wood node felled tree by tree (economySetup.js
   woodNodes, sim/economy.js fellTrees; stumps in render/treeFelling.js through fogMask.js), plus mirrored
   nodes scattered over the field (scatterPairs). Check with battle-lab nodeCount.sim.js and wood-shot.mjs.
+- Differentiation plan (plans/2026-10-20-002-feat-differentiation-plan.md; live: U1 to U33, U35, U38 to U41, U43; U36 built, off until the Supabase deploy (`CHALLENGES_ON` false); U34 parked; U42 and U44 wait on the user):
+  - Ruler: src/engine/rulers.js over src/data/rulers.js (one fixed ruler, attributes capped by the nation's research age), renown.js over rulerVirtues.js (renown, levels, five-branch Virtue tree), decrees.js over data/decrees.js (the ruler's bank of decrees replaces the old admin/diplomatic/military pools; every cost goes through src/utils/costs.js, data/actionCosts.js), ambitions.js over data/ambitions.js and ambitionsByPeople.js (age goals), UI in src/components/ruler/.
+  - Score and story: legacy.js (the one legacy score, ranks every major at the ending signal) over data/victoryConditions.js; chronicle.js (state.chronicle, one chapter per age) read by src/components/chronicle/ (sheet and share image); glossary src/data/glossary/ and src/components/glossary/ (tap a name for its entry; `useHoldHelp.js` opens one by holding `data-help="kind:id"`).
+  - Events: eventDeck.js (the one picker of the player's events; data/eventDeck/) and predicates.js (the shared test language of ambitions, the deck and crises); crises.js over data/crises.js (world crises from conditions, `state.settings.crises === 'off'` stops them).
+  - Battles: battleThreshold.js (small towns fall on Auto, no battle screen), battleOdds.js (auto range and reasons on the pre-battle card, data/autoParity.json), consequences.js (coalition and loyalty previews before an assault), data/battleCards.js (event-granted battle cards read by battleInputs.js), worker presets in battle/sim/economy.js, touch gestures in battle/input/gestures.js (draw a path, circle select), tutorial copy in tutorial.js.
+  - Proof: actionLog.js (a game is its start plus its actions) and macroVerify.js (replay to a state hash) are the base of challenges.js (weekly seeded challenge, supabase/ and the verify-challenges workflow, steps in plans/U36-DEPLOY.md). Async play is designed only: plans/ASYNC-MULTIPLAYER.md. Business model: plans/BUSINESS-MODEL.md.
+  - Explore mode (U43): `state.settings.explore` (start screen Rules step, RESET_GAME `explore`): `exploreOn` (hostility.js) makes `canFight` false for every pair, `declareWar` a no-op, and stops crises, rebels, civil wars and event uprisings. A new fight source must check it.
 - `src/components/`: React UI (panels, modals, globe, map, battle screens).
 - The flat map is one WebGL canvas (phase A2): `src/components/map/gl/GLMapView.jsx`. Territories,
   borders, hexes, fog and lens tints are one full-screen shader that finds each pixel's tile
@@ -141,6 +148,7 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
 ## Commands
 - `npm run lint` (zero warnings allowed), `npx vitest run`, `npm run build` (writes dist/, gitignored).
 - Fast local checks: `npm run test:quick` (skips the 17 slowest files listed in vitest.config.js, about 2 minutes), `npm run test:related -- <files>` (only tests that import them). CI runs the full suite on every push to claude/integration and main.
+- Tests of the differentiation plan (each next to its module in src/engine/): rulers, decrees, renown, ambitions, legacy, eventDeck, crises, chronicle, battleThreshold, battleOdds.range, consequences, macroVerify (also covers actionLog), challenges, exploreMode; UI models: src/components/ruler/rulerSheetModel.test.js, chronicle/chronicleModel.test.js, data/glossary/glossary.test.js.
 - e2e: `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/opt/pw-browsers/chromium npx playwright test`.
 - Battle sandbox in the browser: `npx vite`, then open `/?battleSandbox`.
 
