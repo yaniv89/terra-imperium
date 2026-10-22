@@ -29,7 +29,7 @@ import { invalidateRegionsCache } from '../data/regions';
 import { GameStatus, LogTypes } from '../data/types';
 import { speedCostMult, speedTrainMult, isAgeAtLeast, speedTurns } from '../data/ages';
 import { displayYear } from './displayYear';
-import { endingSignal } from './ending';
+import { endingSignal, nextDominance, dominanceHold } from './ending';
 import { awardEraLegacy } from './eraGoals';
 import { createEmptyResourcePool } from '../data/resources';
 import { drawEvent } from './eventDeck';
@@ -1235,6 +1235,16 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // One victory model (differentiation plan KD4): domination wins outright on any turn; otherwise
   // the one ending signal ranks every major once by legacy (score.js, legacy.js): 'Victory' if
   // the player ranks #1, else 'Game Complete, Rank N'.
+  // Dominance (ending.js): the streak is kept here, once a turn, before the signal reads it; a new
+  // leader's streak is announced with the turns it must hold.
+  if (!next.ending) {
+    const dominance = nextDominance(next);
+    if (dominance && dominance !== next.dominance) {
+      const id = dominance.nationId;
+      next.logs = [...next.logs, { year: newYear, ...msg(id === next.playerNationId ? 'm.turn.dominanceYou' : 'm.turn.dominance', { nation: people(id, next.nations[id]?.name || id), n: dominanceHold(next, id) }), type: LogTypes.MILESTONE }];
+    }
+    if (dominance !== (next.dominance ?? null)) next = { ...next, dominance };
+  }
   const ending = next.ending ? null : endingSignal(next);
   if (next.gameStatus === GameStatus.ACTIVE && !next.activeEventId && !next.activeProceduralEvent && !next.pendingPeaceOffer) {
     const conditionId = checkVictoryConditions(next);

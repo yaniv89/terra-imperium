@@ -793,6 +793,7 @@ export default {
   'legacy.noParts': 'אין נקודות עדיין. עמדו ביעדי תקופה והגשימו שאיפות.',
   'legacy.rivals': 'היריבות המובילות',
   'legacy.end.turnLimit': 'זמן המשחק נגמר.',
+  'legacy.end.dominance': '{name} שלטה בעולם במורשת, והמשחק נגמר מוקדם.',
   'legacy.end.futureGoal': '{name} השלימה את עידן העתיד.',
   'legacy.notYet': 'עדיין לא',
   'legacy.difficulty': 'רמת קושי (תיכנס לתוקף במשחק הבא)',

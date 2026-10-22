@@ -886,6 +886,18 @@ describe('resolveTurn victory', () => {
   // Plan §M18: reaching the turn limit is no longer an automatic win — it's a RANKED ending
   // by legacy (src/engine/score.js; the win itself: legacy.test.js): VICTORY only if the player
   // leads the world, GameStatus.COMPLETE (with finalRank) otherwise.
+  it('rank 8: a major that dominates in legacy for the hold ends the game early, ranked as usual', () => {
+    const base = withAllEventsFired({ ...world(), turnNumber: 600 });
+    const nations = { ...base.nations, [R1]: { ...base.nations[R1], eraGoals: { stone: { met: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] } } } };
+    const first = resolveTurn({ ...base, nations });
+    expect(first.dominance).toMatchObject({ nationId: R1 });
+    expect(first.ending).toBeUndefined();
+    const end = resolveTurn({ ...first, dominance: { nationId: R1, since: 0 } });
+    expect(end.ending).toEqual({ reason: 'dominance', nationId: R1 });
+    expect(end.gameStatus).toBe(GameStatus.COMPLETE);
+    expect(end.finalRank).toBeGreaterThan(1);
+  });
+
   it('ends as GameStatus.COMPLETE with a real finalRank when the player does NOT rank #1 at the turn limit', () => {
     const base = withAllEventsFired({ ...world(), turnNumber: speedTurnLimit('normal') - 1 });
     const regions = {};

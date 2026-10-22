@@ -792,6 +792,7 @@ export default {
   'legacy.rivals': 'Top rivals',
   'legacy.end.turnLimit': 'The game ran out of time.',
   'legacy.end.futureGoal': '{name} completed the Future Age.',
+  'legacy.end.dominance': '{name} dominated the world in legacy, and the game ended early.',
   'legacy.notYet': 'Not yet',
   'legacy.difficulty': 'Difficulty (takes effect on your next game)',
   'legacy.active': '(active)',

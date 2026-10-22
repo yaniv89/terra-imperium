@@ -41,7 +41,7 @@ const GameOverModal = ({ status, state, onReset, onContinue }) => {
   // not the old single-run "one number that goes up" tally.
   const ranked = rankNations(state);
   const legacy = legacyModel(state);
-  const endingText = state.ending?.reason === 'futureGoal' ? tNow('legacy.end.futureGoal', { name: nameNow('people', state.ending.nationId, state.nations[state.ending.nationId]?.name) }) : state.ending?.reason === 'turnLimit' ? tNow('legacy.end.turnLimit') : null;
+  const endingText = ['futureGoal', 'dominance'].includes(state.ending?.reason) ? tNow(`legacy.end.${state.ending.reason}`, { name: nameNow('people', state.ending.nationId, state.nations[state.ending.nationId]?.name) }) : state.ending?.reason === 'turnLimit' ? tNow('legacy.end.turnLimit') : null;
   const rank = isComplete ? (state.finalRank || ranked.findIndex(r => r.nationId === state.playerNationId) + 1) : null;
 
   const handleCopySummary = () => {
