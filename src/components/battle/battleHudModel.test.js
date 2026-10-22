@@ -40,6 +40,16 @@ describe('battle HUD model', () => {
     expect(cityAssaultView(hud, { ...setup, city: null })).toBeNull();
   });
 
+  it('a power you fire says so, with its price and cooldown (playtest 13)', () => {
+    const pw = (readyIn) => ({ id: 'arrowStorm', label: 'Arrow Storm', cost: 150, usesLeft: Infinity, readyIn });
+    const prev = { tick: 100, structures: [], squads: [sq(0)], powers: [pw(0)] };
+    const out = nextAlerts(prev, { ...prev, tick: 101, powers: [pw(1200)] }, 0, {});
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ kind: 'power', title: 'Arrow Storm called', detail: 'Cost 150 supply. Ready again in 60 s.' });
+    expect(nextAlerts({ ...prev, powers: [pw(1200)] }, { ...prev, tick: 102, powers: [pw(1180)] }, 0, {})).toHaveLength(0);
+  });
+
+
   it('alerts: a gate breached, a regiment shaken (never "routed"), enemy squads broke; two shown at most', () => {
     const prev = { tick: 100, structures: [st('keep'), st('gate')], squads: [sq(0), sq(1), sq(2, { side: 1 }), sq(3, { side: 1 })] };
     const cur = { tick: 120, structures: [st('keep', { hp: 40 }), st('gate', { alive: false })], squads: [sq(0, { morale: 15 }), sq(1, { routed: true }), sq(2, { side: 1, routed: true }), sq(3, { side: 1, routed: true })] };

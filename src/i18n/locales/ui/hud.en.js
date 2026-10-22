@@ -198,6 +198,8 @@ export default {
   'bt.alert.squadsHit.one': '{count} squad hit.',
   'bt.alert.squadsHit.two': '{count} squads hit.',
   'bt.alert.squadsHit.other': '{count} squads hit.',
+  'bt.alert.power': '{label} called',
+  'bt.alert.powerDetail': 'Cost {cost} supply. Ready again in {s} s.',
   'bt.alert.reinforcements': 'Enemy reinforcements',
   'bt.alert.reinfFrom.one': '{count} squad from {from}.',
   'bt.alert.reinfFrom.two': '{count} squads from {from}.',
