@@ -159,7 +159,7 @@ const defenceSheet = async (page, tag, shot) => {
   await page.waitForTimeout(1500);
   await shot('defence');
   const text = await page.getByTestId('defense-odds').getAttribute('title').catch(() => '');
-  check(`${tag} the defence sheet shows odds with a men-lost range`, /d+/.test(text || '') && /(Auto expects|צופה)/.test(text || ''), (text || '').slice(-170));
+  check(`${tag} the defence sheet shows odds with a men-lost range`, /[0-9]+/.test(text || '') && /(Auto expects|צופה)/.test(text || ''), (text || '').slice(-170));
 };
 
 const run = async (browser, viewport, lang) => {
