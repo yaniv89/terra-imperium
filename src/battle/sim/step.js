@@ -11,7 +11,7 @@ import { resolveAttacks, regenShields } from './combat';
 import { resolveStructureFire, updateAssimilation, updateCapturePoints, updateSupply, updateGarrisons, ASSIMILATION_TICKS } from './objectives';
 import { updateMorale, canRout } from './morale';
 import { updateFog } from './fog';
-import { updateEffects, processImpacts } from './effects';
+import { updateEffects, processImpacts, endHijack } from './effects';
 import { applySupplyAndAttrition } from './support';
 import { updateBuildings } from './buildings';
 import { updateEconomy, fireEcoTowers, countEcoLosses } from './economy';
@@ -174,6 +174,7 @@ export const step = (w, orders = []) => {
   updateAssimilation(w);
   countEcoLosses(w);
   checkEnd(w);
+  if (w.ended) w.squads.forEach((q) => { if (q.hijack) endHijack(q); }); // a hijacked squad ends the battle on its own side
   w.tick += 1;
   advanceHashChain(w); // every HASH_CHAIN_EVERY ticks (hash.js)
   return w;

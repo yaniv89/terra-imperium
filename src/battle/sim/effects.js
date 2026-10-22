@@ -15,6 +15,7 @@ import { moraleFromLosses } from './moraleMath';
 import { loseStrength } from './losses';
 import { generalsOf } from './squadLists';
 import { collapseFootprint } from './cityStructures';
+import { isAgeAtLeast } from '../../data/ages';
 
 // ---- general & perk abilities ----------------------------------------------------------------
 export const ABILITIES = {
@@ -120,6 +121,7 @@ export const updateEffects = (w) => {
     });
   }
   w.effects = w.effects.filter((e) => e.until > w.tick);
+  w.squads.forEach((q) => { if (q.hijack && q.hijack.until <= w.tick) endHijack(q); });
 };
 
 // ---- commander powers ----------------------------------------------------------------------
@@ -135,9 +137,33 @@ export const POWERS = {
   droneStrike: { label: 'Drone Strike', cost: 200, cooldown: S(45), impacts: 3, spread: Q, every: 6, radius: Math.round(1.2 * Q), damage: 140, structureMult: 1, delay: 10 },
   cyberJam: { label: 'Cyber Jam', cost: 200, cooldown: S(90), jam: S(12) },
   droneRecon: { label: 'Drone Recon', cost: 100, cooldown: S(60), reveal: S(15) },
+  // Future (eight-ages U68): Orbital Strike is one huge, slow blast; EMP stops the enemy's machines
+  // around the point (empTicks: vehicles and aircraft 5 seconds, robots 10); Hijack turns the enemy
+  // robot squad nearest the point to the caster's side for a while (never a human squad).
+  orbitalStrike: { label: 'Orbital Strike', cost: 400, cooldown: S(180), impacts: 1, radius: 4 * Q, damage: 300, structureMult: 3, delay: 60 },
+  emp: { label: 'EMP', cost: 250, cooldown: S(90), emp: { radius: 6 * Q, vehicle: S(5), robot: S(10) } },
+  hijack: { label: 'Hijack', cost: 300, cooldown: S(120), hijack: { radius: 5 * Q, duration: S(5) } },
   // The invasion fleet's guns (amphibious landings): they only reach the shore half of the field.
   navalBombardment: { label: 'Naval Bombardment', cost: 0, cooldown: S(40), impacts: 6, spread: 3 * Q, every: 8, radius: Math.round(1.6 * Q), damage: 100, structureMult: 2.5, delay: 30, reachFrac: 0.5 }
 };
+
+// The machines an EMP stops: from the Modern age on these classes are vehicles, guns and aircraft.
+const EMP_MACHINES = new Set(['cavalry', 'siege', 'air', 'support']);
+/** How long an EMP stops squad `q`: a robot (engine/robots.js) twice a vehicle's time, a soldier not at all. */
+export const empTicks = (q, emp) => (q.original?.robot ? emp.robot : isAgeAtLeast(q.ageId, 'modern') && EMP_MACHINES.has(q.classId) ? emp.vehicle : 0);
+/** Is the squad stopped by an EMP this tick? It neither moves nor fires. */
+export const isStunned = (w, q) => q.stunnedUntil > w.tick;
+/** The enemy robot squad on the field nearest (x, y) within `radius`, or null: Hijack's target. */
+export const hijackTarget = (w, side, x, y, radius) => {
+  let best = null; let bestD = radius * radius;
+  w.squads.forEach((q) => { if (q.side === side || !q.original?.robot || !isFighting(q) || q.hijack) return; const d = distSq(q.x, q.y, x, y); if (d <= bestD) { best = q; bestD = d; } });
+  return best;
+};
+/** A hijacked squad goes back to its own side (when its time is up, and at the battle's end before the result). */
+export const endHijack = (q) => { q.side = q.hijack.side; q.hijack = null; q.target = -1; q.targetKind = null; q.order = { type: 'idle' }; };
+
+/** Does the power land where the commander taps (a strike, an ambush, an EMP, a hijack)? */
+export const isTargetedPower = (id) => !!(POWERS[id]?.impacts || POWERS[id]?.hide || POWERS[id]?.emp || POWERS[id]?.hijack);
 
 /** How long a jammed side's orders wait (Cyber Jam): 3 seconds. */
 export const JAM_ORDER_DELAY = S(3);
@@ -157,6 +183,8 @@ export const firePower = (w, side, id, x, y) => {
   const p = POWERS[id];
   const st = powerState(w, side, id);
   if (!p || !st.available || st.usesLeft <= 0 || st.readyAt > w.tick || w.supply[side] < p.cost) return false;
+  const seized = p.hijack ? hijackTarget(w, side, Math.round(x), Math.round(y), p.hijack.radius) : null;
+  if (p.hijack && !seized) return false; // no enemy robot there: nothing is spent
   w.supply[side] -= p.cost;
   w.powerCooldowns[side][id] = w.tick + Math.round(p.cooldown * powerCooldownMult(w, side));
   w.powersUsed[side][id] = (w.powersUsed[side][id] || 0) + 1;
@@ -171,6 +199,16 @@ export const firePower = (w, side, id, x, y) => {
     return true;
   }
   if (p.jam) { w.jammedUntil[1 - side] = w.tick + p.jam; return true; }
+  if (p.emp) {
+    w.squads.forEach((q) => { const t = q.side !== side && isFighting(q) && distSq(q.x, q.y, Math.round(x), Math.round(y)) <= p.emp.radius * p.emp.radius ? empTicks(q, p.emp) : 0; if (t) q.stunnedUntil = Math.max(q.stunnedUntil ?? -1, w.tick + t); });
+    return true;
+  }
+  if (seized) {
+    seized.hijack = { side: seized.side, until: w.tick + p.hijack.duration };
+    seized.side = side; seized.target = -1; seized.targetKind = null; seized.order = { type: 'idle' };
+    w.events.push({ t: w.tick, type: 'hijacked', id: seized.idx });
+    return true;
+  }
   if (p.reveal) { if (w.revealUntil) w.revealUntil[side] = Math.max(w.revealUntil[side], w.tick + p.reveal); return true; }
   if (p.hide) { hideAround(w, side, Math.round(x), Math.round(y), p.hide.radius, w.tick + p.hide.duration); return true; }
   const maxX = p.reachFrac ? Math.floor(w.map.w * p.reachFrac) * Q : w.map.w * Q - 1;

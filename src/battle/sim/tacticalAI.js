@@ -8,7 +8,7 @@
 import { distSq, isqrt } from './fixed';
 import { isFighting, inRangeOfSquad } from './combat';
 import { canSeeSquad, isTileVisibleTo } from './fog';
-import { getSquadAbilities, powerState, POWERS } from './effects';
+import { getSquadAbilities, powerState, POWERS, empTicks } from './effects';
 import { canGarrison, garrisonRoom } from './objectives';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
 import { makeGrid, rebuildGrid } from './spatial';
@@ -106,9 +106,14 @@ const decidePowers = (w, side, cfg, mine, enemies, orders) => {
   const engaged = mine.some((q) => q.engaged);
   if (engaged && ready('cyberJam')) { orders.push({ side, type: 'power', power: 'cyberJam', x: 0, y: 0 }); return; }
   if (!engaged && ready('droneRecon')) { orders.push({ side, type: 'power', power: 'droneRecon', x: 0, y: 0 }); return; }
+  // Future (U68): turn an enemy robot once the lines meet.
+  const robot = engaged && ready('hijack') ? enemies.find((q) => q.original?.robot && !q.hijack) : null;
+  if (robot) { orders.push({ side, type: 'power', power: 'hijack', x: robot.x, y: robot.y }); return; }
   const cluster = densestEnemyCluster(w, side, enemies);
   if (!cluster) return;
-  const strike = ['airStrike', 'droneStrike', 'artilleryBarrage', 'arrowStorm'].find(ready);
+  // An EMP where the enemy's machines stand.
+  if (engaged && ready('emp') && enemies.some((q) => empTicks(q, POWERS.emp.emp) > 0)) { orders.push({ side, type: 'power', power: 'emp', x: cluster.x, y: cluster.y }); return; }
+  const strike = ['orbitalStrike', 'airStrike', 'droneStrike', 'artilleryBarrage', 'arrowStorm'].find(ready);
   if (strike && cluster.s >= 1200) orders.push({ side, type: 'power', power: strike, x: cluster.x, y: cluster.y });
 };
 

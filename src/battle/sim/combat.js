@@ -14,7 +14,7 @@ import { Q, SQUAD_RADIUS, SIDE_ATTACKER, TICK_HZ, secondsToTicks } from './const
 import { canSeeSquad } from './fog';
 import { razeBuilding } from './buildings';
 import { collapseFootprint } from './cityStructures';
-import { damageTakenMult, moraleLossMult, damageDealtMult, attackRateMult } from './effects';
+import { damageTakenMult, moraleLossMult, damageDealtMult, attackRateMult, isStunned } from './effects';
 import { moraleFromLosses } from './moraleMath';
 import { isShaken, SHAKEN_DAMAGE_DEALT, SHAKEN_DAMAGE_TAKEN } from './morale';
 import { destroyEcoBuilding, ecoTargetIndex } from './economy';
@@ -320,7 +320,7 @@ const structureTargetIndex = (w, q, radius) => {
 export const resolveAttacks = (w) => {
   w.squads.forEach((q) => {
     if (q.cooldown > 0) q.cooldown -= 1;
-    if (!canAttack(q) || q.target < 0) return;
+    if (!canAttack(q) || q.target < 0 || isStunned(w, q)) return; // an EMP stops a machine firing (effects.js)
     if (q.targetKind === 'squad') {
       const t = w.squads[q.target];
       // A target the player picked stays picked while it's still on the field, even if it slips

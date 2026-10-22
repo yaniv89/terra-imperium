@@ -9,7 +9,7 @@
 // picking and audio need no change. A buffer is never reused after it is sent: a view (and the
 // HUD's copy of one) may live for many frames, and a fresh 50 KB buffer costs nothing to make.
 import { canSeeSquad } from '../sim/fog';
-import { POWERS, powerState, getSquadAbilities } from '../sim/effects';
+import { POWERS, powerState, getSquadAbilities, isTargetedPower } from '../sim/effects';
 import { baseCount, hasBase } from '../sim/base';
 import { garrisonOf, garrisonRoom, GARRISON_SLOTS } from '../sim/objectives';
 import { ecoView, workCodes } from '../sim/economy';
@@ -68,7 +68,7 @@ export const createViewPacker = () => {
       fog: fog && w.fog ? w.fog[playerSide].slice() : null,
       powers: (w.setup.powers?.[playerSide] || []).map((p) => {
         const st = powerState(w, playerSide, p.id);
-        return { id: p.id, label: p.label || POWERS[p.id]?.label || p.id, cost: st.cost, usesLeft: st.usesLeft, readyIn: Math.max(0, st.readyAt - w.tick), targeted: !!(POWERS[p.id]?.impacts || POWERS[p.id]?.hide) };
+        return { id: p.id, label: p.label || POWERS[p.id]?.label || p.id, cost: st.cost, usesLeft: st.usesLeft, readyIn: Math.max(0, st.readyAt - w.tick), targeted: isTargetedPower(p.id) };
       }),
       structures: w.structures.map((s, si) => ({
         id: s.id, kind: s.kind, x: s.x, y: s.y, hp: s.hp, maxHp: s.maxHp, alive: s.alive, radius: s.radius,
