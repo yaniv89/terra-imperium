@@ -47,7 +47,7 @@ for (const w of list) {
   if (fs.existsSync(nm) && fs.lstatSync(nm).isSymbolicLink()) execFileSync('cmd', ['/c', 'rmdir', nm.replace(/\//g, '\\')]);
   // Any link left anywhere (a lane's own junction, a scratch base) would let `remove --force` delete through it.
   const link = findLink(w.wt);
-  if (fs.existsSync(nm) || link) { console.log('  link or node_modules still there, skip:', link || nm); continue; }
+  if (link) { console.log('  link still there, skip:', link); continue; }
   try { git('worktree', 'remove', '--force', w.wt); removed++; } catch (e) { console.log('  failed:', e.message.split('\n')[0]); }
 }
 if (go) { git('worktree', 'prune'); console.log('removed', removed); }
