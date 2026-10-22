@@ -4,7 +4,8 @@
 // and keeps its class, so every system that reads the class still works. What a robot changes:
 //   manpower    none to build (RECRUIT_UNIT drops the hr cost, no levy on the province) and none to
 //               refill (resolveTurn's reinforcement draws no hr for it)
-//   price       ROBOT_PRODUCTION_MULT x the unit's production cost (world/cities.js productionCost)
+//   price       ROBOT_PRODUCTION_MULT x the unit's production cost (world/cities.js productionCost),
+//               and x its gold when recruited outright (robotRecruitCost: the player and the AI)
 //               and the age's rare metals (economy.js getRecruitUnitCost, as every Future recruit)
 //   battle      power 72 / 54 (unitAgeWeight), no morale lost to hits or shocks (promotions.js
 //               getPromotionMoraleLossMultiplier, sim/morale.js), so it never routs or turns Shaken
@@ -17,12 +18,17 @@ import { isRobotUnlocked } from '../data/unitClasses';
 
 export const ROBOT_PRODUCTION_MULT = 1.4;
 export const ROBOT_OCCUPATION_LOYALTY = 2;
+// The AI (U72, aiProduction.js and aiLogic.js) keeps up to this share of its army robots, never a
+// city's lone defender, so every army keeps humans to hold what it takes.
+export const ROBOT_SHARE = 0.5;
+/** Is an army of `landUnits` with `robots` robots under its robot share? */
+export const wantsRobot = ({ robots = 0, landUnits = 0 }) => robots < ROBOT_SHARE * (landUnits + 1);
 
 export const isRobot = (unit) => !!unit?.robot;
 
-/** A recruit's cost for a robot: the same cost with no manpower. */
+/** A recruit's cost for a robot: no manpower, ROBOT_PRODUCTION_MULT the gold (a recruit bought outright). */
 export const robotRecruitCost = (costs) => {
-  const rest = { ...costs };
+  const rest = { ...costs, ...(costs.gold ? { gold: Math.round(costs.gold * ROBOT_PRODUCTION_MULT) } : {}) };
   delete rest.hr;
   return rest;
 };

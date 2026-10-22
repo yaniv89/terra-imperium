@@ -30,7 +30,8 @@
 import { getTiles } from '../data/geo/tiles';
 import { RESOURCES_ON_TILES, tileFacts, canImprove } from '../data/tileYields';
 import { BUILDING_CATEGORIES } from '../data/buildings';
-import { getAvailableClasses, getUnlockedClasses } from '../data/unitClasses';
+import { getAvailableClasses, getUnlockedClasses, isRobotUnlocked } from '../data/unitClasses';
+import { wantsRobot } from './robots';
 import { canQueue, productionCost } from './world/cities';
 import { bestSites, outpostsOf, outpostSlots, settlersOf } from './settlers';
 import { wonderOptions, wonderItem } from './wonders';
@@ -84,6 +85,8 @@ export const BORDER_DEFEND_UTILITY = 1.4;
 export const RESOURCE_IMPROVEMENT_UTILITY = { luxury: 1.3, strategic: 1.2, bonus: 1.0 };
 export const UNWORKED_IMPROVEMENT_MULT = 0.6;
 export const RANGED_SHARE = 0.25; // about a quarter of an army are archers: one per three foot (eight-ages plan U36)
+/** The unit orders to try, best first: each class's robot (when wanted and known), then its human unit. */
+export const unitChoices = (classes, robots, ageId, researched) => classes.flatMap((classId) => [...(robots && isRobotUnlocked(ageId, classId, researched) ? [{ kind: 'unit', classId, robot: true }] : []), { kind: 'unit', classId }]);
 export const AIR_SHARE = 0.15; // from Modern, about one aircraft (Information: strike drones) in seven; it stays at its city and flies to battles in range (airPower.js, U57)
 /** The building lines in the order a doctrine builds them, every line once (the template). */
 export const buildingOrder = (doctrine) => { const liked = DOCTRINE_BUILDING_PRIORITY[doctrine] || []; return [...liked.filter((c) => BUILDING_PRIORITY.includes(c)), ...BUILDING_PRIORITY.filter((c) => !liked.includes(c))]; };
@@ -93,12 +96,13 @@ export const BUILDING_PRIORITY = ['food', 'economy', 'culture', 'science', 'indu
  * scans of units and cities were the cost of the phase): { settlers, outposts, landUnits }. */
 export const nationCounts = (state) => {
   const out = {};
-  const of = (id) => (out[id] ||= { settlers: 0, outposts: 0, landUnits: 0, siege: 0, ranged: 0, air: 0, queuedUnits: 0 });
+  const of = (id) => (out[id] ||= { settlers: 0, outposts: 0, landUnits: 0, siege: 0, ranged: 0, air: 0, robots: 0, queuedUnits: 0 });
   Object.values(state.units || {}).forEach((u) => {
     if (!u.ownerId) return;
     if (u.classId === 'settler') { of(u.ownerId).settlers += 1; return; }
     if (u.domain !== 'land') return;
     const c = of(u.ownerId); c.landUnits += 1;
+    if (u.robot) c.robots += 1;
     if (u.classId === 'siege') c.siege += 1; else if (u.classId === 'ranged') c.ranged += 1; else if (u.classId === 'air') c.air += 1;
   });
   Object.values(state.regions || {}).forEach((c) => {
@@ -268,8 +272,8 @@ export const chooseProduction = (state, city, ctx) => {
       if (!independent && classes.includes('ranged') && (counts.ranged || 0) < RANGED_SHARE * (counts.landUnits + 1)) options.push('ranged');
       if (!independent && classes.includes('air') && (counts.air || 0) < AIR_SHARE * (counts.landUnits + 1)) options.push('air');
       options.push(mounted ? 'cavalry' : 'infantry');
-      for (const classId of options) {
-        const item = { kind: 'unit', classId };
+      const robots = !independent && score === usual && wantsRobot(counts);
+      for (const item of unitChoices(options, robots, ctx.ageId, ctx.researched)) {
         if (canQueue(city, tiles, world, item, ctx).ok && affordable(item)) { offer(item, score); break; }
       }
     }

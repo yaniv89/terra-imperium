@@ -236,8 +236,10 @@ export const siegeParty = (state, stack, at, fromCityId) => {
   const inOwnCity = state.regions[fromCityId]?.tile === at && state.regions[fromCityId]?.owner === stack[0]?.ownerId;
   if (!inOwnCity) return stack;
   if (stack.length < 2) return [];
-  // A siege engine never stays home as the garrison: the walls are what it is for.
-  const keep = [...stack].sort((a, b) => (a.classId === 'siege') - (b.classId === 'siege') || (a.strength || 0) - (b.strength || 0) || (a.id < b.id ? -1 : 1))[0];
+  // A siege engine never stays home as the garrison: the walls are what it is for. Nor does the
+  // party's only human beside robots: robots cannot hold what they take (robots.js, U72).
+  const lone = stack.filter((u) => !u.robot).length === 1 && stack.some((u) => u.robot);
+  const keep = [...stack].sort((a, b) => (a.classId === 'siege') - (b.classId === 'siege') || (lone && !a.robot) - (lone && !b.robot) || (a.strength || 0) - (b.strength || 0) || (a.id < b.id ? -1 : 1))[0];
   return stack.filter((u) => u !== keep);
 };
 

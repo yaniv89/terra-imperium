@@ -34,7 +34,9 @@ import { hasOpenDemand, hasStele } from '../engine/accords';
 import { canAnnex } from '../engine/stonePhase';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { decreesOf, spendDecree } from '../engine/decrees';
-import { UNIT_CLASSES, UNIT_CLASS_IDS, getUnlockedClasses } from '../data/unitClasses';
+import { UNIT_CLASSES, UNIT_CLASS_IDS, getUnlockedClasses, isRobotUnlocked } from '../data/unitClasses';
+import { wantsRobot } from '../engine/robots';
+import { isBound } from '../data/worldCongress';
 import { AE_COALITION_ROLL_SCALE, AE_COALITION_ROLL_CAP } from '../data/actionCosts';
 import { independenceChance } from '../engine/vassals';
 import { getEffectiveMilitaryPower, canAffordAIRecruit, applyAIRecruitCost } from '../engine/aiEconomy';
@@ -256,6 +258,8 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
   const logs = [];
   const standing = new Map(); // units per owner, kept with nextUnits (one walk instead of one per nation)
   Object.values(nextUnits).forEach((u) => standing.set(u.ownerId, (standing.get(u.ownerId) || 0) + 1));
+  const robotsOf = new Map(); // robots per owner (robots.js): up to ROBOT_SHARE of the army
+  Object.values(nextUnits).forEach((u) => { if (u.robot) robotsOf.set(u.ownerId, (robotsOf.get(u.ownerId) || 0) + 1); });
 
   Object.keys(nations).forEach(nationId => {
     const nation = nextNations[nationId];
@@ -274,6 +278,9 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
 
     const classId = chooseAIRecruitClass({ ...state, nations: nextNations }, nextUnits, nationId, ageId);
     if (!classId) return;
+    // Future (U72): a robot while the army is under its robot share and no ban binds it, if it can pay.
+    const robot = usesRealEconomy && isRobotUnlocked(ageId, classId, getResearched(state, nationId)) && !isBound(state, 'weaponsBan', nationId)
+      && wantsRobot({ robots: robotsOf.get(nationId) || 0, landUnits: standingCount }) && canAffordAIRecruit(nation, state, ageId, true);
     const regionId = chooseAIRecruitRegion(state, regions, nationId);
     if (!regionId) return;
 
@@ -286,10 +293,12 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
       strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1,
       xp: 0, rank: 'recruit', promotions: [], commanderId: null,
       transportCapacity: null, embarkedOn: null,
+      ...(robot ? { robot: true } : {}),
       ...(isIndependentNation(nation) ? {} : { ageId }) // a major's unit keeps its age (unitUpgrades.js)
     };
+    if (robot) robotsOf.set(nationId, (robotsOf.get(nationId) || 0) + 1);
     nextNations[nationId] = usesRealEconomy
-      ? applyAIRecruitCost(nation, state, ageId)
+      ? applyAIRecruitCost(nation, state, ageId, robot)
       : { ...nation, militaryStrength: nation.militaryStrength - AI_RECRUIT_MILITARY_STRENGTH_COST };
   });
 
