@@ -46,6 +46,7 @@ import { warBurdenInputs, warExhaustionRise } from './warBurden';
 import { isUnitInBattle } from './invasion';
 import { stampUnitAges, aiUpgradeUnits } from './unitUpgrades';
 import { isRobot } from './robots';
+import { isBound, AI_LIMITS_CAP } from '../data/worldCongress';
 import { automationOf, automationTarget, nextAutomation, isRioting, uprisingStarts, startUprising, AUTOMATION_RIOT_UNREST } from './automation';
 import { resolveWarProgress, refreshWarFlags } from './diplomacy';
 import { drainAutoBattles } from './battleQueue';
@@ -161,6 +162,7 @@ const runCitiesPhase = (state, newTurnNumber) => {
         ...forageCtx(nid ? getResearched(state, nid) : []), // no Agriculture: a size cap (hearths.js)
         ...stonePhaseCtx(state, nid), // the first cities: river food (stonePhase.js)
         ...rulerCityCtx(state.nations[nid]), // the ruler's yields and costs (lawRules.js)
+        ...(isBound(state, 'weaponsBan', nid) ? { noRobots: true } : {}), // the Autonomous Weapons Ban (worldCongress.js)
         // An independent's city: capped size, a small border, a garrison and buildings only (independents.js).
         ...(isIndependent(state.nations, nid) ? independentCityCtx(state, nid) : {})
       });
@@ -809,7 +811,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     }
 
     // Automation (automation.js): the meter steps toward its target; low stability riots, lower still the machines rise.
-    const automation = nextAutomation(automationOf(nations[nId]), automationTarget(robotsOf.get(nId) || 0, getResearched(state, nId)));
+    const automation = nextAutomation(automationOf(nations[nId]), Math.min(automationTarget(robotsOf.get(nId) || 0, getResearched(state, nId)), isBound(state, 'aiLimits', nId) ? AI_LIMITS_CAP : Infinity)); // AI Limits (worldCongress.js)
     if (automation !== automationOf(nations[nId])) nations[nId] = { ...nations[nId], automation };
     const rioting = isRioting(nations[nId]);
     if (rioting) Object.values(regions).forEach((c) => { if (c.owner === nId) regions[c.id] = { ...c, unrest: Math.min(100, (c.unrest || 0) + AUTOMATION_RIOT_UNREST) }; });

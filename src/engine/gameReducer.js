@@ -84,7 +84,8 @@ import {
 } from '../data/buildings';
 import { regionHasDeposit } from '../data/deposits';
 import { getUnlockedClasses, isRobotUnlocked } from '../data/unitClasses';
-import { robotRecruitCost } from './robots';
+import { robotRecruitCost, breakWeaponsBan } from './robots';
+import { isBound } from '../data/worldCongress';
 import { upgradeUnits, stampUnitAges } from './unitUpgrades';
 import {
   ACTION_COSTS, DISBAND_HR_REFUND_RATIO, FUND_SCHOLARS_TECHPOINTS,
@@ -1136,22 +1137,25 @@ const reduceAction = (state, action) => {
         ...(isNaval ? { navalLine } : {}),
         embarkedOn: null
       };
-      const recruitingNation = state.nations[state.playerNationId];
+      // A robot recruited under the Autonomous Weapons Ban breaks it (robots.js): the world remembers.
+      const banned = robot && isBound(state, 'weaponsBan', state.playerNationId);
+      const base = banned ? breakWeaponsBan(state, state.playerNationId) : state;
+      const recruitingNation = base.nations[state.playerNationId];
       return {
-        ...state,
+        ...base,
         resources: applyCosts(state.resources, costs),
         units: { ...state.units, [unitId]: newUnit },
         // Its men leave the fields and workshops of the province they're raised in.
         regions: isNaval || robot ? state.regions : levyUnit(state.regions, newUnit),
         nations: {
-          ...state.nations,
+          ...base.nations,
           // Every other reader of militaryStrength (AI tiering, coalition thresholds, a
           // destroy_military war goal against the player) needs it to actually reflect the
           // player's real recruited army, not sit frozen at its game-start value forever.
           [state.playerNationId]: { ...recruitingNation, militaryStrength: (recruitingNation.militaryStrength || 0) + newUnit.strength }
         },
         nextUnitSeq: state.nextUnitSeq + 1,
-        logs: [...state.logs, { year: state.year, ...msg('m.act.recruited', { unit: thing('unitClass', classId, classId), city: cityRef(regionId, REGIONS_DATA[regionId]?.name) }), type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.recruited', { unit: thing('unitClass', classId, classId), city: cityRef(regionId, REGIONS_DATA[regionId]?.name) }), type: LogTypes.ACTION }, ...(banned ? [{ year: state.year, ...msg('m.act.brokeWeaponsBan'), type: LogTypes.DIPLOMACY }] : [])]
       };
     }
 
@@ -2864,7 +2868,7 @@ const reduceAction = (state, action) => {
         item = wonderItem(raw.projectId, raw.tier || 1, raw.tile ?? can.tile);
       }
       const world = { cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} };
-      const ok = canQueue(city, getTiles(), world, item, { researched: Object.keys(state.techTree || {}).filter((t) => state.techTree[t]?.researched), ageId: ageOf(state, state.playerNationId) });
+      const ok = canQueue(city, getTiles(), world, item, { researched: Object.keys(state.techTree || {}).filter((t) => state.techTree[t]?.researched), ageId: ageOf(state, state.playerNationId), noRobots: isBound(state, 'weaponsBan', state.playerNationId) });
       if (!ok.ok) return reject(state, whyOf(ok));
       // One order per building tier and per tile improvement: a second tap says so instead of
       // paying for the same thing twice (playtest audits I045).

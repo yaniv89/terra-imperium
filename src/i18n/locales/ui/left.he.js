@@ -79,6 +79,7 @@ export default {
   'm.why.claimRange': 'מחוץ להישג: תביעה דורשת שהגבול שלכם יהיה בטווח {n} אריחים מהעיר.',
   'm.why.tierOrder': 'דרגות נבנות לפי הסדר.',
   'm.why.needsTech': 'דורש טכנולוגיה.',
+  'm.why.weaponsBan': 'איסור הנשק האוטונומי שחתמת עליו אוסר רובוטים חדשים.',
   'm.why.needsCoast': 'דורש חוף ים.',
   'm.why.notThisAge': 'לא זמין בעידן הזה.',
   'm.why.upgradeNeedsTech': 'דורש {tech}.',

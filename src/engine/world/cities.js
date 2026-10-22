@@ -408,7 +408,7 @@ export const hasSeaCoast = (tiles, city) => !!city && tiles.coastal[city.tile] =
 // Independents research nothing (research.js runs majors only): `techFree` (independentCityCtx)
 // keeps what they built before the tech unlocks, every unit and the Stone and Bronze building tiers.
 const INDEPENDENT_FREE_BEFORE_AGE = 'classical';
-export const canQueue = (city, tiles, world, item, { researched = [], ageId = FIRST_AGE_ID, techFree = false } = {}) => {
+export const canQueue = (city, tiles, world, item, { researched = [], ageId = FIRST_AGE_ID, techFree = false, noRobots = false } = {}) => {
   switch (item.kind) {
     case 'building': {
       const current = city.buildings?.categories?.[item.category] ?? -1;
@@ -423,6 +423,7 @@ export const canQueue = (city, tiles, world, item, { researched = [], ageId = FI
       if (item.classId === 'naval' && item.navalLine && !navalLinesFor(ageId).includes(item.navalLine)) return { ok: false, ...reasonOf('m.why.notThisAge') };
       if (!getAvailableClasses(ageId).includes(item.classId)) return { ok: false, ...reasonOf('m.why.notThisAge') };
       if (!canBuildRobot(item, ageId, researched)) return { ok: false, ...reasonOf('m.why.needsTech') }; // robots (robots.js): Autonomous Warfare
+      if (item.robot && noRobots) return { ok: false, ...reasonOf('m.why.weaponsBan') }; // the Autonomous Weapons Ban (worldCongress.js)
       return techFree || item.explorer || isUnitUnlocked(ageId, item.classId, researched) ? { ok: true } : { ok: false, ...reasonOf('m.why.needsTech') }; // scouts need no tech
     case 'improvement': {
       if (!city.tiles.includes(item.tile)) return { ok: false, ...reasonOf('m.why.notCityLand') };

@@ -3,7 +3,7 @@
 // the host, the members, the next vote and its proposal, how the vote stands now with the
 // player's choice (the same tally the vote will run), the player's weight, the sanctions in force
 // and the last votes. Null while no Congress has met. Pure.
-import { congressMembers, tallyVote, voteWeight } from '../../engine/worldCongress';
+import { congressMembers, tallyVote, voteWeight, isCouncil } from '../../engine/worldCongress';
 import { CONGRESS_TECH } from '../../data/worldCongress';
 
 export const RECORD_SHOWN = 5;
@@ -19,6 +19,8 @@ export const worldCongressModel = (state) => {
   const forecast = proposal ? tallyVote(state, members, proposal, wc.hostId, member ? wc.playerVote : null) : null;
   return {
     hostId: wc.hostId,
+    council: isCouncil(state, wc.hostId), // the Planetary Council (U71)
+    binds: (wc.binds || []).filter((b) => b.nationId === me && b.untilTurn > turn).map((b) => ({ id: b.id, untilTurn: b.untilTurn })),
     members,
     member,
     joinTech: CONGRESS_TECH,

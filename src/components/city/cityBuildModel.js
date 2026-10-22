@@ -113,7 +113,7 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
   [city.production?.current, ...(city.production?.queue || [])].filter(Boolean).forEach((i) => inQueue.set(itemKey(i), (inQueue.get(itemKey(i)) || 0) + 1));
   const out = [];
   const add = (item, group, extra = {}) => {
-    const check = extra.ok === undefined ? canQueue(city, tiles, world, item, { researched, ageId }) : { ok: extra.ok, reason: extra.reason };
+    const check = extra.ok === undefined ? canQueue(city, tiles, world, item, { researched, ageId, noRobots: ctx.noRobots }) : { ok: extra.ok, reason: extra.reason };
     const quote = buildQuote(state, cityId, item, live);
     const queued = inQueue.get(extra.key || itemKey(item)) || 0;
     out.push({

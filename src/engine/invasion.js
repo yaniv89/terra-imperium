@@ -25,6 +25,7 @@ import { touchesCity, unitTile, unitsWithinRings, REINFORCE_RINGS } from './armi
 import { atSea, touchesCoastOf } from './fleets';
 import { LANDING_ATTACK_MULT } from '../battle/setup/battleType';
 import { ageOf, getResearched } from './nationState';
+import { isBound } from '../data/worldCongress';
 import { sideAgeOf } from './ageRefs';
 import { commandGenerals } from '../data/generals';
 
@@ -72,7 +73,8 @@ export const getBattlePowers = (state, nationId, ageId, units = []) => {
     out.push({ id: 'cyberJam' }, { id: 'droneRecon' });
   }
   if (isAgeAtLeast(ageId, 'future')) {
-    out.push({ id: 'orbitalStrike' }, { id: 'emp' });
+    if (!isBound(state, 'orbitalDemilitarisation', nationId)) out.push({ id: 'orbitalStrike' }); // the Planetary Council (worldCongress.js)
+    out.push({ id: 'emp' });
     if (state && nationId && getResearched(state, nationId).includes(HIJACK_TECH)) out.push({ id: 'hijack' });
   }
   return out;

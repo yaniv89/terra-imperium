@@ -79,6 +79,7 @@ export default {
   'm.why.claimRange': 'Out of reach: a claim needs your border within {n} tiles of the city.',
   'm.why.tierOrder': 'Tiers are built in order.',
   'm.why.needsTech': 'Needs a technology.',
+  'm.why.weaponsBan': 'The Autonomous Weapons Ban you signed forbids new robots.',
   'm.why.needsCoast': 'Needs a sea coast.',
   'm.why.notThisAge': 'Not available in this age.',
   'm.why.upgradeNeedsTech': 'Needs {tech}.',
