@@ -25,7 +25,7 @@ import { canAnnex } from './stonePhase';
 import { sideAgeOf } from './ageRefs';
 import { getRegionModifier } from './modifiers/sheet';
 import { unitsWithinRings, nearestHeldCity, REINFORCE_RINGS } from './armies';
-import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier, SIEGE_CONTROL_DAMAGE } from './siege';
+import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier } from './siege';
 import { applyBattleOutcome, makeBattleOutcome } from './battleOutcome';
 import { commandGenerals } from '../data/generals';
 
@@ -220,33 +220,6 @@ export const resolveDefenseAuto = (state, defId, { from = null } = {}) => {
 
 export const resolveAllDefensesAuto = (state) =>
   (state.pendingDefenses || []).reduce((s, d) => resolveDefenseAuto(s, d.id), state);
-
-// A quick preview for the Under-Attack sheet: how often the garrison holds (the assault does less
-// than half the damage it could) and the average control it would lose, from `samples`
-// auto-resolved runs. The attackers are marching at you in plain sight, so no intel is needed.
-export const estimateDefenseOdds = (state, def, samples = 40) => {
-  const armies = getDefenseArmies(state, def);
-  if (!armies.attackerUnits.length) return { undefended: false, holdChance: 1, avgDamage: 0 };
-  let before = null;
-  let held = 0; let damage = 0; let hpAfter = 0; let city = null;
-  for (let i = 0; i < samples; i++) {
-    const battle = autoResolveDefense(state, { ...def, seed: (def.seed + i * 0x9e3779b1) >>> 0 });
-    // An empty city (cityAssault.js): it holds unless this attack brings its HP to 0.
-    if (battle.report?.cityAttack) {
-      city = battle.report.cityAttack; hpAfter += city.hpAfter;
-      if (!city.falls) held++;
-      continue;
-    }
-    before = before || { attacker: sumStrength(armies.attackerUnits), defender: sumStrength(armies.defenderUnits) + sumStrength(battle.inputs.militia) };
-    const p = getAssaultPressure(battle, before);
-    // On Auto a garrison is fought first and the city is never taken (garrisonFirst): it holds
-    // unless the garrison is beaten.
-    if (p < 0.5) held++;
-    damage += SIEGE_CONTROL_DAMAGE.attacker * p;
-  }
-  if (city) return { undefended: true, holdChance: held / samples, avgDamage: null, city: { hpBefore: city.hpBefore, hpAfter: Math.round(hpAfter / samples), maxHp: city.maxHp } };
-  return { undefended: false, holdChance: held / samples, avgDamage: Math.round(damage / samples) };
-};
 
 // ---- Withdrawing instead of fighting -----------------------------------------------------------
 

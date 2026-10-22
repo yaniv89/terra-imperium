@@ -14,9 +14,11 @@ const NAME_KINDS = new Set(['people', 'city', 'person', 'place', 'battle']);
 const dataKey = (r) => (r.k === 'age' ? `age.${r.id}` : `${r.k}.${r.id}.name`);
 
 // Events: evt.<id>.title and evt.<id>.opt<N> (data/he.events.js); an option's id is "<eventId>.<index>".
+// A drawn event's id is `p:<templateId>`: its texts are pevt.<templateId>.*.
+const eventBase = (id) => (String(id).startsWith('p:') ? `pevt.${String(id).slice(2)}` : `evt.${id}`);
 const eventKey = (r) => {
-  if (r.k === 'event') return `evt.${r.id}.title`;
-  if (r.k === 'eventOption') { const i = String(r.id).lastIndexOf('.'); return i > 0 ? `evt.${String(r.id).slice(0, i)}.opt${String(r.id).slice(i + 1)}` : null; }
+  if (r.k === 'event') return `${eventBase(r.id)}.title`;
+  if (r.k === 'eventOption') { const i = String(r.id).lastIndexOf('.'); return i > 0 ? `${eventBase(String(r.id).slice(0, i))}.opt${String(r.id).slice(i + 1)}` : null; }
   return null;
 };
 
@@ -27,7 +29,8 @@ export const refName = (r, lang) => {
   if (r.id != null && hasKey(dataKey(r), 'en')) return translate(dataKey(r), null, lang);
   const ek = eventKey(r);
   if (ek && hasDataText(ek)) return dataText(ek, r.en, null, lang);
-  if (r.id != null && hasDataText(`${r.k}.${r.id}`)) return dataText(`${r.k}.${r.id}`, r.en, null, lang);
+  const dk = `${r.k === 'unitClass' ? 'uclass' : r.k}.${r.id}`; // a unit class is `uclass.<id>` in the data tables
+  if (r.id != null && hasDataText(dk)) return dataText(dk, r.en, null, lang);
   return r.en;
 };
 

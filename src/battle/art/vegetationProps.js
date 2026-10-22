@@ -87,6 +87,7 @@ export class VegetationProps {
     const height = (obj) => Math.max(1e-6, obj.box.max.y - obj.box.min.y);
     const sizeScale = species.map((row, i) => row.map((obj) => (obj ? height(obj) / height(base[i]) : 1)));
     const levels = base.map((obj) => [this.level(obj, 0), this.level(obj, 1), this.level(obj, 2, FAR_CROWN_SCALE)]);
+    levels.forEach((row) => row.forEach((l) => this.r.canopyFade?.apply(l.material))); // the crowns fade over your squads (canopyFade.js)
     const lean = base.map((obj) => leanOf(obj.box)); // null, or the way the crown stands off the foot
     const wind = windYaw(this.r.setup?.seed ?? 0);
     const all = [];

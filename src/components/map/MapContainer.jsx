@@ -37,6 +37,7 @@ import Map2DContainer from './Map2DContainer';
 import RegionChooser from './RegionChooser';
 import MarchBar from './MarchBar';
 import MarchAttackPrompt from './MarchAttackPrompt';
+import PreBattleModal from '../battle/PreBattleModal';
 import { MarchProvider, useMarch } from './MarchContext';
 import { getTiles } from '../../data/geo/tiles';
 import MapModeToggle from './MapModeToggle';
@@ -88,6 +89,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const marchCtx = useMarch();
   const marching = !!marchCtx?.march && !marchCtx.march.dragging;
   const [selectedTile, setSelectedTile] = useState(null);
+  const [fieldAttack, setFieldAttack] = useState(null); // { from, tile }: the card of an attack picked on a tile's sheet
   const [selectedArmy, setSelectedArmy] = useState(null);
   const [unitPick, setUnitPick] = useState(null); // { tile, unitId }: the unit of a tile's stack that shows (one model per tile, tileStack.js)
   const [selectedNation, setSelectedNation] = useState(null); // the nation sheet (NationSheet.jsx)
@@ -278,7 +280,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
       />
       )}
       {/* Closing the site sheet keeps the settle mode (its bar stays): I086. */}
-      {selectedTile != null && (stacking || !selectedRegion) && <TileSheet tile={selectedTile} onClose={() => setSelectedTile(null)} onSelectRegion={onSelectRegion} settleUnitId={settleUnitNow?.id || null} onSettle={startSettle} />}
+      {selectedTile != null && (stacking || !selectedRegion) && <TileSheet tile={selectedTile} onClose={() => setSelectedTile(null)} onAttack={setFieldAttack} onSelectRegion={onSelectRegion} settleUnitId={settleUnitNow?.id || null} onSettle={startSettle} />}
       {selectedArmy != null && (stacking || !selectedRegion) && selectedTile == null && <ArmySheet tile={selectedArmy} unitId={unitPick?.tile === selectedArmy ? unitPick.unitId : null} onCycleUnit={cycleUnitPick} onClose={() => setSelectedArmy(null)} onSelectRegion={onSelectRegion} />}
       {selectedNation && !selectedRegion && selectedTile == null && selectedArmy == null && <NationSheet nationId={selectedNation} onClose={() => setSelectedNation(null)} onSelectRegion={onSelectRegion} />}
       <div className={`absolute start-[calc(var(--city-rail-w,0px)+0.75rem)] ${lensOpen ? 'z-20' : 'z-10'} flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.75rem)] lg:bottom-3 pl:bottom-3 pl:start-[max(var(--safe-start),0.75rem)]`} data-map-hud="group">
@@ -293,6 +295,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
       <MarchBar />
       {settleView && !marching && <SettleBar model={settleBarModel(state, settle, sites, selectedTile)} onNext={goNextSite} onCancel={() => setSettle(null)} />}
       <MarchAttackPrompt />
+      {fieldAttack && <PreBattleModal fromRegionId={fieldAttack.from} tile={fieldAttack.tile} onClose={() => setFieldAttack(null)} />}
       <RegionChooser choice={tapChoice} onPick={(id) => { setTapChoice(null); onSelectRegion(id); }} onClose={() => setTapChoice(null)} />
 
       <MapModal

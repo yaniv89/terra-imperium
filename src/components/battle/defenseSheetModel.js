@@ -15,6 +15,7 @@ import { isNoMansLand } from '../../engine/hostility';
 import { t } from '../../i18n/core';
 import { nameNow } from '../../i18n/names';
 import { agreed, msgRefText } from './battleText';
+import { rangeLine } from './preBattleModel';
 import { armyView, battleSize, cityWallsView } from './warModel';
 
 const OURS = { defense: 'garrison', field: 'army', naval: 'fleet', raid: 'troops', sack: 'town', intercept: 'fleet', landing: 'garrison' };
@@ -61,6 +62,9 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
   const odds = v.odds?.undefended
     ? { undefended: true, hold, text: c ? t('bt.def.noDefendUndefended', { a: c.hpBefore, b: c.hpAfter, max: c.maxHp, likely: hold < 0.5 ? t('bt.def.likelyFalls') : '', pct }) : t('bt.def.noRegiment') }
     : { undefended: false, hold, text: t(attacking ? 'bt.def.autoWins' : 'bt.def.autoHolds', { pct, avg: city && v.odds?.avgDamage != null ? t('bt.def.avgLost', { n: v.odds.avgDamage }) : '', note: city && !attacking ? t('bt.def.garrisonFirst') : '' }), verdict: attacking ? (hold >= 0.65 ? t('bt.pre.likelyWin') : hold >= 0.35 ? t('bt.def.vClose') : t('bt.pre.likelyLoss')) : (hold >= 0.65 ? t('bt.def.vLikelyHold') : hold >= 0.35 ? t('bt.def.vClose') : t('bt.def.vLikelyLost')) };
+  // The same range the attack card shows, seen from the attacker like every odds: flipped to read as yours when you defend.
+  const r = v.odds?.range;
+  const range = r ? rangeLine({ range: attacking ? r : { win: [1 - r.win[1], 1 - r.win[0]], attackerMen: r.defenderMen, defenderMen: r.attackerMen } }) : null;
   const plural = /[^s]s$/.test(enemyShort);
   const verb = KIND_VERB[kind] ? KIND_VERB[kind][plural ? 0 : 1] : plural ? 'attack' : 'attacks';
   const withdrawTo = city && fallbackId ? nameNow('city', null, state.regions?.[fallbackId]?.name || fallbackId) : null;
@@ -102,6 +106,6 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
     noMansLand,
     commandBlocked,
     command: `${militiaOnly ? t('bt.def.commandMilitia', { place }) : ''}${city ? t('bt.def.commandCity', { cap: size.cap, walls: walls?.level ? t('bt.def.wallsFight') : '', houses: walls?.houses ?? 0, housing: walls?.housing ?? 0, min: size.minutes }) : t('bt.def.commandField', { cap: size.cap, min: size.minutes })}`,
-    auto: t('bt.def.autoText', { odds: odds.text })
+    auto: `${t('bt.def.autoText', { odds: odds.text })}${range ? ` ${range}` : ''}`
   };
 };

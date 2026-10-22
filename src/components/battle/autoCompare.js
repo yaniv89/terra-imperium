@@ -2,8 +2,7 @@
 // B08's Auto comparison: how often the honest auto-resolve wins the battle you just commanded,
 // for you, with the same armies, from the campaign state as it stood when the battle began (the
 // outcome is applied only when you press Continue). Read only, the engine's own estimators.
-import { estimateInvasionOdds, estimateLandingOdds, estimateFieldOdds, estimateFleetOdds } from '../../engine/battleOdds';
-import { estimateDefenseOdds } from '../../engine/defense';
+import { estimateInvasionOdds, estimateLandingOdds, estimateFieldOdds, estimateFleetOdds, estimateDefenseOdds } from '../../engine/battleOdds';
 import { queuedBattleView } from '../../engine/battleQueue';
 
 const SAMPLES = 40;

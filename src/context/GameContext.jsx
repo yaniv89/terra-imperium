@@ -6,6 +6,7 @@
 
 import React, { createContext, useContext, useReducer, useCallback, useEffect, useMemo, useState, useRef, useSyncExternalStore } from 'react';
 import { ActionTypes, LogTypes } from '../data/types';
+import { msg, thing } from '../engine/messages';
 import { ACHIEVEMENTS, checkAchievements } from '../data/achievements';
 import { loadMeta, saveMeta } from '../utils/metaProgression';
 // The reducer + initial-state factory now live in src/engine/gameReducer.js (Phase F, plan §10) so
@@ -275,7 +276,7 @@ export const GameProvider = ({ children }) => {
     newlyUnlocked.forEach(id => {
       reducerDispatch({
         type: ActionTypes.ADD_LOG,
-        payload: { message: `Achievement unlocked: ${ACHIEVEMENTS[id].name}`, type: LogTypes.MILESTONE }
+        payload: { ...msg('m.act.achievement', { name: thing('ach', id, ACHIEVEMENTS[id].name) }), type: LogTypes.MILESTONE }
       });
     });
   }, [state, meta]);

@@ -40,6 +40,14 @@ describe('engine messages', () => {
     const m = msg('m.turn.defeat');
     expect(carry(m)).toEqual({ message: m.message, msgKey: 'm.turn.defeat' });
   });
+  it('the log writes a drawn event, a unit class and battle damage in Hebrew (leftover bugs, 22 Oct)', () => {
+    const ev = msg('m.world.eventChoice', { event: thing('event', 'p:comet', 'A Comet in the Sky'), option: thing('eventOption', 'p:comet.0', 'Let the watchers of the sky read it') });
+    expect(logText(ev, 'he')).not.toMatch(LATIN);
+    const unit = msg('m.act.recruited', { unit: thing('unitClass', 'naval', 'naval'), city: cityRef('x', 'Kish') });
+    expect(logText(unit, 'he')).not.toMatch(/naval/);
+    const dmg = msg('m.battle.cityMarked', { city: cityRef('x', 'Kish'), damage: sub('m.battle.dmgLeft', { count: 3, turns: 5 }) });
+    expect(logText(dmg, 'he')).not.toMatch(/repairing/);
+  });
   it('data names fall back to English until their tables exist', () => {
     expect(msgText('m.act.reformEnacted', { reform: thing('reform', 'moon', 'Moon Landing') }, 'en')).toBe('Enacted the Moon Landing reform.');
   });

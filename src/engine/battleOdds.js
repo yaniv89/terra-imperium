@@ -11,6 +11,7 @@ import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, valid
 import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs } from './fieldBattle';
 import { validateFleetAttack, getFleetBattleContext, getFleetResolveArgs } from './navalBattle';
 import { resolveSiegeControlDamage, hasMeleeUnitDeployed, isGarrisonBroken } from './siege';
+import { getDefenseArmies, getDefenseBattleContext } from './defense';
 import { cityFell } from './capture';
 import { getCounterMultiplier, getRosterCombatMultiplier } from '../data/unitClasses';
 import { getTerrainCombatModifier } from '../data/terrain';
@@ -64,7 +65,7 @@ export const autoParityOf = (kind) => parity[kind] || null;
 
 // Runs the real auto-resolve + siege rule `samples` times for an attack described by `v`
 // ({ attackerUnits, defenderUnits, targetRegion }) with resolveBattle `args` and context `ctx`.
-const simulate = (state, v, args, ctx, samples, spec) => {
+export const simulate = (state, v, args, ctx, samples, spec) => {
   const inputs = battleInputs(state, { attackerUnits: args.attackerUnits, defenderUnits: args.defenderUnits, cityId: spec.kind === 'field' || spec.kind === 'naval' ? null : spec.cityId, fromRegionId: spec.fromRegionId, naval: spec.kind === 'naval' });
   const attStart = sumStrength(v.attackerUnits); const defStart = sumStrength(inputs.defenderUnits); // the militia stand with the garrison
   const tally = { attacker: 0, defender: 0, stalemate: 0 };
@@ -153,7 +154,29 @@ export const estimateFleetOdds = (state, fromTile, tile, samples = 200) => {
   return { ...r, capture: r.attacker, field: true, naval: true };
 };
 
-export const estimateLandingOdds = (state, navalUnitId, targetRegionId, samples = 200) => {
+/**
+ * The Under-Attack sheet's odds for a city assault on the player, from the same `simulate` as the
+ * attack card (200 runs, `range`). `holdChance` is the garrison holding (an empty city: not falling),
+ * `avgDamage` the average control lost, `range` seen from the attacker like every odds.
+ */
+export const estimateDefenseOdds = (state, def, samples = 200) => {
+  const armies = getDefenseArmies(state, def);
+  if (!armies.attackerUnits.length) return { undefended: false, holdChance: 1, avgDamage: 0 };
+  const ctx = getDefenseBattleContext(state, def);
+  const region = state.regions[def.regionId];
+  const args = { ...armies, terrain: ctx.terrain, isAttackingFortification: ctx.isAttackingFortification, generals: ctx.generals, attackerAgeId: ctx.attackerAgeId, defenderAgeId: ctx.defenderAgeId, defenderDamageReductionMultiplier: ctx.defenderDamageReductionMultiplier };
+  const r = simulate(state, { ...armies, targetRegion: region }, args, ctx, samples, { kind: 'defense', cityId: def.regionId, fromRegionId: def.fromRegionId });
+  const empty = r.autoRule === 'attack';
+  return {
+    undefended: empty,
+    holdChance: 1 - (empty ? r.capture : r.attacker),
+    avgDamage: empty ? null : Math.max(0, Math.round((region.control ?? 0) - r.expectedControl)),
+    city: r.city && { hpBefore: r.city.hpBefore, hpAfter: r.city.hpAfter, maxHp: r.city.maxHp },
+    range: r.range
+  };
+};
+
+export const estimateLandingOdds =(state, navalUnitId, targetRegionId, samples = 200) => {
   const v = validateAmphibious(state, navalUnitId, targetRegionId, { ignoreCost: true });
   if (!v.ok) return null;
   const ctx = getAmphibiousBattleContext(state, v, v.defenderLandUnits);

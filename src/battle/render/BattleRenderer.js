@@ -33,6 +33,7 @@ import { zonePerimeter } from './deployZone';
 import { CityLayer, CITY_KINDS } from './cityLayer';
 import { EconomyLayer } from './economyLayer';
 import { TreeFelling } from './treeFelling';
+import { createCanopyFade, canopyHoles } from './canopyFade';
 import { FogMask } from './fogMask';
 import { VegetationProps } from '../art/vegetationProps';
 import { dressStructure, fortRef, CivicStructures } from '../art/structureArt';
@@ -85,6 +86,7 @@ const BANNER_MIN_ZOOM = 0.6; // zoomed further out only generals and the selecti
 const FAR_MARK_PX = 10;      // soldiers shorter than this on screen: every squad gets its side's disc (I218)
 const FAR_MARK_MIN_PX = 26;  // ...at least this wide on screen
 const WRECK_SMOKE_LIFE = 3.5; // seconds a wreck's smoke puff takes to rise and fade (X27)
+const CANOPY_RADIUS = 2.6; // tiles around a selected or fighting squad where crowns and roofs fade
 const BAR_MIN_ZOOM = 0.7;    // strength bars of fighting squads from this zoom in
 const tmp = new Object3D();
 const ORDER_DASHES = 48; // dashes per order target line at most
@@ -277,6 +279,7 @@ export class BattleRenderer {
     this.scene.environmentIntensity = 0.45;
     this.soldierDepth = this.track(createSoldierDepthMaterial());
 
+    this.canopyFade = createCanopyFade(); // trees and roofs over your selected and fighting squads fade (canopyFade.js)
     this.buildTerrain();
     this.buildProps();
     this.buildStructures();
@@ -530,10 +533,11 @@ export class BattleRenderer {
     // the whole field had bounds covering everything and drew every tree every frame.
     this.fogMask = new FogMask(w, h); // props on ground never seen stay hidden (fogMask.js)
     const propMeshes = {}; // kind -> its chunk meshes (the vegetation kit swaps their geometry in)
-    const place = (list, geo, { color = '#ffffff', shadow = true, scaleFn = (s0) => [s0, s0, s0], tint = 0.25, kind = null } = {}) => {
+    const place = (list, geo, { color = '#ffffff', shadow = true, scaleFn = (s0) => [s0, s0, s0], tint = 0.25, kind = null, fade = false } = {}) => {
       if (!list.length) return;
       this.track(geo);
       const mat = this.track(new MeshLambertMaterial({ color, vertexColors: !!geo.attributes.color }));
+      if (fade) this.canopyFade.apply(mat);
       const chunks = new Map();
       list.forEach((item, i) => {
         const key = `${Math.floor(item[0] / PROP_CHUNK)},${Math.floor(item[1] / PROP_CHUNK)}`;
@@ -587,8 +591,8 @@ export class BattleRenderer {
       painted(new IcosahedronGeometry(0.38, 0).translate(-0.25, 0.9, -0.2), dry ? '#83903f' : '#5a9440')
     ]);
     pine.computeVertexNormals(); oak.computeVertexNormals();
-    place(pines, pine, { scaleFn: (s0) => [s0, s0 * (1.1 + (s0 % 0.2)), s0], kind: 'pine' });
-    place(oaks, oak, { scaleFn: (s0) => [s0 * 1.1, s0, s0 * 1.1], kind: 'oak' });
+    place(pines, pine, { scaleFn: (s0) => [s0, s0 * (1.1 + (s0 % 0.2)), s0], kind: 'pine', fade: true });
+    place(oaks, oak, { scaleFn: (s0) => [s0 * 1.1, s0, s0 * 1.1], kind: 'oak', fade: true });
     place(rocks, new DodecahedronGeometry(0.5, 0).translate(0, 0.18, 0), { color: winter ? '#a3a7a8' : '#7d7a70', scaleFn: (s0, i) => [s0, s0 * (0.5 + hash01(i) * 0.4), s0 * (0.8 + hash01(i * 3) * 0.4)], kind: 'rock' });
     const tuft = mergeGeometries([
       painted(new ConeGeometry(0.035, 0.2, 3, 1, true).rotateZ(0.25).translate(0.04, 0.09, 0), dry ? '#b3aa6a' : '#7da347'),
@@ -608,7 +612,7 @@ export class BattleRenderer {
       painted(new BoxGeometry(0.16, 0.3, 0.02).translate(0, 0.15, 0.41), '#4a3322')
     ]);
     house.computeVertexNormals();
-    place(houses, house, { scaleFn: (r) => [0.95, 0.8 + r * 0.9, 0.95] });
+    place(houses, house, { scaleFn: (r) => [0.95, 0.8 + r * 0.9, 0.95], fade: true });
   }
 
   buildStructures() {
@@ -1360,6 +1364,8 @@ export class BattleRenderer {
     const barBgMat = this.barBg.instanceMatrix.array; const barFillMat = this.barFill.instanceMatrix.array; const barFillCol = instanceColors(this.barFill);
     const farMarks = this.soldierPx() < FAR_MARK_PX;
     const farMarkR = (FAR_MARK_MIN_PX / 2) * this.worldPerPixel();
+    // The ground the player's selected and fighting squads stand on: trees and roofs over it fade (canopyFade.js).
+    this.canopyFade.set(canopyHoles(cur.squads, selected, cur.playerSide).map((s) => ({ x: s.x / Q, z: s.y / Q, r: CANOPY_RADIUS })));
     cur.squads.forEach((s) => {
       const memo = this.soldierMemo.get(s.idx);
       // Wiped out on the field: every soldier still standing last frame falls at once.
