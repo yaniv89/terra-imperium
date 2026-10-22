@@ -100,11 +100,54 @@ const fieldCard = async (page, tag, errors, shot) => {
   await wait(300);
 };
 
+// 4: a gift to a major, in several states. Either the 100 gold is taken, or the button says why not.
+const GIFT_CASES = {
+  peace: (s) => s,
+  war: (s, me, other) => ({ ...s, wars: [...s.wars, { id: 'war_gift', aggressor: other, enemy: me, active: true, startYear: s.year, startTurn: s.turnNumber, battleScore: 0 }], nations: { ...s.nations, [other]: { ...s.nations[other], isAtWar: true }, [me]: { ...s.nations[me], isAtWar: true } } }),
+  lowGold: (s) => ({ ...s, resources: { ...s.resources, gold: 60 } }),
+  exactGold: (s) => ({ ...s, resources: { ...s.resources, gold: 100 } }),
+  pact: (s, me, other) => ({ ...s, nations: { ...s.nations, [other]: { ...s.nations[other], hasMilitaryPact: true, hasTradeAgreement: true, relationStatus: 'allied' } } }),
+  lateTurn: (s) => ({ ...s, turnNumber: 40, resources: { ...s.resources, gold: 400 } })
+};
+const giftCases = async (page, tag, shot, phone) => {
+  const rail = page.getByTestId('landscape-rail');
+  for (const [name, patch] of Object.entries(GIFT_CASES)) {
+    await page.evaluate(([n, fn]) => {
+      const s = window.__game.state; const me = s.playerNationId;
+      const other = s.nations.israel && me !== 'israel' ? 'israel' : Object.keys(s.nations).find((id) => id !== me && !s.nations[id].isEliminated && s.nations[id].kind !== 'independent' && s.nations[id].name);
+      window.__giftOther = other;
+      const patch = new Function('s', 'me', 'other', 'return (' + fn + ')(s, me, other)');
+      window.__game.dispatch({ type: 'LOAD_GAME', payload: patch({ ...s, wars: s.wars.filter((w) => w.id !== 'war_gift'), research: { ...s.research, auto: true }, resources: { ...s.resources, gold: 1000 } }, me, other) });
+    }, [name, patch.toString()]);
+    await wait(500);
+    await page.evaluate(async () => { (await import('/terra-imperium/src/components/panels/panelEvents.js')).closePanels(); });
+    await wait(400);
+    await click((phone ? rail : page).getByRole('button', { name: /^(Peoples|עמים)$/ }).first());
+    await wait(900);
+    await shot('people-' + name);
+    await click(page.getByRole('button', { name: /^(More actions|עוד פעולות)/ }).first()).catch(() => {});
+    await wait(300);
+    const gift = page.getByRole('button', { name: /^(Gift|מתנה)/ }).first();
+    const found = await gift.count();
+    const g0 = await page.evaluate(() => window.__game.state.resources.gold);
+    const disabled = found ? ((await gift.getAttribute('aria-disabled')) === 'true' || await gift.isDisabled().catch(() => false)) : null;
+    if (found) await click(gift);
+    await wait(500);
+    const g1 = await page.evaluate(() => window.__game.state.resources.gold);
+    const note = await page.getByTestId('why-tip').textContent().catch(() => '');
+    check(`${tag} gift (${name}): gold ${g0} -> ${g1}`, (name === 'war' && !found) || found > 0 && (g0 - g1 === 100 || (g0 === g1 && disabled)), `button ${found ? (disabled ? 'disabled' : 'enabled') : 'missing'}${note ? ', says: ' + note : ''}`);
+    await shot('gift-' + name);
+    await page.keyboard.press('Escape');
+    await wait(300);
+  }
+};
+
 const run = async (browser, viewport, lang) => {
   const tag = `${viewport.width}x${viewport.height}-${lang}`;
   const { ctx, page, errors } = await start(browser, viewport, lang);
   const shot = (name) => page.screenshot({ path: path.join(OUT, `${tag}-${name}.jpg`), type: 'jpeg', quality: 60 });
   if (!ONLY || ONLY === 'field') await fieldCard(page, tag, errors, shot);
+  if (!ONLY || ONLY === 'gift') await giftCases(page, tag, shot, viewport.width < 900);
   check(`${tag} no page errors`, !errors.length, errors.join('; ').slice(0, 400));
   await ctx.close();
 };

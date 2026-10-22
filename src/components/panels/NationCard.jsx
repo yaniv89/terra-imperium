@@ -72,12 +72,17 @@ const DIPLOMACY_EFFECT_BY_ACTION = {
 // "broken" on mobile (no hover tooltip to explain why, and no tap ever reaches onClick). `looksDisabled`
 // is styling only — onClick still fires, and callers are expected to explain the block via addLog
 // (dispatchIfAffordable already does for cost; a few callers add their own reason on top).
-const IconButton = ({ icon: Icon, label, onClick, disabled: looksDisabled, title }) => (
-  <button type="button" onClick={onClick} title={title} className={`fa-chip gap-1.5 ${looksDisabled ? 'opacity-55' : ''}`}>
-    <Icon size={13} aria-hidden="true" />
-    {label}
-  </button>
-);
+// `blocked` (a reason): the tap only says why, in a bubble on the button (a notice at the card's top was out of sight on a phone).
+const IconButton = ({ icon: Icon, label, onClick, disabled: looksDisabled, title, blocked }) => {
+  const [why, bubble] = useWhy();
+  return (
+    <button type="button" title={title} {...why(!!blocked, blocked, onClick)} className={`fa-chip gap-1.5 ${looksDisabled || blocked ? 'opacity-55' : ''}`}>
+      <Icon size={13} aria-hidden="true" />
+      {label}
+      {bubble}
+    </button>
+  );
+};
 
 // A main action as a tile (W07): what it is and, below, its price or the answer they would give.
 // "Would refuse" draws a dashed danger border; the tile still reacts and explains. `blocked` (a
@@ -367,7 +372,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
                 onClick={() => (answer.reason ? say(reasonText(answer)) : dispatchIfAffordable(ActionTypes.DEMAND, ACTION_COSTS.demand, { kind, cityId: claimed?.id || null }))} />
             );
           })}
-          <IconButton icon={Gift} label={t('nc.gift', { cost: costLine(ACTION_COSTS.giftBribe) })} title={t('nc.giftTitle')} disabled={!canPay(state, ACTION_COSTS.giftBribe)} onClick={() => dispatchIfAffordable(ActionTypes.GIFT_BRIBE, ACTION_COSTS.giftBribe)} />
+          <IconButton icon={Gift} label={t('nc.gift', { cost: costLine(ACTION_COSTS.giftBribe) })} title={t('nc.giftTitle')} blocked={canPay(state, ACTION_COSTS.giftBribe) ? null : t('nc.notEnough', { list: shortfallLine(walletOf(state), ACTION_COSTS.giftBribe) })} onClick={() => dispatchIfAffordable(ActionTypes.GIFT_BRIBE, ACTION_COSTS.giftBribe)} />
           <IconButton icon={Eye} label={t('nc.espionage', { cost: costLine(ACTION_COSTS.espionage) })}
             title={t('nc.espionageTitle', { n: ESPIONAGE_TECH_POINTS_STOLEN, p: Math.round(ESPIONAGE_SUCCESS_CHANCE * 100), t: INTEL_DURATION_TURNS })}
             disabled={!canPay(state, ACTION_COSTS.espionage)} onClick={() => dispatchIfAffordable(ActionTypes.ESPIONAGE, ACTION_COSTS.espionage)} />
