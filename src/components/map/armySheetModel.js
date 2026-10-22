@@ -11,6 +11,7 @@ import { getTiles } from '../../data/geo/tiles';
 import { getUnitDefinition, UNIT_CLASSES, ROBOT_VARIANTS } from '../../data/unitClasses';
 import { regimentName } from '../../data/regimentNames';
 import { unitTile, movePoints, aboardShip } from '../../engine/armies';
+import { unitTagText } from '../../i18n/unitTags';
 import { supplyOf, supplyZone, supplyReport, SUPPLY_MAX, SUPPLY_LINE_RINGS, SUPPLY_LINE_LOSS, ROAD_LINE_BONUS, STARVE_STRENGTH, STARVE_MORALE } from '../../engine/supplyMeter';
 import { isFortified } from '../../engine/fieldBattle';
 import { getModifier } from '../../engine/modifiers/sheet';
@@ -118,6 +119,7 @@ export const armySheetModel = (state, tile, fleet = false) => {
     name: u.explorer ? t('mx.army.scouts') : ((en) => regimentLabel(regimentName(state.nations[u.ownerId], u, en), state.nations[u.ownerId]?.people, u.robot ? robotUnitName(u.classId) : naval ? navalShipName(navalLineOf(u), uAge, en) : unitRosterName(uAge, u.classId, en), u.regiment))(u.robot ? ROBOT_VARIANTS[u.classId] : nameAt(uAge, u)),
     cargo: naval ? Object.values(state.units).filter((c) => c.embarkedOn === u.id).length : 0,
     classId: u.classId,
+    tag: naval ? null : unitTagText(u.ownerId, uAge, u.classId), // the signature tag and the age's matchups (rank 16)
     navalLine: naval ? navalLineOf(u) : null,
     army: u.army?.name || null,
     armyId: u.army?.id || null,

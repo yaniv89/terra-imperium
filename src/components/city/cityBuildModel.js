@@ -17,6 +17,7 @@ import { reasonText } from '../../i18n/messageText';
 import { t as tNow, dataText } from '../../i18n/core';
 import { unitName as unitDisplayName } from '../../i18n/gameText';
 import { robotUnitName, unitClassRole, navalLineRole, buildingTierName, buildingCategoryLabel, wonderName, wonderDescription, techName, improvementName, terrainWord, tileResourceName } from '../../i18n/gameText';
+import { unitTagText } from '../../i18n/unitTags';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { getAvailableClasses, isUnitUnlocked, isRobotUnlocked, unitUnlockTech, UNIT_CLASSES } from '../../data/unitClasses';
 import { IMPROVEMENTS, tileFacts, canImprove } from '../../data/tileYields';
@@ -138,7 +139,7 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
       if (coast) navalLinesFor(ageId).forEach((navalLine) => add({ kind: 'unit', classId, navalLine }, 'Units', { fields: { detail: unitClassRole('naval', UNIT_CLASSES.naval?.role) || null, ...lock } }));
       return;
     }
-    add({ kind: 'unit', classId }, 'Units', { fields: { detail: unitClassRole(classId, UNIT_CLASSES[classId]?.role) || null, ...lock } });
+    add({ kind: 'unit', classId }, 'Units', { fields: { detail: unitClassRole(classId, UNIT_CLASSES[classId]?.role) || null, tag: unitTagText(city.owner, ageId, classId), ...lock } }); // the signature tag and the age's matchups (rank 16)
     // Its robot variant (robots.js): listed once Autonomous Warfare is known.
     if (isRobotUnlocked(ageId, classId, researched)) add({ kind: 'unit', classId, robot: true }, 'Units', { fields: { detail: tNow('cy.robotDetail') } });
   });

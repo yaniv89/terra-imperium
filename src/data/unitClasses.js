@@ -86,11 +86,22 @@ export const CORE_TRIANGLE_CLASS_IDS = ['infantry', 'cavalry', 'ranged'];
 const COUNTER_BONUS_MULT = 1.75; // +75% damage
 const COUNTER_PENALTY_MULT = 0.6; // -40% damage
 
+// Matchups of one age that differ from the triangle's x1.75 / x0.6 (the AoE and Civ report's rank 16,
+// AoE's pikeman against knights): 'attacker>defender' -> multiplier, read by the unit's own age.
+export const COUNTER_OVERRIDES = {
+  kingdoms: { 'infantry>cavalry': 2.2 },  // pikemen against knights
+  modern: { 'ranged>cavalry': 1 },        // anti-tank teams: riflemen no longer lose to tanks
+  information: { 'ranged>cavalry': 1 }
+};
+
 // The generic class-vs-class multiplier. Siege's fortification/open-field multiplier is handled
-// separately by getSiegeMultiplier below, since it isn't a class matchup.
-export const getCounterMultiplier = (attackerClassId, defenderClassId) => {
+// separately by getSiegeMultiplier below, since it isn't a class matchup. `ageId`: the attacker's
+// age, for COUNTER_OVERRIDES.
+export const getCounterMultiplier = (attackerClassId, defenderClassId, ageId = null) => {
   const attacker = UNIT_CLASSES[attackerClassId];
   if (!attacker) return 1;
+  const override = ageId ? COUNTER_OVERRIDES[ageId]?.[`${attackerClassId}>${defenderClassId}`] : undefined;
+  if (override != null) return override;
   if (attacker.beats.includes(defenderClassId)) return COUNTER_BONUS_MULT;
   if (attacker.losesTo.includes(defenderClassId)) return COUNTER_PENALTY_MULT;
   return 1;

@@ -229,6 +229,27 @@ export const signatureUnitFor = (peopleId, ageId, classId, table = SIGNATURE_UNI
   return late && late.classId === classId ? late : null;
 };
 
+// Rules (the AoE and Civ report's rank 16): a signature unit fights with one tag, +25% damage
+// (SIGNATURE_EDGE) against one class. An entry's own `tag` wins; else its role and rig pick it:
+// camels and spear, pike or lance infantry break horse; other infantry runs down archers; ranged
+// troops stand off horse; the mobile and the other roles break infantry.
+export const SIGNATURE_EDGE = 1.25;
+export const SIGNATURE_TAGS = Object.freeze({ vsCavalry: 'cavalry', vsInfantry: 'infantry', vsRanged: 'ranged' });
+export const signatureTagOf = (e) => {
+  if (!e) return null;
+  if (e.tag) return e.tag;
+  if (e.rig === 'camel' || (e.classId === 'infantry' && /spear|pike|lance|halberd/i.test(e.name || ''))) return 'vsCavalry';
+  if (e.classId === 'infantry') return 'vsRanged';
+  if (e.classId === 'ranged') return 'vsCavalry';
+  return 'vsInfantry';
+};
+/** The edge `unit` (its owner is a people: nation ids are people slugs) has on `target`: SIGNATURE_EDGE
+ * when it is its people's signature unit of its age and tagged against the target's class, else 1. */
+export const signatureEdge = (unit, target, ageId) => {
+  const tag = signatureTagOf(signatureUnitFor(unit.ownerId, unit.ageId || ageId, unit.classId));
+  return tag && SIGNATURE_TAGS[tag] === target.classId ? SIGNATURE_EDGE : 1;
+};
+
 /** The soldier layer key a signature unit draws under (beside the base `classId`). */
 export const signatureKey = (classId, peopleId) => `${classId}~${peopleId}`;
 /** The base class of a soldier layer key ('infantry~mari' -> 'infantry'). */

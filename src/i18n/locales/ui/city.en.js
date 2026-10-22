@@ -78,6 +78,8 @@ export default {
   'cy.settlerMin': 'The city must reach size {n} first',
   'cy.robotDetail': 'A robot: no manpower, never loses heart, costs 40% more. Cannot hold a taken city without a human unit.',
   'cy.scoutDetail': 'Cheap, fast and unarmed. Explores free land and meets other peoples; eats no supplies.',
+  'unit.tag.signature': 'Signature: +{pct}% vs {vs}',
+  'unit.tag.counter': 'This age: x{mult} vs {vs}',
   'cy.armyDetail': 'Built one unit at a time; each joins the army as it is trained.',
   'cy.alreadyQueued': 'Already in the queue',
   'cy.aTechnology': 'a technology',
