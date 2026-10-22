@@ -812,7 +812,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     }
 
     // Automation (automation.js): the meter steps toward its target; low stability riots, lower still the machines rise.
-    const automation = nextAutomation(automationOf(nations[nId]), Math.min(automationTarget(robotsOf.get(nId) || 0, getResearched(state, nId)), isBound(state, 'aiLimits', nId) ? AI_LIMITS_CAP : Infinity)); // AI Limits (worldCongress.js)
+    const target = Math.min(automationTarget(robotsOf.get(nId) || 0, getResearched(state, nId)), isBound(state, 'aiLimits', nId) ? AI_LIMITS_CAP : Infinity); // AI Limits (worldCongress.js)
+    const automation = nextAutomation(automationOf(nations[nId]), target);
     if (automation !== automationOf(nations[nId])) nations[nId] = { ...nations[nId], automation };
     const rioting = isRioting(nations[nId]);
     if (rioting) { // the owner's cities, indexed once a turn on the first riot
@@ -823,7 +824,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       nations[nId] = { ...nations[nId], automationRiots: rioting };
       if (rioting && nId === state.playerNationId) logs.push({ year: newYear, ...msg('m.turn.automationRiots'), type: LogTypes.CRISIS });
     }
-    const uprising = uprisingStep(nations[nId], nId, newTurnNumber, inCivilWarCooldown(nations[nId], newTurnNumber), speedTurns(UPRISING_WARNING_REF_TURNS, state.gameSpeed, ageOf(state, nId)));
+    const uprising = uprisingStep(nations[nId], nId, newTurnNumber, inCivilWarCooldown(nations[nId], newTurnNumber), speedTurns(UPRISING_WARNING_REF_TURNS, state.gameSpeed, ageOf(state, nId)), target);
     if (uprising.warning !== undefined) nations[nId] = { ...nations[nId], uprisingWarning: uprising.warning || undefined };
     if (uprising.event && nId === state.playerNationId) logs.push({ year: newYear, ...msg(uprising.event === 'warned' ? 'm.turn.uprisingWarning' : 'm.turn.uprisingAverted', { count: uprising.warning ? uprising.warning.at - newTurnNumber : 0, automation: AUTOMATION_UPRISING_AT, stability: AUTOMATION_UPRISING_STABILITY }), type: LogTypes.CRISIS });
     if (uprising.rise) {

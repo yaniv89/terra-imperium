@@ -57,19 +57,21 @@ export const automationYields = (nation) => {
 
 export const isRioting = (nation) => automationOf(nation) >= AUTOMATION_RIOT_AT && (nation.stability || 0) <= AUTOMATION_RIOT_STABILITY;
 
-/** Are the machines a danger now (automation high, stability low)? */
-export const inUprisingDanger = (nation) => automationOf(nation) >= AUTOMATION_UPRISING_AT && (nation.stability || 0) <= AUTOMATION_UPRISING_STABILITY;
+/** Are the machines a danger now (automation high, stability low)? `target`: the meter's target, so
+ * robots disbanded count at once though the meter itself falls AUTOMATION_STEP a turn. */
+export const inUprisingDanger = (nation, target = Infinity) => Math.min(automationOf(nation), target) >= AUTOMATION_UPRISING_AT && (nation.stability || 0) <= AUTOMATION_UPRISING_STABILITY;
 
 /**
  * One turn of the uprising rule: { warning, event, rise }. `warning` is the nation's next
  * uprisingWarning (undefined: unchanged, null: cleared); `event` 'warned' or 'averted' for the log;
  * `rise` true when the warning ran out with the danger still standing. A seeded roll, no RNG stream.
- * `warnTurns`: speedTurns(UPRISING_WARNING_REF_TURNS) at the nation's age.
+ * `warnTurns`: speedTurns(UPRISING_WARNING_REF_TURNS) at the nation's age; `target`: the meter's target.
  */
-export const uprisingStep = (nation, nationId, turn, coolingDown, warnTurns) => {
-  const danger = !nation.civilWar?.active && !coolingDown && inUprisingDanger(nation);
+export const uprisingStep = (nation, nationId, turn, coolingDown, warnTurns, target = Infinity) => {
+  const threat = inUprisingDanger(nation, target);
+  const danger = !nation.civilWar?.active && !coolingDown && threat;
   const w = nation.uprisingWarning;
-  if (w) return !danger ? { warning: null, event: 'averted' } : turn >= w.at ? { warning: null, rise: true } : { warning: undefined };
+  if (w) return !danger ? { warning: null, ...(threat ? {} : { event: 'averted' }) } : turn >= w.at ? { warning: null, rise: true } : { warning: undefined }; // averted: only when the player acted
   if (danger && hashRoll(`uprising|${nationId}|${turn}`) < AUTOMATION_UPRISING_CHANCE) return { warning: { since: turn, at: turn + warnTurns }, event: 'warned' };
   return { warning: undefined };
 };

@@ -53,6 +53,8 @@ describe('the automation meter', () => {
     expect(uprisingStep(warned, 'x', t0 + 6, false, 6)).toEqual({ warning: null, rise: true });
     expect(uprisingStep({ ...warned, stability: 0 }, 'x', t0 + 6, false, 6)).toEqual({ warning: null, event: 'averted' });
     expect(uprisingStep({ ...warned, automation: AUTOMATION_UPRISING_AT - 1 }, 'x', t0 + 3, false, 6)).toEqual({ warning: null, event: 'averted' });
+    expect(uprisingStep({ ...warned, automation: 100 }, 'x', t0 + 3, false, 6, AUTOMATION_UPRISING_AT - 1)).toEqual({ warning: null, event: 'averted' }); // robots disbanded: the target counts at once
+    expect(uprisingStep(warned, 'x', t0 + 3, true, 6)).toEqual({ warning: null }); // a cool-down, not the player: no averted notice
   });
 });
 
@@ -83,7 +85,7 @@ describe('the Machine Uprising', () => {
   it('the player is warned with a chip; the robots rise only when the warning runs out', () => {
     const quiet = { ...base, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
     const turn = quiet.turnNumber || 1;
-    const warned = (at) => ({ ...quiet, units: { ...quiet.units, r1: robot('r1'), r2: robot('r2') }, nations: { ...quiet.nations, [me]: { ...quiet.nations[me], automation: 100, stability: -3, uprisingWarning: { since: turn, at } } } });
+    const warned = (at) => ({ ...quiet, units: { ...quiet.units, ...Object.fromEntries([...Array(15).keys()].map((k) => [`r${k}`, robot(`r${k}`)])) }, nations: { ...quiet.nations, [me]: { ...quiet.nations[me], automation: 100, stability: -3, uprisingWarning: { since: turn, at } } } });
     expect(nextPrompts(warned(turn + 3)).find((p) => p.kind === 'uprising')).toMatchObject({ tab: 'domestic' });
     const waiting = resolveTurn(warned(turn + 3));
     expect(waiting.nations[me].civilWar?.active).toBeFalsy();
