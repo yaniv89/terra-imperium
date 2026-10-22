@@ -542,7 +542,7 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
             currentWar = { ...currentWar, battleScore: recordBattle(currentWar, currentWar.aggressor, captured ? 0.3 : 0.15) };
             // The fighting devastates the province and wears the losing defender down (aftermath.js).
             nextRegions = devastateRegion(nextRegions, currentWar.goal.regionId, captured ? 0.3 : 0.15);
-            nextNations = applyBattleWarExhaustion(nextNations, currentWar.aggressor, currentWar.enemy, captured ? 0.3 : 0.15);
+            nextNations = applyBattleWarExhaustion(nextNations, currentWar.aggressor, currentWar.enemy, captured ? 0.3 : 0.15, targetRegion.owner ?? null); // fought at the target city
             logs.push(captured
               ? { ...msg('m.diplo.conquers', { nation: people(currentWar.aggressor, updatedAggressor.name), city: regionRef(currentWar.goal.regionId), from: people(currentWar.enemy, updatedDefender.name) }), type: 'combat' }
               : { ...msg('m.diplo.breaksThrough', { nation: people(currentWar.aggressor, updatedAggressor.name), city: regionRef(currentWar.goal.regionId), control: nextControl }), type: 'combat' });

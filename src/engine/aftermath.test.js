@@ -81,6 +81,16 @@ describe('war exhaustion and commanders', () => {
     expect(applyBattleWarExhaustion({ a: { warExhaustion: 99 } }, null, 'a', 1).a.warExhaustion).toBe(100);
   });
 
+  it('a side fighting on ground it does not own takes x1.5 (rank 10)', () => {
+    const nations = { a: { warExhaustion: 0 }, b: { warExhaustion: 0 } };
+    const home = applyBattleWarExhaustion(nations, 'a', 'b', 0.5, 'b'); // on b's land: a abroad
+    expect(home.a.warExhaustion).toBe(1.5);
+    expect(home.b.warExhaustion).toBe(8);
+    const nobody = applyBattleWarExhaustion(nations, 'a', 'b', 0.5, null);
+    expect(nobody.b.warExhaustion).toBe(12);
+    expect(applyBattleWarExhaustion(nations, 'a', 'b', 0.5).b.warExhaustion).toBe(8); // ground not known: no rule
+  });
+
   it('a destroyed unit\'s commander either falls or escapes unassigned, deterministically', () => {
     const hired = { g1: { name: 'Hannibal', assignedUnitId: 'u1' } };
     const once = resolveCommanderCasualties(hired, [{ id: 'u1', commanderId: 'g1' }], 5);
