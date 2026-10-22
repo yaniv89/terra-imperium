@@ -31,7 +31,7 @@ export const RESOLUTIONS = {
   // The Planetary Council's (U71): `binds` the signers (worldCongress.binds), each until its own turn.
   orbitalDemilitarisation: { id: 'orbitalDemilitarisation', name: 'Orbital Demilitarisation', description: 'No signer may call an Orbital Strike in battle.', binds: true },
   aiLimits: { id: 'aiLimits', name: 'AI Limits', description: 'Every signer keeps its automation at 40 or under.', binds: true },
-  weaponsBan: { id: 'weaponsBan', name: 'Autonomous Weapons Ban', description: 'No signer builds new robot units for 25 turns. Breaking it angers the world.', binds: true }
+  weaponsBan: { id: 'weaponsBan', name: 'Autonomous Weapons Ban', description: 'No signer builds or recruits new robot units for 25 turns.', binds: true }
 };
 
 // How an AI member votes (eight-ages plan U57): a score of the opinion it holds (of the host, or

@@ -17,8 +17,8 @@
 // The Planetary Council (eight ages U71): while the host knows Planetary Federation the rotation is
 // COUNCIL_ORDER, adding Orbital Demilitarisation (no Orbital Strike: invasion.js getBattlePowers),
 // AI Limits (automation capped: automation.js) and the Autonomous Weapons Ban (no new robots for
-// speedTurns(WEAPONS_BAN_REF_TURNS) at each signer's age: world/cities.js canQueue; a player who
-// recruits one anyway breaks it, robots.js breakWeaponsBan). These bind the yes voters only, each
+// speedTurns(WEAPONS_BAN_REF_TURNS) at each signer's age: no queueing, world/cities.js canQueue, and no
+// recruiting, RECRUIT_UNIT and aiLogic.js). These bind the yes voters only, each
 // in `binds` until its own turn.
 //
 // state.worldCongress = { hostId, nextVoteTurn, proposal: { id, targetId? }, playerVote, votes,

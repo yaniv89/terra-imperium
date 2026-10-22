@@ -9,7 +9,6 @@ import { ActionTypes } from '../data/types';
 import { canQueue } from './world/cities';
 import { getTiles } from '../data/geo/tiles';
 import { ROBOT_TECH } from '../data/unitClasses';
-import { opinionReasons } from './opinion';
 import { getBattlePowers } from './invasion';
 import { speedTurns } from '../data/ages';
 import { ageOf } from './nationState';
@@ -55,17 +54,18 @@ describe('the Planetary Council', () => {
     return { ...s, resources: { ...s.resources, gold: 5000, hr: 500, rareMetals: 50 }, worldCongress: { binds: [{ id, nationId: me, untilTurn: (s.turnNumber || 0) + 50 }], sanctions: [], record: [] } };
   };
 
-  it('a signer cannot build robots during the ban; recruiting one breaks it, and the world remembers', () => {
+  it('a signer can neither build nor recruit robots during the ban, and is told why', () => {
     const s = bound('weaponsBan');
     const city = s.regions[cap(me)];
     const ctx = cityCtx(s, city);
     expect(ctx.noRobots).toBe(true);
     expect(canQueue(city, getTiles(), { tileState: s.world.tileState || {} }, { kind: 'unit', classId: 'infantry', robot: true }, ctx)).toMatchObject({ ok: false, reasonMsg: { key: 'm.why.weaponsBan' } });
     expect(canQueue(city, getTiles(), { tileState: s.world.tileState || {} }, { kind: 'unit', classId: 'infantry' }, ctx).ok).toBe(true);
-    const broke = gameReducer(s, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: city.id, classId: 'infantry', robot: true } });
-    expect(Object.values(broke.units).some((u) => u.robot)).toBe(true);
-    expect(isBound(broke, 'weaponsBan', me)).toBe(false);
-    expect(opinionReasons(broke, A, me).some((r) => r.id === 'brokeWeaponsBan' && r.value <= -30)).toBe(true);
+    const tried = gameReducer(s, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: city.id, classId: 'infantry', robot: true } });
+    expect(tried.units).toBe(s.units);
+    expect(tried.logs.at(-1).msgKey).toBe('m.why.weaponsBan');
+    expect(isBound(tried, 'weaponsBan', me)).toBe(true);
+    expect(Object.values(gameReducer(s, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: city.id, classId: 'infantry' } }).units).length).toBe(Object.values(s.units).length + 1);
   });
 
   it('orbital demilitarisation takes the Orbital Strike from a signer', () => {

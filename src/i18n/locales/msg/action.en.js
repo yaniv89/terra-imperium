@@ -106,7 +106,6 @@ export default {
   'm.act.loanRepaid': 'Repaid a loan of {gold:money} gold.',
 
   // armies, marches, battles
-  'm.act.brokeWeaponsBan': 'You broke the Autonomous Weapons Ban. Every nation thinks less of you.',
   'm.act.recruited': 'Recruited a new {unit} unit in {city}.',
   'm.act.disbanded': 'Disbanded a {unit} unit. +{hr} HR',
   'm.act.moved': 'Moved a {unit} unit to {city}.',

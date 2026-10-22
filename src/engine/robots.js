@@ -36,13 +36,5 @@ export const robotRecruitCost = (costs) => {
 /** Is the city's centre held by robots only (at least one robot, no human unit)? */
 export const robotsOnlyHold = (units) => units.length > 0 && units.every(isRobot);
 
-/** A signer breaks the Autonomous Weapons Ban (worldCongress.js): it is free of it, and every nation
- * thinks worse of it for a while (opinion.js BROKE_WEAPONS_BAN). */
-export const breakWeaponsBan = (state, nationId) => ({
-  ...state,
-  nations: { ...state.nations, [nationId]: { ...state.nations[nationId], brokeWeaponsBanTurn: state.turnNumber || 0 } },
-  worldCongress: { ...state.worldCongress, binds: (state.worldCongress?.binds || []).filter((b) => !(b.id === 'weaponsBan' && b.nationId === nationId)) }
-});
-
 /** Can a nation at `ageId` knowing `researched` queue `item` as a robot? (true for any non-robot item) */
 export const canBuildRobot = (item, ageId, researched) => !item?.robot || isRobotUnlocked(ageId, item.classId, researched);
