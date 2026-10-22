@@ -42,19 +42,20 @@ import {
 import { getGeneralDamageMultiplier, getGeneralDefenseMultiplier } from '../data/generals';
 import { navalLineOf, navalCombatMult } from '../data/navalLines';
 import { FIRST_AGE_ID } from '../data/ages';
+import { MORALE_ROUT_THRESHOLD, MORALE_PER_LOSS_PERCENT } from '../battle/sim/moraleMath';
 
 const RANGED_CLASSES = ['ranged', 'siege'];
-const MORALE_ROUT_THRESHOLD = 20;
 const BASE_DAMAGE_RATE = 0.1; // fraction of an attacking unit's strength dealt per exchange, before multipliers
 // Plan §M14: tighter variance than M0-M13's baseline (was +/-20%) — now that counters (1.75/0.6) and
 // roster stats both swing outcomes harder, a wide RNG band on top would drown both signals out.
 const RNG_VARIANCE = 0.1; // +/-10% swing per damage roll, seeded so it's still reproducible
 const FLANK_BONUS_MULT = 1.3;
 const PURSUIT_EXTRA_LOSS_MULT = 0.5; // routed units lose another 50% of their remaining strength when pursued
-export const MAX_BATTLE_ROUNDS = 8;
+export const MAX_BATTLE_ROUNDS = 12; // a unit breaks at about 67% losses (moraleMath.js): 12 rounds let an even fight end (8 left most undecided)
 export const BATTLE_FORTUNE = 0.3; // ± per side, per battle
-// Morale lost per 1% of a unit's own (battle-start) strength lost: ~27% casualties breaks a fresh unit.
-export const MORALE_LOSS_PER_PERCENT = 3;
+// Morale lost per 1% of a unit's own (battle-start) strength lost: the real-time battle's number
+// (moraleMath.js), so a fresh unit breaks at the same loss share (about 67%) on Auto and in Command.
+export const MORALE_LOSS_PER_PERCENT = MORALE_PER_LOSS_PERCENT;
 
 // Shared with the tactical sim (src/battle/sim) so both resolution paths use the same constants.
 export { BASE_DAMAGE_RATE, RNG_VARIANCE, MORALE_ROUT_THRESHOLD, FLANK_BONUS_MULT, PURSUIT_EXTRA_LOSS_MULT };
