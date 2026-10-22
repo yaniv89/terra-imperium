@@ -192,7 +192,7 @@ The ranking weighs player trust and phone play first, then work the eight-ages p
 | 11 | Free law change at each age advance | Government | reducer, `promptStack.js` | Very small | Verified (Civ VI) |
 | 12 | Self-embark from the shelf age | Map | `fleets.js`, `armies.js` | Medium | Civ rule verified; +2 cost unverified |
 | 13 | Age landmark fork per age | Ages | new `ageLandmarks.js`, modifiers | Medium (content) | Verified (AoE IV) |
-| 14 | Field-built rams and ladders | Siege | `orderSchema.js`, `economy.js`, `autoBattle.js` | Medium | Verified (AoE IV, TW) |
+| 14 | Dropped by the user (22 Oct): Field-built rams and ladders | Siege | `orderSchema.js`, `economy.js`, `autoBattle.js` | Medium | Verified (AoE IV, TW) |
 | 15 | Buy buildings with gold | Economy | `spending.js`, `aiEconomy.js` | Small, waits for U34 | Verified (Civ VII); rate unverified |
 | 16 | Counter overrides and signature unit tags; winner advances | Combat, map | `unitClasses.js`, `signatureUnits.js`, `fieldBattle.js` | Large (content) | Verified examples |
 | Parked | Battle AI targeting, AI withdraw, kiting, EV battle bars, utility war roll, opinion decay | AI | see `plans/research-ai-math.md` rows 1, 2, 4 to 7, 12 | | Parked by owner |
