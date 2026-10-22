@@ -41,6 +41,7 @@ import {
 } from '../data/promotions';
 import { getGeneralDamageMultiplier, getGeneralDefenseMultiplier } from '../data/generals';
 import { navalLineOf, navalCombatMult } from '../data/navalLines';
+import { signatureEdge } from '../data/signatureUnits';
 import { FIRST_AGE_ID } from '../data/ages';
 import { MORALE_ROUT_THRESHOLD, MORALE_PER_LOSS_PERCENT } from '../battle/sim/moraleMath';
 
@@ -77,7 +78,8 @@ const deploy = (units, combatWidth) => {
 // sim (src/battle/sim/combat.js) applies exactly the same stack per hit as this engine does per
 // exchange — auto-resolve and commanded battles can never drift apart on "how hard does this hit".
 export const computeHitMultiplier = (unit, target, { phase, sourceIsInvadingFortification, generals = {}, targetIsDefendingSide, baseMultiplier = 1, sourceAgeId, targetAgeId }) => {
-  let multiplier = getCounterMultiplier(unit.classId, target.classId) * baseMultiplier;
+  // the age's own matchups and the signature unit's tag (rank 16), in Command and Auto alike
+  let multiplier = getCounterMultiplier(unit.classId, target.classId, unit.ageId || sourceAgeId) * signatureEdge(unit, target, sourceAgeId) * baseMultiplier;
   // Each unit at its own age within its side's (unitUpgrades.js): 1 for a side of one age.
   const ageW = unitAgeWeight(unit, sourceAgeId) / unitAgeWeight(target, targetAgeId);
   if (ageW !== 1) multiplier *= ageW;

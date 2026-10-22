@@ -15,6 +15,7 @@ import { LEGACY_HOOK } from './registry';
 import { getOverextension } from '../nationalPower';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { VIRTUES } from '../../data/rulerVirtues';
+import { landmarkOf } from '../../data/ageLandmarks';
 
 const ADVISOR_JOBS = { adm: { key: 'national.decreePace', per: 1 }, dip: { key: 'national.opinion', per: 2 }, mil: { key: 'national.hrMult', per: 0.05 } };
 
@@ -52,6 +53,12 @@ export const staticSources = (nation) => {
     Object.entries(mod.mods || {}).forEach(([key, value]) => {
       if (value) lines.push({ key, value, sourceType: mod.sourceType || 'event', sourceId: mod.sourceId || mod.id, label: mod.label });
     });
+  });
+
+  // Age landmarks (src/engine/ageLandmarks.js): one pick per age entered, for good.
+  Object.entries(nation?.landmarks || {}).forEach(([ageId, id]) => {
+    const landmark = landmarkOf(ageId, id);
+    if (landmark) lines.push(...linesFromEffect(landmark.effects, 'landmark', id, landmark.name));
   });
 
   // The ruler: Military above 3 +2% manpower a level, Command +5% morale recovery a level and the

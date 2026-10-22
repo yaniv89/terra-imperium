@@ -402,6 +402,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                       <div className="min-w-0 flex-1">
                         <div className={clip}>{o.tile != null && <MapPin className="inline w-3 h-3 me-0.5 -mt-0.5 text-fa-muted" aria-hidden="true" />}{o.item.kind === 'unit' && o.item.classId !== 'naval' && !o.item.explorer ? <GlossaryLink kind="unit" id={`${ageId}_${o.item.classId}`}>{o.label}</GlossaryLink> : o.label}</div>
                         {o.detail && <div className={`text-[12px] leading-snug text-fa-text/80 ${clip}`} data-testid="build-effect">{o.detail}</div>}
+                        {o.tag && <div className={`text-[12px] leading-snug text-fa-brass ${clip}`} data-testid="build-tag">{o.tag}</div>}
                         {open && o.note && <div className="text-[12px] leading-snug text-fa-muted">{o.note}.</div>}
                         <div className="text-fa-muted text-[12px]">
                           {o.queued > 0 && <span className="text-fa-good me-1">{o.queued > 1 ? t('cy.nInQueue', { n: o.queued }) : t('cy.inQueue')}{o.ok ? ' ·' : ''}</span>}

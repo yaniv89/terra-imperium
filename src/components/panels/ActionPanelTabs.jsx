@@ -9,6 +9,7 @@ import { useGame } from '../../context/GameContext';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { rulerBadge } from '../ruler/rulerSheetModel';
 import { nextPrompts } from '../ui/nextPromptModel';
+import { pendingLandmarkAge } from '../../engine/ageLandmarks';
 import { useT } from '../../i18n/useT';
 
 // The War section stays in the Empire sheet (plans/civ-map-rework.md E4); Diplomacy is its own tab
@@ -37,7 +38,7 @@ export const getTabBadge = (state, tabId) => {
       return n || null;
     }
     case 'tech':
-      return !state.research?.current && !state.research?.auto ? 1 : null;
+      return ((!state.research?.current && !state.research?.auto ? 1 : 0) + (pendingLandmarkAge(state) ? 1 : 0)) || null;
     case 'diplomacy': {
       const n = (state.pendingPeaceOffer ? 1 : 0) + (state.pendingDemand ? 1 : 0) + (state.tributeDemands || []).length + (state.joinOffers || []).length;
       return n || null;

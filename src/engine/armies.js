@@ -16,7 +16,13 @@
 //                 A road on both banks (a road edge: a ferry or a wooden bridge) halves it; with
 //                 Stone Bridges a road edge crosses free and any other crossing costs half.
 //                 The AI plans with the same costs (findTilePath). Enemy land costs at least ENEMY_TILE_COST. Snow and
-//                 ice are impassable; so is water (fleets carry armies, naval wave).
+//                 ice are impassable. Water is a fleet's (cargo rides it), except a self-embark.
+//   Self-embark   (the AoE and Civ report's rank 12) from the Classical age (the shelf, fleets.js
+//                 SHELF_OK_FROM; never in the Stone or Bronze age) a march may step onto water the
+//                 owner's fleets could sail (seaPassable). The unit is then its own carrier
+//                 (`embarkedOn` = its own id), so every rule for cargo holds at sea: it neither
+//                 attacks nor besieges, exerts no zone of control and joins no battle. Stepping off
+//                 the land costs EMBARK_COST more; a water step costs 1; stepping ashore costs the land.
 //   Access        at peace a route crosses your land, a vassal's or an ally's, and free land. At
 //                 war it may plan through the enemy's land, but a march halts at the border of
 //                 every enemy tile you do not hold: cities are taken through the attack card, and
@@ -34,7 +40,9 @@ import { REBEL_OWNER_ID } from '../data/rebellion';
 import { hasPerk } from '../data/promotions';
 import { canFight, isIndependentId } from './hostility';
 import { legacyTerrainOf } from './world/registry';
-import { mapEffectsOf } from './techMapEffects';
+import { mapEffectsOf, mapEffectsFor } from './techMapEffects';
+import { ageOf } from './nationState';
+import { SHELF_OK_FROM, seaPassable } from './fleets';
 import { reasonOf, people, sub } from './messages';
 
 // A turn's march in km by class, turned into movement points of the loaded grid (gridScale.js), so
@@ -57,6 +65,7 @@ export const ROAD_COST = 0.5;
 export const RAIL_COST = 0.25;
 export const ENEMY_TILE_COST = 2;
 export const BANK_CAP = 4;
+export const EMBARK_COST = 2; // Civ's tested value (unverified, the report's rank 12)
 // Distances and search budgets are kilometres and km² turned into rings and tiles of the loaded
 // grid (gridScale.js), so a denser grid keeps the same reach; the values match frequency 75.
 export const MAX_ROUTE_STEPS = ringsForKm(6100);   // 60 steps at frequency 75
@@ -77,6 +86,18 @@ export const stackPace = (units, researched = []) => units.reduce((m, u) => Math
 
 /** Land an army may stand on at all. */
 export const passableTile = (tiles, tile) => tile != null && tile >= 0 && tiles.land[tile] === 1 && tiles.terrainOf(tile) !== 'snow' && tiles.featureOf(tile) !== 'ice';
+
+/** A land unit at sea on its own (self-embarked): its own carrier. */
+export const selfEmbarked = (u) => !!u && u.embarkedOn === u.id;
+/** A unit riding another unit's ship (cargo). */
+export const aboardShip = (u) => !!u?.embarkedOn && u.embarkedOn !== u.id;
+/** The water a nation's armies may step onto by themselves: { age, deep }, or null before the Classical age. */
+export const embarkRule = (state, nationId) => {
+  const age = ageOf(state, nationId);
+  return SHELF_OK_FROM.includes(age) ? { age, deep: mapEffectsFor(state, nationId).deepOcean > 0 } : null;
+};
+/** True when an army under `rule` (embarkRule) may stand on `tile`: land, or open water. */
+export const walkableTile = (tiles, tile, rule = null) => passableTile(tiles, tile) || (!!rule && tile != null && tile >= 0 && seaPassable(tiles, tile, rule.age, rule.deep, true));
 
 /** The tile a unit stands on: its own (land for an army, water for a fleet at sea and its cargo),
  * else its region's centre (a unit an older mover placed by city). */
@@ -135,6 +156,7 @@ export const roadEdge = (state, a, b) => hasRoad(state, a) && hasRoad(state, b);
 
 /** Movement points to step from `from` onto `to`. `researched`: the mover's tech ids. */
 export const tileStepCost = (state, tiles, from, to, access = 'wild', researched = []) => {
+  if (tiles.land[to] !== 1) return from != null && tiles.land[from] === 1 ? 1 + EMBARK_COST : 1; // a self-embark
   const road = state.world?.tileState?.[to];
   const fx = mapEffectsOf(researched); // techs that ease the ground (techMapEffects.js)
   let cost;
@@ -207,13 +229,15 @@ const heapPop = (h) => {
 
 /**
  * The cheapest land path from tile `from` to tile `to` for `nationId` (A* by step cost, both ends
- * included). Enemy land is allowed (a march halts at it), closed land is not. Returns { path,
- * cost } or { reason }.
+ * included). Enemy land is allowed (a march halts at it), closed land is not. `embark`: the
+ * route may cross water when the nation's age allows (embarkRule: the player's marches and the
+ * scouts; AI armies keep their fleets). Returns { path, cost } or { reason }.
  */
-export const findTilePath = (state, from, to, nationId = state.playerNationId, { researched = [], maxSteps = MAX_ROUTE_STEPS } = {}) => {
+export const findTilePath = (state, from, to, nationId = state.playerNationId, { researched = [], maxSteps = MAX_ROUTE_STEPS, embark = false } = {}) => {
   const tiles = getTiles();
+  const sea = embark ? embarkRule(state, nationId) : null;
   if (from === to) return reasonOf('m.why.armyThere');
-  if (!passableTile(tiles, to)) return reasonOf(tiles.land[to] ? 'm.why.noCross' : 'm.why.noLandRoute');
+  if (!walkableTile(tiles, to, sea)) return reasonOf(tiles.land[to] ? 'm.why.noCross' : 'm.why.noLandRoute');
   const targetAccess = tileAccess(state, to, nationId);
   if (targetAccess === 'closed') {
     const owner = state.nations[state.regions[state.world?.tileOwner?.[to]]?.owner];
@@ -233,7 +257,7 @@ export const findTilePath = (state, from, to, nationId = state.playerNationId, {
     if (id === to) break;
     if (++visited > MAX_SEARCH) break;
     for (const n of tiles.neighbors[id]) {
-      if (!passableTile(tiles, n)) continue;
+      if (!walkableTile(tiles, n, sea)) continue;
       const access = tileAccess(state, n, nationId);
       if (access === 'closed') continue;
       const penalty = access === 'enemy' && n !== to ? ENEMY_PATH_PENALTY : 0;
@@ -339,7 +363,9 @@ export const normalizeUnitTiles = (state) => {
     const centre = regions[u.regionId]?.tile ?? null;
     let tile = u.tile;
     let regionId = u.regionId;
-    if (u.embarkedOn) {
+    let embarkedOn = u.embarkedOn;
+    if (selfEmbarked(u) && (tile == null || tile < 0 || tiles.land[tile] === 1)) embarkedOn = null; // ashore again: a land unit
+    if (selfEmbarked(u) && embarkedOn) { /* at sea on its own: it stays where it is */ } else if (aboardShip(u)) {
       // Cargo rides its carrier (fleets.js).
       const ship = all[u.embarkedOn];
       if (ship) { tile = ship.tile != null && ship.tile >= 0 ? ship.tile : (regions[ship.regionId]?.tile ?? centre); regionId = ship.regionId; }
@@ -351,9 +377,9 @@ export const normalizeUnitTiles = (state) => {
       if (here != null && here !== regionId && regions[here]?.owner === u.ownerId) regionId = here;
       else if (!regions[regionId]) regionId = regionForTile(state, tile, u.ownerId, regionId);
     }
-    if (tile === u.tile && regionId === u.regionId) return;
+    if (tile === u.tile && regionId === u.regionId && embarkedOn === u.embarkedOn) return;
     if (!changed) { units = { ...units }; changed = true; }
-    units[u.id] = { ...u, tile, regionId };
+    units[u.id] = { ...u, tile, regionId, ...(embarkedOn !== u.embarkedOn ? { embarkedOn } : {}) };
   });
   return changed ? { ...state, units } : state;
 };

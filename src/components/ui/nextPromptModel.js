@@ -27,6 +27,7 @@ import { isSettler, isBand } from '../../engine/settlers';
 import { tutorialPrompt } from '../../engine/tutorial';
 import { demandWaiting } from '../../engine/aiAccords';
 import { researchNeedsChoice } from '../../engine/researchStatus';
+import { pendingLandmarkAge } from '../../engine/ageLandmarks';
 import { supplyOf, supplyZone, SUPPLY_LOW } from '../../engine/supplyMeter';
 import { getTiles } from '../../data/geo/tiles';
 import { idleArmyTiles } from '../../engine/standingOrders';
@@ -68,6 +69,7 @@ export const nextPrompts = (state) => {
   const warned = state.nations?.[me]?.uprisingWarning;
   if (warned) out.push({ id: 'uprising', kind: 'uprising', label: tNow('prompt.uprising', { count: Math.max(0, warned.at - (state.turnNumber || 0)) }), tab: 'domestic', section: 'court' });
   if (researchNeedsChoice(state)) out.push({ id: 'research', kind: 'research', label: tNow('prompt.research'), tab: 'tech' });
+  if (pendingLandmarkAge(state)) out.push({ id: 'landmark', kind: 'landmark', label: tNow('prompt.landmark'), tab: 'tech' });
   const cities = Object.values(state.regions || {}).filter((c) => c.owner === me && c.tile != null && !c.outpost).sort((a, b) => (a.id < b.id ? -1 : 1));
   cities.forEach((c) => { if (!c.production?.current) out.push({ id: `city:${c.id}`, kind: 'city', label: tNow('prompt.cityIdle', { city: cName(c) }), regionId: c.id }); });
   // Choices that wait in a panel (playtest 22 Oct: players missed them behind the rail's dot).

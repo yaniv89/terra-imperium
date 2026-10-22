@@ -40,7 +40,9 @@ import { advisorPlan, scholarsPreview } from '../../engine/researchStatus';
 import { describeTech, formatTurns, formatEta, techInfo, techGraph, GRAPH_NODE_W, GRAPH_NODE_H } from './researchView';
 import { researchSheetModel } from './researchSheetModel';
 import { techName, boostLabel, playstyleName, goalUnit, goalBonus } from '../../i18n/gameText';
-import { dataText } from '../../i18n/core';
+import { dataText, ageName } from '../../i18n/core';
+import { AGE_LANDMARKS } from '../../data/ageLandmarks';
+import { pendingLandmarkAge } from '../../engine/ageLandmarks';
 import GlossaryLink from '../glossary/GlossaryLink';
 import { canPay } from '../../utils/costs';
 
@@ -143,6 +145,23 @@ const BoostRow = ({ b }) => {
 };
 
 // The era goals of your age (src/engine/eraGoals.js).
+// The age landmark fork (src/engine/ageLandmarks.js): two landmarks of the oldest age without a pick.
+const LandmarkCard = ({ ageId, onPick }) => (
+  <section className="fa-card fa-selected p-3 space-y-2" data-testid="landmark-pick" aria-labelledby="landmark-title">
+    <div id="landmark-title" className="fa-heading text-[16px] leading-tight">{tNow('tech.landmark.title', { age: ageName(ageId) })}</div>
+    <div className="text-[12px] text-fa-muted">{tNow('tech.landmark.hint')}</div>
+    <div className="grid gap-2 grid-cols-2">
+      {AGE_LANDMARKS[ageId].map((l) => (
+        <button key={l.id} type="button" onClick={() => onPick(l.id)} data-testid={`landmark-${l.id}`}
+          className="min-h-[44px] rounded-lg border border-fa-line bg-fa-raised/60 hover:bg-fa-hover p-2 text-start">
+          <span className="block text-[13px] font-semibold text-fa-text">{dataText(`landmark.${l.id}.name`, l.name)}</span>
+          <span className="block text-[11px] text-fa-good">{dataText(`landmark.${l.id}.desc`, l.desc)}</span>
+        </button>
+      ))}
+    </div>
+  </section>
+);
+
 const EraCard = ({ era }) => {
   useT();
   return (
@@ -205,6 +224,7 @@ const TechPanel = () => {
   useEffect(() => { if (jump) webRef.current?.querySelector(`[data-age-head="${jump.ageId}"]`)?.scrollIntoView?.({ inline: 'start', block: 'center' }); }, [jump]);
   // Behind the research leader: known peoples in later ages make their techs cheaper (KTD5).
   const catchingUp = isAgeBefore(state.techAgeId, researchLeaderAge(state));
+  const landmarkAge = pendingLandmarkAge(state);
 
   const research = (techId) => {
     triggerEffect('research_tech', { region: getNationCapital(state.playerNationId) });
@@ -241,6 +261,7 @@ const TechPanel = () => {
 
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(170px,200px)]">
         <div className="space-y-3 min-w-0">
+          {landmarkAge && <LandmarkCard ageId={landmarkAge} onPick={(landmarkId) => dispatch({ type: ActionTypes.CHOOSE_AGE_LANDMARK, payload: { ageId: landmarkAge, landmarkId } })} />}
           <CurrentCard m={m} />
 
           {m.boosts.length > 0 && (

@@ -7,7 +7,7 @@
 // arrive with the lenses of workstream 12. Pure; cached on the state's units and cities.
 import { getTiles } from '../data/geo/tiles';
 import { ringsForKm } from '../data/geo/gridScale';
-import { unitTile } from './armies';
+import { unitTile, aboardShip } from './armies';
 import { mapEffectsFor } from './techMapEffects';
 import { navalLineOf, navalSightBonus } from '../data/navalLines';
 
@@ -58,7 +58,7 @@ export const visibleTiles = (state, nationId = state.playerNationId) => {
   Object.values(state.regions).forEach((c) => { if (friends.has(c.owner) && c.tile != null) landSeeds.push(...(c.tiles || [c.tile])); });
   grow(tiles, landSeeds, ringsForKm(SIGHT_LAND_KM + extra), set);
   Object.values(state.units).forEach((u) => {
-    if (u.ownerId !== nationId || u.embarkedOn) return;
+    if (u.ownerId !== nationId || aboardShip(u)) return;
     const t = unitTile(state, u);
     if (t == null) return;
     const rings = ringsForKm(extra + (u.domain === 'naval' ? SIGHT_FLEET_KM + navalSightBonus(navalLineOf(u)) : SIGHT_ARMY_KM + (tiles.reliefOf(t) === 'hills' ? SIGHT_HILLS_BONUS_KM : 0)));

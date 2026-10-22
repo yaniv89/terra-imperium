@@ -256,11 +256,11 @@ const dot = (ctx, x, y) => { ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2)
 export const armyArt = (m, atWar, scale) => {
   const fill = bannerColour(m, atWar);
   if (m.own) {
-    const icon = unitIconUrl(m.mainClass);
+    const icon = m.boat ? shipIconUrl('transport') : unitIconUrl(m.mainClass); // at sea on its own: a boat (armies.js self-embark)
     const label = shortMen(m.men);
     const stacked = m.count > 1 ? m.count : 0; // units on the tile: one flag shows them all (a small count)
     const cap = m.capUse ? `${m.capUse[0]}/${m.capUse[1]}` : ''; // rank 9: near or over the tile's cap, the count reads 9/12 instead
-    return bannerBox(`army|own|${fill}|${moraleColor(m.morale)}|${m.mainClass}|${label}|${m.canMove ? 1 : 0}|${icon ? 'i' : 'g'}|${stacked}|${cap}`, 30, 34, scale, waiting(icon), (ctx) => {
+    return bannerBox(`army|own|${fill}|${moraleColor(m.morale)}|${m.boat ? 'boat' : m.mainClass}|${label}|${m.canMove ? 1 : 0}|${icon ? 'i' : 'g'}|${stacked}|${cap}`, 30, 34, scale, waiting(icon), (ctx) => {
       svgBox(ctx, 26, 32, 30, 34, () => {
         ctx.fillStyle = fill; ctx.strokeStyle = moraleColor(m.morale); ctx.lineWidth = 2.4;
         const p = path2d(SHIELD); if (p) { ctx.fill(p); ctx.shadowColor = 'transparent'; ctx.stroke(p); }

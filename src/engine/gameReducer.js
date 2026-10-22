@@ -7,6 +7,8 @@ import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs, applyF
 import { validateFleetAttack, getFleetBattleContext, getFleetResolveArgs, applyFleetResult } from './navalBattle';
 import { abandonColony, foundColony, validateColony } from './colonies';
 import { chooseResearch, emptyResearch, queueResearch, unqueueResearch } from './research';
+import { pendingLandmarkAge, withLandmark } from './ageLandmarks';
+import { landmarkOf } from '../data/ageLandmarks';
 import { applyScenario } from './worldgen/emergentWorld';
 import { syncWorldRegistry } from './world/registry';
 import { queueItem, dequeueItem, moveQueueItem, itemKey, setFocus, toggleLock, canQueue, canFoundCity, addPeople, sizeToPeople } from './world/cities';
@@ -1285,7 +1287,7 @@ const reduceAction = (state, action) => {
       const { landUnitId, tile = null } = action.payload;
       const landUnit = state.units[landUnitId];
       const costs = ACTION_COSTS.disembarkUnit;
-      if (!landUnit || landUnit.ownerId !== state.playerNationId || !landUnit.embarkedOn) return state;
+      if (!landUnit || landUnit.ownerId !== state.playerNationId || !landUnit.embarkedOn || landUnit.embarkedOn === landUnitId) return state; // a self-embarked unit lands by marching (armies.js)
       if (!canAfford(state.resources, costs)) return state;
       const ship = state.units[landUnit.embarkedOn];
       let landed;
@@ -1928,6 +1930,21 @@ const reduceAction = (state, action) => {
 
     case ActionTypes.SET_RESEARCH_AUTO: {
       return { ...state, research: { ...(state.research || emptyResearch()), auto: action.payload?.auto === true } };
+    }
+
+    case ActionTypes.CHOOSE_AGE_LANDMARK: {
+      // The age landmark fork (ageLandmarks.js): the oldest age waiting for its pick, once.
+      const { ageId, landmarkId } = action.payload || {};
+      const me = state.nations[state.playerNationId];
+      if (!me || pendingLandmarkAge(state) !== ageId) return state;
+      const next = withLandmark(me, ageId, landmarkId);
+      if (next === me) return state;
+      const landmark = landmarkOf(ageId, landmarkId);
+      return {
+        ...state,
+        nations: { ...state.nations, [me.id]: next },
+        logs: [...state.logs, { year: state.year, ...msg('m.world.landmark', { landmark: thing('landmark', landmarkId, landmark.name), age: thing('age', ageId, AGES[ageId]?.name) }), type: LogTypes.MILESTONE }]
+      };
     }
 
     case ActionTypes.SET_RESEARCH_FOCUS: {

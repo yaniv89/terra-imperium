@@ -97,7 +97,7 @@ export const auditGameState = (state) => {
       const here = tileOwner[u.tile];
       if (getTiles().land[u.tile] === 1 && here != null && here !== u.regionId && regions[here]?.owner === u.ownerId) report('unit_region', `units.${id}.regionId`, `Unit stands on its nation's land of ${here}`);
     }
-    if (u.embarkedOn) {
+    if (u.embarkedOn && u.embarkedOn !== id) { // a land unit at sea on its own is its own carrier (armies.js self-embark)
       const ship = units[u.embarkedOn];
       if (!ship || ship.domain !== 'naval' || ship.ownerId !== u.ownerId || ship.regionId !== u.regionId) {
         report('invalid_transport', `units.${id}.embarkedOn`, 'Cargo needs a colocated friendly transport');
