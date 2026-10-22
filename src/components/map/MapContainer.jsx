@@ -59,6 +59,8 @@ import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useGame } from '../../context/GameContext';
 import { getNationCapital } from '../../data/regions';
 import { useMapPrefs } from './mapPrefs';
+import { isIndependentNation } from '../../data/independents';
+import { openIndependent } from '../independents/independentEvents';
 import { useT } from '../../i18n/useT';
 
 export const MINIMAP_STORAGE_KEY = 'terra-imperium-minimap-open';
@@ -152,7 +154,8 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
     const onTile = (e) => { if (startSettleRef.current(idleSettlerOn(stateRef.current, e.detail))) return; setSelectedTile(e.detail); setSelectedArmy(null); setManageOpen(false); selectRegion(null); flyTo(latLngOfTile(e.detail)); };
     // (a "go home" fly that comes with the settle mode, Research's Map button, does not pull the map off the settler)
     const onPlace = (e) => { if ((!e.detail || (Array.isArray(e.detail) && !e.detail.length)) && Date.now() - settleStartedRef.current < 400) return; flyToPlaces(e.detail); };
-    const onNation = (e) => { setSelectedNation(e.detail); setSelectedTile(null); setSelectedArmy(null); setManageOpen(false); selectRegion(null); };
+    // An independent has its own sheet (IndependentSheet): a major's card would offer treaties and gifts the reducer refuses.
+    const onNation = (e) => { if (isIndependentNation(stateRef.current.nations?.[e.detail])) { openIndependent(e.detail); return; } setSelectedNation(e.detail); setSelectedTile(null); setSelectedArmy(null); setManageOpen(false); selectRegion(null); };
     const onFocus = (e) => setEventFocus(e.detail || null);
     // End Turn's "Choose production: <city>" (turnBlockers.js): the city's sheet on its Build tab, the map centred on it.
     const onManage = (e) => { const { regionId, tab } = e.detail || {}; if (!regionId) return; setSelectedTile(null); setSelectedArmy(null); setSelectedNation(null); selectRegion(regionId); setTabRequest({ regionId, tab: tab || 'overview' }); setManageOpen(true); };
