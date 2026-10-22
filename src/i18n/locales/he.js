@@ -315,6 +315,7 @@ export default {
   'prompt.governor.one': 'לקבוצת ערים אחת אין מושל: הערים שבה מאבדות נאמנות',
   'prompt.governor.two': 'לשתי קבוצות ערים אין מושל: הערים שבהן מאבדות נאמנות',
   'prompt.governor.other': 'ל־{count} קבוצות ערים אין מושל: הערים שבהן מאבדות נאמנות',
+  'prompt.uprising': 'הרובוטים יתקוממו בעוד {count} תורות: העלו יציבות',
   'prompt.decrees': 'הצווים שלכם מלאים: הצו הבא שתרוויחו יאבד',
   'prompt.cityIdle': 'אין מה לבנות ב{city}',
   'prompt.settlers': 'המתיישבים ממתינים ליעד',

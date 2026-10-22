@@ -187,5 +187,5 @@ export default {
   'wc.res.aiLimits': 'AI Limits',
   'wc.res.aiLimits.desc': 'Every signer keeps its automation at 40 or under.',
   'wc.res.weaponsBan': 'Autonomous Weapons Ban',
-  'wc.res.weaponsBan.desc': 'No signer builds new robot units for 25 turns. Breaking it angers the world.',
+  'wc.res.weaponsBan.desc': 'No signer builds or recruits new robot units for 25 turns.',
 };

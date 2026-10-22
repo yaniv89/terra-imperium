@@ -84,7 +84,7 @@ import {
 } from '../data/buildings';
 import { regionHasDeposit } from '../data/deposits';
 import { getUnlockedClasses, isRobotUnlocked } from '../data/unitClasses';
-import { robotRecruitCost, breakWeaponsBan } from './robots';
+import { robotRecruitCost } from './robots';
 import { isBound } from '../data/worldCongress';
 import { upgradeUnits, stampUnitAges } from './unitUpgrades';
 import {
@@ -1104,6 +1104,7 @@ const reduceAction = (state, action) => {
       if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
       if (!getUnlockedClasses(ageOf(state, state.playerNationId), getResearched(state, state.playerNationId)).includes(classId)) return state;
       if (robot && !isRobotUnlocked(ageOf(state, state.playerNationId), classId, getResearched(state, state.playerNationId))) return state;
+      if (robot && isBound(state, 'weaponsBan', state.playerNationId)) return reject(state, msg('m.why.weaponsBan')); // a ban means a ban (worldCongress.js)
       if (!canAfford(state.resources, costs)) return state;
       const unitId = `unit_${state.nextUnitSeq}`;
       const isNaval = classId === 'naval';
@@ -1137,25 +1138,22 @@ const reduceAction = (state, action) => {
         ...(isNaval ? { navalLine } : {}),
         embarkedOn: null
       };
-      // A robot recruited under the Autonomous Weapons Ban breaks it (robots.js): the world remembers.
-      const banned = robot && isBound(state, 'weaponsBan', state.playerNationId);
-      const base = banned ? breakWeaponsBan(state, state.playerNationId) : state;
-      const recruitingNation = base.nations[state.playerNationId];
+      const recruitingNation = state.nations[state.playerNationId];
       return {
-        ...base,
+        ...state,
         resources: applyCosts(state.resources, costs),
         units: { ...state.units, [unitId]: newUnit },
         // Its men leave the fields and workshops of the province they're raised in.
         regions: isNaval || robot ? state.regions : levyUnit(state.regions, newUnit),
         nations: {
-          ...base.nations,
+          ...state.nations,
           // Every other reader of militaryStrength (AI tiering, coalition thresholds, a
           // destroy_military war goal against the player) needs it to actually reflect the
           // player's real recruited army, not sit frozen at its game-start value forever.
           [state.playerNationId]: { ...recruitingNation, militaryStrength: (recruitingNation.militaryStrength || 0) + newUnit.strength }
         },
         nextUnitSeq: state.nextUnitSeq + 1,
-        logs: [...state.logs, { year: state.year, ...msg('m.act.recruited', { unit: thing('unitClass', classId, classId), city: cityRef(regionId, REGIONS_DATA[regionId]?.name) }), type: LogTypes.ACTION }, ...(banned ? [{ year: state.year, ...msg('m.act.brokeWeaponsBan'), type: LogTypes.DIPLOMACY }] : [])]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.recruited', { unit: thing('unitClass', classId, classId), city: cityRef(regionId, REGIONS_DATA[regionId]?.name) }), type: LogTypes.ACTION }]
       };
     }
 
