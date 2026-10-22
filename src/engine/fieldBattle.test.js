@@ -1,5 +1,6 @@
 // src/engine/fieldBattle.test.js
 import { describe, it, expect } from 'vitest';
+import { FIELD_BATTLE_TICKS } from '../battle/sim/constants';
 import { gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { getNationCapital } from '../data/regions';
@@ -122,6 +123,12 @@ describe('field attacks', () => {
     const setup = buildInvasionSetup(began, began.pendingBattle);
     expect(setup.tile).toBe(theirs);
     expect(setup.structures.find((s) => s.kind === 'keep').damage).toBe(0);
+    // The default is the economy battle (decision 36); the player's quick option is the 5-minute field battle without it.
+    expect(setup.economy).toBeTruthy();
+    const quick = gameReducer(ownLand, { type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: { fromRegionId: IN, tile: theirs, quick: true } });
+    const quickSetup = buildInvasionSetup(quick, quick.pendingBattle);
+    expect(quickSetup.economy).toBeNull();
+    expect(quickSetup.limitTicks).toBe(FIELD_BATTLE_TICKS);
     const abandoned = gameReducer(began, { type: ActionTypes.ABANDON_TACTICAL_BATTLE });
     expect(abandoned.pendingBattle).toBeNull();
     expect(abandoned.battleReports[0].kind).toBe('field');

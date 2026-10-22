@@ -56,6 +56,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   const preferred = state.battleSettings?.defaultMode === 'auto' ? 'auto' : 'command';
   const [mode, setMode] = useState(preferred);
   const [prefer, setPrefer] = useState(false);
+  const [quick, setQuick] = useState(false);
   const { landing, fleet, field, blockedReason, affordable, blockedAtSea, knownEmpty, noMansLand, commandBlocked } = m;
   const autoOnly = blockedAtSea || !!noMansLand || !!commandBlocked;
   const chosen = autoOnly ? 'auto' : mode;
@@ -84,7 +85,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
     remember('command');
     dispatch(landing
       ? { type: ActionTypes.BEGIN_AMPHIBIOUS_BATTLE, payload: { navalUnitId, targetRegionId } }
-      : { type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: fleet ? { fromTile, tile, naval: true } : field ? { fromRegionId, tile } : { fromRegionId, targetRegionId } });
+      : { type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: fleet ? { fromTile, tile, naval: true } : field ? { fromRegionId, tile, quick } : { fromRegionId, targetRegionId } });
     return onClose();
   };
   const disabled = !!blockedReason || !affordable;
@@ -221,6 +222,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
             <Button variant="primary" hero disabled={disabled || (chosen === 'command' && autoOnly)} onClick={chosen === 'command' ? command : auto} data-testid="battle-go" className="!min-h-[52px] !px-6 pl:!px-3 w-full">
               {chosen === 'command' ? t('bt.pre.beginBattle') : t('bt.pre.fightAuto')}
             </Button>
+            {field && !autoOnly && chosen === 'command' && <Switch label={t('bt.pre.quick')} hint={t('bt.pre.quickHint')} checked={quick} onChange={setQuick} testId="battle-quick" />}
             {!arrival && <button type="button" onClick={onClose} className="sr-only" data-testid="battle-choice-calloff">{t('bt.pre.callOffPlain')}</button>}
           </div>
         </div>

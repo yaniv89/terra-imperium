@@ -151,6 +151,8 @@ export default {
   'bt.pre.modeAuto': 'אוטומטי',
   'bt.pre.beginBattle': 'התחילו קרב',
   'bt.pre.fightAuto': 'נהלו באוטומטי',
+  'bt.pre.quick': 'קרב מהיר',
+  'bt.pre.quickHint': 'כחמש דקות. בלי פועלים ובלי בנייה.',
   'bt.pre.highlight': 'הדגשת הבחירה שלי בפעם הבאה',
   'bt.pre.highlightHint': 'עדיין תישאלו בכל פעם.',
   'bt.atlas.howToFight': 'איך להילחם',

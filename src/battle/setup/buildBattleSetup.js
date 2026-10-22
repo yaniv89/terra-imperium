@@ -442,7 +442,7 @@ const buildFieldSetup = (state, pb) => {
     reinforcements: [[], []],
     intel: { attackerSeesDefender: true },
     regionBuildings: [],
-    economy: true, // full base-building in field battles too (decision 36)
+    economy: !pb.quick, // full base-building in field battles too (decision 36); the player may pick a quick 5-minute one
     economyInputs: ins.economyInputs
   });
 };

@@ -151,6 +151,8 @@ export default {
   'bt.pre.modeAuto': 'Auto',
   'bt.pre.beginBattle': 'Begin battle',
   'bt.pre.fightAuto': 'Fight on Auto',
+  'bt.pre.quick': 'Quick battle',
+  'bt.pre.quickHint': 'About 5 minutes. No workers or building.',
   'bt.pre.highlight': 'Highlight my choice next time',
   'bt.pre.highlightHint': 'You will still be asked every time.',
   'bt.atlas.howToFight': 'How to fight',

@@ -1344,7 +1344,7 @@ const reduceAction = (state, action) => {
 
     case ActionTypes.BEGIN_TACTICAL_BATTLE: {
       if (state.pendingBattle) return reject(state, msg('m.act.no.battleInProgress'));
-      const { fromRegionId, targetRegionId, tile = null, fromTile = null, naval = false } = action.payload;
+      const { fromRegionId, targetRegionId, tile = null, fromTile = null, naval = false, quick = false } = action.payload;
       if (naval) {
         // A commanded sea battle (navalBattle.js): the fleets on `fromTile` against the enemy fleets on `tile`.
         const nv = validateFleetAttack(state, fromTile, tile);
@@ -1384,7 +1384,8 @@ const reduceAction = (state, action) => {
           pendingBattle: {
             id: `b_${state.turnNumber}_${fcounter}`, kind: 'field', fromRegionId, tile, targetRegionId: anchor, warId: fv.war?.id ?? null,
             attackerNationId: state.playerNationId, defenderNationId: fv.defenderNationId, seed: fseed, startedTurn: state.turnNumber, playerSide: 'attacker',
-            attackerUnitIds: fv.attackerUnits.map((u) => u.id), defenderUnitIds: fv.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: []
+            attackerUnitIds: fv.attackerUnits.map((u) => u.id), defenderUnitIds: fv.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: [],
+            ...(quick ? { quick: true } : {}) // the player's quick field battle: 5 minutes, no base-building (buildFieldSetup)
           },
           logs: [...state.logs, { year: state.year, ...msg('m.act.commandField'), type: LogTypes.COMBAT }]
         };
