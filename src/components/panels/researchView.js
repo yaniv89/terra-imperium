@@ -8,7 +8,7 @@ import { TECH_TREE } from '../../data/techTree';
 import { AGES, AGE_ORDER } from '../../data/ages';
 import { calcIncome } from '../../utils/helpers';
 import { canStartTech, getResearchCost, FOCUS_SCIENCE_BONUS, inResearchWindow, ageDoneFor } from '../../engine/research';
-import { ageOf } from '../../engine/nationState';
+import { ageOf, futureTechsOf } from '../../engine/nationState';
 import { getTechDiffusion } from '../../engine/techDiffusion';
 import { researchSchedule, researchStatus, techGate, gateText } from '../../engine/researchStatus';
 import { t as tNow } from '../../i18n';
@@ -96,6 +96,7 @@ export const techInfo = (state, techId, science = getSciencePerTurn(state)) => {
     gate,
     gateText: gateText(gate),
     researched: researched.has(techId),
+    repeats: tech.repeatable ? futureTechsOf(state, state.playerNationId) : 0,
     current: research.current === techId,
     queuedAt: (research.queue || []).indexOf(techId),
     canStart: start.ok,

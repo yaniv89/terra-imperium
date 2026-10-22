@@ -122,7 +122,7 @@ export const armySheetModel = (state, tile, fleet = false) => {
     army: u.army?.name || null,
     armyId: u.army?.id || null,
     strength: u.strength, maxStrength: u.maxStrength || u.strength,
-    morale: u.morale ?? 100,
+    morale: u.morale ?? 100, robot: !!u.robot,
     supply: supplyOf(u, max), supplyMax: max,
     moves: u.movesLeft ?? 0, movePoints: naval ? fleetPace(state, u) : movePoints(u, researched),
     general: u.commanderId && state.hiredCommanders?.[u.commanderId]?.name ? nameNow('person', null, state.hiredCommanders[u.commanderId].name) : null,

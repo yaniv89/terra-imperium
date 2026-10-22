@@ -115,6 +115,7 @@ export default {
   'mx.army.promotions.other': ' · {count} promotions',
   'mx.army.march1': 'March {name}',
   'mx.army.stats': '{strength}/{max} · morale {morale}{supply} · moves {moves}/{pace}',
+  'mx.army.statsRobot': '{strength}/{max} · robot, no morale{supply} · moves {moves}/{pace}',
   'mx.army.aboard': ' · aboard {n}',
   'mx.army.supply': ' · supply {n}/{max}',
   'mx.army.xp': ' · {xp}/{next} xp',

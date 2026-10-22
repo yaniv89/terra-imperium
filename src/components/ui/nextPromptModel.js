@@ -65,7 +65,7 @@ export const nextPrompts = (state) => {
   // A major's offer to swap maps (mapTrade.js, I116): a notice like the war one, never a blocker.
   if (state.pendingMapOffer && state.nations?.[state.pendingMapOffer.from] && !state.nations[state.pendingMapOffer.from].isEliminated) out.push({ id: 'maps', kind: 'maps', label: tNow('prompt.mapOffer', { name: pName(state, state.pendingMapOffer.from) }), tab: 'diplomacy', nationId: state.pendingMapOffer.from });
   const warned = state.nations?.[me]?.uprisingWarning;
-  if (warned) out.push({ id: 'uprising', kind: 'uprising', label: tNow('prompt.uprising', { count: Math.max(0, warned.at - (state.turnNumber || 0)) }), tab: 'domestic' });
+  if (warned) out.push({ id: 'uprising', kind: 'uprising', label: tNow('prompt.uprising', { count: Math.max(0, warned.at - (state.turnNumber || 0)) }), tab: 'domestic', section: 'court' });
   if (researchNeedsChoice(state)) out.push({ id: 'research', kind: 'research', label: tNow('prompt.research'), tab: 'tech' });
   const cities = Object.values(state.regions || {}).filter((c) => c.owner === me && c.tile != null && !c.outpost).sort((a, b) => (a.id < b.id ? -1 : 1));
   cities.forEach((c) => { if (!c.production?.current) out.push({ id: `city:${c.id}`, kind: 'city', label: tNow('prompt.cityIdle', { city: cName(c) }), regionId: c.id }); });
