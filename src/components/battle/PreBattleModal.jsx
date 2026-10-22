@@ -225,8 +225,8 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
             <Button variant="primary" hero disabled={disabled || (chosen === 'command' && autoOnly)} onClick={chosen === 'command' ? command : auto} data-testid="battle-go" className="!min-h-[52px] !px-6 pl:!px-3 w-full">
               {chosen === 'command' ? t('bt.pre.beginBattle') : t('bt.pre.fightAuto')}
             </Button>
-            {field && !autoOnly && chosen === 'command' && <Switch label={t('bt.pre.quick')} hint={t('bt.pre.quickHint')} checked={quick} onChange={setQuick} testId="battle-quick" />}
-            {!landing && !fleet && !field && state.regions?.[targetRegionId]?.siege && <Switch label={t('bt.siege.auto')} hint={t('bt.siege.autoHint')} checked={autoSiegeOn(state, targetRegionId)} onChange={(on) => dispatch({ type: ActionTypes.SET_AUTO_SIEGE, payload: { regionId: targetRegionId, on } })} testId="battle-auto-siege" />}
+            {field && !autoOnly && chosen === 'command' && <Switch label={t('bt.pre.quick')} checked={quick} onChange={setQuick} testId="battle-quick" />}
+            {!landing && !fleet && !field && state.regions?.[targetRegionId]?.siege && <Switch label={t('bt.siege.auto')} checked={autoSiegeOn(state, targetRegionId)} onChange={(on) => dispatch({ type: ActionTypes.SET_AUTO_SIEGE, payload: { regionId: targetRegionId, on } })} testId="battle-auto-siege" />}
             {!arrival && <button type="button" onClick={onClose} className="sr-only" data-testid="battle-choice-calloff">{t('bt.pre.callOffPlain')}</button>}
           </div>
         </div>
