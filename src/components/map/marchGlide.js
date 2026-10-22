@@ -2,31 +2,48 @@
 // Armies glide over the tiles they walked instead of jumping to where they stand (playtest audit
 // I070, art plan AN01). Drawing only: the engine's positions stay the truth, the glide starts from
 // the tile a stack stood on in the last state the map drew and ends where it stands now, along the
-// steps of the route it had (else straight, for a short hop), and never changes a rule or a cost.
+// steps of the route it had (else the fewest steps over its own ground, land for an army and water
+// for a fleet, never a straight line across a bay), and never changes a rule or a cost.
 // The fog: a foreign stack glides only when it was on the map before and is on it now (a stack
 // that walks out of the dark simply appears, as before).
 import { getTiles } from '../../data/geo/tiles';
-import { distanceKm } from '../../data/geo/geodesic';
+import { ringsForKm } from '../../data/geo/gridScale';
 import { unitTile } from '../../engine/armies';
 
 /** ms a tile step takes, and the bounds of one glide. */
 export const GLIDE_STEP_MS = 260;
 export const GLIDE_MIN_MS = 450;
 export const GLIDE_MAX_MS = 1500;
-/** A jump longer than this without a route (a landing, a loaded game) is not glided. */
-export const GLIDE_STRAIGHT_KM = 400;
+/** A jump without a route (a landing, a loaded game) glides only over its own ground within this
+ * reach (a cavalry move and a tech bonus); farther it is not glided. */
+export const GLIDE_SEARCH_KM = 800;
 
 const latLngOf = (tile) => { const { lat, lon } = getTiles().latLonOf(tile); return { lat, lng: lon }; };
 
-/** The tiles a unit walked from `from` to `to`: the steps of its old route, else a short hop. */
-export const walkedTiles = (route, from, to) => {
+/** The tiles a unit walked from `from` to `to`: the steps of its old route, else the fewest steps
+ * over its own ground (`land`: an army; else a fleet on water, its ends may be ports) within
+ * GLIDE_SEARCH_KM. A move ordered now has no old route (it was set and walked at once): a straight
+ * line there cut across bays, and a scout walked on the sea (playtest 22 Oct). */
+export const walkedTiles = (route, from, to, land = true) => {
   if (from == null || to == null || from === to) return null;
   const steps = [from, ...(route || [])];
   const i = steps.indexOf(to);
   if (i > 0) return steps.slice(0, i + 1);
   const t = getTiles();
-  if (!t.centres?.[from] || !t.centres?.[to]) return null;
-  return distanceKm(t.centres[from], t.centres[to]) <= GLIDE_STRAIGHT_KM ? [from, to] : null;
+  const prev = new Map([[from, -1]]);
+  let level = [from];
+  for (let d = ringsForKm(GLIDE_SEARCH_KM); d > 0 && level.length && !prev.has(to); d--) {
+    const next = [];
+    level.forEach((x) => t.neighbors[x].forEach((n) => {
+      if (prev.has(n) || (n !== to && (t.land[n] === 1) !== land)) return;
+      prev.set(n, x); next.push(n);
+    }));
+    level = next;
+  }
+  if (!prev.has(to)) return null;
+  const path = [to];
+  while (path[0] !== from) path.unshift(prev.get(path[0]));
+  return path;
 };
 
 /** Which marker keys (markerItems' `army:id`, `fleet:id`) glide, and along which points. */
@@ -45,7 +62,7 @@ export const planGlides = ({ prevState, nextState, prevMarkers, nextMarkers }) =
     if (!lead || !before) return;
     const from = unitTile(prevState, before);
     if (from == null || from === m.tile || !seen.has(`${m.ownerId}|${from}`)) return;
-    const tiles = walkedTiles(before.route, from, m.tile);
+    const tiles = walkedTiles(before.route, from, m.tile, kind === 'army');
     if (!tiles) return;
     const dur = Math.max(GLIDE_MIN_MS, Math.min(GLIDE_MAX_MS, (tiles.length - 1) * GLIDE_STEP_MS));
     out.set(`${kind}:${m.id}`, { points: tiles.map(latLngOf), dur });

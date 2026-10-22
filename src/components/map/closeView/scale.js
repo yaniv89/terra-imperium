@@ -96,15 +96,17 @@ const townGapSearch = (projection, tiles, tile, isTown) => {
 // Readability when the hex is small comes from the army's banner, a flat sprite of one screen size.
 // 0.6 (was 0.45, the user 2026-10-21: "units way too small, like Civilization"): seen at the map's
 // tilt the one figure stands about half a hex spacing tall, a third to a half of the hex's height.
-export const FIGURE_HEIGHT_HEX = 0.6;
+// 0.85 (the user's playtest 2026-10-22, still "like Civilization": Civ VI and VII draw a unit that
+// fills most of its hex at the playing zoom): about 0.7 of a spacing on screen, head at the hex's top.
+export const FIGURE_HEIGHT_HEX = 0.85;
 export const FIGURE_WIDTH_RATIO = 0.45; // a figure's width (spear and shield) over its height
 export const GROUP_WIDTH_HEX = 0.65;
-export const SETTLER_FIGURE_SHARE = 0.6;
+export const SETTLER_FIGURE_SHARE = 0.55;
 // ONE unit model is drawn per tile (tileStack.js), standing on its hex: at the centre of a plain hex
 // (a small step toward the viewer so the feet are on the ground), and on a city's hex a little
 // further forward and to the side, at the town's front corner (its banner beside the town, the
 // figure never over the houses) and still inside the hex.
-export const ARMY_SPOT_HEX = { x: 0, y: 0.1 };
+export const ARMY_SPOT_HEX = { x: 0, y: 0.15 };
 export const CITY_SPOT_HEX = { x: 0.3, y: 0.32 };
 /** Where the tile's unit stands, in pixels from the tile's centre (screen x, y down). */
 export const armySpotPx = (hexPx, inCity = false) => { const s = inCity ? CITY_SPOT_HEX : ARMY_SPOT_HEX; return [s.x * hexPx, s.y * hexPx]; };
