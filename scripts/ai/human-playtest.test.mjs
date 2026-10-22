@@ -61,7 +61,7 @@ describe('human-playtest spend math', () => {
     expect(parseFlags(['--max-usd', '1.5', '--limit', '40'], { PERSONA: 'newcomer-phone' })).toMatchObject({ maxSteps: 40, maxUsd: 1.5, sizeId: 'phone', lang: 'en', slices: [] });
     expect(parseFlags([], { PERSONA: 'hebrew-speaker', SIZE: 'desktop' })).toMatchObject({ lang: 'he', size: SIZES.desktop, maxSteps: 60 });
     expect(parseFlags([], { SLICES: 'bronze, modern' }).slices).toEqual(['bronze', 'modern']);
-    expect(() => parseFlags([], { SLICES: 'stone' })).toThrow(/slice/);
+    expect(() => parseFlags([], { SLICES: 'medieval' })).toThrow(/slice/);
     expect(() => parseFlags([], { PERSONA: 'troll' })).toThrow(/persona/);
     expect(() => parseFlags(['--limit', '0'], {})).toThrow(/MAX_STEPS/);
   });
