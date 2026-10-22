@@ -42,7 +42,6 @@ if (await research.isVisible().catch(() => false)) await click(research);
 const rail = page.getByTestId('landscape-rail');
 const endTurn = page.getByTestId('end-turn');
 const rect = (l) => l.evaluate((el) => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom }; });
-const hit = (a, b) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
 const tabs = await rail.locator('nav button').all();
 for (let i = 0; i < tabs.length; i += 1) {
   const name = (await tabs[i].getAttribute('aria-label')) || `tab${i}`;

@@ -35,6 +35,7 @@ const shouldShowHere = () => {
 };
 
 const InstallHint = () => {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (!shouldShowHere()) return undefined;
