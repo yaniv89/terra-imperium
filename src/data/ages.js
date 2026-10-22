@@ -151,13 +151,14 @@ export const artAgeFor = (available, ageId, { kind = null } = {}) => {
 
 // The speed table (eight-ages plan KTD9). There are no years per turn and no rule reads the year:
 // a speed is a cost multiplier per age on research, production and growth, keyed by the PAYING
-// nation's own age, and a turn limit that ends the game. Bronze to Modern keep exactly the values
-// the old calendar gave them (the reference years per turn over the speed's: Normal Bronze 40/25),
-// so their tuning holds. `turnLimit` is the speed's length of a full game (src/engine/ending.js).
+// nation's own age, and a turn limit that ends the game. Normal keeps the values the old calendar
+// gave Bronze to Modern (the reference years per turn over the speed's: Bronze 40/25). Fast and
+// Marathon were refit to Normal's shape (report rank 4, scripts/research-pace.mjs, seeds 11 to 15):
+// Marathon's Modern was 2, left from the calendar, so the Modern age lasted about 10 turns. `turnLimit` is the speed's length of a full game (src/engine/ending.js).
 export const GAME_SPEEDS = {
-  fast: { id: 'fast', name: 'Fast', costMult: { stone: 0.8, bronze: 0.8, classical: 0.8, kingdoms: 10 / 12, gunpowder: 0.8, modern: 1, information: 1, future: 1 }, turnLimit: 440, blurb: 'About 440 turns.' },
+  fast: { id: 'fast', name: 'Fast', costMult: { stone: 0.8, bronze: 0.8, classical: 0.8, kingdoms: 1, gunpowder: 1.1, modern: 0.8, information: 1, future: 1 }, turnLimit: 440, blurb: 'About 440 turns.' },
   normal: { id: 'normal', name: 'Normal', costMult: { stone: 1.6, bronze: 1.6, classical: 20 / 12, kingdoms: 10 / 6, gunpowder: 2, modern: 2, information: 2, future: 2 }, turnLimit: 923, blurb: 'About 920 turns.' },
-  marathon: { id: 'marathon', name: 'Marathon', costMult: { stone: 2, bronze: 4, classical: 4, kingdoms: 10 / 3, gunpowder: 4, modern: 2, information: 2, future: 2 }, turnLimit: 1514, blurb: 'About 1,500 turns.' }
+  marathon: { id: 'marathon', name: 'Marathon', costMult: { stone: 2, bronze: 3, classical: 2.6, kingdoms: 4, gunpowder: 4.5, modern: 3, information: 3, future: 3 }, turnLimit: 1514, blurb: 'About 1,500 turns.' }
 };
 
 const inTests = typeof process !== 'undefined' && !!process.env?.VITEST;
