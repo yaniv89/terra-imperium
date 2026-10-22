@@ -18,7 +18,9 @@ const EMPTY = { current: null, queue: [], progress: 0 };
 const settledGame = () => {
   const S = peoplesWorld({ seed: 7 });
   const regions = Object.fromEntries(Object.entries(S.regions).map(([id, c]) => [id, c.owner === FR ? { ...c, production: BUILD } : c]));
-  return { ...S, regions, research: { ...S.research, current: 'science_cuneiform_records', queue: [], auto: false }, activeEventId: null, activeProceduralEvent: null, pendingPeaceOffer: null, pendingDefenses: [], pendingDemand: null, tributeDemands: [], joinOffers: [], pendingBattle: null };
+  // the start's virtue point spent: the ruler chip is a soft hint too (nextPromptModel.js)
+  const nations = { ...S.nations, [FR]: { ...S.nations[FR], ruler: { ...S.nations[FR].ruler, bonusVirtuePoints: -1 } } };
+  return { ...S, regions, nations, research: { ...S.research, current: 'science_cuneiform_records', queue: [], auto: false }, activeEventId: null, activeProceduralEvent: null, pendingPeaceOffer: null, pendingDefenses: [], pendingDemand: null, tributeDemands: [], joinOffers: [], pendingBattle: null };
 };
 
 // The tap targets fire window events (the sheets listen); record them in node.

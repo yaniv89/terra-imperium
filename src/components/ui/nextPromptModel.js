@@ -16,6 +16,9 @@
 //   war       a people declared war on you in the last WAR_NOTICE_TURNS turns (a notice: it never blocks
 //             End Turn, stays on screen while other answers are given, and opens Peoples; I117)
 //   maps      a major offers to swap maps (src/engine/mapTrade.js, I116): a notice, never a blocker
+//   ruler     the ruler can raise an attribute or take a virtue now (rulers.js; playtest 22 Oct)
+//   governor  a city group's seat is empty and the court has a candidate (governors.js)
+//   decrees   the decree bank is full: the next deed's decree would be lost (decrees.js)
 import { unitTile } from '../../engine/armies';
 import { isSettler, isBand } from '../../engine/settlers';
 import { tutorialPrompt } from '../../engine/tutorial';
@@ -27,6 +30,10 @@ import { idleArmyTiles } from '../../engine/standingOrders';
 import { loyaltyForecast, loyaltyOf } from '../../engine/loyalty';
 import { t as tNow, formatNumber } from '../../i18n';
 import { nameNow } from '../../i18n/names';
+import { ATTRIBUTES, raiseBlock, virtueBlock } from '../../engine/rulers';
+import { VIRTUES } from '../../data/rulerVirtues';
+import { cityGroups, governorChoices } from '../../engine/governors';
+import { decreesOf, decreeCap } from '../../engine/decrees';
 
 const pName = (state, id) => nameNow('people', id, state.nations?.[id]?.name || '');
 const cName = (c) => nameNow('city', null, c.name);
@@ -38,7 +45,7 @@ export const WARN_ARM_MS = 4000;
 
 // The prompts that never block End Turn (the rest are End Turn's blockers, src/engine/turnBlockers.js):
 // units that can still move or wait for orders, a restless city, an army low on supply.
-export const SOFT_KINDS = new Set(['army', 'settler', 'unrest', 'supply']);
+export const SOFT_KINDS = new Set(['army', 'settler', 'unrest', 'supply', 'ruler', 'governor', 'decrees']);
 /** The soft hints that still wait (the "warn me" setting's list). */
 export const softHints = (state) => nextPrompts(state).filter((p) => SOFT_KINDS.has(p.kind));
 /** With the "warn me" setting on: how many soft hints still wait before End Turn; 0 otherwise. */
@@ -58,6 +65,12 @@ export const nextPrompts = (state) => {
   if (researchNeedsChoice(state)) out.push({ id: 'research', kind: 'research', label: tNow('prompt.research'), tab: 'tech' });
   const cities = Object.values(state.regions || {}).filter((c) => c.owner === me && c.tile != null && !c.outpost).sort((a, b) => (a.id < b.id ? -1 : 1));
   cities.forEach((c) => { if (!c.production?.current) out.push({ id: `city:${c.id}`, kind: 'city', label: tNow('prompt.cityIdle', { city: cName(c) }), regionId: c.id }); });
+  // Choices that wait in a panel (playtest 22 Oct: players missed them behind the rail's dot).
+  const nation = state.nations?.[me];
+  if (nation?.ruler && (ATTRIBUTES.some((a) => !raiseBlock(state, me, a)) || Object.keys(VIRTUES).some((v) => !virtueBlock(state, me, v)))) out.push({ id: 'ruler', kind: 'ruler', label: tNow('prompt.ruler'), tab: 'ruler' });
+  const emptySeats = nation && cities.length ? cityGroups(state, me).filter((g) => !nation.governors?.[g.seat]).length : 0;
+  if (emptySeats && governorChoices(nation).length) out.push({ id: 'governor', kind: 'governor', label: tNow('prompt.governor', { count: emptySeats }), tab: 'domestic', section: 'court', count: emptySeats });
+  if (nation?.ruler && decreesOf(nation) >= decreeCap(nation)) out.push({ id: 'decrees', kind: 'decrees', label: tNow('prompt.decrees'), tab: 'ruler' });
   const units = Object.values(state.units || {}).filter((u) => u.ownerId === me && u.strength > 0).sort((a, b) => (a.id < b.id ? -1 : 1));
   // (settlers told to wait, settlers.js setSettlerHold, are not asked about again: I093)
   units.forEach((u) => { if (isSettler(u) && u.target == null && u.tile != null && !u.hold) out.push({ id: `settler:${u.id}`, kind: 'settler', label: tNow(isBand(u) ? 'prompt.band' : 'prompt.settlers'), tile: u.tile }); });
