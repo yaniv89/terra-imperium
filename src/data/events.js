@@ -440,7 +440,7 @@ const RAW_HISTORICAL_EVENTS = {
     description: 'Telescopes find a mountain of rock on a path toward Earth. The odds of impact are small, but the panic is not.',
     options: [
       { label: 'Launch a mission to push it aside', effects: { gold: -200, prestige: 20, stability: 1 } },
-      { label: 'Trust the numbers and calm the public', effects: { cityUnrest: 10, legitimacy: -5 } }
+      { label: 'Trust the numbers and calm the public', effects: { stability: -1, legitimacy: -5 } }
     ]
   },
   machine_minds_vote: {
@@ -450,7 +450,7 @@ const RAW_HISTORICAL_EVENTS = {
     description: 'The minds that run the factories and the fleets ask for a say in the laws that bind them. Half the country cheers, half is afraid.',
     options: [
       { label: 'Give them a seat in the assembly', effects: { techPoints: 120, stability: -1, legitimacy: -5 } },
-      { label: 'Refuse and tighten the code that limits them', effects: { stability: 1, cityUnrest: 5 } }
+      { label: 'Refuse and tighten the code that limits them', effects: { stability: 1, prestige: -10 } }
     ]
   },
 
