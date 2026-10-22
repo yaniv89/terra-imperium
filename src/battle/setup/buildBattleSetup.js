@@ -77,7 +77,7 @@ import { FIRST_AGE_ID } from '../../data/ages';
 // v17: H-25, an oasis field is drawn as desert ground (the combat terrain stays).
 // v22: the AI defender goes out to a threat as one army (battle endings lane)
 // v21: sea battles: fleets form up facing each other mid-sea, a flagship for the admiral, the anchorage passive, the AI fleet engages (naval only)
-export const SETUP_VERSION = 22; // v20: Information commander powers, Drone Strike, Cyber Jam and Drone Recon (eight ages U58); v19: Modern machine-gun suppression, Information precision and drones (U50)
+export const SETUP_VERSION = 23; // v23: economy clocks cut to 10 and 20 minutes; v20: v20: Information commander powers, Drone Strike, Cyber Jam and Drone Recon (eight ages U58); v19: Modern machine-gun suppression, Information precision and drones (U50)
 // v18: Stone battles (eight ages U37 to U40): guard on foot, Stone stats, powers and fields
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
@@ -226,9 +226,9 @@ export const buildSetupFromArmies = ({
     combatWidth,
     // The clock by battle type (battleType.js): a field battle is fast, a siege gives the engines time.
     battleType: type,
-    // With an economy the clocks are the master plan's (6.1): a city assault 30 minutes, the rest 15.
-    // A landing is fought as a city assault (6.1): the 30-minute clock; a sally the field's 15.
-    // Any battle for a real town (walled or open) gets the 30 minutes too: there is a town to take apart.
+    // With an economy the clocks are the master plan's (6.1): a city assault 20 minutes, the rest 10.
+    // A landing is fought as a city assault (6.1): the 20-minute clock; a sally the field's 10.
+    // Any battle for a real town (walled or open) gets the 20 minutes too: there is a town to take apart.
     limitTicks: ecoSetup ? (type === 'assault' || type === 'landing' || (realCity && type !== 'sack') ? ECONOMY_SIEGE_TICKS : ECONOMY_FIELD_TICKS) : BATTLE_TYPES[type].limitTicks,
     // What the raiders must burn before they get away (battleType.js).
     ...(raiding ? { raid: { needed: type === 'sack' ? SACK_BURN_NEEDED : RAID_LOOT_NEEDED } } : {}),
@@ -442,7 +442,7 @@ const buildFieldSetup = (state, pb) => {
     reinforcements: [[], []],
     intel: { attackerSeesDefender: true },
     regionBuildings: [],
-    economy: true, // full base-building in field battles too (decision 36)
+    economy: !pb.quick, // full base-building in field battles too (decision 36); the player may pick a quick 5-minute one
     economyInputs: ins.economyInputs
   });
 };

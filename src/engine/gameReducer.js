@@ -105,7 +105,7 @@ import { resolveAutoBattle } from './autoBattle';
 import { switchedBattleState } from './battleSwitch';
 import { applyBattleOutcome, makeBattleOutcome, battleIdOf } from './battleOutcome';
 import { cityMilitia, reinforcementSources } from './battleInputs';
-import { battleRequired } from './battleThreshold';
+import { battleRequired, autoSiegeOn } from './battleThreshold';
 import { battleQueueBlocked, queuedKind, queuedArmies, queuedCommandBlock, resolveQueuedAuto, resolveAllQueuedAuto, drainAutoBattles, aggressorView } from './battleQueue';
 import { replayBattle } from '../battle/sim/replay';
 import { verifyCommandedBattle, fieldedUnitIds } from './battleVerify';
@@ -1337,14 +1337,14 @@ const reduceAction = (state, action) => {
       const paid = { ...state, resources: applyCosts(state.resources, ACTION_COSTS.launchInvasion) };
       const done = applyInvasionResult(paid, { fromRegionId, targetRegionId, war: v.war, targetRegion: v.targetRegion, isDefended: ctx.isDefended }, battle, { rngSeed: rng.getSeed(), militia: battle.inputs.militia });
       // U18: the game, not the player, chose Auto; the report opens at once and says why.
-      return smallTown && !battleRequired(state, targetRegionId) ? stampAutoBecause(state, done, msg('m.act.autoSmallTown', { place: cityOr(targetRegionId, REGIONS_DATA[targetRegionId]?.name, 'm.battle.theTown') })) : done;
+      return smallTown && !battleRequired(state, targetRegionId) ? stampAutoBecause(state, done, msg(autoSiegeOn(state, targetRegionId) ? 'm.act.autoSiege' : 'm.act.autoSmallTown', { place: cityOr(targetRegionId, REGIONS_DATA[targetRegionId]?.name, 'm.battle.theTown') })) : done;
     }
 
     // ---- Tactical Battles (design/rts-battles-implementation-plan.md §10.1) ----
 
     case ActionTypes.BEGIN_TACTICAL_BATTLE: {
       if (state.pendingBattle) return reject(state, msg('m.act.no.battleInProgress'));
-      const { fromRegionId, targetRegionId, tile = null, fromTile = null, naval = false } = action.payload;
+      const { fromRegionId, targetRegionId, tile = null, fromTile = null, naval = false, quick = false } = action.payload;
       if (naval) {
         // A commanded sea battle (navalBattle.js): the fleets on `fromTile` against the enemy fleets on `tile`.
         const nv = validateFleetAttack(state, fromTile, tile);
@@ -1384,7 +1384,8 @@ const reduceAction = (state, action) => {
           pendingBattle: {
             id: `b_${state.turnNumber}_${fcounter}`, kind: 'field', fromRegionId, tile, targetRegionId: anchor, warId: fv.war?.id ?? null,
             attackerNationId: state.playerNationId, defenderNationId: fv.defenderNationId, seed: fseed, startedTurn: state.turnNumber, playerSide: 'attacker',
-            attackerUnitIds: fv.attackerUnits.map((u) => u.id), defenderUnitIds: fv.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: []
+            attackerUnitIds: fv.attackerUnits.map((u) => u.id), defenderUnitIds: fv.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: [],
+            ...(quick ? { quick: true } : {}) // the player's quick field battle: 5 minutes, no base-building (buildFieldSetup)
           },
           logs: [...state.logs, { year: state.year, ...msg('m.act.commandField'), type: LogTypes.COMBAT }]
         };
@@ -1743,6 +1744,16 @@ const reduceAction = (state, action) => {
       next.smallTownDefense = next.smallTownDefense === 'auto' ? 'auto' : 'ask';
       next.instantBattles = next.instantBattles === true; // skip the auto-resolve replay
       return { ...state, battleSettings: next };
+    }
+
+    // "Auto until the siege ends" (battleThreshold.js autoSiegeOn): only for a city under siege now.
+    case ActionTypes.SET_AUTO_SIEGE: {
+      const { regionId, on } = action.payload;
+      const siege = state.regions?.[regionId]?.siege;
+      const rest = { ...state.autoSieges };
+      delete rest[regionId];
+      if (!on) return { ...state, autoSieges: rest };
+      return siege ? { ...state, autoSieges: { ...rest, [regionId]: siege.startedTurn } } : state;
     }
 
     case ActionTypes.AMPHIBIOUS_ASSAULT: {
