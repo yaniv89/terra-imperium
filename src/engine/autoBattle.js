@@ -43,7 +43,7 @@ import { powExact } from '../utils/exactMath';
 import { garrisonOf, resolveCityAttack } from './cityAssault';
 import { siegeHpOf, siegeMaxHp, SIEGE_ENGINEERING_TECH } from './sieges';
 import { getResearched } from './nationState';
-import { FIRST_AGE_ID } from '../data/ages';
+import { FIRST_AGE_ID, AGE_GAP_MULT } from '../data/ages';
 
 export const AUX_UNIT = 1000;
 export const AUX_EFFECT = 1; // 1.6 before Auto broke units at the RTS loss share (moraleMath.js): autoCalib over parityEco field, assault, town, N=32: 2 of 90 out (8 at 1.6)
@@ -87,7 +87,12 @@ export const RAID_SLIP = 0.5;
 // while the round-based exchange multiplies the whole roster gap. The attacker gets back this share
 // (as an exponent) of the defender's roster advantage on a walled assault; 0 = off.
 export const WALLS_AGE_RELIEF = 1.2; // 0.7 before U19: the cross-age assault and fort rows read 0.37 to 0.53
-export const AUTO_TUNE = { AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED, WALLS_NO_SIEGE_MULT, FORT_NO_SIEGE_MULT, AUX_CLOSENESS, WALLS_AGE_RELIEF, RAID_MULT, SACK_MULT, RAID_SLIP_BASE, RAID_SLIP };
+// The breach (eight ages U77): see autoFromInputs. 0 = off. Only for an attacker at most one age
+// behind: two or more ages back, the real-time attackers never reach the keep (gunpowder against
+// Future walls: 0 of 32) and Auto already gives them more than that.
+export const ASSAULT_BREACH_MAX_GAP = AGE_GAP_MULT[1];
+export const ASSAULT_BREACH_SHARE = 0.65;
+export const AUTO_TUNE = { ASSAULT_BREACH_SHARE, AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED, WALLS_NO_SIEGE_MULT, FORT_NO_SIEGE_MULT, AUX_CLOSENESS, WALLS_AGE_RELIEF, RAID_MULT, SACK_MULT, RAID_SLIP_BASE, RAID_SLIP };
 
 /** The raiders' damage multiplier in an auto-resolved raid or sack (see RAID_MULT). */
 export const raidMult = (kind, ins, tune = AUTO_TUNE) => {
@@ -301,6 +306,16 @@ export const autoFromInputs = (args, ins, kind, rng, tune = AUTO_TUNE) => {
     defenderUnits: strip(battle.defenderUnits),
     report: { ...battle.report, deployedAttackerIds: kept(battle.report.deployedAttackerIds), deployedDefenderIds: kept(battle.report.deployedDefenderIds), auxiliaries, wallsMult, ageRelief }
   };
+  // The breach (eight ages U77): storming walls, the real-time attackers rally out of the towers'
+  // reach and take the keep with what is left of them even when they lost more than the garrison
+  // (parityEco, even 3-against-3 assaults: the attacker falls 75 to 90% and wins 24 to 32 of 32, Auto
+  // won 2 to 14). So on Auto a contested walled assault with attackers left alive (routed ones too:
+  // they rally) and the garrison thinned to ASSAULT_BREACH_SHARE of its start or less is an attacker
+  // win: the garrison is beaten (driven out where battleOutcome.js garrisonFirst applies). 0 = off.
+  const garrison = (list) => list.reduce((s, u) => s + (u.militia ? 0 : Math.max(0, u.strength)), 0);
+  const breachShare = tune.ASSAULT_BREACH_SHARE ?? ASSAULT_BREACH_SHARE;
+  if (cityWalled && contested && breachShare > 0 && ageGap <= ASSAULT_BREACH_MAX_GAP && battle.outcome !== 'attacker' && battle.attackerUnits.some((u) => u.strength > 0)
+    && garrison(battle.defenderUnits) <= breachShare * garrison(ins.defenderUnits)) battle = { ...battle, outcome: 'attacker', report: { ...battle.report, outcome: 'attacker', breached: true } };
   // A battle with bases has no draw (the user's rulings Q3 and Q5; src/battle/sim/base.js): with
   // both lines gone neither base has fallen, so the defender holds, as at the real-time clock.
   if (battle.outcome === 'stalemate' && BASE_KINDS.has(kind)) battle = { ...battle, outcome: 'defender', report: { ...battle.report, outcome: 'defender', heldNoDraw: true } };
