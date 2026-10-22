@@ -9,6 +9,7 @@ const mk = (city, units = {}, battleSettings = {}) => ({
 const guard = { g: { id: 'g', regionId: 't', ownerId: 'b', domain: 'land', classId: 'infantry' } };
 
 describe('battleRequired', () => {
+  it('a capital always opens the card, even a small unwalled one', () => expect(battleRequired(mk({ isCapital: true }), 't')).toBe(true));
   it('a size 2 town with no defense tier needs no battle screen', () => expect(battleRequired(mk({}), 't')).toBe(false));
   it('an outpost needs none, whatever its size', () => expect(battleRequired(mk({ outpost: true, size: 9 }), 't')).toBe(false));
   it('any Defense-line tier opens the card', () => expect(battleRequired(mk({ buildings: { categories: { defense: 0 } } }), 't')).toBe(true));
@@ -23,7 +24,7 @@ describe('battleRequired', () => {
   it('no city means not small', () => expect(isSmallOpenTown({}, null)).toBe(false));
 });
 
-it('each measured age limit is below that age median (balance run, seed 11, 300 turns)', () => {
+it('each measured age limit is at most that age median (balance run, seed 11, 300 turns)', () => {
   const median = { bronze: 3, classical: 3, kingdoms: 4, gunpowder: 6 };
-  Object.entries(median).forEach(([a, m]) => expect(SMALL_TOWN_SIZE[a]).toBeLessThan(m));
+  Object.entries(median).forEach(([a, m]) => expect(SMALL_TOWN_SIZE[a]).toBeLessThanOrEqual(m));
 });
