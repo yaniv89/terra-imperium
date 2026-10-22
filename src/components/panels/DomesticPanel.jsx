@@ -524,7 +524,7 @@ const DomesticPanel = () => {
         {governmentSection}
       </CollapsibleSection>
       <div className="border-t border-fa-line" />
-      <CollapsibleSection id="laws" title={tNow('dom.laws')} icon={ScrollText}>
+      <CollapsibleSection id="laws" title={tNow('dom.laws')} icon={ScrollText} defaultOpen={!!playerNation?.freeLawChange}>
         {lawsSection}
       </CollapsibleSection>
       <div className="border-t border-fa-line" />
