@@ -654,6 +654,18 @@ svg path {
   /* End Turn rides above sheets (TurnDock.jsx): the last row scrolls clear of it (playtest issue 5). */
   padding-bottom: calc(max(env(safe-area-inset-bottom), 0.75rem) + 3.5rem);
 }
+/* The turn report is a short card under the top bar, not a full-height sheet; End Turn (always on
+   screen) plays the next turn, so its own "Play turn" foot is hidden (playtest lane 4). */
+[data-layout="phone-landscape"] .sheet-panel.report-sheet {
+  height: auto;
+  align-self: flex-start;
+  margin-top: var(--header-height, 2.25rem);
+  margin-inline-end: var(--rail-w, 0px); /* beside the tab rail, not over it */
+  max-height: calc(100dvh - var(--header-height, 2.25rem) - max(env(safe-area-inset-bottom), 0.75rem) - 3.5rem);
+  padding-bottom: 0;
+  border-bottom-left-radius: 10px;
+}
+[data-layout="phone-landscape"] .report-sheet .report-foot { display: none; }
 /* Two-column sheets (Settings, the nation overview): wide enough for both columns, over the rail
    (plans/UI-DESIGN.md section 5: Settings hides the tab rail). */
 [data-layout="phone-landscape"] .sheet-panel.sheet-wide {
