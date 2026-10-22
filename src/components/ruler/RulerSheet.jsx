@@ -3,7 +3,7 @@
 // the six attributes, the Virtue tree with a detail bar whose one brass button takes the virtue,
 // and the last deeds. It is tab content in the dock, so the dock already registers with
 // useInteraction (PanelDrawer.jsx). 44 px targets throughout (844 x 390 reference).
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Plus, Check, Lock } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
@@ -37,6 +37,9 @@ const RulerSheet = () => {
   const { state, dispatch } = useGame();
   const { t } = useT();
   const [picked, setPicked] = useState(null);
+  const detailRef = useRef(null);
+  // On a short phone screen the cost and the Take button sit under the fold: bring them up.
+  useEffect(() => { if (picked) detailRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }); }, [picked]);
   const m = rulerSheetModel(state);
   if (!m) return null;
   const nation = state.nations[m.nationId];
@@ -119,7 +122,7 @@ const RulerSheet = () => {
               );
             }))}
           </div>
-          <div className="mt-2 rounded-lg bg-fa-raised/60 p-2 text-[12px] min-h-[64px]" data-testid="ruler-detail">
+          <div ref={detailRef} className="mt-2 rounded-lg bg-fa-raised/60 p-2 text-[12px] min-h-[64px] scroll-mb-3" data-testid="ruler-detail">
             {sel ? (
               <>
                 <div className="font-semibold">{vName(sel.virtue)} <span className="text-fa-muted font-normal font-mono">{sel.state === 'taken' ? t('ruler.virtue.taken') : t('ruler.virtue.cost', { n: sel.virtue.cost })}</span></div>

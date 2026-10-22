@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i >= 0 ? process.argv[i + 1] : d; };
-const URL_BASE = arg('--url', 'http://localhost:5197/terra-imperium/');
+const URL_BASE = arg('--url', 'http://localhost:5411/terra-imperium/');
 const TAG = arg('--tag', 'after');
 const LANG = arg('--lang', 'en');
 const H = Number(arg('--h', '390'));
@@ -70,6 +70,28 @@ for (let i = 0; i < tabs.length; i += 1) {
   if (await close.isVisible().catch(() => false)) await click(close); else await click(tabs[i]);
   await wait(400);
 }
+// A virtue asks first, with its cost (item 35), and the card fits the screen.
+await click(tabs[1]);
+await wait(500);
+const virtue = page.locator('[data-testid="landscape-dock"] button:not([disabled])').filter({ hasText: /Warlord|לוחם/ }).first();
+if (await virtue.count()) {
+  await click(virtue);
+  await wait(900);
+  const take = page.getByTestId('ruler-detail').getByRole('button').first();
+  const tb = await rect(take);
+  check('virtue cost and Take button are on screen after the pick', tb.b <= H && tb.t >= 0, JSON.stringify(tb));
+  await page.screenshot({ path: path.join(OUT, `${LANG}-${H}-virtue-picked.png`) });
+  await click(take);
+  await wait(500);
+  await page.screenshot({ path: path.join(OUT, `${LANG}-${H}-virtue-confirm.png`) });
+  const dlg = page.getByRole('dialog').last();
+  const vb = await dlg.evaluate((el) => { const r = el.getBoundingClientRect(); return { t: r.top, b: r.bottom, l: r.left, r: r.right }; });
+  check('virtue confirm card is on screen', vb.t >= 0 && vb.b <= H && vb.l >= 0 && vb.r <= W, JSON.stringify(vb));
+  await page.keyboard.press('Escape');
+  await wait(300);
+}
+await click(tabs[1]).catch(() => {});
+await wait(300);
 // Settings sheet: scrolled to the end, its last control is above End Turn.
 await click(rail.getByRole('button', { name: /Open the menu|menu/i }));
 await click(page.getByTestId('menu-settings'));
@@ -81,6 +103,14 @@ await page.screenshot({ path: path.join(OUT, `${LANG}-${H}-settings-bottom.png`)
 const etr = await rect(endTurn);
 const lastB = await sp.evaluate((el) => { const bs = [...el.querySelectorAll('button,input,select')].filter((b) => b.getBoundingClientRect().height); const r = bs[bs.length - 1].getBoundingClientRect(); return { b: r.bottom, l: r.left, r: r.right, t: r.top }; });
 check('Settings: last control sits above End Turn when scrolled to the end', !(lastB.r > etr.l && lastB.l < etr.r && lastB.b > etr.t), JSON.stringify({ lastB, etr }));
+// The gold popover names where the per-turn number comes from.
+await click(page.getByTestId('settings-sheet').getByRole('button', { name: /Close|סגור/ }).first()).catch(() => {});
+await page.keyboard.press('Escape');
+await wait(300);
+await click(page.getByTestId('top-bar-gold'));
+await page.getByTestId('top-bar-reasons').waitFor({ timeout: 5000 });
+await page.screenshot({ path: path.join(OUT, `${LANG}-${H}-gold-popover.png`) });
+console.log('gold popover:', (await page.getByTestId('top-bar-reasons').textContent()).replace(/s+/g, ' ').slice(0, 300));
 check('no page errors', errors.length === 0, errors.join(' ; '));
 await browser.close();
 process.exit(failed ? 1 : 0);

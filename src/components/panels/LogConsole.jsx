@@ -89,7 +89,7 @@ const LogEntry = ({ log, showYear = true }) => {
         </span>
       )}
       {/* FIX: added break-words to prevent horizontal scrolling breaking layout */}
-      <span className="text-[11px] break-words">{logText(log, lang)}</span>
+      <span dir="auto" className="text-[11px] break-words">{logText(log, lang)}</span>
       {folded && (
         <button
           type="button"
