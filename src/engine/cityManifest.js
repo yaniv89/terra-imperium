@@ -33,6 +33,7 @@ import { styleOfLand } from '../data/architecture';
 import { FIRST_AGE_ID } from '../data/ages';
 import { landOf } from './world/cultureZones';
 import { ageOf } from './nationState';
+import { msg, sub } from './messages';
 
 export const REPAIR_TURNS = 3;
 export const RUIN_TURNS = 8;
@@ -154,13 +155,15 @@ export const applyCityBattleDamage = (state, cityId, report, { manifest, occupat
   if (out.lostBuildings.length) next.buildings = { ...region.buildings, categories };
   if (out.sizeLoss > 0 && region.size != null) next.size = region.size - out.sizeLoss;
   const parts = [];
-  if (out.ruinedHouses.length) parts.push(`${out.ruinedHouses.length} house${out.ruinedHouses.length > 1 ? 's' : ''} in ruins`);
-  if (out.lostBuildings.length) parts.push(`${out.lostBuildings.length} building${out.lostBuildings.length > 1 ? 's' : ''} lost a tier`);
-  if (out.sizeLoss > 0) parts.push(`size -${out.sizeLoss}`);
+  if (out.ruinedHouses.length) parts.push(msg('m.battle.dmgHouses', { count: out.ruinedHouses.length }));
+  if (out.lostBuildings.length) parts.push(msg('m.battle.dmgTier', { count: out.lostBuildings.length }));
+  if (out.sizeLoss > 0) parts.push(msg('m.battle.dmgSize', { n: out.sizeLoss }));
   const left = out.damage ? Object.keys(out.damage.damaged).length : 0;
-  if (left) parts.push(`${left} damaged, repairing over ${REPAIR_TURNS} turns`);
-  if (out.repairedAtOnce) parts.push(`${out.repairedAtOnce} repaired at once`);
-  return { state: { ...state, regions: { ...state.regions, [cityId]: next } }, log: parts.length ? parts.join(', ') : null };
+  if (left) parts.push(msg('m.battle.dmgLeft', { count: left, turns: REPAIR_TURNS }));
+  if (out.repairedAtOnce) parts.push(msg('m.battle.dmgRepaired', { count: out.repairedAtOnce }));
+  // `log` is the English line; `logMsg` the same as a message, for the log in other languages.
+  const logMsg = parts.map((p) => sub(p.msgKey, p.msgVars)).reduce((acc, p) => (acc == null ? p : sub('m.battle.listComma', { a: acc, b: p })), null);
+  return { state: { ...state, regions: { ...state.regions, [cityId]: next } }, log: parts.length ? parts.map((p) => p.message).join(', ') : null, logMsg };
 };
 
 /** One turn of free repairs on a city record (resolveTurn). Returns the same record when nothing

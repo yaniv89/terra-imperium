@@ -545,10 +545,10 @@ export const applyCityDamage = (before, after, regionId, { cityDamage = null, ra
   if (!manifest || !after.regions[regionId]) return after;
   const occupation = before.regions[regionId]?.owner !== after.regions[regionId].owner;
   const burned = (razed || []).map((c) => `bld-${c}`);
-  const { state: next, log } = applyCityBattleDamage(after, regionId, { destroyed: [...new Set([...(cityDamage.destroyed || []), ...burned])], damaged: cityDamage.damaged || [] }, { manifest, occupation });
+  const { state: next, log, logMsg } = applyCityBattleDamage(after, regionId, { destroyed: [...new Set([...(cityDamage.destroyed || []), ...burned])], damaged: cityDamage.damaged || [] }, { manifest, occupation });
   if (!log) return next;
   // `log` is cityManifest.js's English list of what burned (not converted there yet).
-  return { ...next, logs: [...next.logs, { year: next.year, ...msg('m.battle.cityMarked', { city: cityRef(regionId, after.regions[regionId]?.name || regionId), damage: log }), type: LogTypes.COMBAT }] };
+  return { ...next, logs: [...next.logs, { year: next.year, ...msg('m.battle.cityMarked', { city: cityRef(regionId, after.regions[regionId]?.name || regionId), damage: logMsg || log }), type: LogTypes.COMBAT }] };
 };
 
 // ---- the service ------------------------------------------------------------------------------

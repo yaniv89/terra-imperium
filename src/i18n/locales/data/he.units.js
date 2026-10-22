@@ -17,6 +17,7 @@ export default {
   'uclass.air.role': 'טווח ללא גבולות.',
   'uclass.support': 'תמיכה',
   'uclass.support.role': 'מכפילים לא קרביים בתחילה; הגנה נגד מטוסים בעידן המודרני.',
+  'uclass.settler': 'מתיישבים',
   'unit.settler': 'מתיישבים',
 
   // the roster by age (unit.<age>.<class>)

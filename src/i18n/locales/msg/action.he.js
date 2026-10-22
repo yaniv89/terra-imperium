@@ -160,6 +160,7 @@ export default {
   'm.act.governmentChanged': 'האימפריה שלכם הפכה ל{gov}. (-2 יציבות)',
   'm.act.reformEnacted': 'הרפורמה {reform} נחקקה.',
   'm.act.lawEnacted': 'החוק {law} נחקק.',
+  'm.act.achievement': 'הישג נפתח: {name}',
   'm.act.identityShift': 'אומתכם נוטה עוד לכיוון {pole}.',
   'm.act.capitalMoved': 'הבירה עברה ל{city}.{penalty}',
   'm.act.capitalForeign': ' (-1 יציבות)',

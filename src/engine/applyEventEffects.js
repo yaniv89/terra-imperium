@@ -330,7 +330,9 @@ export const applyEventEffects = (state, event, optionIndex) => {
     next.nations = { ...next.nations, [playerNationId]: { ...player, laws: { ...player.laws, [effects.law.category]: effects.law.lawId } } };
   }
 
-  logs.push({ year: next.year, ...msg('m.world.eventChoice', { event: thing('event', event.id, event.title), option: thing('eventOption', `${event.id}.${optionIndex}`, option.label) }), type: LogTypes.EVENT });
+  // A drawn event is told by its template (`p:<templateId>`, the Hebrew texts are pevt.<templateId>.*), a fixed one by its id.
+  const eid = event.procedural && event.templateId ? `p:${event.templateId}` : event.id;
+  logs.push({ year: next.year, ...msg('m.world.eventChoice', { event: thing('event', eid, event.title), option: thing('eventOption', `${eid}.${optionIndex}`, option.label) }), type: LogTypes.EVENT });
 
   next.logs = [...next.logs, ...logs];
   next.activeEventId = null;

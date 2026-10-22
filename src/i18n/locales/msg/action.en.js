@@ -161,6 +161,7 @@ export default {
   'm.act.governmentChanged': 'Your empire has become a {gov}. (-2 stability)',
   'm.act.reformEnacted': 'Enacted the {reform} reform.',
   'm.act.lawEnacted': 'Enacted the {law} law.',
+  'm.act.achievement': 'Achievement unlocked: {name}',
   'm.act.identityShift': 'Your nation leans further {pole}.',
   'm.act.capitalMoved': 'The capital has moved to {city}.{penalty}',
   'm.act.capitalForeign': ' (-1 stability)',
