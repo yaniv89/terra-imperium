@@ -7,5 +7,8 @@ export default {
   'crisis.hitOthers': '{n} עמים נפגעו. עמכם נחסך לעת עתה.',
   'start.crises': 'משברי היסטוריה',
   'start.crisesOn': 'מגפות, פורעים וקריסות עלולים לפגוע בעולם.',
-  'start.crisesOff': 'ללא משברים בעולם.'
+  'start.crisesOff': 'ללא משברים בעולם.',
+  'start.explore': 'מצב חקירה',
+  'start.exploreOn': 'שלווה: בלי מלחמות, פשיטות ומשברים. בונים, סוחרים וקוראים את הסיפור.',
+  'start.exploreOff': 'כבוי: מלחמות ופשיטות הן חלק מהמשחק.'
 };

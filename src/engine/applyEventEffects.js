@@ -20,6 +20,7 @@ import { speedTurns } from '../data/ages';
 import { ageOf } from './nationState';
 import { grantBattleCard } from '../data/battleCards';
 import { waitAgeOf } from './ageRefs';
+import { exploreOn } from './hostility';
 
 // The resources an option lacks, as a list of names ("gold, hr").
 const shortfallList = (ids) => ids.map((id) => thing('resource', id, id)).reduce((acc, r) => (acc === '' ? r : sub('m.world.listMore', { a: acc, b: r })), '');
@@ -208,7 +209,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
   if (effects.warWith) {
     const ids = Array.isArray(effects.warWith) ? effects.warWith : [effects.warWith];
     ids.forEach(nId => {
-      if (!next.nations[nId] || isAtWarWithPlayer(next, nId)) return;
+      if (!next.nations[nId] || isAtWarWithPlayer(next, nId) || exploreOn(next)) return;
       next = declareWar(next, nId, { aggressor: playerNationId });
       logs.push({ year: next.year, ...msg('m.world.eventWar', { nation: nationRef(next, nId) }), type: LogTypes.CRISIS });
     });
@@ -283,7 +284,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
   // spawnRebels: { regionId, strength } — the exact rebel-unit shape resolveTurn.js's own
   // rebellion phase creates (src/data/rebellion.js), so an event-spawned uprising is fought,
   // suppressed, or grows exactly like an organic one; a no-op if that region is already rebelling.
-  if (effects.spawnRebels && next.regions[effects.spawnRebels.regionId]) {
+  if (effects.spawnRebels && !exploreOn(next) && next.regions[effects.spawnRebels.regionId]) {
     const { regionId, strength: givenStrength } = effects.spawnRebels;
     const alreadyRebelling = Object.values(next.units).some((u) => u.ownerId === REBEL_OWNER_ID && u.regionId === regionId);
     if (!alreadyRebelling) {

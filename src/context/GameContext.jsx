@@ -369,6 +369,7 @@ export const GameProvider = ({ children }) => {
         guided: !!options.guided,
         exploredWorld: !!options.exploredWorld, // the "explored world" option: no fog of war (engine/fog.js)
         crises: options.crises, // 'off' stops the history crises (engine/crises.js)
+        explore: !!options.explore, // explore mode: no wars, raids or crises (engine/hostility.js exploreOn)
         doctrineId: meta.selectedDoctrine,
         difficultyId: options.difficultyId || meta.difficulty
       }

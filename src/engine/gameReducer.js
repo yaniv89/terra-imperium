@@ -54,7 +54,7 @@ import { transferRegion } from './regionTransfer';
 import { grantIntel } from './intel';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, validateAmphibious, applyAmphibiousLanding, getAmphibiousBattleContext } from './invasion';
 import { declareWar, hasCasusBelli, isWarBetween, isAtWarWithPlayer, isInTruce, getTradePactCapacity, setTruce, refreshWarFlags, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
-import { canAttack, isNoMansLand } from './hostility';
+import { canAttack, isNoMansLand, exploreOn } from './hostility';
 import { setHold, setSiege } from './standingOrders';
 import { isIndependent, isIndependentNation, GRUDGE_ATTACKED } from '../data/independents';
 import { addGrudge } from './grudges';
@@ -2068,6 +2068,7 @@ const reduceAction = (state, action) => {
     }
 
     case ActionTypes.DECLARE_WAR: {
+      if (exploreOn(state)) return state;
       const { nationId } = action.payload;
       const target = state.nations[nationId];
       const player = state.nations[state.playerNationId];
@@ -2644,7 +2645,7 @@ const reduceAction = (state, action) => {
       const player = state.nations[state.playerNationId];
       const overlordId = player?.vassalOf;
       const overlord = overlordId ? state.nations[overlordId] : null;
-      if (!overlord || player.isAtWar || (player.libertyDesire || 0) < LIBERTY_DESIRE_INDEPENDENCE_THRESHOLD) return state;
+      if (exploreOn(state) || !overlord || player.isAtWar || (player.libertyDesire || 0) < LIBERTY_DESIRE_INDEPENDENCE_THRESHOLD) return state;
       const afterWar = declareWar(state, overlordId, { aggressor: state.playerNationId, goal: { type: 'independence' } });
       if (afterWar === state) return state;
       const wars = [...afterWar.wars];
@@ -3121,9 +3122,10 @@ const CONTACT_ACTIONS = new Set([
 const NO_FOG_REFRESH = new Set([ActionTypes.ADVANCE_TURN, ActionTypes.FAST_FORWARD, ActionTypes.RESET_GAME, ActionTypes.LOAD_GAME]);
 
 // The state a new game starts from, out of RESET_GAME's payload (also a macro log's start, macroVerify.js).
-export const startState = ({ playerNationId, gameSpeed, doctrineId, difficultyId, scenario, rngSeed, guided, exploredWorld, crises } = {}) => {
+export const startState = ({ playerNationId, gameSpeed, doctrineId, difficultyId, scenario, rngSeed, guided, exploredWorld, crises, explore } = {}) => {
   const base = createInitialState({ playerNationId, gameSpeed, scenario, rngSeed, guided, fog: !exploredWorld });
-  const fresh = crises === 'off' ? { ...base, settings: { ...base.settings, crises: 'off' } } : base;
+  const withCrises = crises === 'off' ? { ...base, settings: { ...base.settings, crises: 'off' } } : base;
+  const fresh = explore ? { ...withCrises, settings: { ...withCrises.settings, explore: true } } : withCrises;
   const withDoctrine = doctrineId ? applyStartingDoctrine(fresh, doctrineId) : fresh;
   return difficultyId ? applyDifficulty(withDoctrine, difficultyId) : withDoctrine;
 };

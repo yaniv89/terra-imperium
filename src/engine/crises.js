@@ -37,7 +37,7 @@ export const SURGE_BANDS = 2;
 export const PLAGUE_I = 0.1;
 export const FAMINE_SHARE = 0.1;
 
-export const crisesOn = (state) => state.settings?.crises !== 'off';
+export const crisesOn = (state) => state.settings?.crises !== 'off' && state.settings?.explore !== true;
 
 const ruleOf = (c) => ({ all: [{ fact: 'ageIndex', min: getAgeIndex(c.ages[0]), max: getAgeIndex(c.ages[1]) }, c.hits] });
 

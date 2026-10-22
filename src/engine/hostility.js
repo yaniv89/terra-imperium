@@ -37,9 +37,12 @@ const truceWith = (state, indepId, otherId) => {
 /** The active war record between `a` and `b`, or null. */
 export const warBetween = (state, a, b) => (state?.wars || []).find((w) => w.active && isWarBetween(w, a, b)) || null;
 
+/** Explore mode (U43): a peaceful game over the real Earth. Nobody fights anybody, rebels and independents included. */
+export const exploreOn = (state) => state?.settings?.explore === true;
+
 /** Are `a` and `b` hostile? See the header. */
 export const canFight = (state, a, b) => {
-  if (!a || !b || a === b) return false;
+  if (!a || !b || a === b || exploreOn(state)) return false;
   if (a === REBEL_OWNER_ID || b === REBEL_OWNER_ID) return true;
   const indepA = isIndependentId(state, a);
   const indepB = isIndependentId(state, b);
