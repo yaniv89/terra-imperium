@@ -28,6 +28,7 @@ import { soldierLodGeometries, pickSoldierTier, triangleCount } from './soldierL
 import { SKIRT, buildTileMask, makeSkirtHeight, hasCoast, horizonLevel, buildSkirtGeometry, patchGroundMaterial, fitShadowBox, dryGrassBlend, DRY_GRASS } from './terrainSurface';
 import { vegetationKitFor } from '../art/vegetation';
 import { Q } from '../sim/constants';
+import { POWERS } from '../sim/effects';
 import { zonePerimeter } from './deployZone';
 import { CityLayer, CITY_KINDS } from './cityLayer';
 import { EconomyLayer } from './economyLayer';
@@ -1056,7 +1057,7 @@ export class BattleRenderer {
     return best && this.structureSeen(best.index ?? -1) ? { ...best, ground: g } : { kind: 'ground', ground: g };
   }
 
-  addMarker(x, z, color = '#a3e635') { this.markers.push({ x, z, t: 0, color }); }
+  addMarker(x, z, color = '#a3e635', size = 1, life = 0.8) { this.markers.push({ x, z, t: 0, color, size, life }); }
 
   /** An order given while paused (RTS-03): drawn steady until the sim steps past this tick. */
   addPendingMark(mark) {
@@ -1148,6 +1149,13 @@ export class BattleRenderer {
           if (this.fxSprites.has('smoke')) this.fx.push({ kind: 'sprite', sheet: 'smoke', x: e.x / Q, z: e.y / Q, y: 0.3, rise: 1.2, t: 0, life: 2.4, size: Math.max(1, r) });
         } else for (let k = 0; k < n; k++) this.fx.push({ kind: 'spark', x: e.x / Q + (hash01(e.t * 11 + k) - 0.5) * r * 1.6, z: e.y / Q + (hash01(e.t * 17 + k) - 0.5) * r * 1.6, t: 0, life: 0.9, seed: k, big: true, fire: true });
         this.addMarker(e.x / Q, e.y / Q, '#f97316');
+      } else if (e.type === 'power') {
+        // Playtest 13: a fired power shows. Strikes and Ambush: a wide ring over the ground they cover;
+        // Rally Cry: a ring round every squad of the side that calls it. Each stays about a second and a half.
+        const p = POWERS[e.power];
+        const D = !p ? 0 : p.hide ? 2 * p.hide.radius / Q : p.line ? p.impacts * 1.2 + 2 * p.radius / Q : p.impacts ? 2 * ((p.spread || Q) + p.radius) / Q : 0;
+        if (D) this.addMarker(e.x / Q, e.y / Q, p.hide ? '#a78bfa' : '#fbbf24', D / (1.7 * 1.8), 1.6);
+        else if (e.power === 'rallyCry') view.squads.filter((q) => q.side === e.side && q.alive && q.onField && !q.fled && q.classId !== 'worker').slice(0, 30).forEach((q) => this.addMarker(q.x / Q, q.y / Q, '#fde047', 1.3, 1.4));
       } else if (e.type === 'ability') {
         const src = view.squads[e.id];
         if (src) this.addMarker(src.x / Q, src.y / Q, '#c084fc');
@@ -1783,11 +1791,11 @@ export class BattleRenderer {
       m.setMatrixAt(k, tmp.matrix); m.setColorAt(k, colorOf(sp.color)); splatN[sp.layer] += 1;
     });
     this.splatLayers.forEach((m, i) => { m.count = splatN[i]; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; });
-    this.markers = this.markers.filter((m) => (m.t += dt) < 0.8);
+    this.markers = this.markers.filter((m) => (m.t += dt) < m.life);
     this.markers.forEach((m) => {
       if (mn >= 64) return;
-      const k = m.t / 0.8;
-      tmp.rotation.set(0, 0, 0); tmp.position.set(m.x, this.heightAt(m.x, m.z) + 0.08, m.z); const sc = 0.6 + k * 1.2; tmp.scale.set(sc, 1, sc); tmp.updateMatrix();
+      const k = m.t / m.life;
+      tmp.rotation.set(0, 0, 0); tmp.position.set(m.x, this.heightAt(m.x, m.z) + 0.08, m.z); const sc = (0.6 + k * 1.2) * m.size; tmp.scale.set(sc, 1, sc); tmp.updateMatrix();
       this.markerRings.setMatrixAt(mn, tmp.matrix); this.markerRings.setColorAt(mn, colorOf(m.color)); mn += 1;
     });
     // Orders given while paused (pendingMarks.js): a steady ring, gently breathing, where the

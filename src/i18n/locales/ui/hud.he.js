@@ -198,6 +198,8 @@ export default {
   'bt.alert.squadsHit.one': 'חוליה אחת נפגעה.',
   'bt.alert.squadsHit.two': 'שתי חוליות נפגעו.',
   'bt.alert.squadsHit.other': '{count} חוליות נפגעו.',
+  'bt.alert.power': '{label} הופעלה',
+  'bt.alert.powerDetail': 'עלות {cost} אספקה. מוכנה שוב בעוד {s} שנ׳.',
   'bt.alert.reinforcements': 'תגבורת אויב',
   'bt.alert.reinfFrom.one': 'חוליה אחת מ{from}.',
   'bt.alert.reinfFrom.two': 'שתי חוליות מ{from}.',
