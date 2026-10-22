@@ -228,6 +228,14 @@ describe('HISTORICAL_EVENTS data integrity', () => {
     expect(needed[needed.length - 1]).toBeGreaterThan(needed[0]);
   });
 
+  it('the Future Age has its four generic events, due across its first techs', () => {
+    const ids = ['first_fusion_ignition', 'first_mars_landing', 'asteroid_scare', 'machine_minds_vote'];
+    ids.forEach((id) => expect(HISTORICAL_EVENTS[id]?.ageId, id).toBe('future'));
+    const needed = ids.map((id) => eventTechsNeeded('future', HISTORICAL_EVENTS[id].year));
+    expect(needed).toEqual([...needed].sort((x, y) => x - y));
+    expect(needed[needed.length - 1]).toBeGreaterThan(needed[0]);
+  });
+
   it('never spawns a follow-up that points at a nonexistent chain entry', () => {
     Object.values(HISTORICAL_EVENTS).forEach(event => {
       event.options.forEach(option => {
