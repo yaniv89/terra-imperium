@@ -8,7 +8,7 @@
 // that walks out of the dark simply appears, as before).
 import { getTiles } from '../../data/geo/tiles';
 import { ringsForKm } from '../../data/geo/gridScale';
-import { unitTile } from '../../engine/armies';
+import { unitTile, selfEmbarked } from '../../engine/armies';
 
 /** ms a tile step takes, and the bounds of one glide. */
 export const GLIDE_STEP_MS = 260;
@@ -21,7 +21,8 @@ export const GLIDE_SEARCH_KM = 800;
 const latLngOf = (tile) => { const { lat, lon } = getTiles().latLonOf(tile); return { lat, lng: lon }; };
 
 /** The tiles a unit walked from `from` to `to`: the steps of its old route, else the fewest steps
- * over its own ground (`land`: an army; else a fleet on water, its ends may be ports) within
+ * over its own ground (`land`: an army; false: a fleet on water, its ends may be ports; null: a
+ * self-embarked army, land or water) within
  * GLIDE_SEARCH_KM. A move ordered now has no old route (it was set and walked at once): a straight
  * line there cut across bays, and a scout walked on the sea (playtest 22 Oct). */
 export const walkedTiles = (route, from, to, land = true) => {
@@ -35,7 +36,7 @@ export const walkedTiles = (route, from, to, land = true) => {
   for (let d = ringsForKm(GLIDE_SEARCH_KM); d > 0 && level.length && !prev.has(to); d--) {
     const next = [];
     level.forEach((x) => t.neighbors[x].forEach((n) => {
-      if (prev.has(n) || (n !== to && (t.land[n] === 1) !== land)) return;
+      if (prev.has(n) || (land != null && n !== to && (t.land[n] === 1) !== land)) return;
       prev.set(n, x); next.push(n);
     }));
     level = next;
@@ -62,7 +63,8 @@ export const planGlides = ({ prevState, nextState, prevMarkers, nextMarkers }) =
     if (!lead || !before) return;
     const from = unitTile(prevState, before);
     if (from == null || from === m.tile || !seen.has(`${m.ownerId}|${from}`)) return;
-    const tiles = walkedTiles(before.route, from, m.tile, kind === 'army');
+    // a land stack that embarked or landed on its own (armies.js) may cross land and water
+    const tiles = walkedTiles(before.route, from, m.tile, kind === 'army' ? (selfEmbarked(before) || selfEmbarked(lead) ? null : true) : false);
     if (!tiles) return;
     const dur = Math.max(GLIDE_MIN_MS, Math.min(GLIDE_MAX_MS, (tiles.length - 1) * GLIDE_STEP_MS));
     out.set(`${kind}:${m.id}`, { points: tiles.map(latLngOf), dur });

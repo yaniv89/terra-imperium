@@ -658,6 +658,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       const tmp = new Object3D(); const color = new Color();
       let moving = false;
       markers.armies.forEach((m, mi) => {
+        if (m.boat) return; // self-embarked (armies.js): drawn with the ships below
         const at = toScreenLatLng(markerLatLng(m));
         if (!at) return;
         // ONE model per tile: the top unit's class (a soldier over a settler, the picked or strongest soldier)
@@ -758,7 +759,8 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       // Fleets: 1 to 3 warships of the owner's age (shipModels.js) on their sea tile, turned toward
       // the next step of their route. With no ship file for the age only the banner stands.
       t.ships.begin(lodForZoom(k));
-      markers.fleets.forEach((m, mi) => {
+      // A land stack at sea on its own (self-embarked, the report's rank 12) sails as one ship of its age.
+      [...markers.fleets, ...markers.armies.filter((m) => m.boat)].forEach((m, mi) => {
         const model = shipModel(ageOf(state, m.ownerId));
         if (!model) return;
         use(model.url);
@@ -791,7 +793,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         const stepLL = m.toward ? { lat: m.toward.lat, lon: m.toward.lng } : step != null && step >= 0 ? getTiles().latLonOf(step) : null;
         const next = stepLL ? project(stepLL.lat, stepLL.lon) : null;
         const heading = next ? Math.atan2(next.x - at.x, next.y - at.y) : 0.5 + mi * 0.7;
-        const n = shipsFor(m.units?.length || 1);
+        const n = m.boat ? 1 : shipsFor(m.units?.length || 1);
         const px = Math.min(s * SHIP_SCALE, fleetCapPx(hexPx, n)); // the whole fleet inside its hex
         const teamColor = m.own ? PLAYER_COLOR : (getNationColor(m.ownerId) || '#64748b');
         for (let i = 0; i < n; i++) {

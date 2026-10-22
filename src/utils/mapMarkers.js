@@ -15,7 +15,7 @@ import { REBEL_OWNER_ID } from '../data/rebellion';
 import { MEN_PER_STRENGTH } from '../engine/aftermath';
 import { hasIntel } from '../engine/intel';
 import { playerWon } from '../engine/battleReports';
-import { unitTile } from '../engine/armies';
+import { unitTile, aboardShip } from '../engine/armies';
 import { visibleTiles } from '../engine/sight';
 import { supplyOf, stackCap } from '../engine/supplyMeter';
 import { isSettler, isExplorer } from '../engine/settlers';
@@ -59,7 +59,7 @@ export const getMapMarkers = (state, { selected = null } = {}) => {
   const sight = visibleTiles(state, me);
   const groups = new Map();
   Object.values(state.units).forEach((u) => {
-    if (!u || !(u.strength > 0) || u.embarkedOn || u.classId === 'settler' || !REGIONS_DATA[u.regionId]) return;
+    if (!u || !(u.strength > 0) || aboardShip(u) || u.classId === 'settler' || !REGIONS_DATA[u.regionId]) return;
     const domain = u.domain === 'naval' ? 'naval' : 'land';
     const tile = unitTile(state, u);
     const key = `${tile}|${u.ownerId}|${domain}`; // one stack, one flag, one model per tile (Civilization)
@@ -91,6 +91,7 @@ export const getMapMarkers = (state, { selected = null } = {}) => {
       own,
       rebels: g.ownerId === REBEL_OWNER_ID,
       domain: g.domain,
+      boat: g.domain === 'land' && getTiles().land[g.tile] !== 1, // self-embarked (armies.js): drawn as a boat
       ...(own ? {
         units: g.units.map((u) => u.id),
         // the drawing order and the one unit whose model stands on the tile (tileStack.js)

@@ -41,7 +41,7 @@ import { getResearched } from './nationState';
 import { enemyFleetAt, findSeaPath, fleetPace, isFleet, portsBeside, portWaters } from './fleets';
 import {
   BANK_CAP, DEFAULT_MOVE_POINTS, ENEMY_TILE_COST, MARCH_ATTRITION, MAX_ROUTE_STEPS, MOVE_POINTS,
-  armiesByTile, enemyArmyAt, findTilePath, inEnemyZoc, isHarsh, movePoints, regionAccess, regionForTile, stackPace, tileAccess, tileStepCost, unitTile
+  aboardShip, armiesByTile, enemyArmyAt, findTilePath, inEnemyZoc, isHarsh, movePoints, regionAccess, regionForTile, stackPace, tileAccess, tileStepCost, unitTile
 } from './armies';
 import { isStationedIn } from './unitLocation';
 
@@ -85,7 +85,7 @@ export const targetTile = (state, target) => (typeof target === 'number' ? targe
 export const findRoute = (state, from, target) => {
   const to = targetTile(state, target);
   if (to == null) return reasonOf('m.why.unknownPlace');
-  return findTilePath(state, from, to, state.playerNationId, { researched: getResearched(state, state.playerNationId) });
+  return findTilePath(state, from, to, state.playerNationId, { researched: getResearched(state, state.playerNationId), embark: true });
 };
 
 // U38: a drawn path. The route through each `via` tile in turn, then to the target: the cheapest
@@ -109,7 +109,7 @@ export const marchedThisTurn = (state, u) => u?.movedNowTurn != null && u.movedN
 
 /** May the unit step on a march right now, with this turn's points? Not when it already moved this
  * turn or used its move (a battle, a landing), nor aboard a ship, nor dead. */
-export const canStepNow = (state, u) => !!u && !u.embarkedOn && u.strength > 0 && (u.movesLeft ?? 1) > 0 && !marchedThisTurn(state, u);
+export const canStepNow = (state, u) => !!u && !aboardShip(u) && u.strength > 0 && (u.movesLeft ?? 1) > 0 && !marchedThisTurn(state, u);
 
 // After how many End Turns the army enters each step, ignoring halts. `now`: the stack steps at once
 // with this turn's points (a fresh order: stepMarchesNow), so the steps they pay are 0 (now);
@@ -176,7 +176,7 @@ export const moveNowCheck = (state, unit, toRegionId) => {
 // the city `fromId` (unitLocation.js isStationedIn), never a field army that only has it as its
 // base (playtest audit I058: the city's March button moved an army in Sinai too).
 export const marchingUnits = (state, fromId, unitIds = null, { naval = false } = {}) => Object.values(state.units).filter((u) => u.ownerId === state.playerNationId
-  && (naval ? u.domain === 'naval' : u.domain !== 'naval') && !u.embarkedOn && u.strength > 0 && u.classId !== 'settler'
+  && (naval ? u.domain === 'naval' : u.domain !== 'naval') && !aboardShip(u) && u.strength > 0 && u.classId !== 'settler'
   && (unitIds ? unitIds.includes(u.id) : isStationedIn(state, u, fromId)));
 
 // The tile most of a stack stands on (ties: the lowest id).
@@ -308,7 +308,7 @@ export const advanceMarches = (state, units, { year, turnOf = null, only = null 
   Object.keys(units).sort().forEach((id) => {
     const u = units[id];
     if (!u?.route?.length || u.ownerId !== me || (only && !only.has(id))) return;
-    if (u.embarkedOn || !(u.strength > 0)) { units[id] = clearRoute(u); return; }
+    if (aboardShip(u) || !(u.strength > 0)) { units[id] = clearRoute(u); return; }
     // It already spent the movement of the turn this walk is for (Move now, an order stepped now):
     // it walks from the next turn, as every preview says.
     if (turnOf != null ? u.movedNowTurn === turnOf : marchedThisTurn(state, u)) return;
@@ -342,7 +342,8 @@ export const advanceMarches = (state, units, { year, turnOf = null, only = null 
       if (inEnemyZoc(state, tiles, next, me, units, foes)) { bank = 0; break; }
     }
     const regionId = moved ? regionForTile(state, at, me, u.regionId) : u.regionId;
-    const place = { tile: at, regionId, strength, ...(moved ? { marchedTurn: state.turnNumber, ...mark } : {}) };
+    const sea = tiles.land[at] !== 1; // a self-embark (armies.js): at sea the unit is its own carrier
+    const place = { tile: at, regionId, strength, ...(moved ? { marchedTurn: state.turnNumber, ...mark } : {}), ...(sea !== (u.embarkedOn === id) ? { embarkedOn: sea ? id : null } : {}) };
     if (halt === 'closed') {
       units[id] = { ...clearRoute(u), ...place };
       halted.set(`closed|${at}`, (halted.get(`closed|${at}`) || 0) + 1);

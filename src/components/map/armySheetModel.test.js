@@ -29,7 +29,7 @@ describe('army sheet model', () => {
     m.unitIds.forEach((id) => expect(s.units[id].army.name).toBe('Old Guard'));
     expect(gameReducer(s, { type: ActionTypes.RENAME_ARMY, payload: { unitIds: m.unitIds, name: '  ' } })).toBe(s);
     const walking = { ...s, units: { ...s.units, [m.unitIds[0]]: { ...s.units[m.unitIds[0]], route: [1, 2, 3, 4], routePace: 2 } } };
-    expect(armySheetModel(walking, cap.tile).route.turns).toBe(2);
+    expect(armySheetModel(walking, cap.tile).route.turns).toBe(3); // tiles 1 to 4 are sea: 3 to embark, then 1 a step, at 2 a turn
     expect(armySheetModel(s, 0)).toBeNull();
   });
   it('shows promotions once a unit has earned a rank and the free generals to assign', () => {

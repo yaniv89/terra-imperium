@@ -36,7 +36,7 @@ import { getTiles, onWorldChange } from '../data/geo/tiles';
 import { distanceKm } from '../data/geo/geodesic';
 import { ringsForKm } from '../data/geo/gridScale';
 import { SIGHT_LAND_KM, SIGHT_ARMY_KM, SIGHT_HILLS_BONUS_KM, SIGHT_FLEET_KM, visibleTiles } from './sight';
-import { unitTile } from './armies';
+import { unitTile, aboardShip } from './armies';
 import { mapEffectsFor } from './techMapEffects';
 import { navalLineOf, navalSightBonus } from '../data/navalLines';
 import { townTier } from '../data/townTiers';
@@ -169,7 +169,7 @@ const seedsByNation = (state) => {
     (land.get(c.owner) || land.set(c.owner, []).get(c.owner)).push(c);
   });
   Object.values(state.units).forEach((u) => {
-    if (!u.ownerId || u.embarkedOn) return;
+    if (!u.ownerId || aboardShip(u)) return;
     const t = unitTile(state, u);
     if (t == null) return;
     (units.get(u.ownerId) || units.set(u.ownerId, []).get(u.ownerId)).push(u);
@@ -299,7 +299,7 @@ const ownerAt = (state) => {
   const more = new Map(); // a tile with units of several owners: the extra owners
   Object.values(state.units).forEach((u) => {
     const o = index.get(u.ownerId);
-    if (!o || u.embarkedOn) return;
+    if (!o || aboardShip(u)) return;
     const t = unitTile(state, u);
     if (t == null) return;
     if (!unit[t]) unit[t] = o;

@@ -18,7 +18,7 @@
 //   idle     a scout on auto-explore is busy (standingOrders.js 'exploring').
 // Pure. Ties go to the lowest tile id (scoutPath).
 import { fogOn, isExplored } from './fog';
-import { unitTile, movePoints, tileAccess, EXPLORER_MOVE_KM } from './armies';
+import { unitTile, movePoints, tileAccess, aboardShip, EXPLORER_MOVE_KM } from './armies';
 import { getResearched } from './nationState';
 import { isUnitInBattle } from './invasion';
 import { scoutPath, AI_SCOUT_RINGS } from './aiScouting';
@@ -56,7 +56,7 @@ const routed = (u, path, pace, auto) => ({ ...u, hold: false, siegeOf: null, rou
 /** EXPLORE_ORDER: the player's scouts among `unitIds` go exploring (`toTile` null: the nearest
  * unexplored land, and on from there). Returns { units, count } or { reason }. */
 export const orderExplore = (state, unitIds, toTile = null) => {
-  const mine = (unitIds || []).map((id) => state.units[id]).filter((u) => isExplorer(u) && u.ownerId === state.playerNationId && u.strength > 0 && !u.embarkedOn && !isUnitInBattle(state, u.id));
+  const mine = (unitIds || []).map((id) => state.units[id]).filter((u) => isExplorer(u) && u.ownerId === state.playerNationId && u.strength > 0 && !aboardShip(u) && !isUnitInBattle(state, u.id));
   if (!mine.length) return { reason: 'Only scouts can explore.' };
   const researched = getResearched(state, state.playerNationId);
   const units = { ...state.units };
@@ -88,7 +88,7 @@ export const continueExplorers = (state) => {
   const researched = getResearched(state, state.playerNationId);
   for (const id of Object.keys(state.units)) {
     const u = state.units[id];
-    if (!u.explore?.auto || u.route?.length || u.ownerId !== state.playerNationId || !(u.strength > 0) || u.embarkedOn) continue;
+    if (!u.explore?.auto || u.route?.length || u.ownerId !== state.playerNationId || !(u.strength > 0) || aboardShip(u)) continue;
     const found = explorePath(state, u);
     units = units || { ...state.units };
     if (found.path) { units[id] = routed(u, found.path, movePoints(u, researched), true); continue; }

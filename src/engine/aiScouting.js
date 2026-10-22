@@ -19,7 +19,7 @@ import { getTiles } from '../data/geo/tiles';
 import { ringsForKm } from '../data/geo/gridScale';
 import { ringsAround } from './world/cities';
 import { isExplored } from './fog';
-import { stackPace, unitTile, tileAccess, passableTile } from './armies';
+import { stackPace, unitTile, tileAccess, walkableTile, embarkRule, aboardShip } from './armies';
 import { getResearched } from './nationState';
 import { isUnitInBattle } from './invasion';
 import { canFight } from './hostility';
@@ -37,7 +37,7 @@ export const scoutsThisTurn = (nationId, turn) => (turn + hash(nationId)) % AI_S
 const OPEN = new Set(['wild', 'own', 'friend']);
 
 /**
- * A bounded breadth-first search over passable land `nationId` may enter at peace (OPEN access),
+ * A bounded breadth-first search over passable land (and water, self-embarked) `nationId` may enter at peace (OPEN access),
  * at most `maxDepth` steps from `from`: the path (`from` first) to the nearest tile `isGoal`
  * accepts, the lowest tile id among the nearest, or null. Bounded, so a target behind the sea or a
  * closed border costs a few hundred tiles, never a full path search. The steps ignore terrain cost
@@ -45,6 +45,7 @@ const OPEN = new Set(['wild', 'own', 'friend']);
  */
 export const scoutPath = (state, nationId, from, isGoal, maxDepth = AI_SCOUT_RINGS) => {
   const tiles = getTiles();
+  const sea = embarkRule(state, nationId); // from the Classical age a scout may cross water by itself (armies.js self-embark)
   const prev = new Map([[from, -1]]);
   let level = [from];
   for (let depth = 1; depth <= maxDepth && level.length; depth++) {
@@ -52,10 +53,10 @@ export const scoutPath = (state, nationId, from, isGoal, maxDepth = AI_SCOUT_RIN
     let goal = null;
     for (const id of level) {
       for (const n of tiles.neighbors[id]) {
-        if (prev.has(n) || !passableTile(tiles, n) || !OPEN.has(tileAccess(state, n, nationId))) continue;
+        if (prev.has(n) || !walkableTile(tiles, n, sea) || !OPEN.has(tileAccess(state, n, nationId))) continue;
         prev.set(n, id);
         nextLevel.push(n);
-        if (isGoal(n) && (goal == null || n < goal)) goal = n;
+        if (tiles.land[n] === 1 && isGoal(n) && (goal == null || n < goal)) goal = n;
       }
     }
     if (goal != null) {
@@ -114,7 +115,7 @@ export const aiScout = (next, nationId) => {
   if (!next.fog || next.fog.on === false) return false;
   const researched = getResearched(next, nationId);
   const unexplored = (t) => !isExplored(next, t, nationId);
-  const mine = Object.values(next.units).filter((u) => u.ownerId === nationId && u.domain === 'land' && !u.embarkedOn && u.strength > 0);
+  const mine = Object.values(next.units).filter((u) => u.ownerId === nationId && u.domain === 'land' && !aboardShip(u) && u.strength > 0);
   const out = mine.filter((u) => u.scout);
   // A scout whose march is over heads home, and is done once home.
   let marching = false;

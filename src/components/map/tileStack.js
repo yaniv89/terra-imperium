@@ -23,7 +23,7 @@ export const cycleUnit = (ordered, currentId, dir = 1) => {
 
 /** The tile's units of one owner and domain, drawn from the game state: those on `tile`, not embarked, alive. */
 export const unitsOnTile = (state, tile, ownerId, tileOf, domain = 'land') => Object.values(state.units || {})
-  .filter((u) => u && u.ownerId === ownerId && !u.embarkedOn && (u.strength > 0 || u.classId === 'settler') && (u.domain === 'naval' ? 'naval' : 'land') === domain && tileOf(u) === tile);
+  .filter((u) => u && u.ownerId === ownerId && (!u.embarkedOn || u.embarkedOn === u.id) && (u.strength > 0 || u.classId === 'settler') && (u.domain === 'naval' ? 'naval' : 'land') === domain && tileOf(u) === tile);
 
 /**
  * The unit a tap on a tile's flag selects: the top unit the first time, then the next one of the
