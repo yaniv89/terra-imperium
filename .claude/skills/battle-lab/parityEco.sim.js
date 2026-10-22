@@ -60,7 +60,10 @@ const TERRAIN = process.env.TERRAIN || 'mixed';
 
 // A class the side's age does not field (Stone has no cavalry) is its infantry.
 const ofAge = (cls, ageId) => cls.map((c) => (getAvailableClasses(ageId).includes(c) ? c : 'infantry'));
-const mk = (p, cls) => cls.map((classId, i) => ({ id: `${p}${i}`, classId, strength: 1000, maxStrength: 1000, morale: 100, promotions: [], commanderId: null, domain: 'land' }));
+// ROBOT=attacker|defender|both: that side's units are robots (eight ages U67, engine/robots.js).
+const ROBOT = process.env.ROBOT || '';
+const robotSide = (p) => ROBOT === 'both' || (p === 'a' && ROBOT === 'attacker') || (p === 'd' && ROBOT === 'defender');
+const mk = (p, cls) => cls.map((classId, i) => ({ id: `${p}${i}`, classId, strength: 1000, maxStrength: 1000, morale: 100, promotions: [], commanderId: null, domain: 'land', ...(robotSide(p) ? { robot: true } : {}) }));
 const CMD = process.env.CMD == null ? null : Number(process.env.CMD);
 const RULED = CMD == null ? null : { nations: { a: { ruler: { cmd: CMD } } }, regions: {}, hiredCommanders: { gA: { id: 'gA', nationId: 'a', name: 'gA', martial: 3, shock: 3, fire: 3, maneuver: 3, personality: 'cautious' } } };
 const GENERALS = RULED ? commandGenerals(RULED) : {};

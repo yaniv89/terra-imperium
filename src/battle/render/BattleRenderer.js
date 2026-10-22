@@ -1285,7 +1285,7 @@ export class BattleRenderer {
     const sig = people ? signatureKey(s.classId, people) : null;
     // a raid party's riders and a hired band's foot draw their irregular look when its model is in
     const look = lookKey(s.look || unitLookOf(null, this.setup, s.side), s.classId);
-    const useSig = !!sig && hasSoldierOverride(s.ageId, sig);
+    const useSig = !!sig && !look?.startsWith('robot-') && hasSoldierOverride(s.ageId, sig); // a robot is never the people's (human) signature unit
     // a rig drawn with its own few full-size figures (war elephants: two a squad, RIG_FIGURES in
     // data/signatureUnits.js); drawing only, the squad's strength and combat stay the role's
     const rigFig = useSig ? rigFiguresOf(signatureUnitFor(people, s.ageId, s.classId)) : null;

@@ -22,6 +22,9 @@ export default {
   'bpower.droneStrike': 'תקיפת רחפנים',
   'bpower.cyberJam': 'שיבוש סייבר',
   'bpower.droneRecon': 'סיור רחפנים',
+  'bpower.orbitalStrike': 'תקיפה ממסלול',
+  'bpower.emp': 'פולס אלקטרומגנטי',
+  'bpower.hijack': 'השתלטות',
 
   // battle types (battle/setup/battleType.js BATTLE_TYPES)
   'btype.field.label': 'קרב שדה',

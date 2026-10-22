@@ -45,6 +45,9 @@ import { aiBudgetStep } from './aiBudget';
 import { warBurdenInputs, warExhaustionRise } from './warBurden';
 import { isUnitInBattle } from './invasion';
 import { stampUnitAges, aiUpgradeUnits } from './unitUpgrades';
+import { isRobot } from './robots';
+import { isBound, AI_LIMITS_CAP } from '../data/worldCongress';
+import { automationOf, automationTarget, nextAutomation, isRioting, uprisingStarts, startUprising, AUTOMATION_RIOT_UNREST } from './automation';
 import { resolveWarProgress, refreshWarFlags } from './diplomacy';
 import { drainAutoBattles } from './battleQueue';
 import { transferRegion } from './regionTransfer';
@@ -159,6 +162,7 @@ const runCitiesPhase = (state, newTurnNumber) => {
         ...forageCtx(nid ? getResearched(state, nid) : []), // no Agriculture: a size cap (hearths.js)
         ...stonePhaseCtx(state, nid), // the first cities: river food (stonePhase.js)
         ...rulerCityCtx(state.nations[nid]), // the ruler's yields and costs (lawRules.js)
+        ...(isBound(state, 'weaponsBan', nid) ? { noRobots: true } : {}), // the Autonomous Weapons Ban (worldCongress.js)
         // An independent's city: capped size, a small border, a garrison and buildings only (independents.js).
         ...(isIndependent(state.nations, nid) ? independentCityCtx(state, nid) : {})
       });
@@ -223,7 +227,7 @@ const runCitiesPhase = (state, newTurnNumber) => {
     }
     if (item.kind !== 'unit') return;
     const id = `unit_${nextUnitSeq++}`;
-    units[id] = { id, ...(isIndependent(state.nations, item.nationId) ? {} : { ageId: ageOf(state, item.nationId) }), regionId: item.city, homeRegionId: item.city, tile: regions[item.city]?.tile ?? null, ownerId: item.nationId, domain: item.classId === 'naval' ? 'naval' : 'land', classId: item.classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null, ...(item.army ? { army: item.army } : {}), ...(item.explorer ? { explorer: true, strength: EXPLORER_STRENGTH, maxStrength: EXPLORER_STRENGTH } : {}), ...(item.classId === 'naval' ? { navalLine: item.navalLine || 'warship', transportCapacity: navalCargo(item.navalLine || 'warship', ctxFor(regions[item.city] || { owner: item.nationId }).ageId) } : {}) };
+    units[id] = { id, ...(isIndependent(state.nations, item.nationId) ? {} : { ageId: ageOf(state, item.nationId) }), regionId: item.city, homeRegionId: item.city, tile: regions[item.city]?.tile ?? null, ownerId: item.nationId, domain: item.classId === 'naval' ? 'naval' : 'land', classId: item.classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null, ...(item.robot ? { robot: true } : {}), ...(item.army ? { army: item.army } : {}), ...(item.explorer ? { explorer: true, strength: EXPLORER_STRENGTH, maxStrength: EXPLORER_STRENGTH } : {}), ...(item.classId === 'naval' ? { navalLine: item.navalLine || 'warship', transportCapacity: navalCargo(item.navalLine || 'warship', ctxFor(regions[item.city] || { owner: item.nationId }).ageId) } : {}) };
   });
   const logs = result.logs.filter((l) => l.nationId === state.playerNationId).map(carry);
   disasterLogs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push(carry(l)); });
@@ -560,7 +564,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const ownerSupply = isPlayer ? supplyFlow : ownerSupplyFlows.get(u.ownerId);
     // A starving unit (supply meter at 0, supplyMeter.js) recovers nothing either.
     const hungry = (ownerSupply.hungry && isCampaigning(u, regions, state.world?.tileOwner)) || (u.supply != null && u.supply <= 0);
-    if (hungry) patch = { morale: Math.max(0, (u.morale ?? 100) - HUNGER_MORALE) };
+    if (hungry && !u.robot) patch = { morale: Math.max(0, (u.morale ?? 100) - HUNGER_MORALE) }; // robots have no morale (robots.js)
 
     if (!hungry && !foughtThisTurn && u.morale < 100) {
       patch = { ...patch, morale: Math.min(100, u.morale + Math.round(MORALE_RECOVERY_PER_TURN * (1 + moraleRecoveryBonus) * maintenanceFactor)) };
@@ -572,8 +576,10 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const isSuppliedHomeTerritory = canReinforce(state, u, regions);
     if (!hungry && !foughtThisTurn && isSuppliedHomeTerritory && u.strength < u.maxStrength) {
       const cadreMult = hasPerk(u, 'cadre') ? 2 : 1;
-      const gain = Math.min(Math.floor((ownerPool.hr || 0) * 10), u.maxStrength - u.strength, Math.round(u.maxStrength * REINFORCEMENT_RATE * (1 + reinforceSpeedBonus) * maintenanceFactor * cadreMult));
-      if (gain > 0) {
+      const robot = isRobot(u); // robots refill without manpower (robots.js)
+      const gain = Math.min(robot ? Infinity : Math.floor((ownerPool.hr || 0) * 10), u.maxStrength - u.strength, Math.round(u.maxStrength * REINFORCEMENT_RATE * (1 + reinforceSpeedBonus) * maintenanceFactor * cadreMult));
+      if (gain > 0 && robot) patch = { ...patch, strength: u.strength + gain };
+      else if (gain > 0) {
         // Manpower is a real, spendable resource only for the player pre-M16 (economy.js's own
         // "player-only real computation" pattern) — an AI unit's strength still regrows (so the AI
         // isn't permanently crippled by a single lost battle), it just doesn't draw down a manpower
@@ -779,6 +785,10 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // processCivilWarTurn instead of re-checking triggers (declareWar's own one-active-thing-at-a-time
   // spirit, applied here even though this isn't a state.wars entry — see civilWar.js's own header on
   // why not).
+  // The automation meter (automation.js) reads each nation's robots.
+  const robotsOf = new Map();
+  let citiesOf = null;
+  Object.values(units).forEach((u) => { if (u.robot && u.strength > 0) robotsOf.set(u.ownerId, (robotsOf.get(u.ownerId) || 0) + 1); });
   Object.entries(nations).forEach(([nId, nation]) => {
     const { nation: afterDisasters, triggersCivilWar, logs: disasterLogs } = processDisastersTurn(nation, ageOf(state, nId));
     if (nId === state.playerNationId) logs.push(...disasterLogs.map((l) => ({ year: newYear, ...l })));
@@ -799,6 +809,27 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
         logs.push({ year: newYear, ...msg('m.turn.civilWarLost', { nation: people(nId, nations[nId].name) }), type: LogTypes.CRISIS });
       }
       return;
+    }
+
+    // Automation (automation.js): the meter steps toward its target; low stability riots, lower still the machines rise.
+    const automation = nextAutomation(automationOf(nations[nId]), Math.min(automationTarget(robotsOf.get(nId) || 0, getResearched(state, nId)), isBound(state, 'aiLimits', nId) ? AI_LIMITS_CAP : Infinity)); // AI Limits (worldCongress.js)
+    if (automation !== automationOf(nations[nId])) nations[nId] = { ...nations[nId], automation };
+    const rioting = isRioting(nations[nId]);
+    if (rioting) { // the owner's cities, indexed once a turn on the first riot
+      if (!citiesOf) { citiesOf = new Map(); Object.values(regions).forEach((c) => { if (c.owner) (citiesOf.get(c.owner) || citiesOf.set(c.owner, []).get(c.owner)).push(c.id); }); }
+      (citiesOf.get(nId) || []).forEach((id) => { const c = regions[id]; regions[id] = { ...c, unrest: Math.min(100, (c.unrest || 0) + AUTOMATION_RIOT_UNREST) }; });
+    }
+    if (rioting !== !!nations[nId].automationRiots) {
+      nations[nId] = { ...nations[nId], automationRiots: rioting };
+      if (rioting && nId === state.playerNationId) logs.push({ year: newYear, ...msg('m.turn.automationRiots'), type: LogTypes.CRISIS });
+    }
+    if (uprisingStarts(nations[nId], nId, newTurnNumber, inCivilWarCooldown(nations[nId], newTurnNumber))) {
+      const war = startUprising(regions, units, nId, newTurnNumber);
+      if (war) {
+        nations[nId] = { ...nations[nId], civilWar: war, lowStabilityStreak: 0 };
+        logs.push({ year: newYear, ...msg('m.turn.machineUprising', { nation: people(nId, nations[nId].name) }), type: LogTypes.CRISIS });
+        return;
+      }
     }
 
     const lowStabilityStreak = nextLowStabilityStreak(nations[nId], authorityRisksCivilWar({ ...state, regions, nations }, nId));

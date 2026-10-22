@@ -199,6 +199,9 @@ export default {
   'm.diplo.congressFormed': 'The World Congress meets for the first time, hosted by {nation}.',
   'm.diplo.congressPropose.tradeStandard': 'The World Congress will vote on a trade standard on turn {turn}.',
   'm.diplo.congressPropose.armsLimit': 'The World Congress will vote on an arms limit on turn {turn}.',
+  'm.diplo.congressPropose.orbitalDemilitarisation': 'The Planetary Council will vote on orbital demilitarisation on turn {turn}.',
+  'm.diplo.congressPropose.aiLimits': 'The Planetary Council will vote on limits to automation on turn {turn}.',
+  'm.diplo.congressPropose.weaponsBan': 'The Planetary Council will vote on an Autonomous Weapons Ban on turn {turn}.',
   'm.diplo.congressPropose.sanctions': 'The World Congress will vote on sanctions on {nation} on turn {turn}.',
   'm.diplo.congressPassed': 'The World Congress passes the resolution, {yes} votes to {no}.',
   'm.diplo.congressFailed': 'The World Congress rejects the resolution, {yes} votes to {no}.'

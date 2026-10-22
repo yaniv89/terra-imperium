@@ -24,6 +24,7 @@ import { addPeople, sizeToPeople, productionCost } from './world/cities';
 import { ACTION_COSTS, BASE_TECHPOINTS_PER_TURN, SCIENCE_PER_DEV, BANKRUPTCY_DURATION_TURNS } from '../data/actionCosts';
 import { getFieldedStrength } from '../utils/helpers';
 import { getResearched, ageOf } from './nationState';
+import { robotRecruitCost } from './robots';
 import { getModifier, getRegionModifierTotals } from './modifiers/sheet';
 const INCOME_KEYS = ['local.taxIncome', 'local.productionIncome', 'local.manpower', 'local.techPoints', 'local.flatGold', 'local.flatManpower', 'local.tradeIncome'];
 import {
@@ -390,14 +391,17 @@ export const processAIEconomyTurn = (state, regions, nationId) => {
 // Real recruitment cost for an AI nation once it has a real economy (plan §M16: "Tier 1 recruits
 // from treasury and manpower with the same costs"), used by aiLogic.js's processAIRecruitment in
 // place of the old flat abstract-militaryStrength debit once a nation's economy pool exists.
-export const canAffordAIRecruit = (nation, state, ageId) => {
-  const costs = state ? getRecruitUnitCost(state, ageId, nation.id) : ACTION_COSTS.recruitUnit;
+// `robot`: a robot recruit (robots.js robotRecruitCost: no manpower, more gold).
+export const canAffordAIRecruit = (nation, state, ageId, robot = false) => {
+  const base = state ? getRecruitUnitCost(state, ageId, nation.id) : ACTION_COSTS.recruitUnit;
+  const costs = robot ? robotRecruitCost(base) : base;
   const pool = nation.economy;
   const reserve=Math.max(0,-(nation.lastNetIncome || 0)*3);
   return !!pool && canAfford(pool, costs) && (pool.gold || 0)-(costs.gold || 0)>=reserve;
 };
-export const applyAIRecruitCost = (nation, state, ageId) => {
-  const costs = state ? getRecruitUnitCost(state, ageId, nation.id) : ACTION_COSTS.recruitUnit;
+export const applyAIRecruitCost = (nation, state, ageId, robot = false) => {
+  const base = state ? getRecruitUnitCost(state, ageId, nation.id) : ACTION_COSTS.recruitUnit;
+  const costs = robot ? robotRecruitCost(base) : base;
   const pool = nation.economy;
   return { ...nation, economy: applyCosts(pool, costs) };
 };

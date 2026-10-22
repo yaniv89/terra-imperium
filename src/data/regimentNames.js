@@ -13,7 +13,7 @@ export const ordinal = (n) => {
 };
 
 /** The kind a regiment is numbered within: the class, a ship's naval line. */
-export const regimentKind = (unit) => (unit.classId === 'naval' ? `naval:${unit.navalLine || 'warship'}` : unit.classId);
+export const regimentKind = (unit) => (unit.robot ? `robot:${unit.classId}` : unit.classId === 'naval' ? `naval:${unit.navalLine || 'warship'}` : unit.classId); // robots are numbered apart (unitClasses.js ROBOT_VARIANTS)
 
 /** "3rd Akkadian Spearmen", or `baseName` when the owner is not a people of the pool. */
 export const regimentName = (nation, unit, baseName) => {

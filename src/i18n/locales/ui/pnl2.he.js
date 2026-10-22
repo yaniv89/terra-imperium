@@ -181,4 +181,12 @@ export default {
   'wc.res.armsLimit.desc': 'כל חברה מגבילה את כוחותיה: 10%- כוח אדם, 3%+ זהב.',
   'wc.res.sanctions': 'סנקציות',
   'wc.res.sanctions.desc': 'החותמות מנתקות את הסחר עם היעד: אין נתיב סחר ביניהן, והיעד מפסיד זהב.',
+  'wc.councilTitle': 'המועצה הפלנטרית',
+  'wc.binds': 'אתה מחויב עד',
+  'wc.res.orbitalDemilitarisation': 'פירוז המסלול',
+  'wc.res.orbitalDemilitarisation.desc': 'אף חותמת לא תזמין תקיפה ממסלול בקרב.',
+  'wc.res.aiLimits': 'מגבלות בינה מלאכותית',
+  'wc.res.aiLimits.desc': 'כל חותמת שומרת את האוטומציה שלה על 40 או פחות.',
+  'wc.res.weaponsBan': 'איסור נשק אוטונומי',
+  'wc.res.weaponsBan.desc': 'אף חותמת לא בונה יחידות רובוט חדשות במשך 25 תורות. הפרה מכעיסה את העולם.',
 };

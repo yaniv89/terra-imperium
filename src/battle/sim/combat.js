@@ -14,7 +14,7 @@ import { Q, SQUAD_RADIUS, SIDE_ATTACKER, TICK_HZ, secondsToTicks } from './const
 import { canSeeSquad } from './fog';
 import { razeBuilding } from './buildings';
 import { collapseFootprint } from './cityStructures';
-import { damageTakenMult, moraleLossMult, damageDealtMult, attackRateMult } from './effects';
+import { damageTakenMult, moraleLossMult, damageDealtMult, attackRateMult, isStunned } from './effects';
 import { moraleFromLosses } from './moraleMath';
 import { isShaken, SHAKEN_DAMAGE_DEALT, SHAKEN_DAMAGE_TAKEN } from './morale';
 import { destroyEcoBuilding, ecoTargetIndex } from './economy';
@@ -45,7 +45,7 @@ export const isFighting = (q) => q.alive && q.onField && !q.fled;
 export const canAttack = (q) => isFighting(q) && !q.routed && !q.retreating && q.stats.attackTicks > 0 && !(q.inside >= 0);
 
 // Plain unit view for battle.js's multiplier functions.
-const view = (q) => ({ id: q.unitId, classId: q.classId, ageId: q.ageId, navalLine: q.original?.navalLine, strength: q.strength, promotions: q.promotions, commanderId: q.commanderId }); // the line: a transport fights badly, a raider lightly (navalLines.js)
+const view = (q) => ({ id: q.unitId, classId: q.classId, ageId: q.ageId, navalLine: q.original?.navalLine, robot: q.original?.robot, strength: q.strength, promotions: q.promotions, commanderId: q.commanderId }); // the line: a transport fights badly, a raider lightly (navalLines.js)
 
 // 0 front (±60°: a 120° arc), 1 flank (60–120° either side), 2 rear (±60° behind: 120°).
 // Angles are 256 to the turn, so 60° ≈ 43 and 120° ≈ 85.
@@ -320,7 +320,7 @@ const structureTargetIndex = (w, q, radius) => {
 export const resolveAttacks = (w) => {
   w.squads.forEach((q) => {
     if (q.cooldown > 0) q.cooldown -= 1;
-    if (!canAttack(q) || q.target < 0) return;
+    if (!canAttack(q) || q.target < 0 || isStunned(w, q)) return; // an EMP stops a machine firing (effects.js)
     if (q.targetKind === 'squad') {
       const t = w.squads[q.target];
       // A target the player picked stays picked while it's still on the field, even if it slips

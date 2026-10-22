@@ -24,7 +24,8 @@ import { getTiles } from '../data/geo/tiles';
 import { touchesCity, unitTile, unitsWithinRings, REINFORCE_RINGS } from './armies';
 import { atSea, touchesCoastOf } from './fleets';
 import { LANDING_ATTACK_MULT } from '../battle/setup/battleType';
-import { ageOf } from './nationState';
+import { ageOf, getResearched } from './nationState';
+import { isBound } from '../data/worldCongress';
 import { sideAgeOf } from './ageRefs';
 import { commandGenerals } from '../data/generals';
 
@@ -58,7 +59,9 @@ export const getReinforcementSources = (state, targetRegionId, nationId, exclude
 // The commander powers a nation brings into a battle, from what it really has (Tactical Battles
 // plan §8.8): everyone can rally; the arrow storm belongs to the early ages; artillery needs a
 // siege unit in the fight; an air strike (and from Information a drone strike) needs aircraft;
-// Information also brings Cyber Jam and Drone Recon.
+// Information also brings Cyber Jam and Drone Recon; the Future Orbital Strike and EMP, and Hijack
+// once Machine Consciousness is known (eight ages U68).
+export const HIJACK_TECH = 'science_machine_consciousness';
 export const getBattlePowers = (state, nationId, ageId, units = []) => {
   if (ageId === FIRST_AGE_ID) return [{ id: 'rallyCry', label: 'War Cry' }, { id: 'ambush' }]; // Stone (U39): no massed archery yet
   const out = [{ id: 'rallyCry' }];
@@ -68,6 +71,11 @@ export const getBattlePowers = (state, nationId, ageId, units = []) => {
   if (isAgeAtLeast(ageId, 'information')) { // U58: drones and networks
     if (units.some((u) => u.classId === 'air')) out.push({ id: 'droneStrike' });
     out.push({ id: 'cyberJam' }, { id: 'droneRecon' });
+  }
+  if (isAgeAtLeast(ageId, 'future')) {
+    if (!isBound(state, 'orbitalDemilitarisation', nationId)) out.push({ id: 'orbitalStrike' }); // the Planetary Council (worldCongress.js)
+    out.push({ id: 'emp' });
+    if (state && nationId && getResearched(state, nationId).includes(HIJACK_TECH)) out.push({ id: 'hijack' });
   }
   return out;
 };

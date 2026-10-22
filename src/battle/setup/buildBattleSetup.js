@@ -77,7 +77,7 @@ import { FIRST_AGE_ID } from '../../data/ages';
 // v17: H-25, an oasis field is drawn as desert ground (the combat terrain stays).
 // v22: the AI defender goes out to a threat as one army (battle endings lane)
 // v21: sea battles: fleets form up facing each other mid-sea, a flagship for the admiral, the anchorage passive, the AI fleet engages (naval only)
-export const SETUP_VERSION = 23; // v23: economy clocks cut to 10 and 20 minutes; v20: v20: Information commander powers, Drone Strike, Cyber Jam and Drone Recon (eight ages U58); v19: Modern machine-gun suppression, Information precision and drones (U50)
+export const SETUP_VERSION = 24; // v24: Future powers, Orbital Strike, EMP and Hijack, and robot squads without morale (eight ages U67, U68); v23: economy clocks cut to 10 and 20 minutes; v20: Information commander powers, Drone Strike, Cyber Jam and Drone Recon (eight ages U58); v19: Modern machine-gun suppression, Information precision and drones (U50)
 // v18: Stone battles (eight ages U37 to U40): guard on foot, Stone stats, powers and fields
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;

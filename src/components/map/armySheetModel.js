@@ -4,11 +4,11 @@
 // supply zone with its reason, the route with its ETA. Pure, so it can be tested without a DOM.
 import { regimentLabel, nameNow } from '../../i18n/names';
 import { t, isolateLtr, dataText } from '../../i18n/core';
-import { navalShipName, unitRosterName, improvementName, districtName, perkName, perkDescription } from '../../i18n/gameText';
+import { navalShipName, unitRosterName, robotUnitName, improvementName, districtName, perkName, perkDescription } from '../../i18n/gameText';
 import { DISTRICTS } from '../../engine/districts';
 import { whereText, placeLabel } from './placeText';
 import { getTiles } from '../../data/geo/tiles';
-import { getUnitDefinition, UNIT_CLASSES } from '../../data/unitClasses';
+import { getUnitDefinition, UNIT_CLASSES, ROBOT_VARIANTS } from '../../data/unitClasses';
 import { regimentName } from '../../data/regimentNames';
 import { unitTile, movePoints } from '../../engine/armies';
 import { supplyOf, supplyZone, supplyReport, SUPPLY_MAX, SUPPLY_LINE_RINGS, SUPPLY_LINE_LOSS, ROAD_LINE_BONUS, STARVE_STRENGTH, STARVE_MORALE } from '../../engine/supplyMeter';
@@ -115,7 +115,7 @@ export const armySheetModel = (state, tile, fleet = false) => {
     upgrade: upgradeRow(state, u, ageId, naval, nameAt),
     ageId: uAge,
     // "3rd Akkadian Spearmen" in a peoples world (regimentNames.js), the plain name otherwise
-    name: u.explorer ? t('mx.army.scouts') : ((en) => regimentLabel(regimentName(state.nations[u.ownerId], u, en), state.nations[u.ownerId]?.people, naval ? navalShipName(navalLineOf(u), uAge, en) : unitRosterName(uAge, u.classId, en), u.regiment))(nameAt(uAge, u)),
+    name: u.explorer ? t('mx.army.scouts') : ((en) => regimentLabel(regimentName(state.nations[u.ownerId], u, en), state.nations[u.ownerId]?.people, u.robot ? robotUnitName(u.classId) : naval ? navalShipName(navalLineOf(u), uAge, en) : unitRosterName(uAge, u.classId, en), u.regiment))(u.robot ? ROBOT_VARIANTS[u.classId] : nameAt(uAge, u)),
     cargo: naval ? Object.values(state.units).filter((c) => c.embarkedOn === u.id).length : 0,
     classId: u.classId,
     navalLine: naval ? navalLineOf(u) : null,

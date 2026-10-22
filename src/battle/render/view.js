@@ -6,14 +6,14 @@
 // the PLAYER's side: enemy squads carry `visible` (fog of war), and the fog grid itself is only
 // included when it changed (every few ticks) to keep frames small.
 import { canSeeSquad } from '../sim/fog';
-import { POWERS, powerState, getSquadAbilities } from '../sim/effects';
+import { POWERS, powerState, getSquadAbilities, isTargetedPower } from '../sim/effects';
 import { baseCount, hasBase } from '../sim/base';
 import { garrisonOf, garrisonRoom, GARRISON_SLOTS } from '../sim/objectives';
 import { ecoView, workCodes } from '../sim/economy';
 
 /** A squad's irregular look for the renderer (unitModels.js): 'mercenary' (a hired band, engine
  * unit.mercenary), 'raider' (an independent's raid party, unit.raidOf), or null. */
-export const squadLookOf = (q) => (q.original?.mercenary ? 'mercenary' : q.original?.raidOf || q.original?.raider ? 'raider' : null);
+export const squadLookOf = (q) => (q.original?.robot ? 'robot' : q.original?.mercenary ? 'mercenary' : q.original?.raidOf || q.original?.raider ? 'raider' : null);
 
 // Drawing-only ticks and the worker's job (I219, the clip player): the last tick a squad struck,
 // was hit and (a worker) dropped a load, and its `work` code (economy.js workCodes). An enemy squad
@@ -43,7 +43,7 @@ const makeView = (w, pendingOrders, playerSide, includeFog, work) => ({
   fog: includeFog && w.fog ? w.fog[playerSide].slice() : null,
   powers: (w.setup.powers?.[playerSide] || []).map((p) => {
     const st = powerState(w, playerSide, p.id);
-    return { id: p.id, label: p.label || POWERS[p.id]?.label || p.id, cost: st.cost, usesLeft: st.usesLeft, readyIn: Math.max(0, st.readyAt - w.tick), targeted: !!(POWERS[p.id]?.impacts || POWERS[p.id]?.hide) };
+    return { id: p.id, label: p.label || POWERS[p.id]?.label || p.id, cost: st.cost, usesLeft: st.usesLeft, readyIn: Math.max(0, st.readyAt - w.tick), targeted: isTargetedPower(p.id) };
   }),
   squads: w.squads.map((q) => ({
     ...clipFieldsOf(q, q.side === playerSide || canSeeSquad(w, playerSide, q), work),

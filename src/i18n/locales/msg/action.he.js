@@ -105,6 +105,7 @@ export default {
   'm.act.loanRepaid': 'הוחזרה הלוואה של {gold:money} זהב.',
 
   // armies, marches, battles
+  'm.act.brokeWeaponsBan': 'הפרת את איסור הנשק האוטונומי. כל העמים חושבים עלייך פחות.',
   'm.act.recruited': 'גויסה יחידת {unit} חדשה ב{city}.',
   'm.act.disbanded': 'יחידת {unit} פורקה. +{hr} כוח אדם',
   'm.act.moved': 'יחידת {unit} הועברה ל{city}.',

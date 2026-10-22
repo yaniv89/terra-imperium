@@ -74,6 +74,8 @@ export const unitRosterName = (ageId, classId, english, navalLine = null) => {
   return D(`unit.${ageId || FIRST_AGE_ID}.${classId}`, D(`unit.${FIRST_AGE_ID}.${classId}`, english));
 };
 export const signatureUnitName = (peopleId, english) => D(`sig.${peopleId}`, english);
+/** A robot variant's name (unitClasses.js ROBOT_VARIANTS) in the current language. */
+export const robotUnitName = (classId) => D(`unit.robot.${classId}`, ROBOT_VARIANTS[classId] || classId);
 
 // Events: historical and chain events by id, procedural ones by templateId. `field` is 'title',
 // 'desc' or 'opt<N>'. The English text a template varies on (a granary or not) picks the variant.
@@ -95,6 +97,7 @@ export const currentLanguage = getLanguage;
 
 // Wrappers over the data helpers, so a view can swap one import and keep its call.
 import { unitDisplayName } from '../data/unitNames';
+import { ROBOT_VARIANTS } from '../data/unitClasses';
 import { getCategoryTierName } from '../data/buildings';
 import { AGES, FIRST_AGE_ID } from '../data/ages';
 /** unitDisplayName (data/unitNames.js) in the current language. */

@@ -24,7 +24,7 @@ import { sortInts } from './spatial';
 import { acquireTarget, canAttack, inRangeOfSquad, inRangeOfStructure, isFighting, structureTarget } from './combat';
 import { canSeeSquad } from './fog';
 import { sideEdgeX } from './world';
-import { speedMult } from './effects';
+import { speedMult, isStunned } from './effects';
 import { Q, SQUAD_RADIUS, SIDE_DEFENDER } from './constants';
 import { baseBuildings, hasBase } from './base';
 import { BUILDINGS } from '../data/economy';
@@ -218,7 +218,7 @@ export const acquireTargets = (w) => {
 
 export const moveSquads = (w) => {
   w.squads.forEach((q) => {
-    if (!isFighting(q) || q.inside >= 0 || q.order.type === 'work') return; // a worker at work walks in economy.js
+    if (!isFighting(q) || q.inside >= 0 || q.order.type === 'work' || isStunned(w, q)) return; // a worker at work walks in economy.js; an EMP stops a machine
     if (q.routed || q.retreating) { stepToward(w, q, sideEdgeX(w, q.side), q.y); return; }
     if (q.order.type === 'hold') return;
     // Chase / close with the current target unless it's already in reach.
