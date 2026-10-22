@@ -1,6 +1,6 @@
 # Terra Imperium ruler plan (phase RU)
 
-Date: 2026-10-07. Status: plan only, nothing built. Branch for the plan: `claude/plan-ruler`.
+Date: 2026-10-07. Status: built 2026-10-22 through the differentiation plan (U4 to U17: fixed ruler, attributes capped by research age, renown, the Virtue tree, decrees, ambitions, the Ruler tab, the legacy score). Branch for the plan: `claude/plan-ruler`.
 
 The user's request: "one ruler (not changing) for each nation, and a new menu item, Ruler, where we
 can develop the ruler; plan costs and benefits and attributes."
