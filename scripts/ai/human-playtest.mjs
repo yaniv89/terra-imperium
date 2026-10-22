@@ -30,7 +30,7 @@ const OUT = path.join(ROOT, 'plans/ai-output/human-playtest');
 const UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
 const INSET = { left: 47, right: 47, top: 0, bottom: 21 }; // iPhone landscape: notch side and home bar
 export const SIZES = { phone: { width: 844, height: 390, mobile: true }, desktop: { width: 1600, height: 900, mobile: false } };
-export const SLICE_AGES = ['bronze', 'classical', 'gunpowder', 'modern', 'information'];
+export const SLICE_AGES = AGE_ORDER;
 
 export const SCENES = ['campaign', 'battle'];
 export const AREAS = ['start screen and world setup', 'map pan, zoom, close view and fog', 'cities, builds and settlers', 'units and armies',
@@ -170,16 +170,24 @@ ${scene === 'battle' ? `Judge the controls on this screen${size.mobile ? ' with 
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
+export const SLICE_ENGINE = ["export { withAgesResearched } from '../src/engine/research.js';", "export { declareWar } from '../src/engine/diplomacy.js';", "export { distanceKm } from '../src/data/geo/geodesic.js';", "export { auditGameState } from '../src/engine/stateAudit.js';"];
+
 /** Late-game saves: a headless scripted game (scripts/simulate.mjs engine) saved at each age it reaches. */
 export const buildSlices = async (ages, turns, log) => {
   const { buildSimEngine, advanceCampaign } = await import('../simulate.mjs');
   const { createScriptedPlayer } = await import('../campaignTelemetry.mjs');
-  const file = await buildSimEngine(["export { withAgesResearched } from '../src/engine/research.js';"]);
+  const file = await buildSimEngine(SLICE_ENGINE);
   const e = await import(pathToFileURL(file).href);
   fs.rmSync(file, { force: true });
   const seed = 4242;
-  const player = e.MAJOR_PEOPLES_LIST[seed % e.MAJOR_PEOPLES_LIST.length].id;
-  let s = e.createInitialState({ playerNationId: player, rngSeed: seed, scenario: { mode: 'peoples', size: 'standard', seed } });
+  // The first people from the seeded pick on whose capital touches the sea: the saves need a coast.
+  const list = e.MAJOR_PEOPLES_LIST;
+  let player; let s;
+  for (let k = 0; k < list.length; k++) {
+    player = list[(seed + k) % list.length].id;
+    s = e.createInitialState({ playerNationId: player, rngSeed: seed, scenario: { mode: 'peoples', size: 'standard', seed } });
+    if (hasCoast(e, s, player)) break;
+  }
   s = e.gameReducer({ ...s, battleSettings: { defaultMode: 'auto', autoDefend: true } }, { type: e.ActionTypes.SET_RESEARCH_AUTO, payload: { auto: true } });
   const scripted = createScriptedPlayer({ engine: e, opinionOf: e.opinionOf });
   const saves = {};
@@ -193,13 +201,30 @@ export const buildSlices = async (ages, turns, log) => {
     if (s.gameStatus !== 'ACTIVE') break;
   }
   log(`slices: ${player}, turn ${s.turnNumber}, age ${e.getTechAgeId(s, player)}; reached ${Object.keys(saves).join(', ')}`);
+  const rich = ([a, v]) => [a, { ...v, state: enrichSave(e, v.state, player) }];
   return Object.fromEntries(ages.map((a) => {
-    if (saves[a]) return [a, saves[a]];
+    if (saves[a]) return rich([a, saves[a]]);
     // Not reached in time: every major gets the research of the ages before it, so the world moves on with the player.
     let b = s;
     Object.values(b.nations).filter((n) => !n.isEliminated && !e.isIndependentNation(n)).forEach((n) => { b = e.withAgesResearched(b, n.id, a); });
-    return [a, { state: { ...b, battleSettings: undefined }, turn: b.turnNumber, boosted: true }];
+    return rich([a, { state: { ...b, battleSettings: undefined }, turn: b.turnNumber, boosted: true }]);
   }));
+};
+
+export const NEIGHBOURS_MET = 3;
+const cityTiles = (state, id) => Object.values(state.regions).filter((c) => (c.owner ?? c.ownerId) === id && c.tile != null).map((c) => c.tile);
+export const hasCoast = (e, state, id) => { const t = e.getTiles(); return cityTiles(state, id).some((c) => t.coastal[c] === 1); };
+
+/** An era save made playable: the player has met its NEIGHBOURS_MET nearest majors (both ways) and is at war with the nearest. */
+export const enrichSave = (e, state, player) => {
+  const t = e.getTiles(); const mine = cityTiles(state, player);
+  const km = (id) => Math.min(...cityTiles(state, id).flatMap((c) => mine.map((m) => e.distanceKm(t.centres[c], t.centres[m]))));
+  const near = Object.values(state.nations).filter((n) => n.id !== player && !n.isEliminated && !e.isIndependentNation(n))
+    .map((n) => [n.id, km(n.id)]).filter(([, d]) => Number.isFinite(d)).sort((a, b) => a[1] - b[1]).slice(0, NEIGHBOURS_MET).map(([id]) => id);
+  const met = { ...state.fog.met };
+  near.forEach((id) => { met[player] = { ...met[player], [id]: met[player]?.[id] ?? state.turnNumber }; met[id] = { ...met[id], [player]: met[id]?.[player] ?? state.turnNumber }; });
+  const s = { ...state, fog: { ...state.fog, met } };
+  return near.length ? e.declareWar(s, near[0], { aggressor: player }) : s;
 };
 
 export const openGame = async (browser, { size, lang, url, ready = '[data-people]' }) => {
