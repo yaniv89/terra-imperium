@@ -450,3 +450,55 @@ after them the old problem returns to the top: a bank of 28,000 gold with nothin
 - A save-loading browser script for later re-scores: not built; the driver, the in-page scripted player and the
   counter installer used here are kept (not committed) in `audits/playtest-4/tools/`.
 - RUSH in the headless scripted run: the sim engine bundle has no `rushQuote`, so the scripted run never rushed.
+
+---
+
+## 10. Re-score U46, 2026-10-22 (all 15 categories, after P1 to P6 merged)
+
+Build: `90efec11` on claude/wizardly-leakey-63312d, from claude/integration `20bd9e17` (eight ages E2 Future merged).
+Sibling phase reached: the eight ages plan is past Phase B (Stone start and the Future age are live), so this run does NOT
+meet R33's "no sibling phase past Phase B" condition. It measures this plan together with the new ages, and it takes the
+"fresh short baseline after the Stone start" of R33 in one go. P3 and P5 were merged before this run, so one run covers P1 to P6
+instead of the planned separate re-scores.
+
+How it was done, and its limit: this is NOT a 300-turn human playtest. Evidence is (a) a headless 300-turn run of the scripted
+player (`TURNS=300 SEEDS=4 EVERY=50 PLAYER=kemet POLICY=scripted`, balance-sim worldStats), same settings as U1's scripted run,
+(b) the 22 Oct AI playtests (`plans/ai-output/human-playtest/SUMMARY.md`, seven personas, $12.51), (c) the git log of fixes against
+the P4 findings, (d) `scripts/ui/panels-shots.mjs` layout checks at 844x340 (they pass up to "research card comes back"; the script then stops on a stale
+step, `Cannot read properties of undefined (reading 'lat')`, a script bug, so later checks did not run), (e) `node scripts/ui/diff-u43-shots.mjs`,
+4 shots at 844x390 and 1600x900, en and he. Categories 1, 5, 6, 10 and 13 were not re-tested, so their score stays and is marked so.
+
+### Scorecard
+
+| # | Category | U1 | Now | Delta | Evidence and why |
+|---|---|---|---|---|---|
+| 1 | Core loop and fun | 5 | 5 | 0 | Not re-tested. AI personas scored fun about 3 of 10 (flat per step; peaks at diplomacy and founding cities). |
+| 2 | Pacing | 5 | 5 | 0 | Measured: first unit T35 (U1 scripted: T144), second city T29 (same), first building T21. But the AI personas still met research ETAs of 950 to 1,800 turns in era saves (since fixed by the research pace lane; not re-measured). |
+| 3 | Economy and sinks | 3 | 3 | 0 | Measured: the scripted player ends T300 with 54,855 gold unspent (U1 scripted 15,774, U1 human 28,521). Pools are gone (ADM, DIP, MIL are 0), the sink that replaces them is decrees, which this player never spends. Economy cuts (U34) are parked, so the pile is not addressed. Target of 5 NOT met. |
+| 4 | AI (macro) | 5 | 5 | 0 | Measured: 10 wars between majors in 300 turns (U1: 12), 5.7 battles a war, war stack move rate 0.644 (U1 0.62), 57% of war stacks idle at home (U1 52%). Unchanged. |
+| 5 | AI (battle) | 5 | 5 | 0 | Not re-tested. P4-H4 fix merged (squads keep fighting after a target). |
+| 6 | Combat (RTS) | 6 | 6 | 0 | Not re-tested in a commanded battle. Readability and phone HUD lanes merged. AI personas never reached a battle (issue 1: no path to a fight; since fixed by "find a fight"). |
+| 7 | Diplomacy | 5 | 6 | +1 | AI personas rate it their best system (6.2 of 10): pacts, map trade, refusal reasons. P4-M6 copy fixed. |
+| 8 | Systems consistency | 3 | 4 | +1 | P4-C1 (ghost city crash) and P4-H1 (registry after Continue) fixed in `d936d257`; pools retired; one fixed ruler. P4-C2 (battle on screen differs from the result after a reload) has no fix commit and was not re-checked. Target of 5 NOT met. |
+| 9 | Map UI | 5 | 5 | 0 | P4-C1 fixed, but AI personas hit a blank map after closing Peoples (issue 8; the campaign phone pass merged, not re-checked). |
+| 10 | City UI | 6 | 6 | 0 | Not re-tested. |
+| 11 | Mobile landscape layout | 6 | 6 | 0 | panels-shots: layout is phone-landscape, End Turn stays at 603-780 px (left of the rail), the research card waits behind the dock and comes back. AI personas still hit End Turn covering panels (issue 5; fixed by the campaign phone pass, only partly re-checked). Explore option checked at 844x390 and 1600x900, en and he: fits, scrolls, Hebrew mirrors. Target of 5 met, no rise. |
+| 12 | Feedback and clarity | 5 | 6 | +1 | "Why is it blocked" tips, battle card with auto range, turn report, glossary and Menu hub added. AI personas still could not find save, load or help before the Menu hub. |
+| 13 | Art and animation | 6 | 6 | 0 | Not re-tested. |
+| 14 | Performance | 7 | 6 | -1 | Provisional. 0.42 s a turn headless at T300 with 801 cities on a machine that was also running other sessions (U1: 0.28 s). Compare against the base on a quiet machine with the perf skill before trusting it. |
+| 15 | Stability | 4 | 5 | +1 | 0 audit violations, 0 non-finite values over 300 turns; quick suite 3,957 tests pass (the 9 failures are all the environment: a missing rolldown binary for child processes, and the Windows-only challengeFiles test). P4-C1 and P4-H1 fixed. P4-C2 and P4-H2 (battle restarts after a reload) not re-checked. |
+
+Total: U1 78, now 83 (+5 over 15 categories). Success criterion of the plan ("economy, consistency, feedback and phone layout at least 5"):
+feedback 6 and phone layout 6 meet it; **economy 3 and consistency 4 do not**.
+
+### New findings from this run (not fixed here)
+
+- **R1. The gold pile grew.** 54,855 gold at T300 for the scripted player. Decrees are not drawing it down, and U34 (economy cuts) waits for the user's playtest pick.
+- **R2. Late unrest and rebels.** avgUnrest 7.1 at T200, 20.4 at T250, 32.7 at T300; 38 rebellions started and 23 rebel stacks standing at T300 (none on the player). Not in U1's numbers, so there is no baseline; check whether the late calibration of unrest is intended.
+- **R3. The player's legacy falls behind.** playerLegacyRank 27 of 60 at T300, after ranking 1 at T50. The scripted player builds no ruler, ambitions or wonders on purpose, so this is a harness reading, not a game finding.
+- **R4. 57% of war stacks still idle at home.** Unchanged from U1 (52%).
+- **R5. panels-shots.mjs stops at a stale step** (`lat` of undefined at line 99): fix the script before the next phone check.
+
+### What the next re-score should do
+
+Run the real thing: a 300-turn human-style playtest at 844x390 (the P4 route) on a quiet machine, with the perf skill for category 14, and re-check P4-C2 and P4-H2 by reloading mid-battle.
