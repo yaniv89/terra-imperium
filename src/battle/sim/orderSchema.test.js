@@ -32,8 +32,7 @@ const EXAMPLES = {
   cancelBuild: { building: 3 },
   workerPreset: { preset: 'food' },
   autoRebuild: { on: true },
-  steward: { on: true },
-  fieldBuild: { squads: [0] }
+  steward: { on: true }
 };
 
 const source = (file) => readFileSync(fileURLToPath(new URL(file, import.meta.url)), 'utf8');

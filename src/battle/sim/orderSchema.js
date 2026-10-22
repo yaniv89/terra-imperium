@@ -67,8 +67,7 @@ export const ORDER_SCHEMA = {
   cancelBuild: { req: { building: 'index' } },
   workerPreset: { req: { preset: 'preset' } }, // U24: the laborers' share of food, wood, stone, gold
   autoRebuild: { req: { on: 'flag' } }, // U24: put a fallen drop-off back up
-  steward: { req: { on: 'flag' } }, // rank 5: the economy AI runs the side's base (step.js)
-  fieldBuild: squadsOnly // rank 14: the attacker's infantry builds a siege engine where it stands
+  steward: { req: { on: 'flag' } } // rank 5: the economy AI runs the side's base (step.js)
 };
 export const ORDER_TYPES = Object.keys(ORDER_SCHEMA);
 

@@ -173,14 +173,6 @@ export const UNITS = {
   support: { cost: { food: 60, wood: 60 }, time: 25, strength: TRAIN_STRENGTH }
 };
 
-// Field engineering (the AoE and Civ report's rank 14, after AoE IV): in an assault an infantry squad
-// of the attacker builds its age's siege engine where it stands, with no workshop (a ram; ladders in
-// the Stone Age, whose siege unit they are). 1.5x the workshop's price, FIELD_BUILD.time seconds of the
-// squad holding still (any other order cancels it, 75% of what is left back); the engine is an
-// auxiliary like a trained one (spawnUnit) and demobilises after the battle.
-export const FIELD_BUILD = { cost: { wood: 180, gold: 90 }, time: 30 };
-export const fieldBuildTicks = () => secondsToTicks(FIELD_BUILD.time);
-
 // Names by age (the age registry's ids); `default` is the Bronze set.
 const NAMES = {
   default: {
