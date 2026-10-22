@@ -33,7 +33,7 @@ import {
   buildRateHalves, CANCEL_REFUND, REPAIR_HP_PER_SEC, REPAIR_RECENT_TICKS, REPAIR_RECENT_MULT_QUARTERS,
   BUILD_RADIUS_HQ, BUILD_RADIUS_OWN, QUEUE_MAX, LOOT_SHARE, CITY_BUILDING_LOOT, TRADE_GOLD_PER_SEC, TRADE_GOLD_MAX,
   AID_RADIUS, AID_HEAL_PER_SEC, HOUSE_HOUSING, HALL_HOUSING, BUILDINGS, UNITS, costMilli, costTotal, buildTicks, trainTicks,
-  trainableRoles, buildableFor, WORKER_PRESETS, RES_INDEX, CITY_REPAIR_STONE_PER_HP
+  trainableRoles, buildableFor, WORKER_PRESETS, RES_INDEX, CITY_REPAIR_STONE_PER_HP, FIELD_BUILD, fieldBuildTicks
 } from '../data/economy';
 
 export const START_WORKERS = 5;          // each side starts with a few laborers by its headquarters
@@ -357,6 +357,17 @@ export const applyEcoOrder = (w, o) => {
     case 'steward':
       w.eco.steward[side] = o.on;
       return true;
+    case 'fieldBuild': {
+      // Rank 14: the attacker's infantry builds a siege engine on the spot (data/economy.js FIELD_BUILD):
+      // one engine an order, by the first listed infantry squad that is free.
+      if (!canFieldBuild(w, side) || !canAfford(w, side, FIELD_BUILD.cost)) return true;
+      const q = (o.squads || []).map((i) => w.squads[i]).find((s) => s && s.side === side && s.alive && s.onField && !s.fled && !s.worker && s.classId === 'infantry' && !(s.fieldBuild >= 0));
+      if (!q) return true;
+      pay(w, side, FIELD_BUILD.cost);
+      q.fieldBuild = 0;
+      q.order = { type: 'hold' }; q.anchorX = q.x; q.anchorY = q.y;
+      return true;
+    }
     case 'cancelBuild': {
       const b = w.eco.buildings[o.building];
       if (!b || b.side !== side || b.built || !b.alive) return true;
@@ -368,6 +379,11 @@ export const applyEcoOrder = (w, o) => {
       return false;
   }
 };
+
+/** May `side` field-build a siege engine now: the attacker of a battle with standing works, in an
+ * age that has siege engines. */
+export const canFieldBuild = (w, side) => !!w.eco && side === SIDE_ATTACKER && w.structures.some((s) => s.alive)
+  && trainableRoles(w.setup.sides[side].ageId).includes('siege');
 
 // A move, attack-move or stop ends a worker's job (the player took it off work).
 export const clearWorkerJobs = (w, side, ids) => {
@@ -606,6 +622,17 @@ export const updateEconomy = (w) => {
     item.ticks += 1;
     if (item.ticks >= item.need) { b.queue.shift(); spawnUnit(w, b, item.role); }
   }
+  // Field engineering (rank 14): a squad holding still builds on; any other order, or its end, stops it.
+  for (let i = 0; i < w.squads.length; i++) {
+    const q = w.squads[i];
+    if (!(q.fieldBuild >= 0)) continue; // (a squad from an older checkpoint has no field)
+    if (!q.alive || q.fled || !q.onField) { q.fieldBuild = -1; continue; }
+    if (q.order.type !== 'hold') { refund(w, q.side, FIELD_BUILD.cost, CANCEL_REFUND * (1 - q.fieldBuild / fieldBuildTicks())); q.fieldBuild = -1; continue; }
+    q.fieldBuild += 1;
+    if (q.fieldBuild < fieldBuildTicks()) continue;
+    q.fieldBuild = -1;
+    spawnUnit(w, { side: q.side, x: q.x, y: q.y, size: 0, proxy: null, rally: null }, 'siege');
+  }
   if (w.tick % TICK_HZ !== 0) return;
   // Once a second: trade posts bring gold; aid posts heal the resting.
   for (let i = 0; i < nb; i++) {
@@ -733,7 +760,10 @@ export const ecoView = (w, playerSide) => {
     carrying: workers.filter((q) => q.job?.t === 'gather' && q.order.type === 'work' && (q.carry > 0 || q.job.phase === 0)).map((q) => {
       const n = eco.nodes[q.job.node];
       return { idx: q.idx, res: q.carry > 0 ? RESOURCES[q.carryRes] : n.res, kind: n.kind, load: Math.ceil(q.carry / MILLI) };
-    })
+    }),
+    // Rank 14: may this side field-build a siege engine, and its squads building one (pct done).
+    fieldBuild: canFieldBuild(w, playerSide),
+    fieldBuilding: w.squads.filter((q) => q.side === playerSide && q.fieldBuild >= 0).map((q) => ({ idx: q.idx, pct: pct(q.fieldBuild, fieldBuildTicks()) }))
   };
 };
 

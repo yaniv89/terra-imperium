@@ -77,6 +77,7 @@ export const makeSquad = (w, unit, side, sideAgeId, index) => {
     maxShield: stats.shield ? Math.round((Math.max(1, Math.round(unit.maxStrength || unit.strength || 1)) * stats.shield) / 100) : 0,
     suppressedUntil: -1,                   // a machine gun's suppression fires slower until this tick (effects.js)
     lastDepositTick: -10000,               // a worker's last drop-off (drawing only: never read by the sim, never hashed)
+    fieldBuild: -1,                        // ticks into a field-built siege engine, -1 when not building (economy.js, rank 14)
     noPathTick: -10000,                    // last tick its way to an order's goal was cut off (movement.js; drawing only, never hashed)
     movedSinceAttack: 0,
     stepTick: -1, stepHeading: 0,          // tick and heading of its last step (movement.js; read that tick only, never hashed)

@@ -34,7 +34,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Castle, X, Zap, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, ChevronDown, Swords, Wand2, Target, Map as MapIcon, Navigation, Spline, Bell, Users, LocateFixed, Package, Compass, UserCog } from 'lucide-react';
 import { ResIcon, resName, HammerButton } from './EconomyHud';
 import GameIcon from '../ui/GameIcon';
-import { RESOURCES } from '../../battle/data/economy';
+import { RESOURCES, FIELD_BUILD } from '../../battle/data/economy';
 import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
 import { BATTLE_TYPES } from '../../battle/setup/battleType';
 import { TICK_HZ } from '../../battle/sim/constants';
@@ -217,6 +217,17 @@ const BattleHud = ({
   const sup = supplyView(hud, setup, playerSide, supplyRate);
   const enemyLeft = hud.squads.filter((q) => q.side !== playerSide && q.alive && !q.fled).length;
   const sel = selectionSummary(selectedSquads);
+  // Rank 14: selected infantry of the attacker builds a ram (ladders in the Stone Age) where it stands.
+  const fieldBuild = (() => {
+    if (!hud?.eco?.fieldBuild || !selectedSquads.some((q) => q.classId === 'infantry')) return null;
+    const what = t(setup?.sides?.[playerSide]?.ageId === 'stone' ? 'bt.hud.ladders' : 'bt.hud.ram');
+    const going = (hud.eco.fieldBuilding || []).filter((b) => selectedSquads.some((q) => q.idx === b.idx));
+    return {
+      label: going.length ? `${what} ${Math.max(...going.map((b) => b.pct))}%` : what,
+      active: going.length > 0,
+      aria: t('bt.hud.fieldBuildAria', { what, wood: FIELD_BUILD.cost.wood, gold: FIELD_BUILD.cost.gold, s: FIELD_BUILD.time })
+    };
+  })();
   const target = selectedSquads.find((q) => q.targetKind === 'structure' && q.target >= 0);
   const targetSt = target ? hud.structures[target.target] : null;
   const city = cityAssaultView(hud, setup);
@@ -595,6 +606,7 @@ const BattleHud = ({
                     {onTogglePathMode && !mouse && started && <Cmd icon={Spline} label={t('bt.hud.path')} onClick={onTogglePathMode} active={pathMode} testId="battle-path-mode" />}
                     <Cmd icon={Crosshair} label={t('bt.hud.attack')} onClick={() => onArm('attackMove')} active={armed === 'attackMove'} testId="battle-attack-move" />
                     <Cmd icon={Hand} label={t('bt.hud.hold')} onClick={() => onCommand('hold')} testId="battle-hold" />
+                    {fieldBuild && <Cmd icon={Hammer} label={fieldBuild.label} onClick={() => onCommand('fieldBuild')} active={fieldBuild.active} testId="battle-field-build" ariaLabel={fieldBuild.aria} />}
                     <Cmd icon={formation === 'line' ? Rows : Columns} label={formation === 'line' ? t('bt.hud.line') : t('bt.hud.column')} onClick={onFormation} testId="battle-formation" />
                     <Cmd icon={Undo2} label={t('bt.hud.retreat')} onClick={() => onCommand('retreat')} danger testId="battle-retreat-selected" />
                   </>
