@@ -46,7 +46,6 @@ export const ACTION_SOUNDS = {
   [T.DEQUEUE_PRODUCTION]: null,
   [T.MOVE_PRODUCTION]: null,
   [T.SET_CITY_FOCUS]: null,
-  [T.SET_CITY_AUTO_BUILD]: null,
   [T.TOGGLE_TILE_LOCK]: null,
   [T.BUY_TILE]: 'tribute-paid',
   [T.SET_SETTLER_TARGET]: 'settler-moving',

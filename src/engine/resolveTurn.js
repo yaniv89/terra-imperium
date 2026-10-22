@@ -60,7 +60,7 @@ import {
   REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD, REVOLT_RECLAIMED_CONTROL, REVOLT_RECLAIMED_UNREST
 } from '../data/rebellion';
 import { createRng } from '../utils/rng';
-import { processCities, growthThreshold, privateWorld, unitWaitsForTech, autoBuildOn } from './world/cities';
+import { processCities, growthThreshold, privateWorld, unitWaitsForTech } from './world/cities';
 import { makeSettler, processSettlers, bestSites, isSettler, foundAiVillages } from './settlers';
 import { chooseProduction, nationCounts, SETTLER_THINK_PERIOD } from './aiProduction';
 import { syncWorldRegistry } from './world/registry';
@@ -181,12 +181,12 @@ const runCitiesPhase = (state, newTurnNumber) => {
     if (!g.governed) return base;
     return { ...base, foodBonus: g.food, productionMult: (base.productionMult || 0) + g.productionMult, cultureBonus: (base.cultureBonus || 0) + g.culture };
   };
-  // AI cities, and the player's with Auto build on, with nothing queued pick something first
-  // (aiProduction.js). One copy of the map, one set of nation counts: never a spread per city.
+  // AI cities with nothing queued pick something first (aiProduction.js). One copy of the map,
+  // one set of nation counts: never a spread per city.
   let cities = state.regions;
   const counts = nationCounts(state);
   Object.values(state.regions).forEach((city) => {
-    if (!city.owner || (city.owner === state.playerNationId && !autoBuildOn(city)) || city.outpost) return;
+    if (!city.owner || city.owner === state.playerNationId || city.outpost) return;
     // An order the new age's tech now holds up (cities.js unitWaitsForTech) is chosen again.
     const nc = city.production?.current ? nationCtx(city.owner) : null;
     if (nc && !unitWaitsForTech(city.production.current, nc.ageId, nc.researched, nc.techFree)) return;

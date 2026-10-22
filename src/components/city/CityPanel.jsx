@@ -30,7 +30,6 @@ import { templatesOf, nextTemplateUnit, templateSize } from '../../engine/armyTe
 import { GREAT_PROJECTS } from '../../data/greatProjects';
 import { cityLive, growthView, landQuotes, focusPreview } from '../../engine/cityEconomy';
 import { outpostTurnsLeft, OUTPOST_DONE } from '../../engine/settlers';
-import { autoBuildOn } from '../../engine/world/cities';
 import { GROUPS, groupLabel, templateName, describeTile, tileBearing, buildOptions, buildQueue, focusHint, turnsText, rushText } from './cityBuildModel';
 import { focusPlace, pointAtTile } from '../map/marchEvents';
 import { BuildingIcon, UnitIcon, WonderIcon, ImprovementIcon, ResourceIcon } from '../ui/icons';
@@ -361,14 +360,6 @@ const CityPanel = ({ cityId, view = 'city' }) => {
             ))}
           </ol>
           <div className="text-[11px] text-fa-muted mt-1">{t('cy.queueNote')}</div>
-        </div>
-      )}
-
-      {mine && !city.outpost && (
-        <div className="flex items-center gap-2 rounded-lg border border-fa-line px-2.5 py-1 text-[12px] leading-snug" data-testid="city-auto-build">
-          <div className="min-w-0 flex-1"><span className="font-semibold">{t('cy.autoBuild')}</span> <span className="text-fa-muted">{t(autoBuildOn(city) ? 'cy.autoBuildOn' : 'cy.autoBuildOff')}</span></div>
-          <button type="button" aria-pressed={autoBuildOn(city)} onClick={() => dispatch({ type: ActionTypes.SET_CITY_AUTO_BUILD, payload: { cityId, on: !autoBuildOn(city) } })} data-testid="city-auto-build-toggle"
-            className={`fa-btn fa-btn-sm min-h-[44px] min-w-[56px] shrink-0 ${autoBuildOn(city) ? 'fa-btn-primary' : 'fa-btn-secondary'}`}>{t(autoBuildOn(city) ? 'cy.on' : 'cy.off')}</button>
         </div>
       )}
 

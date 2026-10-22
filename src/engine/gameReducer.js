@@ -9,7 +9,7 @@ import { abandonColony, foundColony, validateColony } from './colonies';
 import { chooseResearch, emptyResearch, queueResearch, unqueueResearch } from './research';
 import { applyScenario } from './worldgen/emergentWorld';
 import { syncWorldRegistry } from './world/registry';
-import { queueItem, dequeueItem, moveQueueItem, itemKey, setFocus, setAutoBuild, toggleLock, canQueue, canFoundCity, addPeople, sizeToPeople } from './world/cities';
+import { queueItem, dequeueItem, moveQueueItem, itemKey, setFocus, toggleLock, canQueue, canFoundCity, addPeople, sizeToPeople } from './world/cities';
 import { quoteBuyTile, investInGrowth } from './cityEconomy';
 import { stonePhaseOf, canAnnex } from './stonePhase';
 import { placeCamps, resolveCamp } from './tribalCamps';
@@ -2937,13 +2937,6 @@ const reduceAction = (state, action) => {
       const city = state.regions[id];
       if (!city || city.owner !== state.playerNationId) return reject(state, msg('m.act.no.notYourCity'));
       const next = setFocus(city, focus);
-      return next === city ? state : { ...state, regions: { ...state.regions, [id]: next } };
-    }
-    case ActionTypes.SET_CITY_AUTO_BUILD: {
-      const { cityId: id, on } = action.payload || {};
-      const city = state.regions[id];
-      if (!city || city.owner !== state.playerNationId) return reject(state, msg('m.act.no.notYourCity'));
-      const next = setAutoBuild(city, on);
       return next === city ? state : { ...state, regions: { ...state.regions, [id]: next } };
     }
     case ActionTypes.TOGGLE_TILE_LOCK: {
