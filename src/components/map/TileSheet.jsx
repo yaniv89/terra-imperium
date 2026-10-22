@@ -27,7 +27,6 @@ import { atSea } from '../../engine/fleets';
 import { tileAccess, unitTile } from '../../engine/armies';
 import { declareWarModel } from '../panels/warActions';
 import { enemyStackAt, validateFieldAttack } from '../../engine/fieldBattle';
-import PreBattleModal from '../battle/PreBattleModal';
 import { Button, CloseButton, Label, Stat } from '../ui/atlas';
 import { settleSiteModel } from './settleSiteModel';
 import { askConfirm } from '../ui/ConfirmActionDialog';
@@ -37,13 +36,13 @@ import { useReportInset } from '../../context/MapInsetsContext';
 import { ageOf, getResearched } from '../../engine/nationState';
 import { settleKey } from '../../engine/stonePhase';
 
+// `onAttack({ from, tile })`: the field battle card is the map's, not this sheet's: it takes the screen, which tucks this sheet (and unmounts it), and a card inside it was torn down and rebuilt in a loop.
 // `settleUnitId`: the settler whose site is being chosen (the settle mode, settleMode.js): it is
 // the one that goes, whatever other settlers wait. `onSettle(unit)` starts the mode for a settler.
-const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettle = null }) => {
+const TileSheet = ({ tile, onClose, onSelectRegion, onAttack, settleUnitId = null, onSettle = null }) => {
   const { state, dispatch } = useGame();
   const sk = (key) => settleKey(state, state.playerNationId, key);
   const { t, lang } = useT();
-  const [attackFrom, setAttackFrom] = React.useState(null);
   const [confirmDisband, setConfirmDisband] = React.useState(null); // a settler's id: "Send them home?"
   const isMobile = useIsMobile();
   const corner = useCornerSheet('tile-sheet', tile != null, onClose); // one sheet at a time on a phone (H-18)
@@ -116,7 +115,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
         <div className="mb-2 space-y-1.5" data-testid="enemy-army-here">
           <div className="text-[13px] text-fa-danger-text font-semibold flex items-center gap-1.5"><Swords className="w-4 h-4" /> {t('mx.tile.enemyArmy', { count: enemyHere.length, name: state.nations[enemyHere[0].ownerId]?.name ? nameNow('people', enemyHere[0].ownerId, state.nations[enemyHere[0].ownerId].name) : t('mx.tile.rebel') })}</div>
           {attackSources.map(({ regionId, v }) => (
-            <Button key={regionId} variant="danger" className="w-full" disabled={!v.ok && v.reason !== 'cost'} why={v.ok ? null : reasonOfAttack(v.reason)} onClick={() => setAttackFrom(regionId)} data-testid="attack-army">
+            <Button key={regionId} variant="danger" className="w-full" disabled={!v.ok && v.reason !== 'cost'} why={v.ok ? null : reasonOfAttack(v.reason)} onClick={() => onAttack({ from: regionId, tile })} data-testid="attack-army">
               {t('mx.tile.attackWith', { name: cityText(regionId, state.regions[regionId]?.name), extra: v.ok ? t('mx.tile.attackUnits', { count: v.attackerUnits.length }) : v.reason === 'no_moves' ? t('mx.tile.attackMoved') : '' })}
             </Button>
           ))}
@@ -128,7 +127,6 @@ const TileSheet = ({ tile, onClose, onSelectRegion, settleUnitId = null, onSettl
           <Button variant="danger" className="w-full" disabled={!foreignWar.enabled} why={foreignWar.why} onClick={() => askConfirm(declareWarConfirm(state, foreignWar.nationId), () => dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: foreignWar.nationId } }))} title={foreignWar.note} data-testid="tile-declare-war"><Swords className="w-4 h-4" /> {foreignWar.label}</Button>
         </div>
       )}
-      {attackFrom && <PreBattleModal fromRegionId={attackFrom} tile={tile} onClose={() => setAttackFrom(null)} />}
 
       {facts.land && <Label className="mb-1">{asSite ? t(sk('mx.tile.chosenSite')) : t('mx.tile.thisTile')}</Label>}
       <div className="grid grid-cols-3 gap-1.5 mb-2" data-testid="tile-yields">
