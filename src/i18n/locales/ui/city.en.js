@@ -81,7 +81,7 @@ export default {
   'cy.alreadyQueued': 'Already in the queue',
   'cy.aTechnology': 'a technology',
   'cy.repair': 'Repair {label}',
-  'cy.replaces': 'replaces the {name}',
+  'cy.replaces': 'Replaces the {name}',
   'cy.notWorked': 'no citizen works this tile now',
   'cy.hint.buy': 'Or queue it and buy it with gold ({label}: about {gold} gold).',
   'cy.hint.starve': '(but the city would starve)',

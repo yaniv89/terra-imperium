@@ -7,8 +7,6 @@ export default {
   'nc.cantAnnex': 'Can\'t annex yet: available turn {n}',
   'nc.vassalNoWar': 'Can\'t declare war while you\'re a vassal',
   'nc.noAlliance': '{name} won\'t accept an alliance yet: needs lower hostility or more of your prestige',
-  'nc.atWarNoTrade': '{name} is at war and won\'t sign a trade agreement',
-  'nc.tradeCapacity': 'Already at your trade pact capacity ({a}/{b})',
   'nc.noBorderRival': '{name} doesn\'t border you, so it can\'t become a rival',
   'nc.haveRivals': 'Already have {n} rivals',
   'nc.noDiplomats': 'No free diplomats ({a}/{b} in use)',

@@ -43,6 +43,9 @@ export const chipLabel = (state, p) => {
   if (p.kind === 'supply') return tNow('chip.lowSupply');
   if (p.kind === 'war') return tNow('chip.war', { name: peopleName(state, p.nationId) });
   if (p.kind === 'maps') return tNow('chip.mapOffer');
+  if (p.kind === 'ruler') return tNow('chip.ruler');
+  if (p.kind === 'governor') return tNow('chip.governor', { count: p.count });
+  if (p.kind === 'decrees') return tNow('chip.decrees');
   if (p.kind === 'demand') return tNow('chip.demands', { name: peopleName(state, state.pendingDemand?.from) });
   return p.label;
 };

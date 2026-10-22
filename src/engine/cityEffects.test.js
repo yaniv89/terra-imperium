@@ -12,7 +12,7 @@ import { calcIncome } from '../utils/helpers';
 import { calcNationBalance } from './economy';
 import { housingOf, amenitiesOf, processCity, productionCost } from './world/cities';
 import { wallsOf } from './sieges';
-import { cityCtx, worldOf } from './cityEconomy';
+import { cityCtx, cityLive, worldOf } from './cityEconomy';
 import { buildingEffect, improvementEffect, effectText, NO_EFFECT_TEXT } from './cityEffects';
 import { peoplesWorld } from './testWorld';
 
@@ -148,5 +148,24 @@ describe('improvement effect text is the tile after the build', () => {
     const mine = improvementEffect(withIron, id, { kind: 'improvement', improvement: 'mine', tile: iron });
     expect(mine.supply).toEqual({ resource: 'iron', amount: 1 });
     expect(mine.text).toMatch(/supplies 1 iron a turn/);
+  });
+
+  it('a replaced farm\'s yield leaves the city: its yields after the build are the new improvement\'s (playtest 22 Oct)', () => {
+    const s = quiet(peoplesWorld({ seed: 5 }));
+    const id = paris();
+    const tiles = getTiles();
+    const city = { ...s.regions[id], size: 4 };
+    const withTile = (st, tile, entry) => ({ ...st, regions: { ...st.regions, [id]: city }, world: { ...st.world, tileState: { ...st.world.tileState, [tile]: entry } } });
+    const ctx = cityCtx(s, city);
+    const land = city.tiles.find((t) => t !== city.tile && canImprove(tileFacts(tiles, t, {}), 'farm', ctx.researched) && cityLive(withTile(s, t, { improvement: 'farm' }), id).worked.includes(t));
+    expect(land).toBeDefined();
+    const farmed = withTile(s, land, { improvement: 'farm' });
+    const item = { kind: 'improvement', improvement: 'road', tile: land };
+    const r = processCity(worldOf(farmed), tiles, { ...city, production: { current: item, queue: [], progress: productionCost(item, ctx) } }, ctx);
+    expect(r.world.tileState[land].improvement).toBe('road');
+    const built = { ...farmed, world: r.world };
+    const yieldsAfter = cityLive(built, id).yields;
+    expect(yieldsAfter).toEqual(cityLive(withTile(s, land, { improvement: 'road', road: true, pillaged: false }), id).yields);
+    expect(yieldsAfter).not.toEqual(cityLive(farmed, id).yields);
   });
 });
