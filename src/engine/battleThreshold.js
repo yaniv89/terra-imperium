@@ -20,11 +20,18 @@ export const isSmallOpenTown = (state, city) => {
   return (city.size || 1) <= (SMALL_TOWN_SIZE[sideAgeOf(state, city.owner)] ?? SMALL_DEFAULT);
 };
 
+/** The player chose "Auto until the siege ends" for this city and that siege still stands (`state.autoSieges[id]` is the siege's startedTurn, so a later siege asks again). */
+export const autoSiegeOn = (state, regionId) => {
+  const siege = state.regions?.[regionId]?.siege;
+  return !!siege && state.autoSieges?.[regionId] === siege.startedTurn;
+};
+
 /**
  * Does the attack on `targetRegionId` open a battle screen? False for a small open town nobody
  * defends, unless the setting asks. `byPlayer` picks smallTowns (own attacks) or smallTownDefense.
  */
 export const battleRequired = (state, targetRegionId, { byPlayer = true } = {}) => {
+  if (autoSiegeOn(state, targetRegionId)) return false;
   const mode = byPlayer ? state.battleSettings?.smallTowns : state.battleSettings?.smallTownDefense;
   if ((mode ?? (byPlayer ? 'auto' : 'ask')) !== 'auto') return true;
   const city = state.regions?.[targetRegionId];

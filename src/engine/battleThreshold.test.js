@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { battleRequired, isSmallOpenTown, SMALL_TOWN_SIZE } from './battleThreshold';
+import { battleRequired, isSmallOpenTown, autoSiegeOn, SMALL_TOWN_SIZE } from './battleThreshold';
 import { AGE_ORDER } from '../data/ages';
+import { gameReducer } from './gameReducer';
+import { ActionTypes } from '../data/types';
 
 const mk = (city, units = {}, battleSettings = {}) => ({
   regions: { t: { id: 't', owner: 'b', size: 2, ...city } },
@@ -27,4 +29,23 @@ describe('battleRequired', () => {
 it('each measured age limit is at most that age median (balance run, seed 11, 300 turns)', () => {
   const median = { bronze: 3, classical: 3, kingdoms: 4, gunpowder: 6 };
   Object.entries(median).forEach(([a, m]) => expect(SMALL_TOWN_SIZE[a]).toBeLessThanOrEqual(m));
+});
+
+describe('Auto until the siege ends', () => {
+  const sieged = (autoSieges) => ({ ...mk({ size: 20, siege: { hp: 50, maxHp: 100, by: 'a', startedTurn: 4 } }, guard), autoSieges });
+  it('skips the card for that siege only, whatever the size or garrison', () => {
+    expect(battleRequired(sieged(undefined), 't')).toBe(true);
+    expect(battleRequired(sieged({ t: 4 }), 't')).toBe(false);
+    expect(autoSiegeOn(sieged({ t: 4 }), 't')).toBe(true);
+  });
+  it('a later siege of the same city asks again', () => expect(battleRequired(sieged({ t: 2 }), 't')).toBe(true));
+  it('a siege that ended no longer counts', () => expect(autoSiegeOn({ ...mk({ siege: null }), autoSieges: { t: 4 } }, 't')).toBe(false));
+});
+
+it('SET_AUTO_SIEGE arms only a city under siege, and off clears it', () => {
+  const s = { ...mk({ siege: { hp: 50, startedTurn: 4 } }) };
+  const on = gameReducer(s, { type: ActionTypes.SET_AUTO_SIEGE, payload: { regionId: 't', on: true } });
+  expect(on.autoSieges).toEqual({ t: 4 });
+  expect(gameReducer(on, { type: ActionTypes.SET_AUTO_SIEGE, payload: { regionId: 't', on: false } }).autoSieges).toEqual({});
+  expect(gameReducer(mk({}), { type: ActionTypes.SET_AUTO_SIEGE, payload: { regionId: 't', on: true } }).autoSieges).toBeUndefined();
 });

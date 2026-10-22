@@ -250,6 +250,8 @@ export default {
   'bt.def.yourCall': 'Your call',
   'bt.def.next': 'Next: {list}{more}.',
   'bt.def.andMore': ' and {n} more',
+  'bt.siege.auto': 'Auto until the siege ends',
+  'bt.siege.autoHint': 'Every assault on this city is fought on Auto until the siege is over.',
   'bt.def.alwaysAuto': 'Always Auto for defences',
   'bt.def.autoAll': 'Auto all {n}',
   'bt.peace.cede': 'Cede {city}',

@@ -17,7 +17,7 @@
 // game opened it (an army that marched to attack has arrived, MarchAttackPrompt.jsx); then it
 // waits its turn behind a more pressing card (useExclusivePanel.js), and "Decide later" sets it
 // aside as a chip that brings it back, without cancelling the march.
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Castle, Home, Users, Mountain, ChevronDown } from 'lucide-react';
 import { t as tNow } from '../../i18n';
@@ -32,7 +32,7 @@ import GameIcon from '../ui/GameIcon';
 import { openSettings } from '../ui/uiEvents';
 import { ForceCard, GeneralsLine, ModeCards, ModeExplain, OddsBar } from './warAtlas';
 import { preBattleModel } from './preBattleModel';
-import { battleRequired } from '../../engine/battleThreshold';
+import { battleRequired, autoSiegeOn } from '../../engine/battleThreshold';
 import { prewarmBattleWorker } from '../../battle/worker/warmWorker';
 
 const pct = (v) => `${Math.round(v * 100)}%`;
@@ -90,7 +90,10 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   };
   const disabled = !!blockedReason || !affordable;
   // U18: a small open town falls on Auto without this card; its report opens and says why.
-  const skip = !landing && !fleet && !field && !blockedReason && affordable && !battleRequired(state, targetRegionId);
+  // Decided when the card opens: switching on Auto-until-the-siege-ends here arms later assaults, it does not launch this one.
+  const skipRef = useRef(null);
+  if (skipRef.current === null) skipRef.current = !landing && !fleet && !field && !blockedReason && affordable && !battleRequired(state, targetRegionId);
+  const skip = skipRef.current;
   useEffect(() => {
     if (!skip) return;
     dispatch({ type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId, targetRegionId, smallTown: true } });
@@ -223,6 +226,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
               {chosen === 'command' ? t('bt.pre.beginBattle') : t('bt.pre.fightAuto')}
             </Button>
             {field && !autoOnly && chosen === 'command' && <Switch label={t('bt.pre.quick')} hint={t('bt.pre.quickHint')} checked={quick} onChange={setQuick} testId="battle-quick" />}
+            {!landing && !fleet && !field && state.regions?.[targetRegionId]?.siege && <Switch label={t('bt.siege.auto')} hint={t('bt.siege.autoHint')} checked={autoSiegeOn(state, targetRegionId)} onChange={(on) => dispatch({ type: ActionTypes.SET_AUTO_SIEGE, payload: { regionId: targetRegionId, on } })} testId="battle-auto-siege" />}
             {!arrival && <button type="button" onClick={onClose} className="sr-only" data-testid="battle-choice-calloff">{t('bt.pre.callOffPlain')}</button>}
           </div>
         </div>

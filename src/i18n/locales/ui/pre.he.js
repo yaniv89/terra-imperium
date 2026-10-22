@@ -250,6 +250,8 @@ export default {
   'bt.def.yourCall': 'ההחלטה שלכם',
   'bt.def.next': 'הבא: {list}{more}.',
   'bt.def.andMore': ' ועוד {n}',
+  'bt.siege.auto': 'אוטומטי עד סוף המצור',
+  'bt.siege.autoHint': 'כל הסתערות על העיר הזו תנוהל באוטומטי עד שהמצור יסתיים.',
   'bt.def.alwaysAuto': 'תמיד אוטומטי בהגנות',
   'bt.def.autoAll': 'כולם באוטומטי ({n})',
   'bt.peace.cede': 'ויתור על {city}',
