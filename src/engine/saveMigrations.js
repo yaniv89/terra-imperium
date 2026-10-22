@@ -239,6 +239,10 @@ export const migrate18to19 = (state) => {
 // the age it had (withTechsResearched never lowers it). Reforms keyed 'modern' and building tiers
 // stay as they are (the Information tiers and the Energy line were appended).
 export const migrate19to20 = migrate16to17;
+// The Future (eight-ages plan Phase E, U76) needs no step: its techs were appended (backfillDefaults
+// adds their techTree entries) and its fields are optional and read as none when missing
+// (nation.automation, automationRiots, uprisingWarning, brokeWeaponsBanTurn, unit.robot,
+// worldCongress.binds, research.futureTechs), so version 20 stays.
 
 // Versions 1 to 9 are never migrated (the province map or an older grid, a clean break: OLDEST_LOADABLE_SAVE_VERSION).
 
