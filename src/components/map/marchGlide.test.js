@@ -48,6 +48,26 @@ describe('march glide (I070)', () => {
     expect(planGlides({ prevState: prevS, nextState: nextS, prevMarkers: marks(a, 'them'), nextMarkers: marks(c, 'them') }).size).toBe(1);
   });
 
+  it('a move ordered now (no old route) glides over land round a bay, never across the water', () => {
+    const t = getTiles();
+    // two land tiles two steps apart whose shared neighbours are all water
+    let pair = null;
+    for (let a = 0; a < t.count && !pair; a++) {
+      if (t.land[a] !== 1) continue;
+      const ring1 = new Set(t.neighbors[a]);
+      for (const w of t.neighbors[a]) {
+        const c = t.land[w] !== 1 && t.neighbors[w].find((n) => n !== a && t.land[n] === 1 && !ring1.has(n) && t.neighbors[n].filter((x) => ring1.has(x)).every((x) => t.land[x] !== 1));
+        if (c != null && c !== false && walkedTiles(null, a, c)) { pair = [a, c]; break; }
+      }
+    }
+    expect(pair).not.toBeNull();
+    const path = walkedTiles(null, ...pair);
+    expect(path.length).toBeGreaterThan(3);
+    expect(path.every((x) => t.land[x] === 1)).toBe(true);
+    const plan = planGlides({ prevState: world({ tile: pair[0] }), nextState: world({ tile: pair[1] }, 1), prevMarkers: marks(pair[0]), nextMarkers: marks(pair[1]) });
+    expect(plan.get(`army:${pair[1]}|c|me|land`).points).toHaveLength(path.length);
+  });
+
   it('takes the short way across the date line', () => {
     const g = { points: [{ lat: 0, lng: 179 }, { lat: 0, lng: -179 }], dur: 1000 };
     const mid = glideAt(g, 500);
