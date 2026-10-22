@@ -7,6 +7,7 @@ import { addCity } from '../../engine/testWorld';
 import { createDefenseRecord } from '../../engine/defense';
 import { getNeighborIds } from '../../data/regions';
 import { defenseSheetModel } from './defenseSheetModel';
+import { estimateDefenseOdds } from '../../engine/battleOdds';
 import { queuedBattleView } from '../../engine/battleQueue';
 import { armyView, battleSize, oddsSource, scoutsRange, battleMinutes, wallsLabel, siegeAdvice } from './warModel';
 import { getCategoryTierName } from '../../data/buildings';
@@ -50,6 +51,14 @@ describe('W14 defenseSheetModel', () => {
     expect(m.odds.hold).toBeLessThanOrEqual(1);
     expect(m.command).toMatch(/300 a side/);
     expect(m.auto).toMatch(/Auto holds \d+% of the time/);
+  });
+
+  it('shows the same casualty range as the attack card (battleOdds.js range), from the defender side', () => {
+    const { st, def } = withAttack();
+    const odds = estimateDefenseOdds(st, def, 40);
+    const m = defenseSheetModel(st, def, { view: { ...queuedBattleView(st, def, 4), odds } });
+    expect(m.auto).toMatch(/Auto expects: win \d+/);
+    expect(odds.range.defenderMen).toHaveLength(2);
   });
 
   it('I011: a hopeless defence warns with the odds and what losing costs, and suggests Withdraw unless Settings chose a mode', () => {

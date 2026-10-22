@@ -20,7 +20,8 @@
 // fights the whole queue on Auto as soon as nothing blocks it (drainAutoBattles). Pure.
 import { createRng } from '../utils/rng';
 import { getTechAgeId, getPool } from './nationState';
-import { resolveDefenseAuto, getDefenseArmies, estimateDefenseOdds } from './defense';
+import { resolveDefenseAuto, getDefenseArmies } from './defense';
+import { estimateDefenseOdds, simulate } from './battleOdds';
 import { battleNameOf } from './battleName';
 import { resolveAutoBattle } from './autoBattle';
 import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs, applyFieldResult } from './fieldBattle';
@@ -169,13 +170,10 @@ export const queuedBattleView = (state, def, samples = 30) => {
   const name = battleNameOf(state, { kind, tile: def.tile, regionId: def.regionId });
   if (!armies) return { kind, name, attackerUnits: [], defenderUnits: [], odds: { holdChance: 1 } };
   const { actor, v } = armies;
-  const args = kind === 'naval' ? getFleetResolveArgs(v, getFleetBattleContext(actor, v)) : getFieldResolveArgs(v, getFieldBattleContext(actor, v));
-  let held = 0;
-  for (let i = 0; i < samples; i++) {
-    const r = resolveAutoBattle(state, args, { kind, fromRegionId: def.fromRegionId }, createRng((def.seed + i * 0x9e3779b1) >>> 0));
-    if (r.outcome !== 'attacker') held += 1;
-  }
-  return { kind, name, attackerUnits: v.attackerUnits, defenderUnits: v.defenderUnits, odds: { holdChance: held / samples } };
+  const ctx = kind === 'naval' ? getFleetBattleContext(actor, v) : getFieldBattleContext(actor, v);
+  const args = kind === 'naval' ? getFleetResolveArgs(v, ctx) : getFieldResolveArgs(v, ctx);
+  const r = simulate(actor, { ...v, targetRegion: { control: 100 } }, args, ctx, samples, { kind, fromRegionId: def.fromRegionId });
+  return { kind, name, attackerUnits: v.attackerUnits, defenderUnits: v.defenderUnits, odds: { holdChance: 1 - r.attacker, range: r.range } };
 };
 
 /** A queued field battle: an AI stack (`v`, validated as its attack) against a player stack. */
