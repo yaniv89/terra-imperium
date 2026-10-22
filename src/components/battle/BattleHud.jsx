@@ -229,7 +229,7 @@ const BattleHud = ({
     onFindArmy && { glyph: <GameIcon group="battle" id="find-army" size={18} halo={false} fallback={<LocateFixed className="w-4 h-4" aria-hidden="true" />} />, label: t('bt.hud.find'), onClick: onFindArmy, disabled: !allCount && !selectedSquads.length, testId: 'battle-find-army', ariaLabel: t('bt.hud.findAria') },
     onObjective && { icon: Target, label: t('bt.hud.enemy'), onClick: onObjective, testId: 'battle-objective', ariaLabel: t('bt.hud.enemyAria') },
     eco && { icon: Tent, label: t('bt.hud.baseBtn'), onClick: onSelectHq, testId: 'battle-hq', ariaLabel: t('bt.hud.yourCamp') },
-    onToggleMinimap && { icon: MapIcon, label: t('bt.hud.map'), onClick: onToggleMinimap, active: minimapOn, testId: 'battle-minimap-toggle', ariaLabel: t('bt.hud.minimap') }
+    onToggleMinimap && { icon: MapIcon, label: t('bt.hud.map'), onClick: () => (minimapOn && !showMinimap && wandOpen ? setWandOpen(false) : onToggleMinimap()), active: showMinimap, testId: 'battle-minimap-toggle', ariaLabel: t('bt.hud.minimap') }
   ].filter(Boolean);
   const goal = setup.battleType === 'raid' || setup.battleType === 'sack'
     ? `${battleGoal(setup.battleType, playerSide)}.`
@@ -279,7 +279,15 @@ const BattleHud = ({
             <span className="absolute top-0.5 end-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-fa-raised border border-fa-line text-[9.5px] leading-[14px] fa-num" aria-hidden="true">{history.length}</span>
           </button>
         )}
-        <button type="button" onClick={() => onSpeed(speed === 1 ? 2 : speed === 2 ? 3 : 1)} aria-label={t('bt.hud.speedFaster', { n: speed })} data-testid="battle-speed" className="fa-icon-btn !w-11 !h-11 shrink-0 fa-num text-[13px] font-semibold">{speed}×</button>
+        {narrow ? (
+          <button type="button" onClick={() => onSpeed(speed === 1 ? 2 : speed === 2 ? 3 : 1)} aria-label={t('bt.hud.speedFaster', { n: speed })} data-testid="battle-speed" className="fa-icon-btn !w-11 !h-11 shrink-0 fa-num text-[13px] font-semibold">{speed}×</button>
+        ) : (
+          // Playtest 15: one cycling button overshot the speed you wanted; three buttons say it outright.
+          <div role="radiogroup" aria-label={t('bt.hud.speed')} className="flex shrink-0" data-testid="battle-speed">
+            {SPEEDS.map((s) => <button key={s} type="button" role="radio" aria-checked={speed === s} aria-label={t('bt.hud.speedN', { n: s })} onClick={() => onSpeed(s)} data-testid={`battle-speed-${s}`}
+              className={cx('fa-icon-btn !w-11 !h-11 !rounded-none first:!rounded-s-[10px] last:!rounded-e-[10px] fa-num text-[13px] font-semibold', speed === s && '!bg-fa-raised !text-fa-text outline outline-2 -outline-offset-2 outline-fa-text')}>{s}×</button>)}
+          </div>
+        )}
         <button type="button" onClick={onTogglePause} aria-label={!started ? t('bt.hud.start') : paused ? t('bt.hud.resume') : t('bt.hud.pause')} data-testid="battle-pause"
           className={cx('fa-icon-btn !w-11 !h-11 shrink-0', !started && '!bg-fa-brass !text-fa-ink !border-transparent')}>
           {!started || paused ? <Play className="w-4 h-4" aria-hidden="true" /> : <Pause className="w-4 h-4" aria-hidden="true" />}
@@ -497,6 +505,7 @@ const BattleHud = ({
 
       {/* Bottom (B10): small buttons (left), the context panel (right); the column under the top row
           lets a tall sheet scroll instead of running under the top bar (U03) */}
+      {wandOpen && !pauseOpen && <div className="absolute inset-x-0 bottom-0 pointer-events-auto" style={{ top: TOP_BAR }} onPointerDown={() => setWandOpen(false)} data-testid="battle-wand-backdrop" />}
       {!pauseOpen && (
         <div className="absolute flex items-end justify-between gap-2 pointer-events-none" style={{ top: UNDER_BAR, bottom: SAFE_B, insetInlineStart: SAFE_L, insetInlineEnd: SAFE_R }}>
           <div className="pointer-events-auto flex gap-1 shrink-0" data-testid="battle-quick">
@@ -517,9 +526,10 @@ const BattleHud = ({
           <div className="flex-1 min-w-0 max-h-full overflow-y-auto [&>*]:pointer-events-auto overscroll-contain scrollbar-none flex flex-col items-end gap-1" data-testid="battle-context" data-context={context}>
             <div className="flex-1" aria-hidden="true" />
             {wandOpen && showWand && (
-              <div className="shrink-0 fa-panel !bg-fa-panel/95 shadow-2xl p-1.5 overflow-y-auto overscroll-contain" style={{ width: 'min(19rem, 100%)', maxHeight: 'calc(var(--app-height, 100vh) - var(--sa-t, 0px) - max(0.375rem, var(--sa-b, 0px)) - 7.5rem)' }} role="dialog" aria-label={t('bt.hud.wand')} data-testid="battle-wand-sheet">
+              <div className="shrink-0 fa-panel !bg-fa-panel/95 shadow-2xl p-1.5 overflow-y-auto overscroll-contain" style={{ width: short ? 'min(30rem, 100%)' : 'min(19rem, 100%)', maxHeight: 'calc(var(--app-height, 100vh) - var(--sa-t, 0px) - max(0.375rem, var(--sa-b, 0px)) - 7.5rem)' }} role="dialog" aria-label={t('bt.hud.wand')} data-testid="battle-wand-sheet">
                 <div className="flex items-center justify-between ps-1"><span className="fa-label">{t('bt.hud.wand')}</span>
                   <button type="button" onClick={() => setWandOpen(false)} aria-label={t('bt.close')} data-testid="battle-wand-close" className="w-11 h-11 -my-1 flex items-center justify-center text-fa-muted"><GameIcon group="battle" id="close" size={20} halo={false} fallback={<X className="w-4 h-4" aria-hidden="true" />} /></button></div>
+                <div className={short ? 'grid grid-cols-2 gap-x-1' : undefined}>
                 {armyCtx && abilities.map((a) => (
                   <button key={a.id} type="button" disabled={a.readyIn > 0} onClick={() => { setWandOpen(false); onAbility?.(a.id); }} data-testid={`battle-ability-${a.id}`}
                     className="w-full min-h-[44px] px-2 flex items-center gap-2 rounded-[8px] text-start hover:bg-fa-raised disabled:opacity-50">
@@ -540,6 +550,7 @@ const BattleHud = ({
                     </button>
                   );
                 })}
+                </div>
               </div>
             )}
             {panel}

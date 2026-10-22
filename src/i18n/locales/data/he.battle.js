@@ -14,6 +14,7 @@ export default {
 
   // commander powers (battle/sim/effects.js POWERS)
   'bpower.rallyCry': 'קריאת גיוס',
+  'bpower.ambush': 'מארב',
   'bpower.arrowStorm': 'סופת חיצים',
   'bpower.artilleryBarrage': 'הפגזת ארטילריה',
   'bpower.airStrike': 'תקיפה אווירית',
