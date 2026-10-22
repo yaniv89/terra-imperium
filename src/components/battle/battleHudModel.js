@@ -116,6 +116,51 @@ export const cityAssaultView = (hud, setup) => {
   };
 };
 
+/**
+ * Who is winning (playtest issue 3): a side's fighting strength left as a share of all it brought
+ * into the battle (reinforcements and trained units included, laborers and squads held back past
+ * the cap left out; routed and fled squads count as gone).
+ */
+export const strengthShare = (hud, side) => {
+  let now = 0; let start = 0;
+  (hud?.squads || []).forEach((q) => {
+    if (q.side !== side || q.classId === 'worker') return;
+    if (q.alive && !q.onField && !q.fled && !(q.enterTick >= 0)) return; // never in the battle
+    start += Math.max(0, q.startStrength || 0);
+    if (q.alive && !q.fled && !q.routed) now += Math.max(0, q.strength);
+  });
+  return start ? Math.min(1, now / start) : 0;
+};
+
+/**
+ * A raid or a sack's loot (sim/step.js raidEnd): { burned, needed, total, taken, raidersLeft, last }
+ * or null. Once `needed` targets burned the raiders win by getting away or by the clock, unless every
+ * last one of them (laborers apart, as the sim counts) is caught first. `last`: the target that fell last.
+ */
+export const lootView = (hud, setup) => {
+  if (!setup?.raid || !hud) return null;
+  const idx = (setup.structures || []).map((s, i) => (s.loot ? i : -1)).filter((i) => i >= 0);
+  const down = idx.filter((i) => hud.structures[i] && !hud.structures[i].alive);
+  const needed = setup.raid.needed ?? 2;
+  const raidersLeft = hud.squads.filter((q) => q.side === 0 && q.classId !== 'worker' && q.alive && !q.fled && (q.onField || q.enterTick >= 0)).length;
+  const last = down.length ? hud.structures[down[down.length - 1]] : null;
+  return { burned: down.length, needed, total: idx.length, taken: down.length >= needed, raidersLeft, last };
+};
+
+/** The objective in one line for the player's side (playtest issue 4), from the battle type and the base rule. */
+export const objectiveLine = (hud, setup, playerSide, goalOf) => {
+  const type = hud?.battleType || setup?.battleType || 'field';
+  if (type === 'raid' || type === 'sack' || !hud?.base) return goalOf(type, playerSide);
+  const n = hud.base[1 - playerSide];
+  if (type === 'assault') return playerSide === 0 ? t('bt.goal.wallsAtk', { n }) : t('bt.goal.wallsDef');
+  return playerSide === 0 ? t('bt.goal.ecoAtk', { n }) : t('bt.goal.ecoDef', { n });
+};
+
+// Every end cause the sim gives (sim/step.js), told from the player's side (playtest issue 8).
+const END_REASONS = new Set(['keepTaken', 'baseDestroyed', 'campDestroyed', 'defenderRetreated', 'attackerRetreated', 'defendersBroken', 'attackersBroken', 'lossesDecisive', 'timeLimit', 'mutualDestruction', 'fieldHeld', 'farBankHeld', 'beachheadHeld', 'ambushed', 'campBurned', 'escaped', 'looted', 'raidersDriven']);
+/** Why the battle ended in one plain line: you won or lost, and what did it. */
+export const endReasonText = (reason, won, draw = false) => (!END_REASONS.has(reason) ? '' : reason === 'mutualDestruction' || draw ? t('bt.end.mutualDestruction') : t(`bt.end.${reason}.${won ? 'win' : 'loss'}`));
+
 export const ALERT_SHOW_TICKS = 8 * TICK_HZ; // an alert shows 8 s, then lives on in the history (I203)
 const WORKER_ALERT_GAP = 30 * TICK_HZ;
 
@@ -153,6 +198,14 @@ export const nextAlerts = (prev, cur, playerSide, setup, last = {}) => {
   const hitWorkers = cur.squads.filter((q, i) => q.side === playerSide && q.classId === 'worker' && q.alive && prev.squads[i] && q.strength < prev.squads[i].strength);
   if (hitWorkers.length && cur.tick - (last.workers ?? -Infinity) >= WORKER_ALERT_GAP) {
     out.push({ id: `w${cur.tick}`, kind: 'workers', title: t('bt.alert.workersHit'), detail: t('bt.alert.squadsHit', { count: hitWorkers.length }), x: hitWorkers[0].x, y: hitWorkers[0].y, tick: cur.tick, tone: 'danger' });
+  }
+  // The loot (playtest issue 5): one burn from what wins the raiders the battle, and once it is theirs.
+  const lp = lootView(prev, setup); const lc = lootView(cur, setup);
+  if (lp && lc && lc.last) {
+    const def = playerSide === 1;
+    const tone = def ? 'danger' : 'good';
+    if (lc.burned === lc.needed - 1 && lp.burned < lc.burned) out.push({ id: 'loot-near', kind: 'loot', title: t(def ? 'bt.alert.lootNearDef' : 'bt.alert.lootNearAtk'), detail: t('bt.alert.lootOf', { a: lc.burned, b: lc.needed }), x: lc.last.x, y: lc.last.y, tick: cur.tick, tone });
+    if (lc.taken && !lp.taken) out.push({ id: 'loot-taken', kind: 'loot', title: t(def ? 'bt.alert.lootTakenDef' : 'bt.alert.lootTakenAtk'), detail: t(def ? 'bt.alert.lootTakenDefDetail' : 'bt.alert.lootTakenAtkDetail'), x: lc.last.x, y: lc.last.y, tick: cur.tick, tone });
   }
   const arriving = cur.squads.filter((q, i) => q.side !== playerSide && q.reinforcement && q.onField && prev.squads[i] && !prev.squads[i].onField && q.visible);
   if (arriving.length) out.push({ id: `e${cur.tick}`, kind: 'reinforcements', title: t('bt.alert.reinforcements'), detail: t('bt.alert.reinfFrom', { count: arriving.length, from: arriving[0].reinforcement.name ? nameNow('place', null, arriving[0].reinforcement.name) : t('bt.alert.theEdge') }), x: arriving[0].x, y: arriving[0].y, tick: cur.tick, tone: 'danger' });

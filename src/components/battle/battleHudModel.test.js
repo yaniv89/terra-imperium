@@ -4,7 +4,8 @@
 // the battle's own reading (XP by the campaign's formula, the general's fate by the same roll),
 // with one (src/engine/battleReceipt.js) what the campaign commits.
 import { describe, expect, it } from 'vitest';
-import { contextFor, selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft, battleResultModel, armyTally, armyTallyText, enemyObjectives, supplyView, supplyRate } from './battleHudModel';
+import { contextFor, selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft, battleResultModel, armyTally, armyTallyText, enemyObjectives, supplyView, supplyRate, strengthShare, lootView, objectiveLine, endReasonText } from './battleHudModel';
+import { battleGoal } from './battleText';
 import { hashRoll, COMMANDER_FALL_CHANCE } from '../../engine/aftermath';
 import { XP_WIN } from '../../engine/battleOutcome';
 
@@ -127,5 +128,49 @@ describe('I195: the army tally', () => {
     expect(t).toEqual({ field: 2, routed: 1, killed: 1, withdrew: 1, arriving: 1, out: 1 });
     expect(armyTallyText(t)).toBe('2 on the field, 1 killed, 1 routed, 1 withdrew, 1 arriving, 1 kept out (over 300)');
     expect(armyTallyText(armyTally(hud, 1))).toBe('1 on the field');
+  });
+});
+
+describe('battle endings lane: who is winning, the objective, the loot, the reason', () => {
+  it('strength left as a share of what each side brought: routed, fled and dead are gone, laborers and held-back squads left out', () => {
+    const hud = { squads: [
+      sq(0, { strength: 50, startStrength: 100 }), sq(1, { strength: 100, startStrength: 100, routed: true }),
+      sq(2, { classId: 'worker', strength: 10, startStrength: 10 }), sq(3, { onField: false, enterTick: -1, strength: 100, startStrength: 100 }),
+      sq(4, { side: 1, strength: 0, startStrength: 100, alive: false }), sq(5, { side: 1, strength: 100, startStrength: 100, onField: false, enterTick: 40 })
+    ] };
+    expect(strengthShare(hud, 0)).toBe(0.25);
+    expect(strengthShare(hud, 1)).toBe(0.5); // a reinforcement still marching in counts
+    expect(strengthShare({ squads: [] }, 0)).toBe(0);
+  });
+
+  it('the loot: burned of needed, taken once enough fell, and the raiders still to catch', () => {
+    const setup = { raid: { needed: 2 }, structures: [st('keep'), st('house', { loot: true }), st('house', { loot: true }), st('house', { loot: true })] };
+    const hud = { structures: [st('keep'), st('house', { alive: false }), st('house'), st('house')], squads: [sq(0), sq(1, { classId: 'worker' }), sq(2, { side: 1 })] };
+    expect(lootView(hud, setup)).toMatchObject({ burned: 1, needed: 2, total: 3, taken: false, raidersLeft: 1 });
+    hud.structures[2] = st('house', { alive: false });
+    expect(lootView(hud, setup)).toMatchObject({ burned: 2, taken: true });
+    expect(lootView(hud, { structures: [] })).toBeNull();
+    // the alerts: one burn from their win, then the loot taken
+    const prev = { tick: 0, structures: [st('keep'), st('house'), st('house'), st('house')], squads: hud.squads };
+    const near = nextAlerts(prev, { ...prev, tick: 1, structures: [st('keep'), st('house', { alive: false }), st('house'), st('house')] }, 1, setup);
+    expect(near.map((a) => a.id)).toContain('loot-near');
+    const taken = nextAlerts({ ...prev, structures: [st('keep'), st('house', { alive: false }), st('house'), st('house')] }, { ...prev, tick: 2, structures: hud.structures }, 1, setup);
+    expect(taken.map((a) => a.id)).toContain('loot-taken');
+  });
+
+  it('the objective line: the base rule in words with bases, the type\'s own goal without', () => {
+    expect(objectiveLine({ battleType: 'field', base: [1, 9] }, {}, 0, battleGoal)).toMatch(/9 base buildings/);
+    expect(objectiveLine({ battleType: 'assault', base: [3, 4] }, {}, 1, battleGoal)).toMatch(/clock/);
+    expect(objectiveLine({ battleType: 'sack', base: null }, {}, 1, battleGoal)).toMatch(/catch every last raider/);
+    expect(objectiveLine({ battleType: 'field', base: null }, {}, 0, battleGoal)).toMatch(/Rout the enemy/);
+  });
+
+  it('one plain reason line from the end cause, told from your side', () => {
+    expect(endReasonText('campDestroyed', false)).toBe('Your camp and base buildings were burned.');
+    expect(endReasonText('campDestroyed', true)).toBe('You burned their camp and base buildings.');
+    expect(endReasonText('looted', false)).toMatch(/still loose at the clock/);
+    expect(endReasonText('raidersDriven', true)).toMatch(/drove the raiders off/);
+    expect(endReasonText('mutualDestruction', false)).toBe('Neither army is left standing.');
+    expect(endReasonText('nonsense', true)).toBe('');
   });
 });

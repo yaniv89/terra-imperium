@@ -157,7 +157,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
         const started = begin(withArmies());
         const pb = started.pendingBattle;
         const setup = safeBattleSetup(started, pb).setup; // what the battle screen is given
-        const live = playCommandedBattle(setup, 3, { retreatAt: 6000 });
+        const live = playCommandedBattle(setup, 3, { retreatAt: 3000 }); // before the army is gone: a side with none left loses at once (SETUP_VERSION 22)
         const payload = { battleId: pb.id, result: live.ended.result, log: live.ended.log, hash: live.ended.hash, chain: live.ended.chain, tick: live.ended.tick, setupVersion: SETUP_VERSION, setupKey: setupKeyOf(setup) };
         memo = { started, pb, setup, ...live, payload };
         return memo;

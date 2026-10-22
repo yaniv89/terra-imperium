@@ -38,7 +38,7 @@ import { RESOURCES } from '../../battle/data/economy';
 import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
 import { BATTLE_TYPES } from '../../battle/setup/battleType';
 import { TICK_HZ } from '../../battle/sim/constants';
-import { selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft, armyTally, armyTallyText, supplyView } from './battleHudModel';
+import { selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft, armyTally, armyTallyText, supplyView, strengthShare, lootView, objectiveLine } from './battleHudModel';
 import { menText } from '../../engine/battleLedger';
 import { deployHelp, cameraHelp } from './battleCoach';
 import { useT } from '../../i18n/useT';
@@ -204,6 +204,11 @@ const BattleHud = ({
   const { shown: shownAlerts, history } = visibleAlerts(alerts, hud.tick);
   const pauseOpen = started && paused && !sheetHidden;
   const bt = BATTLE_TYPES[hud.battleType || 'field'];
+  const youPct = Math.round(strengthShare(hud, playerSide) * 100);
+  const themPct = Math.round(strengthShare(hud, 1 - playerSide) * 100);
+  const objective = objectiveLine(hud, setup, playerSide, battleGoal);
+  const loot = lootView(hud, setup);
+  const lootWarn = !!loot && loot.burned >= loot.needed - 1;
   const allCount = onField.filter((q) => q.classId !== 'worker').length;
   const powerCards = hud.powers || [];
   // Rally Cry (a power the side brought): +30 morale for the whole army, the cure for Shaken.
@@ -362,14 +367,35 @@ const BattleHud = ({
               </span>
             </button>
           )}
-          {/* The base rule (sim/base.js, UI16): what is left to burn on each side. */}
-          {base && (
-            <div className="pointer-events-auto fa-chip !bg-fa-panel/95 !min-h-[24px] !py-0.5 gap-1 text-[10.5px] max-w-full" title={t('bt.hud.baseTitle')} data-testid="battle-base">
-              <GameIcon group="battle" id="base-status" size={14} halo={false} fallback={<Flag className="w-3 h-3 shrink-0" aria-hidden="true" />} />
-              <span className="whitespace-nowrap">{t('bt.hud.base')} <span className="fa-num text-fa-you">{base[0]}</span> {t('bt.hud.vs')} <span className="fa-num text-fa-enemy">{base[1]}</span></span>
-              {marching.length > 0 && <span className="whitespace-nowrap text-fa-you">{t('bt.hud.arriving', { n: marching.length })}</span>}
+          {/* Who is winning, the objective and the loot (playtest issues 3 to 5); the base rule in words (sim/base.js, UI16). */}
+          <div className="pointer-events-auto fa-panel !bg-fa-panel/95 !rounded-[10px] px-2 py-0.5 text-[10.5px] leading-tight w-[min(20rem,100%)] shadow-xl" data-testid="battle-status">
+            <div className="flex items-center gap-1.5" title={t('bt.status.title')} role="img" aria-label={t('bt.status.aria', { a: youPct, b: themPct })}>
+              <span className="font-semibold text-fa-you">{t('bt.status.you')}</span>
+              <span className="fa-num text-fa-you" data-testid="battle-status-you">{youPct}%</span>
+              <span className="flex-1 min-w-[1.5rem] h-1.5 rounded-full bg-fa-ink overflow-hidden flex justify-end" aria-hidden="true"><span className="h-full bg-fa-you" style={{ width: `${youPct}%` }} /></span>
+              <span className="flex-1 min-w-[1.5rem] h-1.5 rounded-full bg-fa-ink overflow-hidden" aria-hidden="true"><span className="block h-full bg-fa-enemy" style={{ width: `${themPct}%` }} /></span>
+              <span className="fa-num text-fa-enemy" data-testid="battle-status-them">{themPct}%</span>
+              <span className="font-semibold text-fa-enemy">{t('bt.status.them')}</span>
             </div>
-          )}
+            <div className="line-clamp-2 text-fa-brass" title={objective} data-testid="battle-objective-line">{objective}</div>
+            {base && (
+              <div className="whitespace-nowrap text-fa-muted truncate" title={t('bt.hud.baseTitle')} data-testid="battle-base">
+                {t('bt.status.buildings', { a: base[0], b: base[1] })}
+                {marching.length > 0 && <span className="text-fa-you">{t('bt.hud.arriving', { n: marching.length })}</span>}
+              </div>
+            )}
+            {loot && (
+              <div data-testid="battle-loot">
+                <div className={cx('flex items-center gap-1.5', lootWarn && 'text-fa-danger-text font-semibold')}>
+                  <span className="whitespace-nowrap">{t('bt.status.loot', { a: Math.min(loot.burned, loot.needed), b: loot.needed })}</span>
+                  <span className="flex-1 h-1.5 rounded-full bg-fa-ink overflow-hidden" role="meter" aria-label={t('bt.status.loot', { a: Math.min(loot.burned, loot.needed), b: loot.needed })} aria-valuenow={Math.min(loot.burned, loot.needed)} aria-valuemin={0} aria-valuemax={loot.needed}>
+                    <span className={cx('block h-full', lootWarn ? 'bg-fa-danger' : 'bg-fa-brass')} style={{ width: `${(Math.min(loot.burned, loot.needed) / loot.needed) * 100}%` }} />
+                  </span>
+                </div>
+                {loot.taken && <div className="font-semibold text-fa-danger-text animate-pulse" data-testid="battle-loot-taken">{t(playerSide === 1 ? 'bt.status.lootTakenDef' : 'bt.status.lootTakenAtk', { n: loot.raidersLeft })}</div>}
+              </div>
+            )}
+          </div>
           </div>
           {!started && (
             <div className="pointer-events-auto w-[min(22rem,100%)] px-3 py-2 fa-panel !bg-fa-panel/95 text-[12px] leading-snug shadow-xl overflow-y-auto" style={{ maxHeight: `calc(var(--app-height, 100vh) - ${short ? '9.5rem' : '11rem'} - var(--sa-t, 0px) - var(--sa-b, 0px))` }} data-testid="battle-deploy-help">

@@ -52,8 +52,9 @@ export const BATTLE_TYPES = {
   assault: { label: 'Siege assault', attacker: 'Breach the keep and hold it for 30 seconds', defender: 'Hold to the clock', limitTicks: SIEGE_BATTLE_TICKS },
   sally: { label: 'Sally', attacker: `Burn ${SALLY_ENGINES} siege engines or the camp`, defender: 'Hold the camp', limitTicks: FIELD_BATTLE_TICKS },
   landing: { label: 'Landing', attacker: `Hold the beachhead for ${LANDING_HOLD_SECONDS} seconds`, defender: 'Push them back into the sea', limitTicks: FIELD_BATTLE_TICKS },
-  raid: { label: 'Raid', attacker: `Burn ${RAID_LOOT_NEEDED} of the ${RAID_LOOT_TARGETS} loot targets and get away by your edge`, defender: 'Kill the raiders or drive them off before they loot', limitTicks: RAID_BATTLE_TICKS },
-  sack: { label: 'Sack', attacker: `Burn ${SACK_BURN_NEEDED} of the town's buildings or houses and get away`, defender: 'Kill the raiders or drive them off before they burn the town', limitTicks: SACK_BATTLE_TICKS },
+  // The loot rule as step.js raidEnd plays it: once enough is burned the raiders win by getting away OR by the clock.
+  raid: { label: 'Raid', attacker: `Burn ${RAID_LOOT_NEEDED} of the ${RAID_LOOT_TARGETS} loot targets, then get away by your edge or last to the clock`, defender: `Stop them burning ${RAID_LOOT_NEEDED} of the ${RAID_LOOT_TARGETS} loot targets; once they have, catch every last raider before the clock`, limitTicks: RAID_BATTLE_TICKS },
+  sack: { label: 'Sack', attacker: `Burn ${SACK_BURN_NEEDED} of the town's buildings or houses, then get away or last to the clock`, defender: `Stop them burning ${SACK_BURN_NEEDED} of the town's buildings or houses; once they have, catch every last raider before the clock`, limitTicks: SACK_BATTLE_TICKS },
   naval: { label: 'Sea battle', attacker: 'Sink or scatter the enemy fleet', defender: 'Hold the waters', limitTicks: FIELD_BATTLE_TICKS } // quick battle only today (navalBattle.js)
 };
 

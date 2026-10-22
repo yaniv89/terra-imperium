@@ -152,6 +152,19 @@ describe('the AI defender counter-attacks (I125, CB10)', () => {
     controllers: ['player', 'ai'], difficultyId: 'prince', fortLevel: 2, ...opts
   }));
 
+  it('goes out to a threat as one army, not one squad at a time (playtest issue 4)', () => {
+    const w = aiWorld(['infantry'], ['infantry', 'infantry', 'ranged', 'infantry'], { fortLevel: 0 });
+    const foe = w.squads.find((q) => q.side === 0 && !q.isGeneral);
+    const keep = w.structures[0];
+    place(foe, keep.x - 12 * Q, keep.y);
+    const mine = w.squads.filter((q) => q.side === 1 && !q.isGeneral);
+    mine.forEach((q, i) => place(q, keep.x + 2 * Q, keep.y + (i - 1) * 2 * Q));
+    w.revealUntil = [-1, 1e9];
+    const moves = thinkAt(w, 1).filter((o) => o.type === 'attackMove');
+    expect(moves.length).toBe(1);
+    expect(moves[0].squads.length).toBe(mine.length);
+  });
+
   it('sends its nearest cavalry at a siege engine it can see near its walls', () => {
     const w = aiWorld(['siege', 'infantry'], ['infantry', 'cavalry', 'ranged']);
     const engine = w.squads.find((q) => q.side === 0 && q.classId === 'siege');

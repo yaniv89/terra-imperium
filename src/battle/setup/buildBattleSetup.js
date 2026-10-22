@@ -75,8 +75,9 @@ import { FIRST_AGE_ID } from '../../data/ages';
 // attack-moving squad turns on a tower that shoots it, and an assault goes on to base buildings
 // near the attack-move's goal or the building that fell (CONTINUE_NEAR 18 tiles).
 // v17: H-25, an oasis field is drawn as desert ground (the combat terrain stays).
+// v22: a side with no fighting squad and none in training loses at once, bases or not; the AI defender goes out as one army (battle endings lane)
 // v21: sea battles: fleets form up facing each other mid-sea, a flagship for the admiral, the anchorage passive, the AI fleet engages (naval only)
-export const SETUP_VERSION = 21; // v20: Information commander powers, Drone Strike, Cyber Jam and Drone Recon (eight ages U58); v19: Modern machine-gun suppression, Information precision and drones (U50)
+export const SETUP_VERSION = 22; // v20: Information commander powers, Drone Strike, Cyber Jam and Drone Recon (eight ages U58); v19: Modern machine-gun suppression, Information precision and drones (U50)
 // v18: Stone battles (eight ages U37 to U40): guard on foot, Stone stats, powers and fields
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;

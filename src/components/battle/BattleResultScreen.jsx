@@ -11,12 +11,9 @@
 // result to the campaign. All numbers from battleHudModel.js battleResultModel.
 import React, { useMemo } from 'react';
 import { Crown, Info } from 'lucide-react';
-import { battleResultModel } from './battleHudModel';
+import { battleResultModel, endReasonText } from './battleHudModel';
 import { menText } from '../../engine/battleLedger';
 import { useT } from '../../i18n/useT';
-
-// Why the battle ended (bt.result.reason.<id>); a battle with bases (sim/base.js) ends when a side's last base building falls.
-const REASONS = new Set(['keepTaken', 'baseDestroyed', 'campDestroyed', 'defenderRetreated', 'defendersBroken', 'attackersBroken', 'attackerRetreated', 'timeLimit', 'mutualDestruction']);
 
 const Bar = ({ value, max, color }) => (
   <span className="block h-1.5 rounded-full bg-fa-ink overflow-hidden mt-0.5"><span className="block h-full rounded-full" style={{ width: `${max ? Math.min(100, (value / max) * 100) : 0}%`, background: color }} /></span>
@@ -44,8 +41,10 @@ const BattleResultScreen = ({ ended, setup, playerSide, title, getCampaign, rece
           <div className={`fa-heading text-[30px] leading-none ${tone}`} data-testid="battle-verdict">{m.verdict}</div>
         </div>
         <div className="flex-1 min-w-[14rem] text-[13px] leading-snug pb-0.5">
-          {m.line && <div className="font-semibold" data-testid="battle-result-line">{m.line}</div>}
-          {!pending && <div>{REASONS.has(m.reason) ? t(`bt.result.reason.${m.reason}`) : ''} <span className="text-fa-muted">{t('bt.result.lasted', { min: mins, sec: secs })}</span></div>}
+          {/* One headline (the verdict) and one plain reason from the sim's end cause (playtest issue 8); the campaign's line under it. */}
+          {!pending && <div className="font-semibold" data-testid="battle-result-reason">{endReasonText(m.reason, m.won, m.draw)}</div>}
+          {m.line && <div data-testid="battle-result-line">{m.line}</div>}
+          {!pending && <div className="text-fa-muted">{t('bt.result.lasted', { min: mins, sec: secs })}</div>}
         </div>
       </div>
       {m.notice && (

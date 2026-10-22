@@ -301,6 +301,7 @@ const thinkDefender = (w, side, cfg, mine, enemies, orders) => {
     // Clearly the stronger of what it can see: it goes out to meet the enemy wherever it stands.
     if (!threat && enemies.length && strengthOf(mine) >= SALLY_ODDS * strengthOf(enemies)) threat = nearest(enemies, keep.x, keep.y);
   }
+  const group = [];
   mine.forEach((q) => {
     if (cfg.kite && q.classId === 'ranged' && threat && q.target >= 0) {
       const t = w.squads[q.target];
@@ -310,8 +311,13 @@ const thinkDefender = (w, side, cfg, mine, enemies, orders) => {
       }
     }
     if (q.target >= 0 || q.order.type === 'attackMove' || q.order.type === 'garrison') return;
-    if (threat) orders.push({ side, type: 'attackMove', squads: [q.idx], x: threat.x, y: threat.y });
+    group.push(q.idx);
   });
+  // The defenders go out as one army, as the attacker does (playtest issue 4: they came one squad at a time).
+  if (!threat || !group.length) return;
+  const advancing = mine.filter((q) => q.order.type === 'attackMove' && q.target < 0).map((q) => q.idx);
+  const go = keepTogether(w, side, group, advancing, threat.x, threat.y, orders);
+  if (go.length) orders.push({ side, type: 'attackMove', squads: go, x: threat.x, y: threat.y });
 };
 
 // Raiders (battleType.js raid and sack): burn the loot and run. Squads with an enemy close by
