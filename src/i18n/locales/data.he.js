@@ -18,5 +18,6 @@ import ruler from './data/he.ruler';
 import deck from './data/he.deck';
 import eventsAi from './data/he.eventsAi';
 import crises from './data/he.crises';
+import landmarks from './data/he.landmarks';
 
-export default Object.freeze({ ...systems, ...world, ...events, ...units, ...tiles, ...battle, ...city, ...pnl1, ...pnl2, ...mapx, ...misc2, ...ambitions, ...ruler, ...deck, ...eventsAi, ...crises });
+export default Object.freeze({ ...systems, ...world, ...events, ...units, ...tiles, ...battle, ...city, ...pnl1, ...pnl2, ...mapx, ...misc2, ...ambitions, ...ruler, ...deck, ...eventsAi, ...crises, ...landmarks });

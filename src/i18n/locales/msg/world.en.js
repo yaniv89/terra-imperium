@@ -25,6 +25,7 @@ export default {
   'm.world.boost': 'Boost: {boost} speeds {tech} ({pct}% of its cost).',
   'm.world.researched': 'Researched {tech}.',
   'm.world.techAge': 'Your empire\'s expertise has reached the {age}.',
+  'm.world.landmark': 'You raised the {landmark}, your landmark of the {age}.',
   'm.world.firstIntoAge': '{nation} enters the {age}, the first in the world.',
 
   // colonies (colonies.js)

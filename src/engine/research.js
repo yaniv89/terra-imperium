@@ -29,6 +29,7 @@ import { withDiffusion } from './techDiffusion';
 import { ageOf, getResearched, futureTechsOf } from './nationState';
 import { WRITING_TECH, NO_WRITING_COST_MULT } from './stonePhase';
 import { awardEraLegacy } from './eraGoals';
+import { withLandmark, aiLandmark } from './ageLandmarks';
 import { isIndependentNation } from '../data/independents';
 import { AGRICULTURE_TECH } from '../data/hearths';
 
@@ -244,6 +245,8 @@ const onAgeAdvance = (state, nation, fromAgeId, toAgeId, logs, world) => {
     const legacy = awardEraLegacy(state, n, AGE_ORDER[i], state.turnNumber);
     n = legacy.nation;
     if (nation.id === state.playerNationId && legacy.log) logs.push({ year: state.year, ...carry(legacy.log), type: LogTypes.MILESTONE });
+    // The age landmark of each age entered (ageLandmarks.js): the AI picks now; the player's waits as a choice.
+    if (nation.id !== state.playerNationId) n = withLandmark(n, AGE_ORDER[i + 1], aiLandmark(nation.id, AGE_ORDER[i + 1]));
   }
   if (getAgeIndex(toAgeId) > world.top) {
     world.top = getAgeIndex(toAgeId);

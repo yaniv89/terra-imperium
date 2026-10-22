@@ -38,6 +38,7 @@ export const chipLabel = (state, p) => {
   if (p.kind === 'army') return tNow('chip.armyIdle');
   if (p.kind === 'settler') return tNow('chip.settlers');
   if (p.kind === 'research') return tNow('chip.research');
+  if (p.kind === 'landmark') return tNow('chip.landmark');
   if (p.kind === 'peace') return tNow('chip.peace');
   if (p.kind === 'unrest') return tNow('chip.restless', { city: cityName(state, p.regionId) });
   if (p.kind === 'supply') return tNow('chip.lowSupply');

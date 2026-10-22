@@ -95,6 +95,7 @@ export const ACTION_SOUNDS = {
   [T.UNQUEUE_RESEARCH]: null,
   [T.SET_RESEARCH_AUTO]: null,
   [T.SET_RESEARCH_FOCUS]: null,
+  [T.CHOOSE_AGE_LANDMARK]: 'ui-confirm',
   [T.MARK_TUTORIAL_STEP]: null,
   [T.ANSWER_DEMAND]: 'ui-confirm',
   [T.SET_AIR_PATROL]: null,
