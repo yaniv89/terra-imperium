@@ -142,11 +142,32 @@ const giftCases = async (page, tag, shot, phone) => {
   }
 };
 
+// 3: the Under-Attack sheet shows the attack card's odds and men-lost range (battleOdds.js).
+const defenceSheet = async (page, tag, shot) => {
+  await page.evaluate(async () => {
+    const { createDefenseRecord } = await import('/terra-imperium/src/engine/defense.js');
+    const s = window.__game.state; const me = s.playerNationId;
+    const city = Object.values(s.regions).find((c) => c.owner === me);
+    const foe = Object.keys(s.nations).find((id) => id !== me && !s.nations[id].isEliminated && s.nations[id].name);
+    const unit = (id, owner, classId, strength) => ({ id, ownerId: owner, domain: 'land', classId, strength, maxStrength: 100, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, movesLeft: 1, tile: city.tile, regionId: city.id });
+    const units = { ...s.units, lg1: unit('lg1', me, 'infantry', 100), lg2: unit('lg2', me, 'ranged', 80), la1: unit('la1', foe, 'infantry', 100), la2: unit('la2', foe, 'cavalry', 90) };
+    const war = { id: 'war_def', aggressor: foe, enemy: me, active: true, startYear: s.year, startTurn: s.turnNumber, battleScore: 0, score: 0 };
+    const st = { ...s, units, wars: [...s.wars, war], research: { ...s.research, auto: true } };
+    const def = createDefenseRecord(st, { war, regionId: city.id, aggressorShare: 0.5, seed: 7, index: 1 });
+    window.__game.dispatch({ type: 'LOAD_GAME', payload: { ...st, pendingDefenses: [def] } });
+  });
+  await page.waitForTimeout(1500);
+  await shot('defence');
+  const text = await page.getByTestId('defense-odds').getAttribute('title').catch(() => '');
+  check(`${tag} the defence sheet shows odds with a men-lost range`, /d+/.test(text || '') && /(Auto expects|צופה)/.test(text || ''), (text || '').slice(-170));
+};
+
 const run = async (browser, viewport, lang) => {
   const tag = `${viewport.width}x${viewport.height}-${lang}`;
   const { ctx, page, errors } = await start(browser, viewport, lang);
   const shot = (name) => page.screenshot({ path: path.join(OUT, `${tag}-${name}.jpg`), type: 'jpeg', quality: 60 });
   if (!ONLY || ONLY === 'field') await fieldCard(page, tag, errors, shot);
+  if (!ONLY || ONLY === 'defence') await defenceSheet(page, tag, shot);
   if (!ONLY || ONLY === 'gift') await giftCases(page, tag, shot, viewport.width < 900);
   check(`${tag} no page errors`, !errors.length, errors.join('; ').slice(0, 400));
   await ctx.close();
