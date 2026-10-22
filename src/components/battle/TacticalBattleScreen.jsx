@@ -1145,7 +1145,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ touchAction: 'none' }} />
       {/* B10: "Building 43%" over your sites and the reason over a red placement ghost, moved by the render loop */}
       <div ref={siteLabelsRef} className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" />
-      <div ref={badgesRef} className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" />
+      <canvas ref={badgesRef} className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true" data-testid="battle-squad-flags" />
       <div ref={pendingPinsRef} className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" />
       <div ref={ghostLabelRef} className="absolute start-0 top-0 hidden px-2 py-0.5 rounded-md bg-fa-ink/90 border border-fa-danger text-fa-danger-text text-[11px] font-bold whitespace-nowrap pointer-events-none" data-testid="battle-ghost-reason" />
       {dragLine && (
