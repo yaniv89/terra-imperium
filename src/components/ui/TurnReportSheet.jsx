@@ -70,6 +70,11 @@ const TurnReportSheet = () => {
   useDismissOverlays(() => setOpen(false), open);
   const turn = useInteraction('turn-report', open && !!report, { priority: PRIORITY.report, label: report ? report.title : null, testId: 'turn-report-chip' });
   const showing = turn.shown;
+  // End Turn steps aside while the report is on screen (index.css); the report's own Play button does its job.
+  useEffect(() => {
+    document.documentElement.toggleAttribute('data-turn-report', open && !!report && showing);
+    return () => document.documentElement.removeAttribute('data-turn-report');
+  }, [open, report, showing]);
 
   useEffect(() => {
     const onOpen = () => { if (report) { setFilter('all'); setOpen(true); interactions.promote('turn-report'); } };
