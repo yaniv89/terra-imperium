@@ -348,6 +348,7 @@ const GameLayout = () => {
 
       {/* End Turn, bottom right (W02, W10). */}
       <TurnDock />
+      <InstallHint />
 
       {/* Desktop: the city list rail on the left (plans/civ-map-rework.md E2). */}
       <CityRail onSelectRegion={openCityOnMap} />

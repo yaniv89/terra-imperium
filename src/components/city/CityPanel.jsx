@@ -286,7 +286,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
     <>
       {whyBubble}
       {/* The queue bar: pinned, always the same height, so adding to the queue moves nothing below it. */}
-      <div className={`sticky top-0 z-10 -mx-3 ${showOverview ? '' : '-mt-3'} px-3 pt-2 pb-1.5 bg-fa-panel border-b border-fa-line`} data-testid="city-queue-bar">
+      <div className={`sticky -top-3 z-10 -mx-3 ${showOverview ? '' : '-mt-3'} px-3 pt-2 pb-1.5 bg-fa-panel border-b border-fa-line`} data-testid="city-queue-bar">
         <div className="flex items-center gap-2 min-h-[44px]">
           {current ? <ItemIcon item={current.item} ageId={ageId} /> : null}
           <div className="min-w-0 flex-1">

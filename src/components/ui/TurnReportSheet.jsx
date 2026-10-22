@@ -70,6 +70,11 @@ const TurnReportSheet = () => {
   useDismissOverlays(() => setOpen(false), open);
   const turn = useInteraction('turn-report', open && !!report, { priority: PRIORITY.report, label: report ? report.title : null, testId: 'turn-report-chip' });
   const showing = turn.shown;
+  // End Turn steps aside while the report is on screen (index.css); the report's own Play button does its job.
+  useEffect(() => {
+    document.documentElement.toggleAttribute('data-turn-report', open && !!report && showing);
+    return () => document.documentElement.removeAttribute('data-turn-report');
+  }, [open, report, showing]);
 
   useEffect(() => {
     const onOpen = () => { if (report) { setFilter('all'); setOpen(true); interactions.promote('turn-report'); } };
@@ -104,7 +109,7 @@ const TurnReportSheet = () => {
   return (
     <div className="fixed inset-0 z-[45] bg-black/40 flex items-center justify-center p-3 pe-[calc(var(--rail-inset,0px)+0.75rem)] pt-[calc(var(--header-height,2.25rem)+0.5rem)] sheet-backdrop" onClick={close} data-testid="turn-report">
       <div role="dialog" aria-modal="true" aria-labelledby="turn-report-title" onClick={(e) => e.stopPropagation()}
-        className="sheet-panel fa-sheet w-full max-w-[560px] max-h-full flex flex-col rounded-[10px] border border-fa-line shadow-2xl">
+        className="sheet-panel report-sheet fa-sheet w-full max-w-[560px] max-h-full flex flex-col rounded-[10px] border border-fa-line shadow-2xl">
         <SheetHeader title={report.title} subtitle={t('report.subtitle', { year: report.year, count: report.items.length })} onClose={close} titleId="turn-report-title" className="!pb-1.5" />
         {report.groups.length > 1 && (
           <div className="flex gap-1.5 px-4 pb-2 overflow-x-auto scrollbar-none border-b border-fa-line shrink-0" role="toolbar" aria-label={t('report.show')}>
@@ -125,7 +130,7 @@ const TurnReportSheet = () => {
             </section>
           ))}
         </div>
-        <div className="flex items-center gap-3 px-4 py-2.5 border-t border-fa-line shrink-0">
+        <div className="report-foot flex items-center gap-3 px-4 py-2.5 border-t border-fa-line shrink-0">
           <span className="text-[12px] text-fa-muted flex-1 min-w-0 flex items-center gap-1.5"><ScrollText className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />{t('report.footer')}</span>
           <Button variant="primary" hero onClick={close} className="shrink-0 !min-h-[46px]" data-testid="turn-report-play">{t('report.play', { n: report.nextTurn })}</Button>
         </div>
