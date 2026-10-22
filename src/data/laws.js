@@ -12,6 +12,7 @@ import { getResearched } from '../engine/nationState';
 // tier's `effects` uses the same LEGACY_HOOK vocabulary as government reforms. A tier's `rules` are the hooks the tile world's systems read directly (src/engine/lawRules.js:
 // loyalty, army upkeep, war exhaustion, trade gold, partners' opinion, raids).
 import { TECH_TREE } from './techTree';
+import { ACTION_COSTS } from './actionCosts';
 import { leansPositive, leansNegative } from './identity';
 import { canEnactLaws } from '../engine/authority';
 import { stonePhaseOf, VILLAGE_LAW_CATEGORIES } from '../engine/stonePhase';
@@ -102,6 +103,10 @@ export const canEnactLaw = (state, nationId, category, lawId) => {
   const cooldownUntil = nation.lawCooldowns?.[category] || 0;
   return (state.turnNumber || 0) >= cooldownUntil;
 };
+
+// What a law change costs this nation now: nothing while it holds the free change each age advance
+// grants (nation.freeLawChange, research.js onAgeAdvance; Civ VI's free swap, report rank 11).
+export const lawChangeCost = (nation) => (nation?.freeLawChange ? {} : ACTION_COSTS.changeLaw);
 
 
 // Referenced by the tech-gating UI/tests the same way buildings.js's canBuildTier callers show a

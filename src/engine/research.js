@@ -249,7 +249,7 @@ const onAgeAdvance = (state, nation, fromAgeId, toAgeId, logs, world) => {
     world.top = getAgeIndex(toAgeId);
     logs.push({ year: state.year, ...msg('m.world.firstIntoAge', { nation: people(nation.id, nation.name), age: thing('age', toAgeId, AGES[toAgeId]?.name) }), type: LogTypes.MILESTONE });
   }
-  return { ...n, ageSince: state.turnNumber };
+  return { ...n, ageSince: state.turnNumber, freeLawChange: true }; // one law change for no decree (laws.js lawChangeCost)
 };
 
 // Each tech completed earns the ruler renown by the tech's own age (renown.js).

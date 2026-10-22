@@ -295,7 +295,7 @@ const tryRushProduction = (state, nation, regions, skip = null) => {
 /** The law an AI nation enacts this think, { category, id } or null (see the think's own note). It needs a decree. */
 export const pickAILaw = (state, nationId, nation) => {
   const liked = DOCTRINE_LAWS[nation.doctrine] || {};
-  const affordable = () => spareDecrees(nation) >= ACTION_COSTS.changeLaw.decrees;
+  const affordable = () => !!nation.freeLawChange || spareDecrees(nation) >= ACTION_COSTS.changeLaw.decrees;
   const order = [...Object.keys(liked), ...LAW_CATEGORY_IDS.filter((c) => !liked[c])]; // the doctrine's own categories first
   for (const category of order) {
     const current = nation.laws?.[category];
@@ -341,7 +341,7 @@ export const processAIEconomyTurn = (state, regions, nationId) => {
     // Laws by doctrine (plan C4.5, DOCTRINE_LAWS): the first preferred law the nation can enact,
     // else the highest tier that costs no stability; the AI never moves back to a law it holds.
     const law=pickAILaw(state,nationId,nextNation);
-    if(law)return {nation:spendDecree({...nextNation,economy:pool,laws:{...nextNation.laws,[law.category]:law.id},lawCooldowns:{...nextNation.lawCooldowns,[law.category]:state.turnNumber+LAW_CHANGE_COOLDOWN_TURNS}},'changeLaw',state.turnNumber)};
+    if(law){const enacted={...nextNation,economy:pool,laws:{...nextNation.laws,[law.category]:law.id},lawCooldowns:{...nextNation.lawCooldowns,[law.category]:state.turnNumber+LAW_CHANGE_COOLDOWN_TURNS},freeLawChange:false};return {nation:nextNation.freeLawChange?enacted:spendDecree(enacted,'changeLaw',state.turnNumber)};} // the age advance's free change first (rank 11)
     const advisorPool=nextNation.isAtWar?'mil':'adm';
     if(!nextNation.advisors?.[advisorPool] && (pool.gold || 0)>500 && (nextNation.lastNetIncome || 0)>20){
       const advisor=generateAdvisorCandidates(nationId,createRng(fnv1a(nationId+state.turnNumber)))[advisorPool].sort((a,b)=>a.level-b.level)[0];

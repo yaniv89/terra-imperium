@@ -49,7 +49,7 @@ import {
   GOVERNMENT_TYPES, canChangeGovernmentType, canEnactReform, resetReformsForType, getReformChoices
 } from '../data/government';
 import { IDENTITY_AXES, IDENTITY_SHIFT_STEP, IDENTITY_SHIFT_COOLDOWN_TURNS, clampIdentity } from '../data/identity';
-import { getLaw, canEnactLaw, LAW_CHANGE_COOLDOWN_TURNS, COLLECTIVIZATION_UNREST_MODIFIER, COLLECTIVIZATION_UNREST_TURNS, DEFAULT_LAWS } from '../data/laws';
+import { getLaw, canEnactLaw, lawChangeCost, LAW_CHANGE_COOLDOWN_TURNS, COLLECTIVIZATION_UNREST_MODIFIER, COLLECTIVIZATION_UNREST_TURNS, DEFAULT_LAWS } from '../data/laws';
 import { transferRegion } from './regionTransfer';
 import { grantIntel } from './intel';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, validateAmphibious, applyAmphibiousLanding, getAmphibiousBattleContext } from './invasion';
@@ -1996,7 +1996,7 @@ const reduceAction = (state, action) => {
       const nation = state.nations[state.playerNationId];
       const law = getLaw(category, lawId);
       if (!law || !canEnactLaw(state, state.playerNationId, category, lawId)) return state;
-      const costs = ACTION_COSTS.changeLaw;
+      const costs = lawChangeCost(nation);
       if (!canPay(state, costs)) return state;
 
       // Plan §M8.2: two law tiers apply a one-shot effect on top of their ongoing `effects` —
@@ -2026,7 +2026,8 @@ const reduceAction = (state, action) => {
             laws: { ...nation.laws, [category]: lawId },
             lawCooldowns: { ...nation.lawCooldowns, [category]: state.turnNumber + LAW_CHANGE_COOLDOWN_TURNS },
             modifiers,
-            stability
+            stability,
+            freeLawChange: false
           }
         },
         logs: [...state.logs, { year: state.year, ...msg('m.act.lawEnacted', { law: thing('law', lawId, law.name) }), type: LogTypes.MILESTONE }]

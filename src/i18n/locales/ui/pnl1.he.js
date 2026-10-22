@@ -125,6 +125,8 @@ export default {
   'p1.dom.inForce': 'בתוקף: {rules}.',
   'p1.dom.requires': 'דורש {tech}',
   'p1.dom.locked': 'נעול: {why}.',
+  'p1.dom.lawFree': 'בחינם',
+  'p1.dom.lawFreeNote': 'עידן חדש: שינוי החוק הבא שלכם לא עולה צו.',
   'p1.dom.notGold': 'אין מספיק זהב',
   'p1.leg.goalTip': '{label}: {value}/{target} {unit}. מורשת: {bonus}',
   'p1.eo.goalTip': '{label}: {value} מתוך {target} {unit}',
