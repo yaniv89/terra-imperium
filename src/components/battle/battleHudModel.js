@@ -152,7 +152,7 @@ export const objectiveLine = (hud, setup, playerSide, goalOf) => {
   const type = hud?.battleType || setup?.battleType || 'field';
   if (type === 'raid' || type === 'sack' || !hud?.base) return goalOf(type, playerSide);
   const n = hud.base[1 - playerSide];
-  if (type === 'assault') return playerSide === 0 ? t('bt.goal.wallsAtk', { n }) : t('bt.goal.wallsDef');
+  if (type === 'assault') return playerSide === 0 ? t('bt.goal.wallsAtk', { n }) : t('bt.goal.wallsDef', { n });
   return playerSide === 0 ? t('bt.goal.ecoAtk', { n }) : t('bt.goal.ecoDef', { n });
 };
 

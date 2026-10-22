@@ -134,9 +134,6 @@ const activeTraining = (w, side) => {
   return n;
 };
 
-/** Is `side` training a soldier right now (a started item, not a laborer)? While it is, an army wiped out fights on (step.js). */
-export const trainingSoldier = (w, side) => !!w.eco && w.eco.buildings.some((b) => b.side === side && b.queue.length && b.queue[0].started && b.queue[0].role !== 'worker' && ready(w, b));
-
 /** Population: every living squad on (or walking onto) the field, plus the units in training. */
 export const population = (w, side) => {
   let n = 0;

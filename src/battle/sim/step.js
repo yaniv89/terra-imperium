@@ -14,7 +14,7 @@ import { updateFog } from './fog';
 import { updateEffects, processImpacts } from './effects';
 import { applySupplyAndAttrition } from './support';
 import { updateBuildings } from './buildings';
-import { updateEconomy, fireEcoTowers, countEcoLosses, trainingSoldier } from './economy';
+import { updateEconomy, fireEcoTowers, countEcoLosses } from './economy';
 import { autoRebuild } from './economyAI';
 import { baseGone, hasBase } from './base';
 import { battleLimitTicks, SIDE_ATTACKER, SIDE_DEFENDER, Q, secondsToTicks } from './constants';
@@ -34,9 +34,9 @@ const isBroken = (w, side) => !w.squads.some((q) => q.side === side && !q.worker
   (q.onField && !q.routed && !q.retreating) || q.enterTick >= 0
 ));
 
-// A battle with bases (base.js; the user's rulings Q3, Q4 and Q5): a side loses when its base
-// buildings are gone, or when it has no fighting squad left and none in training (below); while a
-// unit trains the side fights on. Taking the keep alone does not win; at the clock the defender
+// A battle with bases (base.js; the user's rulings Q3, Q4 and Q5): a side loses only when its base
+// buildings are gone. Dead soldiers do not end it while buildings stand (the side trains on, or its
+// commander orders the retreat); taking the keep alone does not win; at the clock the defender
 // holds. Both bases gone in the same tick: the defender holds too (no draw). A commander's own
 // Retreat still ends the battle once the army has turned for the exits.
 const baseVerdict = (w) => {
@@ -44,13 +44,6 @@ const baseVerdict = (w) => {
   if (baseGone(w, SIDE_DEFENDER)) return { outcome: 'attacker', reason: 'baseDestroyed', decisive: true, tick: w.tick };
   if (w.retreatOrdered?.[SIDE_ATTACKER] && isBroken(w, SIDE_ATTACKER)) return { outcome: 'defender', reason: 'attackerRetreated', tick: w.tick };
   if (w.retreatOrdered?.[SIDE_DEFENDER] && isBroken(w, SIDE_DEFENDER)) return { outcome: 'attacker', reason: 'defenderRetreated', tick: w.tick };
-  // A side with no fighting squad left and nobody in training cannot fight on (playtest issue 7:
-  // the battle ran on 10 s to minutes after an army was gone): it loses at once, buildings or not.
-  // Both at once: the defender holds, as with the bases.
-  const outA = isBroken(w, SIDE_ATTACKER) && !trainingSoldier(w, SIDE_ATTACKER);
-  const outD = isBroken(w, SIDE_DEFENDER) && !trainingSoldier(w, SIDE_DEFENDER);
-  if (outA) return { outcome: 'defender', reason: outD ? 'mutualDestruction' : w.spent?.[SIDE_ATTACKER] ? 'lossesDecisive' : 'attackersBroken', tick: w.tick };
-  if (outD) return { outcome: 'attacker', reason: w.spent?.[SIDE_DEFENDER] ? 'lossesDecisive' : 'defendersBroken', decisive: !!w.spent?.[SIDE_DEFENDER], tick: w.tick };
   return null;
 };
 

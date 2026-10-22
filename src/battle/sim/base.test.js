@@ -106,19 +106,13 @@ describe('the base rule (Q3, Q4, Q5)', () => {
     expect(baseGone(w, SIDE_ATTACKER)).toBe(true); // the house alone is no base
   });
 
-  it('an army wiped out while its camp stands loses at once (playtest issue 7), unless a soldier is in training', () => {
+  it('an army wiped out while its camp stands does not lose: the battle goes on', () => {
     const w = createWorld(ecoSetup());
     run(w, 2);
-    const hq = w.eco.buildings.find((b) => b.side === SIDE_ATTACKER && b.built && b.alive);
-    hq.queue.push({ role: 'infantry', ticks: 0, need: 100000, started: true });
     army(w, SIDE_ATTACKER).forEach(kill);
     run(w, 60);
-    expect(w.ended).toBeNull(); // the side trains on
+    expect(w.ended).toBeNull();
     expect(baseGone(w, SIDE_ATTACKER)).toBe(false);
-    hq.queue.length = 0;
-    run(w, 2);
-    expect(w.ended?.outcome).toBe('defender');
-    expect(w.ended?.reason).toBe('lossesDecisive'); // all of it gone: past the 60% line
   });
 
   it('the camp burned ends it for the defender, whatever army the attacker still has', () => {
@@ -139,6 +133,7 @@ describe('the base rule (Q3, Q4, Q5)', () => {
   it('the keep alone does not win; the last base building does', () => {
     const w = createWorld(ecoSetup({ regionBuildings: [{ category: 'military', tier: 0, name: 'Barracks' }, { category: 'economy', tier: 0, name: 'Market' }] }));
     run(w, 2);
+    army(w, SIDE_DEFENDER).forEach(kill);
     raze(w, { kind: 'structure', index: 0 });
     run(w, 40);
     expect(w.ended).toBeNull();
@@ -180,13 +175,13 @@ describe('the base rule (Q3, Q4, Q5)', () => {
     expect(baseCount(w, SIDE_ATTACKER)).toBe(1);
   });
 
-  it('an attacker with no army left and nobody training loses the tick it happens', () => {
+  it('the AI defender goes out to burn the camp once the attacker has no army left', () => {
     const s = ecoSetup({ defenderUnits: mk('d', ['infantry', 'infantry', 'cavalry', 'infantry']), controllers: ['player', 'ai'] });
     const w = createWorld(s);
     army(w, SIDE_ATTACKER).forEach(kill);
-    run(w, 5);
+    run(w, s.limitTicks);
     expect(w.ended.outcome).toBe('defender');
-    expect(w.ended.reason).toBe('lossesDecisive');
-    expect(w.tick).toBeLessThan(5);
+    expect(w.ended.reason).toBe('campDestroyed');
+    expect(w.tick).toBeLessThan(s.limitTicks);
   });
 });
