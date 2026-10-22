@@ -1,0 +1,48 @@
+// src/engine/robots.js
+// Robot armies (eight ages plan U67, R20, KTD17). After Autonomous Warfare a Future city can build
+// any class as its robot variant (unitClasses.js ROBOT_VARIANTS); the unit carries `robot: true`
+// and keeps its class, so every system that reads the class still works. What a robot changes:
+//   manpower    none to build (RECRUIT_UNIT drops the hr cost, no levy on the province) and none to
+//               refill (resolveTurn's reinforcement draws no hr for it)
+//   price       ROBOT_PRODUCTION_MULT x the unit's production cost (world/cities.js productionCost),
+//               and x its gold when recruited outright (robotRecruitCost: the player and the AI)
+//               and the age's rare metals (economy.js getRecruitUnitCost, as every Future recruit)
+//   battle      power 72 / 54 (unitAgeWeight), no morale lost to hits or shocks (promotions.js
+//               getPromotionMoraleLossMultiplier, sim/morale.js), so it never routs or turns Shaken
+//   occupation  robots do not count as a garrison, and a conquered city (CONQUERED_TURNS) held by
+//               robots with no human unit on its centre loses ROBOT_OCCUPATION_LOYALTY a turn
+//               (loyalty.js): a robot army needs a human unit to hold what it takes
+// Ripples: manpower (the player's hr pool), production queues, battle results (Command and Auto),
+// city loyalty and flips, the AI's army mix (aiProduction.js keeps humans beside robots, U72).
+import { isRobotUnlocked } from '../data/unitClasses';
+
+export const ROBOT_PRODUCTION_MULT = 1.4;
+export const ROBOT_OCCUPATION_LOYALTY = 2;
+// The AI (U72, aiProduction.js and aiLogic.js) keeps up to this share of its army robots, never a
+// city's lone defender, so every army keeps humans to hold what it takes.
+export const ROBOT_SHARE = 0.5;
+/** Is an army of `landUnits` with `robots` robots under its robot share? */
+export const wantsRobot = ({ robots = 0, landUnits = 0 }) => robots < ROBOT_SHARE * (landUnits + 1);
+
+export const isRobot = (unit) => !!unit?.robot;
+
+/** A recruit's cost for a robot: no manpower, ROBOT_PRODUCTION_MULT the gold (a recruit bought outright). */
+export const robotRecruitCost = (costs) => {
+  const rest = { ...costs, ...(costs.gold ? { gold: Math.round(costs.gold * ROBOT_PRODUCTION_MULT) } : {}) };
+  delete rest.hr;
+  return rest;
+};
+
+/** Is the city's centre held by robots only (at least one robot, no human unit)? */
+export const robotsOnlyHold = (units) => units.length > 0 && units.every(isRobot);
+
+/** A signer breaks the Autonomous Weapons Ban (worldCongress.js): it is free of it, and every nation
+ * thinks worse of it for a while (opinion.js BROKE_WEAPONS_BAN). */
+export const breakWeaponsBan = (state, nationId) => ({
+  ...state,
+  nations: { ...state.nations, [nationId]: { ...state.nations[nationId], brokeWeaponsBanTurn: state.turnNumber || 0 } },
+  worldCongress: { ...state.worldCongress, binds: (state.worldCongress?.binds || []).filter((b) => !(b.id === 'weaponsBan' && b.nationId === nationId)) }
+});
+
+/** Can a nation at `ageId` knowing `researched` queue `item` as a robot? (true for any non-robot item) */
+export const canBuildRobot = (item, ageId, researched) => !item?.robot || isRobotUnlocked(ageId, item.classId, researched);

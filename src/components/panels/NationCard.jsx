@@ -9,6 +9,7 @@ import { Target, Gift, Eye, Heart, Users, Crown, Ban, AlertTriangle, ChevronDown
 import { useGame } from '../../context/GameContext';
 import { Chip } from '../ui/atlas';
 import { askConfirm } from '../ui/ConfirmActionDialog';
+import { useWhy } from '../ui/WhyTip';
 import { declareWarConfirm } from '../ui/confirmSpecs';
 import TopLayer from '../ui/TopLayer';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
@@ -79,14 +80,19 @@ const IconButton = ({ icon: Icon, label, onClick, disabled: looksDisabled, title
 );
 
 // A main action as a tile (W07): what it is and, below, its price or the answer they would give.
-// "Would refuse" draws a dashed danger border; the tile still reacts and explains (never disabled).
-const Tile = ({ label, sub, onClick, refuse, looksDisabled, testId }) => (
-  <button type="button" onClick={onClick} data-testid={testId}
-    className={`text-start rounded-lg border px-2.5 py-2 min-h-[52px] hover:bg-fa-hover transition-colors ${refuse ? 'border-dashed border-fa-danger bg-fa-ink/30' : 'border-fa-line bg-fa-raised'} ${looksDisabled ? 'opacity-60' : ''}`}>
-    <span className="block text-[13px] font-semibold leading-tight text-fa-text">{label}</span>
-    {sub && <span className={`block text-[11px] leading-tight mt-0.5 ${refuse ? 'text-fa-danger-text' : 'text-fa-muted'}`}>{sub}</span>}
-  </button>
-);
+// "Would refuse" draws a dashed danger border; the tile still reacts and explains. `blocked` (a
+// reason) is a rule that forbids the action outright: disabled, and a tap only says why (WhyTip.jsx).
+const Tile = ({ label, sub, onClick, refuse, looksDisabled, blocked, testId }) => {
+  const [why, bubble] = useWhy();
+  return (
+    <button type="button" {...why(!!blocked, blocked, onClick)} data-testid={testId}
+      className={`text-start rounded-lg border px-2.5 py-2 min-h-[52px] hover:bg-fa-hover transition-colors ${refuse || blocked ? 'border-dashed border-fa-danger bg-fa-ink/30' : 'border-fa-line bg-fa-raised'} ${looksDisabled || blocked ? 'opacity-60' : ''}`}>
+      <span className="block text-[13px] font-semibold leading-tight text-fa-text">{label}</span>
+      {sub && <span className={`block text-[11px] leading-tight mt-0.5 ${refuse || blocked ? 'text-fa-danger-text' : 'text-fa-muted'}`}>{sub}</span>}
+      {bubble}
+    </button>
+  );
+};
 
 // One nation's relation card. Local `expanded` state gates the long tail of secondary actions
 // behind a "More" toggle (plan feedback) — 1-2 primary actions (whichever is relevant to the
@@ -302,13 +308,8 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
                 }} />
             )}
             {!nation.hasTradeAgreement && (
-              <Tile label={t('nc.trade')} sub={tradeBlock || t('nc.tradeSub', { cost: costLine(ACTION_COSTS.tradeAgreement), a: activeTradePactCount, b: tradePactCapacity })} refuse={!!tradeBlock} looksDisabled={!canPay(state, ACTION_COSTS.tradeAgreement)}
-                onClick={() => {
-                  if (nation.isAtWar) return say(t('nc.atWarNoTrade', { name: nameNow('people', nation.id, nation.name) }));
-                  if (activeTradePactCount >= tradePactCapacity) return say(t('nc.tradeCapacity', { a: activeTradePactCount, b: tradePactCapacity }));
-                  dispatchIfAffordable(ActionTypes.TRADE_AGREEMENT, ACTION_COSTS.tradeAgreement);
-                  return undefined;
-                }} />
+              <Tile label={t('nc.trade')} sub={tradeBlock || t('nc.tradeSub', { cost: costLine(ACTION_COSTS.tradeAgreement), a: activeTradePactCount, b: tradePactCapacity })} blocked={tradeBlock} looksDisabled={!canPay(state, ACTION_COSTS.tradeAgreement)}
+                onClick={() => dispatchIfAffordable(ActionTypes.TRADE_AGREEMENT, ACTION_COSTS.tradeAgreement)} />
             )}
             <Tile label={t('nc.demandTribute')} sub={tributeReason || (tribute.accepted ? t('nc.wouldYieldCost', { cost: costLine(ACTION_COSTS.demand) }) : t('nc.wouldRefuseCause'))} refuse={!tribute.accepted}
               looksDisabled={!!tribute.reason || !canPay(state, ACTION_COSTS.demand)}

@@ -16,9 +16,9 @@ import { TECH_TREE } from '../../data/techTree';
 import { reasonText } from '../../i18n/messageText';
 import { t as tNow, dataText } from '../../i18n/core';
 import { unitName as unitDisplayName } from '../../i18n/gameText';
-import { unitClassRole, navalLineRole, buildingTierName, buildingCategoryLabel, wonderName, wonderDescription, techName, improvementName, terrainWord, tileResourceName } from '../../i18n/gameText';
+import { robotUnitName, unitClassRole, navalLineRole, buildingTierName, buildingCategoryLabel, wonderName, wonderDescription, techName, improvementName, terrainWord, tileResourceName } from '../../i18n/gameText';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
-import { getAvailableClasses, isUnitUnlocked, unitUnlockTech, UNIT_CLASSES } from '../../data/unitClasses';
+import { getAvailableClasses, isUnitUnlocked, isRobotUnlocked, unitUnlockTech, UNIT_CLASSES } from '../../data/unitClasses';
 import { IMPROVEMENTS, tileFacts, canImprove } from '../../data/tileYields';
 import { NAVAL_LINES, navalLinesFor } from '../../data/navalLines';
 import { GREAT_PROJECTS } from '../../data/greatProjects';
@@ -64,6 +64,7 @@ export const tilePlace = (tiles, cityTile, tile, facts = tileFacts(tiles, tile))
 
 export const itemLabel = (item, tiles = getTiles(), ageId = FIRST_AGE_ID, cityTile = null) => {
   if (item.kind === 'unit' && item.explorer) return tNow('cy.scouts');
+  if (item.kind === 'unit' && item.robot) return robotUnitName(item.classId);
   if (item.kind === 'unit') return item.classId === 'naval' ? `${unitDisplayName(ageId, 'naval', item.navalLine)} (${navalLineRole(item.navalLine || 'warship', NAVAL_LINES[item.navalLine || 'warship'].role)})` : unitDisplayName(ageId, item.classId);
   if (item.kind === 'building') return buildingTierName(item.category, item.tier, BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name);
   if (item.kind === 'improvement') return `${improvementName(item.improvement, IMPROVEMENTS[item.improvement]?.name)}: ${cityTile != null ? tilePlace(tiles, cityTile, item.tile) : describeTile(tileFacts(tiles, item.tile))}`;
@@ -112,7 +113,7 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
   [city.production?.current, ...(city.production?.queue || [])].filter(Boolean).forEach((i) => inQueue.set(itemKey(i), (inQueue.get(itemKey(i)) || 0) + 1));
   const out = [];
   const add = (item, group, extra = {}) => {
-    const check = extra.ok === undefined ? canQueue(city, tiles, world, item, { researched, ageId }) : { ok: extra.ok, reason: extra.reason };
+    const check = extra.ok === undefined ? canQueue(city, tiles, world, item, { researched, ageId, noRobots: ctx.noRobots }) : { ok: extra.ok, reason: extra.reason };
     const quote = buildQuote(state, cityId, item, live);
     const queued = inQueue.get(extra.key || itemKey(item)) || 0;
     out.push({
@@ -138,6 +139,8 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
       return;
     }
     add({ kind: 'unit', classId }, 'Units', { fields: { detail: unitClassRole(classId, UNIT_CLASSES[classId]?.role) || null, ...lock } });
+    // Its robot variant (robots.js): listed once Autonomous Warfare is known.
+    if (isRobotUnlocked(ageId, classId, researched)) add({ kind: 'unit', classId, robot: true }, 'Units', { fields: { detail: tNow('cy.robotDetail') } });
   });
   // Scouts (scouting.js): cheap, no supply, explore at peace, never fight.
   add({ kind: 'unit', classId: 'support', explorer: true }, 'Units', { fields: { detail: tNow('cy.scoutDetail') } });
@@ -178,10 +181,9 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
       // Two tiles can share terrain, distance and direction: number the later ones.
       const n = (seen.get(label) || 0) + 1; seen.set(label, n);
       if (n > 1) label = `${label} (${n})`;
-      const notes = [effect.replaces ? tNow('cy.replaces', { name: effect.replaces }) : null, effect.worked ? null : tNow('cy.notWorked')].filter(Boolean);
       add(item, 'Improvements', {
         ...(queued ? { ok: false, reason: tNow('cy.alreadyQueued') } : { ok: true }),
-        fields: { label, tile: t, detail: effect.text, note: notes.length ? notes.join('; ') : null }
+        fields: { label, tile: t, detail: effect.text, note: effect.worked ? null : tNow('cy.notWorked'), replaces: effect.replaces }
       });
     });
   });

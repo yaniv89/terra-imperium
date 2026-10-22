@@ -15,6 +15,8 @@ export const worldHash = (w) => {
     h = mix(h, (q.alive ? 1 : 0) | (q.onField ? 2 : 0) | (q.fled ? 4 : 0) | (q.routed ? 8 : 0) | (q.retreating ? 16 : 0));
     h = mix(h, q.target); h = mix(h, q.cooldown); h = mix(h, q.enterTick); h = mix(h, (q.inside ?? -1) + 1);
     if (q.maxShield) h = mix(h, q.shield); // only shielded (Future) squads, so older battles hash as before
+    if (q.hijack) h = mix(h, q.side + 2 * q.hijack.until); // Future powers (effects.js): only while they act
+    if (q.stunnedUntil > w.tick) h = mix(h, q.stunnedUntil);
   });
   w.structures.forEach((s) => { h = mix(h, s.hp); h = mix(h, s.cooldown || 0); });
   w.points.forEach((p) => { h = mix(h, p.owner); h = mix(h, p.progress); });

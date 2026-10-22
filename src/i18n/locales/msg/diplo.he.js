@@ -200,6 +200,9 @@ export default {
   'm.diplo.congressFormed': 'הקונגרס העולמי מתכנס לראשונה, בחסות {nation}.',
   'm.diplo.congressPropose.tradeStandard': 'הקונגרס העולמי יצביע על תקן סחר בתור {turn}.',
   'm.diplo.congressPropose.armsLimit': 'הקונגרס העולמי יצביע על הגבלת חימוש בתור {turn}.',
+  'm.diplo.congressPropose.orbitalDemilitarisation': 'המועצה הפלנטרית תצביע על פירוז המסלול בתור {turn}.',
+  'm.diplo.congressPropose.aiLimits': 'המועצה הפלנטרית תצביע על מגבלות לאוטומציה בתור {turn}.',
+  'm.diplo.congressPropose.weaponsBan': 'המועצה הפלנטרית תצביע על איסור נשק אוטונומי בתור {turn}.',
   'm.diplo.congressPropose.sanctions': 'הקונגרס העולמי יצביע על סנקציות נגד {nation} בתור {turn}.',
   'm.diplo.congressPassed': 'הקונגרס העולמי מקבל את ההחלטה, {yes} קולות מול {no}.',
   'm.diplo.congressFailed': 'הקונגרס העולמי דוחה את ההחלטה, {yes} קולות מול {no}.'

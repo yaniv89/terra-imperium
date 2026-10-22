@@ -7,8 +7,6 @@ export default {
   'nc.cantAnnex': 'עוד אי אפשר לספח: זמין בתור {n}',
   'nc.vassalNoWar': 'אי אפשר להכריז מלחמה כשאתם וסאלים',
   'nc.noAlliance': '{name} עוד לא תסכים לברית: נדרשת פחות איבה או יותר יוקרה שלכם',
-  'nc.atWarNoTrade': '{name} במלחמה ולא תחתום על הסכם סחר',
-  'nc.tradeCapacity': 'כבר הגעתם למכסת הסכמי הסחר ({a}/{b})',
   'nc.noBorderRival': '{name} לא גובלת בכם, ולכן היא לא יכולה להיות יריבה',
   'nc.haveRivals': 'כבר יש לכם {n} יריבים',
   'nc.noDiplomats': 'אין דיפלומטים פנויים ({a}/{b} בשימוש)',

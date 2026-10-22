@@ -5,6 +5,7 @@
 // either way it is not shown again in this browser.
 import React, { useEffect, useState } from 'react';
 import { Share, X } from 'lucide-react';
+import { useT } from '../../i18n/useT';
 
 export const INSTALL_HINT_STORAGE_KEY = 'terra-imperium-install-hint-seen';
 const SHOW_AFTER_MS = 6000;
@@ -34,6 +35,7 @@ const shouldShowHere = () => {
 };
 
 const InstallHint = () => {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (!shouldShowHere()) return undefined;
@@ -51,9 +53,9 @@ const InstallHint = () => {
       className="fixed z-[25] left-1/2 -translate-x-1/2 top-[calc(var(--header-height,2.25rem)+0.5rem)] w-[min(24rem,calc(100vw-2rem))] fa-panel !bg-fa-panel shadow-2xl flex items-center gap-3 ps-3 pe-1 py-1 text-xs text-fa-text">
       <Share className="w-5 h-5 text-fa-you shrink-0" aria-hidden="true" />
       <div className="min-w-0 flex-1">
-        <span className="font-semibold">Play full screen:</span> tap Share, then <span className="font-semibold">Add to Home Screen</span>. No Safari bars over the game.
+        <span className="font-semibold">{t('install.title')}</span> {t('install.body')}
       </div>
-      <button type="button" onClick={() => setOpen(false)} aria-label="Dismiss" className="shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-fa-muted hover:text-fa-text hover:bg-fa-raised"><X className="w-4 h-4" /></button>
+      <button type="button" onClick={() => setOpen(false)} aria-label={t('install.dismiss')} className="shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-fa-muted hover:text-fa-text hover:bg-fa-raised"><X className="w-4 h-4" /></button>
     </div>
   );
 };

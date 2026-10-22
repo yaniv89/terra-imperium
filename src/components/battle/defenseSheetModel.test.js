@@ -126,8 +126,8 @@ describe('warModel', () => {
     expect(battleSize({ regiments: 9, terrain: 'mountains' })).toMatchObject({ front: 9, heldBack: 0, text: 'All 9 regiments on the field at once.' });
     expect(battleSize({ regiments: 305 })).toMatchObject({ front: 300, heldBack: 5 });
     expect(battleSize({ regiments: 9 }).text).not.toMatch(/wave/);
-    expect(battleMinutes('assault')).toBe(30);
-    expect(battleMinutes('field')).toBe(15);
+    expect(battleMinutes('assault')).toBe(20);
+    expect(battleMinutes('field')).toBe(10);
   });
 
   it('the odds source: exact for your own city and open ground, else the scouts', () => {

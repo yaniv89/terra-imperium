@@ -83,7 +83,9 @@ import {
   getBuildingSlots, getUsedBuildingSlots, getBuildingTierCost, getCategoryTierName
 } from '../data/buildings';
 import { regionHasDeposit } from '../data/deposits';
-import { getUnlockedClasses } from '../data/unitClasses';
+import { getUnlockedClasses, isRobotUnlocked } from '../data/unitClasses';
+import { robotRecruitCost, breakWeaponsBan } from './robots';
+import { isBound } from '../data/worldCongress';
 import { upgradeUnits, stampUnitAges } from './unitUpgrades';
 import {
   ACTION_COSTS, DISBAND_HR_REFUND_RATIO, FUND_SCHOLARS_TECHPOINTS,
@@ -105,7 +107,7 @@ import { resolveAutoBattle } from './autoBattle';
 import { switchedBattleState } from './battleSwitch';
 import { applyBattleOutcome, makeBattleOutcome, battleIdOf } from './battleOutcome';
 import { cityMilitia, reinforcementSources } from './battleInputs';
-import { battleRequired } from './battleThreshold';
+import { battleRequired, autoSiegeOn } from './battleThreshold';
 import { battleQueueBlocked, queuedKind, queuedArmies, queuedCommandBlock, resolveQueuedAuto, resolveAllQueuedAuto, drainAutoBattles, aggressorView } from './battleQueue';
 import { replayBattle } from '../battle/sim/replay';
 import { verifyCommandedBattle, fieldedUnitIds } from './battleVerify';
@@ -1097,9 +1099,11 @@ const reduceAction = (state, action) => {
       // Plan §M11 resource sink: costs the age's strategic resource when available, else a gold
       // penalty (getRecruitUnitCost's own header) — computed fresh per recruit, not a flat table
       // entry, the same "dynamically-priced action" shape RESEARCH_TECH/CHANGE_LAW already use.
-      const costs = getRecruitUnitCost(state, ageOf(state, state.playerNationId));
+      const robot = !!action.payload?.robot; // a robot variant (robots.js): no manpower, no levy
+      const costs = robot ? robotRecruitCost(getRecruitUnitCost(state, ageOf(state, state.playerNationId))) : getRecruitUnitCost(state, ageOf(state, state.playerNationId));
       if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
       if (!getUnlockedClasses(ageOf(state, state.playerNationId), getResearched(state, state.playerNationId)).includes(classId)) return state;
+      if (robot && !isRobotUnlocked(ageOf(state, state.playerNationId), classId, getResearched(state, state.playerNationId))) return state;
       if (!canAfford(state.resources, costs)) return state;
       const unitId = `unit_${state.nextUnitSeq}`;
       const isNaval = classId === 'naval';
@@ -1126,28 +1130,32 @@ const reduceAction = (state, action) => {
         rank: 'recruit',
         promotions: [],
         commanderId: null,
+        ...(robot ? { robot: true } : {}),
         // Naval-only: how many land units it can carry (plan §7.5's Embark/Disembark). Land-only:
         // which naval unit currently carries it, if any — set by EMBARK_UNIT/AMPHIBIOUS_ASSAULT.
         transportCapacity: isNaval ? navalCargo(navalLine, ageOf(state, state.playerNationId)) : null,
         ...(isNaval ? { navalLine } : {}),
         embarkedOn: null
       };
-      const recruitingNation = state.nations[state.playerNationId];
+      // A robot recruited under the Autonomous Weapons Ban breaks it (robots.js): the world remembers.
+      const banned = robot && isBound(state, 'weaponsBan', state.playerNationId);
+      const base = banned ? breakWeaponsBan(state, state.playerNationId) : state;
+      const recruitingNation = base.nations[state.playerNationId];
       return {
-        ...state,
+        ...base,
         resources: applyCosts(state.resources, costs),
         units: { ...state.units, [unitId]: newUnit },
         // Its men leave the fields and workshops of the province they're raised in.
-        regions: isNaval ? state.regions : levyUnit(state.regions, newUnit),
+        regions: isNaval || robot ? state.regions : levyUnit(state.regions, newUnit),
         nations: {
-          ...state.nations,
+          ...base.nations,
           // Every other reader of militaryStrength (AI tiering, coalition thresholds, a
           // destroy_military war goal against the player) needs it to actually reflect the
           // player's real recruited army, not sit frozen at its game-start value forever.
           [state.playerNationId]: { ...recruitingNation, militaryStrength: (recruitingNation.militaryStrength || 0) + newUnit.strength }
         },
         nextUnitSeq: state.nextUnitSeq + 1,
-        logs: [...state.logs, { year: state.year, ...msg('m.act.recruited', { unit: thing('unitClass', classId, classId), city: cityRef(regionId, REGIONS_DATA[regionId]?.name) }), type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.recruited', { unit: thing('unitClass', classId, classId), city: cityRef(regionId, REGIONS_DATA[regionId]?.name) }), type: LogTypes.ACTION }, ...(banned ? [{ year: state.year, ...msg('m.act.brokeWeaponsBan'), type: LogTypes.DIPLOMACY }] : [])]
       };
     }
 
@@ -1337,14 +1345,14 @@ const reduceAction = (state, action) => {
       const paid = { ...state, resources: applyCosts(state.resources, ACTION_COSTS.launchInvasion) };
       const done = applyInvasionResult(paid, { fromRegionId, targetRegionId, war: v.war, targetRegion: v.targetRegion, isDefended: ctx.isDefended }, battle, { rngSeed: rng.getSeed(), militia: battle.inputs.militia });
       // U18: the game, not the player, chose Auto; the report opens at once and says why.
-      return smallTown && !battleRequired(state, targetRegionId) ? stampAutoBecause(state, done, msg('m.act.autoSmallTown', { place: cityOr(targetRegionId, REGIONS_DATA[targetRegionId]?.name, 'm.battle.theTown') })) : done;
+      return smallTown && !battleRequired(state, targetRegionId) ? stampAutoBecause(state, done, msg(autoSiegeOn(state, targetRegionId) ? 'm.act.autoSiege' : 'm.act.autoSmallTown', { place: cityOr(targetRegionId, REGIONS_DATA[targetRegionId]?.name, 'm.battle.theTown') })) : done;
     }
 
     // ---- Tactical Battles (design/rts-battles-implementation-plan.md §10.1) ----
 
     case ActionTypes.BEGIN_TACTICAL_BATTLE: {
       if (state.pendingBattle) return reject(state, msg('m.act.no.battleInProgress'));
-      const { fromRegionId, targetRegionId, tile = null, fromTile = null, naval = false } = action.payload;
+      const { fromRegionId, targetRegionId, tile = null, fromTile = null, naval = false, quick = false } = action.payload;
       if (naval) {
         // A commanded sea battle (navalBattle.js): the fleets on `fromTile` against the enemy fleets on `tile`.
         const nv = validateFleetAttack(state, fromTile, tile);
@@ -1384,7 +1392,8 @@ const reduceAction = (state, action) => {
           pendingBattle: {
             id: `b_${state.turnNumber}_${fcounter}`, kind: 'field', fromRegionId, tile, targetRegionId: anchor, warId: fv.war?.id ?? null,
             attackerNationId: state.playerNationId, defenderNationId: fv.defenderNationId, seed: fseed, startedTurn: state.turnNumber, playerSide: 'attacker',
-            attackerUnitIds: fv.attackerUnits.map((u) => u.id), defenderUnitIds: fv.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: []
+            attackerUnitIds: fv.attackerUnits.map((u) => u.id), defenderUnitIds: fv.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: [],
+            ...(quick ? { quick: true } : {}) // the player's quick field battle: 5 minutes, no base-building (buildFieldSetup)
           },
           logs: [...state.logs, { year: state.year, ...msg('m.act.commandField'), type: LogTypes.COMBAT }]
         };
@@ -1743,6 +1752,16 @@ const reduceAction = (state, action) => {
       next.smallTownDefense = next.smallTownDefense === 'auto' ? 'auto' : 'ask';
       next.instantBattles = next.instantBattles === true; // skip the auto-resolve replay
       return { ...state, battleSettings: next };
+    }
+
+    // "Auto until the siege ends" (battleThreshold.js autoSiegeOn): only for a city under siege now.
+    case ActionTypes.SET_AUTO_SIEGE: {
+      const { regionId, on } = action.payload;
+      const siege = state.regions?.[regionId]?.siege;
+      const rest = { ...state.autoSieges };
+      delete rest[regionId];
+      if (!on) return { ...state, autoSieges: rest };
+      return siege ? { ...state, autoSieges: { ...rest, [regionId]: siege.startedTurn } } : state;
     }
 
     case ActionTypes.AMPHIBIOUS_ASSAULT: {
@@ -2860,7 +2879,7 @@ const reduceAction = (state, action) => {
         item = wonderItem(raw.projectId, raw.tier || 1, raw.tile ?? can.tile);
       }
       const world = { cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} };
-      const ok = canQueue(city, getTiles(), world, item, { researched: Object.keys(state.techTree || {}).filter((t) => state.techTree[t]?.researched), ageId: ageOf(state, state.playerNationId) });
+      const ok = canQueue(city, getTiles(), world, item, { researched: Object.keys(state.techTree || {}).filter((t) => state.techTree[t]?.researched), ageId: ageOf(state, state.playerNationId), noRobots: isBound(state, 'weaponsBan', state.playerNationId) });
       if (!ok.ok) return reject(state, whyOf(ok));
       // One order per building tier and per tile improvement: a second tap says so instead of
       // paying for the same thing twice (playtest audits I045).

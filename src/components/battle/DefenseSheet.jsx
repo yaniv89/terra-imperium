@@ -18,7 +18,8 @@ import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { queuedBattleView, battleQueueBlocked, queuedKind } from '../../engine/battleQueue';
 import { battleNameOf } from '../../engine/battleName';
-import { Button, IconButton } from '../ui/atlas';
+import { Button, IconButton, Switch } from '../ui/atlas';
+import { autoSiegeOn } from '../../engine/battleThreshold';
 import GameIcon from '../ui/GameIcon';
 import { ForceCard, GeneralsLine, ModeCards, ModeExplain, OddsBar } from './warAtlas';
 import { defenseSheetModel } from './defenseSheetModel';
@@ -112,6 +113,10 @@ const DefenseSheet = () => {
           </div>
         )}
         <ModeExplain title={t(`bt.atlas.${chosen}`)} right={chosen === 'command' ? t('bt.def.yourCall') : null} compact>{explain}</ModeExplain>
+        {queuedKind(def) === 'defense' && state.regions?.[def.regionId]?.siege && (
+          <Switch label={t('bt.siege.auto')} checked={autoSiegeOn(state, def.regionId)} testId="defense-auto-siege"
+            onChange={(on) => dispatch({ type: ActionTypes.SET_AUTO_SIEGE, payload: { regionId: def.regionId, on } })} />
+        )}
         {defenses.length > 1 && (
           <div className="text-[11px] text-fa-muted">{t('bt.def.next', { list: defenses.slice(1, 3).map((d) => nameNow('battle', null, battleNameOf(state, { kind: queuedKind(d), regionId: d.regionId, tile: d.tile }))).join(', '), more: defenses.length > 3 ? t('bt.def.andMore', { n: defenses.length - 3 }) : '' })}</div>
         )}

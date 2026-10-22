@@ -180,4 +180,12 @@ export default {
   'wc.res.armsLimit.desc': 'Every member caps its forces: -10% manpower, +3% gold.',
   'wc.res.sanctions': 'Sanctions',
   'wc.res.sanctions.desc': 'The signers cut trade with the target: no trade route between them, and the target loses gold.',
+  'wc.councilTitle': 'Planetary Council',
+  'wc.binds': 'You are bound until',
+  'wc.res.orbitalDemilitarisation': 'Orbital Demilitarisation',
+  'wc.res.orbitalDemilitarisation.desc': 'No signer may call an Orbital Strike in battle.',
+  'wc.res.aiLimits': 'AI Limits',
+  'wc.res.aiLimits.desc': 'Every signer keeps its automation at 40 or under.',
+  'wc.res.weaponsBan': 'Autonomous Weapons Ban',
+  'wc.res.weaponsBan.desc': 'No signer builds new robot units for 25 turns. Breaking it angers the world.',
 };

@@ -72,6 +72,7 @@ export const updateMorale = (w) => {
   }
   w.squads.forEach((q) => {
     if (!isFighting(q) || q.inside >= 0 || q.worker) return; // sheltered by its walls; workers never rout (economy.js)
+    if (q.original?.robot) q.morale = 100; // robots have no morale: they never rout or turn Shaken (engine/robots.js)
     if (!q.routed && q.morale <= MORALE_ROUT_THRESHOLD && q.strength > 0 && canRout(w, q.side)) {
       if (hasPerk(q, 'unbreakable') && !q.routImmunityUsed) {
         q.routImmunityUsed = true;

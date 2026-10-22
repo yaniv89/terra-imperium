@@ -1,0 +1,32 @@
+// Battle HUD shots + checks for the readability lane. Usage: node shots.mjs <outDir> <w> <h> <lang> [age]
+// Dev server on URL (default :5231). Prints Latin words left in the HUD (Hebrew) and camera jumps.
+import { launchBrowser } from '../../scripts/lib/browserLaunch.mjs';
+import fs from 'fs';
+const [outDir, W, H, lang = 'en', age = 'kingdoms'] = process.argv.slice(2);
+const base = process.env.URL || 'http://localhost:5231/terra-imperium/';
+fs.mkdirSync(outDir, { recursive: true });
+const browser = await launchBrowser({ executablePath: process.env.CHROMIUM || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: true });
+const ctx = await browser.newContext({ viewport: { width: +W, height: +H }, deviceScaleFactor: 1, hasTouch: true });
+await ctx.addInitScript((l) => { try { localStorage.setItem('ti.coach.firstBattle', '1'); localStorage.setItem('terra-imperium.language', l); } catch { /* */ } }, lang);
+const page = await ctx.newPage();
+const errors = []; page.on('pageerror', (e) => errors.push(e.message));
+await page.goto(`${base}?battleSandbox&autostart&age=${age}&safe=0,47,21,47`, { timeout: 240000, waitUntil: 'domcontentloaded' });
+await page.getByTestId('battle-pause').waitFor({ timeout: 120000 });
+await page.waitForTimeout(2000);
+const tag = `${W}x${H}-${lang}`;
+const snap = (n) => page.screenshot({ path: `${outDir}/${tag}-${n}.png` });
+const latin = async (n) => console.log(n, 'LATIN:', JSON.stringify(await page.evaluate(() => [...new Set([...document.querySelectorAll('[data-testid="tactical-battle"] *')].filter((e) => e.children.length === 0 && /[A-Za-z]{3,}/.test(e.textContent)).map((e) => e.textContent.trim()))])));
+const cam = () => page.evaluate(() => { const r = window.__battleRenderer; return r?.getCenter ? r.getCenter() : null; });
+await snap('1-deploy'); await latin('deploy');
+await page.getByTestId('battle-pause').click(); await page.waitForTimeout(2500);
+await page.getByTestId('battle-select-all').click(); await page.waitForTimeout(500);
+await page.getByTestId('battle-wand').click(); await page.waitForTimeout(400);
+await snap('2-wand'); await latin('wand');
+await page.keyboard.press('Escape');
+await page.getByTestId('battle-speed').tap(); await page.waitForTimeout(300);
+console.log('speed label after 1 tap:', await page.getByTestId('battle-speed').textContent());
+await snap('3-army');
+await page.getByTestId('battle-pause').click(); await page.waitForTimeout(500);
+await snap('4-paused'); await latin('paused');
+console.log(errors.length ? errors : 'no page errors');
+await browser.close();

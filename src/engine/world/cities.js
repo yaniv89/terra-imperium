@@ -44,6 +44,7 @@ import { AGES, FIRST_AGE_ID, buildSpeedMult, isAgeBefore } from '../../data/ages
 import { ringsForKm, gridSpacing, foundingDisk } from '../../data/geo/gridScale';
 import { BUILDING_CATEGORIES, getBuildingTierCost, canBuildTier, createEmptyRegionBuildings } from '../../data/buildings';
 import { getAvailableClasses, isUnitUnlocked } from '../../data/unitClasses';
+import { canBuildRobot, ROBOT_PRODUCTION_MULT } from '../robots';
 import { tileFacts, tileYields, canImprove, IMPROVEMENTS, strategicSupply, RESOURCES_ON_TILES } from '../../data/tileYields';
 import { disasterMults } from '../cityDisasters';
 import { mapEffectsOf } from '../techMapEffects';
@@ -390,7 +391,7 @@ export const productionCost = (item, { ageId = FIRST_AGE_ID, citiesOwned = 1, sp
 const baseProductionCost = (item, { ageId = FIRST_AGE_ID, citiesOwned = 1 } = {}) => {
   switch (item.kind) {
     case 'building': return getBuildingTierCost(item.category, item.tier) ?? 9999;
-    case 'unit': return Math.round(UNIT_BASE_COST * (AGES[ageId]?.unitCostMult ?? AGES[FIRST_AGE_ID].unitCostMult) * (item.explorer ? EXPLORER_COST_SHARE : UNIT_CLASS_COST[item.classId] || 1));
+    case 'unit': return Math.round(UNIT_BASE_COST * (AGES[ageId]?.unitCostMult ?? AGES[FIRST_AGE_ID].unitCostMult) * (item.explorer ? EXPLORER_COST_SHARE : UNIT_CLASS_COST[item.classId] || 1) * (item.robot ? ROBOT_PRODUCTION_MULT : 1));
     case 'improvement': return (IMPROVEMENTS[item.improvement]?.turns || 2) * IMPROVEMENT_COST_PER_TURN;
     case 'settler': return SETTLER_BASE_COST + SETTLER_COST_PER_CITY * citiesOwned;
     case 'army': { const next = nextTemplateUnit(item); return next ? baseProductionCost({ kind: 'unit', classId: next }, { ageId, citiesOwned }) : 0; } // the next piece of the army (armyTemplates.js)
@@ -407,7 +408,7 @@ export const hasSeaCoast = (tiles, city) => !!city && tiles.coastal[city.tile] =
 // Independents research nothing (research.js runs majors only): `techFree` (independentCityCtx)
 // keeps what they built before the tech unlocks, every unit and the Stone and Bronze building tiers.
 const INDEPENDENT_FREE_BEFORE_AGE = 'classical';
-export const canQueue = (city, tiles, world, item, { researched = [], ageId = FIRST_AGE_ID, techFree = false } = {}) => {
+export const canQueue = (city, tiles, world, item, { researched = [], ageId = FIRST_AGE_ID, techFree = false, noRobots = false } = {}) => {
   switch (item.kind) {
     case 'building': {
       const current = city.buildings?.categories?.[item.category] ?? -1;
@@ -421,6 +422,8 @@ export const canQueue = (city, tiles, world, item, { researched = [], ageId = FI
       if (item.classId === 'naval' && !hasSeaCoast(tiles, city)) return { ok: false, ...reasonOf('m.why.needsCoast') };
       if (item.classId === 'naval' && item.navalLine && !navalLinesFor(ageId).includes(item.navalLine)) return { ok: false, ...reasonOf('m.why.notThisAge') };
       if (!getAvailableClasses(ageId).includes(item.classId)) return { ok: false, ...reasonOf('m.why.notThisAge') };
+      if (!canBuildRobot(item, ageId, researched)) return { ok: false, ...reasonOf('m.why.needsTech') }; // robots (robots.js): Autonomous Warfare
+      if (item.robot && noRobots) return { ok: false, ...reasonOf('m.why.weaponsBan') }; // the Autonomous Weapons Ban (worldCongress.js)
       return techFree || item.explorer || isUnitUnlocked(ageId, item.classId, researched) ? { ok: true } : { ok: false, ...reasonOf('m.why.needsTech') }; // scouts need no tech
     case 'improvement': {
       if (!city.tiles.includes(item.tile)) return { ok: false, ...reasonOf('m.why.notCityLand') };
@@ -445,7 +448,7 @@ export const canQueue = (city, tiles, world, item, { researched = [], ageId = FI
 export const itemKey = (item) => {
   if (!item) return '';
   switch (item.kind) {
-    case 'unit': return `unit:${item.explorer ? 'scout' : item.classId}${item.navalLine ? `:${item.navalLine}` : ''}`;
+    case 'unit': return `unit:${item.explorer ? 'scout' : item.classId}${item.navalLine ? `:${item.navalLine}` : ''}${item.robot ? ':robot' : ''}`;
     case 'building': return `building:${item.category}:${item.tier}`;
     case 'improvement': return `improvement:${item.improvement}:${item.tile}`;
     case 'settler': return 'settler';

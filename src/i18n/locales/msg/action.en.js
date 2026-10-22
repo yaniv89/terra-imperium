@@ -106,6 +106,7 @@ export default {
   'm.act.loanRepaid': 'Repaid a loan of {gold:money} gold.',
 
   // armies, marches, battles
+  'm.act.brokeWeaponsBan': 'You broke the Autonomous Weapons Ban. Every nation thinks less of you.',
   'm.act.recruited': 'Recruited a new {unit} unit in {city}.',
   'm.act.disbanded': 'Disbanded a {unit} unit. +{hr} HR',
   'm.act.moved': 'Moved a {unit} unit to {city}.',
@@ -214,6 +215,7 @@ export default {
   'm.act.settlersDisband': 'The settlers disband.',
   'm.act.rushed': '{city} pays {gold} gold to finish its {item}: ready next turn.',
   'm.act.autoBecause': 'You chose Command, but it was fought on Auto: {why}.',
+  'm.act.autoSiege': 'You chose Auto until the siege of {place} ends, so this assault was fought on Auto.',
   'm.act.autoSmallTown': '{place} is a small town with no walls and no garrison, so it was fought on Auto. You can change this in Settings.',
   'm.act.autoNoDefenders': 'You chose Command, but nobody defends {place} (no garrison, no militia): it was fought on Auto against its defences.',
   'm.act.autoFleet': 'You chose Command, but an enemy fleet guards the coast: the landing was fought on Auto.',

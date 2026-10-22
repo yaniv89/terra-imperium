@@ -11,6 +11,7 @@ import { describeAttackBlock } from '../../utils/attackAvailability';
 import { PLACEMENT_REASON } from '../../battle/input/placement';
 import { arrivalNote } from '../../battle/input/orderFeedback';
 import { SCOUT_BANDS } from './battleReportView';
+import { POWERS, ABILITIES } from '../../battle/sim/effects';
 
 const LATIN = /[A-Za-z]{2,}/;
 
@@ -58,6 +59,8 @@ describe('battle text in Hebrew', () => {
     });
     expect(abilityLabel('charge')).not.toMatch(LATIN);
     expect(powerLabel('arrowStorm')).not.toMatch(LATIN);
+    Object.keys(POWERS).forEach((id) => expect(powerLabel(id)).not.toMatch(LATIN));
+    Object.keys(ABILITIES).forEach((id) => expect(abilityLabel(id)).not.toMatch(LATIN));
     ['camp', 'hall', 'house', 'barracks', 'range', 'stable', 'tower'].forEach((id) => ['bronze', 'modern'].forEach((age) => expect(ecoLabel(id, age)).not.toMatch(LATIN)));
   });
 

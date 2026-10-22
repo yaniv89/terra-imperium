@@ -523,9 +523,10 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       return true;
     };
     land.works.forEach((w) => {
-      // a farm (phase F): its farmstead model if there is one, and the footprint's plots round it
+      // a farm (phase F): its farm model (fields included), else the footprint's plots; plots round
+      // the model drew stray green and yellow squares (playtest 22 Oct)
       if (w.kind === 'farm' && !w.pillaged) {
-        improvementWork(w);
+        if (improvementWork(w)) return;
         const fp = footprintOf(w.tile, state);
         if (fp.fields.length) plotTiles.push({ tile: w.tile, fp, visible: fog.isVisible(w.tile) });
         return;

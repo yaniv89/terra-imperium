@@ -11,7 +11,7 @@ import { resolveAttacks, regenShields } from './combat';
 import { resolveStructureFire, updateAssimilation, updateCapturePoints, updateSupply, updateGarrisons, ASSIMILATION_TICKS } from './objectives';
 import { updateMorale, canRout } from './morale';
 import { updateFog } from './fog';
-import { updateEffects, processImpacts } from './effects';
+import { updateEffects, processImpacts, endHijack, homeSide } from './effects';
 import { applySupplyAndAttrition } from './support';
 import { updateBuildings } from './buildings';
 import { updateEconomy, fireEcoTowers, countEcoLosses } from './economy';
@@ -30,7 +30,7 @@ const LANDING_HOLD_TICKS = secondsToTicks(LANDING_HOLD_SECONDS);
 // Workers (the battle economy) never keep a side in the fight: an army of laborers is a broken one;
 // nor do generals (world.js): a general with no army left has lost. There is no reserve to send in
 // (U10: the whole army starts on the field, world.js); allied reinforcements still marching in count.
-const isBroken = (w, side) => !w.squads.some((q) => q.side === side && !q.worker && !q.isGeneral && q.alive && !q.fled && (
+const isBroken = (w, side) => !w.squads.some((q) => homeSide(q) === side && !q.worker && !q.isGeneral && q.alive && !q.fled && (
   (q.onField && !q.routed && !q.retreating) || q.enterTick >= 0
 ));
 
@@ -50,14 +50,14 @@ const baseVerdict = (w) => {
 // The strength a side still fields (alive, not fled, not routed; reserves count) against what it
 // brought: the battle types' loss rules read this (battleType.js).
 const startStrength = (w, side) => (w.setup.sides?.[side]?.units || []).reduce((s, u) => s + Math.max(0, u.strength || 0), 0);
-const sideStrength = (w, side) => w.squads.reduce((s, q) => s + (q.side === side && !q.worker && !q.isGeneral && q.alive && !q.fled && !q.routed ? q.strength : 0), 0);
+const sideStrength = (w, side) => w.squads.reduce((s, q) => s + (homeSide(q) === side && !q.worker && !q.isGeneral && q.alive && !q.fled && !q.routed ? q.strength : 0), 0);
 const lossShare = (w, side) => { const start = startStrength(w, side); return start > 0 ? 1 - sideStrength(w, side) / start : 0; };
 // The share of a side's squads destroyed or fled the field: "rout or destroy 60%" counts squads
 // gone for good, so a side breaks only once most of its line has left (a strength share would end
 // even fights early for the side that trades worse).
 const brokenShare = (w, side) => { // a routed squad may still rally: only the dead and the fled count
   let mine = 0; let gone = 0;
-  for (let i = 0; i < w.squads.length; i++) { const q = w.squads[i]; if (q.side !== side || q.worker || q.isGeneral) continue; mine += 1; if (!q.alive || q.fled) gone += 1; }
+  for (let i = 0; i < w.squads.length; i++) { const q = w.squads[i]; if (homeSide(q) !== side || q.worker || q.isGeneral) continue; mine += 1; if (!q.alive || q.fled) gone += 1; }
   return mine ? gone / mine : 0;
 };
 // The attacker's strength standing on the far bank (the defender's half of the field).
@@ -88,7 +88,7 @@ const spendSides = (w, type) => {
     w.spent[side] = true;
     // A side that cannot rout (the player's, in a commanded battle: morale.js canRout) fights on: it
     // ends by losses (destroyed), the clock, or the player's own Retreat.
-    if (canRout(w, side)) w.squads.forEach((q) => { if (q.side === side && q.alive && !q.fled && !q.routed && !(q.inside >= 0)) { q.routed = true; q.morale = 0; w.events.push({ t: w.tick, type: 'routed', id: q.idx }); } });
+    if (canRout(w, side)) w.squads.forEach((q) => { if (q.side === side && q.alive && !q.fled && !q.routed && !(q.inside >= 0) && !q.original?.robot) { q.routed = true; q.morale = 0; w.events.push({ t: w.tick, type: 'routed', id: q.idx }); } });
     w.events.push({ t: w.tick, type: 'sideSpent', side });
   });
 };
@@ -174,6 +174,7 @@ export const step = (w, orders = []) => {
   updateAssimilation(w);
   countEcoLosses(w);
   checkEnd(w);
+  if (w.ended) w.squads.forEach((q) => { if (q.hijack) endHijack(q); }); // a hijacked squad ends the battle on its own side
   w.tick += 1;
   advanceHashChain(w); // every HASH_CHAIN_EVERY ticks (hash.js)
   return w;

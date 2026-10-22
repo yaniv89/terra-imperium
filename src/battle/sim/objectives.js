@@ -10,6 +10,7 @@ import { nextRandom } from './rng';
 import { distSq, polarX, polarY } from './fixed';
 import { queryRadius } from './pathing';
 import { isFighting, perHitFraction } from './combat';
+import { homeSide } from './effects';
 import { fireShare, capShotOn, crewShares, turnOnShooter } from './siegeRules';
 import { buildingSupplyPerSec } from './buildings';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER, secondsToTicks } from './constants';
@@ -157,7 +158,7 @@ export const updateAssimilation = (w) => {
   queryRadius(w, keep.x, keep.y, ASSIMILATION_RADIUS).forEach((j) => {
     const q = w.squads[j];
     if (!isFighting(q) || q.routed || q.worker) return; // laborers neither take nor hold the keep
-    if (q.side === SIDE_DEFENDER) defenders += 1;
+    if (homeSide(q) === SIDE_DEFENDER) defenders += 1; // a hijacked squad still holds for its own side (effects.js)
     else if (OCCUPATION_CAPABLE_CLASSES.includes(q.classId)) attackers += 1;
   });
   if (attackers > 0 && defenders === 0) {

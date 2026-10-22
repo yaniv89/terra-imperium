@@ -92,11 +92,12 @@ const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
   const [peeking, cancelPeek] = useAutoPeek(isShown && isMobile);
   // Opening the tab panel beside it, or a decision card that arrives, closes this one when both
   // would not leave room for the map (the interaction registry, useExclusivePanel.js). It does not
-  // come back by itself: one close returns to the map (playtest audit I155).
+  // come back by itself: one close returns to the map (playtest audit I155), not to the city's
+  // corner card, which would take the screen back from the card (a confirm asked from here).
   const panel = useInteraction('province', isShown && !isMobile, { kind: 'panel', priority: PRIORITY.panel, user: true });
   useDismissOverlays(onClose, isShown);
   const tuckedAway = isShown && !isMobile && !panel.shown;
-  useEffect(() => { if (tuckedAway) onClose(); }, [tuckedAway]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (tuckedAway) onClose({ toMap: true }); }, [tuckedAway]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A new city opens on its overview, unless End Turn asked for a tab (marchEvents.js manageCity).
   useEffect(() => { setTab(tabRequest?.regionId === regionId ? tabRequest.tab : 'overview'); }, [regionId, tabRequest]);

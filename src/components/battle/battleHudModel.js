@@ -13,7 +13,7 @@
 //                     gold that reaches the treasury. Without one (the sandbox) it reads the battle.
 import { t } from '../../i18n/core';
 import { nameNow } from '../../i18n/names';
-import { squadName, ecoLabel, auxiliaryText, msgRefText, carryText } from './battleText';
+import { squadName, powerLabel, ecoLabel, auxiliaryText, msgRefText, carryText } from './battleText';
 import { getRankForXp } from '../../data/promotions';
 import { getGeneralXpMultiplier } from '../../data/generals';
 import { hashRoll, COMMANDER_FALL_CHANCE } from '../../engine/aftermath';
@@ -207,6 +207,13 @@ export const nextAlerts = (prev, cur, playerSide, setup, last = {}) => {
     if (lc.burned === lc.needed - 1 && lp.burned < lc.burned) out.push({ id: 'loot-near', kind: 'loot', title: t(def ? 'bt.alert.lootNearDef' : 'bt.alert.lootNearAtk'), detail: t('bt.alert.lootOf', { a: lc.burned, b: lc.needed }), x: lc.last.x, y: lc.last.y, tick: cur.tick, tone });
     if (lc.taken && !lp.taken) out.push({ id: 'loot-taken', kind: 'loot', title: t(def ? 'bt.alert.lootTakenDef' : 'bt.alert.lootTakenAtk'), detail: t(def ? 'bt.alert.lootTakenDefDetail' : 'bt.alert.lootTakenAtkDetail'), x: lc.last.x, y: lc.last.y, tick: cur.tick, tone });
   }
+  // Playtest 13: a power you fired says so, with its price and when it can be used again.
+  (cur.powers || []).forEach((pw) => {
+    const was = (prev.powers || []).find((x) => x.id === pw.id);
+    if (!was || was.readyIn > 0 || pw.readyIn <= 0) return;
+    const mine = cur.squads.find((q) => q.side === playerSide && q.alive && q.onField);
+    out.push({ id: `pw${pw.id}${cur.tick}`, kind: 'power', title: t('bt.alert.power', { label: powerLabel(pw.id, pw.label) }), detail: t('bt.alert.powerDetail', { cost: pw.cost, s: Math.ceil(pw.readyIn / TICK_HZ) }), x: mine?.x ?? 0, y: mine?.y ?? 0, tick: cur.tick, tone: 'good' });
+  });
   const arriving = cur.squads.filter((q, i) => q.side !== playerSide && q.reinforcement && q.onField && prev.squads[i] && !prev.squads[i].onField && q.visible);
   if (arriving.length) out.push({ id: `e${cur.tick}`, kind: 'reinforcements', title: t('bt.alert.reinforcements'), detail: t('bt.alert.reinfFrom', { count: arriving.length, from: arriving[0].reinforcement.name ? nameNow('place', null, arriving[0].reinforcement.name) : t('bt.alert.theEdge') }), x: arriving[0].x, y: arriving[0].y, tick: cur.tick, tone: 'danger' });
   return out;

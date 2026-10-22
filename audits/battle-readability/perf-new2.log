@@ -1,0 +1,22 @@
+GPU: ANGLE (Intel, Intel(R) UHD Graphics (0x000046A3) Direct3D11 vs_5_0 ps_5_0, D3D11)  view 844x390 dpr 1  bench 300 a side
+┌─────────┬──────────────────┬──────┬─────┬────────┬──────────┬──────────┬────────┬────────┬───────────┬───────┬─────────┬─────────┬───────┬─────────┐
+│ (index) │ label            │ zoom │ dpr │ frames │ frameP50 │ frameP95 │ cpuP50 │ cpuP95 │ squadsP95 │ glP95 │ trisAvg │ trisMax │ calls │ figures │
+├─────────┼──────────────────┼──────┼─────┼────────┼──────────┼──────────┼────────┼────────┼───────────┼───────┼─────────┼─────────┼───────┼─────────┤
+│ 0       │ 'default'        │ 1    │ 1   │ 251    │ 15.2     │ 34.5     │ 14.4   │ 19.6   │ 3.7       │ 17.3  │ 1084186 │ 1102358 │ 114   │ 2135    │
+│ 1       │ 'default cpu x4' │ 1    │ 1   │ 93     │ 15.2     │ 144.8    │ 13.2   │ 76.2   │ 33.5      │ 39.1  │ 992952  │ 1027317 │ 114   │ 1917    │
+│ 2       │ 'close'          │ 2.2  │ 1   │ 317    │ 12.5     │ 29.3     │ 11.4   │ 17.9   │ 2.6       │ 15.6  │ 763344  │ 773999  │ 88    │ 1167    │
+│ 3       │ 'close cpu x4'   │ 2.2  │ 1   │ 55     │ 72.7     │ 137.2    │ 34.4   │ 79.8   │ 36.3      │ 71.2  │ 736886  │ 755156  │ 88    │ 1104    │
+│ 4       │ 'far'            │ 0.45 │ 1   │ 226    │ 17.6     │ 34.6     │ 15.8   │ 23.2   │ 3.7       │ 18.8  │ 904073  │ 929224  │ 125   │ 1977    │
+│ 5       │ 'far cpu x4'     │ 0.45 │ 1   │ 55     │ 69.1     │ 133.6    │ 30.8   │ 81.1   │ 35.1      │ 58.5  │ 865455  │ 871394  │ 126   │ 1931    │
+└─────────┴──────────────────┴──────┴─────┴────────┴──────────┴──────────┴────────┴────────┴───────────┴───────┴─────────┴─────────┴───────┴─────────┘
+console errors (10):
+Failed to load resource: the server responded with a status of 403 (Forbidden)
+Failed to load resource: the server responded with a status of 403 (Forbidden)
+Failed to load resource: the server responded with a status of 403 (Forbidden)
+Failed to load resource: the server responded with a status of 403 (Forbidden)
+Failed to load resource: the server responded with a status of 403 (Forbidden)
+Failed to load resource: the server responded with a status of 403 (Forbidden)
+Failed to load resource: the server responded with a status of 403 (Forbidden)
+Failed to load resource: the server responded with a status of 403 (Forbidden)
+Failed to load resource: the server responded with a status of 403 (Forbidden)
+Failed to load resource: the server responded with a status of 403 (Forbidden)

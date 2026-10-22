@@ -46,6 +46,7 @@ import { cityWonderTotal } from '../data/greatProjects';
 import { isIndependentNation } from '../data/independents';
 import { breakAwayAsIndependent } from './independents';
 import { msg, cityRef, people } from './messages';
+import { isRobot, robotsOnlyHold, ROBOT_OCCUPATION_LOYALTY } from './robots';
 
 // Culture reaches PRESSURE_KM (13 rings at frequency 75) and falls off by the ring distance on
 // the loaded grid (gridScale.js): one ring is the measured neighbour spacing, not a fixed km.
@@ -157,7 +158,8 @@ export const loyaltyTarget = (state, city, units = state.units, nations = state.
   // A city under occupation (a conquest younger than CONQUERED_TURNS) is held by its garrison more
   // than a settled one (I126): LOYALTY_OCCUPATION_PER_UNIT a unit up to LOYALTY_OCCUPATION_CAP.
   const occupied = age < CONQUERED_TURNS;
-  const garrison = occupied ? Math.min(LOYALTY_OCCUPATION_CAP, LOYALTY_OCCUPATION_PER_UNIT * onCentre.length) : Math.min(LOYALTY_GARRISON_CAP, LOYALTY_GARRISON_PER_UNIT * onCentre.length);
+  const men = onCentre.filter((u) => !isRobot(u)).length; // robots hold nothing (robots.js)
+  const garrison = occupied ? Math.min(LOYALTY_OCCUPATION_CAP, LOYALTY_OCCUPATION_PER_UNIT * men) : Math.min(LOYALTY_GARRISON_CAP, LOYALTY_GARRISON_PER_UNIT * men);
   const amenities = Math.max(-LOYALTY_AMENITY_CAP, Math.min(LOYALTY_AMENITY_CAP, amenitiesOf(city).net));
   // The resentment of the conquest fades over CONQUERED_TURNS instead of stopping all at once.
   const conquered = occupied ? Math.round(LOYALTY_CONQUERED * (1 - age / CONQUERED_TURNS)) : 0;
@@ -252,7 +254,9 @@ export const applyLoyalty = (state, regions, units, nations, turn, periodOf = nu
     // The occupation grace (conquest.js, I126): loyalty never falls under the floor and unrest stays
     // under the uprising line, so the city cannot break away through either system meanwhile.
     const grace = inOccupationGrace(city, turn);
-    const moved = current < target ? Math.min(target, current + step) : Math.max(target, current - step);
+    // A conquest held by robots with no human unit on the centre only loses loyalty (robots.js, R20).
+    const robotHeld = city.conquest && turn - (city.conquest.turn || 0) < CONQUERED_TURNS && robotsOnlyHold((byTile.get(city.tile) || []).filter((u) => u.ownerId === city.owner));
+    const moved = robotHeld ? Math.max(0, current - ROBOT_OCCUPATION_LOYALTY * period) : current < target ? Math.min(target, current + step) : Math.max(target, current - step);
     const loyalty = grace ? Math.max(moved, Math.min(current, OCCUPATION_GRACE_FLOOR)) : moved;
     const unrest = grace && (city.unrest || 0) > OCCUPATION_GRACE_UNREST_CAP ? OCCUPATION_GRACE_UNREST_CAP : city.unrest;
     if (culture !== city.culture || loyalty !== city.loyalty || unrest !== city.unrest) regions[city.id] = { ...city, culture, loyalty, ...(unrest !== city.unrest ? { unrest } : {}) };

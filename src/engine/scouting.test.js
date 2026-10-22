@@ -11,6 +11,9 @@ import { computeSupplyFlow } from './supplies';
 import { orderExplore, explorePath, EXPLORER_STRENGTH } from './scouting';
 import { buildOptions } from '../components/city/cityBuildModel';
 import { armyStatus } from './standingOrders';
+import { findTilePath } from './armies';
+import { ageOf } from './nationState';
+import { FIRST_AGE_ID } from '../data/ages';
 
 const base = createInitialState({ playerNationId: 'gunditjmara', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11 } });
 const me = base.playerNationId;
@@ -54,6 +57,28 @@ describe('player scouts (I122)', () => {
     // still busy, never idle, and no war or battle came from it
     expect(['marching', 'exploring']).toContain(armyStatus(s, s.units.scout_1));
     expect((s.wars || []).filter((w) => w.active && (w.aggressor === me))).toHaveLength(0);
+  });
+
+  it('a Stone Age scout never paths over the sea (playtest 22 Oct)', () => {
+    const t = getTiles();
+    expect(ageOf(withScout, me)).toBe(FIRST_AGE_ID);
+    // a sea tile near the capital, and a land tile on another landmass (an island across the water)
+    const near = [...new Set(t.neighbors[cap.tile].flatMap((n) => [n, ...t.neighbors[n]]))];
+    let sea = null;
+    for (let r = 0, ring = [cap.tile], seen = new Set(ring); r < 12 && sea == null; r++) {
+      ring = ring.flatMap((x) => t.neighbors[x]).filter((x) => !seen.has(x) && seen.add(x));
+      sea = ring.find((x) => t.land[x] !== 1) ?? null;
+    }
+    expect(sea).not.toBeNull();
+    expect(findTilePath(withScout, cap.tile, sea, me).path).toBeUndefined();
+    expect(explorePath(withScout, scout, sea).path).toBeUndefined();
+    // every route a scout or a land army is given stays on land
+    const found = explorePath(withScout, scout);
+    expect(found.path.every((x) => t.land[x] === 1)).toBe(true);
+    near.filter((x) => t.land[x] === 1 && x !== cap.tile).forEach((x) => {
+      const p = findTilePath(withScout, cap.tile, x, me).path;
+      if (p) expect(p.every((y) => t.land[y] === 1)).toBe(true);
+    });
   });
 
   it('eats no march supplies and counts as no campaigning unit', () => {

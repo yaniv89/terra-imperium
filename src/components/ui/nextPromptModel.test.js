@@ -31,7 +31,9 @@ describe('next prompt', () => {
     const army = Object.values(S.units).find((u) => u.ownerId === FR && u.domain === 'land');
     const field = { ...restless, units: { ...S.units, [army.id]: { ...army, tile: S.regions[cap].tiles.find((t) => t !== S.regions[cap].tile), movesLeft: 1 } } };
     expect(nextPrompts(field).find((p) => p.kind === 'army')).toBeTruthy();
-    const settled = { ...restless, regions: { ...restless.regions, [cap]: { ...restless.regions[cap], unrest: 0 } } };
+    expect(nextPrompts(base).find((p) => p.kind === 'ruler')).toMatchObject({ tab: 'ruler' }); // the start's virtue point
+    const spent = { ...restless, nations: { ...restless.nations, [FR]: { ...restless.nations[FR], ruler: { ...restless.nations[FR].ruler, bonusVirtuePoints: -1 } } } };
+    const settled = { ...spent, regions: { ...spent.regions, [cap]: { ...spent.regions[cap], unrest: 0 } } };
     expect(nextPrompts({ ...settled, regions: Object.fromEntries(Object.entries(settled.regions).map(([id, c]) => [id, c.owner === FR ? { ...c, production: { current: { kind: 'unit', classId: 'infantry' }, queue: [], progress: 0 } } : c])) })).toEqual([]);
   });
   it('the "warn me" setting counts only the soft hints (units that can move), never the End Turn blockers; off, it counts nothing', () => {
@@ -48,6 +50,24 @@ describe('next prompt', () => {
     expect(softHints(warn).some((p) => p.kind === 'research')).toBe(false);
     const guided = { ...warn, tutorial: { startTurn: 1, done: {}, ended: false }, playerNationId: FR };
     expect(endTurnWarnings(guided)).toBe(softHints(guided).length);
+  });
+  it('reminders that never block: ruler points, an empty governor seat, a full decree bank (playtest 22 Oct)', () => {
+    const S = peoplesWorld({ seed: 7 });
+    const cap = getNationCapital(FR);
+    const nation = S.nations[FR];
+    const none = { ...nation, ruler: { ...nation.ruler, bonusVirtuePoints: -1, decrees: 0 }, governorCandidates: [] };
+    const kinds = (n) => nextPrompts({ ...S, nations: { ...S.nations, [FR]: n } }).map((p) => p.kind);
+    expect(kinds(none)).not.toContain('ruler');
+    expect(kinds(none)).not.toContain('governor');
+    expect(kinds(none)).not.toContain('decrees');
+    expect(kinds({ ...none, ruler: { ...none.ruler, renown: 10000 } })).toContain('ruler'); // levels bring attribute points
+    const candidate = { id: 'gov_x', name: 'Ur-Nammu', skill: 2 };
+    const seat = nextPrompts({ ...S, nations: { ...S.nations, [FR]: { ...none, governorCandidates: [candidate] } } }).find((p) => p.kind === 'governor');
+    expect(seat).toMatchObject({ tab: 'domestic', section: 'court', count: 1 });
+    expect(chipLabel(S, seat)).toBe('Appoint a governor');
+    expect(kinds({ ...none, governorCandidates: [candidate], governors: { [cap]: { ...candidate, ready: 1 } } })).not.toContain('governor');
+    expect(kinds({ ...none, ruler: { ...none.ruler, decrees: 99 } })).toContain('decrees');
+    expect(['ruler', 'governor', 'decrees'].every((k) => SOFT_KINDS.has(k))).toBe(true);
   });
   it('a war declared on the player stays as a notice for a few turns and opens Peoples (I117)', () => {
     const S = peoplesWorld({ seed: 7 });

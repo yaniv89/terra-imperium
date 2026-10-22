@@ -49,7 +49,7 @@ const WorldCongressSheet = () => {
         <div className="flex items-start gap-2.5 px-3 pt-3 pb-2 border-b border-fa-line">
           <Landmark className="w-6 h-6 shrink-0 text-fa-brass mt-0.5" aria-hidden="true" />
           <div className="min-w-0 flex-1">
-            <h2 id="wc-title" className="fa-heading text-[19px] pl:text-[16px] leading-tight">{tNow('wc.title')}</h2>
+            <h2 id="wc-title" className="fa-heading text-[19px] pl:text-[16px] leading-tight">{tNow(m.council ? 'wc.councilTitle' : 'wc.title')}</h2>
             <div className="text-[12px] text-fa-muted">{tNow('wc.hostLine', { host: people(m.hostId), n: m.members.length })}</div>
           </div>
           <button type="button" onClick={close} aria-label={tNow('wc.close')} className="fa-icon-btn -me-1 -mt-1 min-w-[44px] min-h-[44px]"><X className="w-4 h-4" /></button>
@@ -85,6 +85,17 @@ const WorldCongressSheet = () => {
                 <div key={`${s.targetId}-${s.untilTurn}`} className={`flex justify-between gap-2 ${s.onMe ? 'text-fa-danger-text' : ''}`}>
                   <span>{people(s.targetId)}{s.mine ? tNow('wc.youSigned') : ''}</span>
                   <span className="text-fa-muted shrink-0">{tNow('wc.sanctionsLine', { n: s.signers, turn: s.untilTurn })}</span>
+                </div>
+              ))}
+            </section>
+          )}
+          {m.binds.length > 0 && (
+            <section className="space-y-1" data-testid="wc-binds">
+              <div className="fa-label">{tNow('wc.binds')}</div>
+              {m.binds.map((b) => (
+                <div key={b.id} className="flex justify-between gap-2">
+                  <span>{tNow(`wc.res.${b.id}`)}</span>
+                  <span className="text-fa-muted shrink-0">{tNow('wc.turn', { turn: b.untilTurn })}</span>
                 </div>
               ))}
             </section>

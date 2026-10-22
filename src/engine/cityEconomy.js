@@ -39,6 +39,7 @@ import {
 } from './world/cities';
 import { reasonOf, thing } from './messages';
 import { unitUnlockTech } from '../data/unitClasses';
+import { isBound } from '../data/worldCongress';
 
 export const worldOf = (state) => ({ cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} });
 
@@ -75,6 +76,7 @@ export const cityCtx = (state, city) => {
     ...forageCtx(nid ? getResearched(state, nid) : []), // no Agriculture: a size cap (hearths.js)
     ...stonePhaseCtx(state, nid), // the first cities: river food (stonePhase.js)
     ...rulerCityCtx(state.nations?.[nid]), // the ruler's yields and costs (lawRules.js)
+    ...(isBound(state, 'weaponsBan', nid) ? { noRobots: true } : {}), // the Autonomous Weapons Ban (worldCongress.js)
     ...(isIndependent(state.nations, nid) ? independentCityCtx(state, nid) : {})
   };
   const wonderCulture = cityWonderTotal(state.greatProjects, city.id, 'local.culture');

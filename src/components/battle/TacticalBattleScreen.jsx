@@ -39,6 +39,7 @@ import { contextFor, refusedText, enemyObjectives, supplyRate } from './battleHu
 import BattleMinimap from './BattleMinimap';
 import { updateSiteLabels } from './siteLabels';
 import { updatePendingPins } from './pendingPins';
+import { badgesFor, updateSquadBadges } from './squadBadges';
 import { BUILDINGS, BUILD_RADIUS_HQ, BUILD_RADIUS_OWN } from '../../battle/data/economy';
 import { placementCheck, footprintAt, legalArea, PLACEMENT_REASON } from '../../battle/input/placement';
 import { buildFlowNext, BUILD_FLOW_CLOSED, closePrecedence } from './buildFlow';
@@ -158,6 +159,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const ghostRef = useRef(null);
   const siteLabelsRef = useRef(null); // "Building 43%" over your sites (siteLabels.js)
   const ghostLabelRef = useRef(null); // the reason over a red ghost
+  const badgesRef = useRef(null); // flags over squads at the wide zoom and under cover (squadBadges.js)
   const pendingPinsRef = useRef(null); // pins over orders given while paused (RTS-03)
   const perfRef = useRef(null);
   const [showPerf] = useState(perfOn);
@@ -434,6 +436,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         try {
           updateSiteLabels(siteLabelsRef.current, renderer, f.cur, playerSide);
           updatePendingPins(pendingPinsRef.current, renderer);
+          updateSquadBadges(badgesRef.current, renderer, badgesFor(f.prev, f.cur, alpha, { zoom: renderer.camera.zoom, playerSide, map: renderer.map, selected: selectedRef.current }));
           const gl = ghostLabelRef.current; const gh = ghostRef.current;
           if (gl) {
             if (gh && !gh.ok) {
@@ -1142,6 +1145,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ touchAction: 'none' }} />
       {/* B10: "Building 43%" over your sites and the reason over a red placement ghost, moved by the render loop */}
       <div ref={siteLabelsRef} className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" />
+      <canvas ref={badgesRef} className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true" data-testid="battle-squad-flags" />
       <div ref={pendingPinsRef} className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" />
       <div ref={ghostLabelRef} className="absolute start-0 top-0 hidden px-2 py-0.5 rounded-md bg-fa-ink/90 border border-fa-danger text-fa-danger-text text-[11px] font-bold whitespace-nowrap pointer-events-none" data-testid="battle-ghost-reason" />
       {dragLine && (

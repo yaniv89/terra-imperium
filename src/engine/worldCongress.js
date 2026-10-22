@@ -14,11 +14,18 @@
 // the player's trade route to each signer (tradeValue.js), cost an AI target SANCTIONS_AI_GOLD_MULT
 // gold and give the target the "sanctioned us" opinion of every signer (opinion.js). Each lasts
 // RESOLUTION_SPANS spans. No victory reads the record.
+// The Planetary Council (eight ages U71): while the host knows Planetary Federation the rotation is
+// COUNCIL_ORDER, adding Orbital Demilitarisation (no Orbital Strike: invasion.js getBattlePowers),
+// AI Limits (automation capped: automation.js) and the Autonomous Weapons Ban (no new robots for
+// speedTurns(WEAPONS_BAN_REF_TURNS) at each signer's age: world/cities.js canQueue; a player who
+// recruits one anyway breaks it, robots.js breakWeaponsBan). These bind the yes voters only, each
+// in `binds` until its own turn.
 //
 // state.worldCongress = { hostId, nextVoteTurn, proposal: { id, targetId? }, playerVote, votes,
-//   sanctions: [{ targetId, signers, untilTurn }], record: [{ turn, id, targetId, passed, yes, no }] }
+//   sanctions: [{ targetId, signers, untilTurn }], binds: [{ id, nationId, untilTurn }],
+//   record: [{ turn, id, targetId, passed, yes, no }] }
 // Absent until the first member sits (old saves need nothing).
-import { CONGRESS_TECH, CONGRESS_SPAN_REF_TURNS, RESOLUTION_SPANS, CONGRESS_RECORD_MAX, RESOLUTION_ORDER, RESOLUTIONS, SANCTIONS_AI_GOLD_MULT, VOTE_YES_AT, VOTE_NO_BELOW, DOCTRINE_VOTE_LEAN } from '../data/worldCongress';
+import { CONGRESS_TECH, CONGRESS_SPAN_REF_TURNS, RESOLUTION_SPANS, CONGRESS_RECORD_MAX, RESOLUTION_ORDER, RESOLUTIONS, SANCTIONS_AI_GOLD_MULT, VOTE_YES_AT, VOTE_NO_BELOW, DOCTRINE_VOTE_LEAN, COUNCIL_TECH, COUNCIL_ORDER, WEAPONS_BAN_REF_TURNS } from '../data/worldCongress';
 import { isIndependentNation } from '../data/independents';
 import { speedTurns } from '../data/ages';
 import { ageOf, getResearched } from './nationState';
@@ -31,6 +38,9 @@ const isMajor = (n) => n && !n.isEliminated && !isIndependentNation(n);
 /** The members, sorted by id: living majors that have researched Global Institutions. */
 export const congressMembers = (state) => Object.keys(state.nations || {}).sort()
   .filter((id) => isMajor(state.nations[id]) && getResearched(state, id).includes(CONGRESS_TECH));
+
+/** Is the Congress the Planetary Council (its host knows Planetary Federation)? */
+export const isCouncil = (state, hostId) => !!hostId && !!state.nations?.[hostId] && getResearched(state, hostId).includes(COUNCIL_TECH);
 
 /** A member's vote weight: 1 + trade agreements + alliances + a defensive pact. */
 export const voteWeight = (state, id) => {
@@ -63,15 +73,15 @@ const sanctionsTarget = (state, members) => {
   return best;
 };
 
-/** The first resolution from RESOLUTION_ORDER[from] on (wrapping) that has a target. */
-export const nextProposal = (state, members, from) => {
-  for (let k = 0; k < RESOLUTION_ORDER.length; k++) {
-    const id = RESOLUTION_ORDER[(from + k) % RESOLUTION_ORDER.length];
+/** The first resolution from order[from] on (wrapping) that has a target. */
+export const nextProposal = (state, members, from, order = RESOLUTION_ORDER) => {
+  for (let k = 0; k < order.length; k++) {
+    const id = order[(from + k) % order.length];
     if (id !== 'sanctions') return { id };
     const targetId = sanctionsTarget(state, members);
     if (targetId) return { id, targetId };
   }
-  return { id: RESOLUTION_ORDER[0] };
+  return { id: order[0] };
 };
 
 /** The vote: { passed, yes, no, signers } (weights; signers are the yes voters, sorted). */
@@ -102,30 +112,34 @@ export const processWorldCongress = (state) => {
   const hostId = prev && members.includes(prev.hostId) ? prev.hostId : members[0];
   const span = speedTurns(CONGRESS_SPAN_REF_TURNS, state.gameSpeed, ageOf(state, hostId));
   const sanctions = (prev?.sanctions || []).filter((s) => s.untilTurn > turn);
+  const binds = (prev?.binds || []).filter((b) => b.untilTurn > turn);
+  const order = isCouncil(state, hostId) ? COUNCIL_ORDER : RESOLUTION_ORDER;
   if (!prev) {
-    const proposal = nextProposal(state, members, 0);
+    const proposal = nextProposal(state, members, 0, order);
     logs.push(msg('m.diplo.congressFormed', { nation: people(hostId, state.nations[hostId]?.name || hostId) }), proposalLog(state, proposal, turn + span));
-    return { worldCongress: { hostId, nextVoteTurn: turn + span, proposal, playerVote: null, votes: 0, sanctions, record: [] }, nations: state.nations, logs };
+    return { worldCongress: { hostId, nextVoteTurn: turn + span, proposal, playerVote: null, votes: 0, sanctions, binds, record: [] }, nations: state.nations, logs };
   }
-  if (turn < prev.nextVoteTurn) return { worldCongress: { ...prev, hostId, sanctions }, nations: state.nations, logs };
+  if (turn < prev.nextVoteTurn) return { worldCongress: { ...prev, hostId, sanctions, binds }, nations: state.nations, logs };
 
-  const after = (p) => RESOLUTION_ORDER.indexOf(p?.id) + 1; // the rotation continues after the proposal just voted on
-  const proposal = prev.proposal?.id === 'sanctions' && !isMajor(state.nations[prev.proposal.targetId]) ? nextProposal(state, members, after(prev.proposal)) : prev.proposal;
+  const after = (p) => order.indexOf(p?.id) + 1; // the rotation continues after the proposal just voted on
+  const proposal = prev.proposal?.id === 'sanctions' && !isMajor(state.nations[prev.proposal.targetId]) ? nextProposal(state, members, after(prev.proposal), order) : prev.proposal;
   const result = tallyVote(state, members, proposal, hostId, prev.playerVote);
   const duration = span * RESOLUTION_SPANS;
   let nations = state.nations;
   if (result.passed) {
     nations = { ...nations };
     const add = (id, mods) => { nations[id] = addNationModifier(nations[id], { sourceType: 'congress', sourceId: proposal.id, label: RESOLUTIONS[proposal.id].name, mods, duration, turnNumber: turn }); };
-    if (proposal.id === 'sanctions') {
+    if (RESOLUTIONS[proposal.id].binds) {
+      result.signers.forEach((id) => binds.push({ id: proposal.id, nationId: id, untilTurn: turn + (proposal.id === 'weaponsBan' ? speedTurns(WEAPONS_BAN_REF_TURNS, state.gameSpeed, ageOf(state, id)) : duration) }));
+    } else if (proposal.id === 'sanctions') {
       sanctions.push({ targetId: proposal.targetId, signers: result.signers, untilTurn: turn + duration });
       if (proposal.targetId !== state.playerNationId) add(proposal.targetId, { 'national.goldMult': SANCTIONS_AI_GOLD_MULT });
     } else members.forEach((id) => add(id, RESOLUTIONS[proposal.id].mods));
   }
   logs.push(msg(result.passed ? 'm.diplo.congressPassed' : 'm.diplo.congressFailed', { yes: result.yes, no: result.no }));
   const votes = prev.votes + 1;
-  const next = nextProposal({ ...state, nations }, members, after(proposal));
+  const next = nextProposal({ ...state, nations }, members, after(proposal), order);
   logs.push(proposalLog(state, next, turn + span));
   const record = [...prev.record, { turn, id: proposal.id, ...(proposal.targetId ? { targetId: proposal.targetId } : {}), passed: result.passed, yes: result.yes, no: result.no }].slice(-CONGRESS_RECORD_MAX);
-  return { worldCongress: { hostId, nextVoteTurn: turn + span, proposal: next, playerVote: null, votes, sanctions, record }, nations, logs };
+  return { worldCongress: { hostId, nextVoteTurn: turn + span, proposal: next, playerVote: null, votes, sanctions, binds, record }, nations, logs };
 };

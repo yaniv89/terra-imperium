@@ -33,7 +33,7 @@ import { kinThemeOf } from '../data/peoples';
 import { ageOf } from './nationState';
 import { getModifier } from './modifiers/sheet';
 import { FIRST_AGE_ID } from '../data/ages';
-import { GAVE_US_MAP, SWAPPED_MAPS, SHARED_MAP_FADE_TURNS, SANCTIONED_US } from '../data/opinion';
+import { GAVE_US_MAP, SWAPPED_MAPS, SHARED_MAP_FADE_TURNS, SANCTIONED_US, BROKE_WEAPONS_BAN } from '../data/opinion';
 import { isSanctionedBy } from '../data/worldCongress';
 
 // Phase W3: what an independent `A` adds to its view of major `b` (independents 4.5 and 5): the
@@ -209,6 +209,7 @@ export const opinionReasons = (state, a, b = state.playerNationId) => {
   const razed = A.razedBy?.[b];
   if (razed != null && RAZED_OUR_KIN + ((state.turnNumber || 0) - razed) < 0) out.push({ id: 'razedKin', label: 'Razed a city of our kin', value: RAZED_OUR_KIN + ((state.turnNumber || 0) - razed) });
   if (isSanctionedBy(state, a, b)) out.push({ id: 'sanctionedUs', label: 'Sanctioned us', value: SANCTIONED_US });
+  if (B.brokeWeaponsBanTurn != null && BROKE_WEAPONS_BAN + (turn - B.brokeWeaponsBanTurn) < 0) out.push({ id: 'brokeWeaponsBan', label: 'Broke the Autonomous Weapons Ban', value: BROKE_WEAPONS_BAN + (turn - B.brokeWeaponsBanTurn) });
   // A map B gave A, or a swap (mapTrade.js, I116): fades 1 every SHARED_MAP_FADE_TURNS turns.
   const map = A.mapsFrom?.[b];
   if (map) {
