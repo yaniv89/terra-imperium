@@ -47,7 +47,7 @@ import { isUnitInBattle } from './invasion';
 import { stampUnitAges, aiUpgradeUnits } from './unitUpgrades';
 import { isRobot } from './robots';
 import { isBound, AI_LIMITS_CAP } from '../data/worldCongress';
-import { automationOf, automationTarget, nextAutomation, isRioting, uprisingStarts, startUprising, AUTOMATION_RIOT_UNREST } from './automation';
+import { automationOf, automationTarget, nextAutomation, isRioting, uprisingStep, startUprising, AUTOMATION_RIOT_UNREST, AUTOMATION_UPRISING_AT, AUTOMATION_UPRISING_STABILITY, UPRISING_WARNING_REF_TURNS } from './automation';
 import { resolveWarProgress, refreshWarFlags } from './diplomacy';
 import { drainAutoBattles } from './battleQueue';
 import { transferRegion } from './regionTransfer';
@@ -823,7 +823,10 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       nations[nId] = { ...nations[nId], automationRiots: rioting };
       if (rioting && nId === state.playerNationId) logs.push({ year: newYear, ...msg('m.turn.automationRiots'), type: LogTypes.CRISIS });
     }
-    if (uprisingStarts(nations[nId], nId, newTurnNumber, inCivilWarCooldown(nations[nId], newTurnNumber))) {
+    const uprising = uprisingStep(nations[nId], nId, newTurnNumber, inCivilWarCooldown(nations[nId], newTurnNumber), speedTurns(UPRISING_WARNING_REF_TURNS, state.gameSpeed, ageOf(state, nId)));
+    if (uprising.warning !== undefined) nations[nId] = { ...nations[nId], uprisingWarning: uprising.warning || undefined };
+    if (uprising.event && nId === state.playerNationId) logs.push({ year: newYear, ...msg(uprising.event === 'warned' ? 'm.turn.uprisingWarning' : 'm.turn.uprisingAverted', { count: uprising.warning ? uprising.warning.at - newTurnNumber : 0, automation: AUTOMATION_UPRISING_AT, stability: AUTOMATION_UPRISING_STABILITY }), type: LogTypes.CRISIS });
+    if (uprising.rise) {
       const war = startUprising(regions, units, nId, newTurnNumber);
       if (war) {
         nations[nId] = { ...nations[nId], civilWar: war, lowStabilityStreak: 0 };

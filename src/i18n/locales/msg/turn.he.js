@@ -28,6 +28,8 @@ export default {
   'm.turn.civilWarCrushed': '{nation} מדכאת את ההתקוממות. (+1 יציבות, +10 לגיטימיות)',
   'm.turn.civilWarLost': '{nation} נופלת בידי המורדים: משטר חדש עולה לשלטון.',
   'm.turn.automationRiots': 'עובדים שמכונות החליפו מתפרעים בערייך. העלה את היציבות כדי להרגיע אותם.',
+  'm.turn.uprisingWarning': 'המכונות שלכם מתקוממות. בעוד {count} תורות שליש מהרובוטים שלכם בבית יקומו נגדכם, אלא אם תעלו את היציבות מעל {stability} (צו העלאת יציבות, חוקים) או תורידו את האוטומציה מתחת ל־{automation} (פירוק רובוטים).',
+  'm.turn.uprisingAverted': 'המכונות נרגעו: ההתקוממות לא תבוא.',
   'm.turn.machineUprising': 'המכונות של {nation} קמות נגד יוצריהן!',
   'm.turn.civilWar': '{nation} שוקעת במלחמת אזרחים!',
   'm.turn.upkeep': 'אחזקה: -{total:money} (צבא {army:money}{marching}, צי {navy:money}, מבצרים {forts:money}, מבנים {buildings:money}, יועצים {advisors:money}, ריבית הלוואות {interest:money})',

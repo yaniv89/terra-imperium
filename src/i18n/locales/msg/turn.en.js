@@ -30,6 +30,8 @@ export default {
   'm.turn.civilWarCrushed': '{nation} crushes the uprising. (+1 stability, +10 legitimacy)',
   'm.turn.civilWarLost': '{nation} falls to the insurgents: a new regime takes power.',
   'm.turn.automationRiots': 'Workers put out of work by machines riot in your cities. Raise stability to calm them.',
+  'm.turn.uprisingWarning': 'Your machines are turning against you. In {count} turns a third of your robots at home will rise, unless you raise stability above {stability} (the Raise stability decree, laws) or bring automation under {automation} (disband robots).',
+  'm.turn.uprisingAverted': 'The machines are calm again: the uprising will not come.',
   'm.turn.machineUprising': 'The machines of {nation} rise against their makers!',
   'm.turn.civilWar': '{nation} {nation:agree=descend} into civil war!',
   'm.turn.upkeep': 'Upkeep: -{total:money} (army {army:money}{marching}, navy {navy:money}, forts {forts:money}, buildings {buildings:money}, advisors {advisors:money}, loan interest {interest:money})',

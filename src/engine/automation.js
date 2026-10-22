@@ -11,9 +11,12 @@
 //   riots     automation >= AUTOMATION_RIOT_AT and stability <= AUTOMATION_RIOT_STABILITY: every city
 //             of the nation gains AUTOMATION_RIOT_UNREST unrest a turn (the jobless riot)
 //   uprising  automation >= AUTOMATION_UPRISING_AT, stability <= AUTOMATION_UPRISING_STABILITY, no
-//             civil war or its cool-down: a seeded AUTOMATION_UPRISING_CHANCE roll a turn turns
-//             UPRISING_SHARE of its robots at home into insurgents, a civil war run by the
-//             civil-war machinery (civilWar.js processCivilWarTurn) until crushed or lost
+//             civil war or its cool-down: a seeded AUTOMATION_UPRISING_CHANCE roll a turn starts a
+//             warning (`nation.uprisingWarning`, the user's rule: a fair warning and a way to stop
+//             it). speedTurns(UPRISING_WARNING_REF_TURNS) later, if the danger still stands, UPRISING_SHARE
+//             of its robots at home turn insurgent, a civil war run by the civil-war machinery
+//             (civilWar.js processCivilWarTurn); raising stability above AUTOMATION_UPRISING_STABILITY
+//             or bringing automation under AUTOMATION_UPRISING_AT meanwhile ends the warning
 // Ripples: city production and science, city unrest (and through it revolts), civil war, the army.
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { INSURGENT_MARKER } from './civilWar';
@@ -33,6 +36,7 @@ export const AUTOMATION_UPRISING_AT = 60;
 export const AUTOMATION_UPRISING_STABILITY = -2;
 export const AUTOMATION_UPRISING_CHANCE = 0.05;
 export const UPRISING_SHARE = 1 / 3;
+export const UPRISING_WARNING_REF_TURNS = 6;
 
 export const automationOf = (nation) => nation?.automation || 0;
 
@@ -53,10 +57,22 @@ export const automationYields = (nation) => {
 
 export const isRioting = (nation) => automationOf(nation) >= AUTOMATION_RIOT_AT && (nation.stability || 0) <= AUTOMATION_RIOT_STABILITY;
 
-/** Does the Machine Uprising start this turn? A seeded roll, no RNG stream. */
-export const uprisingStarts = (nation, nationId, turn, coolingDown) => !nation.civilWar?.active && !coolingDown
-  && automationOf(nation) >= AUTOMATION_UPRISING_AT && (nation.stability || 0) <= AUTOMATION_UPRISING_STABILITY
-  && hashRoll(`uprising|${nationId}|${turn}`) < AUTOMATION_UPRISING_CHANCE;
+/** Are the machines a danger now (automation high, stability low)? */
+export const inUprisingDanger = (nation) => automationOf(nation) >= AUTOMATION_UPRISING_AT && (nation.stability || 0) <= AUTOMATION_UPRISING_STABILITY;
+
+/**
+ * One turn of the uprising rule: { warning, event, rise }. `warning` is the nation's next
+ * uprisingWarning (undefined: unchanged, null: cleared); `event` 'warned' or 'averted' for the log;
+ * `rise` true when the warning ran out with the danger still standing. A seeded roll, no RNG stream.
+ * `warnTurns`: speedTurns(UPRISING_WARNING_REF_TURNS) at the nation's age.
+ */
+export const uprisingStep = (nation, nationId, turn, coolingDown, warnTurns) => {
+  const danger = !nation.civilWar?.active && !coolingDown && inUprisingDanger(nation);
+  const w = nation.uprisingWarning;
+  if (w) return !danger ? { warning: null, event: 'averted' } : turn >= w.at ? { warning: null, rise: true } : { warning: undefined };
+  if (danger && hashRoll(`uprising|${nationId}|${turn}`) < AUTOMATION_UPRISING_CHANCE) return { warning: { since: turn, at: turn + warnTurns }, event: 'warned' };
+  return { warning: undefined };
+};
 
 /**
  * The uprising: UPRISING_SHARE (at least one) of the nation's robots based in its own cities rise as
