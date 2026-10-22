@@ -16,6 +16,7 @@ import { loseStrength } from './losses';
 import { generalsOf } from './squadLists';
 import { collapseFootprint } from './cityStructures';
 import { isAgeAtLeast } from '../../data/ages';
+import { canRout } from './morale';
 
 // ---- general & perk abilities ----------------------------------------------------------------
 export const ABILITIES = {
@@ -106,8 +107,8 @@ export const damageDealtMult = (w, q) => {
 };
 // A squad under machine-gun fire (combat.js `suppress`) fires at SUPPRESSED_RATE.
 export const SUPPRESSED_RATE = 0.75;
-export const attackRateMult = (w, q) => effectMult(w, q, 'selfRate') * (q.classId === 'siege' ? effectMult(w, q, 'siegeRate') : 1) * (q.suppressedUntil > w.tick ? SUPPRESSED_RATE : 1);
-export const speedMult = (w, q) => effectMult(w, q, 'speed') * (hasPerk(q, 'forcedMarch') ? 1.2 : 1);
+export const attackRateMult = (w, q) => effectMult(w, q, 'selfRate') * (q.classId === 'siege' ? effectMult(w, q, 'siegeRate') : 1) * (q.suppressedUntil > w.tick ? SUPPRESSED_RATE : 1) * empSlow(w, q);
+export const speedMult = (w, q) => effectMult(w, q, 'speed') * (hasPerk(q, 'forcedMarch') ? 1.2 : 1) * empSlow(w, q);
 
 export const updateEffects = (w) => {
   if (!w.effects) return;
@@ -151,12 +152,18 @@ export const POWERS = {
 const EMP_MACHINES = new Set(['cavalry', 'siege', 'air', 'support']);
 /** How long an EMP stops squad `q`: a robot (engine/robots.js) twice a vehicle's time, a soldier not at all. */
 export const empTicks = (q, emp) => (q.original?.robot ? emp.robot : isAgeAtLeast(q.ageId, 'modern') && EMP_MACHINES.has(q.classId) ? emp.vehicle : 0);
-/** Is the squad stopped by an EMP this tick? It neither moves nor fires. */
-export const isStunned = (w, q) => q.stunnedUntil > w.tick;
+/** Is the squad stopped by an EMP this tick? It neither moves nor fires. Never a squad of a side that
+ * cannot rout (the player's in a commanded battle: no forced loss of control), which only slows (EMP_SLOW). */
+export const isStunned = (w, q) => q.stunnedUntil > w.tick && canRout(w, q.side);
+export const EMP_SLOW = 0.5;
+const empSlow = (w, q) => (q.stunnedUntil > w.tick && !canRout(w, q.side) ? EMP_SLOW : 1);
+/** The side a squad belongs to, a hijacked one included: the battle's tallies and its end read this. */
+export const homeSide = (q) => (q.hijack ? q.hijack.side : q.side);
 /** The enemy robot squad on the field nearest (x, y) within `radius`, or null: Hijack's target. */
 export const hijackTarget = (w, side, x, y, radius) => {
   let best = null; let bestD = radius * radius;
-  w.squads.forEach((q) => { if (q.side === side || !q.original?.robot || !isFighting(q) || q.hijack) return; const d = distSq(q.x, q.y, x, y); if (d <= bestD) { best = q; bestD = d; } });
+  // Never the squad of a side that cannot rout (the player's: no forced loss of control), nor one inside a building.
+  w.squads.forEach((q) => { if (q.side === side || !q.original?.robot || !isFighting(q) || q.hijack || q.inside >= 0 || !canRout(w, q.side)) return; const d = distSq(q.x, q.y, x, y); if (d <= bestD) { best = q; bestD = d; } });
   return best;
 };
 /** A hijacked squad goes back to its own side (when its time is up, and at the battle's end before the result). */

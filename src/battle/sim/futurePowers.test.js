@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { buildSetupFromArmies } from '../setup/buildBattleSetup';
 import { createWorld } from './world';
 import { step } from './step';
-import { firePower, POWERS, empTicks, isTargetedPower } from './effects';
+import { firePower, POWERS, empTicks, isTargetedPower, isStunned, speedMult, homeSide } from './effects';
 import { replayBattle } from './replay';
 import { admitOrder } from './orderSchema';
 import { getBattlePowers, HIJACK_TECH } from '../../engine/invasion';
@@ -58,6 +58,24 @@ describe('Future powers', () => {
     while (w.tick < POWERS.hijack.hijack.duration + 1) step(w, []);
     expect(robot.side).toBe(1);
     expect(robot.hijack).toBeNull();
+  });
+
+  it("the player's side (it cannot rout) is never hijacked, and an EMP only slows it", () => {
+    const w = world(true);
+    w.setup = { ...w.setup, sides: w.setup.sides.map((sd, i) => (i === 1 ? { ...sd, canRout: false } : sd)) };
+    const robot = foes(w)[0];
+    expect(firePower(w, 0, 'hijack', robot.x, robot.y)).toBe(false);
+    expect(firePower(w, 0, 'emp', robot.x, robot.y)).toBe(true);
+    expect(isStunned(w, robot)).toBe(false);
+    expect(speedMult(w, robot)).toBeLessThan(1);
+  });
+
+  it('a hijacked squad still counts for its own side', () => {
+    const w = world(true);
+    const robot = foes(w)[0];
+    firePower(w, 0, 'hijack', robot.x, robot.y);
+    expect(robot.side).toBe(0);
+    expect(homeSide(robot)).toBe(1);
   });
 
   it('Orbital Strike lands one big blast after a delay', () => {

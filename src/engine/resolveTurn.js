@@ -787,6 +787,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // why not).
   // The automation meter (automation.js) reads each nation's robots.
   const robotsOf = new Map();
+  let citiesOf = null;
   Object.values(units).forEach((u) => { if (u.robot && u.strength > 0) robotsOf.set(u.ownerId, (robotsOf.get(u.ownerId) || 0) + 1); });
   Object.entries(nations).forEach(([nId, nation]) => {
     const { nation: afterDisasters, triggersCivilWar, logs: disasterLogs } = processDisastersTurn(nation, ageOf(state, nId));
@@ -814,7 +815,10 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const automation = nextAutomation(automationOf(nations[nId]), Math.min(automationTarget(robotsOf.get(nId) || 0, getResearched(state, nId)), isBound(state, 'aiLimits', nId) ? AI_LIMITS_CAP : Infinity)); // AI Limits (worldCongress.js)
     if (automation !== automationOf(nations[nId])) nations[nId] = { ...nations[nId], automation };
     const rioting = isRioting(nations[nId]);
-    if (rioting) Object.values(regions).forEach((c) => { if (c.owner === nId) regions[c.id] = { ...c, unrest: Math.min(100, (c.unrest || 0) + AUTOMATION_RIOT_UNREST) }; });
+    if (rioting) { // the owner's cities, indexed once a turn on the first riot
+      if (!citiesOf) { citiesOf = new Map(); Object.values(regions).forEach((c) => { if (c.owner) (citiesOf.get(c.owner) || citiesOf.set(c.owner, []).get(c.owner)).push(c.id); }); }
+      (citiesOf.get(nId) || []).forEach((id) => { const c = regions[id]; regions[id] = { ...c, unrest: Math.min(100, (c.unrest || 0) + AUTOMATION_RIOT_UNREST) }; });
+    }
     if (rioting !== !!nations[nId].automationRiots) {
       nations[nId] = { ...nations[nId], automationRiots: rioting };
       if (rioting && nId === state.playerNationId) logs.push({ year: newYear, ...msg('m.turn.automationRiots'), type: LogTypes.CRISIS });

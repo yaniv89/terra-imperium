@@ -287,6 +287,7 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
     const unitId = `unit_ai_${nationId}_${state.turnNumber}`;
     const replaced = nextUnits[unitId];
     if (replaced) standing.set(replaced.ownerId, standing.get(replaced.ownerId) - 1);
+    if (replaced?.robot) robotsOf.set(replaced.ownerId, robotsOf.get(replaced.ownerId) - 1);
     standing.set(nationId, (standing.get(nationId) || 0) + 1);
     nextUnits[unitId] = {
       id: unitId, regionId, homeRegionId: regionId, tile: regions[regionId]?.tile ?? null, ownerId: nationId, domain: 'land', classId,
