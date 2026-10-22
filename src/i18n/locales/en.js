@@ -312,7 +312,7 @@ export default {
   'prompt.governor.one': '{count} city group has no governor: its cities lose loyalty',
   'prompt.governor.two': '{count} city groups have no governor: their cities lose loyalty',
   'prompt.governor.other': '{count} city groups have no governor: their cities lose loyalty',
-  'prompt.uprising': 'Machine uprising in {count} turns: raise stability or cut automation',
+  'prompt.uprising': 'Robots rise in {count} turns: raise stability',
   'prompt.decrees': 'Your decrees are full: the next one you earn is lost',
   'prompt.cityIdle': '{city} has nothing to build',
   'prompt.settlers': 'Settlers wait for a destination',
