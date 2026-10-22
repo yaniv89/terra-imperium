@@ -10,7 +10,7 @@ import { DEMAND_TRUCE_REF_TURNS } from './accords';
 const state = {
   playerNationId: 'p',
   techAgeId: 'classical',
-  gameSpeed: 'marathon', // Bronze 4, Classical 4, Kingdoms 3.33, Modern 2: the ages differ here
+  gameSpeed: 'marathon', // Bronze 3, Classical 2.6, Kingdoms 4, Modern 3: the ages differ here
   nations: { p: { id: 'p' }, b: { id: 'b', tech: { ageId: 'bronze' } }, m: { id: 'm', tech: { ageId: 'modern' } }, k: { id: 'k', tech: { ageId: 'kingdoms' } } },
   regions: { r1: { owner: 'k', size: 3 }, r2: { owner: 'p', size: 1 } }
 };
@@ -29,7 +29,7 @@ describe('waits keyed by the right age', () => {
   });
 
   it('the pressed people waits at its own age; a route at the older of the player and its partner', () => {
-    expect(demandGapTurns(state, 'm')).toBeLessThan(demandGapTurns(state, 'b'));
+    expect(demandGapTurns(state, 'm')).toBeLessThan(demandGapTurns(state, 'k'));
     expect(plunderCutTurns(state, 'm')).toBe(plunderCutTurns(state, 'p'));
   });
 

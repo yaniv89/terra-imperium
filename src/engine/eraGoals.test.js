@@ -78,6 +78,7 @@ describe('era goals', () => {
     expect(next.techAgeId).toBe('classical');
     expect(next.nations[FR_ID].eraGoals.bronze).toBeDefined();
     expect(next.nations[FR_ID].ageSince).toBe(eve.turnNumber + 1);
+    expect(next.nations[FR_ID].freeLawChange).toBe(true); // rank 11: one free law change per age
     expect(next.logs.some((l) => /Legacy of the|no legacy/.test(l.message))).toBe(true);
     expect(next.logs.some((l) => /the first in the world/.test(l.message))).toBe(true);
   }, 30000);

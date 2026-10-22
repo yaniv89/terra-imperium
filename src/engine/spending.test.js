@@ -34,7 +34,7 @@ describe('training has its own speed share (I024, the Civ model)', () => {
       const m = speedCostMult('marathon', age); const n = speedCostMult('normal', age);
       expect(speedTrainMult('marathon', age)).toBeCloseTo(m <= n ? m : n + (m - n) * TRAIN_SPEED_SHARE, 9);
     }
-    expect(speedTrainMult('marathon', 'bronze')).toBeCloseTo(2.8, 9); // buildings 4.0
+    expect(speedTrainMult('marathon', 'bronze')).toBeCloseTo(2.3, 9); // buildings 3.0
   });
   it('prices units, settlers and army orders by it, buildings by the cost multiplier', () => {
     const ctx = { ageId: 'bronze', citiesOwned: 1, speedMult: 4, trainMult: 2.8 };

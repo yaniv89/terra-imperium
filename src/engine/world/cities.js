@@ -514,6 +514,11 @@ export const moveQueueItem = (city, from, to) => {
   if (from !== 0 && target !== 0) return { ...city, production: { ...city.production, queue: next.slice(1) } };
   return { ...city, production: promote(shelve(city.production), next[0], next.slice(1), 0) };
 };
+// Auto build (report rank 7, Civ VII's Towns): a city with it on picks its next build the AI's way
+// (aiProduction.js chooseProduction, in resolveTurn's cities phase) whenever its list is empty.
+// Unset means on for every city but the capital.
+export const autoBuildOn = (city) => city?.autoBuild ?? !city?.isCapital;
+export const setAutoBuild = (city, on) => (autoBuildOn(city) === !!on ? city : { ...city, autoBuild: !!on });
 export const setFocus = (city, focus) => (FOCUS.includes(focus) && focus !== city.focus ? { ...city, focus } : city);
 export const toggleLock = (city, tile) => (city.locked.includes(tile) ? { ...city, locked: city.locked.filter((t) => t !== tile) } : { ...city, locked: [...city.locked, tile] });
 

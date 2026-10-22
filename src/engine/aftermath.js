@@ -14,7 +14,9 @@
 //   keeps seeing battles stays poor while a one-off battlefield recovers within a few years.
 //
 //   War exhaustion: a lost battle hurts at home now, not only the passing of turns. The loser
-//   takes a spike scaled by how much of its army it lost; the winner takes a little too.
+//   takes a spike scaled by how much of its army it lost; the winner takes a little too. A side
+//   fighting on ground it does not own takes WE_ABROAD_MULT of its share (Civ VI's war weariness
+//   abroad, report rank 10): long offensives wear a nation down faster than defending its land.
 //
 //   Commanders: a general whose unit is destroyed may fall with it; otherwise they escape and are
 //   free for a new command. The roll is a hash of (unit, turn), so it replays identically.
@@ -42,6 +44,7 @@ export const WE_LOSER_BASE = 2;
 export const WE_LOSER_PER_LOSS_SHARE = 12;
 export const WE_WINNER = 1;
 export const WE_MAX = 100;
+export const WE_ABROAD_MULT = 1.5;
 
 export const COMMANDER_FALL_CHANCE = 0.25;
 
@@ -122,12 +125,15 @@ export const devastationIncomeMult = (region) => 1 - DEVASTATION_INCOME_PENALTY 
 export const devastationGrowthPenalty = (region) => DEVASTATION_GROWTH_PENALTY * clamp((region?.devastation || 0) / DEVASTATION_MAX, 0, 1);
 
 // The loser of a battle feels it at home; `loserLossShare` is the share of ITS OWN army it lost.
-export const applyBattleWarExhaustion = (nations, winnerId, loserId, loserLossShare) => {
+// `groundOwner`: the nation that owns the battle's ground (null: nobody's; undefined: not known, so
+// no abroad rule); a side that is not it takes WE_ABROAD_MULT.
+export const applyBattleWarExhaustion = (nations, winnerId, loserId, loserLossShare, groundOwner = undefined) => {
   let out = nations;
   const bump = (id, amount) => {
     const n = out?.[id];
     if (!n || !(amount > 0)) return;
-    out = { ...out, [id]: { ...n, warExhaustion: clamp((n.warExhaustion || 0) + amount, 0, WE_MAX) } };
+    const scaled = groundOwner !== undefined && groundOwner !== id ? amount * WE_ABROAD_MULT : amount;
+    out = { ...out, [id]: { ...n, warExhaustion: clamp((n.warExhaustion || 0) + scaled, 0, WE_MAX) } };
   };
   if (loserId) bump(loserId, WE_LOSER_BASE + Math.round(WE_LOSER_PER_LOSS_SHARE * clamp(loserLossShare || 0, 0, 1)));
   if (winnerId) bump(winnerId, WE_WINNER);
@@ -172,7 +178,8 @@ export const resolveCommanderCasualties = (hiredCommanders, destroyedUnits, turn
 // sides' units going in and coming out; `regionId` is where it was fought; the winner/loser ids
 // may be null (a draw). Returns the new regions/nations/hiredCommanders and log lines.
 // `devastationScale` (default 1): 0.5 for a sea battle off a coast (battleOutcome.js).
-export const applyBattleAftermath = (state, { regionId, beforeA, afterA, beforeD, afterD, attackerId, defenderId, outcome, devastationScale = 1, generalsStruck = null }) => {
+// `groundOwner`: who owned the battle's ground before it (see applyBattleWarExhaustion).
+export const applyBattleAftermath = (state, { regionId, beforeA, afterA, beforeD, afterD, attackerId, defenderId, outcome, devastationScale = 1, generalsStruck = null, groundOwner = undefined }) => {
   const all = [...(beforeA || []), ...(beforeD || [])];
   const allAfter = [...(afterA || []), ...(afterD || [])];
   let regions = applyCasualtyScars(state.regions, all, allAfter);
@@ -180,7 +187,7 @@ export const applyBattleAftermath = (state, { regionId, beforeA, afterA, beforeD
   const winnerId = outcome === 'attacker' ? attackerId : outcome === 'defender' ? defenderId : null;
   const loserId = outcome === 'attacker' ? defenderId : outcome === 'defender' ? attackerId : null;
   const loserShare = loserId === attackerId ? sideLossShare(beforeA, afterA) : sideLossShare(beforeD, afterD);
-  const nations = applyBattleWarExhaustion(state.nations, winnerId, loserId, loserShare);
+  const nations = applyBattleWarExhaustion(state.nations, winnerId, loserId, loserShare, groundOwner);
   const destroyed = allAfter.filter((u) => !u.synthetic && (u.strength || 0) <= 0).map((u) => ({ ...u, commanderId: u.commanderId ?? all.find((b) => b.id === u.id)?.commanderId }));
   const { hiredCommanders, fallen } = resolveCommanderCasualties(state.hiredCommanders, destroyed, state.turnNumber, generalsStruck);
   const logs = fallen.map((name) => ({ year: state.year, ...msg('m.battle.generalFell', { general: person(name) }), type: 'combat' }));

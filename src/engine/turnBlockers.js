@@ -25,7 +25,7 @@ import { t as tNow } from '../i18n/core';
 import { nameNow } from '../i18n/names';
 import { getTiles } from '../data/geo/tiles';
 import { BUILDING_CATEGORIES } from '../data/buildings';
-import { canQueue } from './world/cities';
+import { canQueue, autoBuildOn } from './world/cities';
 import { getResearched, ageOf } from './nationState';
 
 const nameOf = (state, id) => nameNow('people', id, state.nations?.[id]?.name || tNow('prompt.aPeople'));
@@ -55,11 +55,11 @@ const canBuildSomething = (state, city) => {
 };
 
 /** The player's cities with nothing to build (outposts and burning cities build nothing; a city
- * that could queue nothing valid is not asked to), by id. */
+ * that could queue nothing valid or builds on its own, Auto build, is not asked to), by id. */
 export const idleCities = (state) => {
   const me = state.playerNationId;
   return Object.values(state.regions || {})
-    .filter((c) => c.owner === me && c.tile != null && !c.outpost && !c.razing && !c.production?.current && c.tiles && canBuildSomething(state, c))
+    .filter((c) => c.owner === me && c.tile != null && !c.outpost && !c.razing && !c.production?.current && !autoBuildOn(c) && c.tiles && canBuildSomething(state, c))
     .sort((a, b) => (a.id < b.id ? -1 : 1));
 };
 

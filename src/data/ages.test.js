@@ -37,21 +37,21 @@ describe('game speed (KTD9: a cost multiplier per age, a turn limit, no years pe
   });
 
   it('gives the Information Age its multipliers (KTD9)', () => {
-    expect(['fast', 'normal', 'marathon'].map((sp) => speedCostMult(sp, 'information'))).toEqual([1, 2, 2]);
+    expect(['fast', 'normal', 'marathon'].map((sp) => speedCostMult(sp, 'information'))).toEqual([1, 2, 3]);
   });
 
-  it('registers the Future last: 2100 to 2500, power 64/48, multipliers 1/2/2 (U64)', () => {
+  it('registers the Future last: 2100 to 2500, power 64/48, multipliers 1/2/3 (U64, rank 4)', () => {
     expect(LAST_AGE_ID).toBe('future');
     expect([AGES.information.endYear, AGES.future.startYear, AGES.future.endYear, END_YEAR]).toEqual([2100, 2100, 2500, 2500]);
     expect(AGES.future.power).toEqual({ attack: 64, defense: 48 });
-    expect(['fast', 'normal', 'marathon'].map((sp) => speedCostMult(sp, 'future'))).toEqual([1, 2, 2]);
+    expect(['fast', 'normal', 'marathon'].map((sp) => speedCostMult(sp, 'future'))).toEqual([1, 2, 3]);
   });
 
-  it('keeps the values the old calendar gave Bronze to Modern exactly', () => {
-    const old = { bronze: 40, classical: 20, kingdoms: 10, gunpowder: 4, modern: 2 };
-    const years = { fast: { bronze: 50, classical: 25, kingdoms: 12, gunpowder: 5, modern: 2 }, normal: { bronze: 25, classical: 12, kingdoms: 6, gunpowder: 2, modern: 1 }, marathon: { bronze: 10, classical: 5, kingdoms: 3, gunpowder: 1, modern: 1 } };
-    Object.keys(years).forEach((sp) => Object.keys(old).forEach((ageId) => expect(speedCostMult(sp, ageId)).toBe(old[ageId] / years[sp][ageId])));
-    expect(speedCostMult('normal', 'gunpowder')).toBe(2);
+  it('keeps the Normal values of the old calendar and the rank 4 refit of Fast and Marathon', () => {
+    const ages = ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'];
+    expect(ages.map((a) => speedCostMult('normal', a))).toEqual([1.6, 20 / 12, 10 / 6, 2, 2]);
+    expect(ages.map((a) => speedCostMult('fast', a))).toEqual([0.8, 0.8, 1, 1.1, 0.8]);
+    expect(ages.map((a) => speedCostMult('marathon', a))).toEqual([3, 2.6, 4, 4.5, 3]);
   });
 
   it('is slower on a slower speed at every age, and Normal is the fallback speed', () => {

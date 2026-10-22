@@ -8,7 +8,7 @@ import { arrivalYear } from './ageRefs';
 import { labelYear } from './displayYear';
 import { getTechsForAge } from '../data/techTree';
 
-const TURNS = Number(process.env.ARRIVAL_TURNS || 60);
+const TURNS = Number(process.env.ARRIVAL_TURNS || 75);
 
 describe('late peoples keep their clock (follow-up 18)', () => {
   it('arrivalYear is the old label: the age over its 10 techs', () => {
@@ -33,4 +33,4 @@ describe('late peoples keep their clock (follow-up 18)', () => {
     expect(arrived).toEqual(EXPECTED);
   }, 300000);
 });
-const EXPECTED = ['lapita@54']; // measured on claude/integration (old label) with this loop
+const EXPECTED = ['lapita@71']; // measured with this loop (old label: lapita@54; rank 4's dearer Bronze moved it)

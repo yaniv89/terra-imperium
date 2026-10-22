@@ -125,6 +125,8 @@ export default {
   'p1.dom.inForce': 'In force: {rules}.',
   'p1.dom.requires': 'Requires {tech}',
   'p1.dom.locked': 'Locked: {why}.',
+  'p1.dom.lawFree': 'free',
+  'p1.dom.lawFreeNote': 'New age: your next law change costs no decree.',
   'p1.dom.notGold': 'Not enough gold',
   'p1.leg.goalTip': '{label}: {value}/{target} {unit}. Legacy: {bonus}',
   'p1.eo.goalTip': '{label}: {value} of {target} {unit}',

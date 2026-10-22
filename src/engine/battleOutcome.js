@@ -642,7 +642,10 @@ export const applyBattleOutcome = (state, o) => {
   // rows 5 and 21: the aftermath, every kind
   const beforeA = out.attackerUnits.map((u) => ({ ...(state.units[u.id] || u), strength: startStrength(state, out, u) }));
   const beforeD = out.defenderUnits.map((u) => ({ ...(state.units[u.id] || u), strength: startStrength(state, out, u) }));
+  // Who owned the battle's tile before it (a sea fight: its coastal city): the other side fought abroad (rank 10).
+  const groundCity = state.world?.tileOwner?.[placed.markTile] ?? (o.kind === 'naval' ? placed.aftermathRegionId : null);
   const aftermath = applyBattleAftermath(s, {
+    groundOwner: placed.markTile == null ? undefined : state.regions[groundCity]?.owner ?? null,
     regionId: placed.aftermathRegionId, beforeA, afterA: out.attackerUnits, beforeD, afterD: out.defenderUnits,
     attackerId: out.attackerNationId, defenderId: out.defenderNationId, outcome: placed.aftermathOutcome, devastationScale: placed.devastationScale ?? 1,
     // A commanded battle with generals on the field: those whose guard fell are at risk (row 5).

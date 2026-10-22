@@ -29,7 +29,7 @@ import {
   GOVERNMENT_TYPES, getActiveReforms, getAvailableGovernmentTypes, getReformChoices, canChangeGovernmentType, canEnactReform
 } from '../../data/government';
 import { IDENTITY_AXES, IDENTITY_AXIS_IDS, IDENTITY_MIN, IDENTITY_MAX } from '../../data/identity';
-import { LAW_CATEGORY_IDS, LAW_CATEGORIES, getLaw, canEnactLaw, getRequiredTechName } from '../../data/laws';
+import { LAW_CATEGORY_IDS, LAW_CATEGORIES, getLaw, canEnactLaw, getRequiredTechName, lawChangeCost } from '../../data/laws';
 import {
   GREAT_PROJECTS, GREAT_PROJECT_IDS, getGreatProjectOwner
 } from '../../data/greatProjects';
@@ -340,7 +340,7 @@ const DomesticPanel = () => {
     dispatch({ type: ActionTypes.ENACT_GOVERNMENT_REFORM, payload: { ageId, reformId } });
   };
   const handleChangeLaw = (category, lawId) => {
-    const costs = ACTION_COSTS.changeLaw;
+    const costs = lawChangeCost(playerNation);
     if (!canPay(state, costs)) return addLog(tNow('ri.notEnough'), 'action');
     // Two taps: the card shows the cost and what the law does first (H-08).
     askConfirm(changeLawConfirm(state, category, lawId, costs), () => {
@@ -419,6 +419,7 @@ const DomesticPanel = () => {
   const rulesInForce = describeRulesText(lawRulesOf(playerNation));
   const lawsSection = (
     <div className="space-y-2">
+      {playerNation?.freeLawChange && <div className="text-[12px] text-fa-text bg-fa-raised rounded-lg px-2 py-1 border border-fa-brass/60" data-testid="law-free">{tNow('p1.dom.lawFreeNote')}</div>}
       {rulesInForce.length > 0 && <div className="text-[11px] text-emerald-200/90 bg-fa-raised/40 rounded-lg px-2 py-1" data-testid="law-rules">{tNow('p1.dom.inForce', { rules: rulesInForce.join('; ') })}</div>}
       {LAW_CATEGORY_IDS.map((category) => {
         const currentLawId = playerNation?.laws?.[category];
@@ -434,7 +435,7 @@ const DomesticPanel = () => {
             <div className="flex flex-col gap-1.5 pt-1">
               {alternatives.map((law) => {
                 const canEnact = canEnactLaw(state, state.playerNationId, category, law.id);
-                const cost = ACTION_COSTS.changeLaw;
+                const cost = lawChangeCost(playerNation);
                 const requiredTech = getRequiredTechName(law);
                 const effectText = lawEffectText(law);
                 const lock = lawLockText(state, state.playerNationId, category, law);
@@ -446,7 +447,7 @@ const DomesticPanel = () => {
                       title={requiredTech && !canEnact ? tNow('p1.dom.requires', { tech: techName(law.requiresTech, requiredTech) }) : lawLine(law, effectText)}
                       className="text-[10px] rounded bg-fa-hover/80 hover:bg-fa-line disabled:opacity-40 disabled:cursor-not-allowed text-fa-text px-2 py-1"
                     >
-                      {lawName(law.id, law.name)} ({getCostString(cost)})
+                      {lawName(law.id, law.name)} ({getCostString(cost) || tNow('p1.dom.lawFree')})
                     </button>
                     <span className="text-[10px] text-fa-muted" data-testid={`law-alt-${law.id}`}>{lawLine(law, effectText)}{lock ? ` ${tNow('p1.dom.locked', { why: lock })}` : ''}</span>
                   </div>
@@ -523,7 +524,7 @@ const DomesticPanel = () => {
         {governmentSection}
       </CollapsibleSection>
       <div className="border-t border-fa-line" />
-      <CollapsibleSection title={tNow('dom.laws')} icon={ScrollText}>
+      <CollapsibleSection id="laws" title={tNow('dom.laws')} icon={ScrollText} defaultOpen={!!playerNation?.freeLawChange}>
         {lawsSection}
       </CollapsibleSection>
       <div className="border-t border-fa-line" />

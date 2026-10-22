@@ -46,7 +46,12 @@ import { AGRICULTURE_TECH } from '../data/hearths';
 // 1.5 times between the two ages, so a two-city player spent 90 to 120 turns on one Kingdoms tech;
 // the wide AIs' Classical lasted 48 turns (target 109). 200 and 800 put half the majors into
 // Kingdoms near turn 200 (target 217) and cut the player's longest tech to about 50 turns.
-export const RESEARCH_AGE_BASE = { stone: 15, bronze: 17, classical: 200, kingdoms: 800, gunpowder: 2400, modern: 5000, information: 12000, future: 16000 };
+// Bronze and Information (report rank 4, scripts/research-pace.mjs, scripted akkad, seeds 11 to 14,
+// full games on the three speeds): the turn half the majors enter each age on Normal went from
+// Bronze 38 turns long, Information 272+ and no Future by 923 to Bronze 50, Information 178 and the
+// Future at turn 851, Civ VI's share of the game per era (Kingdoms stays: 96 for the majors, about
+// 200 for the small scripted player). 17 to 27 to 40: a Bronze age is mostly the late Stone techs'.
+export const RESEARCH_AGE_BASE = { stone: 15, bronze: 40, classical: 200, kingdoms: 800, gunpowder: 2400, modern: 5000, information: 5500, future: 16000 };
 export { SCIENCE_PER_DEV } from '../data/actionCosts';
 export const FOCUS_SCIENCE_BONUS = 0.1;
 // Future Tech (U65) repeats; each one done adds this share of its first cost to the next.
@@ -249,7 +254,7 @@ const onAgeAdvance = (state, nation, fromAgeId, toAgeId, logs, world) => {
     world.top = getAgeIndex(toAgeId);
     logs.push({ year: state.year, ...msg('m.world.firstIntoAge', { nation: people(nation.id, nation.name), age: thing('age', toAgeId, AGES[toAgeId]?.name) }), type: LogTypes.MILESTONE });
   }
-  return { ...n, ageSince: state.turnNumber };
+  return { ...n, ageSince: state.turnNumber, freeLawChange: true }; // one law change for no decree (laws.js lawChangeCost)
 };
 
 // Each tech completed earns the ruler renown by the tech's own age (renown.js).

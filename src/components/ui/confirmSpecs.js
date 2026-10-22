@@ -52,7 +52,7 @@ export const changeLawConfirm = (state, category, lawId, cost) => {
     id: `change-law:${category}`,
     title: t('cf.law.title', { law: lawName(law.id, law.name) }),
     rows: [
-      { label: t('cf.cost'), value: costLine(cost) },
+      { label: t('cf.cost'), value: costLine(cost) || t('p1.dom.lawFree') },
       ...(current ? [{ label: t('cf.law.now'), value: lawName(current.id, current.name) }] : []),
       { label: t('cf.law.after'), value: lawLine(law, lawEffectText(law)) }
     ],

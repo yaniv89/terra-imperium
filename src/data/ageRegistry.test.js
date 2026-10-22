@@ -135,7 +135,7 @@ describe('registry completeness: every per-age table has every age', () => {
   });
 
   it('the Information per-age macro tables hold the plan values (Appendix B, U57)', () => {
-    expect(RESEARCH_AGE_BASE.information).toBe(12000); // the plan's 360 is on the old scale; U48 set today's (calibrated in U63)
+    expect(RESEARCH_AGE_BASE.information).toBe(5500); // the plan's 360 is on the old scale; U48 set 12000 (U63), the rank 4 refit 5500
     expect(COLONY_SLOTS_BY_AGE.information).toBe(3);
     expect(OUTPOST_SLOTS_BY_AGE.information).toBe(4);
     expect(NAVAL_KM_BY_AGE.information).toBe(1300);
