@@ -15,7 +15,7 @@ import { updateEffects, processImpacts } from './effects';
 import { applySupplyAndAttrition } from './support';
 import { updateBuildings } from './buildings';
 import { updateEconomy, fireEcoTowers, countEcoLosses } from './economy';
-import { autoRebuild } from './economyAI';
+import { autoRebuild, thinkEconomy, STEWARD_LEVEL } from './economyAI';
 import { baseGone, hasBase } from './base';
 import { battleLimitTicks, SIDE_ATTACKER, SIDE_DEFENDER, Q, secondsToTicks } from './constants';
 import { LOSS_DECISIVE, RIVER_HOLD_SHARE, AMBUSH_SECONDS, AMBUSH_LOSS, LANDING_HOLD_SECONDS, SALLY_ENGINES } from '../setup/battleType';
@@ -150,7 +150,10 @@ export const step = (w, orders = []) => {
   if (w.ended) return w;
   updateFog(w); // before anyone decides anything, so the AI never acts on a stale picture
   const all = [...orders];
-  (w.setup.controllers || []).forEach((c, side) => { if (c === 'ai') thinkAI(w, side, all); });
+  (w.setup.controllers || []).forEach((c, side) => {
+    if (c === 'ai') thinkAI(w, side, all);
+    else if (w.eco?.steward[side]) thinkEconomy(w, side, STEWARD_LEVEL, all); // rank 5: the player's steward
+  });
   applyOrders(w, all);
   updateEffects(w);
   processImpacts(w);

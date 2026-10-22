@@ -12,7 +12,7 @@
 //                move (I206): the same two 44 px squares before Start, while paused and in battle
 //   bottom left  small buttons only (B10, UI08): All (selects the army, the camera stays: I188),
 //                Find (the camera to the selection or the army), Enemy (the camera to the enemy's
-//                objective as far as you know it: I196, I197), Base (your camp), Idle n (a laborer),
+//                objective as far as you know it: I196, I197), Base (your camp), Idle n (a laborer), Steward (the economy AI runs your base),
 //                Map (the minimap on or off: I196); on a narrow phone Find, Enemy, Base and Map fold
 //                behind one View button (RTS-02)
 //   bottom right the context panel (B10, AoE style): the actions of the selection only. The wand
@@ -31,7 +31,7 @@
 //   city (B05)   in a city assault: the defender's housing as houses burn (folded at first: I202)
 // Every control is at least 44 px.
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Castle, X, Zap, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, ChevronDown, Swords, Wand2, Target, Map as MapIcon, Navigation, Spline, Bell, Users, LocateFixed, Package, Compass } from 'lucide-react';
+import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Castle, X, Zap, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, ChevronDown, Swords, Wand2, Target, Map as MapIcon, Navigation, Spline, Bell, Users, LocateFixed, Package, Compass, UserCog } from 'lucide-react';
 import { ResIcon, resName, HammerButton } from './EconomyHud';
 import GameIcon from '../ui/GameIcon';
 import { RESOURCES } from '../../battle/data/economy';
@@ -128,7 +128,7 @@ const BattleHud = ({
   title, hud, setup, playerSide, timeLeft, paused, started, speed, armed, formation, selectedSquads,
   onTogglePause, onSpeed, onArm, onFormation, onSelectClass, onFindArmy, onCommand, onRetreatAll, onFocusKeep, onAbandon,
   onPower, onAbility, abilities = [], soundOn = true, onToggleSound,
-  onOpenBuild, buildOpen = false, onSelectHq, // the battle economy (EconomyHud.jsx)
+  onOpenBuild, buildOpen = false, onSelectHq, onSteward, // the battle economy (EconomyHud.jsx)
   context = 'none', panel = null, // the context panel (B10): battleHudModel contextFor, and its content for laborers, buildings and placing
   selectMode = false, onToggleSelectMode, // touch box select (UI-DESIGN B04)
   pathMode = false, onTogglePathMode, // touch: draw a path for the selected squads (U38)
@@ -522,6 +522,7 @@ const BattleHud = ({
               </div>
             ) : viewButtons.map((b) => <Cmd key={b.testId} {...b} />)}
             {eco && eco.idleWorkers.length > 0 && <Cmd icon={Hammer} label={t('bt.hud.idle', { n: eco.idleWorkers.length })} onClick={() => onSelectClass('idle')} testId="battle-idle-workers" />}
+            {eco && onSteward && <Cmd icon={UserCog} label={t('bt.hud.steward')} onClick={() => onSteward(!eco.steward)} active={!!eco.steward} testId="battle-steward" ariaLabel={t('bt.hud.stewardAria')} />}
           </div>
           <div className="flex-1 min-w-0 max-h-full overflow-y-auto [&>*]:pointer-events-auto overscroll-contain scrollbar-none flex flex-col items-end gap-1" data-testid="battle-context" data-context={context}>
             <div className="flex-1" aria-hidden="true" />

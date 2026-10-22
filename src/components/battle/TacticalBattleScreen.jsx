@@ -240,6 +240,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const layout = useLayoutMode();
   useEffect(() => {
     if (started && !resume && layout !== 'desktop' && hud?.eco && !hud.eco.autoRebuild && !rebuildDefault.current) send([{ type: 'autoRebuild', on: true }]);
+    // Rank 5: on a phone the steward runs the base from the start (the Steward button turns it off).
+    if (started && !resume && layout.startsWith('phone') && hud?.eco && !hud.eco.steward && !rebuildDefault.current) send([{ type: 'steward', on: true }]);
     if (started && hud?.eco) rebuildDefault.current = true;
   }, [started, hud?.eco, layout, resume, send]);
 
@@ -1188,7 +1190,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         minimap={hud ? <BattleMinimap setup={setup} hud={hud} playerSide={playerSide} getRenderer={getRenderer} onMoved={() => setFollow(false)} {...(compactScreen ? { maxW: 150, maxH: 92 } : { maxW: 220, maxH: 136 })} /> : null}
         supplyRate={supplyGain}
         perf={showPerf ? <pre ref={perfRef} className="pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre overflow-hidden" data-testid="battle-perf" /> : null}
-        onOpenBuild={() => flowTo({ type: 'toggle' })} buildOpen={buildMenu} onSelectHq={selectHq}
+        onOpenBuild={() => flowTo({ type: 'toggle' })} buildOpen={buildMenu} onSelectHq={selectHq} onSteward={(on) => send([{ type: 'steward', on }])}
         soundOn={soundOn} onToggleSound={toggleSound}
         selectMode={selectMode} onToggleSelectMode={() => setSelectModeOn(!selectModeRef.current)}
         pathMode={pathMode} onTogglePathMode={() => setPathModeOn(!pathModeRef.current)}

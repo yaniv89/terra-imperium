@@ -137,6 +137,8 @@ export default {
   'bt.hud.view': 'View',
   'bt.hud.viewAria': 'Camera and map buttons',
   'bt.hud.idle': 'Idle {n}',
+  'bt.hud.steward': 'Steward',
+  'bt.hud.stewardAria': 'Steward: the AI runs your laborers and base buildings while you lead the army',
   'bt.hud.follow': 'Follow',
   'bt.hud.followAria': 'Camera follows the selection',
   'bt.hud.attack': 'Attack',

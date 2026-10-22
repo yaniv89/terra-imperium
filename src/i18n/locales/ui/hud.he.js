@@ -137,6 +137,8 @@ export default {
   'bt.hud.view': 'תצוגה',
   'bt.hud.viewAria': 'כפתורי מצלמה ומפה',
   'bt.hud.idle': 'בטלים {n}',
+  'bt.hud.steward': 'מנהל',
+  'bt.hud.stewardAria': 'מנהל משק: הבינה המלאכותית מפעילה את הפועלים ואת מבני הבסיס בזמן שאתה מוביל את הצבא',
   'bt.hud.follow': 'עקבו',
   'bt.hud.followAria': 'המצלמה עוקבת אחרי הבחירה',
   'bt.hud.attack': 'תקיפה',
