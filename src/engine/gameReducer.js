@@ -106,7 +106,7 @@ import { resolveTurn } from './resolveTurn';
 import { resolveAutoBattle } from './autoBattle';
 import { switchedBattleState } from './battleSwitch';
 import { applyBattleOutcome, makeBattleOutcome, battleIdOf } from './battleOutcome';
-import { cityMilitia, reinforcementSources } from './battleInputs';
+import { cityMilitia, reinforcementSources, fieldReinforcements } from './battleInputs';
 import { battleRequired, autoSiegeOn } from './battleThreshold';
 import { battleQueueBlocked, queuedKind, queuedArmies, queuedCommandBlock, resolveQueuedAuto, resolveAllQueuedAuto, drainAutoBattles, aggressorView } from './battleQueue';
 import { replayBattle } from '../battle/sim/replay';
@@ -1382,6 +1382,7 @@ const reduceAction = (state, action) => {
         const fseed = Math.floor(frng.next() * 0xffffffff) >>> 0;
         const fcounter = (state.battleCounter || 0) + 1;
         const anchor = state.world?.tileOwner?.[tile] ?? fromRegionId;
+        const [attackerReinforcements, defenderReinforcements] = fieldReinforcements(state, fv); // rank 9
         return {
           ...state,
           resources: applyCosts(state.resources, ACTION_COSTS.launchInvasion),
@@ -1390,7 +1391,7 @@ const reduceAction = (state, action) => {
           pendingBattle: {
             id: `b_${state.turnNumber}_${fcounter}`, kind: 'field', fromRegionId, tile, targetRegionId: anchor, warId: fv.war?.id ?? null,
             attackerNationId: state.playerNationId, defenderNationId: fv.defenderNationId, seed: fseed, startedTurn: state.turnNumber, playerSide: 'attacker',
-            attackerUnitIds: fv.attackerUnits.map((u) => u.id), defenderUnitIds: fv.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: [],
+            attackerUnitIds: fv.attackerUnits.map((u) => u.id), defenderUnitIds: fv.defenderUnits.map((u) => u.id), attackerReinforcements, defenderReinforcements,
             ...(quick ? { quick: true } : {}) // the player's quick field battle: 5 minutes, no base-building (buildFieldSetup)
           },
           logs: [...state.logs, { year: state.year, ...msg('m.act.commandField'), type: LogTypes.COMBAT }]
@@ -1697,6 +1698,7 @@ const reduceAction = (state, action) => {
         const attacking = def.aggressorId === state.playerNationId;
         const foe = attacking ? armies.v.defenderNationId : def.aggressorId;
         if (kind === 'field' && isNoMansLand(state, def.tile, state.playerNationId, foe)) return reject(state, msg('m.q.noMans')); // decision 41
+        const [attackerReinforcements, defenderReinforcements] = kind === 'field' ? fieldReinforcements(state, armies.v) : [[], []]; // rank 9
         return {
           ...state,
           battleCounter: counter,
@@ -1704,7 +1706,7 @@ const reduceAction = (state, action) => {
             id: `b_${state.turnNumber}_${counter}`, kind, defenseId: def.id, fort: !!def.fort,
             fromRegionId: def.fromRegionId, fromTile: def.fromTile ?? null, tile: def.tile, targetRegionId: state.world?.tileOwner?.[def.tile] ?? def.regionId, warId: def.warId,
             attackerNationId: def.aggressorId, defenderNationId: attacking ? foe : state.playerNationId, seed: def.seed, startedTurn: state.turnNumber, playerSide: attacking ? 'attacker' : 'defender',
-            attackerUnitIds: armies.v.attackerUnits.map((u) => u.id), defenderUnitIds: armies.v.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: []
+            attackerUnitIds: armies.v.attackerUnits.map((u) => u.id), defenderUnitIds: armies.v.defenderUnits.map((u) => u.id), attackerReinforcements, defenderReinforcements
           },
           logs: [...state.logs, { year: state.year, ...(attacking ? msg('m.act.commandFort', { nation: people(foe, state.nations[foe]?.name || foe) }) : msg(kind === 'naval' ? 'm.act.commandFleetVs' : 'm.act.commandArmyVs', { nation: people(def.aggressorId, state.nations[def.aggressorId]?.name || def.aggressorId) })), type: LogTypes.COMBAT }]
         };

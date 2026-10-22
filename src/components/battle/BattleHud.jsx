@@ -12,7 +12,7 @@
 //                move (I206): the same two 44 px squares before Start, while paused and in battle
 //   bottom left  small buttons only (B10, UI08): All (selects the army, the camera stays: I188),
 //                Find (the camera to the selection or the army), Enemy (the camera to the enemy's
-//                objective as far as you know it: I196, I197), Base (your camp), Idle n (a laborer),
+//                objective as far as you know it: I196, I197), Base (your camp), Idle n (a laborer), Steward (the economy AI runs your base),
 //                Map (the minimap on or off: I196); on a narrow phone Find, Enemy, Base and Map fold
 //                behind one View button (RTS-02)
 //   bottom right the context panel (B10, AoE style): the actions of the selection only. The wand
@@ -31,7 +31,7 @@
 //   city (B05)   in a city assault: the defender's housing as houses burn (folded at first: I202)
 // Every control is at least 44 px.
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Castle, X, Zap, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, ChevronDown, Swords, Wand2, Target, Map as MapIcon, Navigation, Spline, Bell, Users, LocateFixed, Package, Compass } from 'lucide-react';
+import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Castle, X, Zap, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, ChevronDown, Swords, Wand2, Target, Map as MapIcon, Navigation, Spline, Bell, Users, LocateFixed, Package, Compass, UserCog } from 'lucide-react';
 import { ResIcon, resName, HammerButton } from './EconomyHud';
 import GameIcon from '../ui/GameIcon';
 import { RESOURCES } from '../../battle/data/economy';
@@ -73,6 +73,8 @@ const useMedia = (q) => {
 const useShortScreen = () => useMedia('(max-height: 480px)');
 /** A narrow phone (667 px and the like, RTS-02): the stocks and the camera buttons fold away. */
 export const NARROW_QUERY = '(max-width: 760px)';
+/** Rank 6: a fighting squad of yours with nothing to do (no order, no target, not in a building). */
+export const isIdleSquad = (q) => q.classId !== 'worker' && q.order === 'idle' && q.target < 0 && !q.routed && !(q.inside >= 0);
 
 /** A labelled command button (B01: always a text label), 48 px. */
 const Cmd = ({ icon: Icon, glyph, label, onClick, active, danger, disabled, testId, className, ariaLabel }) => (
@@ -83,6 +85,22 @@ const Cmd = ({ icon: Icon, glyph, label, onClick, active, danger, disabled, test
     <span className="leading-none whitespace-nowrap">{label}</span>
   </button>
 );
+
+/** Rank 6: a control group slot: tap selects (an empty one saves the selection), a hold saves it. */
+const HOLD_MS = 450;
+const GroupSlot = ({ n, count, onUse, label }) => {
+  const timer = useRef(null); const held = useRef(false);
+  const down = () => { held.current = false; timer.current = setTimeout(() => { held.current = true; onUse(true); }, HOLD_MS); };
+  const up = () => clearTimeout(timer.current);
+  return (
+    <button type="button" onPointerDown={down} onPointerUp={up} onPointerLeave={up} onContextMenu={(e) => e.preventDefault()} onClick={() => { if (!held.current) onUse(false); }}
+      aria-label={label} data-testid={`battle-group-${n}`}
+      className={cx('shrink-0 w-11 h-11 rounded-[10px] flex flex-col items-center justify-center border shadow-lg leading-none', count ? 'bg-fa-panel/95 border-fa-brass text-fa-text' : 'bg-fa-panel/70 border-dashed border-fa-line text-fa-muted')}>
+      <span className="text-[15px] font-bold fa-num">{n}</span>
+      <span className="text-[10px] fa-num">{count ? count : '+'}</span>
+    </button>
+  );
+};
 
 /** Why a power cannot be used now, or null. */
 const powerBlock = (pw, supply, t) => (pw.usesLeft <= 0 ? t('bt.hud.noneLeft')
@@ -128,7 +146,7 @@ const BattleHud = ({
   title, hud, setup, playerSide, timeLeft, paused, started, speed, armed, formation, selectedSquads,
   onTogglePause, onSpeed, onArm, onFormation, onSelectClass, onFindArmy, onCommand, onRetreatAll, onFocusKeep, onAbandon,
   onPower, onAbility, abilities = [], soundOn = true, onToggleSound,
-  onOpenBuild, buildOpen = false, onSelectHq, // the battle economy (EconomyHud.jsx)
+  onOpenBuild, buildOpen = false, onSelectHq, onSteward, // the battle economy (EconomyHud.jsx)
   context = 'none', panel = null, // the context panel (B10): battleHudModel contextFor, and its content for laborers, buildings and placing
   selectMode = false, onToggleSelectMode, // touch box select (UI-DESIGN B04)
   pathMode = false, onTogglePathMode, // touch: draw a path for the selected squads (U38)
@@ -143,6 +161,7 @@ const BattleHud = ({
   supplyRate = null, // U12: Battle Supply gained a second
   perf = null, // I205: the performance readout, given a slot of its own
   leftCard = null, // the info card / building panel, under the alerts in the top row
+  groups = null, onGroup, // rank 6: the control groups' live squad counts; onGroup(i, save)
   mouse = false, // a mouse is the main pointer: the hints speak of clicks
   narrow: narrowProp, // tests: force the narrow phone layout (else the screen's width decides)
   ended = false // the battle is over: only the top bar stays (the result screen, B08, owns the rest)
@@ -210,6 +229,7 @@ const BattleHud = ({
   const loot = lootView(hud, setup);
   const lootWarn = !!loot && loot.burned >= loot.needed - 1;
   const allCount = onField.filter((q) => q.classId !== 'worker').length;
+  const idleSquads = started ? onField.filter(isIdleSquad).length : 0;
   const powerCards = hud.powers || [];
   // Rally Cry (a power the side brought): +30 morale for the whole army, the cure for Shaken.
   const rallyCry = powerCards.find((pw) => pw.id === 'rallyCry') || null;
@@ -508,6 +528,14 @@ const BattleHud = ({
       {wandOpen && !pauseOpen && <div className="absolute inset-x-0 bottom-0 pointer-events-auto" style={{ top: TOP_BAR }} onPointerDown={() => setWandOpen(false)} data-testid="battle-wand-backdrop" />}
       {!pauseOpen && (
         <div className="absolute flex items-end justify-between gap-2 pointer-events-none" style={{ top: UNDER_BAR, bottom: SAFE_B, insetInlineStart: SAFE_L, insetInlineEnd: SAFE_R }}>
+          <div className="flex flex-col items-start gap-1 shrink-0">
+          {started && groups && onGroup && (groups.some(Boolean) || selectedSquads.length > 0) && (
+            // Rank 6: the filled control groups and one free slot while something is selected
+            <div className="pointer-events-auto flex gap-1" data-testid="battle-groups">
+              {groups.map((count, i) => (count || (selectedSquads.length && i === groups.findIndex((c) => !c))
+                ? <GroupSlot key={i} n={i + 1} count={count} onUse={(save) => onGroup(i, save)} label={t(count ? 'bt.hud.groupAria' : 'bt.hud.groupSaveAria', { n: i + 1, count })} /> : null))}
+            </div>
+          )}
           <div className="pointer-events-auto flex gap-1 shrink-0" data-testid="battle-quick">
             <Cmd glyph={<GameIcon group="battle" id="select-all" size={18} halo={false} fallback={<Users className="w-4 h-4" aria-hidden="true" />} />} label={t('bt.hud.all', { n: allCount })} onClick={() => onSelectClass('all')} disabled={!allCount} testId="battle-select-all" ariaLabel={t('bt.hud.selectAll', { n: allCount })} />
             {narrow ? (
@@ -522,6 +550,9 @@ const BattleHud = ({
               </div>
             ) : viewButtons.map((b) => <Cmd key={b.testId} {...b} />)}
             {eco && eco.idleWorkers.length > 0 && <Cmd icon={Hammer} label={t('bt.hud.idle', { n: eco.idleWorkers.length })} onClick={() => onSelectClass('idle')} testId="battle-idle-workers" />}
+            {idleSquads > 0 && <Cmd icon={Swords} label={t('bt.hud.idleSquads', { n: idleSquads })} onClick={() => onSelectClass('idleSquads')} testId="battle-idle-squads" ariaLabel={t('bt.hud.idleSquadsAria', { n: idleSquads })} />}
+            {eco && onSteward && <Cmd icon={UserCog} label={t('bt.hud.steward')} onClick={() => onSteward(!eco.steward)} active={!!eco.steward} testId="battle-steward" ariaLabel={t('bt.hud.stewardAria')} />}
+          </div>
           </div>
           <div className="flex-1 min-w-0 max-h-full overflow-y-auto [&>*]:pointer-events-auto overscroll-contain scrollbar-none flex flex-col items-end gap-1" data-testid="battle-context" data-context={context}>
             <div className="flex-1" aria-hidden="true" />

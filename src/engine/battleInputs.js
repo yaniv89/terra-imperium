@@ -18,7 +18,11 @@
 //                                        up to SUPPLY_MORALE_LOSS morale and shrinks the side's
 //                                        starting stockpile (R1's stockMult, economySetup.js)
 //   16 allies and vassals                co-belligerent allies' and vassals' idle land units within
-//                                        REINFORCE_RINGS stand by as reinforcements (RTS plan 5.3)
+//                                        REINFORCE_RINGS stand by as reinforcements (RTS plan 5.3);
+//                                        a field battle (the AoE and Civ report's rank 9, Civ VI's
+//                                        support): each side's own and its co-belligerents' idle
+//                                        stacks on the tiles next to the battle tile stand by
+//                                        (fieldReinforcements), listed on the battle card
 //   18 bankruptcy desertion              the armies are read live from state.units, after the
 //                                        turn's desertion (resolveTurn economy phase): never a snapshot
 //   19 the city's militia                a city assault adds the city's militia to the defenders:
@@ -31,8 +35,9 @@
 import { siegeHpOf, siegeMaxHp, wallsOf } from './sieges';
 import { getRegionModifier } from './modifiers/sheet';
 import { cityHousingCap } from './cityManifest';
-import { getReinforcementSources } from './invasion';
-import { unitsWithinRings, REINFORCE_RINGS } from './armies';
+import { getReinforcementSources, isUnitInBattle } from './invasion';
+import { unitsWithinRings, unitTile, REINFORCE_RINGS } from './armies';
+import { getTiles } from '../data/geo/tiles';
 import { lawRulesOf } from './lawRules';
 import { isWarBetween } from './diplomacy';
 import { BATTLE_CARDS, activeCards } from '../data/battleCards';
@@ -151,6 +156,26 @@ export const reinforcementSources = (state, regionId, nationId, enemyId, exclude
     .forEach((u) => { const k = `${allyId}|${u.regionId}`; if (!byRegion.has(k)) byRegion.set(k, { regionId: u.regionId, nationId: allyId, unitIds: [] }); byRegion.get(k).unitIds.push(u.id); }));
   const allied = [...byRegion.values()].sort((a, b) => (a.regionId < b.regionId ? -1 : a.regionId > b.regionId ? 1 : a.nationId < b.nationId ? -1 : 1));
   return [...own, ...allied];
+};
+
+/** Rank 9: idle land units of `nationId` and its co-belligerents against `enemyId` on the tiles next
+ *  to `tile`, not in `excludeUnitIds` nor another battle, grouped by region as reinforcementSources. */
+export const fieldReinforcementSources = (state, tile, nationId, enemyId, excludeUnitIds = []) => {
+  const near = new Set(getTiles().neighbors[tile] || []);
+  const owners = new Set([nationId, ...alliesOf(state, nationId, enemyId)]);
+  const skip = new Set(excludeUnitIds);
+  const byRegion = new Map();
+  Object.values(state.units || {}).filter((u) => owners.has(u.ownerId) && u.domain === 'land' && !u.embarkedOn && u.classId !== 'settler' && u.strength > 0
+    && (u.movesLeft ?? 1) > 0 && !skip.has(u.id) && near.has(unitTile(state, u)) && !isUnitInBattle(state, u.id))
+    .forEach((u) => { const k = `${u.ownerId}|${u.regionId}`; if (!byRegion.has(k)) byRegion.set(k, { regionId: u.regionId, nationId: u.ownerId, unitIds: [] }); byRegion.get(k).unitIds.push(u.id); });
+  return [...byRegion.values()].sort((a, b) => (a.regionId < b.regionId ? -1 : a.regionId > b.regionId ? 1 : a.nationId < b.nationId ? -1 : 1));
+};
+
+/** Rank 9: both sides' standby for a validated field attack `v` (fieldBattle.js): [attacker, defender]. */
+export const fieldReinforcements = (state, v) => {
+  const att = v.attackerUnits[0]?.ownerId; const def = v.defenderNationId;
+  const inIt = [...v.attackerUnits, ...v.defenderUnits].map((u) => u.id);
+  return [fieldReinforcementSources(state, v.tile, att, def, inIt), fieldReinforcementSources(state, v.tile, def, att, inIt)];
 };
 
 /**

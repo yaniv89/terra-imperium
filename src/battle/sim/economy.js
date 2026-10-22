@@ -89,6 +89,7 @@ export const initEconomy = (w) => {
     trainedCount: [0, 0],
     preset: ['balanced', 'balanced'], // U24: each side's worker mix (WORKER_PRESETS)
     rebuild: [false, false], // U24: put a fallen drop-off back up (economyAI.js autoRebuild)
+    steward: [false, false], // rank 5: the economy AI runs this side's base (step.js)
     lost: [[], []], // U24: the drop-offs to put back, { type, x, y }
     stats: [0, 1].map(() => ({ gathered: RESOURCES.map(() => 0), spent: RESOURCES.map(() => 0), looted: 0, trained: {}, built: 0, lost: 0, workersLost: 0 }))
   };
@@ -352,6 +353,9 @@ export const applyEcoOrder = (w, o) => {
     case 'autoRebuild':
       w.eco.rebuild[side] = o.on;
       if (!o.on) w.eco.lost[side].length = 0;
+      return true;
+    case 'steward':
+      w.eco.steward[side] = o.on;
       return true;
     case 'cancelBuild': {
       const b = w.eco.buildings[o.building];
@@ -704,7 +708,7 @@ export const ecoView = (w, playerSide) => {
     // Where the population is (army, laborers, in training) and where the housing comes from.
     popSplit: { workers: workers.filter((q) => q.onField || q.enterTick >= 0).length, training: activeTraining(w, playerSide), army: population(w, playerSide) - activeTraining(w, playerSide) - workers.filter((q) => q.onField || q.enterTick >= 0).length },
     houses: eco.buildings.filter((b) => b.side === playerSide && b.type === 'house' && ready(w, b)).length,
-    preset: eco.preset[playerSide], autoRebuild: eco.rebuild[playerSide],
+    preset: eco.preset[playerSide], autoRebuild: eco.rebuild[playerSide], steward: eco.steward[playerSide],
     idleWorkers: workers.filter((q) => !q.job || q.order.type !== 'work').map((q) => q.idx),
     buildings: eco.buildings.map((b) => {
       const alive = ecoAlive(w, b);

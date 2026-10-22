@@ -107,6 +107,21 @@ describe('field attacks', () => {
     expect(ctx.isDefended).toBe(true);
   });
 
+  it('rank 9: own idle stacks next to the battle tile stand by on both sides and reach the setup', () => {
+    const side = tiles.neighbors[theirs].filter((t) => t !== ours && tiles.land[t] === 1);
+    const other = Object.keys(S.regions).find((id) => id !== IN && id !== PK);
+    const war = atWar(withUnits(S, [unit('a', IN, { tile: ours }), unit('e', PK, { ownerId: PK_ID, tile: theirs }),
+      unit('r', other, { tile: side[0] }), unit('tired', other, { tile: side[0], movesLeft: 0 }), unit('far', other, { tile: S.regions[IN].tile }),
+      unit('e2', PK, { ownerId: PK_ID, tile: side[1] ?? side[0] })]));
+    const ownLand = { ...war, world: { ...war.world, tileOwner: { ...war.world.tileOwner, [theirs]: IN } } };
+    const began = gameReducer(ownLand, { type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: { fromRegionId: IN, tile: theirs } });
+    expect(began.pendingBattle.attackerReinforcements).toEqual([{ regionId: other, nationId: IN_ID, unitIds: ['r'] }]);
+    expect(began.pendingBattle.defenderReinforcements.flatMap((s) => s.unitIds)).toEqual(['e2']);
+    const setup = buildInvasionSetup(began, began.pendingBattle);
+    expect(setup.sides[0].reinforcements[0].units.map((u) => u.id)).toEqual(['r']);
+    expect(setup.sides[1].reinforcements[0].units.map((u) => u.id)).toEqual(['e2']);
+  });
+
   it('ATTACK_ARMY resolves through the reducer and the commanded battle builds from the tile', () => {
     const war = atWar(withUnits(S, [unit('a', IN, { tile: ours }), unit('b', IN, { tile: ours }), unit('e', PK, { ownerId: PK_ID, tile: theirs, strength: 200, maxStrength: 1000 })]));
     const auto = gameReducer(war, { type: ActionTypes.ATTACK_ARMY, payload: { fromRegionId: IN, tile: theirs } });

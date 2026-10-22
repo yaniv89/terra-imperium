@@ -155,3 +155,17 @@ describe('map markers', () => {
     expect(getMapMarkers(onlyUnits(s, [unit('a', FR, mine, { tile })])).armies[0].inCity).toBe(false);
   });
 });
+
+describe('rank 9: the stack cap on the flag', () => {
+  it('a land stack past two thirds of its tile cap carries capUse [n, cap]; a small one does not', async () => {
+    const { stackCap } = await import('../engine/supplyMeter');
+    const { s, mine } = setup();
+    const tile = s.regions[mine].tile;
+    const cap = stackCap(getTiles(), tile);
+    const many = Math.floor((cap * 2) / 3) + 1;
+    const big = onlyUnits(s, Array.from({ length: many }, (_, i) => unit(`u${i}`, FR, mine, { tile })));
+    expect(getMapMarkers(big).armies.find((m) => m.own).capUse).toEqual([many, cap]);
+    const small = onlyUnits(s, [unit('a', FR, mine, { tile })]);
+    expect(getMapMarkers(small).armies.find((m) => m.own).capUse).toBeNull();
+  });
+});

@@ -274,7 +274,8 @@ export const buildSetupFromArmies = ({
 // that (rotation only, never mirrored), then is snapped to the side's own edges.
 export const reinforcementEdge = (targetRegionId, fromRegionId, neighbourRegionId, side) => {
   const t = REGION_COORDINATES[targetRegionId]; const f = REGION_COORDINATES[fromRegionId]; const n = REGION_COORDINATES[neighbourRegionId];
-  if (!t || !f || !n) return side === SIDE_ATTACKER ? 'W' : 'E';
+  // no bearing (or a field battle's neighbours of the battle's own region): the side's own edge
+  if (!t || !f || !n || neighbourRegionId === targetRegionId || neighbourRegionId === fromRegionId) return side === SIDE_ATTACKER ? 'W' : 'E';
   const bearing = (c) => Math.atan2(c.lat - t.lat, (c.lng - t.lng) * Math.cos((t.lat * Math.PI) / 180)) * 180 / Math.PI;
   let m = bearing(n) + (180 - bearing(f));
   m = ((m % 360) + 540) % 360 - 180; // -180..180, 180/-180 = west, 0 = east, 90 = north
@@ -439,7 +440,7 @@ const buildFieldSetup = (state, pb) => {
     controllers: pb.playerSide === 'defender' ? ['ai', 'player'] : ['player', 'ai'],
     difficultyId: state.difficultyId || 'prince',
     powers: [getBattlePowers(state, gate.playerNationId, ctx.attackerAgeId, attackerUnits), getBattlePowers(state, v.defenderNationId, ctx.defenderAgeId, defenderUnits)],
-    reinforcements: [[], []],
+    reinforcements: [toReinforcements(state, pb, pb.attackerReinforcements, 0), toReinforcements(state, pb, pb.defenderReinforcements, 1)], // rank 9: neighbours stand by
     intel: { attackerSeesDefender: true },
     regionBuildings: [],
     economy: !pb.quick, // full base-building in field battles too (decision 36); the player may pick a quick 5-minute one

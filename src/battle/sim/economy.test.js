@@ -322,4 +322,15 @@ describe('U24 worker presets and auto rebuild', () => {
     expect(a.world.eco.rebuild[0]).toBe(true);
     expect(admitOrder({ type: 'workerPreset', preset: 'nope' }, 0)).toBeNull();
   });
+
+  it('the steward runs the player side: idle laborers go to work and more are trained, replay exact', () => {
+    const setup = ecoSetup();
+    const log = sanitizeOrderLog([{ side: 0, type: 'steward', on: true, tick: 1, seq: 0 }], 0);
+    const on = runHeadless(setup, { orders: log, maxTicks: 1200 });
+    const off = runHeadless(setup, { maxTicks: 1200 });
+    expect(on.world.eco.steward[0]).toBe(true);
+    expect(workersOf(on.world, 0).length).toBeGreaterThan(workersOf(off.world, 0).length);
+    expect(workersOf(on.world, 0).every((q) => q.job)).toBe(true);
+    expect(runHeadless(setup, { orders: log, maxTicks: 1200 }).chain).toBe(on.chain);
+  });
 });

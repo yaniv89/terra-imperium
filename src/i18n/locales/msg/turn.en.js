@@ -48,6 +48,8 @@ export default {
   'm.turn.conqueredAll': 'You have conquered {nation} entirely! +{gold:money}.',
   'm.turn.defeat': 'DEFEAT: your nation has fallen — no territory remains under your control.',
   'm.turn.victory': 'VICTORY: {victory} achieved!',
+  'm.turn.dominance': '{nation} dominates the world in legacy. If no one closes the gap within {n} turns, the game ends early with {nation} first.',
+  'm.turn.dominanceYou': 'Your legacy dominates the world. Hold the lead for {n} turns and the game ends early with your nation first.',
   'm.turn.scoreVictory': 'VICTORY: your nation leads the world in legacy!',
   'm.turn.gameComplete': 'GAME COMPLETE: your nation finishes ranked #{rank} in the world.',
 

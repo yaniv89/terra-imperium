@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { endingSignal, finalGoalTechs, FINAL_GOAL_AGE_ID } from './ending';
+import { endingSignal, finalGoalTechs, FINAL_GOAL_AGE_ID, dominanceMultipleX2, dominantNation, nextDominance, dominanceHold, DOMINANCE_HOLD } from './ending';
 import { getTechsForAge, TECH_TREE } from '../data/techTree';
 
 // Eight-ages plan U11 (KTD3): one ending signal, the turn limit or the Future's final goal.
@@ -33,5 +33,36 @@ describe('endingSignal', () => {
     expect(endingSignal(tenOnly)).toBeNull(); // the ten base techs are not enough
     const both = { ...base, nations: { ...base.nations, a: { id: 'a', tech: { researched: goal } }, b: { id: 'b', tech: { researched: goal } } } };
     expect(endingSignal(both)).toEqual({ reason: 'futureGoal', nationId: 'a' }); // the first nation only
+  });
+});
+
+// The AoE and Civ report's rank 8: the Dominance end (Civ VII 1.4.0).
+describe('dominance', () => {
+  const goals = (n) => ({ stone: { met: Array.from({ length: n }, (_, i) => `g${i}`) } });
+  const world = (turnNumber, a, b, extra = {}) => ({ ...base, turnNumber, nations: { p: { id: 'p', eraGoals: goals(extra.p ?? 0) }, a: { id: 'a', tech: { researched: [] }, eraGoals: goals(a) }, b: { id: 'b', tech: { researched: [] }, eraGoals: goals(b) } } });
+
+  it('needs 6x from 40% of the turn limit, falling to 1.5x from 90%; integer steps', () => {
+    expect(dominanceMultipleX2(369, 923)).toBeNull();
+    expect(dominanceMultipleX2(370, 923)).toBe(12);
+    expect(dominanceMultipleX2(831, 923)).toBe(3);
+    expect(dominantNation(world(300, 12, 1))).toBeNull(); // too early
+    expect(dominantNation(world(370, 6, 1))).toMatchObject({ nationId: 'a', multX2: 12 });
+    expect(dominantNation(world(370, 5, 1))).toBeNull();
+    expect(dominantNation(world(831, 3, 2))).toMatchObject({ nationId: 'a' }); // 1.5x late
+    expect(dominantNation(world(831, 2, 2))).toBeNull(); // a tie never dominates
+    expect(dominantNation(world(370, 0, 0))).toBeNull(); // nobody scored
+  });
+
+  it('a streak held DOMINANCE_HOLD reference turns ends the game for the leader; a new leader restarts it', () => {
+    const s = world(370, 6, 1);
+    const d = nextDominance(s);
+    expect(d).toEqual({ nationId: 'a', since: 370 });
+    const hold = dominanceHold(s, 'a');
+    expect(hold).toBeGreaterThanOrEqual(DOMINANCE_HOLD);
+    expect(nextDominance({ ...world(371, 6, 1), dominance: d })).toBe(d);
+    expect(endingSignal({ ...world(370 + hold - 1, 6, 1), dominance: d })).toBeNull();
+    expect(endingSignal({ ...world(370 + hold, 6, 1), dominance: d })).toEqual({ reason: 'dominance', nationId: 'a' });
+    expect(nextDominance({ ...world(372, 1, 6), dominance: d })).toEqual({ nationId: 'b', since: 372 });
+    expect(nextDominance({ ...world(372, 2, 1), dominance: d })).toBeNull();
   });
 });

@@ -31,7 +31,8 @@ const EXAMPLES = {
   rally: { building: 2, x: 700, y: 800 },
   cancelBuild: { building: 3 },
   workerPreset: { preset: 'food' },
-  autoRebuild: { on: true }
+  autoRebuild: { on: true },
+  steward: { on: true }
 };
 
 const source = (file) => readFileSync(fileURLToPath(new URL(file, import.meta.url)), 'utf8');

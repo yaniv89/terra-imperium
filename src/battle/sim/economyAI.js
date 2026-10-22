@@ -23,6 +23,8 @@ export const AI_ECONOMY = {
   king: { every: 30, workers: 20, prod: 3, towers: 1, queue: 2 },
   emperor: { every: 24, workers: 26, prod: 4, towers: 2, queue: 3 }
 };
+/** The level the player's economy steward plays at (the `steward` order, run by step.js). */
+export const STEWARD_LEVEL = 'king';
 const MIX = WORKER_MIX;
 /** How far (tiles) laborers may walk a load before the AI raises a drop-off by their node (W12). */
 export const DROP_FAR = 12;

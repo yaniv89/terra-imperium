@@ -12,7 +12,7 @@ import { createBattleClient } from '../../battle/worker/battleClient';
 import { createGestureRecognizer, insidePolygon } from '../../battle/input/gestures';
 import { decidePointer, isCycleClick, pickOwnBuilding, selectionAfter, BUILDING_PICK_TILES, BUILDING_PICK_PX } from '../../battle/input/selection';
 import { Q, TICK_HZ, battleLimitTicks } from '../../battle/sim/constants';
-import BattleHud from './BattleHud';
+import BattleHud, { isIdleSquad } from './BattleHud';
 import { BattleRotateGate } from '../ui/RotateOverlay';
 import BattleResultScreen from './BattleResultScreen';
 import BattleFailure from './BattleFailure';
@@ -75,6 +75,13 @@ const perfOn = () => PERF_URL || !!getMapPrefs().perf;
 // `ordersRefused` when the shared order schema turns an order down or the order log is full.
 const REFUSED_MS = 4000;
 const pausedOrderText = () => tNow('bt.screen.pausedOrder');
+// Rank 6: the radial's top edge: above the finger when it fits under the top bar, else below it, kept
+// between the top bar and the bottom buttons (a 44 px row of commands, abilities about four a row).
+const radialTop = (y, h, abilities) => {
+  const est = 44 + Math.ceil(abilities / 4) * 52;
+  const top = y - 36 - est >= 52 ? y - 36 - est : y + 36;
+  return Math.max(52, Math.min(top, h - est - 56));
+};
 // "2:35": a battle tick as minutes and seconds of battle time.
 const battleClock = (tick) => { const sec = Math.max(0, Math.floor((tick || 0) / TICK_HZ)); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
 const ORDER_NOTE_MS = 3500;
@@ -240,6 +247,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const layout = useLayoutMode();
   useEffect(() => {
     if (started && !resume && layout !== 'desktop' && hud?.eco && !hud.eco.autoRebuild && !rebuildDefault.current) send([{ type: 'autoRebuild', on: true }]);
+    // Rank 5: on a phone the steward runs the base from the start (the Steward button turns it off).
+    if (started && !resume && layout.startsWith('phone') && hud?.eco && !hud.eco.steward && !rebuildDefault.current) send([{ type: 'steward', on: true }]);
     if (started && hud?.eco) rebuildDefault.current = true;
   }, [started, hud?.eco, layout, resume, send]);
 
@@ -816,7 +825,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       click: (p, mods) => pointer('left', p, mods),
       order: (p) => pointer('right', p),
       longPress: (p) => { if (selectedRef.current.size) issueAt(p, true); },
-      radial: (p) => setRadial({ x: p.x, y: p.y }),
+      radial: (p) => setRadial({ x: p.x, y: p.y, at: performance.now() }),
+      radialSelect: () => setRadial((r) => r && { ...r, at: performance.now() }), // the finger lifted: its click is swallowed (below)
       pan: (dx, dy) => { rendererRef.current?.pan(dx, dy); if (followRef.current && Math.abs(dx) + Math.abs(dy) > 2) setFollow(false); },
       zoom: (factor, x, y) => rendererRef.current?.zoomBy(factor, x, y),
       formationDrag: (s, p) => setDragLine({ x0: s.x, y0: s.y, x1: p.x, y1: p.y }),
@@ -923,10 +933,22 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const selectClass = (classId) => {
     const cur = frames.current.cur; if (!cur) return;
     const idle = classId === 'idle' ? new Set(cur.eco?.idleWorkers || []) : null;
-    const picked = classId === 'all' ? fightersOf(cur) : cur.squads.filter((q) => q.side === playerSide && q.alive && q.onField && !q.fled && !q.routed && (idle ? idle.has(q.idx) : q.classId === classId));
+    const picked = classId === 'all' ? fightersOf(cur) : classId === 'idleSquads' ? fightersOf(cur).filter(isIdleSquad) : cur.squads.filter((q) => q.side === playerSide && q.alive && q.onField && !q.fled && !q.routed && (idle ? idle.has(q.idx) : q.classId === classId));
     updateSelection(picked.map((q) => q.idx));
-    if (idle && picked.length) lookAtSquads(picked);
+    if ((idle || classId === 'idleSquads') && picked.length) lookAtSquads(picked);
   };
+  // Rank 6: four control groups. Hold a slot (or tap an empty one) to save the selection, tap to
+  // select it, tap again while it is the selection to bring the camera to it. UI only: no orders.
+  const [groups, setGroups] = useState([[], [], [], []]);
+  const pickGroup = (i, save) => {
+    const cur = frames.current.cur; if (!cur) return;
+    const sel = [...selectedRef.current];
+    if (save || (!groups[i].length && sel.length)) { if (sel.length) setGroups((g) => g.map((x, j) => (j === i ? sel : x))); return; }
+    const live = groups[i].map((idx) => cur.squads[idx]).filter((q) => q?.alive && q.onField && !q.fled);
+    if (live.length && live.length === sel.length && live.every((q) => selectedRef.current.has(q.idx))) lookAtSquads(live);
+    else updateSelection(live.map((q) => q.idx));
+  };
+  const groupCounts = groups.map((g) => g.filter((idx) => { const q = hud?.squads[idx]; return q?.alive && q.onField && !q.fled; }).length);
   // Find army: the selection if there is one, else the whole army.
   const findArmy = () => {
     const cur = frames.current.cur; if (!cur) return;
@@ -1161,16 +1183,28 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       {lasso?.poly && <svg className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true"><polygon points={lasso.poly.map((q) => `${q.x},${q.y}`).join(' ')} fill="rgba(163,230,53,0.1)" stroke="#a3e635" strokeWidth="2" /></svg>}
       {lasso && !lasso.poly && <div className="absolute pointer-events-none border-2 border-lime-400 bg-lime-400/10 rounded" style={{ left: lasso.x0, top: lasso.y0, width: lasso.x1 - lasso.x0, height: lasso.y1 - lasso.y0 }} />}
       {radial && (
-        <div className="absolute z-10 flex flex-wrap justify-center gap-2 max-w-[92vw] -translate-x-1/2 -translate-y-[130%]" style={{ left: Math.min(Math.max(radial.x, 160), (wrapRef.current?.clientWidth || 400) - 160), top: radial.y }} data-testid="battle-radial">
-          {selectedAbilities.map((a) => (
-            <button key={a.id} onClick={() => triggerSquadAbility(a.id)} disabled={a.readyIn > 0}
-              className="min-w-[64px] h-12 px-3 rounded-full bg-fa-raised border border-fa-indep text-fa-text text-xs font-semibold shadow-xl disabled:opacity-40">
-              {ABILITY_LABELS[a.id] || a.id}{a.readyIn > 0 ? ` ${Math.ceil(a.readyIn / TICK_HZ)}s` : ''}
-            </button>
-          ))}
-          {[['hold', 'Hold'], ['stop', 'Stop'], ['retreat', 'Retreat']].map(([t, label]) => (
-            <button key={t} onClick={() => commandSelected(t)} className="min-w-[64px] h-12 px-3 rounded-full bg-fa-panel/95 border border-fa-line text-fa-text text-sm font-semibold shadow-xl">{label}</button>
-          ))}
+        // Rank 6: beside the finger and on the screen (radialTop): the commands that matter (attack arms
+        // the next tap), then the abilities.
+        <div className="absolute z-10 flex flex-col items-center gap-2 max-w-[92vw] -translate-x-1/2" data-testid="battle-radial"
+          // the click a phone makes as the long-pressing finger lifts must not hit a button under it
+          onClickCapture={(e) => { if (performance.now() - radial.at < 400) { e.stopPropagation(); e.preventDefault(); } }}
+          style={{ left: Math.min(Math.max(radial.x, 160), (wrapRef.current?.clientWidth || 400) - 160), top: radialTop(radial.y, wrapRef.current?.clientHeight || 400, selectedAbilities.length) }}>
+          <div className="flex flex-wrap justify-center gap-2">
+            {[['attackMove', 'bt.hud.attack', () => { arm('attackMove'); setRadial(null); }], ['hold', 'bt.hud.hold'], ['stop', 'bt.hud.stop'],
+              [formation, formation === 'line' ? 'bt.hud.line' : 'bt.hud.column', () => { cycleFormation(); setRadial(null); }], ['retreat', 'bt.hud.retreat']].map(([t, label, act]) => (
+              <button key={t} type="button" onClick={act || (() => commandSelected(t))} data-testid={`battle-radial-${t}`} className="min-w-[64px] h-11 px-3 rounded-full bg-fa-panel/95 border border-fa-line text-fa-text text-sm font-semibold shadow-xl">{tNow(label)}</button>
+            ))}
+          </div>
+          {selectedAbilities.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-2">
+              {selectedAbilities.map((a) => (
+                <button key={a.id} type="button" onClick={() => triggerSquadAbility(a.id)} disabled={a.readyIn > 0}
+                  className="min-w-[64px] h-11 px-3 rounded-full bg-fa-raised border border-fa-indep text-fa-text text-xs font-semibold shadow-xl disabled:opacity-40">
+                  {ABILITY_LABELS[a.id] || a.id}{a.readyIn > 0 ? ` ${Math.ceil(a.readyIn / TICK_HZ)}s` : ''}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
       <BattleHud
@@ -1188,7 +1222,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         minimap={hud ? <BattleMinimap setup={setup} hud={hud} playerSide={playerSide} getRenderer={getRenderer} onMoved={() => setFollow(false)} {...(compactScreen ? { maxW: 150, maxH: 92 } : { maxW: 220, maxH: 136 })} /> : null}
         supplyRate={supplyGain}
         perf={showPerf ? <pre ref={perfRef} className="pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre overflow-hidden" data-testid="battle-perf" /> : null}
-        onOpenBuild={() => flowTo({ type: 'toggle' })} buildOpen={buildMenu} onSelectHq={selectHq}
+        onOpenBuild={() => flowTo({ type: 'toggle' })} buildOpen={buildMenu} onSelectHq={selectHq} onSteward={(on) => send([{ type: 'steward', on }])}
+        groups={groupCounts} onGroup={pickGroup}
         soundOn={soundOn} onToggleSound={toggleSound}
         selectMode={selectMode} onToggleSelectMode={() => setSelectModeOn(!selectModeRef.current)}
         pathMode={pathMode} onTogglePathMode={() => setPathModeOn(!pathModeRef.current)}

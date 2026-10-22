@@ -51,6 +51,20 @@ describe('BattleHud', () => {
     expect(b).not.toContain('data-testid="battle-commands"');
   });
 
+  it('rank 5, 6: Idle n counts regiments with no orders; Steward toggles; groups show filled slots and one free slot', () => {
+    const idle = html({ hud: { ...hud, squads: [sq(0, { order: 'idle', target: -1 }), sq(1, { order: 'move', target: -1 }), sq(4, { order: 'idle', target: -1, inside: 0 })] } });
+    expect(btn(idle, 'battle-idle-squads')).toContain('Select the 1 regiments');
+    expect(html()).not.toContain('battle-idle-squads');
+    const eco = { stock: [100, 100, 100], pop: 5, cap: 10, workers: 2, idleWorkers: [], buildings: [], nodes: [], steward: true };
+    expect(btn(html({ hud: { ...hud, eco }, onSteward: vi.fn() }), 'battle-steward')).toContain('aria-pressed="true"');
+    expect(html({ groups: [0, 0, 0, 0], onGroup: vi.fn() })).not.toContain('battle-groups');
+    const g = html({ groups: [3, 0, 0, 0], onGroup: vi.fn(), selectedSquads: [hud.squads[0]] });
+    expect(g).toContain('data-testid="battle-group-1"');
+    expect(g).toContain('data-testid="battle-group-2"');
+    expect(g).not.toContain('data-testid="battle-group-3"');
+    expect(btn(g, 'battle-group-1')).toContain('w-11 h-11');
+  });
+
   it('the selection card has a labelled 44 px x that clears it', () => {
     const h = html({ selectedSquads: [hud.squads[0]], onClearSelection: vi.fn() });
     const x = btn(h, 'battle-clear-selection');
