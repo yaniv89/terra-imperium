@@ -185,7 +185,7 @@ The ranking weighs player trust and phone play first, then work the eight-ages p
 | 4 | Refit research cost per age for eight ages to Civ VI's turns-per-era shape (Kingdoms about 140 turns at Normal, not 250); smooth year label | Science, pacing | `src/engine/research.js`, `src/data/ages.js`, `src/engine/displayYear.js`, balance-sim | Medium (label very small) | Civ VI calendar verified; our turns measured, one seed |
 | 5 | Economy steward toggle in battle | RTS economy, phone | `economyAI.js`, `buildCommandedSetup`, battle card | Small to medium | Verified (Xbox and Mobile evidence) |
 | 6 | Control groups, radial commands, idle-squads chip | Phone | `TacticalBattleScreen.jsx`, `gestures.js`, `BattleHud.jsx` | Medium | Verified |
-| 7 | Per-city Auto build | Cities, phone | `cities.js`, `resolveTurn.js`, `aiProduction.js` | Small | Verified (Civ VII dev diary) |
+| 7 | ~~Per-city Auto build~~ Dropped: the user does not want it (22 Oct) | Cities, phone | `cities.js`, `resolveTurn.js`, `aiProduction.js` | Small | Verified (Civ VII dev diary) |
 | 8 | Dominance early end | Victory, length | `src/engine/ending.js` | Small | Verified (Civ VII 1.4.0) |
 | 9 | Own adjacent stacks reinforce; stack-cap label | Stacking | `battleInputs.js`, `sceneModel.js` | Small | Verified (Civ VI, Humankind) |
 | 10 | War exhaustion x1.5 abroad | Diplomacy | `aftermath.js` | Very small | Verified direction, value ours |

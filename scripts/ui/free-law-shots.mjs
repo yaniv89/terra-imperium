@@ -64,17 +64,6 @@ for (const [label, w, h, mobile] of SIZES) for (const lang of ['en', 'he']) {
     await page.screenshot({ path: path.join(OUT, `${tag}-laws.png`) });
     await page.keyboard.press('Escape'); await wait(400);
   }
-  await click(page.getByTestId('end-turn'));
-  await page.getByTestId('city-tab-build').waitFor({ timeout: 10000 }).catch(() => {});
-  await wait(800);
-  const sw = page.getByTestId('city-auto-build-toggle');
-  check(`${tag} auto build switch shows, off on the capital`, (await sw.getAttribute('aria-pressed').catch(() => null)) === 'false');
-  const bb = await sw.boundingBox().catch(() => null);
-  check(`${tag} switch is a 44 px target inside the screen`, !!bb && bb.height >= 44 && bb.x >= 0 && bb.x + bb.width <= w, JSON.stringify(bb));
-  await page.screenshot({ path: path.join(OUT, `${tag}-build-off.png`) });
-  await click(sw); await wait(500);
-  check(`${tag} the switch turns on`, (await sw.getAttribute('aria-pressed').catch(() => null)) === 'true');
-  await page.screenshot({ path: path.join(OUT, `${tag}-build-on.png`) });
   check(`${tag} no page errors`, !errors.length, errors.slice(0, 2).join(' | '));
   await ctx.close();
 }
