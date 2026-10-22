@@ -35,6 +35,7 @@ import { ATTRIBUTES, raiseBlock, virtueBlock } from '../../engine/rulers';
 import { VIRTUES } from '../../data/rulerVirtues';
 import { cityGroups, governorChoices } from '../../engine/governors';
 import { decreesOf, decreeCap } from '../../engine/decrees';
+import { autoBuildOn } from '../../engine/world/cities';
 
 const pName = (state, id) => nameNow('people', id, state.nations?.[id]?.name || '');
 const cName = (c) => nameNow('city', null, c.name);
@@ -65,7 +66,7 @@ export const nextPrompts = (state) => {
   if (state.pendingMapOffer && state.nations?.[state.pendingMapOffer.from] && !state.nations[state.pendingMapOffer.from].isEliminated) out.push({ id: 'maps', kind: 'maps', label: tNow('prompt.mapOffer', { name: pName(state, state.pendingMapOffer.from) }), tab: 'diplomacy', nationId: state.pendingMapOffer.from });
   if (researchNeedsChoice(state)) out.push({ id: 'research', kind: 'research', label: tNow('prompt.research'), tab: 'tech' });
   const cities = Object.values(state.regions || {}).filter((c) => c.owner === me && c.tile != null && !c.outpost).sort((a, b) => (a.id < b.id ? -1 : 1));
-  cities.forEach((c) => { if (!c.production?.current) out.push({ id: `city:${c.id}`, kind: 'city', label: tNow('prompt.cityIdle', { city: cName(c) }), regionId: c.id }); });
+  cities.forEach((c) => { if (!c.production?.current && !autoBuildOn(c)) out.push({ id: `city:${c.id}`, kind: 'city', label: tNow('prompt.cityIdle', { city: cName(c) }), regionId: c.id }); });
   // Choices that wait in a panel (playtest 22 Oct: players missed them behind the rail's dot).
   const nation = state.nations?.[me];
   if (nation?.ruler && (ATTRIBUTES.some((a) => !raiseBlock(state, me, a)) || Object.keys(VIRTUES).some((v) => !virtueBlock(state, me, v)))) out.push({ id: 'ruler', kind: 'ruler', label: tNow('prompt.ruler'), tab: 'ruler' });
