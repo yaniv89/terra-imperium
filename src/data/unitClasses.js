@@ -1,4 +1,4 @@
-import { AGES, FIRST_AGE_ID, isAgeAtLeast } from './ages';
+import { AGES, FIRST_AGE_ID, isAgeAtLeast, ageGapMult } from './ages';
 // src/data/unitClasses.js
 // The combat classes and their hard-counter triangle (plan §7): Infantry beats Cavalry, Cavalry
 // beats Ranged, Ranged beats Infantry — a counter system players can't see is just noise, so
@@ -257,23 +257,12 @@ export const guardClassOf = (ageId) => (!UNIT_ROSTER[ageId] || UNIT_ROSTER[ageId
 // nation ahead of an opponent is rewarded exactly as much as a nation behind one is punished, and
 // two nations at the SAME age always net out to 1.0 no matter which age that is.
 //
-// Honest simplification of the plan's literal "attackerRoster.baseAttack / defenderRoster.
-// baseDefense" wording: baseAttack and baseDefense deliberately scale at DIFFERENT per-age rates
-// (see rosterEntry above — a design choice for how a single roster entry's own numbers read, not
-// meant to double as a cross-age normalization base), so a raw attack/defense ratio does NOT stay
-// constant across ages and can't be "normalized to 1.0 for same-age units" by any single divisor.
-// Comparing each side's baseATTACK against the other side's baseATTACK (same stat, both sides)
-// sidesteps that mismatch entirely and gives the same real-content promise — an age gap swings the
-// multiplier away from 1.0 by exactly how far apart the two roster tiers are — with an exact 1.0 at
-// equal ages guaranteed by construction, not by a coincidental ratio.
-const ROSTER_REFERENCE_CLASS = 'infantry';
-export const getRosterCombatMultiplier = (attackerAgeId, defenderAgeId) => {
-  const attackerAttack = UNIT_ROSTER[attackerAgeId]?.[ROSTER_REFERENCE_CLASS]?.baseAttack ?? UNIT_ROSTER[FIRST_AGE_ID][ROSTER_REFERENCE_CLASS].baseAttack;
-  const defenderAttack = UNIT_ROSTER[defenderAgeId]?.[ROSTER_REFERENCE_CLASS]?.baseAttack ?? UNIT_ROSTER[FIRST_AGE_ID][ROSTER_REFERENCE_CLASS].baseAttack;
-  return attackerAttack / defenderAttack;
-};
+// The edge is a fixed step per age of difference (src/data/ages.js ageGapMult), not the ratio of the
+// two ages' baseAttack, which made one age ahead worth anywhere from x1.24 to x1.8 depending on which
+// ages met (AoE and Civ report, rank 3). baseAttack stays for display. Exactly 1.0 at equal ages.
+export const getRosterCombatMultiplier = (attackerAgeId, defenderAgeId) => ageGapMult(attackerAgeId, defenderAgeId);
 
-/** A unit's weight inside a side fighting at `sideAgeId`: its own age's roster attack over the side's
+/** A unit's weight inside a side fighting at `sideAgeId`: the age-gap step from the side's age to its own
  * (src/engine/unitUpgrades.js: units keep the age they were built in). Exactly 1 for a unit with no
  * age of its own or of the side's age, so an army of the current age fights as before. */
 export const unitAgeWeight = (unit, sideAgeId) => (unit?.robot ? ROBOT_POWER_MULT : 1) * (!unit?.ageId || unit.ageId === sideAgeId || !UNIT_ROSTER[unit.ageId] ? 1 : getRosterCombatMultiplier(unit.ageId, sideAgeId || FIRST_AGE_ID));

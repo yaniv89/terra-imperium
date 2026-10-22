@@ -27,6 +27,7 @@ import { buildTownManifest, manifestHousing } from '../../../src/data/townLayout
 import { getDefenseLevelDamageReductionMultiplier } from '../../../src/engine/siege';
 import { FORT_REDUCTION, FORT_BATTLE_LEVEL } from '../../../src/engine/fieldBattle';
 import { getAvailableClasses } from '../../../src/data/unitClasses';
+import { ledgerShares, sharesText } from './ledgerShares';
 
 const N = Number(process.env.N || 32);
 // NOROUT=attacker|defender: that side never routs, as the player's side in a commanded battle
@@ -73,7 +74,7 @@ const sum = (units) => units.reduce((x, u) => x + Math.max(0, u.strength), 0);
 it('parity with the battle economy', () => {
   const rows = [];
   TYPES.forEach((battleType) => (battleType === 'raid' ? RAID_MATCHUPS : battleType === 'sack' ? SACK_MATCHUPS : MATCHUPS).forEach(([att, def]) => AGE_PAIRS.forEach(([ageA, ageD]) => {
-    let tA = 0; let tD = 0; let aA = 0; let aD = 0; let wins = 0; let autoWins = 0; let trainedA = 0; let trainedD = 0; let secs = 0; let housesHit = 0; let housesAuto = 0; const kinds = {};
+    let tA = 0; let tD = 0; let aA = 0; let aD = 0; let wins = 0; let autoWins = 0; let trainedA = 0; let trainedD = 0; let secs = 0; let housesHit = 0; let housesAuto = 0; const kinds = {}; const led = { t: [], a: [] };
     const t0 = Date.now();
     for (let seed = 1; seed <= N; seed++) {
       const assault = battleType === 'assault' || battleType === 'town' || battleType === 'sack' || battleType === 'landing';
@@ -95,6 +96,7 @@ it('parity with the battle economy', () => {
         economy: true, economyInputs: { supply: [1, 1], development: [0.3, 0.3] }, generals: GENERALS
       })));
       tA += sum(attackers) - sum(result.attackerUnits); tD += sum(defenders) - sum(result.defenderUnits);
+      led.t.push(ledgerShares(attackers, result.attackerUnits, defenders, result.defenderUnits));
       if (result.outcome === 'attacker') wins += 1;
       if (raid) kinds[`reason:${result.report.tactical.reason}`] = (kinds[`reason:${result.report.tactical.reason}`] || 0) + 1 / N;
       const eco = result.report.tactical.economy;
@@ -113,6 +115,7 @@ it('parity with the battle economy', () => {
       const autoKind = raid ? battleType : landing ? 'landing' : assault ? 'invasion' : 'field';
       const auto = autoFromInputs({ terrain: TERRAIN, isAttackingFortification: walled || fort, battleType: autoType, attackerAgeId: ageA, defenderAgeId: ageD, defenderDamageReductionMultiplier: reduction, generals: GENERALS }, ins, autoKind, createRng(seed * 97), TUNE);
       aA += sum(attackers) - sum(auto.attackerUnits); aD += sum(defenders) - sum(auto.defenderUnits);
+      led.a.push(ledgerShares(attackers, auto.attackerUnits, defenders, auto.defenderUnits));
       if (auto.outcome === 'attacker') autoWins += 1;
       if (assault && !raid) {
         const houses = cityManifest.structures.filter((x) => x.kind === 'house').map((x) => x.id);
@@ -122,7 +125,7 @@ it('parity with the battle economy', () => {
     }
     const tactical = tA / Math.max(1, tD); const auto = aA / Math.max(1, aD);
     const ratio = tactical / Math.max(0.001, auto);
-    const row = `PARITY${CMD == null ? '' : ` cmd=${CMD}`} ${battleType} ${ageA}>${ageD} ${att.join('+')} vs ${def.join('+')} seeds=${N} terrain=${TERRAIN} tactical=${tactical.toFixed(3)} auto=${auto.toFixed(3)} ratio=${ratio.toFixed(2)}x ${ratio >= 0.5 && ratio <= 3.5 ? 'IN' : 'OUT'} wins=${wins}/${N} autoWins=${autoWins}/${N} trained=${(trainedA / N).toFixed(1)}/${(trainedD / N).toFixed(1)} battle=${Math.round(secs / N)}s${battleType !== 'field' ? ` houses=${(housesHit / N).toFixed(2)}/${(housesAuto / N).toFixed(2)}` : ''} ms=${Date.now() - t0}${Object.keys(kinds).length ? ` dmg=${Object.entries(kinds).map(([k, v]) => `${k}:${v.toFixed(1)}`).join(',')}` : ''}`;
+    const row = `PARITY${CMD == null ? '' : ` cmd=${CMD}`} ${battleType} ${ageA}>${ageD} ${att.join('+')} vs ${def.join('+')} seeds=${N} terrain=${TERRAIN} tactical=${tactical.toFixed(3)} auto=${auto.toFixed(3)} ratio=${ratio.toFixed(2)}x ${ratio >= 0.5 && ratio <= 3.5 ? 'IN' : 'OUT'} wins=${wins}/${N} autoWins=${autoWins}/${N} ${sharesText(led)} trained=${(trainedA / N).toFixed(1)}/${(trainedD / N).toFixed(1)} battle=${Math.round(secs / N)}s${battleType !== 'field' ? ` houses=${(housesHit / N).toFixed(2)}/${(housesAuto / N).toFixed(2)}` : ''} ms=${Date.now() - t0}${Object.keys(kinds).length ? ` dmg=${Object.entries(kinds).map(([k, v]) => `${k}:${v.toFixed(1)}`).join(',')}` : ''}`;
     rows.push(row);
     console.log(row);
   })));

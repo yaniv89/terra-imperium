@@ -15,6 +15,7 @@ import { getTiles } from '../../../src/data/geo/tiles';
 import { tileContextOf } from '../../../src/battle/setup/tileContext';
 import { riverAttackAdjust } from '../../../src/battle/setup/battleType';
 import { buildTownManifest } from '../../../src/data/townLayout';
+import { ledgerShares, sharesText } from './ledgerShares';
 
 // TYPES=assault: a siege assault on a walled town (fortLevel 2); CITY=1 loads a real city from its
 // manifest (src/battle/setup/cityBattle.js: houses, the wall ring and gate, towers), TIER=small|
@@ -63,16 +64,16 @@ const riverContext = (size) => {
 it('parity', () => {
   RIVER_SIZES.forEach((riverSize) => TYPES.forEach((battleType) => (battleType === 'naval' ? NAVAL_MATCHUPS : MATCHUPS).forEach(([att, def]) => AGES.forEach((ageId) => {
     const tileContext = battleType === 'river' ? riverContext(riverSize) : null;
-    let tA = 0; let tD = 0; let aA = 0; let aD = 0; let wins = 0; let autoWins = 0; const reasons = {};
+    let tA = 0; let tD = 0; let aA = 0; let aD = 0; let wins = 0; let autoWins = 0; const reasons = {}; const led = { t: [], a: [] };
     for (let seed = 1; seed <= N; seed++) {
       const assault = battleType === 'assault';
       const cityManifest = assault && CITY ? buildTownManifest({ cityId: `parity-${seed}`, ageId, tierId: TIER, style: 'europe', seed, defenseTier: 1 }) : null;
       const { result } = runHeadless(noRout(buildSetupFromArmies({ regionId: `parity-${seed}`, terrain: battleType === 'naval' ? 'sea' : 'mixed', seed, attackerUnits: mk('a', att), defenderUnits: mk('d', def), attackerAgeId: ageId, defenderAgeId: ageId, controllers: ['ai', 'ai'], deposits: [], powers: [[], []], battleType, tileContext, landing: battleType === 'landing', sally: battleType === 'sally', ...(assault ? { fortLevel: 2, isAttackingFortification: true, cityManifest } : {}) })));
-      tA += lost(result.attackerUnits, mk('a', att)); tD += lost(result.defenderUnits, mk('d', def)); if (result.outcome === 'attacker') wins += 1; const rk = `${result.outcome}:${result.report.tactical.reason}`; reasons[rk] = (reasons[rk] || 0) + 1;
+      tA += lost(result.attackerUnits, mk('a', att)); tD += lost(result.defenderUnits, mk('d', def)); led.t.push(ledgerShares(mk('a', att), result.attackerUnits, mk('d', def), result.defenderUnits)); if (result.outcome === 'attacker') wins += 1; const rk = `${result.outcome}:${result.report.tactical.reason}`; reasons[rk] = (reasons[rk] || 0) + 1;
       const auto = resolveBattle({ attackerUnits: mk('a', att), defenderUnits: mk('d', def), terrain: battleType === 'naval' ? 'sea' : 'mixed', isAttackingFortification: assault, battleType, attackerPenaltyMultiplier: tileContext ? riverAttackAdjust(riverSize) : 1, attackerAgeId: ageId, defenderAgeId: ageId, rng: createRng(seed * 97) });
-      aA += lost(auto.attackerUnits, mk('a', att)); aD += lost(auto.defenderUnits, mk('d', def)); if (auto.outcome === 'attacker') autoWins += 1;
+      aA += lost(auto.attackerUnits, mk('a', att)); aD += lost(auto.defenderUnits, mk('d', def)); led.a.push(ledgerShares(mk('a', att), auto.attackerUnits, mk('d', def), auto.defenderUnits)); if (auto.outcome === 'attacker') autoWins += 1;
     }
     const tactical = tA / Math.max(1, tD); const auto = aA / Math.max(1, aD);
-    console.log(`PARITY${NOROUT >= 0 ? `[norout ${process.env.NOROUT}]` : ''} ${battleType}${tileContext ? `(size ${riverSize}${process.env.BRIDGE ? ', bridge' : ''})` : ''} ${ageId} ${att.join('+')} vs ${def.join('+')} seeds=${N} tactical=${tactical.toFixed(3)} auto=${auto.toFixed(3)} ratio=${(tactical / Math.max(0.001, auto)).toFixed(2)}x attackerWins=${wins}/${N} autoWins=${autoWins}/${N} ${Object.entries(reasons).map(([k, v]) => `${k}=${v}`).join(' ')}`);
+    console.log(`PARITY${NOROUT >= 0 ? `[norout ${process.env.NOROUT}]` : ''} ${battleType}${tileContext ? `(size ${riverSize}${process.env.BRIDGE ? ', bridge' : ''})` : ''} ${ageId} ${att.join('+')} vs ${def.join('+')} seeds=${N} tactical=${tactical.toFixed(3)} auto=${auto.toFixed(3)} ratio=${(tactical / Math.max(0.001, auto)).toFixed(2)}x attackerWins=${wins}/${N} autoWins=${autoWins}/${N} ${sharesText(led)} ${Object.entries(reasons).map(([k, v]) => `${k}=${v}`).join(' ')}`);
   }))));
 });

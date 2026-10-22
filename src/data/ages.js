@@ -109,6 +109,17 @@ export const agesFrom = (fromAgeId) => AGE_ORDER.slice(Math.max(0, getAgeIndex(f
 /** Steps from the Bronze Age, for per-age formulas tuned on the five ages from Bronze (prices, caps):
  * the Stone Age counts as Bronze there until its own values are designed. */
 export const ageStep = (ageId) => Math.max(0, getAgeIndex(ageId) - getAgeIndex('bronze'));
+/** Combat edge per age of difference (Civ's "flat points, exponential effect"): one fixed step,
+ * x1.4 a step, so every pair of neighbouring ages has the same edge, and 3 or more ages ahead
+ * caps at x2.744. Tuned with battle-lab parity and balance-sim (AoE and Civ report, rank 3). */
+export const AGE_GAP_MULT = [1, 1.4, 1.96, 2.744];
+/** The damage multiplier for a side of `ageId` against one of `otherAgeId` (behind: the reciprocal).
+ * An unknown age counts as the first. */
+export const ageGapMult = (ageId, otherAgeId) => {
+  const gap = Math.max(0, getAgeIndex(ageId)) - Math.max(0, getAgeIndex(otherAgeId));
+  const m = AGE_GAP_MULT[Math.min(AGE_GAP_MULT.length - 1, Math.abs(gap))];
+  return gap < 0 ? 1 / m : m;
+};
 /** The age after `ageId`, or null at the last one (and for an unknown age). */
 export const nextAgeId = (ageId) => { const i = getAgeIndex(ageId); return i === -1 ? null : AGE_ORDER[i + 1] ?? null; };
 

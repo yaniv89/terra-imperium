@@ -112,7 +112,7 @@ describe('resolveBattle: flanking and pursuit', () => {
       ...Array.from({ length: 4 }, (_, i) => makeUnit(`inf${i}`, 'infantry', 5000)),
       makeUnit('cav', 'cavalry', 5000)
     ];
-    const defenderUnits = [makeUnit('d0', 'infantry', 5000, 100)];
+    const defenderUnits = [makeUnit('d0', 'infantry', 5000, 50)]; // shaken going in: it breaks with men left to run down
     const { outcome, report, defenderUnits: resultDefenders } = run({ attackerUnits, defenderUnits }, 5);
     expect(outcome).toBe('attacker');
     const pursuit = report.log.filter((e) => e.phase === 'pursuit');
@@ -177,7 +177,7 @@ describe('resolveBattle: promotion perks wired into combat', () => {
         ...Array.from({ length: 4 }, (_, i) => makeUnit(`inf${i}`, 'infantry', 5000)),
         makeUnit('cav', 'cavalry', 5000, 100, { promotions: cavPromotions })
       ];
-      const defenderUnits = [makeUnit('d0', 'infantry', 5000, 100)];
+      const defenderUnits = [makeUnit('d0', 'infantry', 5000, 50)];
       const { report } = run({ attackerUnits, defenderUnits }, 5);
       return report.log.filter((e) => e.phase === 'pursuit').reduce((sum, e) => sum + e.damage, 0);
     };
@@ -324,7 +324,8 @@ describe('resolveBattle: the battle type sets the odds (battleType.js)', () => {
       expect(defenderLost(r)).toBeLessThan(defenderLost(field));
     });
     expect(defenderLost(run({ ...sides(), battleType: 'landing' }, 11))).toBe(defenderLost(field));
-    expect(defenderLost(run({ ...sides(), battleType: 'sally' }, 11))).toBeGreaterThanOrEqual(defenderLost(field));
+    const lostOver = (battleType) => Array.from({ length: 16 }, (_, i) => defenderLost(run({ ...sides(), battleType }, i + 1))).reduce((a, b) => a + b, 0);
+    expect(lostOver('sally')).toBeGreaterThan(lostOver('field'));
     expect(defenderLost(run({ ...sides(), battleType: 'assault' }, 11))).toBe(defenderLost(field));
     expect(run(sides(), 11).report.battleType).toBe('field'); // the default
   });
