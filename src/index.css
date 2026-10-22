@@ -651,6 +651,8 @@ svg path {
   border-inline-end: 0;
   /* Clear of a notch on the right; the strip under it shows the backdrop. */
   margin-inline-end: var(--safe-end);
+  /* End Turn rides above sheets (TurnDock.jsx): the last row scrolls clear of it (playtest issue 5). */
+  padding-bottom: calc(max(env(safe-area-inset-bottom), 0.75rem) + 3.5rem);
 }
 /* Two-column sheets (Settings, the nation overview): wide enough for both columns, over the rail
    (plans/UI-DESIGN.md section 5: Settings hides the tab rail). */
