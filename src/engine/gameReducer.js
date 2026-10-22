@@ -1287,7 +1287,7 @@ const reduceAction = (state, action) => {
       const { landUnitId, tile = null } = action.payload;
       const landUnit = state.units[landUnitId];
       const costs = ACTION_COSTS.disembarkUnit;
-      if (!landUnit || landUnit.ownerId !== state.playerNationId || !landUnit.embarkedOn) return state;
+      if (!landUnit || landUnit.ownerId !== state.playerNationId || !landUnit.embarkedOn || landUnit.embarkedOn === landUnitId) return state; // a self-embarked unit lands by marching (armies.js)
       if (!canAfford(state.resources, costs)) return state;
       const ship = state.units[landUnit.embarkedOn];
       let landed;
