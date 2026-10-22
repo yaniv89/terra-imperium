@@ -112,7 +112,7 @@ const GIFT_CASES = {
 const giftCases = async (page, tag, shot, phone) => {
   const rail = page.getByTestId('landscape-rail');
   for (const [name, patch] of Object.entries(GIFT_CASES)) {
-    await page.evaluate(([n, fn]) => {
+    await page.evaluate(([, fn]) => {
       const s = window.__game.state; const me = s.playerNationId;
       const other = s.nations.israel && me !== 'israel' ? 'israel' : Object.keys(s.nations).find((id) => id !== me && !s.nations[id].isEliminated && s.nations[id].kind !== 'independent' && s.nations[id].name);
       window.__giftOther = other;
