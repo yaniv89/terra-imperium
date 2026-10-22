@@ -178,10 +178,9 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
       // Two tiles can share terrain, distance and direction: number the later ones.
       const n = (seen.get(label) || 0) + 1; seen.set(label, n);
       if (n > 1) label = `${label} (${n})`;
-      const notes = [effect.replaces ? tNow('cy.replaces', { name: effect.replaces }) : null, effect.worked ? null : tNow('cy.notWorked')].filter(Boolean);
       add(item, 'Improvements', {
         ...(queued ? { ok: false, reason: tNow('cy.alreadyQueued') } : { ok: true }),
-        fields: { label, tile: t, detail: effect.text, note: notes.length ? notes.join('; ') : null }
+        fields: { label, tile: t, detail: effect.text, note: effect.worked ? null : tNow('cy.notWorked'), replaces: effect.replaces }
       });
     });
   });

@@ -301,7 +301,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
         selectedRegion={selectedRegion}
         onSelectRegion={onSelectRegion}
       />
-      <ProvinceModal regionId={selectedRegion} open={manageOpen} onClose={() => { setManageOpen(false); setTabRequest(null); }} tabRequest={tabRequest} />
+      <ProvinceModal regionId={selectedRegion} open={manageOpen} onClose={(how) => { setManageOpen(false); setTabRequest(null); if (how?.toMap) onSelectRegion(null); }} tabRequest={tabRequest} />
     </div>
   );
 };

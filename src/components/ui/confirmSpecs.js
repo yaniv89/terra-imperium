@@ -61,6 +61,15 @@ export const changeLawConfirm = (state, category, lawId, cost) => {
   };
 };
 
+/** Building an improvement over another (playtest 22 Oct): the old one and its yield go. */
+export const replaceImprovementConfirm = (label, old) => ({
+  id: `replace-improvement:${label}`,
+  title: t('cf.replace.title', { old }),
+  rows: [{ label: t('cf.replace.build'), value: label }],
+  notes: [t('cf.replace.note', { old })],
+  confirmLabel: t('cf.replace.ok')
+});
+
 /** Taking a ruler virtue (playtest issue 10): its cost in virtue points, what is left, its drawback. */
 export const virtueConfirm = (state, virtueId) => {
   const id = state.playerNationId;
