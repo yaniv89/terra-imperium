@@ -46,7 +46,7 @@ import { getResearched } from './nationState';
 import { FIRST_AGE_ID } from '../data/ages';
 
 export const AUX_UNIT = 1000;
-export const AUX_EFFECT = 1.6;
+export const AUX_EFFECT = 1; // 1.6 before Auto broke units at the RTS loss share (moraleMath.js): autoCalib over parityEco field, assault, town, N=32: 2 of 90 out (8 at 1.6)
 // Auxiliaries a side trains in a battle of this kind, [attacker, defender] (measured in the
 // real-time battle with the parity harness, .claude/skills/battle-lab/parityEco.sim.js). `town` is an
 // unwalled city: over in two to four minutes, so few are trained, and with the company frontage of
@@ -56,7 +56,7 @@ export const AUX_EFFECT = 1.6;
 // works only as strong as their crew, so the real-time attacker of a city bleeds far less; autoCalib
 // over parityEco assault and town, bronze, classical against kingdoms and bronze against classical,
 // N=16: 13 of 14 in, the bronze 3-against-3 against classical walls reads 0.41).
-export const AUX_TRAINED = { field: [8, 8], assault: [12, 8], town: [2, 2] }; // assault [12, 8] since U19 (autoCalib over parityEco fort, landing, sally, assault, town)
+export const AUX_TRAINED = { field: [6, 6], assault: [12, 8], town: [2, 2] }; // assault [12, 8] since U19 (autoCalib over parityEco fort, landing, sally, assault, town)
 export const AUX_ROUNDS = 0; // extra auto-resolve rounds per auxiliary unit (the time to fight them)
 export const WALLS_FORT_LEVEL = 2;
 // 0.8 since SETUP_VERSION 13 (W12): with wood everywhere the real-time attacker trains more
