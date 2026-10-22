@@ -83,7 +83,8 @@ import {
   getBuildingSlots, getUsedBuildingSlots, getBuildingTierCost, getCategoryTierName
 } from '../data/buildings';
 import { regionHasDeposit } from '../data/deposits';
-import { getUnlockedClasses } from '../data/unitClasses';
+import { getUnlockedClasses, isRobotUnlocked } from '../data/unitClasses';
+import { robotRecruitCost } from './robots';
 import { upgradeUnits, stampUnitAges } from './unitUpgrades';
 import {
   ACTION_COSTS, DISBAND_HR_REFUND_RATIO, FUND_SCHOLARS_TECHPOINTS,
@@ -1097,9 +1098,11 @@ const reduceAction = (state, action) => {
       // Plan §M11 resource sink: costs the age's strategic resource when available, else a gold
       // penalty (getRecruitUnitCost's own header) — computed fresh per recruit, not a flat table
       // entry, the same "dynamically-priced action" shape RESEARCH_TECH/CHANGE_LAW already use.
-      const costs = getRecruitUnitCost(state, ageOf(state, state.playerNationId));
+      const robot = !!action.payload?.robot; // a robot variant (robots.js): no manpower, no levy
+      const costs = robot ? robotRecruitCost(getRecruitUnitCost(state, ageOf(state, state.playerNationId))) : getRecruitUnitCost(state, ageOf(state, state.playerNationId));
       if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
       if (!getUnlockedClasses(ageOf(state, state.playerNationId), getResearched(state, state.playerNationId)).includes(classId)) return state;
+      if (robot && !isRobotUnlocked(ageOf(state, state.playerNationId), classId, getResearched(state, state.playerNationId))) return state;
       if (!canAfford(state.resources, costs)) return state;
       const unitId = `unit_${state.nextUnitSeq}`;
       const isNaval = classId === 'naval';
@@ -1126,6 +1129,7 @@ const reduceAction = (state, action) => {
         rank: 'recruit',
         promotions: [],
         commanderId: null,
+        ...(robot ? { robot: true } : {}),
         // Naval-only: how many land units it can carry (plan §7.5's Embark/Disembark). Land-only:
         // which naval unit currently carries it, if any — set by EMBARK_UNIT/AMPHIBIOUS_ASSAULT.
         transportCapacity: isNaval ? navalCargo(navalLine, ageOf(state, state.playerNationId)) : null,
@@ -1138,7 +1142,7 @@ const reduceAction = (state, action) => {
         resources: applyCosts(state.resources, costs),
         units: { ...state.units, [unitId]: newUnit },
         // Its men leave the fields and workshops of the province they're raised in.
-        regions: isNaval ? state.regions : levyUnit(state.regions, newUnit),
+        regions: isNaval || robot ? state.regions : levyUnit(state.regions, newUnit),
         nations: {
           ...state.nations,
           // Every other reader of militaryStrength (AI tiering, coalition thresholds, a

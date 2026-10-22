@@ -13,7 +13,7 @@ import { ecoView, workCodes } from '../sim/economy';
 
 /** A squad's irregular look for the renderer (unitModels.js): 'mercenary' (a hired band, engine
  * unit.mercenary), 'raider' (an independent's raid party, unit.raidOf), or null. */
-export const squadLookOf = (q) => (q.original?.mercenary ? 'mercenary' : q.original?.raidOf || q.original?.raider ? 'raider' : null);
+export const squadLookOf = (q) => (q.original?.robot ? 'robot' : q.original?.mercenary ? 'mercenary' : q.original?.raidOf || q.original?.raider ? 'raider' : null);
 
 // Drawing-only ticks and the worker's job (I219, the clip player): the last tick a squad struck,
 // was hit and (a worker) dropped a load, and its `work` code (economy.js workCodes). An enemy squad

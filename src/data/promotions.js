@@ -118,7 +118,8 @@ export const getPromotionDefenseMultiplier = (unit, { isDefendingSide }) => {
 
 // Resilient trades some of a hit's morale cost away — applied to the morale-loss figure, not the
 // strength-damage figure, keeping "fewer casualties" about resolve rather than raw survivability.
-export const getPromotionMoraleLossMultiplier = (unit) => (hasPerk(unit, 'resilient') ? 0.7 : 1);
+// Robots (src/engine/robots.js) lose no morale at all, in auto-resolve and the tactical sim alike.
+export const getPromotionMoraleLossMultiplier = (unit) => (unit?.robot ? 0 : hasPerk(unit, 'resilient') ? 0.7 : 1);
 
 // Sapper keeps half its fortification bonus even without one to crack — halfway between the open-
 // field penalty and neutral, rather than the harsh -50% every other siege unit suffers.

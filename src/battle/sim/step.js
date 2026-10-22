@@ -88,7 +88,7 @@ const spendSides = (w, type) => {
     w.spent[side] = true;
     // A side that cannot rout (the player's, in a commanded battle: morale.js canRout) fights on: it
     // ends by losses (destroyed), the clock, or the player's own Retreat.
-    if (canRout(w, side)) w.squads.forEach((q) => { if (q.side === side && q.alive && !q.fled && !q.routed && !(q.inside >= 0)) { q.routed = true; q.morale = 0; w.events.push({ t: w.tick, type: 'routed', id: q.idx }); } });
+    if (canRout(w, side)) w.squads.forEach((q) => { if (q.side === side && q.alive && !q.fled && !q.routed && !(q.inside >= 0) && !q.original?.robot) { q.routed = true; q.morale = 0; w.events.push({ t: w.tick, type: 'routed', id: q.idx }); } });
     w.events.push({ t: w.tick, type: 'sideSpent', side });
   });
 };

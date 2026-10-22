@@ -6,7 +6,7 @@
 // the same numbers the city sheet shows, never last turn's mirror (playtest audits I052, where a
 // new city's row said "Settlers in 2800 t"). The allocation behind them is memoised. Pure.
 import { unitName as unitDisplayName } from '../../i18n/gameText';
-import { buildingTierName, wonderName, improvementName, navalLineLabel } from '../../i18n/gameText';
+import { buildingTierName, wonderName, improvementName, navalLineLabel, robotUnitName } from '../../i18n/gameText';
 import { getTiles } from '../../data/geo/tiles';
 import { FIRST_AGE_ID } from '../../data/ages';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
@@ -26,6 +26,7 @@ export const RAIL_STORAGE_KEY = 'terra-imperium-city-rail-collapsed';
 export const shortItemLabel = (item, tiles = getTiles(), ageId = FIRST_AGE_ID) => {
   if (!item) return null;
   if (item.kind === 'unit' && item.explorer) return tNow('cy.scouts');
+  if (item.kind === 'unit' && item.robot) return robotUnitName(item.classId);
   if (item.kind === 'unit') return item.classId === 'naval' ? navalLineLabel(item.navalLine || 'warship', NAVAL_LINES[item.navalLine || 'warship']?.label || tNow('cy.ship')) : unitDisplayName(ageId, item.classId);
   if (item.kind === 'building') return buildingTierName(item.category, item.tier, BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name);
   if (item.kind === 'improvement') return `${improvementName(item.improvement, IMPROVEMENTS[item.improvement]?.name)} (${tiles.names?.[item.tile] || tNow('cy.tile')})`;

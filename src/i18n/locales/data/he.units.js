@@ -71,6 +71,14 @@ export default {
   'unit.future.naval': 'סיירת רובי מסילה',
   'unit.future.air': 'נחיל רחפנים',
   'unit.future.support': 'מקרן מגן',
+  // robot variants (unitClasses.js ROBOT_VARIANTS)
+  'unit.robot.infantry': 'אנדרואידים קרביים',
+  'unit.robot.cavalry': 'מכונות הליכה',
+  'unit.robot.ranged': 'רחפני משמר',
+  'unit.robot.siege': 'אוטומטי מצור',
+  'unit.robot.support': 'נחיל תיקון',
+  'unit.robot.air': 'רחפני ציד',
+  'unit.robot.naval': 'ספינות מלחמה אוטונומיות',
 
   // naval lines (naval.<line>, naval.<line>.role, navalship.<line>.<ageId>)
   'naval.warship': 'ספינת מלחמה',

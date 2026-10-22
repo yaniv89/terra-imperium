@@ -45,6 +45,7 @@ import { aiBudgetStep } from './aiBudget';
 import { warBurdenInputs, warExhaustionRise } from './warBurden';
 import { isUnitInBattle } from './invasion';
 import { stampUnitAges, aiUpgradeUnits } from './unitUpgrades';
+import { isRobot } from './robots';
 import { resolveWarProgress, refreshWarFlags } from './diplomacy';
 import { drainAutoBattles } from './battleQueue';
 import { transferRegion } from './regionTransfer';
@@ -223,7 +224,7 @@ const runCitiesPhase = (state, newTurnNumber) => {
     }
     if (item.kind !== 'unit') return;
     const id = `unit_${nextUnitSeq++}`;
-    units[id] = { id, ...(isIndependent(state.nations, item.nationId) ? {} : { ageId: ageOf(state, item.nationId) }), regionId: item.city, homeRegionId: item.city, tile: regions[item.city]?.tile ?? null, ownerId: item.nationId, domain: item.classId === 'naval' ? 'naval' : 'land', classId: item.classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null, ...(item.army ? { army: item.army } : {}), ...(item.explorer ? { explorer: true, strength: EXPLORER_STRENGTH, maxStrength: EXPLORER_STRENGTH } : {}), ...(item.classId === 'naval' ? { navalLine: item.navalLine || 'warship', transportCapacity: navalCargo(item.navalLine || 'warship', ctxFor(regions[item.city] || { owner: item.nationId }).ageId) } : {}) };
+    units[id] = { id, ...(isIndependent(state.nations, item.nationId) ? {} : { ageId: ageOf(state, item.nationId) }), regionId: item.city, homeRegionId: item.city, tile: regions[item.city]?.tile ?? null, ownerId: item.nationId, domain: item.classId === 'naval' ? 'naval' : 'land', classId: item.classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null, ...(item.robot ? { robot: true } : {}), ...(item.army ? { army: item.army } : {}), ...(item.explorer ? { explorer: true, strength: EXPLORER_STRENGTH, maxStrength: EXPLORER_STRENGTH } : {}), ...(item.classId === 'naval' ? { navalLine: item.navalLine || 'warship', transportCapacity: navalCargo(item.navalLine || 'warship', ctxFor(regions[item.city] || { owner: item.nationId }).ageId) } : {}) };
   });
   const logs = result.logs.filter((l) => l.nationId === state.playerNationId).map(carry);
   disasterLogs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push(carry(l)); });
@@ -560,7 +561,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const ownerSupply = isPlayer ? supplyFlow : ownerSupplyFlows.get(u.ownerId);
     // A starving unit (supply meter at 0, supplyMeter.js) recovers nothing either.
     const hungry = (ownerSupply.hungry && isCampaigning(u, regions, state.world?.tileOwner)) || (u.supply != null && u.supply <= 0);
-    if (hungry) patch = { morale: Math.max(0, (u.morale ?? 100) - HUNGER_MORALE) };
+    if (hungry && !u.robot) patch = { morale: Math.max(0, (u.morale ?? 100) - HUNGER_MORALE) }; // robots have no morale (robots.js)
 
     if (!hungry && !foughtThisTurn && u.morale < 100) {
       patch = { ...patch, morale: Math.min(100, u.morale + Math.round(MORALE_RECOVERY_PER_TURN * (1 + moraleRecoveryBonus) * maintenanceFactor)) };
@@ -572,8 +573,10 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const isSuppliedHomeTerritory = canReinforce(state, u, regions);
     if (!hungry && !foughtThisTurn && isSuppliedHomeTerritory && u.strength < u.maxStrength) {
       const cadreMult = hasPerk(u, 'cadre') ? 2 : 1;
-      const gain = Math.min(Math.floor((ownerPool.hr || 0) * 10), u.maxStrength - u.strength, Math.round(u.maxStrength * REINFORCEMENT_RATE * (1 + reinforceSpeedBonus) * maintenanceFactor * cadreMult));
-      if (gain > 0) {
+      const robot = isRobot(u); // robots refill without manpower (robots.js)
+      const gain = Math.min(robot ? Infinity : Math.floor((ownerPool.hr || 0) * 10), u.maxStrength - u.strength, Math.round(u.maxStrength * REINFORCEMENT_RATE * (1 + reinforceSpeedBonus) * maintenanceFactor * cadreMult));
+      if (gain > 0 && robot) patch = { ...patch, strength: u.strength + gain };
+      else if (gain > 0) {
         // Manpower is a real, spendable resource only for the player pre-M16 (economy.js's own
         // "player-only real computation" pattern) — an AI unit's strength still regrows (so the AI
         // isn't permanently crippled by a single lost battle), it just doesn't draw down a manpower

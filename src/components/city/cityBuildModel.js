@@ -16,9 +16,9 @@ import { TECH_TREE } from '../../data/techTree';
 import { reasonText } from '../../i18n/messageText';
 import { t as tNow, dataText } from '../../i18n/core';
 import { unitName as unitDisplayName } from '../../i18n/gameText';
-import { unitClassRole, navalLineRole, buildingTierName, buildingCategoryLabel, wonderName, wonderDescription, techName, improvementName, terrainWord, tileResourceName } from '../../i18n/gameText';
+import { robotUnitName, unitClassRole, navalLineRole, buildingTierName, buildingCategoryLabel, wonderName, wonderDescription, techName, improvementName, terrainWord, tileResourceName } from '../../i18n/gameText';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
-import { getAvailableClasses, isUnitUnlocked, unitUnlockTech, UNIT_CLASSES } from '../../data/unitClasses';
+import { getAvailableClasses, isUnitUnlocked, isRobotUnlocked, unitUnlockTech, UNIT_CLASSES } from '../../data/unitClasses';
 import { IMPROVEMENTS, tileFacts, canImprove } from '../../data/tileYields';
 import { NAVAL_LINES, navalLinesFor } from '../../data/navalLines';
 import { GREAT_PROJECTS } from '../../data/greatProjects';
@@ -64,6 +64,7 @@ export const tilePlace = (tiles, cityTile, tile, facts = tileFacts(tiles, tile))
 
 export const itemLabel = (item, tiles = getTiles(), ageId = FIRST_AGE_ID, cityTile = null) => {
   if (item.kind === 'unit' && item.explorer) return tNow('cy.scouts');
+  if (item.kind === 'unit' && item.robot) return robotUnitName(item.classId);
   if (item.kind === 'unit') return item.classId === 'naval' ? `${unitDisplayName(ageId, 'naval', item.navalLine)} (${navalLineRole(item.navalLine || 'warship', NAVAL_LINES[item.navalLine || 'warship'].role)})` : unitDisplayName(ageId, item.classId);
   if (item.kind === 'building') return buildingTierName(item.category, item.tier, BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name);
   if (item.kind === 'improvement') return `${improvementName(item.improvement, IMPROVEMENTS[item.improvement]?.name)}: ${cityTile != null ? tilePlace(tiles, cityTile, item.tile) : describeTile(tileFacts(tiles, item.tile))}`;
@@ -138,6 +139,8 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
       return;
     }
     add({ kind: 'unit', classId }, 'Units', { fields: { detail: unitClassRole(classId, UNIT_CLASSES[classId]?.role) || null, ...lock } });
+    // Its robot variant (robots.js): listed once Autonomous Warfare is known.
+    if (isRobotUnlocked(ageId, classId, researched)) add({ kind: 'unit', classId, robot: true }, 'Units', { fields: { detail: tNow('cy.robotDetail') } });
   });
   // Scouts (scouting.js): cheap, no supply, explore at peace, never fight.
   add({ kind: 'unit', classId: 'support', explorer: true }, 'Units', { fields: { detail: tNow('cy.scoutDetail') } });

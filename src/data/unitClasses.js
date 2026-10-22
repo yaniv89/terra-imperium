@@ -1,4 +1,4 @@
-import { AGES, FIRST_AGE_ID } from './ages';
+import { AGES, FIRST_AGE_ID, isAgeAtLeast } from './ages';
 // src/data/unitClasses.js
 // The combat classes and their hard-counter triangle (plan §7): Infantry beats Cavalry, Cavalry
 // beats Ranged, Ranged beats Infantry — a counter system players can't see is just noise, so
@@ -194,6 +194,27 @@ UNIT_ROSTER.classical.support = rosterEntry('Engineers', 'classical');
 UNIT_ROSTER.kingdoms.support = rosterEntry('Pioneers', 'kingdoms');
 UNIT_ROSTER.gunpowder.support = rosterEntry('Sappers', 'gunpowder');
 
+// Robot armies (eight ages U67, KTD17): after Autonomous Warfare every Future class can also be
+// built as its robot variant (unit.robot; rules in src/engine/robots.js). Robot power is Future
+// power +8 / +6 (72 / 54): unitAgeWeight scales a robot by ROBOT_POWER_MULT. Signature units stay human.
+export const ROBOT_TECH = 'military_autonomous_warfare';
+export const ROBOT_AGE = 'future';
+export const ROBOT_POWER = { attack: 72, defense: 54 };
+export const ROBOT_VARIANTS = {
+  infantry: 'Combat Androids',
+  cavalry: 'Mech Walkers',
+  ranged: 'Sentinel Drones',
+  siege: 'Siege Automatons',
+  support: 'Repair Swarm',
+  air: 'Hunter-Killers',
+  naval: 'Autonomous Warships'
+};
+const ROBOT_POWER_MULT = ROBOT_POWER.attack / AGES[ROBOT_AGE].power.attack;
+
+/** Can a nation at `ageId` that knows `researched` build the robot variant of `classId`? */
+export const isRobotUnlocked = (ageId, classId, researched) => isAgeAtLeast(ageId, ROBOT_AGE) && !!ROBOT_VARIANTS[classId] && isUnitUnlocked(ROBOT_AGE, classId, researched)
+  && (researched?.has ? researched.has(ROBOT_TECH) : !!researched?.includes?.(ROBOT_TECH));
+
 export const getUnitDefinition = (ageId, classId) => UNIT_ROSTER[ageId]?.[classId] || null;
 
 // Every class recruitable at (and including) the given age — Air only exists from Modern on.
@@ -255,4 +276,4 @@ export const getRosterCombatMultiplier = (attackerAgeId, defenderAgeId) => {
 /** A unit's weight inside a side fighting at `sideAgeId`: its own age's roster attack over the side's
  * (src/engine/unitUpgrades.js: units keep the age they were built in). Exactly 1 for a unit with no
  * age of its own or of the side's age, so an army of the current age fights as before. */
-export const unitAgeWeight = (unit, sideAgeId) => (!unit?.ageId || unit.ageId === sideAgeId || !UNIT_ROSTER[unit.ageId] ? 1 : getRosterCombatMultiplier(unit.ageId, sideAgeId || FIRST_AGE_ID));
+export const unitAgeWeight = (unit, sideAgeId) => (unit?.robot ? ROBOT_POWER_MULT : 1) * (!unit?.ageId || unit.ageId === sideAgeId || !UNIT_ROSTER[unit.ageId] ? 1 : getRosterCombatMultiplier(unit.ageId, sideAgeId || FIRST_AGE_ID));

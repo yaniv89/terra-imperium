@@ -76,6 +76,7 @@ export default {
   'cy.settlerNoSite': 'No good site is known within reach: these settlers would have nowhere worth going. Explore first.',
   'cy.settlerDetail': 'Founds a new city. Takes one citizen from this one.',
   'cy.settlerMin': 'The city must reach size {n} first',
+  'cy.robotDetail': 'A robot: no manpower, never loses heart, costs 40% more. Cannot hold a taken city without a human unit.',
   'cy.scoutDetail': 'Cheap, fast and unarmed. Explores free land and meets other peoples; eats no supplies.',
   'cy.armyDetail': 'Built one unit at a time; each joins the army as it is trained.',
   'cy.alreadyQueued': 'Already in the queue',

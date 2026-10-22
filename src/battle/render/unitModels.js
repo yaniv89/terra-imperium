@@ -64,10 +64,11 @@ export const findUnitModel = (ageId, classId) => {
 export const LOOK_CLASS = { raider: 'cavalry', mercenary: 'infantry' };
 /** A setup unit's (or a sim squad's) irregular look: 'mercenary', 'raider' or null. A raid or a sack's
  * attackers are the raiders. */
-export const unitLookOf = (u, setup = null, side = -1) => (u?.mercenary ? 'mercenary'
+export const unitLookOf = (u, setup = null, side = -1) => (u?.robot ? 'robot' : u?.mercenary ? 'mercenary'
   : u?.raidOf || u?.raider || (side === 0 && (setup?.battleType === 'raid' || setup?.battleType === 'sack')) ? 'raider' : null);
 /** The soldier layer key of a look (null: none), registered under the age like the general. */
-export const lookKey = (look, classId) => (look && LOOK_CLASS[look] === classId ? look : null);
+// A robot (engine unit.robot, eight ages U67) draws `{age}-robot-{class}.glb` for every class.
+export const lookKey = (look, classId) => (look === 'robot' ? `robot-${classId}` : look && LOOK_CLASS[look] === classId ? look : null);
 
 /** A side's general model (`{age}-general.glb`, else `general.glb`), or null (the standard only). */
 export const findGeneralModel = (ageId) => findUnitModel(ageId, 'general');

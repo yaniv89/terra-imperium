@@ -31,6 +31,7 @@ import { AGE_ORDER, speedCostMult, speedTurns, FIRST_AGE_ID } from '../data/ages
 import { ACTION_COSTS } from '../data/actionCosts';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 import { unitDisplayName } from '../data/unitNames';
+import { ROBOT_VARIANTS } from '../data/unitClasses';
 import { IMPROVEMENTS } from '../data/tileYields';
 import { ageOf } from './nationState';
 import { nextTemplateUnit } from './armyTemplates';
@@ -114,6 +115,7 @@ export const rushItemName = (item, ageId = FIRST_AGE_ID) => {
   if (!item) return 'order';
   if (item.kind === 'building') return BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || item.category;
   if (item.kind === 'unit' && item.explorer) return 'scouts';
+  if (item.kind === 'unit' && item.robot) return ROBOT_VARIANTS[item.classId];
   if (item.kind === 'unit') return unitDisplayName(ageId, item.classId, item.navalLine);
   if (item.kind === 'army') { const next = nextTemplateUnit(item); return next ? `${unitDisplayName(ageId, next)} for ${item.name}` : item.name; }
   if (item.kind === 'improvement') return IMPROVEMENTS[item.improvement]?.name || item.improvement;
