@@ -439,7 +439,7 @@ const buildFieldSetup = (state, pb) => {
     controllers: pb.playerSide === 'defender' ? ['ai', 'player'] : ['player', 'ai'],
     difficultyId: state.difficultyId || 'prince',
     powers: [getBattlePowers(state, gate.playerNationId, ctx.attackerAgeId, attackerUnits), getBattlePowers(state, v.defenderNationId, ctx.defenderAgeId, defenderUnits)],
-    reinforcements: [[], []],
+    reinforcements: [toReinforcements(state, pb, pb.attackerReinforcements, 0), toReinforcements(state, pb, pb.defenderReinforcements, 1)], // rank 9: neighbours stand by
     intel: { attackerSeesDefender: true },
     regionBuildings: [],
     economy: !pb.quick, // full base-building in field battles too (decision 36); the player may pick a quick 5-minute one

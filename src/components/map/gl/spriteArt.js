@@ -259,7 +259,8 @@ export const armyArt = (m, atWar, scale) => {
     const icon = unitIconUrl(m.mainClass);
     const label = shortMen(m.men);
     const stacked = m.count > 1 ? m.count : 0; // units on the tile: one flag shows them all (a small count)
-    return bannerBox(`army|own|${fill}|${moraleColor(m.morale)}|${m.mainClass}|${label}|${m.canMove ? 1 : 0}|${icon ? 'i' : 'g'}|${stacked}`, 30, 34, scale, waiting(icon), (ctx) => {
+    const cap = m.capUse ? `${m.capUse[0]}/${m.capUse[1]}` : ''; // rank 9: near or over the tile's cap, the count reads 9/12 instead
+    return bannerBox(`army|own|${fill}|${moraleColor(m.morale)}|${m.mainClass}|${label}|${m.canMove ? 1 : 0}|${icon ? 'i' : 'g'}|${stacked}|${cap}`, 30, 34, scale, waiting(icon), (ctx) => {
       svgBox(ctx, 26, 32, 30, 34, () => {
         ctx.fillStyle = fill; ctx.strokeStyle = moraleColor(m.morale); ctx.lineWidth = 2.4;
         const p = path2d(SHIELD); if (p) { ctx.fill(p); ctx.shadowColor = 'transparent'; ctx.stroke(p); }
@@ -273,7 +274,15 @@ export const armyArt = (m, atWar, scale) => {
       ctx.fillText(label, 15, 4);
       ctx.shadowColor = 'transparent';
       if (m.canMove) dot(ctx, 28.5, 1.5);
-      if (stacked) {
+      if (cap) {
+        // amber near the cap, red past it (each unit then loses supply every turn)
+        const over = m.capUse[0] > m.capUse[1];
+        ctx.shadowColor = 'transparent';
+        ctx.fillStyle = over ? '#b91c1c' : '#0f172a'; ctx.beginPath(); ctx.roundRect(0.5, 26, 23, 8, 4); ctx.fill();
+        ctx.strokeStyle = over ? '#fecaca' : '#fbbf24'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.font = fontOf(7.5, 800); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = over ? '#fff' : '#fbbf24';
+        ctx.fillText(cap, 12, 30.5);
+      } else if (stacked) {
         ctx.shadowColor = 'transparent';
         ctx.fillStyle = '#0f172a'; ctx.beginPath(); ctx.arc(3.5, 30.5, 6, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = '#f8fafc'; ctx.lineWidth = 1.2; ctx.stroke();
