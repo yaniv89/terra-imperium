@@ -8,6 +8,16 @@ import path from 'node:path';
 const REPO = 'C:/GitWotkspace/terra-imperium';
 const go = process.argv.includes('--go');
 const git = (...a) => execFileSync('git', ['-C', REPO, ...a], { encoding: 'utf8' }).trim();
+// First link (symlink or junction) under dir, skipping .git; null when there is none.
+const findLink = (dir) => {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (e.name === '.git') continue;
+    const p = path.join(dir, e.name);
+    if (e.isSymbolicLink()) return p;
+    if (e.isDirectory()) { const f = findLink(p); if (f) return f; }
+  }
+  return null;
+};
 const KEEP_BRANCHES = /^claude\/(art-future|art-information|art-modern20|integration)$/;
 
 const list = git('worktree', 'list', '--porcelain').split(/\r?\n\r?\n/).map((b) => {
@@ -35,7 +45,9 @@ for (const w of list) {
   if (!go) continue;
   const nm = path.join(w.wt, 'node_modules');
   if (fs.existsSync(nm) && fs.lstatSync(nm).isSymbolicLink()) execFileSync('cmd', ['/c', 'rmdir', nm.replace(/\//g, '\\')]);
-  if (fs.existsSync(nm) && fs.lstatSync(nm).isSymbolicLink()) { console.log('  junction still there, skip'); continue; }
+  // Any link left anywhere (a lane's own junction, a scratch base) would let `remove --force` delete through it.
+  const link = findLink(w.wt);
+  if (fs.existsSync(nm) || link) { console.log('  link or node_modules still there, skip:', link || nm); continue; }
   try { git('worktree', 'remove', '--force', w.wt); removed++; } catch (e) { console.log('  failed:', e.message.split('\n')[0]); }
 }
 if (go) { git('worktree', 'prune'); console.log('removed', removed); }

@@ -19,7 +19,8 @@ if ! git -C "$ROOT" rev-parse -q --verify "$BASE^{commit}" >/dev/null; then
   echo "base $BASE not found; in a shallow clone try: git fetch --filter=blob:none --deepen=50 origin <branch>" >&2; exit 1
 fi
 git -C "$ROOT" worktree add -q --detach "$WT" "$BASE"
-trap 'git -C "$ROOT" worktree remove --force "$WT" >/dev/null 2>&1 || true' EXIT
+# Unlink node_modules first: on Windows `worktree remove --force` follows a link and wipes the real folder.
+trap 'rm -f "$WT/node_modules" 2>/dev/null; [ -e "$WT/node_modules" ] && cmd //c rmdir "$(cygpath -w "$WT/node_modules")" >/dev/null 2>&1; [ -e "$WT/node_modules" ] && { echo "node_modules link still in $WT, not removing it" >&2; exit; }; git -C "$ROOT" worktree remove --force "$WT" >/dev/null 2>&1 || true' EXIT
 ln -s "$ROOT/node_modules" "$WT/node_modules"
 # The base runs the current harness (sim, stats and config), so both sides report the same keys.
 mkdir -p "$WT/.claude/skills" "$WT/scripts"
