@@ -154,6 +154,15 @@ describe('getRosterCombatMultiplier', () => {
     const fourAgesAhead = getRosterCombatMultiplier('modern', 'bronze');
     expect(fourAgesAhead).toBeGreaterThan(oneAgeAhead);
   });
+
+  it('gives every neighbouring pair of all eight ages the same step, capped at three ages, the reverse its reciprocal', () => {
+    AGE_ORDER.slice(1).forEach((ageId, i) => {
+      expect(getRosterCombatMultiplier(ageId, AGE_ORDER[i])).toBeCloseTo(1.4, 9);
+      expect(getRosterCombatMultiplier(AGE_ORDER[i], ageId)).toBeCloseTo(1 / 1.4, 9);
+    });
+    expect(getRosterCombatMultiplier('kingdoms', 'stone')).toBeCloseTo(2.744, 9);
+    expect(getRosterCombatMultiplier('future', 'stone')).toBe(getRosterCombatMultiplier('kingdoms', 'stone'));
+  });
 });
 
 describe('getUnitDefinition / getAvailableClasses', () => {
