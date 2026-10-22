@@ -15,6 +15,7 @@
 import { LAW_CATEGORIES, getLaw } from '../data/laws';
 import { getActiveReforms } from '../data/government';
 import { rulerRules } from '../data/rulerVirtues';
+import { automationYields } from './automation';
 
 export const LAW_RULE_KEYS = ['loyaltyBonus', 'tolerance', 'unitUpkeepMult', 'warExhaustionMult', 'tradeGoldPerRoute', 'partnerOpinion', 'pillageGoldMult'];
 export const EMPTY_RULES = Object.freeze({ loyaltyBonus: 0, tolerance: false, unitUpkeepMult: 0, warExhaustionMult: 0, tradeGoldPerRoute: 0, partnerOpinion: 0, pillageGoldMult: 0 });
@@ -60,8 +61,9 @@ export const describeRules = (rules) => {
 export const rulerCityCtx = (nation) => {
   const r = lawRulesOf(nation);
   const out = {};
-  if (r.productionMult) out.productionMult = r.productionMult;
-  if (r.scienceMult) out.scienceMult = r.scienceMult;
+  const auto = automationYields(nation); // the automation meter (automation.js)
+  if (r.productionMult || auto.productionMult) out.productionMult = (r.productionMult || 0) + auto.productionMult;
+  if (r.scienceMult || auto.scienceMult) out.scienceMult = (r.scienceMult || 0) + auto.scienceMult;
   if (r.cultureMult) out.cultureMult = r.cultureMult;
   if (r.capitalScience) out.capitalScience = r.capitalScience;
   if (r.capitalCulture) out.capitalCulture = r.capitalCulture;

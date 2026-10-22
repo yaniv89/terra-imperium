@@ -36,6 +36,7 @@ export const auditGameState = (state) => {
     if (n.id !== id) report('identity', `nations.${id}.id`, 'Record ID differs from its map key');
     numbers(n, `nations.${id}`);
     numbers(n.economy, `nations.${id}.economy`);
+    if (n.automation != null && !(Number.isInteger(n.automation) && n.automation >= 0 && n.automation <= 100)) report('range', `nations.${id}.automation`, 'Automation is an integer 0..100'); // automation.js
     if (!!n.isAtWar !== fighting.has(id)) report('war_flag', `nations.${id}.isAtWar`, 'Flag disagrees with active wars');
     (n.claims || []).forEach((cid, k) => { if (!regions[cid]) report('claim_city', `nations.${id}.claims.${k}`, 'A claim names a city that does not exist'); }); // a claim on a city taken this turn drops at the next claims step
     const chain = new Set([id]);

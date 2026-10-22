@@ -27,6 +27,8 @@ export default {
   'm.turn.noOilMany': 'אין נפט: {n} יחידות ממוכנות שלך בלי דלק ולא יכולות לזוז בתור הזה. בנו בארות נפט או סחרו בנפט.',
   'm.turn.civilWarCrushed': '{nation} מדכאת את ההתקוממות. (+1 יציבות, +10 לגיטימיות)',
   'm.turn.civilWarLost': '{nation} נופלת בידי המורדים: משטר חדש עולה לשלטון.',
+  'm.turn.automationRiots': 'עובדים שמכונות החליפו מתפרעים בערייך. העלה את היציבות כדי להרגיע אותם.',
+  'm.turn.machineUprising': 'המכונות של {nation} קמות נגד יוצריהן!',
   'm.turn.civilWar': '{nation} שוקעת במלחמת אזרחים!',
   'm.turn.upkeep': 'אחזקה: -{total:money} (צבא {army:money}{marching}, צי {navy:money}, מבצרים {forts:money}, מבנים {buildings:money}, יועצים {advisors:money}, ריבית הלוואות {interest:money})',
   'm.turn.upkeepMarching': ', צעידה {gold:money}',
