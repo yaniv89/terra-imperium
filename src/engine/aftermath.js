@@ -94,12 +94,19 @@ export const levyNewUnits = (regions, prevUnits, nextUnits) => {
 // province count — synthetic AI troops are an abstraction of militaryStrength.
 export const applyCasualtyScars = (regions, before, after) => {
   const start = Array.isArray(before) ? Object.fromEntries(before.map((u) => [u.id, u])) : (before || {});
-  let out = regions;
+  // One copy of the map for the whole battle (a copy per fallen unit was the cost); the same object when nothing changes.
+  let out = regions; let copied = false;
   (after || []).forEach((u) => {
     const b = start[u.id];
     if (!b || u.synthetic) return;
     const lost = Math.max(0, (b.strength || 0) - Math.max(0, u.strength || 0));
-    if (lost > 0) out = drawPopulation(out, b.homeRegionId || b.regionId, lost * MEN_PER_STRENGTH);
+    if (!(lost > 0)) return;
+    const id = b.homeRegionId || b.regionId;
+    const one = { [id]: out?.[id] };
+    const drawn = drawPopulation(one, id, lost * MEN_PER_STRENGTH);
+    if (drawn === one) return;
+    if (!copied) { out = { ...out }; copied = true; }
+    out[id] = drawn[id];
   });
   return out;
 };

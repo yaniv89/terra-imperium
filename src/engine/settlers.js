@@ -29,7 +29,7 @@
 //               pressure on far outposts arrive with C5 and C7.3.
 import { pickCityName } from './cityNames';
 import { getTiles } from '../data/geo/tiles';
-import { canFoundCity, foundCity, ringDistance, cityId, sizeToPeople, SETTLER_MIN_SIZE, CENTRE_MIN_YIELDS, FOOD_PER_CITIZEN, MAX_SIZE } from './world/cities';
+import { canFoundCity, canFoundCityOk, foundCity, ringDistance, cityId, sizeToPeople, SETTLER_MIN_SIZE, CENTRE_MIN_YIELDS, FOOD_PER_CITIZEN, MAX_SIZE } from './world/cities';
 import { getResearched } from './nationState';
 import { tileFacts, tileYields } from '../data/tileYields';
 import { legacyTerrainOf } from './world/registry';
@@ -282,7 +282,7 @@ export const bestSites = (state, nationId, fromTile, ageId, { rings = AI_SETTLE_
   for (let d = 0; d <= rings; d++) {
     for (const t of frontier) {
       // Only land the nation has explored (fog.js): nobody settles a coast it has never seen.
-      if (tiles.land[t] && !world.tileOwner[t] && isExplored(state, t, nationId) && canFoundCity(world, tiles, t, nationId).ok && !settlingBarred(state, nationId, t)) {
+      if (tiles.land[t] && !world.tileOwner[t] && isExplored(state, t, nationId) && canFoundCityOk(world, tiles, t, nationId) && !settlingBarred(state, nationId, t)) {
         const quality = siteQuality(state, t);
         if (quality >= SITE_SCORE_MIN) out.push({ tile: t, score: Math.round((quality - d * perRing) * 10) / 10, quality, steps: d });
       }

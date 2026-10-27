@@ -54,3 +54,5 @@ claude/integration, main gets the push once the quick suite and CI are green.
   playtest-saves (era saves from real play), map-clarity (supply along the march, log sources, map fixes).
   Review: no findings. Lint clean, test:quick 4061 passed. civ-veteran playtest real cost $3.25 (spend $34.03).
 - send_message allowed in .claude/settings.json (user, 27 Oct) so lanes report without a prompt.
+- Sub sessions started 20:09: city-builds session_01S3hKeFjWbrkqj8haEnXNUz (builds 18-51 turns, Cities 3-6);
+  battle-ai-tactics session_01S3hKeHk2QRgBieK44CSY78 (counters, focus fire, flanks; mirror match vs old AI).

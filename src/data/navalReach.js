@@ -22,25 +22,36 @@ const DEEP_OK_FROM = agesFrom('gunpowder');
 
 export const isCoastal = (regionId) => !!REGIONS_DATA[regionId]?.isCoastal;
 
+// The sea tiles beside a city's land depend on its tiles alone: memoised per `includes` array (a
+// city keeps the same array until it claims or loses a tile, while every registry rebuild makes a
+// new entry object). The length guards against an array grown in place, the grid against a new world.
+const coastMemo = new WeakMap(); // includes array -> { length, tiles, water }
 const coastTilesOf = (regionId) => {
   const tiles = getTiles();
   const data = REGIONS_DATA[regionId];
   if (!data) return [];
+  const hit = data.includes && coastMemo.get(data.includes);
+  if (hit && hit.length === data.includes.length && hit.tiles === tiles) return hit.water;
   const own = data.includes || [data.tile];
   const water = new Set();
   own.forEach((t) => tiles.neighbors[t].forEach((n) => { if (!tiles.land[n] && tiles.terrainOf(n) !== 'lake') water.add(n); }));
-  return [...water];
+  const out = [...water];
+  if (data.includes) coastMemo.set(data.includes, { length: data.includes.length, tiles, water: out });
+  return out;
 };
 
 // Water tiles reachable from `regionId`'s coast within `maxTiles` steps at this age.
 const reachCache = new WeakMap();
 const seaReach = (regionId, ageId) => {
-  const key = REGIONS_DATA[regionId];
-  if (!key || !key.isCoastal) return new Map();
+  const data = REGIONS_DATA[regionId];
+  if (!data || !data.isCoastal) return new Map();
+  // The reach follows from the coast tiles alone (coastTilesOf): keyed like them on `includes`.
+  const key = data.includes || data;
   let perAge = reachCache.get(key);
-  if (!perAge) { perAge = new Map(); reachCache.set(key, perAge); }
-  if (perAge.has(ageId)) return perAge.get(ageId);
   const tiles = getTiles();
+  if (perAge && (perAge.length !== (data.includes || []).length || perAge.tiles !== tiles)) perAge = null;
+  if (!perAge) { perAge = new Map(); perAge.length = (data.includes || []).length; perAge.tiles = tiles; reachCache.set(key, perAge); }
+  if (perAge.has(ageId)) return perAge.get(ageId);
   // Whole tiles only, so a lane's km never exceeds the age's reach (one tile at Bronze).
   // One tile is the measured spacing of the grid (gridScale.js); the open-ended Modern reach stops
   // at about 40,900 km of water (400 tiles at frequency 75).

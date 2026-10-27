@@ -209,3 +209,4 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
 - Playtest issues marked "open" in an old summary may be fixed already: check the code or a fresh run before starting a lane on them.
 - Dashboard datasets: upload the JSON as an asset first, then point `datasets/<id>` source.url at it with the last `if_version`; one JSON file per upload call.
 - Every evaluation round grades art and animation too (map, units, animations, VFX, transitions), not only rules and UI (user, 27 Oct).
+- Sub sessions often cannot deliver send_message to the lead (prompts, "trusted device"): the lead polls their branches (`git log origin/claude/integration..origin/claude/<lane>`) and `list_sessions` summaries instead of waiting for a message.
