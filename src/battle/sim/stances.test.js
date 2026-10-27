@@ -212,3 +212,17 @@ describe('the AI attacker keeps its army together itself (Q6)', () => {
     expect(worst).toBeLessThan(16 * Q);
   });
 });
+
+describe('a field battle never runs to the clock with nobody fighting (playtest 40550100958)', () => {
+  it('the AI defender goes out to an idle attacker and the battle ends in a fight', () => {
+    const units = (p) => mk(p, ['infantry', 'infantry', 'cavalry', 'ranged', 'ranged', 'infantry']);
+    const setup = buildSetupFromArmies({ regionId: 'stall-test', terrain: 'mixed', seed: 7, attackerUnits: units('a'), defenderUnits: units('d'), attackerAgeId: 'bronze', defenderAgeId: 'bronze', controllers: ['player', 'ai'], economy: true });
+    const w = createWorld(setup);
+    const men = () => w.squads.filter((q) => !q.worker).reduce((s, q) => s + q.strength, 0);
+    const before = men();
+    while (!w.ended) step(w, []);
+    expect(w.ended.reason).not.toBe('timeLimit');
+    expect(w.ended.tick).toBeLessThan(setup.limitTicks || Infinity);
+    expect(men()).toBeLessThan(before);
+  });
+});
