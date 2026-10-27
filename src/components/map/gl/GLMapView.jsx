@@ -901,6 +901,14 @@ const GLMapView = ({
     if (pick.kind === 'city') { handleCityTap(pick.id, e, sx, sy); return; }
     if (!onSelectTile) return;
     if (pick.tile == null || pick.tile < 0) { onSelectTile(null); return; }
+    // A tap on the hex of your own army (its soldier model, under the banner) is the army, as Civ VI
+    // and Polytopia select the unit on its hex: it opened the tile sheet and a phone player could not
+    // find the army's orders (playtest run 40550097406). A second tap, with that army open, is the tile.
+    if (!marchingRef.current && !settleRef.current && onSelectArmy && pick.tile !== selectedArmy
+      && Object.values(gameState.units || {}).some((u) => u.ownerId === gameState.playerNationId && u.tile === pick.tile && u.classId !== 'settler')) {
+      onSelectArmy(pick.tile);
+      return;
+    }
     onSelectTile(pick.tile === selectedTile ? null : pick.tile);
   };
 
