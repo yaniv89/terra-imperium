@@ -18,9 +18,9 @@
 //                   what it can lose (risk) or take (gain), the same scale peace terms are priced in.
 //   EV(war)         DECISIVE x (p x gain - (1 - p) x risk) - WAR_COST: declare only when > 0.
 // Pure and deterministic. Cost: O(units + cities of the two nations) per pair, and sight only for
-// the nation deciding (visibleTiles is cached per state).
+// the nation deciding (sight.js sightTest, only the tiles asked).
 import { estimateBattle, powQuarter } from './lanchester';
-import { visibleTiles } from './sight';
+import { sightTest } from './sight';
 import { unitTile } from './armies';
 import { hashRoll } from './aftermath';
 import { getTotalDev } from './development';
@@ -47,6 +47,20 @@ export const armiesByOwner = (units = {}) => {
   return out;
 };
 
+// The viewer's sight, kept for one `byOwner` pass only (its units never move) and only while the
+// state's other inputs are the same objects; without `byOwner` it is read fresh each call.
+const passSight = new WeakMap(); // byOwner -> Map(viewerId -> { units, regions, nations, techTree, test })
+const sightFor = (state, viewerId, byOwner) => {
+  if (!byOwner) return sightTest(state, viewerId);
+  let m = passSight.get(byOwner);
+  if (!m) { m = new Map(); passSight.set(byOwner, m); }
+  const hit = m.get(viewerId);
+  if (hit && hit.units === state.units && hit.regions === state.regions && hit.nations === state.nations && hit.techTree === state.techTree) return hit.test;
+  const test = sightTest(state, viewerId);
+  m.set(viewerId, { units: state.units, regions: state.regions, nations: state.nations, techTree: state.techTree, test });
+  return test;
+};
+
 /** The land units of `nationId` as `viewerId` judges them: [{ classId, strength }] (seen ones exact, the rest scaled by the intel error).
  * `byOwner`: armiesByOwner(state.units), built once by a caller that asks many times. */
 export const perceivedArmy = (state, viewerId, nationId, byOwner = null) => {
@@ -55,9 +69,9 @@ export const perceivedArmy = (state, viewerId, nationId, byOwner = null) => {
   const out = units.map((u) => ({ classId: u.classId, strength: u.strength }));
   if (reserve > 0) out.push({ classId: 'infantry', strength: reserve });
   if (!viewerId || viewerId === nationId) return out;
-  const seen = units.length ? visibleTiles(state, viewerId) : null;
+  const seen = units.length ? sightFor(state, viewerId, byOwner) : null;
   const report = 1 + INTEL_ERROR * (2 * hashRoll(`${viewerId}|${nationId}|${Math.floor((state.turnNumber || 0) / INTEL_PERIOD)}`) - 1);
-  return out.map((u, i) => (i < units.length && seen && seen.has(unitTile(state, units[i])) ? u : { ...u, strength: u.strength * report }));
+  return out.map((u, i) => (i < units.length && seen && seen(unitTile(state, units[i])) ? u : { ...u, strength: u.strength * report }));
 };
 
 /** An age-and-matchup-aware Lanchester power ratio of `a`'s army against `b`'s, seen by `viewerId`. */
