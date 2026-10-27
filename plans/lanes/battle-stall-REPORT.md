@@ -191,6 +191,16 @@ does not back a retune here.
 - src/engine/battleResume, defense and battleVerify tests plus src/components/battle: 26 files, 161 passed.
 - eslint on the changed files: clean.
 
+## Follow-up: the town bronze 5 v 2 row (lead's ask)
+
+Tried autoCalib on the version 2 parityEco output (N=16, current AUTO_TUNE, town auxiliaries
+TA=1..6, TD=0..4). The best point, town [1, 1] instead of [2, 2], lifts that row only to 0.50x
+(the edge of the guardrail) and still leaves 1 of 24 OUT, now a sack row (cavalry x3 v ranged,
+0.48x). The calibrator's own sack auto numbers do not match parityEco's (0.559 against 0.414), so
+that sack result is not trustworthy either way. The evidence does not support a retune: AUTO_TUNE
+is unchanged. A real fix needs the calibrator's sack path brought in line with parityEco and an
+N=32 run first.
+
 ## Left open
 
 - The input side of the playtest: a second ground tap after arming Attack turns the attack-move
