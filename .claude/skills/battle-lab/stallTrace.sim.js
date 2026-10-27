@@ -4,9 +4,12 @@
 // and the clock decides it (playtest 40550100958, bronze field and kingdoms walls).
 //   SEEDS=7 AGE=bronze FORT=0 TERRAIN=mixed ORDER=none|attackMove [CITY=medium] [EVERY=1200] \
 //   npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/battle-lab/stallTrace
-// ORDER=attackMove sends the player's army once at the enemy keep (a tap on it after arming Attack).
-// Each seed prints where both armies' centres stand every EVERY ticks, the first tick a man fell,
-// the outcome, the reason and the battle length.
+// ORDER=attackMove sends the player's army once at the enemy keep (a tap on it after arming Attack);
+// AT=<seconds> gives that order then instead of at the start. BUILD=1 runs the player's economy
+// with the AI's own economy brain (economyAI.js: laborers gather, build and train), the player who
+// builds first. Each seed prints where both armies' centres stand every EVERY ticks, the first
+// enemy march (a defender soldier 30 tiles or more west of its keep, toward the attacker), the first tick a man fell, the
+// outcome, the reason and the battle length.
 import { it } from 'vitest';
 import { buildSetupFromArmies, commandedSetup } from '../../../src/battle/setup/buildBattleSetup';
 import { buildTownManifest } from '../../../src/data/townLayout';
@@ -14,6 +17,7 @@ import { getAvailableClasses } from '../../../src/data/unitClasses';
 import { createWorld } from '../../../src/battle/sim/world';
 import { step } from '../../../src/battle/sim/step';
 import { battleLimitTicks, Q } from '../../../src/battle/sim/constants';
+import { thinkEconomy } from '../../../src/battle/sim/economyAI';
 
 const env = (k, d) => process.env[k] || d;
 const BALANCED = ['infantry', 'infantry', 'cavalry', 'ranged', 'ranged', 'siege', 'infantry'];
@@ -41,6 +45,8 @@ it('stall trace', () => {
     const keep = w.structures[0];
     const mine = w.squads.filter((q) => q.side === 0 && q.onField && !q.worker && !q.isGeneral).map((q) => q.idx);
     const first = order === 'attackMove' ? [{ side: 0, type: 'attackMove', squads: mine, x: keep.x, y: keep.y }] : [];
+    const at = Math.round(Number(env('AT', 0)) * 20); const build = env('BUILD', '0') === '1';
+    let marchAt = -1; let marchN = 0;
     const men = (s) => w.squads.filter((q) => q.side === s && !q.worker).reduce((t, q) => t + q.strength, 0);
     const start = [men(0), men(1)];
     let firstBlood = -1;
@@ -52,12 +58,18 @@ it('stall trace', () => {
     };
     const limit = battleLimitTicks(setup) + 20;
     for (let i = 0; i < limit && !w.ended; i++) {
-      step(w, i === 0 ? first : []);
+      const orders = i === at ? first.map((o) => ({ ...o, squads: o.squads.filter((m) => w.squads[m].alive) })) : [];
+      if (build) thinkEconomy(w, 0, setup.difficultyId, orders);
+      step(w, orders);
       w.events.length = 0;
+      if (marchAt < 0) {
+        const out = w.squads.filter((q) => q.side === 1 && q.alive && q.onField && !q.reinforcement && !q.worker && !q.isGeneral && q.x <= keep.x - 30 * Q);
+        if (out.length) { marchAt = w.tick; marchN = w.squads.filter((q) => q.side === 1 && q.alive && q.onField && !q.worker && !q.isGeneral).length; }
+      }
       if (firstBlood < 0 && (men(0) < start[0] || men(1) < start[1])) firstBlood = w.tick;
       if (env('QUIET', '0') !== '1' && i % EVERY === 0) console.log(`  seed ${seed} t=${(w.tick / 20).toFixed(0)}s keep=${(keep.x / Q).toFixed(0)},${(keep.y / Q).toFixed(0)} A ${centre(0)} | D ${centre(1)}`);
     }
     const e = w.ended || {};
-    console.log(`SEED ${seed} ${age} fort=${fort} order=${order}: ${e.outcome} ${e.reason} at ${((e.tick || w.tick) / 20).toFixed(0)}s, firstBlood=${firstBlood < 0 ? 'never' : (firstBlood / 20).toFixed(0) + 's'}, men A ${start[0]}->${men(0)} D ${start[1]}->${men(1)}`);
+    console.log(`SEED ${seed} ${age} fort=${fort} order=${order}${at ? '@' + at / 20 + 's' : ''}${build ? ' build' : ''}: ${e.outcome} ${e.reason} at ${((e.tick || w.tick) / 20).toFixed(0)}s, enemyMarch=${marchAt < 0 ? 'never' : (marchAt / 20).toFixed(0) + 's with ' + marchN + ' squads'}, firstBlood=${firstBlood < 0 ? 'never' : (firstBlood / 20).toFixed(0) + 's'}, men A ${start[0]}->${men(0)} D ${start[1]}->${men(1)}`);
   });
 });
