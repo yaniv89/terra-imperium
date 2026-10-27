@@ -20,7 +20,7 @@
 // Pure and deterministic. Cost: O(units + cities of the two nations) per pair, and sight only for
 // the nation deciding (sight.js sightTest, only the tiles asked).
 import { estimateBattle, powQuarter } from './lanchester';
-import { sightTest } from './sight';
+import { sightIndex, sightTest } from './sight';
 import { unitTile } from './armies';
 import { hashRoll } from './aftermath';
 import { getTotalDev } from './development';
@@ -50,13 +50,17 @@ export const armiesByOwner = (units = {}) => {
 // The viewer's sight, kept for one `byOwner` pass only (its units never move) and only while the
 // state's other inputs are the same objects; without `byOwner` it is read fresh each call.
 const passSight = new WeakMap(); // byOwner -> Map(viewerId -> { units, regions, nations, techTree, test })
+const PASS_INDEX = Symbol('index');
 const sightFor = (state, viewerId, byOwner) => {
   if (!byOwner) return sightTest(state, viewerId);
   let m = passSight.get(byOwner);
   if (!m) { m = new Map(); passSight.set(byOwner, m); }
   const hit = m.get(viewerId);
   if (hit && hit.units === state.units && hit.regions === state.regions && hit.nations === state.nations && hit.techTree === state.techTree) return hit.test;
-  const test = sightTest(state, viewerId);
+  // Cities and units by owner, one walk per pass (each viewer's walk of every unit was most of the pass).
+  let index = m.get(PASS_INDEX);
+  if (!index || index.units !== state.units || index.regions !== state.regions) { index = { units: state.units, regions: state.regions, byOwner: sightIndex(state) }; m.set(PASS_INDEX, index); }
+  const test = sightTest(state, viewerId, index.byOwner);
   m.set(viewerId, { units: state.units, regions: state.regions, nations: state.nations, techTree: state.techTree, test });
   return test;
 };

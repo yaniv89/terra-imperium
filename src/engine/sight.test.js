@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { peoplesWorld } from './testWorld';
 import { getTiles } from '../data/geo/tiles';
-import { visibleTiles, sightTest, SIGHT_ARMY } from './sight';
+import { visibleTiles, sightIndex, sightTest, SIGHT_ARMY } from './sight';
 
 const tiles = getTiles();
 const ring = (from, rings) => {
@@ -37,9 +37,10 @@ describe('sightTest', () => {
       [0, 7, 19].forEach((k) => { const t = land[(k * 13) % land.length] + 40 * k; if (t >= 0 && t < tiles.count) units[`p${i}_${k}`] = { id: `p${i}_${k}`, ownerId: id, tile: t, domain: k === 19 ? 'naval' : 'land', classId: k === 19 ? 'naval' : 'infantry', strength: 1000, embarkedOn: null }; });
     });
     const s = { ...S, units };
+    const index = sightIndex(s);
     ids.forEach((id) => {
-      const set = visibleTiles(s, id); const test = sightTest(s, id);
-      for (let t = 0; t < tiles.count; t++) if (test(t) !== set.has(t)) throw new Error(`${id} tile ${t}`);
+      const set = visibleTiles(s, id); const test = sightTest(s, id); const indexed = sightTest(s, id, index);
+      for (let t = 0; t < tiles.count; t++) if (test(t) !== set.has(t) || indexed(t) !== set.has(t)) throw new Error(`${id} tile ${t}`);
       expect(test(null)).toBe(false);
     });
   });

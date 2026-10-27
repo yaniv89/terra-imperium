@@ -215,7 +215,9 @@ export const ownSightAll = (state) => {
     const visit = (t) => { if (seen[t] !== nationStamp) { seen[t] = nationStamp; list.push(t); } };
     const extra = mapEffectsFor(state, id).sight || 0;
     if (seeds) { const rings = ringsForKm(SIGHT_LAND_KM + extra); for (const c of seeds) for (const t of citySight(tiles, c, rings, mark, ++stamp)) visit(t); }
-    if (own) own.forEach((u) => { const t = unitTile(state, u); for (const x of citySight(tiles, { tile: t }, unitRings(tiles, u, t, extra), mark, ++stamp)) visit(x); });
+    // A stack walks once: a unit whose tile was walked as far already adds no tile (same list, same order).
+    const walked = new Map(); // tile -> rings walked from it
+    if (own) own.forEach((u) => { const t = unitTile(state, u); const r = unitRings(tiles, u, t, extra); if (walked.get(t) >= r) return; walked.set(t, r); for (const x of citySight(tiles, { tile: t }, r, mark, ++stamp)) visit(x); });
     out.set(id, list);
   });
   return out;

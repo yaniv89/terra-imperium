@@ -87,21 +87,29 @@ const ringsOf = (tiles, tile, reach) => {
   return rings;
 };
 
+/** The `byOwner` index sightTest takes: { cities, units } as Map owner -> list, one walk of each.
+ * Valid only while `state.units` and `state.regions` are unchanged and unmoved (one caller's pass). */
+export const sightIndex = (state) => {
+  const group = (list, key) => { const m = new Map(); list.forEach((x) => { const l = m.get(x[key]); if (l) l.push(x); else m.set(x[key], [x]); }); return m; };
+  return { cities: group(Object.values(state.regions), 'owner'), units: group(Object.values(state.units), 'ownerId') };
+};
+
 /** `(tile) => bool`, the same answer as visibleTiles(state, nationId).has(tile) without building the
  * whole set, for a caller that asks about a few tiles (warOdds.js). A tile is seen when friendly land
  * lies within the land reach of it, or one of the nation's units within that unit's reach
  * (neighbours are symmetric, so the walk starts at the asked tile). Read from the state at each
  * call, never cached on it (resolveTurn's working copies change in place); use the test at once. */
-export const sightTest = (state, nationId = state.playerNationId) => {
+export const sightTest = (state, nationId = state.playerNationId, byOwner = null) => {
   const tiles = getTiles();
   const extra = mapEffectsFor(state, nationId).sight;
   const friends = friendsOf(state, nationId);
   const land = new Set(); // the land visibleTiles grows from
-  Object.values(state.regions).forEach((c) => { if (friends.has(c.owner) && c.tile != null) (c.tiles || [c.tile]).forEach((t) => land.add(t)); });
+  const cities = byOwner ? [...friends].flatMap((id) => byOwner.cities.get(id) || []) : Object.values(state.regions);
+  cities.forEach((c) => { if (friends.has(c.owner) && c.tile != null) (c.tiles || [c.tile]).forEach((t) => land.add(t)); });
   const landRings = ringsForKm(SIGHT_LAND_KM + extra);
   const unitReach = new Map(); // tile -> the farthest reach of the nation's units on it
   let reach = landRings;
-  Object.values(state.units).forEach((u) => {
+  (byOwner ? byOwner.units.get(nationId) || [] : Object.values(state.units)).forEach((u) => {
     if (u.ownerId !== nationId || aboardShip(u)) return;
     const t = unitTile(state, u);
     if (t == null) return;
