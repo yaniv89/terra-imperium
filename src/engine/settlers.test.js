@@ -11,7 +11,7 @@ import { ringDistance } from './world/cities';
 import {
   bestSites, settlerPath, canSettle, settlersOf, outpostsOf, processSettlers, makeSettler, OUTPOST_DONE, OUTPOST_PROGRESS, SETTLER_MOVES, OUTPOST_SLOTS_BY_AGE, SETTLER_GIVE_UP_TURNS
 } from './settlers';
-import { chooseProduction, SETTLER_THINK_PERIOD } from './aiProduction';
+import { chooseProduction } from './aiProduction';
 import { addCity, cap, peoplesWorld, neighbourWorld, rivalOf, borderPair } from './testWorld';
 
 const quiet = (s) => ({ ...s, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
@@ -163,8 +163,7 @@ describe('settlers and outposts', () => {
   it('AI cities queue settlers when they have room and then buildings, and the AI world fills in', () => {
     const s = quiet(peoplesWorld({ seed: 5 }));
     const cairo = s.regions[cap(rivalOf(s))]; // an AI capital
-    const thinkTurn = (SETTLER_THINK_PERIOD - (cairo.tile % SETTLER_THINK_PERIOD)) % SETTLER_THINK_PERIOD; // the site search runs one turn in a few
-    const item = chooseProduction(s, cairo, { researched: [], ageId: 'bronze', citiesOwned: 1, units: s.units, turnNumber: thinkTurn });
+    const item = chooseProduction(s, cairo, { researched: [], ageId: 'bronze', citiesOwned: 1, units: s.units });
     expect(item).toEqual({ kind: 'settler' });
     const small = { ...cairo, size: 2 };
     expect(['building', 'unit']).toContain(chooseProduction(s, small, { researched: [], ageId: 'bronze', citiesOwned: 1, units: s.units })?.kind);

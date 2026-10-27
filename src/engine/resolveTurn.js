@@ -63,7 +63,7 @@ import {
 import { createRng } from '../utils/rng';
 import { processCities, growthThreshold, privateWorld, unitWaitsForTech } from './world/cities';
 import { makeSettler, processSettlers, bestSites, isSettler, foundAiVillages } from './settlers';
-import { chooseProduction, nationCounts, SETTLER_THINK_PERIOD } from './aiProduction';
+import { chooseProduction, nationCounts } from './aiProduction';
 import { syncWorldRegistry } from './world/registry';
 import { lodPeriod, settlesThisTurn, turnsToSettle } from './world/lod';
 import { applyMarketHousing } from './world/market';
@@ -191,14 +191,11 @@ const runCitiesPhase = (state, newTurnNumber) => {
     // An order the new age's tech now holds up (cities.js unitWaitsForTech) is chosen again.
     const nc = city.production?.current ? nationCtx(city.owner) : null;
     if (nc && !unitWaitsForTech(city.production.current, nc.ageId, nc.researched, nc.techFree)) return;
-    // A city that found nothing to build waits for its next settler-think turn (aiProduction.js
-    // SETTLER_THINK_PERIOD) instead of asking again every turn: the ask was a third of the phase.
-    if ((city.production?.idleUntil || 0) > newTurnNumber) return;
     const ctx = ctxFor(city);
     const item = chooseProduction(state, city, { ...ctx, units: state.units, counts: counts[city.owner] });
+    if (!item) return; // nothing worth building: asked again next turn
     if (cities === state.regions) cities = { ...cities };
-    if (item) cities[city.id] = { ...city, production: { ...city.production, current: item, idleUntil: undefined } };
-    else { let nextThink = newTurnNumber + 1; while ((nextThink + city.tile) % SETTLER_THINK_PERIOD !== 0) nextThink += 1; cities[city.id] = { ...city, production: { ...city.production, idleUntil: nextThink } }; }
+    cities[city.id] = { ...city, production: { ...city.production, current: item } };
   });
   // Uneven carrying capacity from market access and capital rank (world/market.js).
   const marketCities = { ...cities };
