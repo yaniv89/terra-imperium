@@ -52,6 +52,7 @@ export const ACTION_SOUNDS = {
   [T.FOUND_CITY]: 'city-founded',
   [T.ADD_LOG]: null,
   [T.RESOLVE_EVENT]: 'ui-confirm',
+  [T.ANSWER_CRISIS_EARLY]: null,
   [T.LOAD_GAME]: null,
   [T.GAIN_CONTROL]: 'ui-confirm',
   [T.BUILD_INFRASTRUCTURE]: 'building-queued',
