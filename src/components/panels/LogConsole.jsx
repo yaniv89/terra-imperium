@@ -9,6 +9,7 @@ import { LogTypes } from '../../data/types';
 import { AGES } from '../../data/ages';
 import { useT } from '../../i18n/useT';
 import { ageName } from '../../i18n';
+import { isolateLtr } from '../../i18n/core';
 import { logText } from '../../i18n/messageText';
 import { ageOf } from '../../engine/nationState';
 
@@ -85,7 +86,7 @@ const LogEntry = ({ log, showYear = true }) => {
     >
       {showYear && (
         <span className="text-fa-muted me-2 font-mono text-[10px] inline-block align-top mt-0.5">
-          [{log.year}]
+          [<bdi dir="ltr">{log.year}</bdi>]
         </span>
       )}
       {/* FIX: added break-words to prevent horizontal scrolling breaking layout */}
@@ -103,7 +104,7 @@ const LogEntry = ({ log, showYear = true }) => {
       {folded && open && (
         <div className="mt-1 ms-3 space-y-0.5 text-fa-muted">
           {log.details.map((d, i) => (
-            <div key={i} className="text-[10px] break-words"><span className="font-mono me-1">[{d.year}]</span>{logText(d, lang)}</div>
+            <div key={i} className="text-[10px] break-words"><span className="font-mono me-1">[<bdi dir="ltr">{d.year}</bdi>]</span>{logText(d, lang)}</div>
           ))}
         </div>
       )}
@@ -267,7 +268,7 @@ const LogConsole = () => {
               {(Number(year) % 10 === 0 || groupedByYear[year].some(l => l.type === LogTypes.MILESTONE)) && (
                 <div className="text-[9px] text-fa-muted uppercase tracking-wider mb-1 mt-2
                               border-t border-fa-line pt-1 sticky top-0 bg-fa-ink/90 backdrop-blur-sm z-10">
-                  — {year} —
+                  — <bdi dir="ltr">{year}</bdi> —
                 </div>
               )}
 
@@ -288,7 +289,7 @@ const LogConsole = () => {
       {/* Footer with turn info */}
       <div className="px-2 py-1 border-t border-fa-line text-[9px] text-fa-muted
                       flex justify-between items-center shrink-0 bg-fa-panel/50 pl:hidden">
-        <span>{t('log.footer', { turn: state.turnNumber, year: state.year })}</span>
+        <span>{t('log.footer', { turn: state.turnNumber, year: isolateLtr(state.year) })}</span>
         <span className="flex items-center gap-2">
           {ageName(ageOf(state, state.playerNationId), AGES[ageOf(state, state.playerNationId)]?.name)}
         </span>
