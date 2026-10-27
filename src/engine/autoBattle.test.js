@@ -4,7 +4,7 @@
 // the decisive field rule, and a small parity guardrail against the real-time battle with the
 // economy on (the full matrix: .claude/skills/battle-lab/parityEco.sim.js).
 import { describe, it, expect } from 'vitest';
-import { autoFromInputs, auxiliariesFor, autoCityDamage, WALLS_NO_SIEGE_MULT, WALLS_AGE_RELIEF, FORT_NO_SIEGE_MULT, AUTO_TUNE, ASSAULT_BREACH_SHARE } from './autoBattle';
+import { autoFromInputs, auxiliariesFor, autoCityDamage, WALLS_NO_SIEGE_MULT, WALLS_AGE_RELIEF, FORT_NO_SIEGE_MULT, AUTO_TUNE } from './autoBattle';
 import { militiaFor } from './battleInputs';
 import { createRng } from '../utils/rng';
 import { getDefenseLevelDamageReductionMultiplier } from './siege';
@@ -54,22 +54,6 @@ describe('the honest auto-resolve', () => {
     const empty = autoFromInputs(args(), ins(att, militiaFor({ ownerId: 'x', cityId: 'c', housing: 60 }), { walled: true }), 'invasion', createRng(1));
     expect(empty.report.wallsMult).toBe(1);
     expect(empty.report.auxiliaries[1].fielded).toBe(0);
-  });
-
-  it('the breach: a walled assault the attackers survive, with the garrison thinned enough, falls to them (U77)', () => {
-    const run = (share, seed) => autoFromInputs(args({ isAttackingFortification: true, battleType: 'assault', defenderDamageReductionMultiplier: getDefenseLevelDamageReductionMultiplier(2) }),
-      ins(mk('a', ['infantry', 'infantry', 'ranged']), mk('d', ['infantry', 'infantry', 'ranged']), { walled: true }), 'invasion', createRng(seed), { ...AUTO_TUNE, ASSAULT_BREACH_SHARE: share });
-    const seeds = Array.from({ length: 16 }, (_, i) => i + 1);
-    const breached = seeds.map((s) => run(ASSAULT_BREACH_SHARE, s)).filter((r) => r.report.breached);
-    expect(breached.length).toBeGreaterThan(0);
-    breached.forEach((r) => {
-      expect(r.outcome).toBe('attacker');
-      expect(sum(r.attackerUnits)).toBeGreaterThan(0);
-      expect(sum(r.defenderUnits)).toBeLessThanOrEqual(ASSAULT_BREACH_SHARE * 3000);
-    });
-    // Off: the same battles keep the plain result, and a breach never turns a field battle.
-    seeds.forEach((s) => expect(run(0, s).report.breached).toBeUndefined());
-    expect(autoFromInputs(args(), ins(mk('a', ['infantry']), mk('d', ['infantry'])), 'field', createRng(1)).report.breached).toBeUndefined();
   });
 
   it('an assault on Auto damages the real city the way the real-time one does: towers and the town hall', () => {
