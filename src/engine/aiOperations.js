@@ -268,7 +268,7 @@ export const siegeParty = (state, stack, at, fromCityId, threat = 0) => {
   const lone = stack.filter((u) => !u.robot).length === 1 && stack.some((u) => u.robot);
   const order = [...stack].sort((a, b) => (a.classId === 'siege') - (b.classId === 'siege') || (lone && !a.robot) - (lone && !b.robot) || (a.strength || 0) - (b.strength || 0) || (a.id < b.id ? -1 : 1));
   let kept = 1; let strength = order[0].strength || 0;
-  while (kept < order.length && strength * THREAT_DEFEND_RATIO <= threat) { strength += order[kept].strength || 0; kept += 1; }
+  while (threat > 0 && kept < order.length && strength * THREAT_DEFEND_RATIO <= threat) { strength += order[kept].strength || 0; kept += 1; }
   const home = new Set(order.slice(0, kept));
   return stack.filter((u) => !home.has(u));
 };
