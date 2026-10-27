@@ -2,7 +2,7 @@
 
 Dashboard: https://claude.ai/artifact/VCNKVfR3h4rvGmuC5i3SXD (datasets findings, scores, rounds, spend: JSON files uploaded as assets; source copies in the lead scratchpad loopdash/). Update it at every event: a lane finishes, a merge lands, a playtest returns, spend changes.
 Started 27 Oct by the user's /loop request (production polish of gameplay, AI, visuals, UX, speed).
-Rules kept: design changes that alter a game rule wait for the user's own yes; merges go to
+Rules kept: the lead (manager) gives the yes for design changes (user, 27 Oct) and records each call here; merges go to
 API budget: $90 in total (user, 27 Oct). Spend so far is the sum of the dashboard spend rows; caps count until a run reports its real cost.
 claude/integration, main gets the push once the quick suite and CI are green.
 

@@ -185,8 +185,11 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   push main only when that is green (main deploys).
 - After any user interrupt, check every lane is still alive (a stopped agent cannot be resumed: start a new
   lane on its worktree's edits).
-- A change to a game rule or a past user decision (for example battle rule Q3: a side with bases loses only
-  when its buildings are gone) needs the user's own yes; ask with the options and a recommendation.
+- Design decisions (user, 27 Oct): the lead session is the manager and gives the yes for design and rule
+  changes; lanes ask the lead, not the user. Keep the user's own past decisions (battle rule Q3: a side with
+  bases loses only when its buildings are gone; a city falls only when its defence is beaten; units keep
+  their age and upgrade with gold on own land) and the game's core identity. Record each design call in
+  plans/LOOP-REPORT.md with its reason.
 - AI playtester (dev only, never for live players): workflow `.github/workflows/claude-content.yml`, job
   `human-playtest` (`scripts/ai/human-playtest.mjs`), inputs persona, scene (`campaign` or `battle`), limit,
   max_usd, slices, size, lang; dispatch on ref claude/integration; results on branch `ai/human-playtest-<run_id>`
