@@ -11,7 +11,7 @@ export default {
   'm.turn.governorMoved': 'המושל {name} משרת עכשיו מ{city}: הערים שלכם קובצו מחדש.',
   'm.turn.governorMerged': 'המושל {name} עזב את תפקידו: הקבוצה של {city} אוחדה עם קבוצה שכבר יש לה מושל.',
   'm.turn.governorLeft': 'המושל {name} עזב את תפקידו: {city} כבר לא בידיכם.',
-  'm.turn.income': 'הכנסה: +{gold:money}', // {year} stays in the vars: the log heads each year itself
+  'm.turn.income': 'הכנסות: +{gold:money} (כל מקור: הקישו על הזהב בסרגל העליון)',
   'm.turn.hungryOne': 'נגמרה האספקה: יחידה {n} שלכם במערכה רעבה (-{morale} מורל, ללא תגבורת). בנו תעשייה, אגרו מתכת או החזירו אותה הביתה.',
   'm.turn.hungryMany': 'נגמרה האספקה: {n} יחידות שלכם במערכה רעבות (-{morale} מורל, ללא תגבורת). בנו תעשייה, אגרו מתכת או החזירו אותן הביתה.',
   'm.turn.uprisingWon': 'המרד ב{city} הצליח: {nation} מחזירה אותה לידיה מ{from}.',

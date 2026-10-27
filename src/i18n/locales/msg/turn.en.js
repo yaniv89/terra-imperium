@@ -13,7 +13,7 @@ export default {
   'm.turn.governorMoved': 'Governor {name} now serves from {city}: your cities were regrouped.',
   'm.turn.governorMerged': 'Governor {name} has left office: the group of {city} joined a group that already has a governor.',
   'm.turn.governorLeft': 'Governor {name} has left office: {city} is no longer yours.',
-  'm.turn.income': 'Income: +{gold:money}',
+  'm.turn.income': 'Income: +{gold:money} (each source: tap Gold on the top bar)',
   'm.turn.hungryOne': 'Out of supplies: your {n} unit on campaign go hungry (-{morale} morale, no reinforcement). Build Industry, stockpile metal or bring them home.',
   'm.turn.hungryMany': 'Out of supplies: your {n} units on campaign go hungry (-{morale} morale, no reinforcement). Build Industry, stockpile metal or bring them home.',
   'm.turn.uprisingWon': 'The uprising in {city} succeeds — {nation} reclaims it from {from}.',
@@ -51,7 +51,8 @@ export default {
   'm.turn.dominance': '{nation} dominates the world in legacy. If no one closes the gap within {n} turns, the game ends early with {nation} first.',
   'm.turn.dominanceYou': 'Your legacy dominates the world. Hold the lead for {n} turns and the game ends early with your nation first.',
   'm.turn.scoreVictory': 'VICTORY: your nation leads the world in legacy!',
-  'm.turn.gameComplete': 'GAME COMPLETE: your nation finishes ranked #{rank} in the world.',
+  'm.turn.gameComplete': 'GAME COMPLETE: your nation finishes ranked #{rank} in the world.'
+,
 
   // the turn report (src/components/ui/turnReportModel.js, TurnReportSheet.jsx)
   'report.group.battles': 'Battles',

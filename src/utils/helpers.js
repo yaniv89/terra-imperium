@@ -120,7 +120,10 @@ export const getUnitCount = (state, nationId) => getFieldedStrengthIndex(state.u
 // file's own established pattern: AI has no simulated per-region economy until M16).
 const OCCUPATION_TAX_SHARE = 0.25;
 
-export const calcIncome = (state) => {
+// `goldParts` (optional, an array): the gold's sources before the national multiplier are pushed
+// to it as { kind: 'city' | 'occupied' | 'trade', id, gold } (the top bar's gold reasons, playtest
+// issue 13). The result is the same with or without it.
+export const calcIncome = (state, { goldParts = null } = {}) => {
   // Occupied-by-someone-else regions are excluded from the owner's own income below (`!r.occupiedBy`)
   // — see the OCCUPATION_TAX_SHARE block after this loop for what the OCCUPIER gets instead.
   const playerRegions = Object.values(state.regions).filter(r => r.owner === state.playerNationId && !r.occupiedBy);
@@ -148,11 +151,14 @@ export const calcIncome = (state) => {
       const taxIncome = dev.tax * (1 + localTax) * controlMult * infraMult * popFactor;
       const productionIncome = dev.production * (1 + localProduction) * controlMult * infraMult * popFactor;
       const manpowerIncome = dev.manpower * (1 + localManpower) * controlMult * infraMult * popFactor;
-      income.gold += taxIncome + productionIncome + getRegionModifier(state, region.id, 'local.flatGold').total * controlMult;
+      const cityGold = taxIncome + productionIncome + getRegionModifier(state, region.id, 'local.flatGold').total * controlMult;
+      income.gold += cityGold;
       income.hr += manpowerIncome + getRegionModifier(state, region.id, 'local.flatManpower').total * controlMult;
       // Naval building line (plan §M6): a flat trade-income trickle per tier, coastal-only by
       // construction (BUILDING_CATEGORIES.naval.coastalOnly gates the building itself).
-      income.gold += getRegionModifier(state, region.id, 'local.tradeIncome').total * controlMult;
+      const harbourGold = getRegionModifier(state, region.id, 'local.tradeIncome').total * controlMult;
+      income.gold += harbourGold;
+      goldParts?.push({ kind: 'city', id: region.id, gold: cityGold + harbourGold });
     }
 
     Object.entries(region.buildings?.extraction || {}).forEach(([resId, built]) => {
@@ -191,6 +197,7 @@ export const calcIncome = (state) => {
     const localTax = getRegionModifier(state, region.id, 'local.taxIncome').total;
     const taxIncome = dev.tax * (1 + localTax) * controlMult * infraMult * popFactor;
     income.gold = (income.gold || 0) + taxIncome * OCCUPATION_TAX_SHARE;
+    goldParts?.push({ kind: 'occupied', id: region.id, gold: taxIncome * OCCUPATION_TAX_SHARE });
   });
 
   // Trade Pact income (plan §M12: "+5% x pact count", replacing the old flat +20 gold/partner) is
@@ -198,7 +205,11 @@ export const calcIncome = (state) => {
   // same goldMult lookup a few lines below rather than added here as a flat bonus. Mercantilism and
   // the Merchant Republic add flat gold per pact on top (lawRules.js tradeGoldPerRoute).
   const perRoute = lawRulesOf(state.nations?.[state.playerNationId]).tradeGoldPerRoute || 0;
-  if (perRoute) income.gold = (income.gold || 0) + perRoute * Object.values(state.nations || {}).filter((n) => !n.isPlayer && n.hasTradeAgreement && !n.isEliminated).length;
+  if (perRoute) {
+    const tradeGold = perRoute * Object.values(state.nations || {}).filter((n) => !n.isPlayer && n.hasTradeAgreement && !n.isEliminated).length;
+    income.gold = (income.gold || 0) + tradeGold;
+    goldParts?.push({ kind: 'trade', id: 'trade', gold: tradeGold });
+  }
 
   // Government/policy/wonder bonuses (plan §9/§10.4) — summed on the same hook
   // (the modifier engine, src/engine/modifiers/), applied as one multiplier — government, policy,

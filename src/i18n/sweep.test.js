@@ -43,8 +43,9 @@ describe('signed numbers in Hebrew', () => {
 describe('gold in Hebrew', () => {
   it('the income line has no year and no English "g"', () => {
     const he = msgText('m.turn.income', { year: -4700, gold: 11 }, 'he');
-    expect(he).toBe(`הכנסה: ${LRI}+11${PDI} זהב`);
-    expect(msgText('m.turn.income', { year: -4700, gold: 11 }, 'en')).toBe('Income: +11g');
+    expect(he).toContain(`${LRI}+11${PDI} זהב`);
+    expect(he).not.toMatch(/4700|\dg\b/);
+    expect(msgText('m.turn.income', { year: -4700, gold: 11 }, 'en')).toMatch(/^Income: \+11g/);
   });
   it('big sums group their digits, millions read as a word', () => {
     expect(msgText('m.act.loanTaken', { gold: 1500 }, 'he')).toContain('1,500 זהב');

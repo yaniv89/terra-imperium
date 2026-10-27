@@ -32,6 +32,8 @@ export const ActionTypes = {
   // Cities on the tile world (plans/civ-map-rework.md C1): the production queue, the tile focus
   // and locks, and buying a tile.
   QUEUE_PRODUCTION: 'QUEUE_PRODUCTION',
+  // The production advisor (productionAdvisor.js): payload { cityId? }; no cityId fills every idle city.
+  ADVISOR_PRODUCTION: 'ADVISOR_PRODUCTION',
   SAVE_ARMY_TEMPLATE: 'SAVE_ARMY_TEMPLATE',
   RENAME_ARMY: 'RENAME_ARMY',
   PILLAGE_TILE: 'PILLAGE_TILE',

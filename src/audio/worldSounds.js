@@ -29,6 +29,7 @@ export const ACTION_SOUNDS = {
   [T.FOUND_COLONY]: 'city-founded',
   [T.ABANDON_COLONY]: 'ui-confirm',
   [T.QUEUE_PRODUCTION]: (a) => (a.payload?.item?.kind === 'wonder' ? 'wonder-started' : 'building-queued'), // units too: "unit-trained" when done
+  [T.ADVISOR_PRODUCTION]: 'building-queued', // the advisor fills idle cities (productionAdvisor.js)
   [T.SAVE_ARMY_TEMPLATE]: 'ui-confirm',
   [T.RENAME_ARMY]: null,
   [T.PILLAGE_TILE]: 'gold-received',
@@ -189,7 +190,7 @@ export const LOG_RULES = [
 ];
 // A refusal in a log line: the action's own sound turns into 'ui-error'.
 const REFUSAL = /\b(refus|declin|reject|rebuff|not interested|turns? (you )?down|can't|cannot|can only|not enough|isn't possible|no longer possible)/i;
-const INCOME_LINE = /^(-?\d+|Income): \+/; // the per-turn income line (resolveTurn.js) is not news
+const INCOME_LINE = /^(Income: \+|-?\d+: \+)/; // the per-turn income line (resolveTurn.js) is not news
 
 export const logSound = (message) => {
   if (!message || INCOME_LINE.test(message)) return null;

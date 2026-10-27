@@ -71,6 +71,7 @@ export default {
   'm.act.no.atPeaceFleet': 'You\'re at peace with {nation} — declare war before engaging their fleet.',
   'm.act.no.notYourCity': 'Not your city.',
   'm.act.no.template': 'No such army template.',
+  'm.act.no.advisorNothing': 'The advisor finds nothing to build.',
   'm.act.no.inQueue': 'Already in the queue.',
   'm.act.no.notYourSettlers': 'Not your settlers.',
   'm.act.no.noLandPath': 'No way there over land.',
