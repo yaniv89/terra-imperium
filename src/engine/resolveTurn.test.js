@@ -1,3 +1,4 @@
+import { msgText } from './messages';
 import { CIVIL_WAR_STABILITY_STREAK_TURNS } from '../data/actionCosts';
 import { describe, it, expect } from 'vitest';
 import { resolveTurn } from './resolveTurn';
@@ -792,6 +793,10 @@ describe('resolveTurn AI war declarations', () => {
     }
     expect(warDeclared).toBe(true);
     expect(state.nations[R1].isAtWar).toBe(true);
+    // Follow-up 26: the declaration says why, in English and Hebrew.
+    const line = state.logs.find((l) => l.msgKey === 'm.diplo.declaresWarWhy');
+    expect(line.msgVars.why.key).toMatch(/^m\.diplo\.warWhy\.(claim|demand|grievance|none)$/);
+    ['en', 'he'].forEach((lang) => expect(msgText(line.msgKey, line.msgVars, lang)).not.toMatch(/[{}]|warWhy/));
   }, 60000); // up to 300 whole-world turns: slow under full-suite load
 });
 

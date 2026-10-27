@@ -26,7 +26,12 @@ export default {
   // AI war declarations (utils/aiLogic.js)
   'm.diplo.independenceRising': '{nation} rises up and declares independence from {overlord}!',
   'm.diplo.coalitionWar': "{nation} joins a coalition against {target}, the world's runaway power, and declares war!",
-  'm.diplo.declaresWar': '{nation} has declared war on {target}!',
+  'm.diplo.declaresWar': '{nation} has declared war on {target}!', // old saves' lines
+  'm.diplo.declaresWarWhy': '{nation} has declared war on {target} {why}!',
+  'm.diplo.warWhy.claim': 'over its claim on their land',
+  'm.diplo.warWhy.demand': 'after they refused its demand',
+  'm.diplo.warWhy.grievance': 'over old grievances',
+  'm.diplo.warWhy.none': 'with no just cause',
 
   // defensive leagues (pacts.js)
   'm.diplo.leagueVsYou': 'Alarmed by your conquests, {names} form a defensive league against you: attack one and the others will answer.',
