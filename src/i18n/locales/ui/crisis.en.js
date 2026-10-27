@@ -3,6 +3,9 @@
 export default {
   'crisis.wait': 'Crisis: {title}',
   'crisis.answerNow': 'Decide now',
+  'crisis.early.one': 'Not yet: this strikes next turn. Your choice takes effect then.',
+  'crisis.early.two': 'Not yet: this strikes in 2 turns. Your choice takes effect then.',
+  'crisis.early.other': 'Not yet: this strikes in {count} turns. Your choice takes effect then.',
   'crisis.dismiss': 'Dismiss the crisis notice',
   'crisis.hitYou': 'Your people are among the {n} hit.',
   'crisis.hitOthers': '{n} peoples are hit. Yours is spared for now.',

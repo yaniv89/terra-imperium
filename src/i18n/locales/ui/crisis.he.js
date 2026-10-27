@@ -3,6 +3,9 @@
 export default {
   'crisis.wait': 'משבר: {title}',
   'crisis.answerNow': 'החליטו עכשיו',
+  'crisis.early.one': 'עוד לא: זה פוגע בתור הבא. הבחירה שלכם תחול אז.',
+  'crisis.early.two': 'עוד לא: זה פוגע בעוד שני תורות. הבחירה שלכם תחול אז.',
+  'crisis.early.other': 'עוד לא: זה פוגע בעוד {count} תורות. הבחירה שלכם תחול אז.',
   'crisis.dismiss': 'סגרו את הודעת המשבר',
   'crisis.hitYou': 'עמכם בין {n} העמים שנפגעו.',
   'crisis.hitOthers': '{n} עמים נפגעו. עמכם נחסך לעת עתה.',
