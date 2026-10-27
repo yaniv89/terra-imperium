@@ -32,6 +32,8 @@ export const ActionTypes = {
   // Cities on the tile world (plans/civ-map-rework.md C1): the production queue, the tile focus
   // and locks, and buying a tile.
   QUEUE_PRODUCTION: 'QUEUE_PRODUCTION',
+  // The production advisor (productionAdvisor.js): payload { cityId? }; no cityId fills every idle city.
+  ADVISOR_PRODUCTION: 'ADVISOR_PRODUCTION',
   SAVE_ARMY_TEMPLATE: 'SAVE_ARMY_TEMPLATE',
   RENAME_ARMY: 'RENAME_ARMY',
   PILLAGE_TILE: 'PILLAGE_TILE',
@@ -55,6 +57,7 @@ export const ActionTypes = {
   FOUND_CITY: 'FOUND_CITY',
   ADD_LOG: 'ADD_LOG',
   RESOLVE_EVENT: 'RESOLVE_EVENT',
+  ANSWER_CRISIS_EARLY: 'ANSWER_CRISIS_EARLY', // opens the coming crisis's decision card during its warning (crises.js)
   LOAD_GAME: 'LOAD_GAME',
 
   // Domestic tab (plan §5) — atomic, cost-validated player actions.

@@ -1,10 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { crisisDue, processCrises, hitNations, crisisComing, CHECK_PERIOD, MAX_HIT } from './crises';
+import { crisisDue, processCrises, hitNations, crisisComing, famineShare, CHECK_PERIOD, MAX_HIT, FAMINE_SHARE } from './crises';
 import { CRISES, crisisCardId } from '../data/crises';
 import { cardOf } from './eventDeck';
 import { peoplesWorld, cloneWorld, majorIds, addCities } from './testWorld';
 import { resolveTurn } from './resolveTurn';
 import { HISTORICAL_EVENTS } from '../data/events';
+import { gameReducer } from './gameReducer';
+import { getOptionShortfall } from './applyEventEffects';
+import { ActionTypes } from '../data/types';
+import { peopleOf } from './population';
+import { growthThreshold } from './world/cities';
+import { speedCostMult } from '../data/ages';
 
 const collapse = CRISES.find((c) => c.id === 'bronze_collapse');
 
@@ -126,5 +132,74 @@ describe('history crises (U31)', () => {
     const out = processCrises({ ...s, turnNumber: 50, crises: { coming: { id: 'world_war', turn: 50, nations: [s.playerNationId, rival] } } });
     expect(out.wars).toBe(s.wars);
     expect(out.crises.coming).toBeUndefined();
+  });
+
+  it('a famine takes half as much from a city with a Granary or better', () => {
+    expect(famineShare({ size: 4, food: 0 })).toBe(FAMINE_SHARE);
+    expect(famineShare({ size: 4, food: 0, buildings: { categories: { food: 0 } } })).toBe(FAMINE_SHARE); // Storage Pits are not a Granary
+    expect(famineShare({ size: 4, food: 0, buildings: { categories: { food: 1 } } })).toBe(FAMINE_SHARE / 2);
+    expect(famineShare({ size: 4, food: 999, buildings: { categories: { food: 3 } } })).toBe(FAMINE_SHARE / 2); // the store does not count
+    const s = world('bronze');
+    const cap = s.regions[s.nations[s.playerNationId].capitalRegionId];
+    s.regions[cap.id] = { ...cap, food: 0, buildings: { ...cap.buildings, categories: { ...cap.buildings?.categories, food: -1 } } };
+    const bare = { ...s, regions: { ...s.regions }, turnNumber: 50, crises: { coming: { id: 'little_ice_age', turn: 50, nations: [s.playerNationId] } } };
+    processCrises(bare);
+    const fed = { ...bare, regions: { ...s.regions, [cap.id]: { ...s.regions[cap.id], buildings: { ...cap.buildings, categories: { ...cap.buildings?.categories, food: 1 } } } } };
+    processCrises(fed);
+    expect(fed.regions[cap.id].currentPopulation).toBeGreaterThan(bare.regions[cap.id].currentPopulation);
+  });
+
+  it('a famine draws at the game speed: the people number it leaves is the one the next turn writes', () => {
+    const s = { ...world('bronze'), gameSpeed: 'normal' };
+    const capId = s.nations[s.playerNationId].capitalRegionId;
+    const at = { ...s, regions: { ...s.regions }, turnNumber: 50, crises: { coming: { id: 'little_ice_age', turn: 50, nations: [s.playerNationId] } } };
+    processCrises(at);
+    const c = at.regions[capId];
+    expect(c.currentPopulation).toBeLessThan(s.regions[capId].currentPopulation);
+    expect(c.currentPopulation).toBe(peopleOf(c, growthThreshold(c.size, speedCostMult('normal', 'bronze'))));
+  });
+
+  it('the player may answer a coming crisis during its warning: the choice is paid at the strike, the card does not open again', () => {
+    const s0 = world('bronze');
+    const s = { ...s0, turnNumber: 45, crises: { coming: { id: 'bronze_collapse', turn: 50, nations: [s0.playerNationId] } } };
+    const opened = gameReducer(s, { type: ActionTypes.ANSWER_CRISIS_EARLY });
+    expect(opened.activeEventId).toBe(crisisCardId('bronze_collapse'));
+    expect(crisisComing(opened).answered).toBe(true);
+    expect(gameReducer({ ...opened, activeEventId: null }, { type: ActionTypes.ANSWER_CRISIS_EARLY }).activeEventId).toBe(null); // once
+    const gold = opened.resources.gold;
+    const answered = gameReducer(opened, { type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex: 0 } });
+    expect(answered.activeEventId).toBe(null);
+    expect(answered.resources.gold).toBe(gold); // nothing paid during the warning
+    expect(answered.crises.coming.choice).toBe(0);
+    const out = processCrises({ ...answered, turnNumber: 50 });
+    expect(out.crises.history[0].id).toBe('bronze_collapse');
+    expect(out.choice).toBe(0);
+    expect(out.pendingEventChains || []).not.toContainEqual({ id: crisisCardId('bronze_collapse'), dueTurn: 50 });
+    // Through resolveTurn: the strike pays the option (bronze_collapse 0: -40 gold) on top of the same turn.
+    const fired = Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true]));
+    const quiet = { firedEvents: fired, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true }, turnNumber: 49 };
+    const paid = resolveTurn({ ...answered, ...quiet });
+    const unpaid = resolveTurn({ ...answered, ...quiet, crises: { coming: { ...answered.crises.coming, choice: undefined } } });
+    expect(paid.crises.history.at(-1).id).toBe('bronze_collapse');
+    expect(paid.resources.gold).toBe(unpaid.resources.gold - 40);
+    expect(paid.activeEventId).toBe(unpaid.activeEventId);
+    // The early choice can no longer be paid but another option can: the card opens again, nothing is lost.
+    const broke = resolveTurn({ ...answered, ...quiet, resources: { ...answered.resources, gold: 0 } });
+    const card = crisisCardId('bronze_collapse');
+    expect(broke.activeEventId === card || (broke.pendingEventChains || []).some((l) => l.id === card)).toBe(true);
+    if (broke.activeEventId === card) {
+      const pick = cardOf(card).options.findIndex((o) => getOptionShortfall(broke.resources, o.effects).length === 0);
+      const done = gameReducer(broke, { type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex: pick } });
+      expect(done.activeEventId).not.toBe(card);
+      expect(done.crises.coming?.choice).toBeUndefined();
+    }
+    // A crisis dropped before it strikes (crises switched off) pays nothing.
+    const off = { ...answered, settings: { ...answered.settings, crises: 'off' } };
+    expect(processCrises({ ...off, turnNumber: 50 }).choice).toBeUndefined();
+    expect(resolveTurn({ ...off, ...quiet }).resources.gold).toBe(resolveTurn({ ...off, ...quiet, crises: {} }).resources.gold);
+    // Not answered: the card opens at the strike as before.
+    expect(processCrises({ ...s, turnNumber: 50 }).pendingEventChains).toContainEqual({ id: crisisCardId('bronze_collapse'), dueTurn: 50 });
+    // Nothing coming for the player: no card.
+    expect(gameReducer(s0, { type: ActionTypes.ANSWER_CRISIS_EARLY })).toBe(s0);
   });
 });

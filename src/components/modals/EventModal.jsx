@@ -36,7 +36,8 @@ const EffectBadge = ({ text, sign, tooltip }) => {
   );
 };
 
-const EventModal = ({ event, onResolve, resources, placeName = null, cityId = null }) => {
+// comingIn: a crisis card answered during its warning (crises.js): the turns until it strikes.
+const EventModal = ({ event, onResolve, resources, placeName = null, cityId = null, comingIn = null }) => {
   const isMobile = useIsMobile();
   // Centre the map on the event's city while the sheet is open; release it after.
   useEffect(() => { if (!event || !cityId) return undefined; focusRegion(cityId); return () => focusRegion(null); }, [event, cityId]);
@@ -87,6 +88,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
 
         {/* Content */}
         <div className="p-4 pl:px-3 pl:py-2 overflow-y-auto flex-1 min-h-0" data-testid="event-body">
+          {comingIn != null && <p className="text-amber-300 text-sm font-semibold mb-2 pl:text-[13px] pl:mb-1" data-testid="event-coming">{tNow('crisis.early', { count: comingIn })}</p>}
           {/* Description */}
           <p className="text-fa-text text-sm leading-relaxed mb-4 pl:text-[13px] pl:leading-snug pl:mb-2">
             {eventDescription(event, { city: placeName || '' })}
@@ -138,7 +140,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
 
         {/* Footer hint */}
         <div className="px-4 py-2 border-t border-fa-line text-xs text-fa-muted text-center shrink-0 pl:hidden">
-          Choose an option to go on: the turn waits for it. The map stays live behind.
+          {tNow('event.footer')}
         </div>
       </div>
     </div>

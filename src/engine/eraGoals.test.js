@@ -6,7 +6,7 @@ import { getNationCapital } from '../data/regions';
 import { TECH_TREE } from '../data/techTree';
 import { AGE_ORDER } from '../data/ages';
 import { addCities } from './testWorld';
-import { eraGoalProgress, playstyleValues, awardEraLegacy, payEraGoals } from './eraGoals';
+import { eraGoalProgress, playstyleValues, awardEraLegacy, payEraGoals, nextGoal } from './eraGoals';
 import { ERA_LEGACY_TURNS, goalsForAge } from '../data/eraGoals';
 import { getModifier } from './modifiers/sheet';
 import { peoplesWorld } from './testWorld';
@@ -110,4 +110,12 @@ describe('era goals', () => {
     expect(s.techAgeId).toBe('bronze');
     expect(s.nations[FR_ID].eraGoals?.bronze?.legacy).toBeUndefined(); // begun, not scored
   }, 60000);
+});
+
+describe('nextGoal (the map chip)', () => {
+  it('names the unmet goal closest to done, null when all are met', () => {
+    const g = (id, value, target, done = false) => ({ id, value, target, done });
+    expect(nextGoal({ goals: [g('expand', 1, 4), g('wealth', 6, 9), g('war', 2, 2, true)] }).id).toBe('wealth');
+    expect(nextGoal({ goals: [g('expand', 4, 4, true)] })).toBeNull();
+  });
 });

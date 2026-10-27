@@ -65,4 +65,16 @@ describe('the message tables', () => {
       expect(holes(v), `placeholders differ in ${k}`).toBe(holes(base));
     }
   });
+
+  it('keeps every signed number left to right in Hebrew (the Goal met bonus and every other line with a sign)', () => {
+    const e = msg('m.world.eraGoalMet', { goal: thing('playstyle', 'wealth', 'Wealth'), bonus: sub('m.world.goalBonus.wealth', { n: 10 }), turns: 20 });
+    const [lri, pdi] = [String.fromCharCode(0x2066), String.fromCharCode(0x2069)];
+    expect(logText(e, 'he')).toContain(`${lri}+10%${pdi}`);
+    expect(logText(e, 'en')).not.toContain(lri);
+    const five = new Proxy({}, { get: () => 5 });
+    const loose = /(^|[\s(:[])[+\-\u2212]\d/;
+    const signed = Object.keys(heMsg).filter((k) => loose.test(msgText(k, five, 'en')));
+    expect(signed.length).toBeGreaterThan(20);
+    signed.forEach((k) => expect(msgText(k, five, 'he'), k).not.toMatch(loose));
+  });
 });
