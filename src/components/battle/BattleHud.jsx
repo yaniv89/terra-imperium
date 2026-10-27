@@ -42,6 +42,7 @@ import { selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLe
 import { menText } from '../../engine/battleLedger';
 import { deployHelp, cameraHelp } from './battleCoach';
 import { useT } from '../../i18n/useT';
+import { useCornerSheet } from '../../hooks/useExclusivePanel';
 import { abilityLabel, powerLabel, structureLabel, battleTypeText, battleGoal, buildingEffect } from './battleText';
 import { structureName } from './inspectModel';
 
@@ -179,6 +180,13 @@ const BattleHud = ({
   const [deployMore, setDeployMore] = useState(false);
   const [stocksOpen, setStocksOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
+  // On a phone one battle overlay shows at a time (the radial too, TacticalBattleScreen): the one opened last.
+  useCornerSheet('battle-wand', wandOpen, () => setWandOpen(false));
+  useCornerSheet('battle-supply', supplyOpen, () => setSupplyOpen(false));
+  useCornerSheet('battle-history', historyOpen, () => setHistoryOpen(false));
+  useCornerSheet('battle-stocks', stocksOpen, () => setStocksOpen(false));
+  useCornerSheet('battle-view', viewOpen, () => setViewOpen(false));
+  useCornerSheet('battle-pause', !!hud && !ended && started && paused && !sheetHidden, () => setSheetHidden(true));
   const short = useShortScreen();
   const narrowMedia = useMedia(NARROW_QUERY);
   const narrow = narrowProp ?? narrowMedia;

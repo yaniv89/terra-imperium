@@ -32,6 +32,7 @@ import { getMapPrefs } from '../map/mapPrefs';
 import { Check, X as XIcon, Ban, Hammer, Wrench } from 'lucide-react';
 import GameIcon from '../ui/GameIcon';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { useCornerSheet } from '../../hooks/useExclusivePanel';
 import { BuildMenu, BuildingActions, InfoCard, HammerButton, WorkerAutoButtons } from './EconomyHud';
 import { inspectInfo } from './inspectModel';
 import { contextFor, refusedText, enemyObjectives, supplyRate } from './battleHudModel';
@@ -136,6 +137,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const [dragLine, setDragLine] = useState(null);
   const [lasso, setLasso] = useState(null);
   const [radial, setRadial] = useState(null);
+  useCornerSheet('battle-radial', !!radial, () => setRadial(null)); // one battle overlay at a time on a phone (BattleHud's sheets)
   const [ended, setEnded] = useState(null);
   const [failure, setFailure] = useState(null); // { message, detail }: BattleFailure
   // The start for the loading screen (BattleLoading): the stage reached, the bar, the seconds so far
