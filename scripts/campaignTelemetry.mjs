@@ -181,8 +181,9 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
   const stackStats = {}; // per war: { stackTurns, moved, shuttle, ... }
   const history = new Map(); // lead unit id -> last tiles
   const sieging = new Set();
-  const first = { unit: null, settler: null, building: null, city2: null, wonder: null };
-  let startUnits = null; let startBuildings = null; let startCities = null;
+  const first = { unit: null, settler: null, building: null, city2: null, wonder: null, city1: null, tech: null };
+  let startUnits = null; let startBuildings = null; let startCities = null; let startTechs = null;
+  const techsOf = (st) => Object.values(st.techTree || {}).filter((x) => x.researched).length;
   const series = []; // { turn, gold, adm, dip, mil, majorsMet, ... } one row per observed turn
   const goldRange = { min: Infinity, max: -Infinity };
   const demandOutcome = [];
@@ -260,6 +261,8 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
       startUnits = new Set(Object.values(before.units).filter((u) => u.ownerId === me).map((u) => u.id));
       startBuildings = Object.values(before.regions).filter((c) => c.owner === me).reduce((a, c) => a + buildingCount(c), 0);
       startCities = Object.values(before.regions).filter((c) => c.owner === me && !c.outpost).length;
+      startTechs = techsOf(before);
+      if (startCities) first.city1 = 0;
     }
     observeWars(after);
     // First completions (ETAs) for the player.
@@ -269,6 +272,8 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
     const myCities = Object.values(after.regions).filter((c) => c.owner === me && !c.outpost);
     if (first.building == null && myCities.reduce((a, c) => a + buildingCount(c), 0) > startBuildings) first.building = t;
     if (first.city2 == null && myCities.length > startCities) first.city2 = t;
+    if (first.city1 == null && myCities.length) first.city1 = t; // a band start founds its first city (SC1)
+    if (first.tech == null && techsOf(after) > startTechs) first.tech = t;
     // Treasury range and the per-turn series.
     const g = after.resources.gold || 0; goldRange.min = Math.min(goldRange.min, g); goldRange.max = Math.max(goldRange.max, g);
     series.push({ turn: t, gold: Math.round(g), adm: Math.round(after.resources.adm || 0), dip: Math.round(after.resources.dip || 0), mil: Math.round(after.resources.mil || 0), cities: myCities.length });
@@ -338,7 +343,7 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
       playerCities: mine.length, playerProdMean: r1(mean(prodMine)), playerProdMin: Math.min(...(prodMine.length ? prodMine : [0])),
       aiCityProdP10: prod.length ? prod[Math.floor(0.1 * (prod.length - 1))] : 0, aiCityProdMedian: median(prod), aiCityProdP90: prod.length ? prod[Math.floor(0.9 * (prod.length - 1))] : 0,
       aiTopCities: top ? top[1].length : 0, aiTopProdMean: top ? r1(mean(top[1])) : 0, aiTop5ProdMean: r1(mean(top5.flatMap((e) => e[1]))),
-      firstUnitTurn: first.unit ?? -1, firstSettlerTurn: first.settler ?? -1, firstBuildingTurn: first.building ?? -1, secondCityTurn: first.city2 ?? -1,
+      firstUnitTurn: first.unit ?? -1, firstSettlerTurn: first.settler ?? -1, firstBuildingTurn: first.building ?? -1, secondCityTurn: first.city2 ?? -1, firstCityTurn: first.city1 ?? -1, firstTechTurn: first.tech ?? -1,
       demandsMajor: demandOutcome.filter((d) => d.kind !== 'tribute').length, demandsTribute: demandOutcome.filter((d) => d.kind === 'tribute').length,
       warsDeclaredMajors: allWars.filter((w) => !w.indep).length, warsDeclaredAll: allWars.length, warsOnPlayer: allWars.filter((w) => w.withPlayer && w.e === me).length,
       // Battles per war between majors (war.battles, battleOutcome.js), and wars that never saw one.

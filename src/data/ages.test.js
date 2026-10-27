@@ -37,7 +37,7 @@ describe('game speed (KTD9: a cost multiplier per age, a turn limit, no years pe
   });
 
   it('gives the Information Age its multipliers (KTD9)', () => {
-    expect(['fast', 'normal', 'marathon'].map((sp) => speedCostMult(sp, 'information'))).toEqual([1, 2, 3]);
+    expect(['fast', 'normal', 'marathon'].map((sp) => speedCostMult(sp, 'information'))).toEqual([0.92, 2, 3.7]);
   });
 
   it('registers the Future last: 2100 to 2500, power 64/48, multipliers 1/2/3 (U64, rank 4)', () => {
@@ -47,11 +47,11 @@ describe('game speed (KTD9: a cost multiplier per age, a turn limit, no years pe
     expect(['fast', 'normal', 'marathon'].map((sp) => speedCostMult(sp, 'future'))).toEqual([1, 2, 3]);
   });
 
-  it('keeps the Normal values of the old calendar and the rank 4 refit of Fast and Marathon', () => {
+  it('keeps the Normal values of the old calendar and the U96 calibration of Fast and Marathon', () => {
     const ages = ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'];
     expect(ages.map((a) => speedCostMult('normal', a))).toEqual([1.6, 20 / 12, 10 / 6, 2, 2]);
-    expect(ages.map((a) => speedCostMult('fast', a))).toEqual([0.8, 0.8, 1, 1.1, 0.8]);
-    expect(ages.map((a) => speedCostMult('marathon', a))).toEqual([3, 2.6, 4, 4.5, 3]);
+    expect(ages.map((a) => speedCostMult('fast', a))).toEqual([0.75, 0.86, 0.79, 0.91, 0.97]);
+    expect(ages.map((a) => speedCostMult('marathon', a))).toEqual([2.3, 2.8, 3, 3.7, 3.8]);
   });
 
   it('is slower on a slower speed at every age, and Normal is the fallback speed', () => {
