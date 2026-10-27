@@ -31,3 +31,9 @@ claude/integration, main gets the push once the quick suite and CI are green.
   early march only when 1.5x stronger, a fallback at about a third of the clock, the AI builds while it
   waits. References: AoE II attack waves by army size and treaty mode, StarCraft rush cost. main keeps
   the old behaviour until the rework is measured.
+- Sub sessions started 18:42 (from the lowest playtest scores): map-clarity session_01S3hKeK7JN4YccSps9QkYym
+  (Map 4.8, Economy 4.7); playtest-saves session_01S3hKeFLgfVcScfjZZN8Hh4 (RTS, naval "not reached");
+  campaign-ai-wars session_01S3hKeG1EPz8RAPY9Xsqn3n (Wars and AI 2.0); turn-pacing
+  session_01S3hKeG5pV6nJKZHb7FzPbX (Fun 3.1, Help 3.5).
+- battle-stall merged into integration locally (review: no findings); push waits on test:quick; main
+  waits on the grace rework.
