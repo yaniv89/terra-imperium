@@ -50,3 +50,7 @@ claude/integration, main gets the push once the quick suite and CI are green.
   animations too): reviewer-style scores per area (map, units, animations, VFX, transitions) against AoE IV,
   Total War, Northgard and Civ VI, then fixes in code and Blender, re-scored on the same shots.
 - Round 2 retest adds art and animation rows to the grades (from this lane's rubric plus the battle playtest).
+- Merged 19:55: turn-pacing (production advisor, quieter turn report, closest-goal chip, 3-card tutorial),
+  playtest-saves (era saves from real play), map-clarity (supply along the march, log sources, map fixes).
+  Review: no findings. Lint clean, test:quick 4061 passed. civ-veteran playtest real cost $3.25 (spend $34.03).
+- send_message allowed in .claude/settings.json (user, 27 Oct) so lanes report without a prompt.
