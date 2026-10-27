@@ -47,7 +47,7 @@ describe('Stone Age phases (U25)', () => {
 
   it('research costs double until Proto-Writing', () => {
     const tech = 'military_hunting_bands';
-    const known = withTechsResearched(S, ME, ['governance_chiefdoms']); // past the first tech's discount (research.js)
+    const known = withTechsResearched(S, ME, ['governance_chiefdoms', 'governance_sacred_kingship']); // past the opening discount (research.js)
     expect(getResearchCost(known, ME, tech)).toBe(getResearchCost(withTechsResearched(known, ME, [WRITING_TECH]), ME, tech) * NO_WRITING_COST_MULT);
   });
 

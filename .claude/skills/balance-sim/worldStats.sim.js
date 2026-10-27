@@ -217,6 +217,8 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     indepUnrestMean: (() => { const c = regs.filter((r) => r.owner && s.nations[r.owner]?.kind === 'independent'); return +(c.reduce((a, r) => a + (r.unrest || 0), 0) / Math.max(1, c.length)).toFixed(2); })(),
     // Cities per AI major (outposts not counted, the player left out), and the player's buildings.
     citiesPerAiMajor: (() => { const ms = new Set(nations.filter((n) => n.kind !== 'independent' && !n.isEliminated && !n.id.startsWith('free_') && n.id !== 'rebels' && n.id !== s.playerNationId).map((n) => n.id)); const c = regs.filter((r) => r.owner && !r.outpost && ms.has(r.owner)).length; return +(c / Math.max(1, ms.size)).toFixed(2); })(),
+    // Follow-up 20's measure: the median AI major's cities, outposts counted.
+    aiCitiesMedian: (() => { const n = {}; regs.forEach((r) => { if (r.owner && r.owner !== s.playerNationId) n[r.owner] = (n[r.owner] || 0) + 1; }); const v = livingMajors(s).filter((m) => m.id !== s.playerNationId).map((m) => n[m.id] || 0).sort((a, b) => a - b); return v[Math.floor(v.length / 2)] || 0; })(),
     // SC3 (eight ages plan, the Stone Age's end: Normal 60, Fast 30, Marathon 75): over living
     // majors, the player included: median capital size, median and largest city count, share with
     // Agriculture; the share past Stone is 1 - ageShare_stone.

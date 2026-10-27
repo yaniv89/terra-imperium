@@ -42,7 +42,6 @@ import { claimsInProgressOf } from './claims';
 import { canFight } from './hostility';
 
 export const SETTLER_FROM_SIZE = 2;
-export const SETTLER_THINK_PERIOD = 3; // a city looks for a site one turn in three (the site search is the costly part)
 export const MAX_BUILD_TURNS = 40;
 export const UNITS_PER_CITY = 1;
 export const WONDER_THINK_PERIOD = 5;
@@ -191,14 +190,13 @@ export const chooseProduction = (state, city, ctx) => {
   let best = null; let bestScore = 0;
   const offer = (item, score) => { if (score > bestScore + 1e-9) { best = item; bestScore = score; } };
 
-  const thinks = ((ctx.turnNumber || 0) + city.tile) % SETTLER_THINK_PERIOD === 0;
-  // One settler decision per nation per turn: the first city that thinks searches for a site and
+  // One settler decision per nation per turn: the first city that asks searches for a site and
   // queues the settlers; its siblings build on (a search per city was 140 site searches a turn, and
   // every sibling queued settlers of its own against the same empty count).
   // An independent (ctx.garrisonTarget set, independents.js) never settles, never builds wonders and
   // keeps a garrison of garrisonTarget land units, first of all.
   const independent = ctx.garrisonTarget != null;
-  if (!independent && thinks && city.size >= SETTLER_FROM_SIZE && counts.settlers === 0 && counts.outposts < outpostSlots(ctx.ageId) && !settlerDecidedThisTurn(state, nationId)) {
+  if (!independent && city.size >= SETTLER_FROM_SIZE && counts.settlers === 0 && counts.outposts < outpostSlots(ctx.ageId) && !settlerDecidedThisTurn(state, nationId)) {
     const site = bestSites(state, nationId, city.tile, ctx.ageId, { limit: 1 })[0];
     const item = { kind: 'settler' };
     if (site && canQueue(city, tiles, world, item, ctx).ok) offer(item, SETTLER_UTILITY * (sit.atWar ? WAR_SETTLER_MULT : 1)); // bestSites already holds the quality floor

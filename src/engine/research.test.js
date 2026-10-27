@@ -138,12 +138,14 @@ describe('the first tech (U47)', () => {
     const s = fresh();
     const me = s.playerNationId;
     const stone = Object.values(TECH_TREE).filter((t) => t.ageId === 'stone' && t.id !== 'economy_agriculture' && canStartTech(t.id, new Set(), 'stone').ok).map((t) => t.id);
-    const [a, b] = stone;
+    const [a, b, c] = stone;
     const first = getResearchCost(s, me, b);
-    const known = { ...s, techTree: { ...s.techTree, [a]: { ...s.techTree[a], researched: true } } };
-    const full = getResearchCost(known, me, b);
+    const learn = (st, id) => ({ ...st, techTree: { ...st.techTree, [id]: { ...st.techTree[id], researched: true } } });
+    const second = getResearchCost(learn(s, a), me, b); // the second costs half (Phase G, SC2)
+    const full = getResearchCost(learn(learn(s, a), c), me, b);
     expect(first).toBeLessThan(full);
     expect(first).toBeCloseTo(full * FIRST_TECH_COST_MULT, -1);
+    expect(second).toBeCloseTo(full * FIRST_TECH_COST_MULT * 2, -1);
   });
 });
 

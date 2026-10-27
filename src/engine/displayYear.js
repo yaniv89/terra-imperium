@@ -22,8 +22,7 @@
 import { AGES, AGE_ORDER, LAST_AGE_ID, getAgeIndex } from '../data/ages';
 import { getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
 import { ageOf, getResearched } from './nationState';
-import { getResearchCost, FIRST_TECH_COST_MULT } from './research';
-import { AGRICULTURE_TECH } from '../data/hearths';
+import { getResearchCost, openingCostMult } from './research';
 
 export const AGE_TECH_COUNT = 10;
 /** Techs of an age that fill its year range: the threshold to the next age, all ten in the last. */
@@ -50,9 +49,9 @@ export const displayYear = (state) => {
   const id = state.playerNationId;
   const progress = state.research?.progress || {};
   const known = getResearched(state, id);
-  // Shares are of the full price: the first tech's quarter price (research.js) would otherwise make
-  // every share fall to a quarter the turn the first tech is done.
-  const full = known.some((t) => t !== AGRICULTURE_TECH) ? 1 : FIRST_TECH_COST_MULT;
+  // Shares are of the full price: the opening techs' cut price (research.js) would otherwise make
+  // every share jump the turn an opening tech is done.
+  const full = openingCostMult(known);
   const partialOf = (t) => (progress[t.id] > 0 ? (progress[t.id] * full) / getResearchCost(state, id, t.id) : 0);
   return labelYear(ageOf(state, id), known, partialOf);
 };
