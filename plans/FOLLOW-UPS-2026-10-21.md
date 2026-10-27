@@ -26,6 +26,29 @@ Akkad seed 1000 to 700 CE, Elam seed 1001 to 1500 CE, Pontic seed 1002 to 900 CE
 18. **Calendar freezes then jumps:** the year stays put for many turns, then skips centuries.
 19. **Gold piles up:** nothing worth spending it on in mid game.
 20. **Expansion is very slow:** few new cities across the whole game.
+    - **Measured 27 October** (c7644583, balance-sim worldStats-style run, POLICY scripted, 8 seeds 11 to 18, standard peoples world, akkad, 200 turns, cities include outposts; the throwaway sim is not kept):
+
+      | Normal speed (mean of 8) | T25 | T50 | T100 | T150 | T200 |
+      |---|---|---|---|---|---|
+      | player cities | 1 | 2 | 2 | 2 | 2.8 |
+      | AI median / top / bottom | 2 / 2.9 / 1 | 3 / 4 / 1.9 | 6 / 8.4 / 2.5 | 10.1 / 16.1 / 3 | 14.4 / 24.4 / 3 |
+      | independents left (of 45) | 45 | 45 | 46.6 | 43.5 | 35.5 |
+      | land claimed | 4.7% | 6.5% | 12.7% | 21.8% | 32.5% |
+
+      | Marathon (mean of 8; seed 13 player lost at turn 88) | T25 | T50 | T100 | T150 | T200 |
+      |---|---|---|---|---|---|
+      | player cities | 1 | 1 | 1 | 1.9 | 1.9 |
+      | AI median / top / bottom | 2 / 2 / 1 | 2 / 3 / 1.6 | 4.1 / 6 / 1.9 | 6.7 / 9.3 / 3 | 9.3 / 14.1 / 3 |
+      | independents left (of 45) | 45 | 45 | 45 | 46.1 | 42.9 |
+      | land claimed | 4.5% | 5.9% | 10.1% | 15.4% | 21.6% |
+
+      First settler built / second city grown (median of seeds): AI 18 / 28 (Normal), 21 / 34 (Marathon); the scripted player 48 / 61 (Normal), 130 / 150 (Marathon).
+    - **What blocks** (share of sampled turns, every 5th turn, per nation): AI nations, Normal: first 50 turns outpost slots full 45% (stone age allows 1, bronze 2), a site exists but no settler is queued 46%; turns 101 to 200 a settler is on the road 26 to 32%, no site in the AI search reach (11 rings, 1,122 km) 10 to 20%, slots full 12 to 13%, war under 2%. Marathon is the same shape, slower. Not the blocker: the size-2 rule (0 to 5%), war, city spacing as such. For the scripted player the cause is production: its capital makes 3 hammers a turn at size 8 (it works food tiles; the AI capital makes 10 to 13), and a settler costs 112 to 133 (Normal) or 140 to 210 (Marathon), so one settler takes about 40 turns (Normal) or 70+ (Marathon). A human can retile the city, so the player rows are a floor, not typical play.
+    - **Civilization VI, Standard size and speed** (from my memory of normal play, no single published table): a human has 4 to 6 cities by turn 50, 8 to 12 by turn 100, 10 to 15 by turn 150; the AI on Prince has about 4, 7 and 9. Terra's AI median (3, 6, 10 on Normal) is close at turns 100 and 150 and one city behind at turn 50; on Marathon (2, 4, 7) it is clearly behind. The land stays 68% unclaimed at turn 200 and about 40 of 45 independents are still alive, so the slow part is the early game and the AI top (24 cities) shows the late game can run.
+    - **Options:**
+      1. Raise `OUTPOST_SLOTS_BY_AGE` in settlers.js (stone 1 to 2, bronze 2 to 3): the AI's first-50-turn stall (45% slots full) mostly goes away, about 1 more city by turn 50 and 2 by turn 100.
+      2. Let a city queue a settler at once when it is size 2 or more and a site exists (drop the one-turn-in-three `SETTLER_THINK_PERIOD` and let the Marathon cost use `buildSpeedMult` like buildings): the first settler comes about 5 to 10 turns sooner and Marathon catches up with Normal in city count per year.
+      3. Cut the settler's production cost to about 60% (or make it cost food and a citizen only): a low-production capital then needs about 20 turns, not 40, which fixes the player's slow start without touching the AI; check with balance-sim compare for the AI runaway (top 24 cities at turn 200 is already a quarter of land).
 21. **Idle cities build no defenders:** the auto build queue leaves cities empty and they fall.
 22. **City lost with no visible battle:** the player loses cities without a battle report or a war notice.
 23. **Events repeat:** the same card shows several times in one game.
