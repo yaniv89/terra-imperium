@@ -4,7 +4,7 @@ Open items found while merging lanes. Kept in sync with the status page.
 
 1. **Event cards fact-check:** Run the full historian check on the 612 AI cards, fix or drop the bad ones, then put them in the game.
 2. **Army sight bug:** Army sight stops at tiles its nation already sees; fixing changes game results, needs your OK.
-3. **Late turns still slow:** About 350 to 450 ms a turn near turn 300 against 80 ms; next step: tile ownership in a typed array.
+3. **Late turns: re-measured 27 October, no regression:** seed 11, standard peoples world, 20-turn means: turn 50 49 ms, turn 150 117 to 122 ms, turn 300 245 to 262 ms (base 73f09853 on the same PC: 49, 122 to 125, 262 to 270 ms; two runs each). Biggest at turn 300: cities 60, aiWarDeclarations 54, aiWarProgress 22 to 48, rebellionAndSupply 15, fog 14, aiEconomy 14 ms. The 350 to 450 ms figure no longer reproduces here. Map pan (fps, step ms) and battle sim at 300 a side (p95 2.2 ms, same hash) equal to base; phone main ms per frame about 1 ms higher (4x throttle, noise level). Next step if wanted: cities and aiWarDeclarations at turn 300.
 4. **Information parity gaps:** 4 parity rows outside the guardrail: field 5 vs 2 in Modern and Information, town Gunpowder vs Modern with siege.
 5. **AI Energy plants and drones:** Only lightly tested; check in a long Information game.
 6. **Challenge: email name:** Players without a display name show the start of their email on the leaderboard.

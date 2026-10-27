@@ -10,11 +10,15 @@ import { ActionTypes, GameStatus } from '../../../src/data/types';
 import { HISTORICAL_EVENTS } from '../../../src/data/events';
 import { Session } from 'node:inspector/promises';
 import { writeFileSync } from 'node:fs';
+import { stateHash } from '../../../src/engine/macroVerify';
 
 const TURNS = Number(process.env.TURNS || 120);
 const WARMUP = Number(process.env.WARMUP || 10);
 const SEEDS = String(process.env.SEEDS || '11').split(',').map(Number);
 const PLAYER = process.env.PLAYER || 'akkad';
+// WINDOWS=50,150,300 prints the phase means of the WIN (20) turns ending at each, plus a state hash at each.
+const WINDOWS = String(process.env.WINDOWS || '').split(',').filter(Boolean).map(Number);
+const WIN = Number(process.env.WIN || 20);
 // CPUPROFILE=path writes a V8 .cpuprofile of the measured turns (open in Chrome DevTools).
 const CPUPROFILE = process.env.CPUPROFILE;
 // SAVE_STATE=path writes the last state as JSON (for micro benchmarks of single systems).
@@ -27,6 +31,7 @@ SEEDS.forEach((seed) => {
     if (session) { session.connect(); await session.post('Profiler.enable'); }
     let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, scenario: { mode: 'peoples', size: 'standard', seed } }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
     s = { ...s, research: { ...s.research, auto: true } };
+    const winSums = {};
     const sums = {}; const maxes = {}; let measured = 0; let total = 0; let worst = 0;
     const buckets = []; let bucket = { ms: 0, n: 0 };
     for (let t = 1; t <= TURNS && s.gameStatus === GameStatus.ACTIVE; t++) {
@@ -36,6 +41,15 @@ SEEDS.forEach((seed) => {
       s = resolveTurn(s, { onPhase: (name, ms) => { phases[name] = (phases[name] || 0) + ms; } });
       const ms = performance.now() - t0;
       if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null };
+      const w = WINDOWS.find((e) => t > e - WIN && t <= e);
+      if (w) {
+        winSums[w] = winSums[w] || {};
+        Object.entries({ ...phases, TOTAL: ms }).forEach(([k, v]) => { winSums[w][k] = (winSums[w][k] || 0) + v; });
+      }
+      if (WINDOWS.includes(t)) {
+        const rows = Object.entries(winSums[t]).map(([k, v]) => [k, v / WIN]).sort((a, b) => b[1] - a[1]);
+        console.log(`WIN seed=${seed} turn=${t} hash=${stateHash(s)} ${rows.map(([k, m]) => `${k}=${m.toFixed(2)}`).join(' ')}`);
+      }
       if (session && t === WARMUP) await session.post('Profiler.start');
       if (t <= WARMUP) continue;
       measured += 1; total += ms; worst = Math.max(worst, ms);
