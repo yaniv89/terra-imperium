@@ -786,8 +786,9 @@ describe('resolveTurn AI war declarations', () => {
     });
     let warDeclared = false;
     for (let i = 0; i < 300 && !warDeclared; i++) {
-      // A peace offer to the player stops the turn (CLAUDE.md): refuse it and go on.
-      if (state.pendingPeaceOffer) state = gameReducer(state, { type: ActionTypes.REJECT_PENDING_PEACE });
+      // A peace offer to the player stops the turn (CLAUDE.md): take it. Refusing every offer let
+      // another neighbour conquer the passive player at turn 82 (DEFEAT stops the game) before R1 declared.
+      if (state.pendingPeaceOffer) state = gameReducer(state, { type: ActionTypes.ACCEPT_PENDING_PEACE });
       state = resolveTurn(state);
       if (state.wars.some(w => w.aggressor === R1)) warDeclared = true;
     }
