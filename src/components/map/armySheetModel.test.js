@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { gameReducer } from '../../engine/gameReducer';
 import { peoplesWorld, rivalOf } from '../../engine/testWorld';
 import { ActionTypes } from '../../data/types';
-import { armySheetModel, stackOn, attackTargets, siegePressed } from './armySheetModel';
+import { armySheetModel, stackOn, attackTargets, siegePressed, supplyState } from './armySheetModel';
 import { getTiles } from '../../data/geo/tiles';
 
 describe('army sheet model', () => {
@@ -31,6 +31,37 @@ describe('army sheet model', () => {
     const walking = { ...s, units: { ...s.units, [m.unitIds[0]]: { ...s.units[m.unitIds[0]], route: [1, 2, 3, 4], routePace: 2 } } };
     expect(armySheetModel(walking, cap.tile).route.turns).toBe(3); // tiles 1 to 4 are sea: 3 to embark, then 1 a step, at 2 a turn
     expect(armySheetModel(s, 0)).toBeNull();
+  });
+  it('a stack out in the wild says how long its supplies last and offers one tap back to land that refills them', () => {
+    let s = peoplesWorld({ seed: 7 });
+    const me = s.playerNationId; const tiles = getTiles();
+    const cap = s.regions[s.nations[me].capitalRegionId];
+    const own = (t) => s.regions[s.world.tileOwner[t]]?.owner === me;
+    // a free land tile a few rings out from the capital
+    let ring = [cap.tile]; const seen = new Set(ring); let wild = null;
+    for (let d = 0; d < 12 && wild == null; d++) {
+      ring = ring.flatMap((t) => tiles.neighbors[t]).filter((t) => !seen.has(t) && seen.add(t) && tiles.land[t]);
+      wild = ring.find((t) => s.world.tileOwner[t] == null) ?? null;
+    }
+    expect(wild).not.toBeNull();
+    const id = stackOn(s, cap.tile)[0].id;
+    s = { ...s, units: { ...s.units, [id]: { ...s.units[id], tile: wild, supply: 25, movesLeft: 1, route: null } } };
+    const m = armySheetModel(s, wild);
+    expect(m.supplyState.kind).toBe('drain');
+    expect(m.supplyState.label).toMatch(/^Supplies for \d+ more turns?$/);
+    expect(m.resupply).not.toBeNull();
+    expect(own(m.resupply.tile)).toBe(true);
+    expect(m.resupply.turns).toBeGreaterThanOrEqual(1);
+    // the tap is a real march order home
+    const marched = gameReducer(s, { type: ActionTypes.SET_ROUTE, payload: { fromRegionId: m.regionId, ...(typeof m.resupply.target === 'number' ? { toTile: m.resupply.target } : { toRegionId: m.resupply.target }), unitIds: m.unitIds } });
+    const after = marched.units[id];
+    expect(after.route?.length > 0 || own(after.tile)).toBe(true);
+    // starving: the red state; at home: nothing to go back to
+    const starving = armySheetModel({ ...s, units: { ...s.units, [id]: { ...s.units[id], supply: 0 } } }, wild);
+    expect(starving.supplyState.kind).toBe('starving');
+    expect(starving.resupply).not.toBeNull();
+    expect(armySheetModel(peoplesWorld({ seed: 7 }), cap.tile).resupply).toBeNull();
+    expect(supplyState(null)).toBeNull();
   });
   it('shows promotions once a unit has earned a rank and the free generals to assign', () => {
     const s = peoplesWorld({ seed: 7 });

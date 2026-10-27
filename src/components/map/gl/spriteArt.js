@@ -384,7 +384,7 @@ export const clusterArt = (count, own, scale) => {
   const w = Math.max(24, measure(fontOf(11, 800), text) + 14);
   return bannerBox(`cluster|${text}|${own ? 1 : 0}`, w, 24, scale, false, (ctx) => {
     ctx.beginPath(); ctx.roundRect?.(1, 1, w - 2, 22, 11); if (!ctx.roundRect) ctx.rect(1, 1, w - 2, 22);
-    ctx.fillStyle = own ? '#2563eb' : '#334155'; ctx.fill(); ctx.shadowColor = 'transparent';
+    ctx.fillStyle = own ? PLAYER_BANNER_COLOR : '#334155'; ctx.fill(); ctx.shadowColor = 'transparent';
     ctx.strokeStyle = own ? '#e2e8f0' : '#94a3b8'; ctx.lineWidth = 2; ctx.stroke();
     ctx.font = fontOf(11, 800); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff'; ctx.fillText(text, w / 2, 12.5);
   });

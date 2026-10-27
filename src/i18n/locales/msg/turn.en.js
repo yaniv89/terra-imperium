@@ -13,7 +13,7 @@ export default {
   'm.turn.governorMoved': 'Governor {name} now serves from {city}: your cities were regrouped.',
   'm.turn.governorMerged': 'Governor {name} has left office: the group of {city} joined a group that already has a governor.',
   'm.turn.governorLeft': 'Governor {name} has left office: {city} is no longer yours.',
-  'm.turn.income': '{year}: +{gold:money}',
+  'm.turn.income': 'Income: +{gold:money} (each source: tap Gold on the top bar)',
   'm.turn.hungryOne': 'Out of supplies: your {n} unit on campaign go hungry (-{morale} morale, no reinforcement). Build Industry, stockpile metal or bring them home.',
   'm.turn.hungryMany': 'Out of supplies: your {n} units on campaign go hungry (-{morale} morale, no reinforcement). Build Industry, stockpile metal or bring them home.',
   'm.turn.uprisingWon': 'The uprising in {city} succeeds — {nation} reclaims it from {from}.',

@@ -12,6 +12,8 @@ import { countOf } from './grammar';
 
 export const RECURRING = [
   { id: 'upkeep', test: /^Upkeep:/, noun: 'turn' },
+  // the per-turn income line (playtest issue 13: "-800: +5g" every turn); the old form in old saves too
+  { id: 'income', test: /^(Income: \+|-?\d+: \+)/, noun: 'turn' },
   { id: 'plunder', test: /plunder your .* trade route/i, noun: 'turn' },
   { id: 'cut-route', test: /cut your trade route/i, noun: 'time' },
   { id: 'hunger', test: /^Out of (supplies|supply):/, noun: 'turn' }
@@ -36,7 +38,7 @@ export const summarizeLogs = (logs, { minCount = 2 } = {}) => {
   list.forEach((l, i) => {
     const rule = recurringRuleOf(l.message);
     if (!rule) return;
-    const key = `${rule.id}|${rule.id === 'upkeep' ? '' : blank(l.message)}`;
+    const key = `${rule.id}|${rule.id === 'upkeep' || rule.id === 'income' ? '' : blank(l.message)}`;
     const g = groups.get(key) || { rule, items: [] };
     g.items.push({ log: l, index: i });
     groups.set(key, g);

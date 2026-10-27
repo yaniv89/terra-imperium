@@ -1,8 +1,11 @@
 # Next human-playtest round (needs the user's yes; nothing was dispatched)
 
-New saves (scripts/ai/human-playtest.mjs `buildSlices` + `enrichSave`, test scripts/ai/eraSaves.test.mjs):
-every era save is of a player whose capital is on the coast, has met its 3 nearest majors both ways, and is at war with the
-nearest one (declared by the player). All eight ages can be slices now (`stone` .. `future`). Dry run: scripts/ai/era-saves-dry-run.mjs.
+New saves (lane playtest-saves): the era saves are built ahead by playing the real engine (scripts/ai/build-era-saves.mjs,
+one Israel game on seed 4242, the scripted player buying like the AI) and committed in scripts/ai/era-saves/ (facts per age in
+index.json). Each is a real empire of its age (cities, research pace, met neighbours), has a ship on its coast and is at war
+with its nearest met major, with an enemy army within 400 km or a battle already waiting. Slices `bronze` .. `future`; the
+start session covers the stone age. Test: scripts/ai/eraSaves.test.mjs; dry run: scripts/ai/era-saves-dry-run.mjs; browser
+load and screenshot: scripts/ai/era-saves-shots.mjs.
 
 Workflow: "Claude content", job `human-playtest`. Last round cost about $1.7 to $3.4 per run (about 200 steps, 6 sessions).
 Branch to run from: the one that holds this lane, after the lead merges it into claude/integration.

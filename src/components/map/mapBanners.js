@@ -10,7 +10,10 @@ import { unitIconUrl, shipIconUrl, wonderIconUrl, markerIconUrl } from '../../da
 // A delivered icon (src/data/icons.js) inside a banner's SVG. URLs are the bundle's own asset paths.
 const iconImage = (url, x, y, size) => `<image href="${url}" x="${x}" y="${y}" width="${size}" height="${size}" />`;
 
-export const PLAYER_BANNER_COLOR = '#2563eb';
+// Your banners wear your land's green (territoryData.js PLAYER_BAND_COLOR, darker for white text):
+// the nation palette keeps green for you alone and has blues, so a blue banner of yours read as a
+// foreign army (playtest issue 14). Civilization's pattern: a unit flag in its civ's border colour.
+export const PLAYER_BANNER_COLOR = '#15803d';
 const REBEL_BANNER_COLOR = '#ea580c';
 
 // Morale ring: green when fresh, through amber, to red when about to break.

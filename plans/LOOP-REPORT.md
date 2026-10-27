@@ -46,3 +46,13 @@ claude/integration, main gets the push once the quick suite and CI are green.
   orders hidden on phone, at war 90 turns with no contact, production loop. Each sent to its lane.
 - Plan: when the lanes are merged, round 2 = full retest (campaign personas with the new era saves, battle
   commander) and new grades on the dashboard.
+- Sub session started 19:24: art-animation session_01S3hKeGseHCpBTmPVFxYE1T (user: criticise the art and
+  animations too): reviewer-style scores per area (map, units, animations, VFX, transitions) against AoE IV,
+  Total War, Northgard and Civ VI, then fixes in code and Blender, re-scored on the same shots.
+- Round 2 retest adds art and animation rows to the grades (from this lane's rubric plus the battle playtest).
+- Merged 19:55: turn-pacing (production advisor, quieter turn report, closest-goal chip, 3-card tutorial),
+  playtest-saves (era saves from real play), map-clarity (supply along the march, log sources, map fixes).
+  Review: no findings. Lint clean, test:quick 4061 passed. civ-veteran playtest real cost $3.25 (spend $34.03).
+- send_message allowed in .claude/settings.json (user, 27 Oct) so lanes report without a prompt.
+- Sub sessions started 20:09: city-builds session_01S3hKeFjWbrkqj8haEnXNUz (builds 18-51 turns, Cities 3-6);
+  battle-ai-tactics session_01S3hKeHk2QRgBieK44CSY78 (counters, focus fire, flanks; mirror match vs old AI).

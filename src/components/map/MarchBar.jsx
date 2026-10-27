@@ -13,7 +13,7 @@ import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA } from '../../data/regions';
 import { getTiles } from '../../data/geo/tiles';
 import { accessOf, marchingUnits, marchOrigin, moveNowCheck } from '../../engine/routes';
-import { supplyAtTile } from '../../engine/supplyMeter';
+import { supplyAlongMarch } from '../../engine/supplyMeter';
 import { attackReach } from '../../engine/marchAttack';
 import { consequenceLines } from '../battle/consequenceText';
 import { canSeeTile } from '../../engine/sight';
@@ -79,8 +79,9 @@ export const marchBarModel = (state, march, plan) => {
     marchAttackBlocked,
     consequences: enemyCity && !marchAttackBlocked && !attackBlocked ? consequenceLines(state, target) : [],
     stopsAt: plan?.ok && plan.haltAt && plan.haltAt !== target ? plan.haltAt : null,
-    // Leaving supply (supplyMeter.js): the meter falls where the march ends; how long it lasts.
-    supplyOut: !naval && plan?.ok && plan.path?.length ? supplyAtTile(state, units, plan.path[plan.path.length - 1]) : null
+    // Leaving supply (supplyMeter.js): the meter over the whole march, turn by turn, then how long
+    // it lasts where the march ends; `starvesAt` when it empties on the way (playtest issue 6).
+    supplyOut: !naval && plan?.ok && plan.steps?.length ? supplyAlongMarch(state, units, plan.steps, plan.stepTurns) : null
   };
 };
 
@@ -154,7 +155,11 @@ const MarchBar = () => {
       {/* A phone held sideways: two lines at most, so the bar stays a strip and the route under it shows (I083); the title holds the rest. */}
       <div className="flex-1 min-w-0 leading-snug">
         <div className="pl:line-clamp-2" data-testid="march-line">{line}</div>
-        {m.supplyOut && <div className="text-fa-danger-text pl:line-clamp-1" data-testid="march-supply-out">{t('march.supplyOut', { change: isolateLtr(String(m.supplyOut.change)), turns: turnsText(Math.max(1, m.supplyOut.turns)) })}</div>}
+        {m.supplyOut && (m.supplyOut.starvesAt != null || m.supplyOut.change < 0) && <div className="text-fa-danger-text pl:line-clamp-1" data-testid="march-supply-out" data-starves={m.supplyOut.starvesAt != null ? 'way' : undefined}>
+          {m.supplyOut.starvesAt != null
+            ? t('march.starvesOnWay', { turns: turnsText(m.supplyOut.starvesAt) })
+            : t(m.supplyOut.arrive < 100 ? 'march.supplyArrive' : 'march.supplyOut', { arrive: Math.round(m.supplyOut.arrive), change: isolateLtr(String(m.supplyOut.change)), turns: turnsText(Math.max(1, m.supplyOut.turns)) })}
+        </div>}
         {m.consequences.map((c) => <div key={c.id} className="text-fa-brass pl:line-clamp-1" data-testid={`march-${c.id}`}>{c.text}</div>)}
       </div>
       {!naval && <button onClick={() => ctx.setPathMode(!march.pathMode)} aria-pressed={!!march.pathMode} data-testid="march-path-mode" className={`shrink-0 min-h-[36px] px-3 rounded-lg font-semibold flex items-center gap-1.5 ${march.pathMode ? 'bg-emerald-600 text-fa-text' : 'bg-fa-hover hover:bg-fa-line'}`}><Spline className="w-3.5 h-3.5" aria-hidden="true" />{t('march.path')}</button>}

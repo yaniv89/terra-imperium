@@ -142,6 +142,7 @@ import { getLoanCapacity, getLoanInterestRate, getLoanSize, clampMaintenance, ge
 import { canFabricateClaim, claimableCities, startClaim, CLAIM_FABRICATE_TURNS } from './claims';
 import { hasOpenBorders, openBordersAcceptance, setOpenBorders, applyDemand, DEMANDS, hasStele, steleAcceptance, steleTurns, setStele } from './accords';
 import { turnBlockers } from './turnBlockers';
+import { advisorPick, advisorPicks } from './productionAdvisor';
 import { cityGroups, governorChoices, assignGovernor, dismissGovernor, GOVERNOR_ASSIGN_TURNS } from './governors';
 import { validateTemplate, saveTemplate, deleteTemplate, templatesOf, armyOrder } from './armyTemplates';
 import { NAVAL_LINES, navalCargo, navalAir } from '../data/navalLines';
@@ -2927,6 +2928,15 @@ const reduceAction = (state, action) => {
       // paying for the same thing twice (playtest audits I045).
       if ((item.kind === 'building' || item.kind === 'improvement') && [city.production.current, ...city.production.queue].some((q) => q && itemKey(q) === itemKey(item))) return reject(state, msg('m.act.no.inQueue'));
       return { ...state, regions: { ...state.regions, [id]: queueItem(city, item) } };
+    }
+    case ActionTypes.ADVISOR_PRODUCTION: {
+      // The advisor's picks (productionAdvisor.js), each queued as the player would queue it.
+      const only = action.payload?.cityId;
+      const picks = only != null ? [{ cityId: only, item: advisorPick(state, only) }].filter((p) => p.item) : advisorPicks(state);
+      if (!picks.length) return reject(state, msg('m.act.no.advisorNothing'));
+      // A pick the queue refuses is skipped, not logged as a refusal.
+      const next = picks.reduce((s, p) => { const n = reduceAction(s, { type: ActionTypes.QUEUE_PRODUCTION, payload: p }); return n.regions !== s.regions ? n : s; }, state);
+      return next === state ? reject(state, msg('m.act.no.advisorNothing')) : next;
     }
     case ActionTypes.SET_SETTLER_TARGET: {
       const { unitId, tile } = action.payload || {};

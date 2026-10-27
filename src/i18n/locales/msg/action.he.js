@@ -70,6 +70,7 @@ export default {
   'm.act.no.atPeaceFleet': 'אתם בשלום עם {nation}: הכריזו מלחמה לפני שתתקפו את הצי שלהם.',
   'm.act.no.notYourCity': 'זו לא העיר שלכם.',
   'm.act.no.template': 'אין תבנית צבא כזו.',
+  'm.act.no.advisorNothing': 'היועץ לא מוצא מה לבנות.',
   'm.act.no.inQueue': 'כבר בתור.',
   'm.act.no.notYourSettlers': 'אלה לא המתיישבים שלכם.',
   'm.act.no.noLandPath': 'אין דרך לשם ביבשה.',

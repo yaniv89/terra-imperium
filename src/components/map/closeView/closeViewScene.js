@@ -55,6 +55,7 @@ import { shipModel, shipsFor, SHIP_SCALE } from './shipModels';
 import { outpostFor, outpostFitRadius } from './outpostModels';
 import { settlersInSight, settlerBand, SETTLER_KEY, preloadSettlerModel } from './settlerModels';
 import { improvementModel, improvementRoot, modelAllowedOnTile, boatsSpot, coastShare, shoreAnchor, yawToward, fitImprovement, IMPROVEMENT_SCALE, SHORE_BACK } from './improvementModels';
+import { PLAYER_BANNER_COLOR } from '../mapBanners';
 
 const TREE_KINDS = ['conifer', 'broad', 'palm'];
 const MAX_WORKS = 400;
@@ -66,7 +67,7 @@ const STAND_HEADING = 0.15;
 // triangles, a small share of the map's frame); past it every figure takes the clustered level.
 export const MAP_FIGURE_TRIS = 150000;
 const EDGE = 80;
-const PLAYER_COLOR = '#2563eb';
+const PLAYER_COLOR = PLAYER_BANNER_COLOR; // your soldiers wear your banners' green (issue 14)
 
 // The ground a field takes, model units (a field is about 1.6 by 1.2: the disc round its middle).
 const FIELD_DISC = 0.8;
