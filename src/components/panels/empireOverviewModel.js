@@ -2,7 +2,8 @@
 // The empire sheet's overview (plans/civ-map-rework.md E4): the nation at a glance, as a pure
 // model the panel renders and the tests check. Authority with its parts, the era goals strip,
 // the treasury with its income and upkeep lines, cities and people, wars, the current research.
-import { AGES } from '../../data/ages';
+import { AGES, shownPeople } from '../../data/ages';
+import { ageOf } from '../../engine/nationState';
 import { authorityOf, AUTHORITY_NO_LAWS, AUTHORITY_CIVIL_WAR } from '../../engine/authority';
 import { eraGoalProgress } from '../../engine/eraGoals';
 import { calcNationBalance } from '../../engine/economy';
@@ -27,7 +28,7 @@ export const empireOverviewModel = (state) => {
   const { income, expenses, net } = calcNationBalance(state, me);
   const yields = calcIncome(state);
   const mine = Object.values(state.regions || {}).filter((c) => c.owner === me);
-  const people = mine.reduce((s, c) => s + sizeToPeople(c.size || 1), 0);
+  const people = shownPeople(mine.reduce((s, c) => s + sizeToPeople(c.size || 1), 0), ageOf(state, me));
   const wars = Object.values(state.nations).filter((n) => !n.isPlayer && isAtWarWithPlayer(state, n.id)).map((n) => nameNow('people', n.id, n.name));
   const research = getResearchView(state);
   return {

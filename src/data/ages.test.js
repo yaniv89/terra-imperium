@@ -15,9 +15,22 @@ import {
   agesFrom,
   nextAgeId,
   formatYear,
-  artAgeFor
+  artAgeFor,
+  shownPeople
 } from './ages';
 import { TECH_TREE, getTechsForAge } from './techTree';
+import { sizeToPeople } from '../engine/population';
+
+describe('shownPeople (display only)', () => {
+  it('shows a Stone size 7 as a village and Modern at full size', () => {
+    expect(shownPeople(sizeToPeople(7), 'stone')).toBeGreaterThan(2000);
+    expect(shownPeople(sizeToPeople(7), 'stone')).toBeLessThan(2600);
+    expect(shownPeople(sizeToPeople(7), 'modern')).toBe(sizeToPeople(7));
+  });
+  it('never shrinks from one age to the next', () => {
+    AGE_ORDER.slice(1).forEach((id, i) => expect(AGES[id].peopleShown).toBeGreaterThanOrEqual(AGES[AGE_ORDER[i]].peopleShown));
+  });
+});
 
 describe('AGES calendar coverage', () => {
   it('covers the full timeline with no gaps or overlaps', () => {

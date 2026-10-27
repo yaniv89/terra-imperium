@@ -37,8 +37,7 @@ const RENDER_ONLY = {
   'data/geo/geodesic.js': 'grid building and drawing (buildGrid, fromLatLon, toLatLon); the engine uses distanceKm and fromLatLonExact, checked below',
   'data/geo/hexCoast.js': 'the softened coast drawn on the map',
   'data/geo/tileGeometry.js': 'GeoJSON for drawing territories and borders',
-  'data/geo/rasterTiles.js': 'which raster zoom level to draw',
-  'data/historicalPopulation.js': 'display population only (never fed back into state)'
+  'data/geo/rasterTiles.js': 'which raster zoom level to draw'
 };
 
 // Reviewed lines in files other sessions own, matched by content so line moves do not matter.
