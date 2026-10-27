@@ -5,6 +5,7 @@ import { migrateSave, CURRENT_SAVE_VERSION } from '../../src/engine/saveMigratio
 import { auditGameState } from '../../src/engine/stateAudit.js';
 import { gameReducer } from '../../src/engine/gameReducer.js';
 import { ActionTypes } from '../../src/data/types.js';
+import { syncWorldRegistry } from '../../src/engine/world/registry.js';
 import { metNations } from '../../src/engine/fog.js';
 import { getTiles } from '../../src/data/geo/tiles.js';
 import { getTechAgeId } from '../../src/engine/nationState.js';
@@ -23,7 +24,8 @@ describe('playtest era saves', () => {
     const { state, facts } = readEraSave(age);
     const migrated = migrateSave({ version: CURRENT_SAVE_VERSION, state });
     expect(migrated, 'migrateSave refused it').not.toBeNull();
-    const s = gameReducer(migrated.state, { type: ActionTypes.LOAD_GAME, payload: migrated.state });
+    // migrateSave leaves the registry as it found it (keepWorldRegistry); the running game syncs it to the loaded cities
+    const s = syncWorldRegistry(gameReducer(migrated.state, { type: ActionTypes.LOAD_GAME, payload: migrated.state }));
     expect(auditGameState(s)).toEqual([]);
     const p = s.playerNationId;
     expect(getTechAgeId(s, p)).toBe(age);
