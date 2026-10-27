@@ -155,3 +155,19 @@ The lead sent four messages after this lane's turn had ended:
 
   None of this is in this lane's scope (engine AI only). It should be checked with mobile-check
   at 844x390.
+
+## Addendum 2: the player's gold curve (lead message, civ-veteran run 40550085702)
+Same runs, mean of 8 seeds, `playerGold` (passive harness player: it never builds, rushes or
+upgrades, so this is the treasury of a player who spends nothing):
+
+| side | T50 | T100 | T150 | T200 | T250 | T300 |
+|---|---|---|---|---|---|---|
+| pre era goals (43b5e671) | 1,073 | 1,888 | 2,789 | 3,886 | 5,152 | 6,377 |
+| integration HEAD | 1,093 | 1,959 | 2,927 | 4,019 | 5,158 | 6,271 |
+| this branch | 1,093 | 1,959 | 2,927 | 4,019 | 5,157 | 6,332 |
+
+This lane does not touch the player (no significant difference at any checkpoint). The era goals
+barely moved this curve either (+3% to +5% mid game). The player's pile in the playtests is a
+player-side question: whether the buy option is easy to find (see Addendum 1), and maybe sinks that
+scale. Any sink that scales (upkeep, prices) is a rule change. It needs the user's yes, and a
+scripted-player balance-sim (`POLICY=scripted RUSH=1`) to measure it. That is a separate lane.
