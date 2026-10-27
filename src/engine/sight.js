@@ -69,16 +69,6 @@ export const visibleTiles = (state, nationId = state.playerNationId) => {
 
 const unitRings = (tiles, u, t, extra) => ringsForKm(extra + (u.domain === 'naval' ? SIGHT_FLEET_KM + navalSightBonus(navalLineOf(u)) : SIGHT_ARMY_KM + (tiles.reliefOf(t) === 'hills' ? SIGHT_HILLS_BONUS_KM : 0)));
 
-const landOwnersCache = new WeakMap(); // state.regions -> Map(tile -> [owner]): the land visibleTiles grows from
-const landOwners = (regions) => {
-  let m = landOwnersCache.get(regions);
-  if (m) return m;
-  m = new Map();
-  Object.values(regions).forEach((c) => { if (c.tile == null) return; (c.tiles || [c.tile]).forEach((t) => { const l = m.get(t); if (l) l.push(c.owner); else m.set(t, [c.owner]); }); });
-  landOwnersCache.set(regions, m);
-  return m;
-};
-
 // The tiles around `tile` ring by ring ([[tile], ring 1, ...] up to `reach`), memoised per grid:
 // geometry only, asked for the few hundred tiles armies stand on.
 const ringMemo = new WeakMap(); // tiles -> Map(tile -> rings)
@@ -97,16 +87,6 @@ const ringsOf = (tiles, tile, reach) => {
   return rings;
 };
 
-const byOwnerCache = new WeakMap(); // state.units -> Map(ownerId -> [unit])
-const unitsByOwner = (units) => {
-  let m = byOwnerCache.get(units);
-  if (m) return m;
-  m = new Map();
-  Object.values(units).forEach((u) => { const l = m.get(u.ownerId); if (l) l.push(u); else m.set(u.ownerId, [u]); });
-  byOwnerCache.set(units, m);
-  return m;
-};
-
 const testCache = new WeakMap(); // state.units -> { regions, nations, techTree, nationId, test }
 /** `(tile) => bool`, the same answer as visibleTiles(state, nationId).has(tile) without building the
  * whole set, for a caller that asks about a few tiles (warOdds.js). A tile is seen when friendly land
@@ -118,12 +98,13 @@ export const sightTest = (state, nationId = state.playerNationId) => {
   const tiles = getTiles();
   const extra = mapEffectsFor(state, nationId).sight;
   const friends = friendsOf(state, nationId);
-  const owners = landOwners(state.regions);
+  const land = new Set(); // the land visibleTiles grows from
+  Object.values(state.regions).forEach((c) => { if (friends.has(c.owner) && c.tile != null) (c.tiles || [c.tile]).forEach((t) => land.add(t)); });
   const landRings = ringsForKm(SIGHT_LAND_KM + extra);
   const unitReach = new Map(); // tile -> the farthest reach of the nation's units on it
   let reach = landRings;
-  (unitsByOwner(state.units).get(nationId) || []).forEach((u) => {
-    if (aboardShip(u)) return;
+  Object.values(state.units).forEach((u) => {
+    if (u.ownerId !== nationId || aboardShip(u)) return;
     const t = unitTile(state, u);
     if (t == null) return;
     const r = unitRings(tiles, u, t, extra);
@@ -134,7 +115,7 @@ export const sightTest = (state, nationId = state.playerNationId) => {
     const rings = ringsOf(tiles, tile, reach);
     for (let d = 0; d <= reach && d < rings.length; d++) {
       for (const t of rings[d]) {
-        if (d <= landRings && owners.get(t)?.some((o) => friends.has(o))) return true;
+        if (d <= landRings && land.has(t)) return true;
         if (unitReach.get(t) >= d) return true;
       }
     }
