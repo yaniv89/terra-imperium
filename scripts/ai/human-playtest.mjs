@@ -10,8 +10,8 @@
 // diary.jsonl, shots/*.jpg (the screens noted) and report.md.
 //   node scripts/ai/human-playtest.mjs --max-usd 1.5 --limit 40      (--limit = MAX_STEPS)
 // Flags or env: --persona/PERSONA, --size/SIZE phone|desktop, --lang/LANG_UI en|he, --slices/SLICES
-// bronze,classical,... (late-game slices: a headless scripted game, saved at each age, loaded through
-// window.__game.load, which runs migrateSave; a slice that loads to no map or a blank screen is a harness-error line, not played; an age the run does not reach in SLICE_TURNS turns is boosted by research),
+// bronze,classical,... (late-game slices: the era saves of scripts/ai/build-era-saves.mjs, a real game played headless,
+// loaded through window.__game.load, which runs migrateSave; a slice that loads to no map or a blank screen is a harness-error line, not played),
 // --url (default the preview), --max-steps/MAX_STEPS (default 60).
 // --scene/SCENE campaign|battle: battle opens ?battleSandbox once per age of --battle-ages/BATTLE_AGES (default all eight),
 // each with its own setup (field, walls, naval, sack), and splits the steps across them.
@@ -20,6 +20,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { ROOT, PRICES, call, estTokens, liveUsd } from './claudeJob.mjs';
 import { AGE_ORDER } from '../../src/data/ages.js';
+import { eraSaveFile, readEraSave } from './build-era-saves.mjs';
 
 const API = 'https://api.anthropic.com/v1/messages';
 export const PLAY_MODEL = 'claude-sonnet-5-5';
@@ -151,7 +152,7 @@ export const parseFlags = (argv, env = process.env) => {
   if (!(Number.isInteger(maxSteps) && maxSteps > 0 && maxSteps <= 500)) throw new Error('MAX_STEPS must be 1 to 500');
   const maxUsd = Number(val('--max-usd', 'MAX_USD', 10));
   if (!(maxUsd > 0)) throw new Error('--max-usd must be a positive number');
-  return { persona, scene, sizeId, size: SIZES[sizeId], lang, slices, battleAges, maxSteps, maxUsd, url: val('--url', 'GAME_URL', 'http://localhost:4173/terra-imperium/'), sliceTurns: Number(env.SLICE_TURNS) || 150 };
+  return { persona, scene, sizeId, size: SIZES[sizeId], lang, slices, battleAges, maxSteps, maxUsd, url: val('--url', 'GAME_URL', 'http://localhost:4173/terra-imperium/') };
 };
 
 const BATTLE_PLAY = `This run is the battle sandbox: the real-time tactical battles alone, no campaign. Each session opens its setup screen in one age with one kind of battle; you may change the pickers (they are native drop-downs: tap one, then ArrowUp or ArrowDown and Enter), then tap Fight.
@@ -170,62 +171,13 @@ ${scene === 'battle' ? `Judge the controls on this screen${size.mobile ? ' with 
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export const SLICE_ENGINE = ["export { withAgesResearched } from '../src/engine/research.js';", "export { declareWar } from '../src/engine/diplomacy.js';", "export { distanceKm } from '../src/data/geo/geodesic.js';", "export { auditGameState } from '../src/engine/stateAudit.js';"];
-
-/** Late-game saves: a headless scripted game (scripts/simulate.mjs engine) saved at each age it reaches. */
-export const buildSlices = async (ages, turns, log) => {
-  const { buildSimEngine, advanceCampaign } = await import('../simulate.mjs');
-  const { createScriptedPlayer } = await import('../campaignTelemetry.mjs');
-  const file = await buildSimEngine(SLICE_ENGINE);
-  const e = await import(pathToFileURL(file).href);
-  fs.rmSync(file, { force: true });
-  const seed = 4242;
-  // The first people from the seeded pick on whose capital touches the sea: the saves need a coast.
-  const list = e.MAJOR_PEOPLES_LIST;
-  let player; let s;
-  for (let k = 0; k < list.length; k++) {
-    player = list[(seed + k) % list.length].id;
-    s = e.createInitialState({ playerNationId: player, rngSeed: seed, scenario: { mode: 'peoples', size: 'standard', seed } });
-    if (hasCoast(e, s, player)) break;
-  }
-  s = e.gameReducer({ ...s, battleSettings: { defaultMode: 'auto', autoDefend: true } }, { type: e.ActionTypes.SET_RESEARCH_AUTO, payload: { auto: true } });
-  const scripted = createScriptedPlayer({ engine: e, opinionOf: e.opinionOf });
-  const saves = {};
-  // battleSettings: undefined drops the harness's auto battles from the JSON, so the player gets the defaults
-  const keep = (st, boosted) => { saves[e.getTechAgeId(st, player)] ??= { state: { ...st, battleSettings: undefined }, turn: st.turnNumber, boosted }; };
-  for (let t = 0; t < turns && ages.some((a) => !saves[a]); t++) {
-    if (s.activeEventId) s = e.gameReducer(s, { type: e.ActionTypes.RESOLVE_EVENT, payload: { optionIndex: 0 } });
-    s = scripted.answer(s).state;
-    s = advanceCampaign(e, s);
-    keep(s, false);
-    if (s.gameStatus !== 'ACTIVE') break;
-  }
-  log(`slices: ${player}, turn ${s.turnNumber}, age ${e.getTechAgeId(s, player)}; reached ${Object.keys(saves).join(', ')}`);
-  const rich = ([a, v]) => [a, { ...v, state: enrichSave(e, v.state, player) }];
-  return Object.fromEntries(ages.map((a) => {
-    if (saves[a]) return rich([a, saves[a]]);
-    // Not reached in time: every major gets the research of the ages before it, so the world moves on with the player.
-    let b = s;
-    Object.values(b.nations).filter((n) => !n.isEliminated && !e.isIndependentNation(n)).forEach((n) => { b = e.withAgesResearched(b, n.id, a); });
-    return rich([a, { state: { ...b, battleSettings: undefined }, turn: b.turnNumber, boosted: true }]);
-  }));
-};
-
-export const NEIGHBOURS_MET = 3;
-const cityTiles = (state, id) => Object.values(state.regions).filter((c) => (c.owner ?? c.ownerId) === id && c.tile != null).map((c) => c.tile);
-export const hasCoast = (e, state, id) => { const t = e.getTiles(); return cityTiles(state, id).some((c) => t.coastal[c] === 1); };
-
-/** An era save made playable: the player has met its NEIGHBOURS_MET nearest majors (both ways) and is at war with the nearest. */
-export const enrichSave = (e, state, player) => {
-  const t = e.getTiles(); const mine = cityTiles(state, player);
-  const km = (id) => Math.min(...cityTiles(state, id).flatMap((c) => mine.map((m) => e.distanceKm(t.centres[c], t.centres[m]))));
-  const near = Object.values(state.nations).filter((n) => n.id !== player && !n.isEliminated && !e.isIndependentNation(n))
-    .map((n) => [n.id, km(n.id)]).filter(([, d]) => Number.isFinite(d)).sort((a, b) => a[1] - b[1]).slice(0, NEIGHBOURS_MET).map(([id]) => id);
-  const met = { ...state.fog.met };
-  near.forEach((id) => { met[player] = { ...met[player], [id]: met[player]?.[id] ?? state.turnNumber }; met[id] = { ...met[id], [player]: met[id]?.[player] ?? state.turnNumber }; });
-  const s = { ...state, fog: { ...state.fog, met } };
-  return near.length ? e.declareWar(s, near[0], { aggressor: player }) : s;
-};
+/** Late-game saves: built ahead by playing the real engine (scripts/ai/build-era-saves.mjs), committed in scripts/ai/era-saves/. */
+export const loadSlices = (ages, log) => Object.fromEntries(ages.map((a) => {
+  if (!fs.existsSync(eraSaveFile(a))) throw new Error(`No era save for ${a}: run node scripts/ai/build-era-saves.mjs --ages ${a}`);
+  const { state, facts } = readEraSave(a);
+  log(`slice ${a}: turn ${facts.turn}, ${facts.cities} cities, ${facts.metMajors} majors met, at war with ${facts.enemies.join(', ') || 'nobody'}${facts.pendingBattles ? ', a battle waiting' : ''}`);
+  return [a, { state, turn: facts.turn, facts }];
+}));
 
 export const openGame = async (browser, { size, lang, url, ready = '[data-people]' }) => {
   const ctx = await browser.newContext({ viewport: { width: size.width, height: size.height }, deviceScaleFactor: size.mobile ? 2 : 1, isMobile: size.mobile, hasTouch: size.mobile, ...(size.mobile ? { userAgent: UA } : {}), locale: lang === 'he' ? 'he-IL' : 'en-US' });
@@ -329,10 +281,10 @@ const play = async (opts, log = console.log) => {
   const areas = AREAS_OF[opts.scene];
   const tools = toolsFor(areas);
   const system = [{ type: 'text', text: systemPrompt(opts.persona, opts.size, opts.lang, opts.scene), cache_control: { type: 'ephemeral' } }];
-  const saves = opts.slices.length ? await buildSlices(opts.slices, opts.sliceTurns, log) : {};
+  const saves = opts.slices.length ? loadSlices(opts.slices, log) : {};
   const segments = battle
     ? opts.battleAges.map((a, i) => ({ id: `${a}-${BATTLE_SETUPS[i % BATTLE_SETUPS.length].id}`, what: `the battle sandbox in the ${a} age, already set up by the link for ${BATTLE_SETUPS[i % BATTLE_SETUPS.length].what} (the pickers may not show it; change them only if you want): scroll down to Fight if it is below the screen, tap it, and play the battle to its end`, url: battleUrl(opts.url, a, i) }))
-    : [{ id: 'start', what: 'a new game from the start screen' }, ...opts.slices.map((a) => ({ id: a, what: `a game already in the ${a} age (turn ${saves[a].turn}${saves[a].boosted ? ', research boosted by the harness' : ''}): carry on from here`, save: saves[a] }))];
+    : [{ id: 'start', what: 'a new game from the start screen' }, ...opts.slices.map((a) => ({ id: a, what: `a game already in the ${a} age (turn ${saves[a].turn}, ${saves[a].facts.cities} cities, at war with a neighbour${saves[a].facts.pendingBattles ? ', a battle waiting for you' : ''}): carry on from here`, save: saves[a] }))];
   const perSegment = Math.max(1, Math.floor(opts.maxSteps / segments.length));
   const covered = new Set();
   let spent = 0; let step = 0; let stopped = null;
