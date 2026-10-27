@@ -77,6 +77,7 @@ export const payEraGoals = (state, nation, ageId, turnNumber) => {
   const rec = nation?.eraGoals?.[ageId];
   if (!nation || nation.kind === 'independent' || (rec && 'legacy' in rec)) return { nation, paid: [] };
   const had = rec?.met || [];
+  if (had.length >= goalsForAge(ageId).length) return { nation, paid: [] }; // all paid: skip the per-turn scan
   // The age's record begins its first turn, with the battle count the War goal counts from.
   const start = rec ? nation : { ...nation, eraGoals: { ...(nation.eraGoals || {}), [ageId]: { met: [], wonFrom: battlesWon(nation) } } };
   const view = rec ? state : { ...state, nations: { ...state.nations, [nation.id]: start } };
