@@ -2,7 +2,7 @@
 // The AI playtester's era saves (scripts/ai/human-playtest.mjs --slices), built by playing the real engine,
 // never by editing a state by hand. One headless game (the scripted player of balance-sim POLICY=scripted:
 // it answers every prompt, builds what an AI city would build and settles the best sites) runs from the
-// start. On reaching an age the player researches the tech that opens the age's ships first (RESEARCH_TECH).
+// start. It keeps one ship on its coast once it can build one. On reaching an age the player researches the tech that opens the age's ships first (RESEARCH_TECH).
 // Once it has it (or NAVAL_WAIT turns later), a copy of the game is played on as a player would: it buys a
 // ship in its biggest coastal city and ends a turn or two until it sails, declares war (DECLARE_WAR, as from
 // the Peoples screen) on the nearest major it has met, and ends turns, refusing peace, until an enemy army
@@ -176,6 +176,9 @@ export const buildEraSaves = async ({ ages = DEFAULT_AGES, player = ERA_PLAYER, 
     const prev = s;
     s = advanceCampaign(e, s);
     const a = e.getTechAgeId(s, player);
+    // a seafaring player: one ship always on its coast once it can build one (an older ship keeps its age)
+    const ordered = cities(s, player).some((c) => [c.production?.current, ...(c.production?.queue || [])].some((q) => q?.classId === 'naval'));
+    if (!shipsOf(s) && !ordered && e.isUnitUnlocked(a, 'naval', e.getResearched(s, player))) s = shipOrder(e, s, a);
     if (waiting && waiting.age !== a) { save(prev, waiting.age); waiting = null; } // the next age came first
     if (!waiting && ages.includes(a) && !saves[a]) {
       waiting = { age: a, since: s.turnNumber };
