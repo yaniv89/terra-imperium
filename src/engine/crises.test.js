@@ -7,6 +7,9 @@ import { resolveTurn } from './resolveTurn';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
+import { peopleOf } from './population';
+import { growthThreshold } from './world/cities';
+import { speedCostMult } from '../data/ages';
 
 const collapse = CRISES.find((c) => c.id === 'bronze_collapse');
 
@@ -143,6 +146,16 @@ describe('history crises (U31)', () => {
     const fed = { ...bare, regions: { ...s.regions, [cap.id]: { ...s.regions[cap.id], buildings: { ...cap.buildings, categories: { ...cap.buildings?.categories, food: 1 } } } } };
     processCrises(fed);
     expect(fed.regions[cap.id].currentPopulation).toBeGreaterThan(bare.regions[cap.id].currentPopulation);
+  });
+
+  it('a famine draws at the game speed: the people number it leaves is the one the next turn writes', () => {
+    const s = { ...world('bronze'), gameSpeed: 'normal' };
+    const capId = s.nations[s.playerNationId].capitalRegionId;
+    const at = { ...s, regions: { ...s.regions }, turnNumber: 50, crises: { coming: { id: 'little_ice_age', turn: 50, nations: [s.playerNationId] } } };
+    processCrises(at);
+    const c = at.regions[capId];
+    expect(c.currentPopulation).toBeLessThan(s.regions[capId].currentPopulation);
+    expect(c.currentPopulation).toBe(peopleOf(c, growthThreshold(c.size, speedCostMult('normal', 'bronze'))));
   });
 
   it('the player may answer a coming crisis during its warning: the option applies at once, the card does not open again at the strike', () => {

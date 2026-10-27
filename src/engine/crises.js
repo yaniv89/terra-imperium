@@ -20,7 +20,8 @@
 // option applied then, so the card does not open again at the strike.
 // state.settings.crises === 'off' stops all. Pure apart from the turn's working regions and units.
 import { CRISES, crisisCardId } from '../data/crises';
-import { getAgeIndex, speedTurns } from '../data/ages';
+import { getAgeIndex, speedTurns, speedCostMult } from '../data/ages';
+import { ageOf } from './nationState';
 import { isIndependentNation } from '../data/independents';
 import { getTiles } from '../data/geo/tiles';
 import { distanceKm } from '../data/geo/geodesic';
@@ -152,7 +153,7 @@ export const processCrises = (state) => {
       if (big) regions[big] = seedPlague(regions[big], turn, PLAGUE_I);
     });
   } else if (crisis.effect === 'famine') {
-    owned.forEach((id) => { const c = regions[id]; regions[id] = drawPeople(c, famineShare(c) * (c.currentPopulation || sizeToPeople(c.size)), { canShrink: true }); });
+    owned.forEach((id) => { const c = regions[id]; regions[id] = drawPeople(c, famineShare(c) * (c.currentPopulation || sizeToPeople(c.size)), { canShrink: true, speedMult: speedCostMult(state.gameSpeed, ageOf(state, c.owner)) }); }); // the store sized as resolveTurn sizes it
   } else if (crisis.effect === 'war') {
     // The player is never made the aggressor (no forced loss of control): a hit player is the target.
     const [a, b] = hit[0] === state.playerNationId ? [hit[1], hit[0]] : hit;
