@@ -177,7 +177,9 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   `node_modules` to the main checkout (no npm install). A worktree is about 1.9 GB; remove it after the merge.
 - Every lane brief: ponytail first; targeted tests only when the machine is shared; kill only its own
   processes by PID (never `pkill -f`, it can kill the caller); push its branch, never merge.
-- A sub session lane also follows all of CLAUDE.md, never dispatches workflows or uses the API, and when done
+- A sub session lane also follows all of CLAUDE.md, dispatches API work (AI playtests, content jobs) only with a
+  budget the lead granted by send_message (the lead checks it against the $90 total and records it; the lane
+  sets that job's `max_usd` to its grant and reports the real cost), and when done
   reports back with the claude-code-remote send_message tool to the lead session (its id in the brief), plus a
   report file plans/lanes/<lane>-REPORT.md on its branch.
 - Before merging a lane that touches src/engine/ or src/battle/sim/: run the `engine-rules-reviewer` agent
@@ -185,8 +187,12 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   push main only when that is green (main deploys).
 - After any user interrupt, check every lane is still alive (a stopped agent cannot be resumed: start a new
   lane on its worktree's edits).
-- A change to a game rule or a past user decision (for example battle rule Q3: a side with bases loses only
-  when its buildings are gone) needs the user's own yes; ask with the options and a recommendation.
+- Design decisions (user, 27 Oct): the lead session is the manager and gives the yes for design and rule
+  changes; lanes ask the lead, not the user. Keep the user's own past decisions (battle rule Q3: a side with
+  bases loses only when its buildings are gone; a city falls only when its defence is beaten; units keep
+  their age and upgrade with gold on own land) and the game's core identity. Each design call rests on research (how proven strategy
+  games solve it) and checked evidence (balance-sim, battle-lab parity, shots), never a guess; record it in
+  plans/LOOP-REPORT.md with its reason and evidence.
 - AI playtester (dev only, never for live players): workflow `.github/workflows/claude-content.yml`, job
   `human-playtest` (`scripts/ai/human-playtest.mjs`), inputs persona, scene (`campaign` or `battle`), limit,
   max_usd, slices, size, lang; dispatch on ref claude/integration; results on branch `ai/human-playtest-<run_id>`
