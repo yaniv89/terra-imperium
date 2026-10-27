@@ -62,12 +62,17 @@ export const matchupMult = (from, to, attackingFortification = false, fromAge = 
   const a = sumStrength(from); const b = sumStrength(to);
   if (!a || !b) return 1;
   let acc = 0;
+  const vsOf = new Map(); // classId -> its sum over `to` (the same sum for every unit of a class)
   for (const u of from) {
     const su = Math.max(0, u.strength || 0);
     if (!su) continue;
     const context = u.classId === 'siege' ? getSiegeMultiplier(attackingFortification) : 1;
-    let vs = 0;
-    for (const d of to) vs += Math.max(0, d.strength || 0) * getCounterMultiplier(u.classId, d.classId) / unitAgeWeight(d, toAge);
+    let vs = vsOf.get(u.classId);
+    if (vs === undefined) {
+      vs = 0;
+      for (const d of to) vs += Math.max(0, d.strength || 0) * getCounterMultiplier(u.classId, d.classId) / unitAgeWeight(d, toAge);
+      vsOf.set(u.classId, vs);
+    }
     acc += su * context * unitAgeWeight(u, fromAge) * (vs / b);
   }
   return acc / a;
