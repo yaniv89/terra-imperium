@@ -5,8 +5,7 @@
 // declares; WHO=ai: the major declares on the player. The trace records, per seed:
 //   contactTurns   turns from the declaration until an enemy land unit first stands on the player's
 //                  land (a tile owned by a player city) or beside a player city (-1 = never)
-//   firstBattle    turns until the first battle against the player (a queued defense, -1 = never)
-//   battles        battles against the player during the war (queued defenses the player answered)
+//   firstBattle    turns until the first battle the enemy queued against the player (-1 = never)
 //   citiesLost     player cities the enemy took during the war
 //   warTurns       how long the war lasted (-1 = still on at the end)
 //   rings          capital to capital distance in rings; met: whether they had met before
@@ -15,7 +14,12 @@
 //   closestRings   how close (rings) any enemy land unit came to a player city
 //   reports        battles the player fought in the war (battle reports); starvedUnitTurns: enemy
 //                  land units at 0 supply, summed over the war's turns
-//   PEACE=refuse   the player turns down every peace offer (a warmonger); DBG=1 prints the queue
+//   preWar         the two were already at war at DECLARE_AT (that war is traced)
+//   PEACE=refuse   the player turns down every peace offer (a warmonger). TRACE=1 prints the enemy's
+//                  stacks every war turn (tile@rings to the nearest player city, >route length,
+//                  !halt; SUPPLY=1 adds supply, morale and strength), its plan and the sieges;
+//                  DBG=1 also the battle queue.
+// Runs only when DECLARE_AT is set. A batch of seeds runs one process per seed (see SKILL.md).
 //   TURNS=60 DECLARE_AT=40 SEEDS=11,12,13,14 WHO=player PLAYER=akkad \
 //     npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/balance-sim/playerWar.sim.js
 import { it } from 'vitest';
@@ -57,7 +61,7 @@ const nearestMajor = (s) => {
   return best;
 };
 
-// Runs only when DECLARE_AT is set, so compare.sh (which runs every sim in this folder) skips it.
+// compare.sh runs every sim in this folder: without DECLARE_AT this one is skipped.
 SEEDS.forEach((seed) => {
   it.skipIf(!process.env.DECLARE_AT)(`player war seed ${seed}`, () => {
     let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, scenario: { mode: 'peoples', size: 'standard', seed }, ...(SPEED ? { gameSpeed: SPEED } : {}) }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
@@ -65,7 +69,7 @@ SEEDS.forEach((seed) => {
     const scripted = createScriptedPlayer({ engine: { gameReducer, ActionTypes, chooseProduction, nationCounts, bestSites, MAX_SETTLE_RINGS, getResearched, getTechAgeId, getEffectiveAgeId: AGES.getEffectiveAgeId, speedCostMult: AGES.speedCostMult, speedTrainMult: AGES.speedTrainMult }, demands: 'refuse', opinionOf });
     const tiles = getTiles();
     const me = s.playerNationId;
-    let war = null; const out = { seed, who: WHO, declareAt: DECLARE_AT, contactTurns: -1, firstBattle: -1, battles: 0, citiesLost: 0, warTurns: -1, closestRings: null };
+    let war = null; const out = { seed, who: WHO, declareAt: DECLARE_AT, contactTurns: -1, firstBattle: -1, citiesLost: 0, warTurns: -1, closestRings: null };
     let ms = 0;
     for (let t = 1; t <= TURNS && s.gameStatus === GameStatus.ACTIVE; t++) {
       if (t === DECLARE_AT) {
@@ -80,11 +84,9 @@ SEEDS.forEach((seed) => {
         out.seq0 = s.battleReportSeq || 0;
         out.myCities0 = Object.values(s.regions).filter((c) => c.owner === me).length;
       }
-      const d0 = scripted.log.defenses;
       // PEACE=refuse: a warmonger turns down every peace the enemy offers (the war goes on).
       if (process.env.PEACE === 'refuse' && war && s.pendingPeaceOffer?.warId === war.id) s = gameReducer(s, { type: ActionTypes.REJECT_PENDING_PEACE });
       s = scripted.answer(s).state;
-      if (war && scripted.log.defenses > d0) { out.battles += scripted.log.defenses - d0; if (out.firstBattle < 0) out.firstBattle = t - DECLARE_AT; }
       const pre = s;
       const a = performance.now();
       s = resolveTurn(s);
