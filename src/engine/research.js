@@ -19,7 +19,7 @@
 import { applyBoosts, boostOf, nationFacts } from './boosts';
 import { BOOSTS, BOOST_SHARE } from '../data/boosts';
 import { TECH_TREE, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
-import { AGES, AGE_ORDER, getAgeIndex, speedCostMult } from '../data/ages';
+import { AGES, AGE_ORDER, getAgeIndex, speedCostMult, nextAgeId } from '../data/ages';
 import { grantRenown, techRenown } from './renown';
 import { DOCTRINE_TECH_CATEGORY_PRIORITY } from '../data/nations';
 import { LogTypes } from '../data/types';
@@ -151,7 +151,7 @@ export const suggestTechs = (state, nationId, count = 3, researched = researched
 // What a tech unlocks that a nation of age `ageId` can use: unit classes of its age or the next
 // (UNIT_UNLOCKS), building tiers and tile improvements. Laws are listed by the UI (researchView.js).
 export const techUnlockCounts = (techId, ageId) => {
-  const next = AGE_ORDER[getAgeIndex(ageId) + 1];
+  const next = nextAgeId(ageId);
   const units = [ageId, next].filter(Boolean).flatMap((a) => Object.keys(UNIT_UNLOCKS[a] || {}).filter((c) => UNIT_UNLOCKS[a][c] === techId).map((c) => ({ ageId: a, classId: c })));
   const buildings = Object.values(BUILDING_CATEGORIES).reduce((n, def) => n + def.tiers.filter((t) => t.requiresTech === techId).length, 0);
   const improvements = Object.values(IMPROVEMENTS).filter((i) => i.requiresTech === techId).length;
