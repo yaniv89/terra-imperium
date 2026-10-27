@@ -35,7 +35,7 @@
 // Player armies only. AI armies keep their city-hopping operations (aiOperations.js) until the
 // front planner of workstream 9, so AI turns stay fast.
 import { getTiles } from '../data/geo/tiles';
-import { minStepsBetween } from '../data/geo/gridScale';
+import { ringsForKm } from '../data/geo/gridScale';
 import { msg, sub, cityRef, place as placeRef, reasonOf } from './messages';
 import { MARCH_SUPPLY_PER_UNIT } from './supplies';
 import { getResearched } from './nationState';
@@ -92,10 +92,28 @@ export const findRoute = (state, from, target) => {
 // A peaceful approach (lane diplomacy-depth; Civ's closed borders, EU4's military access): a march
 // toward a people whose land is shut to the player ends at their border, on the land tile nearest
 // their city the army may stand on (own, free or a friend's), so meeting a neighbour never needs a
-// war. Rings outward from the city's centre up to APPROACH_RINGS; in each ring the candidates
-// nearest the army are tried first (at most APPROACH_TRIES routes in all). Returns the tile or null.
-export const APPROACH_RINGS = 12;
-const APPROACH_TRIES = 12;
+// war. Rings outward from the city's centre up to APPROACH_KM; the first ring with open land tiles
+// the army can walk to wins, the one fewest steps from the army (one breadth-first search from the
+// army per ring, at most APPROACH_SEARCH tiles). Returns the tile or null.
+export const APPROACH_KM = 925;
+const APPROACH_SEARCH = 6000;
+const reachFirst = (state, tiles, from, goals) => {
+  const me = state.playerNationId;
+  const seen = new Set([from]);
+  let frontier = [from];
+  while (frontier.length && seen.size < APPROACH_SEARCH) {
+    const next = [];
+    for (const t of frontier) {
+      if (goals.has(t)) return t;
+      for (const n of tiles.neighbors[t]) {
+        if (seen.has(n) || tiles.land[n] !== 1 || tileAccess(state, n, me) === 'closed') continue;
+        seen.add(n); next.push(n);
+      }
+    }
+    frontier = next.sort((a, b) => a - b);
+  }
+  return null;
+};
 export const approachTile = (state, from, cityId) => {
   const city = state.regions[cityId];
   if (!city || city.tile == null || from == null || accessOf(state, cityId) !== 'closed') return null;
@@ -103,18 +121,14 @@ export const approachTile = (state, from, cityId) => {
   const me = state.playerNationId;
   const seen = new Set([city.tile]);
   let ring = [city.tile];
-  let tries = 0;
-  for (let d = 1; d <= APPROACH_RINGS && ring.length && tries < APPROACH_TRIES; d++) {
+  for (let d = 1, max = ringsForKm(APPROACH_KM); d <= max && ring.length; d++) {
     const next = [];
     ring.forEach((t) => tiles.neighbors[t].forEach((n) => { if (!seen.has(n)) { seen.add(n); next.push(n); } }));
     ring = next;
-    const near = (t) => minStepsBetween(t, from, tiles);
-    const open = next.filter((t) => tiles.land[t] === 1 && ['own', 'wild', 'friend'].includes(tileAccess(state, t, me))).sort((a, b) => near(a) - near(b) || a - b);
-    for (const t of open) {
-      if (t === from) return t;
-      if (tries++ >= APPROACH_TRIES) break;
-      if (findRoute(state, from, t).path) return t;
-    }
+    const open = new Set(next.filter((t) => tiles.land[t] === 1 && ['own', 'wild', 'friend'].includes(tileAccess(state, t, me))));
+    if (!open.size) continue;
+    const t = reachFirst(state, tiles, from, open);
+    if (t != null) return t;
   }
   return null;
 };

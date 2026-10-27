@@ -63,6 +63,13 @@ keeps its width.
 Tests: src/engine/peacefulApproach.test.js (approach tile, open borders lift it, the bar model, gift
 warmth and cap and fade, refusals logged); GameContext.test.js no-op tests now expect the reason.
 
+## Review
+engine-rules-reviewer: no determinism, save or explore-mode findings. Two fixed: the approach reach
+is now km (`APPROACH_KM` 925 through `ringsForKm`, not 12 rings), and the per-candidate A* searches
+(up to 12 per hover) became one breadth-first search from the army per ring, capped at 6,000 tiles.
+The approach only finds land routes; a people reachable only by sea keeps the old at-peace line.
+`npm run test:quick` after merging integration: 477 files passed.
+
 ## Not done / for the lead
 - "Show on map lands on open sea" (same playtest) is a camera issue (mapCamera.js), not diplomacy.
 - `resolveTurn.test.js` "an aggressive, hostile Tier 1 neighbor eventually declares war" fails on
