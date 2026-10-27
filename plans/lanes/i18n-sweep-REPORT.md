@@ -60,3 +60,22 @@ Signs: `node scripts/ui/bidi-sign-check.cjs` measures glyph positions in Chromiu
 
 Headless log (heLog.sim.js, seeds 12 and 13, Israel): before the fix 7 lines with English names
 (Storage Pits, Mine); after: 0 of 231 lines.
+
+## Lead's Hebrew review list (88 lines, ai/human-playtest-40550085702, plans/ai-output/hebrew-review)
+Most suggestions had already been pasted onto integration as written. Each was checked against
+the English and the game's context:
+- Repaired broken pastes: `bt.result.afterField` held only a sentence tail; `bt.def.giveUp` kept
+  the gender clash (now "נסיגה של ה{ours} שלכם ... והעיר נופלת לידי {enemy}", no agreement).
+- Reverted wrong "fixes": the signature units follow their English data (marcomannia is a modern
+  Czech tank, sarmatians and avaria are hussars by design), and `bt.alert.enemyBroke` keeps the
+  plural (squad names such as "קשתים" are plural).
+- Prompt chips with `{name}` (war, peace, city demand, map offer): people names are sometimes
+  places (אכד, feminine singular) and sometimes plural ethnonyms (הסרמטים), so the chips are now
+  written without verb agreement ("הכרזת מלחמה מצד {name}", "ענו להצעת השלום של {name}").
+  The same for `m.act.march`, `m.act.marchAttack`, `m.battle.raidDrivenOff` ({who} can be plural).
+- Better words: גיחה (sally), קריאת קרב (rally cry), תאי שיט (canal locks), רפורמטורים,
+  הערבות (steppe, not the Arava), בהישג ידם, הציגו (plural like the rest of the UI), the
+  steppe crisis text, the difficulty line and two ruler virtues.
+- Kept as is, on purpose: `p1.gcd.fromTo` (← reads forward in RTL), `p1.go.copyYears` (שוחקו is
+  correct), וסאל, דיפ' (short labels beside the other short resource labels), the "One" lines keep
+  {n} (the placeholder test requires it), `bt.screen.graphicsLost` (an error code).

@@ -90,7 +90,7 @@ export default {
   'm.battle.laneInconclusive': 'ההתקלות ליד {city} הסתיימה ללא הכרעה.',
   'm.battle.sackGotAway': '{raiders} פרצו אל {place} ונמלטו עם השלל.',
   'm.battle.raidGotAway': '{raiders} עברו ב{place} ונמלטו עם השלל.',
-  'm.battle.raidDrivenOff': '{who} הבריחו את {raiders} ב{place}{cut}.',
+  'm.battle.raidDrivenOff': '{raiders} גורשו ב{place} בידי {who}{cut}.',
   'm.battle.cutDownOne': ', וקטלו {n} יחידה שלא הספיקה להימלט',
   'm.battle.cutDownMany': ', וקטלו {n} יחידות שלא הספיקו להימלט',
   'm.battle.buildingsRuined': 'הלחימה הותירה מבנים ב{city} חרבים ({names}: רמה אחת אבדה).',

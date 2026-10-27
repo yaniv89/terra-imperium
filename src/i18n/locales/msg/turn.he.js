@@ -18,7 +18,7 @@ export default {
   'm.turn.risesAgain': '{nation} קמה לתחייה!',
   'm.turn.rebellion': 'מרד פרץ ב{city}!',
   'm.turn.rebellionEnds': 'התסיסה מאחורי המרד ב{city} שככה, והמרד מתפזר.',
-  'm.turn.starveOne': '{n} מהיחידה שלכם גוועת ברעב בשטח',
+  'm.turn.starveOne': '{n} יחידה שלכם גוועת ברעב בשטח',
   'm.turn.starveMany': '{n} יחידות שלכם גוועות ברעב בשטח',
   'm.turn.meltedOne': '{n} יחידה התפוררה',
   'm.turn.meltedMany': '{n} יחידות התפוררו',

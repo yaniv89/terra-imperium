@@ -100,7 +100,7 @@ export default {
   'evt.columbian_exchange.opt1': 'להתקדם בזהירות',
   'evt.reformation.title': 'פילוג דתי',
   'evt.reformation.desc': 'אתגר לסמכות הדתית המקובלת מפלג קהילות, חצרות וממלכות שלמות למחנות יריבים, וכל אחד בטוח שהאחר בגד באמונה.',
-  'evt.reformation.opt0': 'לתמוך ברפורמים',
+  'evt.reformation.opt0': 'לתמוך ברפורמטורים',
   'evt.reformation.opt1': 'להגן על הסדר הקיים',
   'evt.scientific_revolution.title': 'שיטה חדשה',
   'evt.scientific_revolution.desc': 'דרך חדשה לבחון טענות מול תצפית וניסוי מתפשטת בין פילוסופי הטבע, והופכת בשקט ודאויות שעמדו אלף שנה.',
