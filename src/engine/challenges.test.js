@@ -18,7 +18,14 @@ const play = (first = []) => {
   let s = startState(c.start);
   for (const a of first) { log = logAction(log, a); s = gameReducer(s, a); }
   for (let i = 0; i < TURN_LIMIT; i++) {
-    if (s.activeEventId || s.activeProceduralEvent) { const a = { type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex: 0 } }; log = logAction(log, a); s = gameReducer(s, a); }
+    // answer everything that blocks the turn, as a player must (one answer can raise the next), or the turn does not advance
+    for (let k = 0; k < 10; k++) {
+      const a = s.activeEventId || s.activeProceduralEvent ? { type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex: k % 4 } } // an option the player cannot afford is refused: try the next
+        : s.pendingPeaceOffer ? { type: s.pendingPeaceOffer.terms?.length ? ActionTypes.REJECT_PENDING_PEACE : ActionTypes.ACCEPT_PENDING_PEACE }
+          : s.pendingDefenses?.length ? { type: ActionTypes.RESOLVE_ALL_DEFENSES_AUTO } : null;
+      if (!a) break;
+      log = logAction(log, a); s = gameReducer(s, a);
+    }
     const a = { type: ActionTypes.ADVANCE_TURN }; log = logAction(log, a); s = gameReducer(s, a);
   }
   return { log, sub: { weekId: WEEK, build: ENGINE_BUILD, log, hash: stateHash(s), score: challengeScore(s) } };
