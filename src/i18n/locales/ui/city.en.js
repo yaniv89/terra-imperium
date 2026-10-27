@@ -255,6 +255,7 @@ export default {
   'cy.starving': 'starving',
   'cy.housingFull': 'housing full: no growth',
   'cy.maxSize': 'as large as it can be',
+  'cy.maxVillage': 'as large as a village grows (a city needs Agriculture and Chiefdoms)',
   'cy.outpostIn.one': 'an outpost: a city in about {n} turn',
   'cy.outpostIn.two': 'an outpost: a city in about {n} turns',
   'cy.outpostIn.other': 'an outpost: a city in about {n} turns',

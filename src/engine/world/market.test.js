@@ -60,4 +60,12 @@ describe('market access', () => {
     const again = { ...cities };
     expect(applyMarketHousing(again, tiles)).toBe(0);
   });
+  it('an owner with noCentral (the Stone Age) gets market access but no central-place bonus', () => {
+    const all = build(); const none = build();
+    applyMarketHousing(all, tiles);
+    applyMarketHousing(none, tiles, () => true);
+    const access = marketAccess(none, tiles).get('c0');
+    expect(none.c0.marketHousing || 0).toBe(marketHousingFor(access, { isCapital: !!none.c0.isCapital, citiesOwned: Object.values(none).filter((c) => c.owner === none.c0.owner).length }));
+    expect(all.c0.marketHousing).toBeGreaterThan(none.c0.marketHousing || 0);
+  });
 });

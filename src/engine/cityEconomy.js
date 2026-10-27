@@ -118,8 +118,8 @@ export const growthView = (state, cityId, live = cityLive(state, cityId)) => {
   const bank = city.food || 0;
   const cap = Math.min(MAX_SIZE, ctx.maxSize ?? MAX_SIZE);
   let status = 'growing';
-  if (city.size >= cap) status = 'max';
-  else if (yields.food < 0) status = 'starving';
+  if (yields.food < 0) status = 'starving'; // a capped city can still starve
+  else if (city.size >= cap) status = 'max';
   else if (yields.food <= 0) status = 'still';
   else if (speed <= 0) status = 'full';
   const turns = status === 'growing' ? Math.max(1, Math.ceil(Math.max(0, threshold - bank) / (yields.food * speed))) : null;

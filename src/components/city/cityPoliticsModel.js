@@ -27,7 +27,7 @@ import { REBEL_OWNER_ID, REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD } f
 import { REGIONS_DATA } from '../../data/regions';
 import { regionDeposits } from '../../data/deposits';
 import { EXTRACTION_BUILDINGS, canBuildExtraction } from '../../data/buildings';
-import { isAgeAtLeast } from '../../data/ages';
+import { isAgeAtLeast, shownPeople } from '../../data/ages';
 import { DEVASTATION_DECAY } from '../../engine/aftermath';
 import { DEV_TYPE_IDS, getDevelopProvinceCost, getTotalDev } from '../../engine/development';
 import { getSupplyCapacity } from '../../utils/helpers';
@@ -172,7 +172,7 @@ export const populationPolicyPreview = (state, cityId) => {
   const before = Math.floor(city.food || 0); const after = Math.floor(next.food || 0);
   const housingFull = g?.state === 'full';
   if (next === city) return { effective: false, before, after: before, threshold: g?.threshold || 0, housingFull, costs, text: tNow('cy.grow.full', { before, threshold: g?.threshold || 0, tail: housingFull ? tNow('cy.grow.fullHousing') : tNow('cy.grow.fullSurplus') }) };
-  const people = Math.round((next.currentPopulation || 0) - (city.currentPopulation || 0));
+  const people = shownPeople((next.currentPopulation || 0) - (city.currentPopulation || 0), ageOf(state, city.owner));
   // The wait it saves: the same growth view on the city with the fuller bank.
   const gNext = g?.state === 'growing' ? growthView({ ...state, regions: { ...state.regions, [cityId]: next } }, cityId) : null;
   const sooner = gNext?.turns != null && g.turns != null ? g.turns - gNext.turns : 0;

@@ -255,6 +255,7 @@ export default {
   'cy.starving': 'רעבה',
   'cy.housingFull': 'הדיור מלא: אין צמיחה',
   'cy.maxSize': 'בגודל המרבי',
+  'cy.maxVillage': 'בגודל המרבי של כפר (עיר דורשת חקלאות ושבטים ומנהיגים)',
   'cy.outpostIn.one': 'מאחז: עיר בעוד כ־{n} תור',
   'cy.outpostIn.two': 'מאחז: עיר בעוד כ־{n} תורות',
   'cy.outpostIn.other': 'מאחז: עיר בעוד כ־{n} תורות',

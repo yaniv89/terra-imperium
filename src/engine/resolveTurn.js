@@ -27,7 +27,8 @@ import { invalidateRegionsCache } from '../data/regions';
 // infantry/armor/air model this replaced.
 
 import { GameStatus, LogTypes } from '../data/types';
-import { speedCostMult, speedTrainMult, isAgeAtLeast, speedTurns } from '../data/ages';
+import { speedCostMult, speedTrainMult, isAgeAtLeast, speedTurns, FIRST_AGE_ID } from '../data/ages';
+import { sideAgeOf } from './ageRefs';
 import { displayYear } from './displayYear';
 import { endingSignal, nextDominance, dominanceHold } from './ending';
 import { awardEraLegacy } from './eraGoals';
@@ -201,7 +202,9 @@ const runCitiesPhase = (state, newTurnNumber) => {
   });
   // Uneven carrying capacity from market access and capital rank (world/market.js).
   const marketCities = { ...cities };
-  if (applyMarketHousing(marketCities, tiles)) cities = marketCities;
+  const stoneOwner = new Map(); // no central-place bonus in the Stone Age (market.js)
+  const inStone = (o) => { if (!stoneOwner.has(o)) stoneOwner.set(o, sideAgeOf(state, o) === FIRST_AGE_ID); return stoneOwner.get(o); };
+  if (applyMarketHousing(marketCities, tiles, inStone)) cities = marketCities;
   const world = { cities, tileOwner: state.world.tileOwner || {}, tileState: state.world.tileState || {} };
   const result = processCities(world, tiles, ctxFor);
   const regions = {};

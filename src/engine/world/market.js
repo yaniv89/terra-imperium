@@ -17,7 +17,8 @@
 //                   (the top city +12 and +8, the 4th +6 and +4, the 64th +1 food). Bounded bonuses
 //                   spread evenly over a region only lift a whole band, which converges again
 //                   (tried: zipf -0.27 at turn 150, flatter than base by 300); a rank hierarchy keeps
-//                   a few great cities. Small cities are untouched, never starved.
+//                   a few great cities. Small cities are untouched, never starved. A nation in
+//                   the Stone Age gets none (the user's call, 27 Oct): a village is no world market.
 //   capital grain   a capital is fed by its provinces: floor((cities owned - 1) / 2) food, at most 4.
 //
 // Neighbours lifting each other and the capital terms are positive feedbacks, bounded by the
@@ -96,9 +97,10 @@ export const marketAccess = (cities, tiles) => {
 
 /**
  * The market-housing step on a working `cities` map (mutated: only changed records are replaced).
- * Returns the number of cities changed.
+ * `noCentral(owner)`: true for an owner whose cities get no central-place bonus (a nation in the
+ * Stone Age, resolveTurn.js). Returns the number of cities changed.
  */
-export const applyMarketHousing = (cities, tiles) => {
+export const applyMarketHousing = (cities, tiles, noCentral = () => false) => {
   const access = marketAccess(cities, tiles);
   const owned = new Map();
   access.forEach((_, id) => { const o = cities[id].owner; owned.set(o, (owned.get(o) || 0) + 1); });
@@ -112,7 +114,7 @@ export const applyMarketHousing = (cities, tiles) => {
     let h = 0; let f = 0;
     if (access.has(id)) {
       const rank = { isCapital: !!c.isCapital, citiesOwned: owned.get(c.owner) || 1 };
-      const central = centralPlaceBonus(rankOf.get(id));
+      const central = noCentral(c.owner) ? { housing: 0, food: 0 } : centralPlaceBonus(rankOf.get(id));
       h = marketHousingFor(access.get(id), rank) + central.housing;
       f = capitalFoodFor(rank) + central.food;
     }

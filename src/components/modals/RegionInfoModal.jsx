@@ -21,7 +21,7 @@ import { isIndependentNation, PERSONALITIES } from '../../data/independents';
 import IndependentCityCard from '../independents/IndependentCityCard';
 import RazeControl from './RazeControl';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
-import { formatNumber, getControlColor, getRelationColor, getFieldedStrength, getDisplayPopulation, getStability, getSupplyCapacity } from '../../utils/helpers';
+import { formatNumber, getControlColor, getRelationColor, getFieldedStrength, getStability, getSupplyCapacity } from '../../utils/helpers';
 import { categoryTierName, extractionName, wonderName, terrainWord, buildingCategoryLabel, unitClassName, resourceName, independentKindName } from '../../i18n/gameText';
 import { BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, EXTRACTION_BUILDINGS, getBuildingSlots, getUsedBuildingSlots } from '../../data/buildings';
 import { UNIT_CLASSES } from '../../data/unitClasses';
@@ -67,6 +67,9 @@ import { reasonText } from '../../i18n/messageText';
 import { msgRefText } from '../battle/battleText';
 import { t as tNow, hasKey } from '../../i18n/core';
 import { ageOf } from '../../engine/nationState';
+import { sideAgeOf } from '../../engine/ageRefs';
+import { shownPeople } from '../../data/ages';
+import { sizeToPeople } from '../../engine/world/cities';
 import { canPay } from '../../utils/costs';
 // a nation's name in the current language (a people's title, or an independent's form)
 const pn = (n, id = n?.id) => (n ? nameNow('people', id, n.name) : undefined);
@@ -595,7 +598,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           <ProgressBar value={regionState.control} color="dynamic" size="small" />
         </div>
         <div className="grid grid-cols-2 gap-1.5">
-          <StatTile icon={Users} label={t('ri.pop')} value={formatNumber(regionState.currentPopulation || getDisplayPopulation(regionState, regionData, state.year))} sub={regionState.size != null ? t('ri.sizeSub', { n: regionState.size }) : undefined} />
+          <StatTile icon={Users} label={t('ri.pop')} value={formatNumber(shownPeople(regionState.currentPopulation ?? sizeToPeople(regionState.size), sideAgeOf(state, regionState.owner)))} sub={regionState.size != null ? t('ri.sizeSub', { n: regionState.size }) : undefined} />
           <StatTile icon={HeartPulse} label={t('ri.stability')} value={`${Math.round(getStability(regionState))}%`} valueClass={getStability(regionState) < 50 ? 'text-fa-danger-text' : 'text-fa-text'} />
           <StatTile icon={Building} label={t('ri.infrastructure')} value={`${regionState.currentInfrastructure || 0}/10`} sub={t('ri.supply', { n: getSupplyCapacity(regionState.currentInfrastructure) })} />
           <StatTile icon={Shield} label={t('ri.defenses')} value={t('ri.lv', { n: regionState.defenseLevel || 0 })} sub={t('ri.terrainFort', { n: regionData.fortification })} />

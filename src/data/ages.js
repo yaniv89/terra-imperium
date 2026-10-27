@@ -24,7 +24,8 @@ export const AGES = {
     endYear: -2000,
     unlocksResources: ['copper'],
     power: { attack: 7, defense: 6 },
-    unitCostMult: 1
+    unitCostMult: 1,
+    peopleShown: 0.01
   },
   bronze: {
     id: 'bronze',
@@ -36,7 +37,8 @@ export const AGES = {
     // multiplier (src/engine/world/cities.js) in this age: explicit per age, not derived from the
     // age's position, so a new age can slot in anywhere.
     power: { attack: 10, defense: 8 },
-    unitCostMult: 1
+    unitCostMult: 1,
+    peopleShown: 0.05
   },
   classical: {
     id: 'classical',
@@ -45,7 +47,8 @@ export const AGES = {
     endYear: 500,
     unlocksResources: ['iron'],
     power: { attack: 18, defense: 14 },
-    unitCostMult: 1.6
+    unitCostMult: 1.6,
+    peopleShown: 0.15
   },
   kingdoms: {
     id: 'kingdoms',
@@ -54,7 +57,8 @@ export const AGES = {
     endYear: 1500,
     unlocksResources: [],
     power: { attack: 26, defense: 20 },
-    unitCostMult: 2.2
+    unitCostMult: 2.2,
+    peopleShown: 0.3
   },
   gunpowder: {
     id: 'gunpowder',
@@ -63,7 +67,8 @@ export const AGES = {
     endYear: 1900,
     unlocksResources: [],
     power: { attack: 34, defense: 26 },
-    unitCostMult: 2.8
+    unitCostMult: 2.8,
+    peopleShown: 0.6
   },
   modern: {
     id: 'modern',
@@ -72,7 +77,8 @@ export const AGES = {
     endYear: 1990,
     unlocksResources: ['oil'],
     power: { attack: 42, defense: 32 },
-    unitCostMult: 3.4
+    unitCostMult: 3.4,
+    peopleShown: 1
   },
   // Phase D (U48); power from KTD21.
   information: {
@@ -82,7 +88,8 @@ export const AGES = {
     endYear: 2100,
     unlocksResources: [],
     power: { attack: 52, defense: 40 },
-    unitCostMult: 4
+    unitCostMult: 4,
+    peopleShown: 1
   },
   // Phase E (U64): the last age; finishing its techs is the final goal (src/engine/ending.js).
   future: {
@@ -92,9 +99,14 @@ export const AGES = {
     endYear: 2500,
     unlocksResources: [],
     power: { attack: 64, defense: 48 },
-    unitCostMult: 4.6
+    unitCostMult: 4.6,
+    peopleShown: 1
   }
 };
+
+// Display only: the people a city SHOWS in this age (a Stone size 7 reads as a village, about
+// 2,300). Rules keep the unscaled population.js numbers.
+export const shownPeople = (people, ageId) => Math.round((people || 0) * (AGES[ageId]?.peopleShown ?? 1));
 
 export const FIRST_AGE_ID = AGE_ORDER[0];
 export const LAST_AGE_ID = AGE_ORDER[AGE_ORDER.length - 1];
