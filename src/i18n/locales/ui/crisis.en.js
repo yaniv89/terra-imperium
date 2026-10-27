@@ -13,7 +13,7 @@ export default {
   'crisis.soften.collapse': 'Outer towns will lose loyalty. Troops in a town and a governor over it keep it loyal.',
   'crisis.soften.surge': 'Raiders will get new war bands. Walls and troops in your frontier towns hold them off.',
   'crisis.soften.plague': 'Your largest city is struck first. Aqueducts slow it; trade routes and armies spread it.',
-  'crisis.soften.famine': 'Every city will lose a tenth of its people. A Granary halves the loss; a food store at least half full halves it again.',
+  'crisis.soften.famine': 'Every city will lose a tenth of its people. A Granary halves the loss.',
   'crisis.soften.war': 'Two of the peoples hit will go to war, maybe against you. A defensive pact brings allies.',
   'crisis.chip.one': 'Crisis next turn: {fix}',
   'crisis.chip.two': 'Crisis in 2 turns: {fix}',

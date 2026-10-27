@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { crisisDue, processCrises, hitNations, crisisComing, famineShare, CHECK_PERIOD, MAX_HIT, FAMINE_SHARE } from './crises';
-import { growthThreshold } from './world/cities';
 import { CRISES, crisisCardId } from '../data/crises';
 import { cardOf } from './eventDeck';
 import { peoplesWorld, cloneWorld, majorIds, addCities } from './testWorld';
@@ -131,13 +130,11 @@ describe('history crises (U31)', () => {
     expect(out.crises.coming).toBeUndefined();
   });
 
-  it('a famine takes less from a city with a Granary and a food store at least half full', () => {
-    const half = growthThreshold(4) / 2;
+  it('a famine takes half as much from a city with a Granary or better', () => {
     expect(famineShare({ size: 4, food: 0 })).toBe(FAMINE_SHARE);
     expect(famineShare({ size: 4, food: 0, buildings: { categories: { food: 0 } } })).toBe(FAMINE_SHARE); // Storage Pits are not a Granary
     expect(famineShare({ size: 4, food: 0, buildings: { categories: { food: 1 } } })).toBe(FAMINE_SHARE / 2);
-    expect(famineShare({ size: 4, food: half })).toBe(FAMINE_SHARE / 2);
-    expect(famineShare({ size: 4, food: half, buildings: { categories: { food: 3 } } })).toBe(FAMINE_SHARE / 4);
+    expect(famineShare({ size: 4, food: 999, buildings: { categories: { food: 3 } } })).toBe(FAMINE_SHARE / 2); // the store does not count
     const s = world('bronze');
     const cap = s.regions[s.nations[s.playerNationId].capitalRegionId];
     s.regions[cap.id] = { ...cap, food: 0, buildings: { ...cap.buildings, categories: { ...cap.buildings?.categories, food: -1 } } };
