@@ -99,7 +99,7 @@ export const investmentOf = (region) => {
  * production investment are already inside the yields; manpower is added here. */
 export const devFromYields = (yields, city) => ({
   tax: Math.max(1, Math.round(yields.raw.gold)),
-  production: Math.max(1, Math.round(yields.production)),
+  production: Math.max(1, Math.round(yields.devProduction ?? yields.production)), // the land's hammers, not the citizens' own (cities.js cityYields)
   manpower: Math.max(1, city.size) + (city.investment?.manpower || 0)
 });
 

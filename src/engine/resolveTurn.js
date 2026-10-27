@@ -66,6 +66,7 @@ import { createRng } from '../utils/rng';
 import { processCities, growthThreshold, privateWorld, unitWaitsForTech } from './world/cities';
 import { makeSettler, processSettlers, bestSites, isSettler, foundAiVillages } from './settlers';
 import { chooseProduction, nationCounts } from './aiProduction';
+import { keepBuilding } from './productionAdvisor';
 import { syncWorldRegistry } from './world/registry';
 import { lodPeriod, settlesThisTurn, turnsToSettle } from './world/lod';
 import { applyMarketHousing } from './world/market';
@@ -329,7 +330,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // extends its borders. Runs first so income reads this turn's yields (dev mirrors them) and
   // every later phase sees the new sizes and borders. Finished units are created here.
   const cityTurn = runCitiesPhase(state, newTurnNumber);
-  state = cityTurn.state;
+  state = keepBuilding(cityTurn.state); // the player's standing orders refill dry queues (productionAdvisor.js)
   cityTurn.logs.forEach((l) => logs.push({ year: newYear, ...carry(l), type: LogTypes.ACTION }));
   mark('cities');
 
