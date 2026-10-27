@@ -10,7 +10,8 @@
 //   collapse  outer cities (not capitals) lose COLLAPSE_LOYALTY loyalty: loyalty.js may let them go
 //   surge     each raider independent within SURGE_KM of a hit city gets SURGE_BANDS war bands (raids.js)
 //   plague    an outbreak (plague.js) in each hit nation's largest city
-//   famine    every city of a hit nation loses FAMINE_SHARE of its people (the population model)
+//   famine    every city of a hit nation loses FAMINE_SHARE of its people (the population model), halved
+//             by a Granary or better (the Food line), halved again by a food store at least half full
 //   war       the first two hit majors go to war (declareWar, pacts join); the player is only ever the target
 // A hit player gets the crisis's opening story (an event-deck link, due when it strikes). Memory:
 // state.crises = { last: { id: turn }, lastAny, history: [{ id, turn, nations }], coming?: { id, turn,
@@ -25,7 +26,7 @@ import { factContext, predicateMet } from './predicates';
 import { hashRoll } from './aftermath';
 import { waitAgeOf } from './ageRefs';
 import { seedPlague } from './plague';
-import { drawPeople, sizeToPeople } from './world/cities';
+import { drawPeople, sizeToPeople, growthThreshold } from './world/cities';
 import { loyaltyOf } from './loyalty';
 import { declareWar } from './diplomacy';
 import { msg } from './messages';
@@ -40,6 +41,13 @@ export const SURGE_KM = 1200;
 export const SURGE_BANDS = 2;
 export const PLAGUE_I = 0.1;
 export const FAMINE_SHARE = 0.1;
+export const GRANARY_TIER = 1;        // the Food line's Granary (buildings.js food tiers) or any later tier
+
+/** The share of its people a city loses to a famine: FAMINE_SHARE, halved by a Granary or better,
+ * halved again by a food store at least half full (the store the loss is then drawn from). */
+export const famineShare = (city) => FAMINE_SHARE
+  * ((city.buildings?.categories?.food ?? -1) >= GRANARY_TIER ? 0.5 : 1)
+  * ((city.food || 0) * 2 >= growthThreshold(city.size || 1) ? 0.5 : 1);
 
 export const crisesOn = (state) => state.settings?.crises !== 'off' && state.settings?.explore !== true;
 
@@ -145,7 +153,7 @@ export const processCrises = (state) => {
       if (big) regions[big] = seedPlague(regions[big], turn, PLAGUE_I);
     });
   } else if (crisis.effect === 'famine') {
-    owned.forEach((id) => { const c = regions[id]; regions[id] = drawPeople(c, FAMINE_SHARE * (c.currentPopulation || sizeToPeople(c.size)), { canShrink: true }); });
+    owned.forEach((id) => { const c = regions[id]; regions[id] = drawPeople(c, famineShare(c) * (c.currentPopulation || sizeToPeople(c.size)), { canShrink: true }); });
   } else if (crisis.effect === 'war') {
     // The player is never made the aggressor (no forced loss of control): a hit player is the target.
     const [a, b] = hit[0] === state.playerNationId ? [hit[1], hit[0]] : hit;
