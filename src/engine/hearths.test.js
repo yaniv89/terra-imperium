@@ -36,7 +36,7 @@ describe('hearths and forage (U24)', () => {
     const s = quiet(peoplesWorld({ seed: 7 }));
     const id = majorIds(s).find((n) => n !== s.playerNationId && !getResearched(s, n).includes(AGRICULTURE_TECH));
     const cap = s.nations[id].capitalRegionId;
-    const full = { ...s, regions: { ...s.regions, [cap]: { ...s.regions[cap], size: FORAGE_SIZE_CAP, food: 1e6 } } };
+    const full = { ...s, regions: { ...s.regions, [cap]: { ...s.regions[cap], size: FORAGE_SIZE_CAP, food: 1e6, focus: 'food' } } }; // a food surplus at size 3: no central-place food in the Stone Age (market.js)
     expect(resolveTurn(full).regions[cap].size).toBe(FORAGE_SIZE_CAP);
     expect(resolveTurn(withTechsResearched(full, id, [AGRICULTURE_TECH])).regions[cap].size).toBe(FORAGE_SIZE_CAP + 1);
   });

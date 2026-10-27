@@ -773,7 +773,7 @@ describe('resolveTurn AI war declarations', () => {
     // of the real wiring, not a probability estimate — aiLogic.test.js covers the exact odds).
     // A large reserve (militaryStrength) makes a war on its neighbour worth it (warOdds.js
     // warValue > 0): without it the war's value decides, and research pace alone moved R1 from
-    // one war at turn 147 to none in 300 turns (U47). The village size cap (stonePhase.js) moved it from turn 120 to 310, so 400.
+    // one war at turn 147 to none in 300 turns (U47).
     // Waits for a war R1 itself declared: with multi-front wars another nation may declare on R1
     // first, which makes it isAtWar without it having declared anything. Fixed seed: reproducible.
     const base = world(2024);
@@ -784,7 +784,7 @@ describe('resolveTurn AI war declarations', () => {
       nations: { ...base.nations, [R1]: { ...base.nations[R1], doctrine: 'zealot', hostility: 100, hostilityFloor: 100, militaryStrength: 5000 } }
     });
     let warDeclared = false;
-    for (let i = 0; i < 400 && !warDeclared; i++) {
+    for (let i = 0; i < 300 && !warDeclared; i++) {
       // A peace offer to the player stops the turn (CLAUDE.md): refuse it and go on.
       if (state.pendingPeaceOffer) state = gameReducer(state, { type: ActionTypes.REJECT_PENDING_PEACE });
       state = resolveTurn(state);
@@ -792,7 +792,7 @@ describe('resolveTurn AI war declarations', () => {
     }
     expect(warDeclared).toBe(true);
     expect(state.nations[R1].isAtWar).toBe(true);
-  }, 120000); // up to 400 whole-world turns: slow under full-suite load
+  }, 60000); // up to 300 whole-world turns: slow under full-suite load
 });
 
 describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-to-end)', () => {
