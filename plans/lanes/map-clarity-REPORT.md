@@ -78,7 +78,7 @@ playtest harness's own buildSlices).
 
 - Signed numbers flipped in Hebrew ("11g+", "4700-"): every message in Hebrew isolates a signed number
   left to right (messageText.js `isolateSigned`, LRI ... PDI; a dash between numbers stays), and the
-  log's years sit in a left-to-right bdi.
+  log's years are integration's own fix (yearText in a bdi, merged from another lane).
 - English event names in the Hebrew log: already fixed on integration (checked: "אירוע: סוחרים
   נודדים ← לסחור רק במה שדרוש").
 - Men x10: not a wrong conversion (one strength point is 10 men by design, battleLedger menOf), but
@@ -95,10 +95,20 @@ playtest harness's own buildSlices).
   src/audio: 59 files, 447 tests pass. Lint clean.
 - Known failure not from this lane: resolveTurn.test.js "an aggressive, hostile Tier 1 neighbor
   eventually declares war" fails on origin/claude/integration too (checked with my changes stashed).
-- Shots: plans/ui/map-clarity/{before,after}-{pact,army,march,banners,gold,log}-{phone,desktop}-{en,he}.jpg.
+- Shots: plans/ui/map-clarity/{before,after}-{pact,army,march,banners,gold,log}-{phone,desktop}-{en,he}.jpg
+  (24 each). before-pact-phone-en is the dark map; after-pact-phone-en keeps your coast.
+- test:quick: 472 files pass; 3 failed under load (sight, battle sim economy, sim) while two browsers
+  ran, all 3 pass alone (37 tests). None touch files of this lane.
+- engine-rules-reviewer: no rule findings (calcIncome identical with or without goldParts; the
+  forecast is pure and read-only).
+- One desktop run went to a fully blank page at the march step once and did not repeat (no page
+  error in the rerun); noted in case it shows again.
+- Also fixed: the map legend's "Your land" swatch was blue; it is green like the map.
 
 ## What is left
 
+- On desktop the army sheet opens under the Cities list (after-army-desktop-en.jpg): the panel
+  stacking of issue 11, not changed here.
 - On desktop the Peoples sheet covers the right of the map and the camera stays put (by design,
   I072), so the player's land can sit under the sheet; not changed.
 - The supply lens shows supply line reach, which only matters in enemy land; wild land always drains.
