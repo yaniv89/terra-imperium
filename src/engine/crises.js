@@ -10,14 +10,19 @@
 //   collapse  outer cities (not capitals) lose COLLAPSE_LOYALTY loyalty: loyalty.js may let them go
 //   surge     each raider independent within SURGE_KM of a hit city gets SURGE_BANDS war bands (raids.js)
 //   plague    an outbreak (plague.js) in each hit nation's largest city
-//   famine    every city of a hit nation loses FAMINE_SHARE of its people (the population model)
+//   famine    every city of a hit nation loses FAMINE_SHARE of its people (the population model), halved
+//             by a Granary or better (the Food line)
 //   war       the first two hit majors go to war (declareWar, pacts join); the player is only ever the target
 // A hit player gets the crisis's opening story (an event-deck link, due when it strikes). Memory:
 // state.crises = { last: { id: turn }, lastAny, history: [{ id, turn, nations }], coming?: { id, turn,
-// nations, raiders } }; absent = none yet (save 20: `coming` is optional, no migration).
+// nations, raiders, answered?, choice? } }; absent = none yet (save 20: all optional, no migration).
+// `answered`: the player opened the card during the warning (ANSWER_CRISIS_EARLY), so it does not open
+// again at the strike; `choice`: the option picked then, paid only when the crisis strikes the player (a
+// crisis dropped or passing pays nothing).
 // state.settings.crises === 'off' stops all. Pure apart from the turn's working regions and units.
 import { CRISES, crisisCardId } from '../data/crises';
-import { getAgeIndex, speedTurns } from '../data/ages';
+import { getAgeIndex, speedTurns, speedCostMult } from '../data/ages';
+import { ageOf } from './nationState';
 import { isIndependentNation } from '../data/independents';
 import { getTiles } from '../data/geo/tiles';
 import { distanceKm } from '../data/geo/geodesic';
@@ -40,6 +45,10 @@ export const SURGE_KM = 1200;
 export const SURGE_BANDS = 2;
 export const PLAGUE_I = 0.1;
 export const FAMINE_SHARE = 0.1;
+export const GRANARY_TIER = 1;        // the Food line's Granary (buildings.js food tiers) or any later tier
+
+/** The share of its people a city loses to a famine: FAMINE_SHARE, halved by a Granary or better. */
+export const famineShare = (city) => FAMINE_SHARE * ((city.buildings?.categories?.food ?? -1) >= GRANARY_TIER ? 0.5 : 1);
 
 export const crisesOn = (state) => state.settings?.crises !== 'off' && state.settings?.explore !== true;
 
@@ -98,14 +107,15 @@ export const crisisDue = (state) => {
 export const crisisComing = (state) => {
   const c = state.crises?.coming;
   const crisis = c && crisesOn(state) && c.nations.includes(state.playerNationId) && CRISES.find((x) => x.id === c.id);
-  return crisis ? { crisis, turn: c.turn, nations: c.nations } : null;
+  return crisis ? { crisis, turn: c.turn, nations: c.nations, answered: !!c.answered } : null;
 };
 
 /**
  * Announce this turn's crisis, if one is due (it strikes WARN_TURNS reference turns later), or strike
  * the announced one whose warning ran out. `state` carries the new turnNumber and the turn's working
  * `regions` and `units` (written in place), `nations` and `wars`.
- * @returns {null | { nations, wars, crises, pendingEventChains, logs }}
+ * @returns {null | { nations, wars, crises, pendingEventChains, logs, choice? }} (`choice`: the option the
+ * player picked during the warning, paid by resolveTurn now that it struck)
  */
 export const processCrises = (state) => {
   const turn = state.turnNumber;
@@ -145,7 +155,7 @@ export const processCrises = (state) => {
       if (big) regions[big] = seedPlague(regions[big], turn, PLAGUE_I);
     });
   } else if (crisis.effect === 'famine') {
-    owned.forEach((id) => { const c = regions[id]; regions[id] = drawPeople(c, FAMINE_SHARE * (c.currentPopulation || sizeToPeople(c.size)), { canShrink: true }); });
+    owned.forEach((id) => { const c = regions[id]; regions[id] = drawPeople(c, famineShare(c) * (c.currentPopulation || sizeToPeople(c.size)), { canShrink: true, speedMult: speedCostMult(state.gameSpeed, ageOf(state, c.owner)) }); }); // the store sized as resolveTurn sizes it
   } else if (crisis.effect === 'war') {
     // The player is never made the aggressor (no forced loss of control): a hit player is the target.
     const [a, b] = hit[0] === state.playerNationId ? [hit[1], hit[0]] : hit;
@@ -154,6 +164,7 @@ export const processCrises = (state) => {
     ({ nations, wars } = after);
   }
   const crises = { ...rest, history: [...(mem.history || []), { id: crisis.id, turn, nations: hit }] };
-  const pendingEventChains = hitSet.has(state.playerNationId) ? [...(state.pendingEventChains || []), { id: crisisCardId(crisis.id), dueTurn: turn }] : state.pendingEventChains;
-  return { nations, wars, crises, pendingEventChains, logs: [{ year: state.year, type: 'milestone', ...msg(`m.world.crisis.${crisis.id}`) }] };
+  const pendingEventChains = hitSet.has(state.playerNationId) && !coming.answered ? [...(state.pendingEventChains || []), { id: crisisCardId(crisis.id), dueTurn: turn }] : state.pendingEventChains;
+  const choice = hitSet.has(state.playerNationId) && Number.isInteger(coming.choice) ? coming.choice : undefined;
+  return { nations, wars, crises, pendingEventChains, choice, logs: [{ year: state.year, type: 'milestone', ...msg(`m.world.crisis.${crisis.id}`) }] };
 };
