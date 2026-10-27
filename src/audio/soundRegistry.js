@@ -35,6 +35,17 @@ export const BATTLE_SOUNDS = {
   'musket-volley': { label: 'Musket volley', gain: 0.85, cooldownMs: 70, synth: 'shotGun', positional: true },
   'rifle-fire': { label: 'Rifle fire', gain: 0.75, cooldownMs: 60, synth: 'shotGun', positional: true },
   explosion: { label: 'Explosion', gain: 1, cooldownMs: 120, synth: 'impact', positional: true },
+  // Age families (U95): stone, energy and robot weapons. Bronze and gun reuse the ids above.
+  'sling-throw': { label: 'Sling or thrown stone', gain: 0.55, cooldownMs: 70, synth: 'throw', positional: true },
+  'stone-thud': { label: 'Club or stone on flesh', gain: 0.8, cooldownMs: 80, synth: 'thud', positional: true },
+  'stone-shout': { label: 'Tribal shout', gain: 0.55, cooldownMs: 160, synth: 'shout', positional: true },
+  'laser-fire': { label: 'Laser shot', gain: 0.6, cooldownMs: 60, synth: 'laser', positional: true },
+  'laser-hit': { label: 'Energy blade or beam hit', gain: 0.7, cooldownMs: 80, synth: 'laserHit', positional: true },
+  'shield-hum': { label: 'Energy shield hum', gain: 0.6, cooldownMs: 90, synth: 'hum', positional: true },
+  'railgun-crack': { label: 'Railgun crack', gain: 0.95, cooldownMs: 200, synth: 'railgun', positional: true },
+  'robot-fire': { label: 'Robot weapon', gain: 0.6, cooldownMs: 60, synth: 'robotFire', positional: true },
+  'servo-clash': { label: 'Servo strike', gain: 0.75, cooldownMs: 80, synth: 'servo', positional: true },
+  'power-down': { label: 'Robot power-down', gain: 0.55, cooldownMs: 160, synth: 'powerDown', positional: true },
   'building-collapse': { label: 'Building collapse', gain: 1, cooldownMs: 250, synth: 'impactBig', positional: true },
   'fire-crackle': { label: 'Fire crackle', gain: 0.5, cooldownMs: 1500, synth: null, positional: true },
   'death-cry': { label: 'Death cry (soft)', gain: 0.5, cooldownMs: 160, synth: 'destroyed', positional: true },
@@ -69,7 +80,19 @@ export const BATTLE_SOUNDS = {
   victory: { label: 'Victory', gain: 0.8, cooldownMs: 2000, synth: 'victory', positional: false },
   defeat: { label: 'Defeat', gain: 0.8, cooldownMs: 2000, synth: 'defeat', positional: false }
 };
-export const BATTLE_SOUND_IDS = Object.keys(BATTLE_SOUNDS);
+// Which weapon sound family each age plays (every id in AGE_ORDER has one; soundRegistry.test.js).
+export const AGE_SOUND_FAMILY = {
+  stone: 'stone', bronze: 'bronze', classical: 'bronze', kingdoms: 'bronze',
+  gunpowder: 'gun', modern: 'gun', information: 'energy', future: 'robot'
+};
+// The ids a family overrides: shot / melee / block (a hit that did no damage) / siege shot / death / tower shot.
+// Bronze and gun are the base sounds in battleAudio.js, so they have no row.
+export const FAMILY_VOICE = {
+  stone: { shot: 'sling-throw', melee: 'stone-thud', death: 'stone-shout', tower: 'sling-throw' },
+  energy: { shot: 'laser-fire', melee: 'laser-hit', block: 'shield-hum', siege: 'railgun-crack', tower: 'laser-fire' },
+  robot: { shot: 'robot-fire', melee: 'servo-clash', block: 'shield-hum', siege: 'railgun-crack', death: 'power-down', tower: 'robot-fire' }
+};
+export const BATTLE_SOUND_IDS =Object.keys(BATTLE_SOUNDS);
 
 // The map's background beds, looped under the music.
 export const AMBIENCE_SOUNDS = {
