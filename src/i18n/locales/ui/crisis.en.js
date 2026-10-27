@@ -2,6 +2,7 @@
 // UI text: the crisis banner and the start-screen option (differentiation plan U32).
 export default {
   'crisis.wait': 'Crisis: {title}',
+  'crisis.answerNow': 'Decide now',
   'crisis.dismiss': 'Dismiss the crisis notice',
   'crisis.hitYou': 'Your people are among the {n} hit.',
   'crisis.hitOthers': '{n} peoples are hit. Yours is spared for now.',

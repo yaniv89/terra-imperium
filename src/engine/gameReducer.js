@@ -73,6 +73,8 @@ import { getEffectiveMilitaryPower } from './aiEconomy';
 import { applyPeace, getPeaceAcceptance } from './peace';
 import { levyUnit } from './aftermath';
 import { cardOf } from './eventDeck';
+import { crisisComing } from './crises';
+import { crisisCardId } from '../data/crises';
 import { AGES, FIRST_AGE_ID, isAgeAtLeast, isAgeBefore } from '../data/ages';
 import { endingSignal } from './ending';
 import { ageOf, getResearched } from './nationState';
@@ -690,6 +692,13 @@ const reduceAction = (state, action) => {
         : state.activeProceduralEvent;
       if (!event) return state;
       return applyEventEffects(state, event, action.payload.optionIndex);
+    }
+
+    case ActionTypes.ANSWER_CRISIS_EARLY: {
+      // The coming crisis's card opens during its warning; answered now, it does not open again at the strike.
+      const coming = crisisComing(state);
+      if (!coming || coming.answered || state.activeEventId || state.activeProceduralEvent) return state;
+      return { ...state, activeEventId: crisisCardId(coming.crisis.id), crises: { ...state.crises, coming: { ...state.crises.coming, answered: true } } };
     }
 
     // ---- Domestic tab (plan §5) — atomic, cost-validated player actions ----

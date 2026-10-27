@@ -2,6 +2,7 @@
 // UI text: the crisis banner and the start-screen option (differentiation plan U32).
 export default {
   'crisis.wait': 'משבר: {title}',
+  'crisis.answerNow': 'החליטו עכשיו',
   'crisis.dismiss': 'סגרו את הודעת המשבר',
   'crisis.hitYou': 'עמכם בין {n} העמים שנפגעו.',
   'crisis.hitOthers': '{n} עמים נפגעו. עמכם נחסך לעת עתה.',

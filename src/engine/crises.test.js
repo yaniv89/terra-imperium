@@ -6,6 +6,8 @@ import { cardOf } from './eventDeck';
 import { peoplesWorld, cloneWorld, majorIds, addCities } from './testWorld';
 import { resolveTurn } from './resolveTurn';
 import { HISTORICAL_EVENTS } from '../data/events';
+import { gameReducer } from './gameReducer';
+import { ActionTypes } from '../data/types';
 
 const collapse = CRISES.find((c) => c.id === 'bronze_collapse');
 
@@ -144,5 +146,25 @@ describe('history crises (U31)', () => {
     const fed = { ...bare, regions: { ...s.regions, [cap.id]: { ...s.regions[cap.id], buildings: { ...cap.buildings, categories: { ...cap.buildings?.categories, food: 1 } } } } };
     processCrises(fed);
     expect(fed.regions[cap.id].currentPopulation).toBeGreaterThan(bare.regions[cap.id].currentPopulation);
+  });
+
+  it('the player may answer a coming crisis during its warning: the option applies at once, the card does not open again at the strike', () => {
+    const s0 = world('bronze');
+    const s = { ...s0, turnNumber: 45, crises: { coming: { id: 'bronze_collapse', turn: 50, nations: [s0.playerNationId] } } };
+    const opened = gameReducer(s, { type: ActionTypes.ANSWER_CRISIS_EARLY });
+    expect(opened.activeEventId).toBe(crisisCardId('bronze_collapse'));
+    expect(crisisComing(opened).answered).toBe(true);
+    expect(gameReducer({ ...opened, activeEventId: null }, { type: ActionTypes.ANSWER_CRISIS_EARLY }).activeEventId).toBe(null); // once
+    const gold = opened.resources.gold;
+    const answered = gameReducer(opened, { type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex: 0 } });
+    expect(answered.activeEventId).toBe(null);
+    expect(answered.resources.gold).toBeLessThan(gold);
+    const out = processCrises({ ...answered, turnNumber: 50 });
+    expect(out.crises.history[0].id).toBe('bronze_collapse');
+    expect(out.pendingEventChains || []).not.toContainEqual({ id: crisisCardId('bronze_collapse'), dueTurn: 50 });
+    // Not answered: the card opens at the strike as before.
+    expect(processCrises({ ...s, turnNumber: 50 }).pendingEventChains).toContainEqual({ id: crisisCardId('bronze_collapse'), dueTurn: 50 });
+    // Nothing coming for the player: no card.
+    expect(gameReducer(s0, { type: ActionTypes.ANSWER_CRISIS_EARLY })).toBe(s0);
   });
 });

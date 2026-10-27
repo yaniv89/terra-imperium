@@ -15,7 +15,9 @@
 //   war       the first two hit majors go to war (declareWar, pacts join); the player is only ever the target
 // A hit player gets the crisis's opening story (an event-deck link, due when it strikes). Memory:
 // state.crises = { last: { id: turn }, lastAny, history: [{ id, turn, nations }], coming?: { id, turn,
-// nations, raiders } }; absent = none yet (save 20: `coming` is optional, no migration).
+// nations, raiders, answered? } }; absent = none yet (save 20: `coming` and `answered` are optional, no
+// migration). `answered`: the player opened the card during the warning (ANSWER_CRISIS_EARLY); its
+// option applied then, so the card does not open again at the strike.
 // state.settings.crises === 'off' stops all. Pure apart from the turn's working regions and units.
 import { CRISES, crisisCardId } from '../data/crises';
 import { getAgeIndex, speedTurns } from '../data/ages';
@@ -106,7 +108,7 @@ export const crisisDue = (state) => {
 export const crisisComing = (state) => {
   const c = state.crises?.coming;
   const crisis = c && crisesOn(state) && c.nations.includes(state.playerNationId) && CRISES.find((x) => x.id === c.id);
-  return crisis ? { crisis, turn: c.turn, nations: c.nations } : null;
+  return crisis ? { crisis, turn: c.turn, nations: c.nations, answered: !!c.answered } : null;
 };
 
 /**
@@ -162,6 +164,6 @@ export const processCrises = (state) => {
     ({ nations, wars } = after);
   }
   const crises = { ...rest, history: [...(mem.history || []), { id: crisis.id, turn, nations: hit }] };
-  const pendingEventChains = hitSet.has(state.playerNationId) ? [...(state.pendingEventChains || []), { id: crisisCardId(crisis.id), dueTurn: turn }] : state.pendingEventChains;
+  const pendingEventChains = hitSet.has(state.playerNationId) && !coming.answered ? [...(state.pendingEventChains || []), { id: crisisCardId(crisis.id), dueTurn: turn }] : state.pendingEventChains;
   return { nations, wars, crises, pendingEventChains, logs: [{ year: state.year, type: 'milestone', ...msg(`m.world.crisis.${crisis.id}`) }] };
 };
