@@ -1344,6 +1344,17 @@ discretion.
 
 ## J3. Progress log
 
+**Eight ages, Phase G (2026-10-27).** The game runs Stone to Future by research
+(`plans/2026-10-20-001-feat-eight-ages-plan.md`). U96 calibrated the Fast and Marathon speed
+tables (`src/data/ages.js` GAME_SPEEDS): each age after Stone lasts Normal's turns scaled by the
+turn limit; Normal (Stone 69, Bronze 50, Classical 84, Kingdoms 96, Gunpowder 167, Modern 178,
+Information 178 turns, the Future near turn 815) is unchanged. Measured on 4 full games per speed:
+SC3 to SC7 hold (the median major ends every game in the Future, the leader at most 2 ages ahead);
+open are the Stone opening's quiet stretches (5 to 7 turns against 2 to 5) and late turns over the
+80 ms budget (about 105 ms mean over 300 turns, the same on the base). Stone growth and the shown
+population are a separate lane. U97 added `node scripts/art/town-size-check.mjs` (town files 746
+of 850 MB). Measure an age's length with balance-sim worldStats `halfIn_<age>`.
+
 **B5, roads on the flat map (2026-10-03).** The local-zoom layer draws a road as a line between
 the centres of two touching tiles that both carry a road (a city centre counts as one), under
 the improvement and district glyphs, for the tiles on screen. Rivers are in the Earth raster

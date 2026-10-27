@@ -57,7 +57,9 @@ Decisions of 2026-10-06, second round:
 32. **Five ages** (Bronze to Modern) for now. The nine-age plan (`eras-origins-and-future.md`) is
     the future, after its art exists; nothing in phases 1 to 13 below depends on it.
     **Superseded on 2026-10-20** by `plans/2026-10-20-001-feat-eight-ages-plan.md`: eight ages by
-    tech, and every game starts in the Stone Age.
+    tech, and every game starts in the Stone Age. **Shipped 2026-10-27**: every content phase and
+    Phase G (U96 calibration, U97 budgets, U98 docs) are in; U52 and U53 stay deferred. Open:
+    the Stone opening's quiet stretches (SC1, SC2, SC9) and late turns over 80 ms (SC8).
 33. **Field battles are decisive**: the side that loses a battle away from a city loses the units
     still on the field; the winner's units gain XP (section 6.9).
 34. **Forts start battles** against enemies that come near, and **armies cross rivers** (section 6.9).
