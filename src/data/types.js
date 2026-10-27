@@ -57,6 +57,7 @@ export const ActionTypes = {
   FOUND_CITY: 'FOUND_CITY',
   ADD_LOG: 'ADD_LOG',
   RESOLVE_EVENT: 'RESOLVE_EVENT',
+  ANSWER_CRISIS_EARLY: 'ANSWER_CRISIS_EARLY', // opens the coming crisis's decision card during its warning (crises.js)
   LOAD_GAME: 'LOAD_GAME',
 
   // Domestic tab (plan §5) — atomic, cost-validated player actions.

@@ -16,7 +16,7 @@
 // {nation:agree=demand} (the English verb that agrees with the nation's name: "demands" or, for
 // "the Elamite tribes", "demand"). A var may itself be a message (`sub(key, vars)`), written in
 // place. A key with `.one` / `.two` / `.other` forms is a plural and takes its form from `count`.
-import { tableOf, pluralForm } from '../i18n/core';
+import { tableOf, pluralForm, isRtl } from '../i18n/core';
 import { agree } from './grammar';
 
 /** A name in a message: kind is 'people', 'city', 'person', 'place', 'tech', 'unit', 'building',
@@ -72,7 +72,7 @@ export const msgText = (key, vars, lang = 'en', nameOfRef = null) => {
     }
     return String(v);
   };
-  return text.replace(/\{(\w+)(?::(\w+)(?:=([\w ]+))?)?\}/g, (m, name, fmt, arg) => {
+  const out = text.replace(/\{(\w+)(?::(\w+)(?:=([\w ]+))?)?\}/g, (m, name, fmt, arg) => {
     const v = vars ? vars[name] : undefined;
     if (v === undefined) return m;
     if (fmt === 'num') return Number.isFinite(v) ? groupDigits(v) : value(v);
@@ -81,7 +81,11 @@ export const msgText = (key, vars, lang = 'en', nameOfRef = null) => {
     if (fmt === 'agree') return agree(isRef(v) ? v.en : String(v), arg || '');
     return value(v);
   });
+  return isRtl(lang) ? isolateSigned(out) : out;
 };
+
+// A signed number ("+10%", "-3") in right-to-left text, isolated left to right: bidi would put its sign on the wrong side.
+const isolateSigned = (text) => text.replace(/(^|[\s(:[])([+\-\u2212]\d[\d.,]*[%KMg]?)/g, '$1\u2066$2\u2069');
 
 /** The text fields of a log entry (or a card line): spread into the entry. */
 export const msg = (key, vars) => (vars

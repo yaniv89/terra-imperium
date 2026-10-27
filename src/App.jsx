@@ -37,6 +37,7 @@ import AdminPage from './components/admin/AdminPage';
 const TacticalBattleHost = lazyWithReload(() => import('./components/battle/TacticalBattleHost'));
 import { GameStatus, ActionTypes } from './data/types';
 import { cardOf } from './engine/eventDeck';
+import { crisisCardId } from './data/crises';
 import { AGES } from './data/ages';
 import { getNationCapital } from './data/regions';
 import DefenseSheet from './components/battle/DefenseSheet';
@@ -378,6 +379,7 @@ const GameLayout = () => {
         resources={state.resources}
         placeName={state.activeProceduralEvent?.cityId ? state.regions[state.activeProceduralEvent.cityId]?.name || null : null}
         cityId={state.activeProceduralEvent?.cityId || null}
+        comingIn={state.crises?.coming?.answered && state.activeEventId === crisisCardId(state.crises.coming.id) ? Math.max(1, state.crises.coming.turn - (state.turnNumber || 0)) : null}
       />
 
       {/* Game Over screen - overlays everything once the run ends */}

@@ -410,6 +410,7 @@ export default {
   'wait.join': '{name} offer to join you',
   'wait.mapHint': 'Map: {title}',
   'wait.event': 'Event: {title}',
+  'event.footer': 'Choose an option to go on: the turn waits for it. The map stays live behind.',
   'wait.met': 'You met {title}',
   'wait.changeGov': 'Change to {type}',
   'wait.log': 'Event log',

@@ -73,6 +73,8 @@ import { getEffectiveMilitaryPower } from './aiEconomy';
 import { applyPeace, getPeaceAcceptance } from './peace';
 import { levyUnit } from './aftermath';
 import { cardOf } from './eventDeck';
+import { crisisComing } from './crises';
+import { crisisCardId } from '../data/crises';
 import { AGES, FIRST_AGE_ID, isAgeAtLeast, isAgeBefore } from '../data/ages';
 import { endingSignal } from './ending';
 import { ageOf, getResearched } from './nationState';
@@ -690,7 +692,22 @@ const reduceAction = (state, action) => {
         ? cardOf(state.activeEventId)
         : state.activeProceduralEvent;
       if (!event) return state;
+      // A crisis card answered during its warning: the choice waits on state.crises.coming and is paid at the strike.
+      const coming = state.crises?.coming;
+      if (coming?.answered && state.activeEventId === crisisCardId(coming.id)) {
+        const i = action.payload.optionIndex;
+        if (!Number.isInteger(i) || !event.options[i]) return state;
+        return { ...state, activeEventId: null, crises: { ...state.crises, coming: { ...coming, choice: i } } };
+      }
       return applyEventEffects(state, event, action.payload.optionIndex);
+    }
+
+    case ActionTypes.ANSWER_CRISIS_EARLY: {
+      // The coming crisis's card opens during its warning; answered now (RESOLVE_EVENT keeps the choice
+      // until the strike), it does not open again when the crisis strikes.
+      const coming = crisisComing(state);
+      if (!coming || coming.answered || state.activeEventId || state.activeProceduralEvent) return state;
+      return { ...state, activeEventId: crisisCardId(coming.crisis.id), crises: { ...state.crises, coming: { ...state.crises.coming, answered: true } } };
     }
 
     // ---- Domestic tab (plan §5) — atomic, cost-validated player actions ----

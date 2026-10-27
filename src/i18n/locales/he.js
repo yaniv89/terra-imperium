@@ -413,6 +413,7 @@ export default {
   'wait.join': '{name} מציעים להצטרף אליכם',
   'wait.mapHint': 'מפה: {title}',
   'wait.event': 'אירוע: {title}',
+  'event.footer': 'בחרו אפשרות כדי להמשיך: התור מחכה לבחירה. המפה נשארת פעילה מאחור.',
   'wait.met': 'פגשתם את {title}',
   'wait.changeGov': 'מעבר ל{type}',
   'wait.log': 'יומן אירועים',

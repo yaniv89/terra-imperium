@@ -200,3 +200,11 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
 - API budget (the user's rule, 27 Oct): **$90 in total, never beyond.** Before any dispatch, add the job's
   `max_usd` cap to the spend so far in the dashboard's spend data; if the sum would pass $90, do not
   dispatch and tell the user. Record each run's real cost there when it finishes.
+
+## Lessons (mistakes not to repeat; add one line each time)
+- Never edit a file while `npm run test:quick` runs on it: the run reports a false failure. Rerun before calling it red.
+- A design call must respect the player's build phase: a 60 s AI march-out in economy battles skipped towers and training (battle-stall, 27 Oct). Check every timer against the battle clocks and the RTS identity, not only AI-vs-AI traces.
+- A choice stored for later (crisis answered early) must be re-checked when it is paid: if it can no longer be afforded, reopen the card, never drop it silently.
+- Sub sessions stall on a permission prompt for send_message: create them with `extra_allowed_tools: ["mcp__claude-code-remote__send_message"]`, and read a stuck lane's report from its transcript (list_events).
+- Playtest issues marked "open" in an old summary may be fixed already: check the code or a fresh run before starting a lane on them.
+- Dashboard datasets: upload the JSON as an asset first, then point `datasets/<id>` source.url at it with the last `if_version`; one JSON file per upload call.
