@@ -11,3 +11,7 @@ claude/integration, main gets the push once the quick suite and CI are green.
   campaign, newcomer phone campaign, battle-commander battles in 4 ages) to set a new baseline.
 - Lane: finish the crisis branch (log years, famine compare, checks, phone card check).
 - Lane: speed, turn time and map frame time with identical game results.
+- Merged: speed lane 1 (AI war declarations about 45% faster, sight about 25%, identical state hashes).
+- Sub sessions started 18:06 (each pushes its branch and writes plans/lanes/<name>-REPORT.md):
+  perf-loop-2 session_01S3hKeJAvNcwRMQhCHxbxdb; ai-gold-balance session_01S3hKeG4sgPUDEKd7cPAcEH;
+  battle-feedback session_01S3hKeFiy6zNSYf1PXRmoFT; phone-pass session_01S3hKeHH6QsPTedrmMPkuVP.
