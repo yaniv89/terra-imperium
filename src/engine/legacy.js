@@ -1,7 +1,7 @@
 // src/engine/legacy.js
 // The legacy score (differentiation plan KTD7, R10, R11): what ranks every major once, when the
 // one ending signal fires (ending.js). It adds, at each part's age points (src/data/legacy.js):
-//   each era goal met     nation.eraGoals[age].met (eraGoals.js scores an age when the nation leaves it, the last one at the ending)
+//   each era goal met     nation.eraGoals[age].met (eraGoals.js records a goal the turn it is met and scores an age when the nation leaves it, the last one at the ending)
 //   each era legacy       nation.eraGoals[age].legacy
 //   each ambition done    nation.ambitions.done[], times its own legacy weight (ambitions.js)
 // The same rules for the player and every AI major. Pure.

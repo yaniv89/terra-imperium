@@ -36,7 +36,7 @@ export const doctrineDescription = (id, english) => D(`doctrine.${id}.desc`, eng
 export const playstyleName = (id, english) => D(`playstyle.${id}`, english ?? id);
 export const goalUnit = (id, english) => D(`goalunit.${id}`, english);
 export const goalNext = (id, english) => D(`goalnext.${id}`, english);
-export const goalBonus = (id, english) => D(`goalbonus.${id}`, english);
+export const goalBonus = (id, english, n) => D(`goalbonus.${id}`, english, { n });
 
 export const cityStateTypeName = (id, english) => D(`cstype.${id}`, english ?? id);
 export const independentKindName = (id, english) => D(`indep.${id}`, english ?? id);

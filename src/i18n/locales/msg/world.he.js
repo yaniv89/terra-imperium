@@ -52,7 +52,13 @@ export default {
   'm.world.revolution': '{nation}: מהפכה מפילה את הסדר הישן.',
 
   'm.world.noLegacy': '{age} מסתיים עם {n} מטרות שהושגו: שום מורשת לא עוברת הלאה.',
-  'm.world.legacy': 'מורשת {age}: {bonuses} למשך {turns} תורות.',
+  'm.world.legacy': 'מורשת {age}: הושגו {n} מיעדיו. השליט שלך זוכה בתהילה.',
+  'm.world.eraGoalMet': 'יעד הושג: {goal}. {bonus} למשך {turns} תורות, צו ותהילה.',
+  'm.world.goalBonus.expand': '+{n}% כוח אדם',
+  'm.world.goalBonus.wealth': '+{n}% זהב',
+  'm.world.goalBonus.war': '+{n}% התאוששות מורל',
+  'm.world.goalBonus.culture': '+{n} יציבות',
+  'm.world.goalBonus.science': '-{n}% עלות מחקר',
 
   'm.world.eventCantAfford': 'אין לך די משאבים עבור "{option}" ({missing}).',
   'm.world.eventCouldNotPay': 'הכתר לא הצליח לשלם במלואו ({missing}). (-1 יציבות)',

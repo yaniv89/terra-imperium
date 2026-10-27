@@ -10,7 +10,7 @@
 import { TECH_TREE } from '../../data/techTree';
 import { AGES, AGE_ORDER } from '../../data/ages';
 import { BOOSTS, BOOST_SHARE } from '../../data/boosts';
-import { PLAYSTYLES, ERA_LEGACY_TURNS } from '../../data/eraGoals';
+import { ERA_LEGACY_TURNS } from '../../data/eraGoals';
 import { eraGoalProgress } from '../../engine/eraGoals';
 import { nationFacts, boostOf } from '../../engine/boosts';
 import { canStartTech } from '../../engine/research';
@@ -84,7 +84,7 @@ export const researchSheetModel = (state) => {
       met: era.met,
       needed: era.needed,
       legacyTurns: ERA_LEGACY_TURNS,
-      goals: era.goals.map((g) => ({ ...g, bonus: PLAYSTYLES[g.id]?.bonusLabel || '' }))
+      goals: era.goals
     }
   };
 };

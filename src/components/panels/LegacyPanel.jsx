@@ -17,7 +17,6 @@ import { AGES } from '../../data/ages';
 import { eraGoalProgress } from '../../engine/eraGoals';
 import { achievementProgress } from '../../data/achievementProgress';
 import { Meter } from '../ui/atlas';
-import { PLAYSTYLES } from '../../data/eraGoals';
 import { LEGACY_PARTS } from '../../data/legacy';
 import { legacyModel } from './legacyModel';
 import ChronicleSheet from '../chronicle/ChronicleSheet';
@@ -60,9 +59,10 @@ const LegacyPanel = () => {
         </div>
         <div className="mt-1.5 grid grid-cols-5 gap-1">
           {era.goals.map((g) => (
-            <div key={g.id} className={`rounded-md px-1 py-1 text-center border ${g.done ? 'border-emerald-500/60 bg-emerald-900/30 text-emerald-200' : 'border-fa-line bg-fa-raised/50 text-fa-text'}`} title={tNow('p1.leg.goalTip', { label: playstyleName(g.id, g.label), value: g.value, target: g.target, unit: goalUnit(g.id, g.unit), bonus: goalBonus(g.id, PLAYSTYLES[g.id].bonusLabel) })}>
+            <div key={g.id} className={`rounded-md px-1 py-1 text-center border ${g.done ? 'border-emerald-500/60 bg-emerald-900/30 text-emerald-200' : 'border-fa-line bg-fa-raised/50 text-fa-text'}`} title={tNow('p1.leg.goalTip', { label: playstyleName(g.id, g.label), value: g.value, target: g.target, unit: goalUnit(g.id, g.unit), bonus: goalBonus(g.id, g.bonus, g.n) })}>
               <div className="text-[10px] font-semibold">{playstyleName(g.id, g.label)}</div>
               <div className="text-[10px] font-mono">{Math.min(g.value, g.target)}/{g.target}</div>
+              <div className="text-[10px] leading-tight opacity-80">{goalBonus(g.id, g.bonus, g.n)}</div>
             </div>
           ))}
         </div>

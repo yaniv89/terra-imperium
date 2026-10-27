@@ -4,8 +4,9 @@ import { resolveTurn } from './resolveTurn';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { getNationCapital } from '../data/regions';
 import { TECH_TREE } from '../data/techTree';
+import { AGE_ORDER } from '../data/ages';
 import { addCities } from './testWorld';
-import { eraGoalProgress, playstyleValues, awardEraLegacy } from './eraGoals';
+import { eraGoalProgress, playstyleValues, awardEraLegacy, payEraGoals } from './eraGoals';
 import { ERA_LEGACY_TURNS, goalsForAge } from '../data/eraGoals';
 import { getModifier } from './modifiers/sheet';
 import { peoplesWorld } from './testWorld';
@@ -16,52 +17,67 @@ const FR_ID = PEOPLES_WORLD.playerNationId;
 
 const quiet = (s) => ({ ...s, firedEvents: Object.keys(HISTORICAL_EVENTS).reduce((a, k) => ({ ...a, [k]: true }), {}), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
 const S = quiet(peoplesWorld({ seed: 3, age: 'bronze' })); // these tests score the Bronze Age
+const withNation = (s, patch) => ({ ...s, nations: { ...s.nations, [FR_ID]: { ...s.nations[FR_ID], ...patch } } });
+// Enough cities for the Bronze Expand goal.
+const expandTarget = goalsForAge('bronze').find((g) => g.id === 'expand').target;
+const grown = () => addCities(S, FR_ID, expandTarget - 1, { near: getNationCapital(FR_ID) }).state;
 
 describe('era goals', () => {
-  it('counts a kept conquest for the War goal after the conquest flag is gone (H-10)', () => {
-    const { state: s2, cityIds: ids } = addCities(S, FR_ID, 2, { near: getNationCapital(FR_ID) });
-    const regions = { ...s2.regions };
-    ids.forEach((id) => { regions[id] = { ...regions[id], conquest: undefined, captureLog: [{ by: FR_ID, from: 'x', turn: s2.turnNumber }] }; });
-    expect(playstyleValues({ ...s2, regions }).war).toBe(2);
-    const old = { ...regions, [ids[0]]: { ...regions[ids[0]], captureLog: [{ by: FR_ID, from: 'x', turn: s2.turnNumber - 5000 }] } };
-    expect(playstyleValues({ ...s2, regions: old }).war).toBe(1);
+  it('every age has 3 to 5 goals, and each reward grows with the age', () => {
+    AGE_ORDER.forEach((age) => expect(goalsForAge(age).length).toBeGreaterThanOrEqual(3));
+    AGE_ORDER.forEach((age) => expect(goalsForAge(age).length).toBeLessThanOrEqual(5));
+    const n = (age) => goalsForAge(age).find((g) => g.id === 'expand').n;
+    expect(n(AGE_ORDER[0])).toBe(10);
+    expect(n(AGE_ORDER[1])).toBe(15);
+    expect(goalsForAge(AGE_ORDER[1]).find((g) => g.id === 'expand').mods).toEqual({ 'national.hrMult': 0.15 });
+    expect(goalsForAge(AGE_ORDER[0]).find((g) => g.id === 'science').mods['national.researchCost']).toBeLessThan(0);
   });
 
-  it('raids won count for the War goal in the Stone Age only', () => {
-    const won = { ...S, nations: { ...S.nations, [FR_ID]: { ...S.nations[FR_ID], battleStats: { won: 2, lost: 0, taken: 0, raidsWon: 2 } } } };
-    expect(playstyleValues(won, FR_ID, 'stone').war).toBe(2);
-    expect(playstyleValues(won, FR_ID, 'bronze').war).toBe(0);
+  it('counts battles won from the first turn of the age for the War goal', () => {
+    const begun = payEraGoals(S, S.nations[FR_ID], 'bronze', 5).nation;
+    expect(begun.eraGoals.bronze).toEqual({ met: [], wonFrom: 0 });
+    const won = withNation(S, { ...begun, battleStats: { won: 3, lost: 0, taken: 0 } });
+    expect(playstyleValues(won, FR_ID, 'bronze').war).toBe(3);
+    expect(playstyleValues(withNation(S, { battleStats: { won: 3 } }), FR_ID, 'bronze').war).toBe(0); // no record yet: counts from now
   });
 
-  it('reads the player\'s numbers and the age\'s targets', () => {
+  it('reads the player\'s numbers and the age\'s goals', () => {
     const v = playstyleValues(S);
     expect(v.expand).toBe(1);
     expect(v.war).toBe(0);
     const p = eraGoalProgress(S);
-    expect(p.goals.map((g) => g.id)).toEqual(['expand', 'wealth', 'war', 'culture', 'science']);
-    expect(p.goals.find((g) => g.id === 'expand').target).toBe(goalsForAge('bronze')[0].target);
+    expect(p.goals.map((g) => g.id)).toEqual(goalsForAge('bronze').map((g) => g.id));
+    expect(p.goals.every((g) => g.bonus && g.n > 0)).toBe(true);
     expect(p.met).toBe(0);
   });
 
-  it('awards a legacy for two goals met, once, and none otherwise', () => {
-    const { state: s4 } = addCities(S, FR_ID, 4, { near: getNationCapital(FR_ID) });
-    const techTree = { ...s4.techTree };
-    Object.keys(techTree).filter((id) => !techTree[id].researched).slice(0, 4).forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
-    const ready = { ...s4, techTree };
-    const p = eraGoalProgress(ready, 'bronze');
-    expect(p.met).toBeGreaterThanOrEqual(2);
-    const nation = ready.nations[FR_ID];
-    const r = awardEraLegacy(ready, nation, 'bronze', 10);
+  it('pays a goal once, the turn it is met: its reward, a decree and renown', () => {
+    const s = grown();
+    const r = payEraGoals(s, s.nations[FR_ID], 'bronze', 10);
+    expect(r.paid.map((g) => g.id)).toContain('expand');
+    expect(r.nation.eraGoals.bronze.met).toContain('expand');
+    expect(r.nation.modifiers.some((m) => m.sourceId === 'bronze.expand' && m.expiresTurn === 10 + ERA_LEGACY_TURNS)).toBe(true);
+    expect(r.nation.ruler.decreeLog.some((e) => e.deed === 'eraGoal')).toBe(true);
+    expect(getModifier(withNation(s, r.nation), FR_ID, 'national.hrMult').total).toBeGreaterThanOrEqual(0.15);
+    const again = payEraGoals(s, r.nation, 'bronze', 11);
+    expect(again.paid).toEqual([]);
+    expect(again.nation).toBe(r.nation);
+    // A city lost later keeps the goal met.
+    expect(eraGoalProgress(withNation(S, r.nation), 'bronze').goals.find((g) => g.id === 'expand').done).toBe(true);
+  });
+
+  it('scores the age: the era legacy for two goals met, once, and none otherwise', () => {
+    const s = grown();
+    const ready = withNation(s, { eraGoals: { bronze: { met: ['expand', 'wealth'], wonFrom: 0 } } });
+    const r = awardEraLegacy(ready, ready.nations[FR_ID], 'bronze', 10);
     expect(r.nation.eraGoals.bronze.legacy).toBe(true);
-    expect(r.nation.modifiers.some((m) => m.sourceType === 'eraGoal' && m.expiresTurn === 10 + ERA_LEGACY_TURNS)).toBe(true);
     expect(r.log.message).toMatch(/Legacy of the/);
     const again = awardEraLegacy(ready, r.nation, 'bronze', 11);
     expect(again.nation).toBe(r.nation);
+    expect(payEraGoals(ready, r.nation, 'bronze', 12).nation).toBe(r.nation); // a scored age pays nothing more
     const none = awardEraLegacy(S, S.nations[FR_ID], 'bronze', 10);
     expect(none.nation.eraGoals.bronze.legacy).toBe(false);
     expect(none.nation.modifiers || []).toEqual([]);
-    const withBonus = { ...ready, nations: { ...ready.nations, [FR_ID]: r.nation } };
-    expect(getModifier(withBonus, FR_ID, 'national.popGrowthBonus').total).toBeGreaterThanOrEqual(0.1);
   });
 
   // KTD7: a nation's era goals are scored when its OWN research age advances.
@@ -92,6 +108,6 @@ describe('era goals', () => {
     expect(s.nations[ai].tech.ageId).toBe('classical');
     expect(s.nations[ai].eraGoals.bronze).toBeDefined();
     expect(s.techAgeId).toBe('bronze');
-    expect(s.nations[FR_ID].eraGoals?.bronze).toBeUndefined();
+    expect(s.nations[FR_ID].eraGoals?.bronze?.legacy).toBeUndefined(); // begun, not scored
   }, 60000);
 });

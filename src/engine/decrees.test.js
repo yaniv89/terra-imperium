@@ -11,6 +11,7 @@ import { resolveTurn } from './resolveTurn';
 import { getNationCapital } from '../data/regions';
 import { addCities, neighbourWorld, rivalOf, peoplesWorld } from './testWorld';
 import { RULER_START } from '../data/rulers';
+import { PLAYSTYLES, goalsForAge } from '../data/eraGoals';
 
 const ruled = (decrees = 0, extra = {}) => ({ id: 'x', legitimacy: 50, ruler: { ...RULER_START, decrees, ...extra } });
 const quiet = (s) => ({ ...s, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
@@ -109,12 +110,12 @@ describe('deeds grant one decree each', () => {
   it('each era goal met, once per age', () => {
     const S = quiet(peoplesWorld({ seed: 3, age: 'bronze' }));
     const me = S.playerNationId;
-    const { state: s4 } = addCities(S, me, 4, { near: getNationCapital(me) });
+    const { state: s4 } = addCities(S, me, goalsForAge('bronze').find((g) => g.id === 'expand').target, { near: getNationCapital(me) });
     const techTree = { ...s4.techTree };
     Object.keys(techTree).filter((id) => !techTree[id].researched).slice(0, 4).forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
     const ready = { ...s4, techTree };
     const met = eraGoalProgress(ready, 'bronze').met;
-    expect(met).toBeGreaterThanOrEqual(2);
+    expect(met).toBeGreaterThanOrEqual(1);
     const r = awardEraLegacy(ready, ready.nations[me], 'bronze', 10);
     expect(decreesOf(r.nation)).toBe(Math.min(decreeCap(r.nation), decreesOf(ready.nations[me]) + met));
     expect(r.nation.ruler.decreeLog.filter((e) => e.deed === 'eraGoal').length).toBe(Math.min(met, decreeCap(r.nation)));
@@ -126,8 +127,8 @@ describe('deeds grant one decree each', () => {
     const me = S.playerNationId;
     const nation = S.nations[me];
     const wait = trickleTurns(S, me) - 1;
-    // no ambition offer this age, so the only decree is the trickle (ambitions.js would pay one too)
-    const start = { ...S, nations: { ...S.nations, [me]: { ...nation, ambitions: { ageId: S.techAgeId, offers: [], done: [] }, ruler: { ...nation.ruler, decrees: 0, decreeWait: wait } } } };
+    // no ambition offer and every era goal paid this age, so the only decree is the trickle (ambitions.js and eraGoals.js would pay too)
+    const start = { ...S, nations: { ...S.nations, [me]: { ...nation, ambitions: { ageId: S.techAgeId, offers: [], done: [] }, eraGoals: { [S.techAgeId]: { met: Object.keys(PLAYSTYLES) } }, ruler: { ...nation.ruler, decrees: 0, decreeWait: wait } } } };
     const next = resolveTurn(start);
     expect(decreesOf(next.nations[me])).toBe(1);
     expect(next.nations[me].ruler.decreeLog[0].deed).toBe('trickle');

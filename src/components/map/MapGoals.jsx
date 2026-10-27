@@ -9,7 +9,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Target, X } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { eraGoalProgress } from '../../engine/eraGoals';
-import { PLAYSTYLES, GOAL_NEXT_ACTION, ERA_LEGACY_TURNS } from '../../data/eraGoals';
+import { GOAL_NEXT_ACTION, ERA_LEGACY_TURNS } from '../../data/eraGoals';
 import { AGES } from '../../data/ages';
 import { MAP_HINT } from '../ui/uiEvents';
 import { openPanelTab } from '../panels/panelEvents';
@@ -66,7 +66,7 @@ const MapGoals = () => {
                 <span className={`fa-num ${g.done ? 'text-fa-good' : 'text-fa-muted'}`}>{Math.min(g.value, g.target)} / {g.target}</span>
               </div>
               <Meter value={g.value} max={g.target} color={g.done ? 'var(--fa-good)' : 'var(--fa-you)'} height={4} />
-              <div className="text-[11px] text-fa-muted leading-snug">{g.done ? t('goals.doneDot') : goalNext(g.id, GOAL_NEXT_ACTION[g.id])} {t('goals.legacy', { bonus: goalBonus(g.id, PLAYSTYLES[g.id].bonusLabel) })}</div>
+              <div className="text-[11px] text-fa-muted leading-snug">{g.done ? t('goals.doneDot') : goalNext(g.id, GOAL_NEXT_ACTION[g.id])} {t('goals.legacy', { bonus: goalBonus(g.id, g.bonus, g.n) })}</div>
             </div>
           ))}
         </div>
