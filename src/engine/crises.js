@@ -117,8 +117,10 @@ export const processCrises = (state) => {
     const coming = { id: due.crisis.id, turn: turn + speedTurns(WARN_TURNS, state.gameSpeed, waitAgeOf(state)), nations: due.hit, raiders: due.raiders };
     return { nations, wars, crises: { ...mem, last: { ...mem.last, [due.crisis.id]: turn }, lastAny: turn, coming }, pendingEventChains: state.pendingEventChains, logs: [] };
   }
-  if (!crisesOn(state) || turn < mem.coming.turn) return null;
   const { coming, ...rest } = mem;
+  // Crises switched off while one was coming: drop it, so it never strikes later unannounced.
+  if (!crisesOn(state)) return { nations, wars, crises: rest, pendingEventChains: state.pendingEventChains, logs: [] };
+  if (turn < coming.turn) return null;
   const crisis = CRISES.find((c) => c.id === coming.id);
   if (!crisis) return { nations, wars, crises: rest, pendingEventChains: state.pendingEventChains, logs: [] };
   const alive = (id) => nations[id] && !nations[id].isEliminated;
@@ -147,7 +149,7 @@ export const processCrises = (state) => {
   } else if (crisis.effect === 'war') {
     // The player is never made the aggressor (no forced loss of control): a hit player is the target.
     const [a, b] = hit[0] === state.playerNationId ? [hit[1], hit[0]] : hit;
-    const after = b ? declareWar({ ...state, nations, wars }, b, { aggressor: a }) : null;
+    const after = a && b ? declareWar({ ...state, nations, wars }, b, { aggressor: a }) : null;
     if (!after || after.wars === wars) return { nations, wars, crises: rest, pendingEventChains: state.pendingEventChains, logs: [] }; // no war to start: it passes
     ({ nations, wars } = after);
   }

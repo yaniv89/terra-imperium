@@ -108,10 +108,23 @@ describe('history crises (U31)', () => {
     expect(war?.aggressor).toBe(rival);
   });
 
-  it('explore mode holds an announced crisis back', () => {
+  it('explore mode or crises off drop an announced crisis: it never strikes', () => {
     const s = world('bronze');
     const crises = { coming: { id: 'bronze_collapse', turn: 50, nations: [s.playerNationId] } };
-    expect(processCrises({ ...s, turnNumber: 50, crises, settings: { explore: true } })).toBe(null);
-    expect(crisisComing({ ...s, crises, settings: { explore: true } })).toBe(null);
+    [{ explore: true }, { crises: 'off' }].forEach((settings) => {
+      const out = processCrises({ ...s, turnNumber: 50, crises, settings });
+      expect(out.crises.coming).toBeUndefined();
+      expect(out.crises.history).toBeUndefined();
+      expect(crisisComing({ ...s, crises, settings })).toBe(null);
+    });
+  });
+
+  it('a world war whose other side fell before it struck starts no war', () => {
+    const s = world('bronze');
+    const rival = majorIds(s)[1];
+    s.nations[rival] = { ...s.nations[rival], isEliminated: true };
+    const out = processCrises({ ...s, turnNumber: 50, crises: { coming: { id: 'world_war', turn: 50, nations: [s.playerNationId, rival] } } });
+    expect(out.wars).toBe(s.wars);
+    expect(out.crises.coming).toBeUndefined();
   });
 });
