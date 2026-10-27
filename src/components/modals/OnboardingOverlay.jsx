@@ -7,20 +7,22 @@
 // system to build on, and a wrong reference to a moved element would be a worse failure mode
 // (pointing at nothing) than a plain, centered explanation card.
 import React, { useState } from 'react';
-import { Globe2, Tent, ScrollText, Landmark, Hammer, Swords, Trophy, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Globe2, Tent, Hammer, Target, ChevronRight, ChevronLeft } from 'lucide-react';
+import { useGame } from '../../context/GameContext';
+import { isBand } from '../../engine/settlers';
 import { useT } from '../../i18n/useT';
 
-// Plan §M21: rewritten to reflect the Paradox Overhaul (M1-M19), which replaced almost everything
-// the old copy described — Action Points became three power pools, a free "research one age ahead"
-// rush was removed entirely (every tech now needs its own unlock), and "survival to 2300" stopped
-// being a free win. The five topic cards below match the plan's own onboarding list; the Counter
-// Triangle / "Diplomacy Has Teeth" military-counters card was dropped to make room for them — the
-// Military tab still shows each unit's counters directly, so a dedicated intro card for it is lower
-// priority than the mechanics that have no in-game explanation at all otherwise.
-const STEPS = [[Globe2, 1], [Tent, 7], [ScrollText, 2], [Landmark, 3], [Hammer, 4], [Swords, 5], [Trophy, 6]].map(([icon, id]) => ({ icon, id })); // text: onb.<id>.title / onb.<id>.body (7: the band start)
+// Lane turn-pacing (playtest: seven wordy cards, about systems since retired, and the newcomer
+// still did not know what to do): three short cards that point at what the player will tap, then
+// the game teaches by doing (End Turn names each decision, the Goal chip the next goal; Polytopia's
+// one-screen goals, Civ VI's advisor prompts). The band card shows only to a people that starts as a band.
+const ALL_STEPS = [[Globe2, 1], [Tent, 7], [Hammer, 'turn'], [Target, 'goal']].map(([icon, id]) => ({ icon, id })); // text: onb.<id>.title / onb.<id>.body
 
 const OnboardingOverlay = ({ onComplete }) => {
   const { t } = useT();
+  const { state } = useGame();
+  const band = Object.values(state?.units || {}).some((u) => u.ownerId === state.playerNationId && isBand(u));
+  const STEPS = band ? ALL_STEPS : ALL_STEPS.filter((s) => s.id !== 7);
   const [stepIndex, setStepIndex] = useState(0);
   const step = STEPS[stepIndex];
   const isLastStep = stepIndex === STEPS.length - 1;
