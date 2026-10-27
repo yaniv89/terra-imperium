@@ -33,7 +33,7 @@ import { supplyOf, supplyZone, SUPPLY_LOW } from '../../engine/supplyMeter';
 import { getTiles } from '../../data/geo/tiles';
 import { idleArmyTiles } from '../../engine/standingOrders';
 import { loyaltyForecast, loyaltyOf } from '../../engine/loyalty';
-import { t as tNow, formatNumber, dataText } from '../../i18n';
+import { t as tNow, formatNumber } from '../../i18n';
 import { crisisComing } from '../../engine/crises';
 import { nameNow } from '../../i18n/names';
 import { ATTRIBUTES, raiseBlock, virtueBlock } from '../../engine/rulers';
@@ -74,9 +74,8 @@ export const nextPrompts = (state) => {
   const coming = crisisComing(state);
   if (coming) {
     const { crisis } = coming;
-    const title = dataText(`evt.crisis_${crisis.id}.title`, crisis.card.title);
     const go = { collapse: { tab: 'domestic', section: 'court' }, war: { tab: 'diplomacy' }, plague: { tab: 'tech' } }[crisis.effect] || { regionId: state.nations?.[me]?.capitalRegionId };
-    out.push({ id: 'crisis', kind: 'crisis', label: tNow('crisis.chip', { title, count: Math.max(1, coming.turn - (state.turnNumber || 0)), fix: tNow(`crisis.fix.${crisis.effect}`) }), ...go });
+    out.push({ id: 'crisis', kind: 'crisis', label: tNow('crisis.chip', { count: Math.max(1, coming.turn - (state.turnNumber || 0)), fix: tNow(`crisis.fix.${crisis.effect}`) }), ...go });
   }
   if (researchNeedsChoice(state)) out.push({ id: 'research', kind: 'research', label: tNow('prompt.research'), tab: 'tech' });
   if (pendingLandmarkAge(state)) out.push({ id: 'landmark', kind: 'landmark', label: tNow('prompt.landmark'), tab: 'tech' });
