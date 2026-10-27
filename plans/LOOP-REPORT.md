@@ -46,3 +46,7 @@ claude/integration, main gets the push once the quick suite and CI are green.
   orders hidden on phone, at war 90 turns with no contact, production loop. Each sent to its lane.
 - Plan: when the lanes are merged, round 2 = full retest (campaign personas with the new era saves, battle
   commander) and new grades on the dashboard.
+- Sub session started 19:24: art-animation session_01S3hKeGseHCpBTmPVFxYE1T (user: criticise the art and
+  animations too): reviewer-style scores per area (map, units, animations, VFX, transitions) against AoE IV,
+  Total War, Northgard and Civ VI, then fixes in code and Blender, re-scored on the same shots.
+- Round 2 retest adds art and animation rows to the grades (from this lane's rubric plus the battle playtest).
