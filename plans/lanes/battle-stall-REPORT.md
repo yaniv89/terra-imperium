@@ -25,7 +25,90 @@ fights (seed 7 won `baseDestroyed` at 213 s, seed 8 fought to 969 defenders left
 trouble there was input: taps on the ground and the radial menu, and no "attack this building"
 from the Enemy button. That is UI work and is left open (see below).
 
-## Fix (one design call)
+## Fix, version 2 (the lead's rework of 27 Oct: keep the RTS build phase)
+
+Version 1 (commit 7bc78ebb) sent the field defender out after 60 s. The lead (on user feedback)
+found that too short in economy battles: a player who builds first was marched on before any tower
+or training. Version 2, in src/battle/sim/tacticalAI.js `fieldMarchDue`:
+
+1. **Grace, 180 s (`FIELD_GRACE`).** No field march-out before 3 minutes, the lead's figure. Checked
+   against the clocks: the economy clocks are 10 minutes (field) and 20 minutes (siege), so 180 s
+   leaves at least 7 minutes of battle. In the traces a player who builds for 3 minutes and then
+   attack-moves makes contact at 201 to 205 s, before the defender's march (241 to 303 s), so the
+   build phase belongs to the player. References (from general knowledge of the games, not checked
+   against official docs in this lane): Age of Empires II's Treaty mode forbids attacks for a set
+   time so both sides can build, and its AI attacks in waves once its army is big enough rather
+   than on first sight; in StarCraft an early rush costs the rusher its economy, so it is a choice,
+   not the default.
+2. **Early only when clearly stronger.** Before the march is due, the only early trigger is the
+   existing prince+ rule (go out at 1.5 times the strength it can see). It is unchanged. In the
+   traces it fires at 55 to 90 s only after the player's own attack has been beaten.
+3. **Fallback: a third of the clock, field quiet for 30 s (`FIELD_QUIET`).** When a third of
+   `limitTicks` has passed (200 s of a 10-minute clock, 400 s of a 20-minute one, never under the
+   grace) and nobody (workers aside) has been hit for 30 s, the defender goes out as one army
+   (`keepTogether`) to the nearest visible enemy that is not retreating, else to the enemy's nearest
+   base building. "Quiet for 30 s" rather than "no fight ever", so the remnant case (a fight, then a
+   beaten attacker's last squads idle) is covered too.
+4. **It keeps building and training through the wait.** economyAI.js `thinkEconomy` runs every think
+   as before; the march takes what was trained: 12 to 15 squads at the march against 7 at the start.
+
+Scope: battle type `field` only (unwalled towns are `field` too, but their AI attackers always come,
+so their parity rows did not move). Walled assaults, sallies, rivers, ambushes, landings, raids and
+sacks are unchanged. Q3 is untouched: with bases a side loses only when its base buildings are gone;
+the defender wins by going out and burning the camp.
+
+Other references (version 1): Total War's AI usually advances on even open ground and holds only
+high ground or walls, and a defender sitting out the timer reads as a bug to players
+([twcenter: Why does the AI always advance](https://www.twcenter.net/threads/why-does-the-ai-always-advance.555403/),
+[Shogun 2 discussion](https://steamcommunity.com/app/34330/discussions/0/2990917484148196162),
+[Rome II discussion](https://steamcommunity.com/app/214950/discussions/0/864978109782892886));
+AoE II AI scripts time their attacks (`enable-timer` / `timer-triggered`,
+[AoE forums: simple AI scripts](https://forums.ageofempires.com/t/creating-simple-ai-scripts-for-your-custom-campaigns/210881),
+[Three ways to get the AI to attack](https://forums.ageofempires.com/t/three-ways-to-get-the-ai-to-attack/205476/4)).
+These are community sources, not official documentation.
+
+SETUP_VERSION stays at 27 (bumped once on this branch, not yet on claude/integration; no other
+lane has taken 28).
+
+## Traces, version 2 (`.claude/skills/battle-lab/stallTrace.sim.js`, seeds 7 to 9, field, fort 0)
+
+`enemyMarch` is the first tick a defender soldier stands 30 tiles west of its keep. `BUILD=1` runs
+the player's economy with the AI's economy brain; `AT=180` gives the attack-move at 180 s.
+
+| Player | Age | Enemy march | First blood | Result |
+|---|---|---|---|---|
+| idle | bronze | 217, 212, 211 s (12 to 13 squads) | 232, 228, 245 s | defender campDestroyed 466, 367, 342 s |
+| builds, never attacks | bronze | 218, 212, 217 s (12 to 13) | 268, 265, 285 s | campDestroyed 404, 406, 387 s |
+| builds 3 min, then attack-move | bronze | 303, 242, 247 s (14 to 15) | 202, 205, 203 s (the player arrives first) | campDestroyed 399, 424, 493 s |
+| attack-move at once | bronze | 200, 55, 74 s (after the player's attack is beaten: the 1.5x rule) | 17, 16, 17 s | campDestroyed 333, 267, 266 s |
+| idle | kingdoms | 217, 212, 211 s | 232, 228, 245 s | campDestroyed 381, 345, 309 s |
+| builds, never attacks | kingdoms | 218, 212, 217 s | 268, 279, 285 s | campDestroyed 389, 428, 387 s |
+| builds 3 min, then attack-move | kingdoms | 303, 241, 294 s | 201, 204, 203 s | campDestroyed 405, 410, 427 s |
+| attack-move at once | kingdoms | 90, 55, 70 s (1.5x rule) | 17, 16, 17 s | campDestroyed 274, 309, 272 s |
+
+Before any fix every idle and building case ended `timeLimit` at 600 s with no blood, and every
+attack-move case ended `timeLimit` at 600 s with the player's last 2 squads left idle (version 1
+table below). The walled assault traces are unchanged by both versions.
+
+## Parity, version 2 (same command as below)
+
+23 of 24 IN, as on the base. Only the six field rows moved; town, assault and sack rows are
+byte-identical to the base.
+
+| Field matchup | Age | Base: tactical, ratio, wins, length | Version 2 |
+|---|---|---|---|
+| 3 v 3 | bronze | 1.221, 1.17x IN, 4/16, 233 s | 1.241, 1.19x IN, 4/16, 228 s |
+| 3 v 3 | kingdoms | 1.221, 1.17x IN, 4/16, 233 s | 1.241, 1.19x IN, 4/16, 228 s |
+| 5 v 2 | bronze | 0.464, 0.70x IN, 16/16, 236 s | 0.481, 0.73x IN, 16/16, 237 s |
+| 5 v 2 | kingdoms | 0.573, 0.86x IN, 16/16, 239 s | 0.586, 0.88x IN, 16/16, 240 s |
+| 5 with siege v 3 | bronze | 0.904, 1.59x IN, 16/16, 129 s | 0.898, 1.58x IN, 16/16, 129 s |
+| 5 with siege v 3 | kingdoms | 0.947, 1.66x IN, 16/16, 131 s | 0.966, 1.70x IN, 16/16, 136 s |
+
+The town bronze 5 v 2 row stays OUT at 0.47x, exactly as on the base (see the follow-up below).
+
+## Version 1 (superseded), kept for the record
+
+### Version 1 fix (one design call)
 
 In a **field** battle (`battleType` field, which also covers unwalled towns), once 60 s have passed
 (`FIELD_WAIT`) and no threat stands at home, the AI defender marches as one army (the existing
@@ -55,7 +138,7 @@ Reason and references:
 SETUP_VERSION 26 -> 27: commanded field battles with an AI defender now play differently from the
 same order log, so old checkpoints must not resume into them.
 
-## Traces (new battle-lab tool `.claude/skills/battle-lab/stallTrace.sim.js`: the sandbox's own battle, balanced armies, economy on, reinforcements, commanded rules)
+### Version 1 traces (new battle-lab tool `.claude/skills/battle-lab/stallTrace.sim.js`: the sandbox's own battle, balanced armies, economy on, reinforcements, commanded rules)
 
 `SEEDS=7,8,9 AGE=bronze FORT=0 ORDER=none|attackMove QUIET=1`
 
@@ -71,7 +154,7 @@ same order log, so old checkpoints must not resume into them.
 | Kingdoms walls (fort 2, medium city), idle, seeds 7, 8 | timeLimit 1200 s, no blood | unchanged (the walls are held, as the assault intends) |
 | Kingdoms walls, attack-move, seed 7 / 8 | attacker baseDestroyed 213 s / defender timeLimit | unchanged |
 
-## Parity (parityEco, N=16, TYPES=field,assault,town,sack, AGES=bronze:bronze,kingdoms:kingdoms, TERRAIN=mixed)
+### Version 1 parity (parityEco, N=16, TYPES=field,assault,town,sack, AGES=bronze:bronze,kingdoms:kingdoms, TERRAIN=mixed)
 
 Exchange is tactical / auto; the guardrail is [auto / 2, auto x 3.5]. 23 of 24 rows IN, before and after.
 Only field and town rows moved. Every assault and sack row is byte-identical.
@@ -99,10 +182,12 @@ does not back a retune here.
 
 ## Tests
 
-- New: src/battle/sim/stances.test.js "a field battle never runs to the clock with nobody fighting":
-  a Bronze field battle with the economy on, an idle player and an AI defender ends before the clock,
-  not by `timeLimit`, with men lost. It fails on the base commit and passes with the fix.
-- `npx vitest run src/battle`: 68 files, 873 passed, 1 skipped.
+- src/battle/sim/stances.test.js "a field battle never runs to the clock with nobody fighting":
+  (1) the AI defender stays home through the first 3 minutes (no soldier 30 tiles toward the
+  attacker) and trains more squads meanwhile: fails on version 1, passes on version 2;
+  (2) against an idle player the battle ends before the clock, not by `timeLimit`, after real hits:
+  fails on the base commit, passes on both versions.
+- `npx vitest run src/battle` (version 2): 68 files, 874 passed, 1 skipped.
 - src/engine/battleResume, defense and battleVerify tests plus src/components/battle: 26 files, 161 passed.
 - eslint on the changed files: clean.
 
