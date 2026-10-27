@@ -37,7 +37,8 @@ retired emergent world), AI-written event texts in he.eventsAi.js (narrative, st
   city, "Esc" allowed, onboarding buttons matched exactly, Linux Chromium path.
 
 ## Evidence
-- `npm run lint` clean; `npm run test:quick` 475 files, 4048 tests passed (after merging integration).
+- `npm run lint` clean. `npm run test:quick` after the final merge: 4073 passed, 1 failed (src/engine/sight.test.js, which passes alone (4/4) and this branch does not touch: a load flake).
+- Merge note: another lane added its own `isolateSigned` in src/i18n/messageText.js; this branch has one in src/i18n/core.js (used by `t()`, data text and engine messages). Both are idempotent and do not double-wrap; a later cleanup can keep one. Its test now expects "+11 זהב" instead of "+11g".
 - Real-browser crawl in Hebrew at 844x390 (`node scripts/ui/hebrew-audit.mjs --swgl --shots`):
   see the result section below; shots in plans/ui/hebrew-audit/.
 
