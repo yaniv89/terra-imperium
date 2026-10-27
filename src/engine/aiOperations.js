@@ -286,9 +286,9 @@ export const gatherStack = (next, nationId, plan, stack, at, from, committed, ke
   if (failed && failed.goal === goalKey && failed.until > (next.turnNumber || 0)) return false;
   const researched = getResearched(next, nationId);
   const path = findTilePath({ ...next, playerNationId: nationId }, at, staging.tile, nationId, { maxSteps: AI_MARCH_STEPS, researched });
-  if (!path.path) { stack.forEach((u) => { next.units[u.id] = { ...next.units[u.id], routeFailed: { goal: goalKey, until: (next.turnNumber || 0) + ROUTE_RETRY_TURNS } }; }); return false; }
+  if (!path.path) { stack.forEach((u) => { if (next.units[u.id]) next.units[u.id] = { ...next.units[u.id], routeFailed: { goal: goalKey, until: (next.turnNumber || 0) + ROUTE_RETRY_TURNS } }; }); return false; }
   const pace = stackPace(goers, researched);
-  goers.forEach((u) => { committed.add(u.id); next.units[u.id] = { ...next.units[u.id], route: path.path.slice(1), routeBank: 0, routePace: pace, routeHalt: null, routeFailed: undefined }; });
+  goers.forEach((u) => { if (!next.units[u.id]) return; committed.add(u.id); next.units[u.id] = { ...next.units[u.id], route: path.path.slice(1), routeBank: 0, routePace: pace, routeHalt: null, routeFailed: undefined }; });
   return true;
 };
 
@@ -709,9 +709,10 @@ export const processIndependentOps = (state, nationId, rng) => {
     const failed = stack[0].routeFailed;
     if (failed && failed.goal === failKey && failed.until > state.turnNumber) continue;
     const path = findTilePath({ ...next, playerNationId: nationId }, at, city.tile, nationId, { maxSteps: AI_MARCH_STEPS });
-    if (!path.path) { stack.forEach((u) => { next.units[u.id] = { ...next.units[u.id], routeFailed: { goal: failKey, until: state.turnNumber + ROUTE_RETRY_TURNS } }; }); continue; }
+    if (!path.path) { stack.forEach((u) => { if (next.units[u.id]) next.units[u.id] = { ...next.units[u.id], routeFailed: { goal: failKey, until: state.turnNumber + ROUTE_RETRY_TURNS } }; }); continue; }
     const pace = stackPace(stack, getResearched(state, nationId));
-    stack.forEach((u) => { next.units[u.id] = { ...next.units[u.id], route: path.path.slice(1), routeBank: 0, routePace: pace, routeHalt: null, routeFailed: undefined }; });
+    // A battle earlier in this loop can have killed part of the stack: never write a dead unit back.
+    stack.forEach((u) => { if (next.units[u.id]) next.units[u.id] = { ...next.units[u.id], route: path.path.slice(1), routeBank: 0, routePace: pace, routeHalt: null, routeFailed: undefined }; });
     marching = true;
   }
   if (marching) next = marchAiArmies(next, nationId);
