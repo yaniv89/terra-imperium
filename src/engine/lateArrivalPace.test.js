@@ -7,6 +7,7 @@ import { HISTORICAL_EVENTS } from '../data/events';
 import { arrivalYear } from './ageRefs';
 import { labelYear } from './displayYear';
 import { getTechsForAge } from '../data/techTree';
+import { suggestTechs } from './research';
 
 const TURNS = Number(process.env.ARRIVAL_TURNS || 75);
 
@@ -19,12 +20,14 @@ describe('late peoples keep their clock (follow-up 18)', () => {
 
   it('the arrival turns of seed 11 are the ones measured before the label changed', () => {
     let s = createInitialState({ playerNationId: 'akkad', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11 } });
-    s = { ...s, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { defaultMode: 'auto', autoDefend: true }, research: { ...s.research, auto: true } };
+    s = { ...s, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { defaultMode: 'auto', autoDefend: true }, research: { ...s.research, auto: false } };
     const arrived = [];
     for (let t = 0; t < TURNS; t++) {
       const before = s.scenario.lateArrivals || {};
       if (s.pendingPeaceOffer) s = { ...s, pendingPeaceOffer: null };
       if (s.pendingDefenses?.length) s = { ...s, pendingDefenses: [] };
+      // The picks of the measured run (suggestTechs, the advisor before tech-depth), so only the clock is tested.
+      if (!s.research.current && !s.research.queue?.length) { const pick = suggestTechs(s, s.playerNationId, 1)[0]; if (pick) s = { ...s, research: { ...s.research, current: pick } }; }
       s = resolveTurn(s);
       if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null };
       Object.keys(before).filter((id) => !(id in (s.scenario.lateArrivals || {}))).sort().forEach((id) => arrived.push(`${id}@${s.turnNumber}`));

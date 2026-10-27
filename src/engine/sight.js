@@ -80,7 +80,8 @@ const ringsOf = (tiles, tile, reach) => {
   const rings = [[tile]]; const seen = new Set([tile]);
   for (let d = 0; d < reach; d++) {
     const next = [];
-    for (const t of rings[d]) for (const n of tiles.neighbors[t] || []) if (!seen.has(n)) { seen.add(n); next.push(n); }
+    const ring = rings[d];
+    for (let i = 0; i < ring.length; i++) { const ns = tiles.neighbors[ring[i]] || []; for (let j = 0; j < ns.length; j++) { const n = ns[j]; if (!seen.has(n)) { seen.add(n); next.push(n); } } }
     rings.push(next);
   }
   m.set(tile, { reach, rings });
@@ -120,7 +121,9 @@ export const sightTest = (state, nationId = state.playerNationId, byOwner = null
   const sees = (tile) => {
     const rings = ringsOf(tiles, tile, reach);
     for (let d = 0; d <= reach && d < rings.length; d++) {
-      for (const t of rings[d]) {
+      const ring = rings[d];
+      for (let i = 0; i < ring.length; i++) { // index loops: no iterator step per tile
+        const t = ring[i];
         if (d <= landRings && land.has(t)) return true;
         if (unitReach.get(t) >= d) return true;
       }

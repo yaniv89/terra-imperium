@@ -10,18 +10,20 @@ import { endTurnWarnings } from './nextPromptModel';
 import { t as tNow } from '../../i18n';
 
 /**
- * { mode, label, badge, blocker, count }:
+ * { mode, label, badge, blocker, count, idleCities }:
  *   'hidden'   the game is over
  *   'moving'   the turn worker runs ("The world moves...")
  *   'blocker'  label = the first blocker's, badge '+N' for the others (null for one)
  *   'armed'    the soft confirmation is armed ("End anyway? N waiting")
  *   'ready'    "End Turn"
+ * idleCities: how many cities wait for production (the "Advisor builds" button beside it fills them
+ * all in one tap, productionAdvisor.js); 0 unless the mode is 'blocker'.
  */
 export const endTurnButton = (state, { turnPending = false, armed = false } = {}) => {
   if (state.gameStatus !== GameStatus.ACTIVE) return { mode: 'hidden', label: '', badge: null, blocker: null, count: 0 };
   if (turnPending) return { mode: 'moving', label: tNow('turn.moves'), badge: null, blocker: null, count: 0 };
   const blockers = turnBlockers(state);
-  if (blockers.length) return { mode: 'blocker', label: blockers[0].label, badge: blockers.length > 1 ? `+${blockers.length - 1}` : null, blocker: blockers[0], count: blockers.length };
+  if (blockers.length) return { mode: 'blocker', label: blockers[0].label, badge: blockers.length > 1 ? `+${blockers.length - 1}` : null, blocker: blockers[0], count: blockers.length, idleCities: blockers.filter((b) => b.kind === 'city').length };
   const warnings = endTurnWarnings(state);
   if (armed && warnings > 0) return { mode: 'armed', label: tNow('turn.endAnyway', { n: warnings }), badge: null, blocker: null, count: 0 };
   return { mode: 'ready', label: tNow('turn.end'), badge: null, blocker: null, count: 0 };

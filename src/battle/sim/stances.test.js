@@ -9,7 +9,7 @@ import { createWorld } from './world';
 import { step } from './step';
 import { thinkAI, AI_DIFFICULTY } from './tacticalAI';
 import { updateFog } from './fog';
-import { Q } from './constants';
+import { Q, secondsToTicks } from './constants';
 
 const mk = (p, cls) => cls.map((classId, i) => ({ id: `${p}${i}`, classId, strength: 1000, maxStrength: 1000, morale: 100, promotions: [], commanderId: null, domain: 'land' }));
 const world = (att, def, opts = {}) => createWorld(buildSetupFromArmies({
@@ -214,15 +214,28 @@ describe('the AI attacker keeps its army together itself (Q6)', () => {
 });
 
 describe('a field battle never runs to the clock with nobody fighting (playtest 40550100958)', () => {
-  it('the AI defender goes out to an idle attacker and the battle ends in a fight', () => {
-    const units = (p) => mk(p, ['infantry', 'infantry', 'cavalry', 'ranged', 'ranged', 'infantry']);
+  const units = (p) => mk(p, ['infantry', 'infantry', 'cavalry', 'ranged', 'ranged', 'infantry']);
+  const idleBattle = () => {
     const setup = buildSetupFromArmies({ regionId: 'stall-test', terrain: 'mixed', seed: 7, attackerUnits: units('a'), defenderUnits: units('d'), attackerAgeId: 'bronze', defenderAgeId: 'bronze', controllers: ['player', 'ai'], economy: true });
-    const w = createWorld(setup);
-    const men = () => w.squads.filter((q) => !q.worker).reduce((s, q) => s + q.strength, 0);
-    const before = men();
-    while (!w.ended) step(w, []);
+    return { setup, w: createWorld(setup) };
+  };
+  const soldiers = (w, side) => w.squads.filter((q) => q.side === side && q.alive && q.onField && !q.worker && !q.isGeneral && !q.reinforcement);
+  it('the AI defender stays home through the build phase (3 minutes) and trains meanwhile', () => {
+    const { w } = idleBattle();
+    const keep = w.structures[0];
+    const start = soldiers(w, 1).length;
+    while (!w.ended && w.tick < secondsToTicks(180)) {
+      step(w, []);
+      expect(soldiers(w, 1).filter((q) => q.x <= keep.x - 30 * Q)).toEqual([]);
+    }
+    expect(soldiers(w, 1).length).toBeGreaterThan(start);
+  });
+  it('then goes out to an idle attacker, and the battle ends in a fight before the clock', () => {
+    const { setup, w } = idleBattle();
+    let hit = false;
+    while (!w.ended) { step(w, []); hit ||= w.squads.some((q) => !q.worker && q.lastHitTick >= 0); }
     expect(w.ended.reason).not.toBe('timeLimit');
-    expect(w.ended.tick).toBeLessThan(setup.limitTicks || Infinity);
-    expect(men()).toBeLessThan(before);
+    expect(w.ended.tick).toBeLessThan(setup.limitTicks);
+    expect(hit).toBe(true);
   });
 });
