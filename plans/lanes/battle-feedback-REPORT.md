@@ -90,3 +90,16 @@ before (the 3D bars no longer draw under the flags).
 
 - The land battle stall (both armies idle) belongs to another lane.
 - A real-phone frame check (real GPU) is still worth doing: `?battleSandbox&bench=300&autostart&perf`.
+
+## Round 2 (lead's follow-ups after the battle-stall lane)
+
+Merged origin/claude/integration (SETUP_VERSION 27 from battle-stall) first; this lane does not bump it.
+
+| # | Weak (evidence) | Change | Reference | Evidence after |
+|---|---|---|---|---|
+| 9 | battle-stall report: after arming Attack, a second ground tap replaced the attack-move with a plain short move, so the army stopped near its camp and nobody fought (playtest 40550100958 steps 9 and 10, 39 and 40, 44 and 45). | `groundOrderType` (src/battle/input/selection.js): while any selected squad is still more than 2 tiles from its attack-move point, a follow-up ground tap stays an attack-move. Once they land, a tap is a plain move again, so pulling back still works. Armed Attack and long press are unchanged. | Lead's ruling ("an armed attack-move stays an attack-move until it lands"). | New test in selection.test.js. |
+| 10 | Playtest 40550092795 step 183: a 400-militia city against 40,000 was offered as Command with no odds and no warning, and lost in seconds. Cause: the card treated a city with no regiment as `undefended`, which hid the odds row and skipped the I011 hopeless check, even when its militia fights a Command battle. | defenseSheetModel.js: a militia-only city under HOPELESS_HOLD (15%) is hopeless too: the warning shows with Auto's chance, and the card pre-selects Withdraw (somewhere to fall back to) or else Auto. A mode set in Settings still wins (I011's rule). DefenseSheet.jsx shows the odds row whenever militia fight. A hopeless defence with nowhere to go now suggests Auto, not Command. | I011 (the existing hopeless rule); Total War's pre-battle balance of power. | New case in defenseSheetModel.test.js (2% hold: hopeless, warning, Withdraw or Auto). |
+| 11 | "Skipping hints takes two taps" (steps 180, 181). | Not changed. The first tap (x 276) fell outside the coach panel (256 px wide from the left edge) and the second hit its buttons; Skip already closes every step in one tap and is 44 px. | The lead's rule: no change without evidence. | Diary coordinates against BattleHud.jsx's coach layout. |
+| 12 | "A banner covers the Begin button" (step 177). | Not changed: there is no shot of step 177, and I could not stage that card in a browser in reasonable time (the old card-shot script fails on the current world). Left open. | | |
+
+Tests: src/components/battle, src/battle/input and battleQueue: 29 files, 190 passed. Lint clean.
