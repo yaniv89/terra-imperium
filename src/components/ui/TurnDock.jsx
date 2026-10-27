@@ -7,6 +7,9 @@
 //   Ready           "End Turn", a tap ends the turn. Units that can still move never block; with
 //                   the "warn me" setting on, the first tap shows them and reads "End anyway? N
 //                   waiting", the second ends the turn (it disarms by itself)
+//   Advisor builds  beside a "Choose production" blocker: one tap queues the advisor's pick in every
+//                   city with nothing to build (ADVISOR_PRODUCTION, productionAdvisor.js; playtest:
+//                   about five taps a city otherwise)
 //   The world moves while the turn worker runs, a progress strip instead of the button
 // Enter presses the button (the first blocker, or the end of the turn) when nothing is being typed.
 // Sits left of the tab rail (--rail-w, never the dock: it stays in the same place when a panel
@@ -15,6 +18,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Hammer, FlaskConical, Scroll, Shield, Feather, Bell, Swords, HeartHandshake, Coins } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
+import { ActionTypes } from '../../data/types';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { softHints, WARN_ARM_MS } from './nextPromptModel';
 import { endTurnButton, endTurnPress } from './endTurnModel';
@@ -31,7 +35,7 @@ export const STILL_WORKING_MS = 8000;
 const KIND_ICON = { city: Hammer, research: FlaskConical, demand: Scroll, tribute: Coins, join: HeartHandshake, peace: Feather, defense: Shield, event: Bell, battle: Swords };
 
 const TurnDock = () => {
-  const { state, advanceTurn, turnPending } = useGame();
+  const { state, advanceTurn, turnPending, dispatch } = useGame();
   const { t, lang } = useT();
   const isMobile = useIsMobile();
   const [armed, setArmed] = useState(false);
@@ -95,6 +99,13 @@ const TurnDock = () => {
       <div className="flex items-stretch gap-2 pointer-events-auto">
         {/* "Idle N": the next army or settler that waits, one tap each (IdleChip.jsx). */}
         {btn.mode !== 'moving' && <IdleChip />}
+        {blocking && btn.idleCities > 0 && (
+          <button type="button" onClick={() => { interactions.dismissOverlays(); dispatch({ type: ActionTypes.ADVISOR_PRODUCTION }); }}
+            className="fa-btn fa-btn-secondary !min-h-[50px] pl:!min-h-[44px] shadow-xl gap-1.5 !px-3 text-[13px]" data-testid="advisor-build" title={t('turn.advisorTip')}>
+            <Hammer className="w-4 h-4 shrink-0" aria-hidden="true" />
+            <span className="whitespace-nowrap">{btn.idleCities > 1 ? t('turn.advisorBuildMany', { n: btn.idleCities }) : t('turn.advisorBuild')}</span>
+          </button>
+        )}
         {btn.mode === 'moving' ? (
           <div className="fa-panel h-[50px] pl:h-11 min-w-[11rem] px-4 flex flex-col justify-center shadow-xl" role="status" aria-live="polite" data-testid="world-moves">
             <span className="text-[13px] font-semibold">{slow ? t('turn.stillWorking') : t('turn.moves')}</span>

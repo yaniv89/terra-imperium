@@ -66,6 +66,9 @@ export const eraGoalProgress = (state, ageId = ageOf(state, state.playerNationId
   return { ageId, goals, met: goals.filter((g) => g.done).length, needed: ERA_GOALS_FOR_LEGACY };
 };
 
+/** The unmet goal closest to its target (the map's goal chip names it: "Goal: 2/4 cities"), or null when all are met. */
+export const nextGoal = (progress) => progress.goals.filter((g) => !g.done).reduce((best, g) => (!best || g.value / g.target > best.value / best.target ? g : best), null);
+
 const ageThing = (ageId) => thing('age', ageId, AGES[ageId]?.name || ageId);
 
 /**

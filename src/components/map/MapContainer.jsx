@@ -54,7 +54,7 @@ import LensStrip from './LensStrip';
 import { LENSES } from './lenses';
 import SettleBar from './SettleBar';
 import { settleModeFor, settleModeOver, settleSites, settleUnit, nextSite, settleBarModel, idleSettlerOn, firstIdleSettler } from './settleMode';
-import { SELECT_ARMY, SELECT_TILE, SELECT_NATION, FOCUS_REGION, MANAGE_CITY, FOCUS_PLACE } from './marchEvents';
+import { SELECT_ARMY, SELECT_TILE, SELECT_NATION, FOCUS_REGION, MANAGE_CITY, FOCUS_PLACE, pointAtTile } from './marchEvents';
 import { SET_MAP_LENS } from '../ui/uiEvents';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useGame } from '../../context/GameContext';
@@ -135,7 +135,14 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
     window.addEventListener(SET_MAP_LENS, onLens);
     return () => { window.removeEventListener('keydown', onKey); window.removeEventListener(SET_MAP_LENS, onLens); };
   }, []);
-  const flyToPlaces = (places) => flyTo(cameraTarget(stateRef.current, places, { selectedArmyTile: selectedArmyRef.current }));
+  // The place itself is outlined (pointAtTile), so "Show on map" always lands on something to see:
+  // a remembered capital in the Stone Age is a home tile with no town drawn on it (playtest run
+  // 40550097406 step 72: "jumped to a sea view with no visible city or marker").
+  const flyToPlaces = (places) => {
+    const t = cameraTarget(stateRef.current, places, { selectedArmyTile: selectedArmyRef.current });
+    flyTo(t);
+    if (t?.from === 'place' && t.tile != null) pointAtTile(t.tile);
+  };
   // After a battle the player fought (Command, Auto, an attack answered), the map centres on it:
   // its tile, the city fought for, else the selected army, else the capital.
   const reports = state.battleReports;
@@ -206,7 +213,9 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const settleUnitNow = settleUnit(state, settle);
   const settleView = useMemo(() => (settleUnitNow ? { tile: settleUnitNow.tile, sites: sites.map((s) => ({ tile: s.tile, poor: s.warnings.length > 0 })) } : null), [settleUnitNow, sites]);
   const goNextSite = () => { const s = nextSite(sites, selectedTile); if (!s) return; setSelectedTile(s.tile); setSelectedArmy(null); setManageOpen(false); selectRegion(null); flyTo(latLngOfTile(s.tile)); };
-  const shownLens = settleView ? 'settle' : lens;
+  // While a land march's target is picked, the political map shows the supply lens (where your
+  // supply lines reach: EU4's supply map mode while moving armies; playtest issue 6).
+  const shownLens = settleView ? 'settle' : marching && !marchCtx.march.naval && lens === 'political' ? 'supply' : lens;
   const stacked = stacking && !!selectedRegion && (selectedTile != null || selectedArmy != null);
   const [storedMode, setMode] = useState(readStoredMode);
   // The globe is hidden behind a setting for one release (decision 28): off, the flat map is the map.

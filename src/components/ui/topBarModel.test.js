@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialState } from '../../engine/gameReducer';
 import { declareWar } from '../../engine/diplomacy';
-import { topBarModel, yearLabel, scienceLabel } from './topBarModel';
+import { topBarModel, yearLabel, scienceLabel, goldIncomeRows, GOLD_CITY_ROWS } from './topBarModel';
+import { calcIncome } from '../../utils/helpers';
+import { addCities } from '../../engine/testWorld';
 import { grantDecree, spendDecree } from '../../engine/decrees';
 
 const base = createInitialState({ playerNationId: 'akkad', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11 } });
@@ -15,7 +17,7 @@ describe('the world top bar (U1, plans/UI-DESIGN.md section 2)', () => {
     expect(m.nation.name).toBe('Akkad');
     expect(m.nation.title).toBe(base.nations[me].name);
     expect(m.gold.value).toBe(Math.round(base.resources.gold));
-    expect(m.gold.reasons[0]).toMatchObject({ id: 'income' });
+    expect(m.gold.reasons.reduce((s, r) => s + r.value, 0)).toBe(m.gold.perTurn); // the rows add up to the change
     expect(m.food).toMatchObject({ value: 12, perTurn: 3 });
     expect(m.food.reasons.find((r) => r.id === cap)).toMatchObject({ value: 3 });
     expect(m.culture.perTurn).toBe(2);
@@ -23,6 +25,20 @@ describe('the world top bar (U1, plans/UI-DESIGN.md section 2)', () => {
     expect(m.year).toBe('c. 5000 BCE'); // a new game starts in the Stone Age
     expect(m.turn).toBe(base.turnNumber);
     expect(m.warLabel).toBeNull();
+  });
+
+  it('names every source of the gold income, and the rows add up to it (playtest issue 13)', () => {
+    let s = createInitialState({ playerNationId: 'akkad', rngSeed: 11 }); // a city start
+    s = addCities(s, s.playerNationId, GOLD_CITY_ROWS + 2).state;
+    const gold = calcIncome(s).gold;
+    const rows = goldIncomeRows(s, gold);
+    expect(rows.reduce((t, r) => t + r.value, 0)).toBe(Math.round(gold));
+    expect(rows.filter((r) => r.id.startsWith('city:')).length).toBeGreaterThan(0);
+    expect(rows.filter((r) => r.id.startsWith('city:')).length).toBeLessThanOrEqual(GOLD_CITY_ROWS);
+    rows.forEach((r) => { expect(r.label).toBeTruthy(); expect(r.label).not.toMatch(/\{|undefined|NaN/); });
+    expect(calcIncome(s, { goldParts: [] })).toEqual(calcIncome(s)); // the parts never change the income
+    const m = topBarModel(s);
+    expect(m.gold.reasons.reduce((t, r) => t + r.value, 0)).toBe(m.gold.perTurn);
   });
 
   it('shows the war pill only at war, with the enemy\'s short name', () => {

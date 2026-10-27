@@ -32,3 +32,11 @@ describe('summarizeLogs', () => {
     expect(recurringRuleOf('Kish grew')).toBeNull();
   });
 });
+
+describe('the per-turn income line folds (playtest issue 13)', () => {
+  it('folds the new and the old income lines into one with a count', () => {
+    const out = summarizeLogs([{ message: '-800: +5g', year: -800 }, { message: 'Income: +5g (each source: tap Gold on the top bar)', year: -790 }, { message: 'Income: +6g (each source: tap Gold on the top bar)', year: -780 }]);
+    expect(out).toHaveLength(1);
+    expect(out[0].count).toBe(3);
+  });
+});

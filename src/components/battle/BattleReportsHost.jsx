@@ -24,13 +24,14 @@ const BattleReportsHost = ({ onShowRegion }) => {
     const top = reports[0]?.id ?? null;
     if (top === seenRef.current) return;
     const seenAt = reports.findIndex((r) => r.id === seenRef.current);
-    const news = seenAt === -1 ? reports : reports.slice(0, seenAt);
+    // Only this turn's battles: a save loaded while the game is open (a cloud slot, an import) brings its whole history.
+    const news = (seenAt === -1 ? reports : reports.slice(0, seenAt)).filter((r) => r.turn == null || r.turn >= state.turnNumber - 1);
     const fresh = news.filter((r) => (!r.commanded || r.switchedAtSec != null) && timelineFor(r).length > 0);
     seenRef.current = top;
     if (fresh.length && !state.battleSettings?.instantBattles && !state.pendingBattle) setReplay([...fresh].reverse());
     // DEF-01: a Command the screen had to settle on Auto is never silent, even with no rounds to replay.
     else if (!state.pendingBattle) { const told = news.find((r) => r.autoBecause); if (told) setOpenId(told.id); }
-  }, [reports, state.battleSettings?.instantBattles, state.pendingBattle]);
+  }, [reports, state.turnNumber, state.battleSettings?.instantBattles, state.pendingBattle]);
 
   useEffect(() => {
     const onOpen = (e) => setOpenId(e.detail);
