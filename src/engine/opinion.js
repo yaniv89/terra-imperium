@@ -10,6 +10,7 @@
 //   claim          B holds a claim on A: -10
 //   trade          +5 per trade agreement (one today), alliance +25, defensive pact +15,
 //                  royal marriage +15, the same lean on an identity axis +5 each
+//   gifts          +10 a gift (GIFT_BRIBE), at most +20, fading 1 a turn (giftWarmth)
 //   aggressive expansion  -1 per AE point B has in A's eyes above 20
 //   rival          -30; a broken truce -20 while its floor stands; vassalage -10
 //   diplomacy      B's national.opinion modifier (reforms, techs, wonders, ruler, advisor)
@@ -33,7 +34,7 @@ import { kinThemeOf } from '../data/peoples';
 import { ageOf } from './nationState';
 import { getModifier } from './modifiers/sheet';
 import { FIRST_AGE_ID } from '../data/ages';
-import { GAVE_US_MAP, SWAPPED_MAPS, SHARED_MAP_FADE_TURNS, SANCTIONED_US } from '../data/opinion';
+import { GAVE_US_MAP, SWAPPED_MAPS, SHARED_MAP_FADE_TURNS, SANCTIONED_US, GIFT_OPINION, GIFT_OPINION_MAX } from '../data/opinion';
 import { isSanctionedBy } from '../data/worldCongress';
 
 // Phase W3: what an independent `A` adds to its view of major `b` (independents 4.5 and 5): the
@@ -215,7 +216,20 @@ export const opinionReasons = (state, a, b = state.playerNationId) => {
     const left = (map.gift ? GAVE_US_MAP : SWAPPED_MAPS) - Math.floor(((state.turnNumber || 0) - map.turn) / SHARED_MAP_FADE_TURNS);
     if (left > 0) out.push({ id: 'sharedMaps', label: map.gift ? 'Gave us their map' : 'Swapped maps with us', value: left });
   }
+  const gift = giftWarmth(state, a, b);
+  if (gift > 0) out.push({ id: 'gifts', label: 'Your gifts', value: gift });
   return out.map((r) => ({ ...r, value: Math.round(r.value * 10) / 10 }));
+};
+
+/** What the gifts of `b` still add to `a`'s opinion now (A.giftsFrom[b] = { value, turn }, fading 1 a turn). */
+export const giftWarmth = (state, a, b) => {
+  const g = state.nations?.[a]?.giftsFrom?.[b];
+  return g ? Math.max(0, g.value - ((state.turnNumber || 0) - g.turn)) : 0;
+};
+/** The record a new gift from `b` leaves on `a`: GIFT_OPINION more, capped at GIFT_OPINION_MAX. */
+export const withGift = (state, a, b) => {
+  const A = state.nations[a];
+  return { ...A, giftsFrom: { ...(A.giftsFrom || {}), [b]: { value: Math.min(GIFT_OPINION_MAX, giftWarmth(state, a, b) + GIFT_OPINION), turn: state.turnNumber || 0 } } };
 };
 
 const cache = new WeakMap(); // state.nations -> Map(key -> opinion)
