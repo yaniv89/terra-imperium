@@ -11,7 +11,7 @@ export default {
   'm.turn.governorMoved': 'המושל {name} משרת עכשיו מ{city}: הערים שלכם קובצו מחדש.',
   'm.turn.governorMerged': 'המושל {name} עזב את תפקידו: הקבוצה של {city} אוחדה עם קבוצה שכבר יש לה מושל.',
   'm.turn.governorLeft': 'המושל {name} עזב את תפקידו: {city} כבר לא בידיכם.',
-  'm.turn.income': '{year}: +{gold:money}',
+  'm.turn.income': 'הכנסות: +{gold:money} (כל מקור: הקישו על הזהב בסרגל העליון)',
   'm.turn.hungryOne': 'נגמרה האספקה: יחידה {n} שלך במערכה רעבה (-{morale} מורל, ללא תגבורת). בנו תעשייה, אגרו מתכת או החזירו אותה הביתה.',
   'm.turn.hungryMany': 'נגמרה האספקה: {n} יחידות שלך במערכה רעבות (-{morale} מורל, ללא תגבורת). בנו תעשייה, אגרו מתכת או החזירו אותן הביתה.',
   'm.turn.uprisingWon': 'המרד ב{city} הצליח: {nation} מחזירה אותה לידיה מ{from}.',
@@ -49,7 +49,8 @@ export default {
   'm.turn.dominance': '{nation} שולטת בעולם במורשת. אם איש לא יצמצם את הפער בתוך {n} תורות, המשחק ייגמר מוקדם ו{nation} במקום הראשון.',
   'm.turn.dominanceYou': 'המורשת שלך שולטת בעולם. החזק ביתרון {n} תורות והמשחק ייגמר מוקדם עם אומתך במקום הראשון.',
   'm.turn.scoreVictory': 'ניצחון: אומתך מובילה את העולם במורשת!',
-  'm.turn.gameComplete': 'המשחק הסתיים: אומתך מדורגת במקום {rank} בעולם.',
+  'm.turn.gameComplete': 'המשחק הסתיים: אומתך מדורגת במקום {rank} בעולם.'
+,
 
   'report.group.battles': 'קרבות',
   'report.group.raids': 'פשיטות',

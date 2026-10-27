@@ -213,7 +213,9 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const settleUnitNow = settleUnit(state, settle);
   const settleView = useMemo(() => (settleUnitNow ? { tile: settleUnitNow.tile, sites: sites.map((s) => ({ tile: s.tile, poor: s.warnings.length > 0 })) } : null), [settleUnitNow, sites]);
   const goNextSite = () => { const s = nextSite(sites, selectedTile); if (!s) return; setSelectedTile(s.tile); setSelectedArmy(null); setManageOpen(false); selectRegion(null); flyTo(latLngOfTile(s.tile)); };
-  const shownLens = settleView ? 'settle' : lens;
+  // While a land march's target is picked, the political map shows the supply lens (where your
+  // supply lines reach: EU4's supply map mode while moving armies; playtest issue 6).
+  const shownLens = settleView ? 'settle' : marching && !marchCtx.march.naval && lens === 'political' ? 'supply' : lens;
   const stacked = stacking && !!selectedRegion && (selectedTile != null || selectedArmy != null);
   const [storedMode, setMode] = useState(readStoredMode);
   // The globe is hidden behind a setting for one release (decision 28): off, the flat map is the map.

@@ -126,3 +126,22 @@ describe('a readable supply (plans/playtest-1.md P2.2)', () => {
     expect(SUPPLY_LOW).toBeLessThan(SUPPLY_MAX);
   });
 });
+
+describe('the meter over a whole march (playtest issue 6)', () => {
+  const homeTile = S.regions[IN].tile;
+  const wildA = freeNear(homeTile);
+  const wildB = tiles.neighbors[wildA].find((t) => tiles.land[t] && !S.world.tileOwner[t] && t !== homeTile) ?? wildA;
+  it('walks the steps End Turn by End Turn and reads the target last', () => {
+    const r = supplyMeter.supplyAlongMarch(S, [unit('a', IN, { supply: 35 })], [wildA, wildB], [1, 2]);
+    expect(r).toEqual({ arrive: 35 - 2 * SUPPLY_WILD_LOSS, change: -SUPPLY_WILD_LOSS, turns: 1, starvesAt: null });
+  });
+  it('says when the meter empties before the stack arrives', () => {
+    const r = supplyMeter.supplyAlongMarch(S, [unit('a', IN, { supply: 5 }), unit('b', IN, { supply: 100 })], [wildA, wildB, wildA], [1, 2, 3]);
+    expect(r.starvesAt).toBe(1);
+  });
+  it('is null for a march that never leaves supply, and for scouts', () => {
+    expect(supplyMeter.supplyAlongMarch(S, [unit('a', IN)], [homeTile], [0])).toBeNull();
+    expect(supplyMeter.supplyAlongMarch(S, [unit('a', IN, { explorer: true, classId: 'explorer' })], [wildA], [1])).toBeNull();
+    expect(supplyMeter.supplyAlongMarch(S, [unit('a', IN)], [], [])).toBeNull();
+  });
+});
