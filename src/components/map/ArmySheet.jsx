@@ -71,6 +71,14 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
           {model.cargo.map((c) => <button key={c.id} type="button" onClick={() => dispatch({ type: ActionTypes.DISEMBARK_UNIT, payload: { landUnitId: c.id } })} data-testid="unload-ship" className="w-full min-h-[40px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold">{tr('mx.army.unload', { name: c.name })}</button>)}
         </div>
       )}
+      {model.supplyState && model.supplyState.kind !== 'ok' && (
+        <div data-testid="army-supply-state" data-kind={model.supplyState.kind} className={`mb-2 rounded-lg px-2 py-1 text-[11px] font-semibold border ${model.supplyState.kind === 'starving' ? 'bg-red-900/50 border-red-500/60 text-red-100' : 'bg-amber-900/40 border-amber-500/50 text-amber-100'}`}>{model.supplyState.label}</div>
+      )}
+      {model.resupply && (
+        <button type="button" onClick={() => dispatch({ type: ActionTypes.SET_ROUTE, payload: { fromRegionId: model.regionId, ...(typeof model.resupply.target === 'number' ? { toTile: model.resupply.target } : { toRegionId: model.resupply.target }), unitIds: model.unitIds } })} data-testid="army-resupply" title={tr('mx.sup.backTitle')} className="w-full mb-2 min-h-[44px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5 px-2">
+          <Flag className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{tr('mx.sup.back', { name: model.resupply.name, count: model.resupply.turns })}</span>
+        </button>
+      )}
       <div className="text-[11px] text-fa-text mb-2" data-testid="army-supply">{model.zoneText}{model.airCover ? tr('mx.army.air', { n: model.airCover, range: model.airRange }) : ''}</div>
       {model.fortified && <div className="text-[11px] text-emerald-200 mb-2" data-testid="army-fortified">{tr('mx.army.fortified')}</div>}
       {model.mergeFrom?.length > 0 && (
@@ -105,7 +113,7 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
                 <div className="min-w-0 flex-1">
                   <div className="text-fa-text truncate">{u.name}{u.general ? ` · ${u.general}` : ''}{u.promotions ? tr('mx.army.promotions', { count: u.promotions }) : ''}</div>
                   {u.tag && <div className="text-fa-brass truncate" data-testid="unit-tag">{u.tag}</div>}
-                  <div className="text-fa-muted">{tr(u.robot ? 'mx.army.statsRobot' : 'mx.army.stats', { strength: u.strength, max: u.maxStrength, morale: u.morale, supply: model.naval ? tr('mx.army.aboard', { n: u.cargo }) : tr('mx.army.supply', { n: u.supply, max: u.supplyMax }), moves: u.moves, pace: u.movePoints })}</div>
+                  <div className="text-fa-muted">{tr(u.robot ? 'mx.army.statsRobot' : 'mx.army.stats', { strength: menText(u.strength), max: menText(u.maxStrength), morale: u.morale, supply: model.naval ? tr('mx.army.aboard', { n: u.cargo }) : tr('mx.army.supply', { n: u.supply, max: u.supplyMax }), moves: u.moves, pace: u.movePoints })}</div>
                   <div className="text-fa-muted capitalize">{u.rank}{u.nextRankAt ? tr('mx.army.xp', { xp: u.xp, next: u.nextRankAt }) : ''}{u.general ? tr('mx.army.commands', { general: u.general }) : ''}</div>
                   {u.general
                     ? <button type="button" onClick={() => dispatch({ type: ActionTypes.APPOINT_GENERAL, payload: { generalId: u.generalId, unitId: null } })} className="text-fa-muted underline min-h-[32px]">{tr('mx.army.recall')}</button>

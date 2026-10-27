@@ -190,7 +190,7 @@ export const LOG_RULES = [
 ];
 // A refusal in a log line: the action's own sound turns into 'ui-error'.
 const REFUSAL = /\b(refus|declin|reject|rebuff|not interested|turns? (you )?down|can't|cannot|can only|not enough|isn't possible|no longer possible)/i;
-const INCOME_LINE = /^-?\d+: \+/; // the per-turn income line (resolveTurn.js) is not news
+const INCOME_LINE = /^(Income: \+|-?\d+: \+)/; // the per-turn income line (resolveTurn.js) is not news
 
 export const logSound = (message) => {
   if (!message || INCOME_LINE.test(message)) return null;
