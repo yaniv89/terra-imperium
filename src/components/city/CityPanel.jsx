@@ -22,6 +22,7 @@ import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { getTiles } from '../../data/geo/tiles';
 import { getResearched, ageOf } from '../../engine/nationState';
+import { stonePhaseOf } from '../../engine/stonePhase';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { getUnlockedClasses } from '../../data/unitClasses';
 import { IMPROVEMENTS, tileFacts, tileYields } from '../../data/tileYields';
@@ -200,7 +201,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   // yields as a city in about N turns (settlers.js, the same progress a turn as the engine's).
   const outpostLeft = outpostTurnsLeft(state, city, ageId);
   const growthLine = growth.state === 'growing' ? t('cy.growsIn', { count: growth.turns })
-    : growth.state === 'starving' ? t('cy.starving') : growth.state === 'full' ? t('cy.housingFull') : growth.state === 'max' ? t('cy.maxSize')
+    : growth.state === 'starving' ? t('cy.starving') : growth.state === 'full' ? t('cy.housingFull') : growth.state === 'max' ? t(stonePhaseOf(state, city.owner) === 'village' ? 'cy.maxVillage' : 'cy.maxSize')
       : growth.state === 'outpost' ? t('cy.outpostIn', { count: outpostLeft ?? 2, n: outpostLeft ?? '?' }) : t('cy.notGrowing');
   const currentTurns = current ? current.pieceTurns ?? current.turns : null;
   const currentStatus = current?.waitText || turnsText(currentTurns); // a held order says why, never "1 turn"

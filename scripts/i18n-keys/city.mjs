@@ -253,6 +253,7 @@ export default [
   ['cy.starving', 'starving', 'רעבה'],
   ['cy.housingFull', 'housing full: no growth', 'הדיור מלא: אין צמיחה'],
   ['cy.maxSize', 'as large as it can be', 'בגודל המרבי'],
+  ['cy.maxVillage', 'as large as a village grows (a city needs Agriculture and Chiefdoms)', 'בגודל המרבי של כפר (עיר דורשת חקלאות ושבטים ומנהיגים)'],
   ...pl('cy.outpostIn', 'an outpost: a city in about {n} turn', 'an outpost: a city in about {n} turns', 'מאחז: עיר בעוד כ־{n} תור', 'מאחז: עיר בעוד כ־{n} תורות', 'מאחז: עיר בעוד כ־{n} תורות'),
   ['cy.notGrowing', 'not growing', 'לא צומחת'],
   ['cy.foodBanked', 'Food banked toward the next citizen', 'מזון שנצבר לקראת האזרח הבא'],

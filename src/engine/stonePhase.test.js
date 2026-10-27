@@ -1,6 +1,6 @@
 // The Stone Age's village and first-cities phases (eight-ages plan U25).
 import { describe, it, expect } from 'vitest';
-import { stonePhaseOf, stonePhaseCtx, settleKey, FIRST_CITIES_TECHS, WRITING_TECH, NO_WRITING_COST_MULT, VILLAGE_LAW_CATEGORIES } from './stonePhase';
+import { stonePhaseOf, stonePhaseCtx, settleKey, FIRST_CITIES_TECHS, VILLAGE_SIZE_CAP, WRITING_TECH, NO_WRITING_COST_MULT, VILLAGE_LAW_CATEGORIES } from './stonePhase';
 import { withTechsResearched, getResearchCost } from './research';
 import { getAvailableGovernmentTypes } from '../data/government';
 import { LAW_CATEGORIES, canEnactLaw } from '../data/laws';
@@ -18,6 +18,12 @@ describe('Stone Age phases (U25)', () => {
     expect(stonePhaseOf(withTechsResearched(S, ME, FIRST_CITIES_TECHS.slice(0, 1)), ME)).toBe('village');
     expect(stonePhaseOf(cities, ME)).toBe('cities');
     expect(stonePhaseOf(peoplesWorld({ seed: 7, age: 'bronze' }), ME)).toBeNull();
+  });
+
+  it('a farming village stops at VILLAGE_SIZE_CAP; a forager keeps the hearth cap; the first cities have none', () => {
+    expect(stonePhaseCtx(withTechsResearched(S, ME, FIRST_CITIES_TECHS.slice(0, 1)), ME).maxSize).toBe(VILLAGE_SIZE_CAP);
+    expect(stonePhaseCtx(withTechsResearched(S, ME, FIRST_CITIES_TECHS.slice(1)), ME).maxSize).toBeUndefined();
+    expect(stonePhaseCtx(cities, ME).maxSize).toBeUndefined();
   });
 
   it('the settle wording says village in the village phase, city after it', () => {

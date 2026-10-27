@@ -168,6 +168,8 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     cities: regs.length, landClaimedPct: +(100 * Object.keys(s.world?.tileOwner || {}).filter((t) => getTiles().land[t] === 1).length / LAND_TILES).toFixed(1),
     citiesChangedHands: counters.changedHands, loyaltyFlips: counters.flips, freeCities: regs.filter((r) => r.owner === null && r.freeCity).length,
     sieges: regs.filter((r) => r.siege?.by).length, armiesOnRoad: Object.values(s.units).filter((u) => u.route?.length).length,
+    // Capitals (Stone growth lane): the player's capital size beside the AI majors' median and largest.
+    ...(() => { const caps = regs.filter((r) => r.isCapital && r.owner); const ai = caps.filter((r) => r.owner !== s.playerNationId && s.nations[r.owner]?.kind !== 'independent').map((r) => r.size || 0).sort((x, y) => x - y); return { playerCapSize: caps.find((r) => r.owner === s.playerNationId)?.size || 0, aiCapSizeMedian: ai[Math.floor(ai.length / 2)] || 0, aiCapSizeMax: ai[ai.length - 1] || 0 }; })(),
     maxProvinceShare: +(Math.max(...Object.entries(counts).filter(([o]) => o !== 'null').map(([, c]) => c)) / regs.length).toFixed(3),
     // Land growth: the biggest and the median living nation, and the land nobody holds yet.
     topNationProvinces: Math.max(...Object.entries(counts).filter(([o]) => o !== 'null').map(([, c]) => c)),
@@ -303,6 +305,9 @@ SEEDS.forEach((seed) => {
         const ms = livingMajors(s);
         counters.pastAt[`pastAt_${a}`] = +(ms.filter((n) => AGES.getAgeIndex(nationAge(s, n.id)) > AGES.getAgeIndex(a)).length / Math.max(1, ms.length)).toFixed(3);
       });
+      // The turn the player and the median major first reach each age.
+      { const idx = livingMajors(s).map((n) => AGES.getAgeIndex(nationAge(s, n.id))).sort((x, y) => x - y); const med = idx[Math.floor(idx.length / 2)] ?? 0; const me = AGES.getAgeIndex(nationAge(s, s.playerNationId));
+        AGES.AGE_ORDER.forEach((a, i) => { if (i && med >= i && counters.pastAt[`medianAt_${a}`] == null) counters.pastAt[`medianAt_${a}`] = t; if (i && me >= i && counters.pastAt[`playerAt_${a}`] == null) counters.pastAt[`playerAt_${a}`] = t; }); }
       const gap = ageStats(s, { pastAt: {} }).leaderAgeGap;
       counters.maxLeaderGap = Math.max(counters.maxLeaderGap || 0, gap);
       counters.gapOver1 = (counters.gapOver1 || 0) + (gap > 1 ? 1 : 0);
