@@ -86,6 +86,25 @@ describe('operational AI',()=>{
     expect(next.units.a.route).toBeFalsy();
     expect(next.pendingDefenses).toHaveLength(0);
   });
+  it('defending a threatened city next door leaves a border city its garrison: no shuttle between two cities (lane campaign-ai-wars)',()=>{
+    const {s,border,interior,target}=setup();
+    const T=(id)=>s.regions[id].tile;
+    s.nations[D]={...s.nations[D],capitalRegionId:border};
+    // The player's garrison next door threatens the empty interior city; the stack waits in the capital.
+    s.units={a:{...s.units.a,regionId:border,tile:T(border)},b:{...s.units.a,id:'b',regionId:border,tile:T(border)},
+      g:{...s.units.a,id:'g',ownerId:P,regionId:target,tile:T(target)}};
+    let st=s;const seen=[];
+    for(let turn=0;turn<4;turn++){
+      st=processAIOperations({...st,turnNumber:(s.turnNumber||1)+turn},createRng(7+turn));
+      const home=Object.values(st.units).filter(u=>u.ownerId===D&&u.tile===T(border)).length;
+      const there=Object.values(st.units).filter(u=>u.ownerId===D&&(u.tile===T(interior)||u.regionId===interior)).length;
+      seen.push([home,there]);
+      st={...st,units:Object.fromEntries(Object.entries(st.units).map(([k,u])=>[k,{...u,movesLeft:1}]))};
+    }
+    // Before: the whole stack hopped to the empty city, left the capital empty, and hopped back every turn.
+    seen.forEach(([home])=>expect(home,JSON.stringify(seen)).toBeGreaterThanOrEqual(1));
+    expect(seen[seen.length-1],JSON.stringify(seen)).toEqual(seen[seen.length-2]);
+  });
   it('marches on tiles toward the player\'s city when its own does not touch it, and halts before it',()=>{
     // A rival (AI) at war with the player: its city does not touch the player's capital, a few tiles away.
     const w0=cloneWorld(peoplesWorld({seed:7,fog:false}));const RV=rivalOf(w0);

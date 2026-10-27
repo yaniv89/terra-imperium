@@ -7,6 +7,7 @@ import { supplyAtTile, SUPPLY_WILD_LOSS } from '../../engine/supplyMeter';
 import { metNations, isExplored } from '../../engine/fog';
 import { getTiles } from '../../data/geo/tiles';
 import { unitTile } from '../../engine/armies';
+import { distanceKm } from '../../data/geo/geodesic';
 
 const S = peoplesWorld({ size: 'standard', seed: 11 });
 const ME = S.playerNationId;
@@ -24,10 +25,21 @@ describe('finding a fight (playtests of 21 October)', () => {
     expect(w.march).toMatchObject({ target: w.cities[0].id, unitIds: expect.arrayContaining([myUnit.id]) });
   });
 
+  it('the front lists the same places, nearest the player\'s cities first (the war pill, Show on map at war)', () => {
+    const near = metNations(S, ME)[0];
+    const w = peopleWhere(S, near);
+    expect(w.front).toHaveLength(w.places.length);
+    expect(new Set(w.front)).toEqual(new Set(w.places));
+    const mine = Object.values(S.regions).filter((c) => c.owner === ME).map((c) => c.tile);
+    const { centres } = getTiles();
+    const km = (p) => Math.min(...mine.map((t) => distanceKm(centres[t], centres[p.tile])));
+    w.front.slice(1).forEach((p, i) => expect(km(p)).toBeGreaterThanOrEqual(km(w.front[i])));
+  });
+
   it('a people never seen has no places and no march', () => {
     const far = Object.keys(S.nations).find((id) => id !== ME && !metNations(S, ME).includes(id));
     const w = peopleWhere(S, far);
-    expect(w).toMatchObject({ cities: [], armies: [], places: [], march: null });
+    expect(w).toMatchObject({ cities: [], armies: [], places: [], front: [], march: null });
   });
 
   it('an idle army is pointed at the unknown and at the nearest known foreign city', () => {

@@ -22,7 +22,7 @@ import { besiegersOf } from './sieges';
 import { applyCosts, canAfford } from '../utils/helpers';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { landUnitsByTile } from './sieges';
-import { threatenedCities, besiegerStacksBeside, pillageTile } from './threat';
+import { threatenedCities, besiegerStacksBeside, pillageTile, threatOf, THREAT_DEFEND_RATIO } from './threat';
 import { playerRouteTiles } from './plunder';
 import { ringsAround } from './world/cities';
 import { enemyFleetsAt, AI_FLEET_ATTACK_RATIO, validateFleetAttack } from './navalBattle';
@@ -230,17 +230,24 @@ export const cityAttackWorthIt = (state, nationId, stack, city) => {
   return hit >= CITY_HIT_MIN_SHARE * siegeMaxHp(city, state.greatProjects) || hit >= siegeHpOf(city, state.greatProjects);
 };
 
-/** The units of a stack that march out to lay siege (CB09 I120): all of them, except that a stack
- * standing in one of its own cities leaves its weakest unit behind as the garrison. */
-export const siegeParty = (state, stack, at, fromCityId) => {
+/** The units of a stack that march out to lay siege (CB09 I120), gather or defend another city:
+ * all of them, except that a stack standing in one of its own cities leaves its weakest unit
+ * behind as the garrison, and more when `threat` (threat.js threatOf at that city) needs it: the
+ * garrison's strength x THREAT_DEFEND_RATIO must be above it, or the city is threatened the turn
+ * the party leaves and pulls it back (lane campaign-ai-wars: stacks shuttled between two border
+ * cities for whole wars). */
+export const siegeParty = (state, stack, at, fromCityId, threat = 0) => {
   const inOwnCity = state.regions[fromCityId]?.tile === at && state.regions[fromCityId]?.owner === stack[0]?.ownerId;
   if (!inOwnCity) return stack;
   if (stack.length < 2) return [];
   // A siege engine never stays home as the garrison: the walls are what it is for. Nor does the
   // party's only human beside robots: robots cannot hold what they take (robots.js, U72).
   const lone = stack.filter((u) => !u.robot).length === 1 && stack.some((u) => u.robot);
-  const keep = [...stack].sort((a, b) => (a.classId === 'siege') - (b.classId === 'siege') || (lone && !a.robot) - (lone && !b.robot) || (a.strength || 0) - (b.strength || 0) || (a.id < b.id ? -1 : 1))[0];
-  return stack.filter((u) => u !== keep);
+  const order = [...stack].sort((a, b) => (a.classId === 'siege') - (b.classId === 'siege') || (lone && !a.robot) - (lone && !b.robot) || (a.strength || 0) - (b.strength || 0) || (a.id < b.id ? -1 : 1));
+  let kept = 1; let strength = order[0].strength || 0;
+  while (kept < order.length && strength * THREAT_DEFEND_RATIO <= threat) { strength += order[kept].strength || 0; kept += 1; }
+  const home = new Set(order.slice(0, kept));
+  return stack.filter((u) => !home.has(u));
 };
 
 // --- War plans (warPlans.js, lane W5): gathering at the muster point --------------------------
@@ -276,10 +283,10 @@ export const besiegedByUs = (state, nationId, city, byTile) => {
  * siegeParty). Writes routes into `next.units` (a
  * working copy). Returns true when a party is on the road.
  */
-export const gatherStack = (next, nationId, plan, stack, at, from, committed, keepGarrison = true) => {
+export const gatherStack = (next, nationId, plan, stack, at, from, committed, keepGarrison = true, threat = 0) => {
   const staging = next.regions[plan.staging];
   if (!staging || staging.tile == null || at == null || at === staging.tile) return false;
-  const goers = keepGarrison ? siegeParty(next, stack, at, from) : stack;
+  const goers = keepGarrison ? siegeParty(next, stack, at, from, threat) : stack;
   if (!goers.length) return false;
   const goalKey = `stage:${plan.staging}`;
   const failed = stack[0].routeFailed;
@@ -377,6 +384,7 @@ export const processAIOperations = (state, rng) => {
     // Which city keeps one regiment when the plan gathers (warPlans.js interiorCitySafe): a border
     // city, the capital, and any city something hostile could reach within SAFE_TURNS turns.
     let reach = null;
+    const threatAt = (from) => threatOf(next, next.regions[from], enemies, byTile);
     const keepsGarrison = (from) => {
       if (fronts.has(from) || from === getCapital(next, nationId)) return true;
       if (!reach) reach = hostileReach(next, nationId);
@@ -475,7 +483,7 @@ export const processAIOperations = (state, rng) => {
             const joining = besiegedByUs(next, nationId, city, byTile);
             // (Under threat the stack holds its own city instead of gathering.)
             if (plan && !joining && !readyToStrike(plan, goers.length, state.turnNumber) && !strikeWinsNow(next, nationId, goers, city)) {
-              if (!threatened.size && gatherStack(next, nationId, plan, stack, at, from, committed, keepsGarrison(from))) marching = true;
+              if (!threatened.size && gatherStack(next, nationId, plan, stack, at, from, committed, keepsGarrison(from), threatAt(from))) marching = true;
               continue;
             }
             const failed = stack[0].routeFailed;
@@ -506,15 +514,35 @@ export const processAIOperations = (state, rng) => {
             logs: [...next.logs, { year: next.year, type: 'combat', ...msg('m.battle.aiAttacksFrom', { nation: people(nationId, next.nations[nationId].name), from: cityRef(from, next.regions[from]?.name || state.regions[from]?.name || from), to: cityRef(target, state.regions[target]?.name || next.regions[target]?.name || target) }) }] };
         }
       } else {
+        // Defend first (threat.js): under threat a stack outside the threatened cities hops toward
+        // one by city roads. A city that must keep a garrison (a border city, the capital, one a
+        // hostile army can reach) sends only what it can spare (siegeParty with the threat there): the whole stack
+        // hopping to the threatened city next door left this one empty, so it was threatened next
+        // turn and the stack hopped back, every turn of a 50-turn war (lane campaign-ai-wars, seed
+        // 11 at turn 100). With no
+        // plan the same hop takes interior stacks to the front. A stack already at a goal city
+        // stays on it; hopping on to the next goal city made stacks shuttle between two fronts for
+        // whole wars (CB09 I120, X22).
+        const inCity = next.regions[from]?.tile === at;
+        const holding = threatened.size > 0;
+        const to = (holding || !plan) && !goals.has(from) ? routeStep(next.regions, nationId, from, goals) : null;
+        if (to) {
+          const movers = inCity && keepsGarrison(from) ? siegeParty(next, stack, at, from, threatAt(from)) : stack;
+          if (movers.length && canAfford(pool, ACTION_COSTS.moveArmy)) {
+            movers.forEach(u => { committed.add(u.id); next.units[u.id] = { ...placeInCity(u, next.regions, to), movesLeft: 0 }; });
+            next.nations = { ...next.nations, [nationId]: { ...next.nations[nationId], economy: applyCosts(pool, ACTION_COSTS.moveArmy) } };
+          }
+          continue; // or its garrison holds
+        }
         // A war plan (warPlans.js, lane W5): regiments gather at the muster point and march on the
         // target city as one strike stack (later waves when the first is spent). Under threat the
         // stack in a threatened city of ours is its own muster point: it holds, and strikes out
-        // (leaving its garrison) only once it is a strike stack; stacks elsewhere go to defend.
-        const inCity = next.regions[from]?.tile === at;
-        const holding = threatened.size > 0;
-        if (plan && (!holding || (threatened.has(from) && inCity)) && next.regions[plan.cityId]?.tile != null) {
+        // (leaving its garrison) only once it is a strike stack. Stacks with no city road to a
+        // threatened city follow the plan as in peace time (they used to wait at home all war).
+        const holdsHere = threatened.has(from) && inCity;
+        if (plan && next.regions[plan.cityId]?.tile != null) {
           const staging = next.regions[plan.staging];
-          const atMuster = holding || at === staging?.tile;
+          const atMuster = holdsHere || at === staging?.tile;
           if (atMuster || !inCity) {
             const goers = atMuster ? siegeParty(next, stack, at, from) : stack;
             if (goers.length && (readyToStrike(plan, goers.length, state.turnNumber) || strikeWinsNow(next, nationId, goers, next.regions[plan.cityId]))) {
@@ -556,15 +584,7 @@ export const processAIOperations = (state, rng) => {
               }
             }
           }
-          if (!holding && gatherStack(next, nationId, plan, stack, at, from, committed, keepsGarrison(from))) marching = true;
-          continue;
-        }
-        // A stack already at a goal city stays on it and marches on tiles below; hopping on to the
-        // next goal city made stacks shuttle between two fronts for whole wars (CB09 I120, X22).
-        const to = goals.has(from) ? null : routeStep(next.regions, nationId, from, goals);
-        if (to && canAfford(pool, ACTION_COSTS.moveArmy)) {
-          stack.forEach(u => { committed.add(u.id); next.units[u.id] = { ...placeInCity(u, next.regions, to), movesLeft: 0 }; });
-          next.nations = { ...next.nations, [nationId]: { ...next.nations[nationId], economy: applyCosts(pool, ACTION_COSTS.moveArmy) } };
+          if (!holdsHere && gatherStack(next, nationId, plan, stack, at, from, committed, keepsGarrison(from), threatAt(from))) marching = true;
           continue;
         }
         // At the front with no city in reach: march on tiles toward the goal and lay siege.
