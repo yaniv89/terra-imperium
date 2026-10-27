@@ -17,7 +17,7 @@ describe('research sheet model (W09)', () => {
     expect(total).toBe(Object.keys(TECH_TREE).length);
     expect(m.ages.filter((a) => a.current)).toHaveLength(1);
     expect(m.header.total).toBe(m.ages.find((a) => a.current).total);
-    expect(m.era.goals).toHaveLength(5);
+    expect(m.era.goals.length).toBeGreaterThanOrEqual(3); // 3 to 5 an age (data/eraGoals.js)
     expect(m.era.goals.every((g) => g.bonus)).toBe(true);
   });
 

@@ -173,15 +173,15 @@ const EraCard = ({ era }) => {
     <ul className="space-y-1.5">
       {era.goals.map((g) => (
         <li key={g.id}>
-          <div className="flex items-baseline justify-between gap-2 text-[12px]" title={tNow('p2.era.legacy', { bonus: signed(goalBonus(g.id, g.bonus)) })}>
+          <div className="flex items-baseline justify-between gap-2 text-[12px]">
             <span className="min-w-0 break-words"><span className="font-semibold">{playstyleName(g.id, g.label)}</span> <span className="text-fa-muted">{goalUnit(g.id, g.unit)}</span></span>
             <span className={`fa-num shrink-0 ${g.done ? 'text-fa-good' : 'text-fa-muted'}`}>{Math.min(g.value, g.target)} / {g.target}</span>
           </div>
           <Meter value={g.value} max={g.target} color={g.done ? 'var(--fa-good)' : 'var(--fa-you)'} height={4} />
+          <div className={`text-[11px] leading-snug ${g.done ? 'text-fa-good' : 'text-fa-muted'}`}>{tNow('p2.era.legacy', { bonus: signed(goalBonus(g.id, g.bonus, g.n)) })}</div>
         </li>
       ))}
     </ul>
-    <div className="text-[11px] text-fa-muted leading-snug">{era.goals.filter((g) => !g.done).slice(0, 2).map((g) => `${playstyleName(g.id, g.label)}: ${signed(goalBonus(g.id, g.bonus))}`).join('. ')}</div>
   </div>
   );
 };

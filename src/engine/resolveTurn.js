@@ -31,7 +31,7 @@ import { speedCostMult, speedTrainMult, isAgeAtLeast, speedTurns, FIRST_AGE_ID }
 import { sideAgeOf } from './ageRefs';
 import { displayYear } from './displayYear';
 import { endingSignal, nextDominance, dominanceHold } from './ending';
-import { awardEraLegacy } from './eraGoals';
+import { awardEraLegacy, payEraGoals, eraGoalLog } from './eraGoals';
 import { createEmptyResourcePool } from '../data/resources';
 import { drawEvent } from './eventDeck';
 import { processCrises } from './crises';
@@ -732,6 +732,9 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
         const amb = tickAmbitions(view, nId, nations[nId], newTurnNumber); // offers and completions (ambitions.js)
         nations[nId] = amb.nation;
         if (nId === me) amb.done.forEach((id) => logs.push({ year: newYear, ...msg('m.turn.ambition', { ambition: thing('ambition', id, ambitionDef(id).label) }), type: LogTypes.MILESTONE }));
+        const goals = payEraGoals(view, nations[nId], ageOf(view, nId), newTurnNumber); // era goals pay the turn they are met (eraGoals.js)
+        nations[nId] = goals.nation;
+        if (nId === me) goals.paid.forEach((g) => logs.push({ year: newYear, ...eraGoalLog(g), type: LogTypes.MILESTONE }));
         if (nId !== me) nations[nId] = aiDevelopRuler(view, nId).nations[nId];
         else {
           const level = rulerLevel(nations[nId].ruler.renown);

@@ -137,7 +137,7 @@ export default [
   ['p1.dom.notAdm', 'Not enough ADM', 'אין מספיק ניהול'],
 
   // legacy and goals
-  ['p1.leg.goalTip', '{label}: {value}/{target} {unit}. Legacy: {bonus}', '{label}: {value}/{target} {unit}. מורשת: {bonus}'],
+  ['p1.leg.goalTip', '{label}: {value}/{target} {unit}. Reward: {bonus}', '{label}: {value}/{target} {unit}. פרס: {bonus}'],
   ['p1.eo.goalTip', '{label}: {value} of {target} {unit}', '{label}: {value} מתוך {target} {unit}'],
 
   // military
@@ -207,9 +207,9 @@ export default [
   ['p1.no.score', 'Score', 'ניקוד'],
   ['p1.no.rankOf', '{rank} of {of}', 'מקום {rank} מתוך {of}'],
   ['p1.no.eraGoals', '{age} era goals', 'יעדי {age}'],
-  ['p1.no.met', 'met {met} of the {needed} needed', 'הושגו {met} מתוך {needed} הנדרשים'],
-  ['p1.no.legacyFor', 'Then each met goal gives its legacy for {turns} turns.', 'אז כל יעד שהושג נותן את המורשת שלו למשך {turns} תורות.'],
-  ['p1.no.unitLegacy', '{unit}; legacy {bonus}', '{unit}; מורשת: {bonus}'],
+  ['p1.no.met', 'met {met} of the {needed} for the era legacy', 'הושגו {met} מתוך {needed} למורשת העידן'],
+  ['p1.no.legacyFor', 'Each goal pays when met: its reward for {turns} turns, a decree and renown.', 'כל יעד משתלם כשהוא מושג: הפרס שלו למשך {turns} תורות, צו ותהילה.'],
+  ['p1.no.unitLegacy', '{unit}; reward {bonus}', '{unit}; פרס: {bonus}'],
   ['p1.no.showSites', 'Show good sites', 'הצגת אתרים טובים'],
   ['p1.no.openPeoples', 'Open Peoples', 'פתיחת העמים'],
   ['p1.no.openResearch', 'Open Research', 'פתיחת המחקר'],

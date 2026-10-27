@@ -592,7 +592,7 @@ const recordStats = (nations, o, captured) => {
     out = { ...out, [id]: { ...n, battleStats: { ...stats, [key]: (stats[key] || 0) + 1 } } };
   };
   if (winnerId) bump(winnerId, 'won');
-  if (winnerId && (o.kind === 'raid' || o.kind === 'sack')) bump(winnerId, 'raidsWon'); // the Stone Age War goal (eraGoals.js)
+  if (winnerId && (o.kind === 'raid' || o.kind === 'sack')) bump(winnerId, 'raidsWon'); // raids and sacks won, a battle stat
   if (loserId) bump(loserId, 'lost');
   if (captured) bump(o.attackerNationId, 'taken');
   return out;

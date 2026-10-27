@@ -59,7 +59,13 @@ export default {
 
   // era goals (eraGoals.js)
   'm.world.noLegacy': 'The {age} ends with {n} of its goals met: no legacy carries over.',
-  'm.world.legacy': 'Legacy of the {age}: {bonuses} for {turns} turns.',
+  'm.world.legacy': 'Legacy of the {age}: {n} of its goals met. Your ruler gains renown.',
+  'm.world.eraGoalMet': 'Goal met: {goal}. {bonus} for {turns} turns, a decree and renown.',
+  'm.world.goalBonus.expand': '+{n}% manpower',
+  'm.world.goalBonus.wealth': '+{n}% gold',
+  'm.world.goalBonus.war': '+{n}% morale recovery',
+  'm.world.goalBonus.culture': '+{n} stability',
+  'm.world.goalBonus.science': '-{n}% research cost',
 
   // event choices (applyEventEffects.js)
   'm.world.eventCantAfford': 'You can\'t afford "{option}" ({missing}).',

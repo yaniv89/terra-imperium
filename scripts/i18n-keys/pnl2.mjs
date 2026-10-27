@@ -79,8 +79,8 @@ export default [
 
   // ---- era goals, age strip, web, sections
   ['p2.era.title', '{age} era goals', 'יעדי עידן {age}'],
-  ['p2.era.met', 'Met {met} of the {needed} needed. Then each met goal gives its legacy for {turns} turns.', 'הושגו {met} מתוך {needed} הנדרשים. אחר כך כל יעד שהושג נותן את המורשת שלו למשך {turns} תורות.'],
-  ['p2.era.legacy', 'Legacy: {bonus}', 'מורשת: {bonus}'],
+  ['p2.era.met', 'Met {met} of the {needed} for the era legacy. Each goal pays when met: its reward for {turns} turns, a decree and renown.', 'הושגו {met} מתוך {needed} למורשת העידן. כל יעד משתלם כשהוא מושג: הפרס שלו למשך {turns} תורות, צו ותהילה.'],
+  ['p2.era.legacy', 'Reward: {bonus}', 'פרס: {bonus}'],
   ['p2.as.title', '{name}: {known} of {total} techs known', '{name}: {known} מתוך {total} טכנולוגיות ידועות'],
   ['p2.ageShort.stone', 'Stone', 'אבן'],
   ['p2.ageShort.bronze', 'Bronze', 'ארד'],

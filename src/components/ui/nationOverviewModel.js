@@ -17,7 +17,7 @@ import { titleFor, EMPIRE_CITY_COUNT } from '../../data/nationTitles';
 import { getGovernmentType, getActiveReforms } from '../../data/government';
 import { getCapital, getNationCapital } from '../../data/regions';
 import { DOMINATION_CAPITAL_SHARE } from '../../data/victoryConditions';
-import { PLAYSTYLES, ERA_LEGACY_TURNS } from '../../data/eraGoals';
+import { ERA_LEGACY_TURNS } from '../../data/eraGoals';
 import { authorityOf } from '../../engine/authority';
 import { eraGoalProgress } from '../../engine/eraGoals';
 import { STABILITY_MIN, STABILITY_MAX } from '../../engine/nationalPower';
@@ -90,7 +90,7 @@ export const nationOverviewModel = (state) => {
     stability,
     victory,
     score: { rank, of: ranked },
-    era: { ageName: shortAge(era.ageId), met: era.met, needed: era.needed, legacyTurns: ERA_LEGACY_TURNS, goals: era.goals.map((g) => ({ ...g, label: playstyleName(g.id, g.label), unit: goalUnit(g.id, g.unit), bonus: PLAYSTYLES[g.id] ? goalBonus(g.id, PLAYSTYLES[g.id].bonusLabel) : '' })) },
+    era: { ageName: shortAge(era.ageId), met: era.met, needed: era.needed, legacyTurns: ERA_LEGACY_TURNS, goals: era.goals.map((g) => ({ ...g, label: playstyleName(g.id, g.label), unit: goalUnit(g.id, g.unit), bonus: goalBonus(g.id, g.bonus, g.n) })) },
     ages: AGE_ORDER.map((id, i) => ({ id, name: shortAge(id), past: i < ageIndex, current: i === ageIndex })),
     nextAge: nextAge ? { name: shortAge(nextAge), techs: techsLeft } : null,
     turn: state.turnNumber

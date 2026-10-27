@@ -26,7 +26,7 @@ describe('nation overview model (W17)', () => {
     expect(m.victory.map((v) => v.id)).toEqual(['domination']);
     expect(m.victory[0].value).toBe(0);
     expect(m.score.rank).toBeGreaterThan(0);
-    expect(m.era.goals).toHaveLength(5);
+    expect(m.era.goals.length).toBeGreaterThanOrEqual(3); // 3 to 5 an age (data/eraGoals.js)
     expect(m.ages.map((a) => a.id)).toEqual(AGE_ORDER);
     expect(m.ages.find((a) => a.current).id).toBe(s.techAgeId);
     expect(m.nextAge.techs).toBeGreaterThan(0);

@@ -15,7 +15,7 @@ describe('empire overview model', () => {
     expect(m.name).toBe(s.nations[FR].name);
     expect(m.authority.total).toBe(authorityOf(s, FR).total);
     expect(['red', 'amber', 'green']).toContain(m.authority.tone);
-    expect(m.era.goals).toHaveLength(5);
+    expect(m.era.goals.length).toBeGreaterThanOrEqual(3); // 3 to 5 an age (data/eraGoals.js)
     expect(m.era.needed).toBe(ERA_GOALS_FOR_LEGACY);
     expect(m.era.goals.find((g) => g.id === 'expand').value).toBe(m.cities);
     expect(m.cities).toBeGreaterThan(0);
