@@ -26,3 +26,8 @@ claude/integration, main gets the push once the quick suite and CI are green.
   - All lanes keep Q3, a city falls only when its defence is beaten, units keep their age.
 - API grants (user, 27 Oct): sub sessions may ask the lead for API budget; the lead grants a cap within the
   $90 total and records it in the dashboard spend data. Spend so far about $38 (caps for running jobs).
+- Design call (27 Oct, after the user's question): the battle-stall fix's 60 s march-out is too short for
+  economy battles (it skips the build phase). Rework sent to battle-stall: about 3 minutes of grace,
+  early march only when 1.5x stronger, a fallback at about a third of the clock, the AI builds while it
+  waits. References: AoE II attack waves by army size and treaty mode, StarCraft rush cost. main keeps
+  the old behaviour until the rework is measured.
