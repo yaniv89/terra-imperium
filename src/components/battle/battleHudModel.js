@@ -242,11 +242,11 @@ export const enemyObjectives = (hud, setup, playerSide, from = null) => {
   const targets = [];
   const keep = hud?.structures?.[0];
   // The keep (or the town hall standing for it) is the defender's.
-  if (enemy === 1 && keep?.alive && keep.kind === 'keep' && setup?.battleType !== 'naval') targets.push({ x: keep.x / Q, y: keep.y / Q, label: t('bt.obj.theirKeep') });
+  if (enemy === 1 && keep?.alive && keep.kind === 'keep' && setup?.battleType !== 'naval') targets.push({ x: keep.x / Q, y: keep.y / Q, label: t('bt.obj.theirKeep'), target: { kind: 'structure', index: 0 } });
   const ageId = setup?.sides?.[enemy]?.ageId;
   (hud?.eco?.buildings || []).forEach((b) => {
     if (b.side !== enemy || !b.alive || b.proxy || !b.built || !isBaseType(b.type)) return;
-    targets.push({ x: b.x / Q, y: b.y / Q, label: t('bt.obj.theirs', { what: ecoLabel(b.type, ageId).toLowerCase() }) });
+    targets.push({ x: b.x / Q, y: b.y / Q, label: t('bt.obj.theirs', { what: ecoLabel(b.type, ageId).toLowerCase() }), target: { kind: 'eco', index: b.idx } });
   });
   if (from) targets.sort((a, b) => ((a.x - from.x) ** 2 + (a.y - from.y) ** 2) - ((b.x - from.x) ** 2 + (b.y - from.y) ** 2));
   const map = setup?.map || {};

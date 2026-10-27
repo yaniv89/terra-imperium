@@ -516,8 +516,11 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   // squads will arrive first (I192, X13).
   const [orderNote, setOrderNote] = useState(null);
   const [restartNote, setRestartNote] = useState(null); // a checkpoint that could not be resumed: shown until Start
+  // The Enemy button's target while its caption shows: one tap on Attack it sends the army at it
+  // (playtest 40550100958 steps 57 to 63: the caption showed the target but could not order it).
+  const [objTarget, setObjTarget] = useState(null);
   useEffect(() => {
-    if (!orderNote) return undefined;
+    if (!orderNote) { setObjTarget(null); return undefined; }
     const t = setTimeout(() => setOrderNote(null), ORDER_NOTE_MS);
     return () => clearTimeout(t);
   }, [orderNote]);
@@ -819,6 +822,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       placeDrag: (p) => setGhostAt(p),
       placeEnd: () => {},
       selectModeDone: () => setSelectModeOn(false),
+      isArmed: () => !!armedRef.current,
       isOnSelectedSquad: (p) => { const idx = ownSquadAt(p); return idx !== null && selectedRef.current.has(idx); },
       hasSelection: () => selectedRef.current.size > 0,
       tap: (p) => pointer('tap', p),
@@ -962,11 +966,28 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     const own = fightersOf(cur);
     const from = own.length ? { x: own.reduce((s, q) => s + q.x, 0) / own.length / Q, y: own.reduce((s, q) => s + q.y, 0) / own.length / Q } : null;
     const { targets, note, fallback } = enemyObjectives(cur, setup, playerSide, from);
-    if (!targets.length) { lookAt(fallback.x, fallback.y); setOrderNote(note); return; }
+    if (!targets.length) { lookAt(fallback.x, fallback.y); setOrderNote(note); setObjTarget(null); return; }
     const i = objectiveIdxRef.current % targets.length; objectiveIdxRef.current = i + 1;
     const t = targets[i];
     lookAt(t.x, t.y);
+    setObjTarget(t.target ? { target: t.target, label: t.label, x: t.x, y: t.y } : null);
     setOrderNote(note || (targets.length > 1 ? tNow('bt.screen.objectiveOf', { label: t.label, i: i + 1, n: targets.length }) : tNow('bt.screen.objectiveOne', { label: t.label })));
+  };
+  // Attack it: the selection (else the whole army) at the Enemy button's target, with the same
+  // ring, marker and pending mark as a tap on it.
+  const attackObjective = () => {
+    const r = rendererRef.current; const cur = frames.current.cur; const o = objTarget;
+    if (!r || !cur || !o) return;
+    let sel = [...selectedRef.current].filter((i) => cur.squads[i]?.classId !== 'worker');
+    if (!sel.length) sel = fightersOf(cur).map((q) => q.idx);
+    if (!sel.length) return;
+    send([{ type: 'attack', squads: sel, target: o.target }]);
+    r.setOrderTarget(sel, o.target, 'attack');
+    r.addMarker(o.x, o.y, '#ef4444', 1.6, 1.4);
+    markPending({ kind: 'attack', x: o.x, z: o.y, squads: sel, color: '#ef4444' });
+    if (!selectedRef.current.size) updateSelection(sel);
+    setObjTarget(null);
+    setOrderNote(tNow('bt.screen.attackingIt', { label: o.label }));
   };
   const toggleFollow = () => {
     if (followRef.current) { setFollow(false); return; }
@@ -1241,7 +1262,10 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(26rem,calc(100vw-2rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-danger text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" style={{ top: 56 }} role="status" aria-live="polite" data-testid="battle-resume-rejected">{restartNote}</div>
       )}
       {orderNote && !refused && !ended && (
-        <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(26rem,calc(100vw-2rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-line text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" style={{ bottom: NOTE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-order-note">{orderNote}</div>
+        <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(26rem,calc(100vw-2rem))] flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-line text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" style={{ bottom: NOTE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-order-note">
+          <span>{orderNote}</span>
+          {objTarget && <button type="button" onClick={attackObjective} data-testid="battle-objective-attack" className="pointer-events-auto shrink-0 h-11 px-3 -my-1 rounded-full bg-fa-danger/90 text-white text-sm font-semibold">{tNow('bt.screen.attackIt')}</button>}
+        </div>
       )}
       {ended && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} title={title} getCampaign={getCampaign} receipt={receipt} onContinue={() => onFinish?.(ended)} />}
       {start && !failure && !ended && <BattleLoading stage={start.stage} fraction={start.fraction} seconds={start.seconds} retry={start.retry} onAuto={() => onAbandon?.()} />}

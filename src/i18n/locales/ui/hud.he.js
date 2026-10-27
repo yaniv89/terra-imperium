@@ -265,6 +265,8 @@ export default {
   'bt.screen.sendLaborers': 'שלחו פועלים',
   'bt.screen.cancelConstruction': 'ביטול הבנייה',
   'bt.screen.objectiveOf': '{label}, {i} מתוך {n}. הקישו שוב על אויב להבא.',
+  'bt.screen.attackIt': 'תקוף',
+  'bt.screen.attackingIt': 'תוקפים: {label}.',
   'bt.screen.objectiveOne': '{label}.',
   'bt.screen.stalled': 'נתקע בשלב: {stage} ({n} שניות בלי התקדמות).',
   'bt.load.title': 'מכינים את הקרב',
