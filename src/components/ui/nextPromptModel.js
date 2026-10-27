@@ -22,6 +22,7 @@
 //   uprising  the Machine Uprising is coming (automation.js uprisingWarning): the turns left and how
 //             to stop it; opens the domestic panel (the Raise stability decree)
 //   law       a new age gave one law change for no decree (laws.js lawChangeCost)
+//   crisis    a history crisis will strike the player (crises.js crisisComing): the turns left and what softens it
 import { unitTile } from '../../engine/armies';
 import { isSettler, isBand } from '../../engine/settlers';
 import { tutorialPrompt } from '../../engine/tutorial';
@@ -33,6 +34,7 @@ import { getTiles } from '../../data/geo/tiles';
 import { idleArmyTiles } from '../../engine/standingOrders';
 import { loyaltyForecast, loyaltyOf } from '../../engine/loyalty';
 import { t as tNow, formatNumber } from '../../i18n';
+import { crisisComing } from '../../engine/crises';
 import { nameNow } from '../../i18n/names';
 import { ATTRIBUTES, raiseBlock, virtueBlock } from '../../engine/rulers';
 import { VIRTUES } from '../../data/rulerVirtues';
@@ -49,7 +51,7 @@ export const WARN_ARM_MS = 4000;
 
 // The prompts that never block End Turn (the rest are End Turn's blockers, src/engine/turnBlockers.js):
 // units that can still move or wait for orders, a restless city, an army low on supply.
-export const SOFT_KINDS = new Set(['army', 'settler', 'unrest', 'supply', 'ruler', 'governor', 'decrees', 'uprising', 'law']);
+export const SOFT_KINDS = new Set(['army', 'settler', 'unrest', 'supply', 'ruler', 'governor', 'decrees', 'uprising', 'law', 'crisis']);
 /** The soft hints that still wait (the "warn me" setting's list). */
 export const softHints = (state) => nextPrompts(state).filter((p) => SOFT_KINDS.has(p.kind));
 /** With the "warn me" setting on: how many soft hints still wait before End Turn; 0 otherwise. */
@@ -68,6 +70,13 @@ export const nextPrompts = (state) => {
   if (state.pendingMapOffer && state.nations?.[state.pendingMapOffer.from] && !state.nations[state.pendingMapOffer.from].isEliminated) out.push({ id: 'maps', kind: 'maps', label: tNow('prompt.mapOffer', { name: pName(state, state.pendingMapOffer.from) }), tab: 'diplomacy', nationId: state.pendingMapOffer.from });
   const warned = state.nations?.[me]?.uprisingWarning;
   if (warned) out.push({ id: 'uprising', kind: 'uprising', label: tNow('prompt.uprising', { count: Math.max(0, warned.at - (state.turnNumber || 0)) }), tab: 'domestic', section: 'court' });
+  // A history crisis announced against the player (crises.js crisisComing, follow-up 25): when, and what softens it.
+  const coming = crisisComing(state);
+  if (coming) {
+    const { crisis } = coming;
+    const go = { collapse: { tab: 'domestic', section: 'court' }, war: { tab: 'diplomacy' }, plague: { tab: 'tech' } }[crisis.effect] || { regionId: state.nations?.[me]?.capitalRegionId };
+    out.push({ id: 'crisis', kind: 'crisis', label: tNow('crisis.chip', { count: Math.max(1, coming.turn - (state.turnNumber || 0)), fix: tNow(`crisis.fix.${crisis.effect}`) }), ...go });
+  }
   if (researchNeedsChoice(state)) out.push({ id: 'research', kind: 'research', label: tNow('prompt.research'), tab: 'tech' });
   if (pendingLandmarkAge(state)) out.push({ id: 'landmark', kind: 'landmark', label: tNow('prompt.landmark'), tab: 'tech' });
   const cities = Object.values(state.regions || {}).filter((c) => c.owner === me && c.tile != null && !c.outpost).sort((a, b) => (a.id < b.id ? -1 : 1));

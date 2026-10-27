@@ -198,6 +198,8 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     plagueCitiesNow: regs.filter(isPlagued).length, plagueCitiesStruck: counters.plagued.size,
     // History crises (crises.js): how many started, and the nations they hit that are gone now.
     crises: s.crises?.history?.length || 0, crisisNationsLost: new Set((s.crises?.history || []).flatMap((h) => h.nations).filter((id) => s.nations[id]?.isEliminated)).size,
+    // Crisis fairness (follow-up 25): crises that hit the player vs the median, mean and busiest major.
+    ...(() => { const hits = {}; (s.crises?.history || []).forEach((h) => h.nations.forEach((id) => { hits[id] = (hits[id] || 0) + 1; })); const ms = nations.filter((n) => n.kind !== 'independent' && !n.id.startsWith('free_') && n.id !== 'rebels').map((n) => hits[n.id] || 0).sort((a, b) => a - b); return { crisisHitsPlayer: hits[s.playerNationId] || 0, crisisHitsMedian: ms[Math.floor(ms.length / 2)] || 0, crisisHitsMean: +(ms.reduce((a, b) => a + b, 0) / Math.max(1, ms.length)).toFixed(2), crisisHitsMax: ms.at(-1) || 0 }; })(),
     // Independents (phase W1): how many still stand, and the majors' cities (the expansion check).
     independentsAlive: nations.filter((n) => n.kind === 'independent' && !n.isEliminated).length,
     majorsAlive: nations.filter((n) => n.kind !== 'independent' && !n.isEliminated && !n.id.startsWith('free_')).length,

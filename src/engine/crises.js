@@ -3,15 +3,18 @@
 // Every CHECK_PERIOD turns, for each crisis in src/data/crises.js not resting:
 //   hit     = the majors inside its age window (their research age) that meet its `hits` predicate
 //   starts  when |hit| >= minHit, its raiders exist (if it needs them) and a seeded roll < CRISIS_CHANCE
-// At most one starts a check, and none within CRISIS_GAP reference turns of the last. It hits the
-// MAX_HIT largest of `hit` once, through existing systems (no unit of the player's is ever moved, R29):
+// At most one starts a check, and none within CRISIS_GAP reference turns of the last. It hits MAX_HIT
+// of `hit` drawn by a seeded roll (follow-up 25: the player as often as any other, no weight, no
+// immunity), WARN_TURNS reference turns later (state.crises.coming: the player's warning, CrisisBanner
+// and the "needs you" chip), once, through existing systems (no unit of the player's is ever moved, R29):
 //   collapse  outer cities (not capitals) lose COLLAPSE_LOYALTY loyalty: loyalty.js may let them go
 //   surge     each raider independent within SURGE_KM of a hit city gets SURGE_BANDS war bands (raids.js)
 //   plague    an outbreak (plague.js) in each hit nation's largest city
 //   famine    every city of a hit nation loses FAMINE_SHARE of its people (the population model)
-//   war       the two largest hit majors other than the player go to war (declareWar, pacts join)
-// A hit player gets the crisis's opening story (an event-deck link, due now). Memory: state.crises =
-// { last: { id: turn }, lastAny, history: [{ id, turn, nations }] }; absent = none yet.
+//   war       the first two hit majors go to war (declareWar, pacts join); the player is only ever the target
+// A hit player gets the crisis's opening story (an event-deck link, due when it strikes). Memory:
+// state.crises = { last: { id: turn }, lastAny, history: [{ id, turn, nations }], coming?: { id, turn,
+// nations, raiders } }; absent = none yet (save 20: `coming` is optional, no migration).
 // state.settings.crises === 'off' stops all. Pure apart from the turn's working regions and units.
 import { CRISES, crisisCardId } from '../data/crises';
 import { getAgeIndex, speedTurns } from '../data/ages';
@@ -31,6 +34,7 @@ export const CHECK_PERIOD = 5;
 export const CRISIS_CHANCE = 0.1;     // per check, per crisis whose conditions hold
 export const CRISIS_GAP = 60;         // reference turns between any two crises
 export const MAX_HIT = 6;
+export const WARN_TURNS = 5;          // reference turns between the warning and the strike
 export const COLLAPSE_LOYALTY = 35;
 export const SURGE_KM = 1200;
 export const SURGE_BANDS = 2;
@@ -70,6 +74,7 @@ export const crisisDue = (state) => {
   const turn = state.turnNumber || 0;
   if (!crisesOn(state) || turn % CHECK_PERIOD !== 0) return null;
   const mem = state.crises || {};
+  if (mem.coming) return null;
   const age = waitAgeOf(state);
   if (mem.lastAny != null && turn - mem.lastAny < speedTurns(CRISIS_GAP, state.gameSpeed, age)) return null;
   const ctxs = new Map();
@@ -77,29 +82,52 @@ export const crisisDue = (state) => {
   for (const crisis of CRISES) {
     const last = mem.last?.[crisis.id];
     if (last != null && turn - last < speedTurns(crisis.cooldown, state.gameSpeed, age)) continue;
-    const hit = hitNations(state, crisis, ctxOf);
-    if (hit.length < crisis.minHit) continue;
+    const all = hitNations(state, crisis, ctxOf);
+    if (all.length < crisis.minHit) continue;
+    const roll = (id) => hashRoll(`${state.rngSeed}|crisisHit|${crisis.id}|${turn}|${id}`);
+    const hit = all.map((id) => [roll(id), id]).sort((a, b) => a[0] - b[0] || (a[1] < b[1] ? -1 : 1)).slice(0, MAX_HIT).map((x) => x[1]);
     const raiders = raidersNear(state, crisis, hit);
     if (crisis.raiders && !raiders.length) continue;
     if (hashRoll(`${state.rngSeed}|crisis|${crisis.id}|${turn}`) >= CRISIS_CHANCE) continue;
-    return { crisis, hit: hit.slice(0, MAX_HIT), raiders: raiders.slice(0, MAX_HIT) };
+    return { crisis, hit, raiders: raiders.slice(0, MAX_HIT) };
   }
   return null;
 };
 
+/** The crisis announced against the player, as { crisis, turn, nations }, or null (the warning). */
+export const crisisComing = (state) => {
+  const c = state.crises?.coming;
+  const crisis = c && crisesOn(state) && c.nations.includes(state.playerNationId) && CRISES.find((x) => x.id === c.id);
+  return crisis ? { crisis, turn: c.turn, nations: c.nations } : null;
+};
+
 /**
- * Start this turn's crisis, if one is due. `state` carries the new turnNumber and the turn's working
+ * Announce this turn's crisis, if one is due (it strikes WARN_TURNS reference turns later), or strike
+ * the announced one whose warning ran out. `state` carries the new turnNumber and the turn's working
  * `regions` and `units` (written in place), `nations` and `wars`.
  * @returns {null | { nations, wars, crises, pendingEventChains, logs }}
  */
 export const processCrises = (state) => {
-  const due = crisisDue(state);
-  if (!due) return null;
-  const { crisis, hit, raiders } = due;
-  const { regions, units } = state;
   const turn = state.turnNumber;
-  const hitSet = new Set(hit);
+  const mem = state.crises || {};
   let { nations, wars } = state;
+  if (!mem.coming) {
+    const due = crisisDue(state);
+    if (!due) return null;
+    const coming = { id: due.crisis.id, turn: turn + speedTurns(WARN_TURNS, state.gameSpeed, waitAgeOf(state)), nations: due.hit, raiders: due.raiders };
+    return { nations, wars, crises: { ...mem, last: { ...mem.last, [due.crisis.id]: turn }, lastAny: turn, coming }, pendingEventChains: state.pendingEventChains, logs: [] };
+  }
+  const { coming, ...rest } = mem;
+  // Crises switched off while one was coming: drop it, so it never strikes later unannounced.
+  if (!crisesOn(state)) return { nations, wars, crises: rest, pendingEventChains: state.pendingEventChains, logs: [] };
+  if (turn < coming.turn) return null;
+  const crisis = CRISES.find((c) => c.id === coming.id);
+  if (!crisis) return { nations, wars, crises: rest, pendingEventChains: state.pendingEventChains, logs: [] };
+  const alive = (id) => nations[id] && !nations[id].isEliminated;
+  const hit = coming.nations.filter(alive);
+  const raiders = (coming.raiders || []).filter(alive);
+  const { regions, units } = state;
+  const hitSet = new Set(hit);
   const owned = Object.keys(regions).filter((id) => hitSet.has(regions[id].owner));
   if (crisis.effect === 'collapse') {
     owned.forEach((id) => { const c = regions[id]; if (!c.isCapital) regions[id] = { ...c, loyalty: Math.max(0, loyaltyOf(c) - COLLAPSE_LOYALTY) }; });
@@ -119,14 +147,13 @@ export const processCrises = (state) => {
   } else if (crisis.effect === 'famine') {
     owned.forEach((id) => { const c = regions[id]; regions[id] = drawPeople(c, FAMINE_SHARE * (c.currentPopulation || sizeToPeople(c.size)), { canShrink: true }); });
   } else if (crisis.effect === 'war') {
-    const [a, b] = hit.filter((id) => id !== state.playerNationId);
-    if (!b) return null;
-    const after = declareWar({ ...state, nations, wars }, b, { aggressor: a });
-    if (after.wars === wars) return null;
+    // The player is never made the aggressor (no forced loss of control): a hit player is the target.
+    const [a, b] = hit[0] === state.playerNationId ? [hit[1], hit[0]] : hit;
+    const after = a && b ? declareWar({ ...state, nations, wars }, b, { aggressor: a }) : null;
+    if (!after || after.wars === wars) return { nations, wars, crises: rest, pendingEventChains: state.pendingEventChains, logs: [] }; // no war to start: it passes
     ({ nations, wars } = after);
   }
-  const mem = state.crises || {};
-  const crises = { last: { ...mem.last, [crisis.id]: turn }, lastAny: turn, history: [...(mem.history || []), { id: crisis.id, turn, nations: hit }] };
+  const crises = { ...rest, history: [...(mem.history || []), { id: crisis.id, turn, nations: hit }] };
   const pendingEventChains = hitSet.has(state.playerNationId) ? [...(state.pendingEventChains || []), { id: crisisCardId(crisis.id), dueTurn: turn }] : state.pendingEventChains;
   return { nations, wars, crises, pendingEventChains, logs: [{ year: state.year, type: 'milestone', ...msg(`m.world.crisis.${crisis.id}`) }] };
 };

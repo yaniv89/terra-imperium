@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { crisisDue, processCrises, hitNations, CHECK_PERIOD } from './crises';
+import { crisisDue, processCrises, hitNations, crisisComing, CHECK_PERIOD, MAX_HIT } from './crises';
 import { CRISES, crisisCardId } from '../data/crises';
 import { cardOf } from './eventDeck';
 import { peoplesWorld, cloneWorld, majorIds, addCities } from './testWorld';
@@ -44,9 +44,18 @@ describe('history crises (U31)', () => {
 
   it('a collapse loosens outer cities, spares capitals and the player\'s units, rests, and opens the story', () => {
     const s0 = world('bronze');
-    const s = { ...s0, turnNumber: dueTurn(s0) };
+    const t0 = dueTurn(s0);
+    // The warning first: nothing changes yet, the crisis waits in state.crises.coming.
+    const warned = processCrises({ ...s0, turnNumber: t0 });
+    expect(warned.logs).toEqual([]);
+    expect(warned.crises.coming).toMatchObject({ id: 'bronze_collapse' });
+    expect(warned.crises.coming.turn).toBeGreaterThan(t0);
+    expect(crisisComing({ ...s0, crises: warned.crises })).toMatchObject({ turn: warned.crises.coming.turn });
+    expect(processCrises({ ...s0, crises: warned.crises, turnNumber: warned.crises.coming.turn - 1 })).toBe(null);
+    const s = { ...s0, crises: warned.crises, turnNumber: warned.crises.coming.turn };
     const unitsBefore = JSON.stringify(Object.values(s.units).filter((u) => u.ownerId === s.playerNationId));
     const out = processCrises(s);
+    expect(out.crises.coming).toBeUndefined();
     expect(out.crises.history[0]).toMatchObject({ id: 'bronze_collapse', turn: s.turnNumber });
     const hit = new Set(out.crises.history[0].nations);
     expect(hit.has(s.playerNationId)).toBe(true);
@@ -60,12 +69,62 @@ describe('history crises (U31)', () => {
     expect(crisisDue({ ...s, crises: out.crises, turnNumber: s.turnNumber + CHECK_PERIOD })).toBe(null);
   });
 
-  it('runs inside resolveTurn and shows the player its story', () => {
+  it('runs inside resolveTurn: the warning, then the strike and the player\'s story', () => {
     const s0 = world('bronze');
     const t = dueTurn(s0);
     const fired = Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true]));
-    const next = resolveTurn({ ...s0, turnNumber: t - 1, firedEvents: fired, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
+    const quiet = { firedEvents: fired, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
+    const warned = resolveTurn({ ...s0, ...quiet, turnNumber: t - 1 });
+    expect(warned.crises?.coming?.id).toBe('bronze_collapse');
+    expect(warned.crises.history).toBeUndefined();
+    const next = resolveTurn({ ...warned, ...quiet, activeEventId: null, pendingEventChains: [], turnNumber: warned.crises.coming.turn - 1 });
     expect(next.crises?.history?.[0]?.id).toBe('bronze_collapse');
     expect(next.activeEventId).toBe(crisisCardId('bronze_collapse'));
+  });
+
+  it('hits the player as often as any other nation that qualifies (a seeded draw, not the largest)', () => {
+    let s = world('bronze');
+    majorIds(s).slice(4, 14).forEach((id) => { s = addCities(s, id, 2).state; });
+    const n = hitNations(s, collapse).length;
+    expect(n).toBeGreaterThan(MAX_HIT);
+    const hits = {};
+    let draws = 0;
+    for (let t = CHECK_PERIOD; t < 20000 && draws < 300; t += CHECK_PERIOD) {
+      const due = crisisDue({ ...s, turnNumber: t });
+      if (!due) continue;
+      draws += 1;
+      due.hit.forEach((id) => { hits[id] = (hits[id] || 0) + 1; });
+    }
+    const expected = (draws * MAX_HIT) / n;
+    expect(hits[s.playerNationId]).toBeGreaterThan(expected * 0.7);
+    expect(hits[s.playerNationId]).toBeLessThan(expected * 1.3);
+  });
+
+  it('a world war never makes the player the aggressor', () => {
+    const s = world('bronze');
+    const rival = majorIds(s)[1];
+    const out = processCrises({ ...s, turnNumber: 50, crises: { coming: { id: 'world_war', turn: 50, nations: [s.playerNationId, rival] } } });
+    const war = out.wars.find((w) => w.active && w.enemy === s.playerNationId);
+    expect(war?.aggressor).toBe(rival);
+  });
+
+  it('explore mode or crises off drop an announced crisis: it never strikes', () => {
+    const s = world('bronze');
+    const crises = { coming: { id: 'bronze_collapse', turn: 50, nations: [s.playerNationId] } };
+    [{ explore: true }, { crises: 'off' }].forEach((settings) => {
+      const out = processCrises({ ...s, turnNumber: 50, crises, settings });
+      expect(out.crises.coming).toBeUndefined();
+      expect(out.crises.history).toBeUndefined();
+      expect(crisisComing({ ...s, crises, settings })).toBe(null);
+    });
+  });
+
+  it('a world war whose other side fell before it struck starts no war', () => {
+    const s = world('bronze');
+    const rival = majorIds(s)[1];
+    s.nations[rival] = { ...s.nations[rival], isEliminated: true };
+    const out = processCrises({ ...s, turnNumber: 50, crises: { coming: { id: 'world_war', turn: 50, nations: [s.playerNationId, rival] } } });
+    expect(out.wars).toBe(s.wars);
+    expect(out.crises.coming).toBeUndefined();
   });
 });

@@ -81,4 +81,13 @@ describe('next prompt', () => {
     expect(softHints(attacked).some((p) => p.kind === 'war')).toBe(false); // never an End Turn warning
     expect(nextPrompts({ ...attacked, turnNumber: 9 + WAR_NOTICE_TURNS }).some((p) => p.kind === 'war')).toBe(false);
   });
+
+  it('warns of a crisis coming for the player: when and what softens it (follow-up 25)', () => {
+    const coming = (nations) => ({ ...WORLD, turnNumber: 40, crises: { coming: { id: 'bronze_collapse', turn: 48, nations } } });
+    const p = nextPrompts(coming([FR, DE])).find((x) => x.kind === 'crisis');
+    expect(chipLabel(coming([FR]), p)).toBe('Crisis in 8 turns: garrison outer towns');
+    expect(SOFT_KINDS.has('crisis')).toBe(true);
+    expect(nextPrompts(coming([DE])).some((x) => x.kind === 'crisis')).toBe(false); // not the player's
+    expect(nextPrompts({ ...coming([FR]), settings: { crises: 'off' } }).some((x) => x.kind === 'crisis')).toBe(false);
+  });
 });
