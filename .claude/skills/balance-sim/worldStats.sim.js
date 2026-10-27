@@ -80,12 +80,14 @@ const isPlagued = (r) => r.disaster?.kind === 'plague' || (r.plague?.i || 0) > 0
 // base commit) still had the calendar floor and the +1 cap; the ages-by-tech engine has only research.
 const nationAge = (s, id) => (AGES.getEffectiveAgeId ? AGES.getEffectiveAgeId(s.age, getTechAgeId(s, id)) : getTechAgeId(s, id));
 const livingMajors = (s) => Object.values(s.nations).filter((n) => n.kind !== 'independent' && !n.isEliminated && !n.id.startsWith('free_') && n.id !== 'rebels');
-// The plan's target end turn of each age by speed (KTD9, Stone to Modern; Information runs to the end
-// until the Future exists). Stone comes first, so every later end turn counts its turns too (U63).
+// Turns each age lasts by speed (U96): Normal is the research pace refit to Civ VI's shape (report
+// "Calendar and pacing", rank 4); Fast and Marathon are Normal scaled by turn limit (440 and 1514 of 923),
+// except Marathon's Stone, which keeps U47's pace (about 84 turns, SC3). Stone comes first, so every
+// later end turn counts its turns too (U63).
 const AGE_TARGET_TURNS = {
-  fast: { stone: 30, bronze: 24, classical: 52, kingdoms: 84, gunpowder: 80, modern: 45 },
-  normal: { stone: 60, bronze: 48, classical: 109, kingdoms: 167, gunpowder: 200, modern: 90 },
-  marathon: { stone: 75, bronze: 120, classical: 260, kingdoms: 334, gunpowder: 400, modern: 100 }
+  fast: { stone: 33, bronze: 24, classical: 40, kingdoms: 46, gunpowder: 80, modern: 85, information: 85 },
+  normal: { stone: 69, bronze: 50, classical: 84, kingdoms: 96, gunpowder: 167, modern: 178, information: 178 },
+  marathon: { stone: 84, bronze: 82, classical: 138, kingdoms: 157, gunpowder: 274, modern: 292, information: 292 }
 };
 const ageTargetEnds = (speed) => { const t = AGE_TARGET_TURNS[speed] || AGE_TARGET_TURNS.normal; let sum = 0; return Object.fromEntries(Object.entries(t).map(([a, n]) => { sum += n; return [a, sum]; })); };
 const ageStats = (s, counters) => {
@@ -227,7 +229,7 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     playerBuildings: regs.filter((r) => r.owner === s.playerNationId).reduce((a, c) => a + Object.values(c.buildings?.categories || {}).reduce((k, v) => k + (Number.isFinite(v) ? v + 1 : 0), 0), 0),
     // Action gaps (I029): turns on which the scripted player had a decision (a city to queue, a
     // settler to send, a tech done, a blocker to answer); the longest run of turns without one.
-    ...(counters.actions ? { actionTurnShare: +(counters.actions.turns / Math.max(1, t)).toFixed(3), maxActionGap: counters.actions.maxGap, actionGapsOver5: counters.actions.over5, actionTurnShare100: +(counters.actions.turns100 / Math.max(1, Math.min(100, t))).toFixed(3), maxActionGap100: counters.actions.maxGap100 } : {}),
+    ...(counters.actions ? { actionTurnShare: +(counters.actions.turns / Math.max(1, t)).toFixed(3), maxActionGap: counters.actions.maxGap, maxNewsGap: counters.actions.maxNewsGap || 0, actionGapsOver5: counters.actions.over5, actionTurnShare100: +(counters.actions.turns100 / Math.max(1, Math.min(100, t))).toFixed(3), maxActionGap100: counters.actions.maxGap100 } : {}),
     // Independents' AI (phase W2, raids.js, cumulative): raids started (and at the player), raids
     // that took their loot (and on the player), raid battles, sacks, loot, tribute demands and deals,
     // tribute gold paid, mercenary bands hired; and now: raids out, tribute deals running, bands in service.
@@ -286,6 +288,12 @@ SEEDS.forEach((seed) => {
         const acted = logSum(scripted.log) > acted0 || (a.techsPrev != null && tc > a.techsPrev);
         a.techsPrev = tc;
         if (acted) { a.turns += 1; if (t <= 100) a.turns100 += 1; if (a.gap > 5) a.over5 += 1; a.gap = 0; } else { a.gap += 1; a.maxGap = Math.max(a.maxGap, a.gap); if (t <= 100) a.maxGap100 = Math.max(a.maxGap100, a.gap); }
+        // SC1's wider list (U96): also a city that grew, a new unit or city, or a new contact. maxNewsGap is the longest run without any.
+        const mine = Object.values(s.regions).filter((c) => c.owner === s.playerNationId);
+        const news = [mine.reduce((k, c) => k + (c.size || 0), 0), mine.length, Object.values(s.units).filter((u) => u.ownerId === s.playerNationId).length, metNations(s).length];
+        const grew = a.newsPrev && news.some((v, i) => v > a.newsPrev[i]);
+        a.newsPrev = news;
+        if (acted || grew) a.newsGap = 0; else { a.newsGap = (a.newsGap || 0) + 1; a.maxNewsGap = Math.max(a.maxNewsGap || 0, a.newsGap); }
       }
       else if (s.pendingPeaceOffer) s = gameReducer(s, { type: s.pendingPeaceOffer.terms?.length ? ActionTypes.REJECT_PENDING_PEACE : ActionTypes.ACCEPT_PENDING_PEACE });
       const before = s.logs.length;
@@ -307,6 +315,9 @@ SEEDS.forEach((seed) => {
       counters.maxLeaderGap = Math.max(counters.maxLeaderGap || 0, gap);
       counters.gapOver1 = (counters.gapOver1 || 0) + (gap > 1 ? 1 : 0);
       counters.gapTurns = (counters.gapTurns || 0) + 1;
+      // Age entry turns (U96): the first major in each age, and the turn half the living majors are in it or past it.
+      const ix = livingMajors(s).map((n) => AGES.getAgeIndex(nationAge(s, n.id)));
+      AGES.AGE_ORDER.forEach((a, i) => { const k = ix.filter((x) => x >= i).length; if (k && counters.pastAt[`leaderIn_${a}`] == null) counters.pastAt[`leaderIn_${a}`] = t; if (k * 2 >= ix.length && counters.pastAt[`halfIn_${a}`] == null) counters.pastAt[`halfIn_${a}`] = t; });
       s.logs.slice(before).forEach((l) => {
         if (/defensive league/.test(l.message)) counters.leagues += 1;
         if (/conquers|is conquered|storms/.test(l.message)) counters.conquests += 1;
