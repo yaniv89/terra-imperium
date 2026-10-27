@@ -24,3 +24,5 @@ claude/integration, main gets the push once the quick suite and CI are green.
   - battle-feedback may add a sim order to attack buildings (orderSchema row, SETUP_VERSION bump),
     because players cannot attack walls today and Q3 makes buildings the win condition.
   - All lanes keep Q3, a city falls only when its defence is beaten, units keep their age.
+- API grants (user, 27 Oct): sub sessions may ask the lead for API budget; the lead grants a cap within the
+  $90 total and records it in the dashboard spend data. Spend so far about $38 (caps for running jobs).

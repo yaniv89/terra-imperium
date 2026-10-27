@@ -177,7 +177,9 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   `node_modules` to the main checkout (no npm install). A worktree is about 1.9 GB; remove it after the merge.
 - Every lane brief: ponytail first; targeted tests only when the machine is shared; kill only its own
   processes by PID (never `pkill -f`, it can kill the caller); push its branch, never merge.
-- A sub session lane also follows all of CLAUDE.md, never dispatches workflows or uses the API, and when done
+- A sub session lane also follows all of CLAUDE.md, dispatches API work (AI playtests, content jobs) only with a
+  budget the lead granted by send_message (the lead checks it against the $90 total and records it; the lane
+  sets that job's `max_usd` to its grant and reports the real cost), and when done
   reports back with the claude-code-remote send_message tool to the lead session (its id in the brief), plus a
   report file plans/lanes/<lane>-REPORT.md on its branch.
 - Before merging a lane that touches src/engine/ or src/battle/sim/: run the `engine-rules-reviewer` agent
