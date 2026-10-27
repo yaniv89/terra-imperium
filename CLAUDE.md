@@ -208,3 +208,4 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
 - Sub sessions stall on a permission prompt for send_message: create them with `extra_allowed_tools: ["mcp__claude-code-remote__send_message"]`, and read a stuck lane's report from its transcript (list_events).
 - Playtest issues marked "open" in an old summary may be fixed already: check the code or a fresh run before starting a lane on them.
 - Dashboard datasets: upload the JSON as an asset first, then point `datasets/<id>` source.url at it with the last `if_version`; one JSON file per upload call.
+- Every evaluation round grades art and animation too (map, units, animations, VFX, transitions), not only rules and UI (user, 27 Oct).
