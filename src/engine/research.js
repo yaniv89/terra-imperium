@@ -60,6 +60,9 @@ export const FUTURE_TECH_COST_GROWTH = 0.25;
 // A nation's first tech costs a quarter (U47): a band's first village makes 2 science, and a full
 // price first tech (about 50 on Normal, writing not yet known) left it waiting 25 turns.
 export const FIRST_TECH_COST_MULT = 0.25;
+// The second costs half (Phase G, SC2): at full price it was Marathon's longest quiet stretch, 12
+// turns in a one-village opening. Then full price. A hearth people's starting Agriculture does not count.
+export const openingCostMult = (known) => { const k = known.length - (known.includes(AGRICULTURE_TECH) ? 1 : 0); return k >= 2 ? 1 : FIRST_TECH_COST_MULT * (1 + k); };
 // A safety cap on techs completed in one turn (a big bank paid into cheap techs).
 const MAX_COMPLETIONS_PER_TURN = 6;
 // AI nations pay their banked science into research every AI_RESEARCH_PERIOD turns, staggered by
@@ -87,7 +90,7 @@ export const getResearchCost = (state, nationId, techId, repeats = futureTechsOf
   const mult = withDiffusion(state, nationId, techId, getModifier(state, nationId, 'national.researchCost').total);
   const known = getResearched(state, nationId);
   const writing = known.includes(WRITING_TECH) ? 1 : NO_WRITING_COST_MULT; // stonePhase.js: no writing, half the science
-  const first = known.some((id) => id !== AGRICULTURE_TECH) ? 1 : FIRST_TECH_COST_MULT; // a hearth people starts with Agriculture: its first chosen tech is still the first
+  const first = openingCostMult(known);
   return Math.max(1, Math.round(base * speed * (1 + mult) * writing * first));
 };
 
