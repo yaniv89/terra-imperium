@@ -7,14 +7,16 @@ import { TechCategories } from '../../data/types';
 import { TECH_TREE } from '../../data/techTree';
 import { AGES, AGE_ORDER } from '../../data/ages';
 import { calcIncome } from '../../utils/helpers';
-import { canStartTech, getResearchCost, FOCUS_SCIENCE_BONUS, inResearchWindow, ageDoneFor } from '../../engine/research';
+import { canStartTech, getResearchCost, getResearchPath, recommendTechs, FOCUS_SCIENCE_BONUS, inResearchWindow, ageDoneFor } from '../../engine/research';
+import { BOOST_SHARE } from '../../data/boosts';
+import { LAW_CATEGORIES } from '../../data/laws';
 import { ageOf, futureTechsOf } from '../../engine/nationState';
 import { getTechDiffusion } from '../../engine/techDiffusion';
 import { researchSchedule, researchStatus, techGate, gateText } from '../../engine/researchStatus';
 import { t as tNow } from '../../i18n';
 import { ageName } from '../../i18n/core';
 import { mapEffectLabel } from '../../engine/techMapEffects';
-import { techName, unitName, buildingTierName, improvementName } from '../../i18n/gameText';
+import { techName, unitName, buildingTierName, improvementName, lawName } from '../../i18n/gameText';
 import { UNIT_UNLOCKS } from '../../data/unitClasses';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { IMPROVEMENTS } from '../../data/tileYields';
@@ -44,12 +46,48 @@ export const describeTech = (tech) => {
   return parts.join(', ');
 };
 
-/** The units, buildings and tile improvements a tech unlocks, as names in the current language ([] when none). */
+/** The units, buildings, tile improvements and laws a tech unlocks, as names in the current language ([] when none). */
 export const techUnlocks = (techId) => [
   ...Object.entries(UNIT_UNLOCKS).flatMap(([ageId, row]) => Object.keys(row).filter((c) => row[c] === techId).map((c) => unitName(ageId, c))),
   ...Object.entries(BUILDING_CATEGORIES).flatMap(([cat, def]) => def.tiers.map((tier, i) => (tier.requiresTech === techId ? buildingTierName(cat, i, tier.name) : null)).filter(Boolean)),
-  ...Object.entries(IMPROVEMENTS).filter(([, imp]) => imp.requiresTech === techId).map(([id, imp]) => improvementName(id, imp.name))
+  ...Object.entries(IMPROVEMENTS).filter(([, imp]) => imp.requiresTech === techId).map(([id, imp]) => improvementName(id, imp.name)),
+  ...Object.values(LAW_CATEGORIES).flat().filter((law) => law.requiresTech === techId).map((law) => tNow('p2.tr.law', { name: lawName(law.id, law.name) }))
 ];
+
+// How far a tech is, for a locked unit or building ("Needs Copper Working, researching, 3 turns
+// left"; playtest 40550092795 step 51): under way or queued, the turn it lands; otherwise the
+// research its path would take if picked now. Null once known. { kind, turns, steps, gate }
+export const techEta = (state, techId) => {
+  const research = state.research || {};
+  const order = [research.current, ...(research.queue || [])].filter(Boolean);
+  const at = order.indexOf(techId);
+  if (at >= 0) {
+    const s = researchSchedule(state, order)[at];
+    return { kind: at === 0 ? 'current' : 'queued', turns: s.finishesIn, steps: 1, gate: s.waitsOnGate ? s.gate : null };
+  }
+  const path = getResearchPath(techId, researchedSet(state));
+  if (!path.length) return null;
+  const sched = researchSchedule(state, path);
+  return { kind: 'path', turns: sched[sched.length - 1].finishesIn, steps: path.length, gate: sched.find((x) => x.gate)?.gate || null };
+};
+export const techEtaText = (eta) => {
+  if (!eta) return null;
+  if (eta.gate) return gateText(eta.gate);
+  const turns = formatTurns(eta.turns);
+  if (eta.kind === 'current') return tNow('p2.eta.current', { turns });
+  if (eta.kind === 'queued') return tNow('p2.eta.queued', { turns });
+  return eta.steps > 1 ? tNow('p2.eta.pathN', { turns, n: eta.steps }) : tNow('p2.eta.path', { turns });
+};
+
+// The advisor's picks (research.js recommendTechs) with their reasons in plain words.
+const REASON_WORDS = {
+  boost: () => tNow('p2.rec.boost', { pct: Math.round(BOOST_SHARE * 100) }),
+  warUnit: () => tNow('p2.rec.warUnit'),
+  unlock: () => tNow('p2.rec.unlock'),
+  focus: () => tNow('p2.rec.focus')
+};
+export const recommendText = (reasons = []) => tNow('p2.rec.line', { list: (reasons.length ? reasons.map((r) => REASON_WORDS[r]()) : [tNow('p2.rec.cheap')]).join(', ') });
+export const recommendedTechs = (state, count = 3) => recommendTechs(state, state.playerNationId, count).map((r) => ({ ...r, text: recommendText(r.reasons) }));
 
 export const getSciencePerTurn = (state) => Math.round((calcIncome(state).techPoints || 0) * 10) / 10;
 
