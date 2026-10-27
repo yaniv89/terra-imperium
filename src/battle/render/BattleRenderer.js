@@ -80,7 +80,7 @@ const SCREEN_RIGHT = new Vector3(1, 0, -1).normalize();
 const SCREEN_UP_GROUND = new Vector3(-1, 0, -1).normalize();
 export const PHONE_MAX_ZOOM = 5;
 const VIEW_TILES = 30;       // landscape; portrait phones get a closer camera (see resize)
-const PHONE_VIEW_TILES = 18; // a landscape phone (short side <= 500 css px)
+const PHONE_VIEW_TILES = 15; // a landscape phone (short side <= 500 css px): soldiers about 23 css px tall
 const BANNER_HEIGHT = 0.62;  // of the old pole: standards above the men, not a forest over them
 const BANNER_MIN_ZOOM = 0.6; // zoomed further out only generals and the selection carry one
 const FAR_MARK_PX = 10;      // soldiers shorter than this on screen: every squad gets its side's disc (I218)
@@ -88,6 +88,18 @@ const FAR_MARK_MIN_PX = 26;  // ...at least this wide on screen
 const WRECK_SMOKE_LIFE = 3.5; // seconds a wreck's smoke puff takes to rise and fade (X27)
 const CANOPY_RADIUS = 2.6; // tiles around a selected or fighting squad where crowns and roofs fade
 const BAR_MIN_ZOOM = 0.7;    // strength bars of fighting squads from this zoom in
+// Readability in a melee (art-animation lane): a rim of the side's colour on every soldier's
+// silhouette (brighter on the far level, where figures are a few pixels), and the front rank of a
+// squad that was just hit flashes towards white for HIT_FLASH_S.
+export const SIDE_RIM = { near: 0.55, far: 0.9 };
+export const HIT_FLASH_S = 0.18;
+const HIT_FLASH_MAX = 0.65;
+/** How far towards white a squad hit at `hitTick` is drawn at sim tick `tick` (0 = not at all). */
+export const hitFlash = (hitTick, tick, tickRate = 20) => {
+  if (hitTick == null || hitTick < 0) return 0;
+  const age = (tick - hitTick) / tickRate;
+  return age < 0 || age >= HIT_FLASH_S ? 0 : HIT_FLASH_MAX * (1 - age / HIT_FLASH_S);
+};
 const tmp = new Object3D();
 const ORDER_DASHES = 48; // dashes per order target line at most
 const tmpColor = new Color();
@@ -270,8 +282,8 @@ export class BattleRenderer {
     // dyes sleeves, kilts and caparisons only lightly): skin, leather, metal and wood stay natural.
     // The far level takes a faint tint so two tiny armies still read apart; a strong one turned
     // armies into solid orange and blue carpets.
-    this.soldierMaterial = this.track(createSoldierMaterial({ standard: true, teamTint: 0 }));
-    this.farSoldierMaterial = this.track(createSoldierMaterial({ standard: true, teamTint: 0.06 }));
+    this.soldierMaterial = this.track(createSoldierMaterial({ standard: true, teamTint: 0, rim: SIDE_RIM.near }));
+    this.farSoldierMaterial = this.track(createSoldierMaterial({ standard: true, teamTint: 0.06, rim: SIDE_RIM.far }));
     const pmrem = new PMREMGenerator(this.renderer);
     this.envMap = this.track(pmrem.fromScene(new RoomEnvironment(), 0.04).texture);
     pmrem.dispose();
@@ -908,7 +920,7 @@ export class BattleRenderer {
     let mats = { near: this.soldierMaterial, far: this.farSoldierMaterial, depth: this.soldierDepth };
     if (bake) {
       const u = clipUniforms(bake); this.track(u.texture);
-      mats = { near: this.track(createSoldierMaterial({ standard: true, teamTint: 0, clips: u })), far: this.track(createSoldierMaterial({ standard: true, teamTint: 0.06, clips: u })), depth: this.track(createSoldierDepthMaterial({ clips: u })) };
+      mats = { near: this.track(createSoldierMaterial({ standard: true, teamTint: 0, rim: SIDE_RIM.near, clips: u })), far: this.track(createSoldierMaterial({ standard: true, teamTint: 0.06, rim: SIDE_RIM.far, clips: u })), depth: this.track(createSoldierDepthMaterial({ clips: u })) };
     }
     const make = (source, shadow, far) => {
       const geo = this.track(packForGPU(source.clone()));
@@ -1402,6 +1414,9 @@ export class BattleRenderer {
       if (s.hidden) tmpColor.lerp(PALE_AMBUSH, 0.45); // in ambush
       if (isSelected) tmpColor.lerp(WHITE, 0.2);
       const { r: cr, g: cg, b: cb } = tmpColor;
+      const flash = hitFlash(s.lastHitTick, cur.tick, this.tickRate || 20);
+      const fr = cr + (1 - cr) * flash; const fg = cg + (1 - cg) * flash; const fb = cb + (1 - cb) * flash;
+      const flashCols = flash > 0 ? Math.max(1, cols) : 0; // the front rank takes the blow
       const mat = layer.matrix.array; const colArr = layer.color.array; const animArr = layer.anim.array;
       const walking = moving || s.routed ? 1 : 0; const striking = fighting ? 1 : 0;
       const turn = heading + (s.routed ? Math.PI : 0); // routed troops turn and run
@@ -1433,7 +1448,7 @@ export class BattleRenderer {
           mat[o + 8] = sn; mat[o + 9] = 0; mat[o + 10] = c; mat[o + 11] = 0;
           mat[o + 12] = px; mat[o + 13] = this.heightAt(px, pz); mat[o + 14] = pz; mat[o + 15] = 1;
         }
-        colArr[k * 3] = cr; colArr[k * 3 + 1] = cg; colArr[k * 3 + 2] = cb;
+        if (i < flashCols) { colArr[k * 3] = fr; colArr[k * 3 + 1] = fg; colArr[k * 3 + 2] = fb; } else { colArr[k * 3] = cr; colArr[k * 3 + 1] = cg; colArr[k * 3 + 2] = cb; }
         if (clipState) writeAnim(clipState, i, animArr, prevArr, k, (fig[d + 4] / 6.283) * 2);
         else { animArr[k * 3] = fig[d + 4]; animArr[k * 3 + 1] = walking; animArr[k * 3 + 2] = striking; }
         varArr[k * 4] = fig[d + 5]; varArr[k * 4 + 1] = fig[d + 6]; varArr[k * 4 + 2] = fig[d + 7]; varArr[k * 4 + 3] = fig[d + 8];
@@ -1596,9 +1611,15 @@ export class BattleRenderer {
       if (d + FIG > figData.length) break;
       const lat = figData[d]; const back = figData[d + 1];
       const px = x + (-fz) * lat - fx * back; const pz = z + fx * lat - fz * back;
-      const c = ct * figData[d + 2] - st * figData[d + 3]; const sn = st * figData[d + 2] + ct * figData[d + 3];
+      // each falls his own way: a turn of up to about 50 degrees either side and a short stagger, so
+      // the dead do not lie in parade order (the formation's facing kept, plus the jitter)
+      const ja = (hash01(memo.idx * 53 + i * 11) - 0.5) * 1.75; const jc = Math.cos(ja); const js = Math.sin(ja);
+      const fc = figData[d + 2] * jc - figData[d + 3] * js; const fs = figData[d + 3] * jc + figData[d + 2] * js;
+      const c = ct * fc - st * fs; const sn = st * fc + ct * fs;
+      const stag = (hash01(memo.idx * 29 + i * 5) - 0.3) * 0.35 * scale;
+      const cx = px - fx * stag; const cz = pz - fz * stag;
       const clip = hash01(memo.idx * 7 + i) < 0.5 || set.roles.deathAlt < 0 ? set.roles.death : set.roles.deathAlt;
-      this.corpses.push({ layer: info.layer, x: px, z: pz, c, sn, scale, r: side.r, g: side.g, b: side.b, v: figData.slice(d + 5, d + 9), clip, born: this.time });
+      this.corpses.push({ layer: info.layer, x: cx, z: cz, c, sn, scale, r: side.r, g: side.g, b: side.b, v: figData.slice(d + 5, d + 9), clip, born: this.time });
     }
     const cap = this.figureBudget === BATTLE_GRAPHICS.figureTriangles.phone ? BATTLE_GRAPHICS.corpses.phone : BATTLE_GRAPHICS.corpses.desktop;
     if (this.corpses.length > cap) this.corpses.splice(0, this.corpses.length - cap);
