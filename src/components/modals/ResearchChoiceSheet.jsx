@@ -87,8 +87,9 @@ const ResearchChoiceSheet = ({ hidden }) => {
           ))}
         </div>
 
-        {/* On a phone held sideways the two actions stay in view at the bottom of the scrolling sheet. */}
-        <div className="flex gap-2 pl:sticky pl:-bottom-4 pl:-mx-4 pl:px-4 pl:py-2 pl:bg-fa-panel pl:border-t pl:border-fa-line">
+        {/* On a phone held sideways the two actions stay in view at the bottom of the scrolling sheet; the sheet
+            keeps its bottom padding clear for End Turn, and the shadow paints that strip so no option shows under it. */}
+        <div className="flex gap-2 pl:sticky pl:bottom-0 pl:-mx-4 pl:px-4 pl:py-2 pl:bg-fa-panel pl:border-t pl:border-fa-line pl:shadow-[0_5rem_0_0_var(--fa-panel)]">
           <button onClick={() => { const plan = advisorPlan(state); dispatch({ type: ActionTypes.SET_RESEARCH_AUTO, payload: { auto: true } }); if (plan.techId) choose(plan.techId); }} className="flex-1 min-h-[44px] rounded-lg bg-fa-hover hover:bg-fa-line text-sm font-semibold" data-testid="research-let-advisor">{t('rc.advisor')}</button>
           <button onClick={() => { setLaterTurn(state.turnNumber); openPanelTab('tech'); }} className="flex-1 min-h-[44px] rounded-lg bg-fa-raised hover:bg-fa-hover text-sm">{t('rc.allTechs')}</button>
         </div>

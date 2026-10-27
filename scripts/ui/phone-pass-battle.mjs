@@ -93,7 +93,7 @@ const run = async (cfg) => {
     // A war with the nearest major, their army on our capital: the attack card.
     await patch(page, `
       const me = s.playerNationId; const capId = s.nations[me].capitalRegionId; const cap = s.regions[capId];
-      const foe = Object.values(s.nations).find((n) => n.id !== me && !n.indep && !n.isEliminated);
+      const others = Object.values(s.nations).filter((n) => n.id !== me && !n.isEliminated); const foe = others.find((n) => !n.indep && n.kind !== 'independent') || others[0];
       const added = m.addCity(s, foe.id, { near: capId }); s = added.state;
       const foeCapId = added.cityId; const foeCap = s.regions[foeCapId];
       const war = { id: 'war_pp', aggressor: foe.id, enemy: me, active: true, startYear: s.year, startTurn: s.turnNumber, cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'capture_region', regionId: capId } };

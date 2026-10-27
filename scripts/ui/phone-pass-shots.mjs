@@ -68,6 +68,20 @@ const audit = (page, phone) => page.evaluate((phone) => {
       if (!widened) out.push(`SMALL ${label(el)} ${Math.round(r.width)}x${Math.round(r.height)}`);
     }
   }
+  // Right to left: a signed number whose sign lands on the wrong side ("50+" for "+50"), measured.
+  if (document.documentElement.dir === 'rtl') {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const s = n.textContent;
+      for (const m of s.matchAll(/(^|[^\w])([+\-\u2212])(\d)/g)) {
+        const at = m.index + m[1].length;
+        const rect = (i) => { const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + 1); return r.getBoundingClientRect(); };
+        const sg = rect(at); const dg = rect(at + 1);
+        if (!sg.width || sg.bottom < 0 || sg.top > H || Math.abs(sg.top - dg.top) > 4) continue;
+        if (sg.left > dg.left) out.push(`BIDI sign after the number in "${s.trim().slice(0, 40)}"`);
+      }
+    }
+  }
   const text = document.body.innerText;
   for (const m of text.matchAll(/\{[a-zA-Z_]+\}|\bNaN\b|\bundefined\b/g)) out.push(`TEXT ${m[0]} in "${text.slice(Math.max(0, m.index - 30), m.index + 30).replace(/\s+/g, ' ')}"`);
   const sx = document.scrollingElement; if (sx.scrollWidth > W + 1) out.push(`HSCROLL page ${sx.scrollWidth}`);
