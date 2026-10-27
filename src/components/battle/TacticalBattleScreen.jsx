@@ -10,7 +10,7 @@ import { deployZone } from '../../battle/sim/world';
 import { BattleRenderer } from '../../battle/render/BattleRenderer';
 import { createBattleClient } from '../../battle/worker/battleClient';
 import { createGestureRecognizer, insidePolygon } from '../../battle/input/gestures';
-import { decidePointer, isCycleClick, pickOwnBuilding, selectionAfter, BUILDING_PICK_TILES, BUILDING_PICK_PX } from '../../battle/input/selection';
+import { decidePointer, isCycleClick, pickOwnBuilding, selectionAfter, BUILDING_PICK_TILES, BUILDING_PICK_PX, groundOrderType } from '../../battle/input/selection';
 import { Q, TICK_HZ, battleLimitTicks } from '../../battle/sim/constants';
 import BattleHud, { isIdleSquad } from './BattleHud';
 import { BattleRotateGate } from '../ui/RotateOverlay';
@@ -727,7 +727,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       markPending({ kind: 'attack', x: hit.ground.x, z: hit.ground.z, squads: sel, color: '#ef4444' });
       noteFor('attack');
     } else {
-      const type = !startedRef.current ? 'deploy' : forceAttackMove || armedRef.current === 'attackMove' ? 'attackMove' : 'move'; // before Start the ground order places the squads (plan D5)
+      const type = groundOrderType({ started: startedRef.current, armed: armedRef.current, forceAttackMove, squads: sel.map((i) => cur.squads[i]) }); // before Start the ground order places the squads (plan D5)
       send([{ type, squads: sel, x: Math.round(hit.ground.x * Q), y: Math.round(hit.ground.z * Q), formation: formationRef.current }]);
       r.setOrderTarget(sel, null); // a plain move: the old target ring goes, the move marker shows
       r.addMarker(hit.ground.x, hit.ground.z, type === 'attackMove' ? '#fb923c' : '#a3e635');
