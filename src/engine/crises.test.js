@@ -158,7 +158,7 @@ describe('history crises (U31)', () => {
     expect(c.currentPopulation).toBe(peopleOf(c, growthThreshold(c.size, speedCostMult('normal', 'bronze'))));
   });
 
-  it('the player may answer a coming crisis during its warning: the option applies at once, the card does not open again at the strike', () => {
+  it('the player may answer a coming crisis during its warning: the choice is paid at the strike, the card does not open again', () => {
     const s0 = world('bronze');
     const s = { ...s0, turnNumber: 45, crises: { coming: { id: 'bronze_collapse', turn: 50, nations: [s0.playerNationId] } } };
     const opened = gameReducer(s, { type: ActionTypes.ANSWER_CRISIS_EARLY });
@@ -168,10 +168,24 @@ describe('history crises (U31)', () => {
     const gold = opened.resources.gold;
     const answered = gameReducer(opened, { type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex: 0 } });
     expect(answered.activeEventId).toBe(null);
-    expect(answered.resources.gold).toBeLessThan(gold);
+    expect(answered.resources.gold).toBe(gold); // nothing paid during the warning
+    expect(answered.crises.coming.choice).toBe(0);
     const out = processCrises({ ...answered, turnNumber: 50 });
     expect(out.crises.history[0].id).toBe('bronze_collapse');
+    expect(out.choice).toBe(0);
     expect(out.pendingEventChains || []).not.toContainEqual({ id: crisisCardId('bronze_collapse'), dueTurn: 50 });
+    // Through resolveTurn: the strike pays the option (bronze_collapse 0: -40 gold) on top of the same turn.
+    const fired = Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true]));
+    const quiet = { firedEvents: fired, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true }, turnNumber: 49 };
+    const paid = resolveTurn({ ...answered, ...quiet });
+    const unpaid = resolveTurn({ ...answered, ...quiet, crises: { coming: { ...answered.crises.coming, choice: undefined } } });
+    expect(paid.crises.history.at(-1).id).toBe('bronze_collapse');
+    expect(paid.resources.gold).toBe(unpaid.resources.gold - 40);
+    expect(paid.activeEventId).toBe(unpaid.activeEventId);
+    // A crisis dropped before it strikes (crises switched off) pays nothing.
+    const off = { ...answered, settings: { ...answered.settings, crises: 'off' } };
+    expect(processCrises({ ...off, turnNumber: 50 }).choice).toBeUndefined();
+    expect(resolveTurn({ ...off, ...quiet }).resources.gold).toBe(resolveTurn({ ...off, ...quiet, crises: {} }).resources.gold);
     // Not answered: the card opens at the strike as before.
     expect(processCrises({ ...s, turnNumber: 50 }).pendingEventChains).toContainEqual({ id: crisisCardId('bronze_collapse'), dueTurn: 50 });
     // Nothing coming for the player: no card.

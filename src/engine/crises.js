@@ -15,9 +15,10 @@
 //   war       the first two hit majors go to war (declareWar, pacts join); the player is only ever the target
 // A hit player gets the crisis's opening story (an event-deck link, due when it strikes). Memory:
 // state.crises = { last: { id: turn }, lastAny, history: [{ id, turn, nations }], coming?: { id, turn,
-// nations, raiders, answered? } }; absent = none yet (save 20: `coming` and `answered` are optional, no
-// migration). `answered`: the player opened the card during the warning (ANSWER_CRISIS_EARLY); its
-// option applied then, so the card does not open again at the strike.
+// nations, raiders, answered?, choice? } }; absent = none yet (save 20: all optional, no migration).
+// `answered`: the player opened the card during the warning (ANSWER_CRISIS_EARLY), so it does not open
+// again at the strike; `choice`: the option picked then, paid only when the crisis strikes the player (a
+// crisis dropped or passing pays nothing).
 // state.settings.crises === 'off' stops all. Pure apart from the turn's working regions and units.
 import { CRISES, crisisCardId } from '../data/crises';
 import { getAgeIndex, speedTurns, speedCostMult } from '../data/ages';
@@ -113,7 +114,8 @@ export const crisisComing = (state) => {
  * Announce this turn's crisis, if one is due (it strikes WARN_TURNS reference turns later), or strike
  * the announced one whose warning ran out. `state` carries the new turnNumber and the turn's working
  * `regions` and `units` (written in place), `nations` and `wars`.
- * @returns {null | { nations, wars, crises, pendingEventChains, logs }}
+ * @returns {null | { nations, wars, crises, pendingEventChains, logs, choice? }} (`choice`: the option the
+ * player picked during the warning, paid by resolveTurn now that it struck)
  */
 export const processCrises = (state) => {
   const turn = state.turnNumber;
@@ -163,5 +165,6 @@ export const processCrises = (state) => {
   }
   const crises = { ...rest, history: [...(mem.history || []), { id: crisis.id, turn, nations: hit }] };
   const pendingEventChains = hitSet.has(state.playerNationId) && !coming.answered ? [...(state.pendingEventChains || []), { id: crisisCardId(crisis.id), dueTurn: turn }] : state.pendingEventChains;
-  return { nations, wars, crises, pendingEventChains, logs: [{ year: state.year, type: 'milestone', ...msg(`m.world.crisis.${crisis.id}`) }] };
+  const choice = hitSet.has(state.playerNationId) && Number.isInteger(coming.choice) ? coming.choice : undefined;
+  return { nations, wars, crises, pendingEventChains, choice, logs: [{ year: state.year, type: 'milestone', ...msg(`m.world.crisis.${crisis.id}`) }] };
 };
