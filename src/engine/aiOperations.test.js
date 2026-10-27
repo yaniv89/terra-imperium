@@ -7,7 +7,8 @@ import { getTiles } from '../data/geo/tiles';
 import { ringsAround } from './world/cities';
 import { syncWorldRegistry } from './world/registry';
 import { distanceKm } from '../data/geo/geodesic';
-import { processAINavalOperations, processAIOperations, cityAttackWorthIt } from './aiOperations';
+import { processAINavalOperations, processAIOperations, cityAttackWorthIt, ASSAULT_HP } from './aiOperations';
+import { siegeMaxHp } from './sieges';
 import { resolveAllQueuedAuto } from './battleQueue';
 // The rival's capital borders the player's land (neighbourWorld), so the fixture founds a rival
 // interior city beside it that borders no city of the player.
@@ -171,6 +172,29 @@ describe('operational AI',()=>{
     };
     expect(run(100)).toBe(1);
     expect(run(15)).toBe(0);
+  });
+  it('a stack starving at the walls falls back home to refill unless its siege breaks the walls within a few turns (lane campaign-ai-wars)',()=>{
+    const {s,border,target}=setup();
+    const tiles=getTiles();
+    const ring1=tiles.neighbors[s.regions[target].tile].find(t=>tiles.land[t]===1);
+    const max=siegeMaxHp(s.regions[target]);
+    const run=(supply,hp)=>{
+      const units={g:{id:'g',ownerId:P,regionId:target,tile:s.regions[target].tile,domain:'land',classId:'infantry',strength:1000,maxStrength:1000,morale:100,movesLeft:1,promotions:[],xp:0}};
+      // Broken (morale 15): no assault (H-15), so the stack would hold the siege.
+      for(let i=0;i<3;i++)units[`a${i}`]={...s.units.a,id:`a${i}`,regionId:border,tile:ring1,morale:15,supply};
+      const regions={...s.regions,[target]:{...s.regions[target],siege:{by:D,hp}}};
+      return processAIOperations({...s,regions,units,pendingDefenses:[]},createRng(7));
+    };
+    const routed=(st)=>['a0','a1','a2'].map(id=>st.units[id].route?.length||0);
+    expect(routed(run(50,0))).toEqual([0,0,0]); // supplied: it holds the siege
+    expect(routed(run(0,Math.ceil(ASSAULT_HP*max)+20))).toEqual([0,0,0]); // starving, but the walls fall in a turn or two
+    const starved=run(0,0); // starving, walls down and still no assault: home
+    expect(starved.pendingDefenses).toHaveLength(0);
+    ['a0','a1','a2'].forEach(id=>{
+      const r=starved.units[id].route;
+      expect(r?.length).toBeGreaterThan(0);
+      expect(Object.values(s.regions).some(c=>c.owner===D&&c.tile===r[r.length-1])).toBe(true);
+    });
   });
   it('can transport a real army to a reachable island front without creating free units',()=>{
     // Two coastal peoples of the small world that reach each other by sea (as in aiLanding.test.js).

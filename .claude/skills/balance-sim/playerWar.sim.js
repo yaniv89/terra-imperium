@@ -107,7 +107,7 @@ SEEDS.forEach((seed) => {
       out.starvedUnitTurns = (out.starvedUnitTurns || 0) + foeUnits.filter((u) => u.supply != null && u.supply <= 0).length;
       if (process.env.TRACE === '1') {
         const groups = {};
-        foeUnits.forEach((u) => { let d = Infinity; for (const c of myCities) d = Math.min(d, ringsApart(u.tile, c.tile, tiles)); const k = `${u.tile}@${d.toFixed(1)}${u.route?.length ? `>${u.route.length}` : ''}${u.routeHalt ? `!${u.routeHalt}` : ''}`; groups[k] = (groups[k] || 0) + 1; });
+        foeUnits.forEach((u) => { let d = Infinity; for (const c of myCities) d = Math.min(d, ringsApart(u.tile, c.tile, tiles)); const k = `${u.tile}@${d.toFixed(1)}${u.route?.length ? `>${u.route.length}` : ''}${u.routeHalt ? `!${u.routeHalt}` : ''}${process.env.SUPPLY ? `s${Math.round(u.supply ?? 100)}m${Math.round(u.morale ?? 100)}h${Math.round(u.strength)}` : ''}`; groups[k] = (groups[k] || 0) + 1; });
         const p = s.nations[out.enemy]?.warPlan;
         const sieges = myCities.filter((c) => c.siege).map((c) => `${c.id}:${Math.round(c.siege.hp)}`);
         if (process.env.DBG) console.log('PD', JSON.stringify((s.pendingDefenses || []).map((d) => ({ id: d.id, kind: d.kind, region: d.regionId, agg: d.aggressorId, att: d.attackerUnitIds?.length, def: d.defenderUnitIds?.length }))), 'owner', s.regions.c81237?.owner, 'units in cap', Object.values(s.units).filter((u) => u.regionId === 'c81237').map((u) => `${u.ownerId}:${u.tile}:${u.strength}`).join(' '));
