@@ -44,7 +44,7 @@ for (const [label, w, h, mobile] of SIZES) for (const lang of ['en', 'he']) {
   const sheet = page.getByTestId('research-choice');
   if (await sheet.isVisible().catch(() => false)) {
     check(`${tag} the choice sheet marks a recommended pick`, await page.getByTestId('research-recommended').count() === 1);
-    check(`${tag} the recommended pick says why`, (await page.getByTestId('research-option-why').textContent().catch(() => '')).length > 5);
+    check(`${tag} the recommended pick says why`, (await page.getByTestId('research-why').textContent().catch(() => '')).length > 5);
     await shot('choice');
   } else console.log(`note ${tag}: no research choice sheet at the start`);
   // The game opens as a band: settle its village first (FOUND_CITY), so there is a build list.

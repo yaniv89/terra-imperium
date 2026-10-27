@@ -82,9 +82,9 @@ const ResearchChoiceSheet = ({ hidden }) => {
                 <span className="text-[11px] text-purple-300 shrink-0">{formatTurns(o.turns)}</span>
               </div>
               <div className="text-[11px] text-fa-muted">{t('rc.catCost', { cat: CATEGORY_LABELS[o.tech.category], cost: o.cost })}</div>
-              {o.unlocks.length > 0 && <div className="text-[11px] text-fa-text" data-testid="research-option-unlocks">{t('p2.tr.unlocks', { list: o.unlocks.join(', ') })}</div>}
+              {o.unlocks.length > 0 && <div className="text-[11px] text-fa-text" data-testid="research-unlocks">{t('p2.tr.unlocks', { list: o.unlocks.join(', ') })}</div>}
               <div className="text-[11px] text-fa-muted">{describeTech(o.tech)}</div>
-              {i === 0 && <div className="text-[11px] text-fa-brass" data-testid="research-option-why">{o.why}</div>}
+              {i === 0 && <div className="text-[11px] text-fa-brass" data-testid="research-why">{o.why}</div>}
             </button>
           ))}
         </div>

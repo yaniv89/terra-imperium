@@ -43,3 +43,9 @@ Goal: make research choices meaningful and easy to read (playtests gave Tech 5 a
 ## Not done
 - Pre-queueing a locked unit so it starts when its tech lands (the playtest's second idea). It needs a queue rule in cities.js, so it is left for the lead to decide.
 - The Research tab layout belongs to the phone-pass lane. Only content was added.
+
+## Test notes
+- `npm run test:quick` after merging integration: 2 failures, both fixed.
+  - researchChoice.test.js: my new testids matched its `research-option-` count, so they were renamed.
+  - lateArrivalPace.test.js: a golden snapshot driven by the player's auto research. The new picks made lapita arrive at T64 instead of T75. The test now picks with `suggestTechs` (the measured run's advisor), so it tests only the clock again, and it passes with lapita at T75.
+- Slow engine files (endgameReachability, longRun, resolveTurn, settlers, aiQualityBenchmark, emergentWorld, cities, raids): all pass except resolveTurn "an aggressive, hostile Tier 1 neighbor eventually declares war". **It fails the same way on origin/claude/integration without this lane**, so it was there before this lane.
