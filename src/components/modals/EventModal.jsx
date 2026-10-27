@@ -140,7 +140,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
 
         {/* Footer hint */}
         <div className="px-4 py-2 border-t border-fa-line text-xs text-fa-muted text-center shrink-0 pl:hidden">
-          Choose an option to go on: the turn waits for it. The map stays live behind.
+          {tNow('event.footer')}
         </div>
       </div>
     </div>

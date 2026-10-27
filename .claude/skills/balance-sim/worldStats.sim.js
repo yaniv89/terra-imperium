@@ -196,6 +196,7 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     // Plague: cities carrying the 'plague' mark now, and distinct cities struck so far (the old
     // independent roll in cityDisasters.js and the SIR epidemic in plague.js both set the mark).
     famineStrikes: counters.famine.strikes, faminePeopleLost: Math.round(counters.famine.lost), famineShareLost: +(counters.famine.shares.reduce((a, b) => a + b, 0) / Math.max(1, counters.famine.shares.length)).toFixed(4),
+    worldPopulation: Math.round(regs.reduce((k, c) => k + (c.currentPopulation || 0), 0)), meanCityFood: +(regs.reduce((k, c) => k + (c.food || 0), 0) / Math.max(1, regs.length)).toFixed(2),
     plagueCitiesNow: regs.filter(isPlagued).length, plagueCitiesStruck: counters.plagued.size,
     // History crises (crises.js): how many started, and the nations they hit that are gone now.
     crises: s.crises?.history?.length || 0, crisisNationsLost: new Set((s.crises?.history || []).flatMap((h) => h.nations).filter((id) => s.nations[id]?.isEliminated)).size,
