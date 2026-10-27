@@ -81,4 +81,10 @@ describe('event deck (U26)', () => {
     expect(predicateMet({ fact: 'ageIndex', min: 0, max: 0 }, factContext({ playerNationId: 'p', techAgeId: AGE_ORDER[0] }, 'p'))).toBe(true);
     expect(predicateMet({ fact: 'ageIndex', min: 0, max: 0 }, factContext({ playerNationId: 'p', techAgeId: AGE_ORDER[1] }, 'p'))).toBe(false);
   });
+
+  it('no story or chain card uses a city effect (they have no city, so it would do nothing)', () => {
+    const cityFree = [...Object.values(CARDS).filter((c) => c.kind === 'story'), ...Object.values(EVENT_CHAINS)];
+    cityFree.forEach((c) => (c.options || []).forEach((o) =>
+      expect(Object.keys(o.effects || {}).filter((k) => /^city[A-Z]/.test(k)), `${c.id}: ${o.label}`).toEqual([])));
+  });
 });
