@@ -383,7 +383,10 @@ export const processAIOperations = (state, rng) => {
       return !interiorCitySafe(next.regions[from], reach);
     };
     let marching = false;
-    for (const [key, stack] of [...stacks].sort(([a], [b]) => a.localeCompare(b))) {
+    for (const [key, seen] of [...stacks].sort(([a], [b]) => a.localeCompare(b))) {
+      // A battle earlier in this loop can have hit this stack: read it fresh, the dead left out.
+      const stack = seen.map((u) => next.units[u.id]).filter(Boolean);
+      if (!stack.length) continue;
       const from = key.split('|')[0];
       if (!stack.every(u => u.movesLeft > 0 && !committed.has(u.id)) || next.regions[from]?.owner !== nationId) continue;
       // A march halted by an enemy army on its next tile (routes.js 'enemy') attacks it when the
@@ -675,7 +678,9 @@ export const processIndependentOps = (state, nationId, rng) => {
   let next = { ...state, units: { ...state.units } };
   let marching = false;
   const failKey = `indep:${goal.id}`;
-  for (const [key, stack] of [...groups].sort(([a], [b]) => a.localeCompare(b))) {
+  for (const [key, seen] of [...groups].sort(([a], [b]) => a.localeCompare(b))) {
+    const stack = seen.map((u) => next.units[u.id]).filter(Boolean); // fresh: an assault above can kill some
+    if (!stack.length) continue;
     const from = key.split('|')[0];
     if (next.regions[from]?.owner !== nationId) continue;
     const at = unitTile(next, stack[0]);
