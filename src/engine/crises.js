@@ -20,7 +20,8 @@
 // option applied then, so the card does not open again at the strike.
 // state.settings.crises === 'off' stops all. Pure apart from the turn's working regions and units.
 import { CRISES, crisisCardId } from '../data/crises';
-import { getAgeIndex, speedTurns } from '../data/ages';
+import { getAgeIndex, speedTurns, speedCostMult } from '../data/ages';
+import { ageOf } from './nationState';
 import { isIndependentNation } from '../data/independents';
 import { getTiles } from '../data/geo/tiles';
 import { distanceKm } from '../data/geo/geodesic';
@@ -46,10 +47,10 @@ export const FAMINE_SHARE = 0.1;
 export const GRANARY_TIER = 1;        // the Food line's Granary (buildings.js food tiers) or any later tier
 
 /** The share of its people a city loses to a famine: FAMINE_SHARE, halved by a Granary or better,
- * halved again by a food store at least half full (the store the loss is then drawn from). */
-export const famineShare = (city) => FAMINE_SHARE
+ * halved again by a food store at least half full (`speedMult`: the speed table, as resolveTurn sizes the store). */
+export const famineShare = (city, speedMult = 1) => FAMINE_SHARE
   * ((city.buildings?.categories?.food ?? -1) >= GRANARY_TIER ? 0.5 : 1)
-  * ((city.food || 0) * 2 >= growthThreshold(city.size || 1) ? 0.5 : 1);
+  * ((city.food || 0) * 2 >= growthThreshold(city.size || 1, speedMult) ? 0.5 : 1);
 
 export const crisesOn = (state) => state.settings?.crises !== 'off' && state.settings?.explore !== true;
 
@@ -155,7 +156,7 @@ export const processCrises = (state) => {
       if (big) regions[big] = seedPlague(regions[big], turn, PLAGUE_I);
     });
   } else if (crisis.effect === 'famine') {
-    owned.forEach((id) => { const c = regions[id]; regions[id] = drawPeople(c, famineShare(c) * (c.currentPopulation || sizeToPeople(c.size)), { canShrink: true }); });
+    owned.forEach((id) => { const c = regions[id]; regions[id] = drawPeople(c, famineShare(c, speedCostMult(state.gameSpeed, ageOf(state, c.owner))) * (c.currentPopulation || sizeToPeople(c.size)), { canShrink: true }); });
   } else if (crisis.effect === 'war') {
     // The player is never made the aggressor (no forced loss of control): a hit player is the target.
     const [a, b] = hit[0] === state.playerNationId ? [hit[1], hit[0]] : hit;

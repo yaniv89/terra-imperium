@@ -306,8 +306,11 @@ SEEDS.forEach((seed) => {
       s = resolveTurn(s);
       if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null };
       if (s.activeEventId) s = { ...s, activeEventId: null }; // a crisis story (crises.js) left unanswered
-      // A famine crisis that struck this turn (crises.js): the people its hit nations' cities lost this turn.
-      { const h = s.crises?.history?.at(-1); if (h && h.turn === s.turnNumber && h !== pre.crises?.history?.at(-1) && h.id === 'little_ice_age') { const hit = new Set(h.nations); const pop = (st) => Object.values(st.regions).filter((c) => hit.has(c.owner)).reduce((k, c) => k + (c.currentPopulation || 0), 0); const b = pop(pre); const lost = b - pop(s); counters.famine.strikes += 1; counters.famine.lost += lost; counters.famine.shares.push(lost / Math.max(1, b)); } }
+      // A famine crisis (crises.js): its hit nations' people the turn before it struck vs the turn after
+      // (resolveTurn rewrites the people number each turn, so the strike turn's own number is not comparable).
+      { const f = counters.famine; const pop = (st, hit) => Object.values(st.regions).filter((c) => hit.has(c.owner)).reduce((k, c) => k + (c.currentPopulation || 0), 0);
+        if (f.open) { const lost = f.open.before - pop(s, f.open.hit); f.strikes += 1; f.lost += lost; f.shares.push(lost / Math.max(1, f.open.before)); f.open = null; }
+        const h = s.crises?.history?.at(-1); if (h && h.turn === s.turnNumber && h !== pre.crises?.history?.at(-1) && h.id === 'little_ice_age') { const hit = new Set(h.nations); f.open = { hit, before: pop(pre, hit) }; } }
       const tm0 = performance.now(); telemetry.observe(pre, s); telemMs += performance.now() - tm0;
       turnsSince += 1;
       // The share of living majors past an age at that age's target end turn (SC4); the leader gap
