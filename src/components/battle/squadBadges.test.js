@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { badgesFor, BADGE_MAX_ZOOM } from './squadBadges';
+import { badgesFor, BADGE_MAX_ZOOM, HIT_FLASH_TICKS } from './squadBadges';
 import { TILE } from '../../battle/setup/mapgen';
 
 const sq = (idx, over = {}) => ({ idx, side: 0, alive: true, onField: true, fled: false, visible: true, x: 256 * 2.5, y: 256 * 2.5, strength: 50, maxStrength: 100, striking: false, ...over });
@@ -22,5 +22,11 @@ describe('squad flags', () => {
     const out = badgesFor(null, cur, 1, opts());
     expect(out).toHaveLength(1);
     expect(out[0]).toMatchObject({ share: 0.5, striking: true, side: 'you' });
+  });
+  it('carry morale, the rout and a hit that fades over HIT_FLASH_TICKS', () => {
+    const cur = { tick: 100, squads: [sq(0, { morale: 30, lastHitTick: 100 }), sq(1, { routed: true, lastHitTick: 100 - HIT_FLASH_TICKS })] };
+    const [a, b] = badgesFor(null, cur, 0, opts());
+    expect(a).toMatchObject({ morale: 0.3, routed: false, hit: 1 });
+    expect(b).toMatchObject({ routed: true, hit: 0 });
   });
 });

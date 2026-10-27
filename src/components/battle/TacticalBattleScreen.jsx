@@ -84,6 +84,7 @@ const radialTop = (y, h, abilities) => {
 // "2:35": a battle tick as minutes and seconds of battle time.
 const battleClock = (tick) => { const sec = Math.max(0, Math.floor((tick || 0) / TICK_HZ)); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
 const ORDER_NOTE_MS = 3500;
+const OBJECTIVE_NOTE_MS = 7000; // the Enemy caption with its Attack it button: time to read and tap
 
 // U03: the battle screen's usable rectangle. The safe-area insets (a notch or Dynamic Island on the
 // left or right in landscape, the home bar below) as --sa-t/r/b/l for the HUD; `&safe=t,r,b,l` (css
@@ -521,9 +522,9 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const [objTarget, setObjTarget] = useState(null);
   useEffect(() => {
     if (!orderNote) { setObjTarget(null); return undefined; }
-    const t = setTimeout(() => setOrderNote(null), ORDER_NOTE_MS);
+    const t = setTimeout(() => setOrderNote(null), objTarget ? OBJECTIVE_NOTE_MS : ORDER_NOTE_MS);
     return () => clearTimeout(t);
-  }, [orderNote]);
+  }, [orderNote, objTarget]);
   // RTS-03: an order given while paused waits in the battle loop until Resume. It shows at once
   // anyway (a steady ring, a footprint), and a note says when it starts. Drawing only.
   const markPending = useCallback((mark) => {

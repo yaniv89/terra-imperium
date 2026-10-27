@@ -10,6 +10,11 @@ import { TILE } from '../../battle/setup/mapgen';
 export const BADGE_MAX_ZOOM = 1;
 const COVER = new Set([TILE.FOREST, TILE.BUILDING]);
 const YOU = '#60a5fa'; const ENEMY = '#f87171';
+const LOST = '#5b1717'; const ROUTED = '#9ca3af';
+const MORALE = '#efe3c2'; const SHAKEN = '#fbbf24'; const SHAKEN_AT = 0.4;
+/** Ticks (20 a second) a flag flashes after its squad is hit. */
+export const HIT_FLASH_TICKS = 4;
+const W = 30; const H = 13; // the flag in css px: the strength bar over a thin morale strip
 
 /** The flags to draw: [{ x, z, side, share, striking, selected }] in tiles. Pure. */
 export const badgesFor = (prev, cur, alpha, { zoom, playerSide, map, selected }) => {
@@ -23,7 +28,13 @@ export const badgesFor = (prev, cur, alpha, { zoom, playerSide, map, selected })
     const x = (useP ? p.x + (q.x - p.x) * alpha : q.x) / 256; const z = (useP ? p.y + (q.y - p.y) * alpha : q.y) / 256;
     const under = map && COVER.has(map.tiles?.[Math.floor(z) * map.w + Math.floor(x)]);
     if (!wide && !under) return;
-    out.push({ x, z, side: q.side === playerSide ? 'you' : 'them', share: Math.max(0, Math.min(1, q.strength / Math.max(1, q.maxStrength))), striking: !!q.striking, selected: !!selected?.has(q.idx) });
+    // Combat feedback (playtest clarity 3/10): a hit flashes the flag for HIT_FLASH_TICKS (between frames too), the
+    // morale strip under it, and a routed squad's flag goes grey with a white flag.
+    const hitAge = (cur.tick ?? 0) - (q.lastHitTick ?? -10000) + alpha;
+    out.push({
+      x, z, side: q.side === playerSide ? 'you' : 'them', share: Math.max(0, Math.min(1, q.strength / Math.max(1, q.maxStrength))), striking: !!q.striking, selected: !!selected?.has(q.idx),
+      morale: Math.max(0, Math.min(1, (q.morale ?? 100) / 100)), routed: !!q.routed, hit: hitAge >= 0 && hitAge < HIT_FLASH_TICKS ? 1 - hitAge / HIT_FLASH_TICKS : 0
+    });
   });
   return out;
 };
@@ -40,14 +51,25 @@ export const updateSquadBadges = (cv, renderer, list) => {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, renderer.width, renderer.height);
   const flags = list.length > MAX_FLAGS ? [...list.filter((b) => b.side === 'you'), ...list.filter((b) => b.side !== 'you')].slice(0, MAX_FLAGS) : list;
+  const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 120); // a routed flag's blink
   flags.forEach((b) => {
     const sp = renderer.worldToScreen(b.x, b.z, 1.6);
-    const c = b.side === 'you' ? YOU : ENEMY;
-    const x = Math.round(sp.x) - 13; const y = Math.round(sp.y) - 9;
-    ctx.fillStyle = 'rgba(15,23,32,.88)'; ctx.fillRect(x, y, 26, 9);
-    ctx.fillStyle = c; ctx.fillRect(x + 1.5, y + 1.5, 23 * b.share, 6);
+    const c = b.routed ? ROUTED : b.side === 'you' ? YOU : ENEMY;
+    const x = Math.round(sp.x) - W / 2; const y = Math.round(sp.y) - H;
+    ctx.fillStyle = 'rgba(15,23,32,.88)'; ctx.fillRect(x, y, W, H);
+    // strength: the side's colour, what is gone a dark red
+    ctx.fillStyle = LOST; ctx.fillRect(x + 1.5, y + 1.5, W - 3, 6);
+    ctx.fillStyle = c; ctx.fillRect(x + 1.5, y + 1.5, (W - 3) * b.share, 6);
+    // morale: pale parchment (no side's colour), amber when shaken, a blinking white while it runs
+    ctx.fillStyle = b.routed ? `rgba(248,250,252,${0.35 + 0.65 * pulse})` : b.morale < SHAKEN_AT ? SHAKEN : MORALE;
+    ctx.fillRect(x + 1.5, y + 9, (W - 3) * (b.routed ? 1 : b.morale), 2.5);
+    if (b.hit > 0) { ctx.fillStyle = `rgba(255,255,255,${0.75 * b.hit})`; ctx.fillRect(x + 1.5, y + 1.5, W - 3, H - 3); }
     ctx.lineWidth = b.selected ? 2.5 : 1.5;
-    ctx.strokeStyle = b.selected ? '#fff' : b.striking ? '#fbbf24' : c;
-    ctx.strokeRect(x + 0.75, y + 0.75, 24.5, 7.5);
+    ctx.strokeStyle = b.hit > 0.5 ? '#fff' : b.selected ? '#fff' : b.routed ? `rgba(248,250,252,${0.4 + 0.6 * pulse})` : b.striking ? '#fbbf24' : c;
+    ctx.strokeRect(x + 0.75, y + 0.75, W - 1.5, H - 1.5);
+    if (b.routed) { // a white flag on a pole beside it: this squad is running
+      ctx.fillStyle = '#e5e7eb'; ctx.fillRect(x - 4, y - 6, 1.5, H + 6);
+      ctx.fillStyle = `rgba(255,255,255,${0.6 + 0.4 * pulse})`; ctx.beginPath(); ctx.moveTo(x - 4, y - 6); ctx.lineTo(x - 13, y - 3); ctx.lineTo(x - 4, y); ctx.fill();
+    }
   });
 };

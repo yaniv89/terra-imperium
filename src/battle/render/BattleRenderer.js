@@ -87,7 +87,7 @@ const FAR_MARK_PX = 10;      // soldiers shorter than this on screen: every squa
 const FAR_MARK_MIN_PX = 26;  // ...at least this wide on screen
 const WRECK_SMOKE_LIFE = 3.5; // seconds a wreck's smoke puff takes to rise and fade (X27)
 const CANOPY_RADIUS = 2.6; // tiles around a selected or fighting squad where crowns and roofs fade
-const BAR_MIN_ZOOM = 0.7;    // strength bars of fighting squads from this zoom in
+const BAR_MIN_ZOOM = 1;      // strength bars closer in than this zoom (wider, squadBadges.js flags show)
 const tmp = new Object3D();
 const ORDER_DASHES = 48; // dashes per order target line at most
 const tmpColor = new Color();
@@ -98,7 +98,24 @@ const SITE_BAR = new Color('#f2b53c'); // a building site's progress bar (brass)
 const CAM_RIGHT = new Vector3();
 const CAM_BASIS = new Matrix4();
 const BAR_GREEN = new Color('#22c55e');
-const BAR_LIME = new Color('#84cc16');
+// Combat feedback (plans/lanes/battle-feedback-REPORT.md, playtest combat clarity 3/10): the
+// strength bar turns amber then red as a squad thins, a routed squad's bar and ground disc pulse
+// pale, a squad just hit flashes for a few ticks, and bars and order markers keep a size on screen
+// that reads on a phone (BAR_PX, MARKER_PX css px at least).
+const BAR_AMBER = new Color('#f59e0b');
+const BAR_RED = new Color('#ef4444');
+const BAR_TRACK = new Color('#3f0d0d');
+const BAR_TRACK_HIT = new Color('#fecaca');
+const MORALE_STEADY = new Color('#efe3c2');
+const MORALE_SHAKEN = new Color('#fbbf24');
+const ROUT_PALE = new Color('#f8fafc');
+const HIT_FLASH = new Color('#fff4e0');
+const HIT_FLASH_TICKS = 3;   // ticks a hit squad's figures and bar flash (0.15 s)
+const HIT_SHOW_TICKS = 60;   // a squad hit in the last 3 s keeps its bar up
+const BAR_PX = 34;           // the strength bar is at least this wide on screen (css px)
+const BAR_H_PX = 5;          // ...and this tall
+const MARKER_PX = 46;        // an order marker is at least this wide on screen
+const SHAKEN_AT = 40;        // morale under this: the morale strip turns amber
 // Write position · turn about the vertical (yaw) · scale into slot k of an instance matrix array
 // (what Object3D.updateMatrix would compose, without the Euler and quaternion round trip).
 const writeYaw = (arr, k, x, y, z, yaw, sx, sy, sz) => {
@@ -109,10 +126,10 @@ const writeYaw = (arr, k, x, y, z, yaw, sx, sy, sz) => {
   arr[o + 12] = x; arr[o + 13] = y; arr[o + 14] = z; arr[o + 15] = 1;
 };
 // The same for a quad turned to face the camera (rotation matrix elements `b`), stretched by sx.
-const writeBasis = (arr, k, b, x, y, z, sx) => {
+const writeBasis = (arr, k, b, x, y, z, sx, sy = 1) => {
   const o = k * 16;
   arr[o] = b[0] * sx; arr[o + 1] = b[1] * sx; arr[o + 2] = b[2] * sx; arr[o + 3] = 0;
-  arr[o + 4] = b[4]; arr[o + 5] = b[5]; arr[o + 6] = b[6]; arr[o + 7] = 0;
+  arr[o + 4] = b[4] * sy; arr[o + 5] = b[5] * sy; arr[o + 6] = b[6] * sy; arr[o + 7] = 0;
   arr[o + 8] = b[8]; arr[o + 9] = b[9]; arr[o + 10] = b[10]; arr[o + 11] = 0;
   arr[o + 12] = x; arr[o + 13] = y; arr[o + 14] = z; arr[o + 15] = 1;
 };
@@ -828,11 +845,14 @@ export class BattleRenderer {
     this.rings.material.color.set('#bef264');
     // Strength bar: a bright green fill on a dark red track, always drawn on top (no depth test, no
     // haze), so it reads at any zoom and the red shows at a glance how much of the squad is gone.
-    this.barBg = mk(new PlaneGeometry(1.08, 0.16), '#3f0d0d', 0.9);
+    // Under it a thin morale strip (parchment, amber when shaken, pale while routed) on the same track.
+    this.barBg = mk(new PlaneGeometry(1.08, 0.22).translate(0, -0.03, 0), '#ffffff', 0.9);
     this.barFill = mk(new PlaneGeometry(1, 0.1).translate(0.5, 0, 0), '#ffffff');
-    [[this.barBg, 20], [this.barFill, 21]].forEach(([m, order]) => {
-      Object.assign(m.material, { depthTest: false, depthWrite: false, fog: false, transparent: true });
+    this.moraleFill = mk(new PlaneGeometry(1, 0.045).translate(0.5, -0.095, 0), '#ffffff');
+    [[this.barBg, 20], [this.barFill, 21], [this.moraleFill, 21]].forEach(([m, order]) => {
+      Object.assign(m.material, { depthTest: false, depthWrite: false, fog: false, transparent: true, toneMapped: false });
       m.renderOrder = order;
+      instanceColors(m); // the colour buffer from the start (the shader is built with it)
     });
     // Each squad's standard: a pole and a waving flag in the side's colour.
     const poleMat = this.track(new MeshLambertMaterial({ color: '#4a3524' }));
@@ -1061,7 +1081,7 @@ export class BattleRenderer {
     return best && this.structureSeen(best.index ?? -1) ? { ...best, ground: g } : { kind: 'ground', ground: g };
   }
 
-  addMarker(x, z, color = '#a3e635', size = 1, life = 0.8) { this.markers.push({ x, z, t: 0, color, size, life }); }
+  addMarker(x, z, color = '#a3e635', size = 1, life = 1.1) { this.markers.push({ x, z, t: 0, color, size, life }); }
 
   /** An order given while paused (RTS-03): drawn steady until the sim steps past this tick. */
   addPendingMark(mark) {
@@ -1362,6 +1382,9 @@ export class BattleRenderer {
     const ringMat = this.rings.instanceMatrix.array;
     const poleMat = this.bannerPoles.instanceMatrix.array; const flagMat = this.bannerFlags.instanceMatrix.array; const flagCol = instanceColors(this.bannerFlags);
     const barBgMat = this.barBg.instanceMatrix.array; const barFillMat = this.barFill.instanceMatrix.array; const barFillCol = instanceColors(this.barFill);
+    const barBgCol = instanceColors(this.barBg); const moraleMat = this.moraleFill.instanceMatrix.array; const moraleCol = instanceColors(this.moraleFill);
+    const wpp = this.worldPerPixel();
+    const barPxW = (BAR_PX * wpp) / 1.08; const barPxH = (BAR_H_PX * wpp) / 0.22; // the bar's least size on screen, as a scale
     const farMarks = this.soldierPx() < FAR_MARK_PX;
     const farMarkR = (FAR_MARK_MIN_PX / 2) * this.worldPerPixel();
     // The ground the player's selected and fighting squads stand on: trees and roofs over it fade (canopyFade.js).
@@ -1399,6 +1422,9 @@ export class BattleRenderer {
       const isSelected = selected.has(s.idx);
       tmpColor.copy(info.sideColor);
       if (s.routed) tmpColor.lerp(GREY_ROUT, 0.6);
+      const hitAge = cur.tick - (s.lastHitTick ?? -10000) + alpha; // ticks since its last hit, between frames too
+      const flash = hitAge >= 0 && hitAge < HIT_FLASH_TICKS ? 1 - hitAge / HIT_FLASH_TICKS : 0;
+      if (flash > 0) tmpColor.lerp(HIT_FLASH, 0.6 * flash);
       if (s.hidden) tmpColor.lerp(PALE_AMBUSH, 0.45); // in ambush
       if (isSelected) tmpColor.lerp(WHITE, 0.2);
       const { r: cr, g: cg, b: cb } = tmpColor;
@@ -1464,12 +1490,13 @@ export class BattleRenderer {
       // shows where to tap (soldiers keep their true size).
       const side = info.sideColor;
       const zoom = this.camera.zoom;
-      if (isSelected || farMarks) {
+      if (isSelected || farMarks || s.routed) {
         const dr = farMarks ? Math.max(r, farMarkR) : r;
         // centred on the block as drawn (it runs back from the squad's point), like the pick circle
         const back = farMarks ? ((Math.ceil(n / cols) - 1) * rowGap) / 2 : 0;
         writeYaw(discMat, discN, x - fx * back, y + 0.05, z - fz * back, 0, dr, 1, dr);
-        discCol[discN * 3] = side.r; discCol[discN * 3 + 1] = side.g; discCol[discN * 3 + 2] = side.b;
+        if (s.routed) { tmpColor.copy(side).lerp(ROUT_PALE, 0.5 + 0.5 * Math.sin(this.time * 8)); discCol[discN * 3] = tmpColor.r; discCol[discN * 3 + 1] = tmpColor.g; discCol[discN * 3 + 2] = tmpColor.b; }
+        else { discCol[discN * 3] = side.r; discCol[discN * 3 + 1] = side.g; discCol[discN * 3 + 2] = side.b; }
         discN += 1;
         if (isSelected) { writeYaw(ringMat, ringN, x - fx * back, y + 0.07, z - fz * back, 0, dr, 1, dr); ringN += 1; }
       }
@@ -1497,14 +1524,28 @@ export class BattleRenderer {
           gl.count += 1;
         }
       }
-      const hurt = s.strength < s.startStrength && (s.striking || s.target >= 0);
-      if (!isSelected && !(hurt && zoom >= BAR_MIN_ZOOM)) return;
+      // A bar on the selection, and on any squad that is losing men in a fight, was hit in the last
+      // few seconds or is routing; closer in than BAR_MIN_ZOOM only: at the default zoom and wider the
+      // screen's flags (components/battle/squadBadges.js) carry the same readout over every squad.
+      const hurt = s.strength < s.startStrength && (s.striking || s.target >= 0 || hitAge < HIT_SHOW_TICKS || s.routed);
+      if (zoom <= BAR_MIN_ZOOM || !(isSelected || hurt)) return;
       const frac = Math.max(0, s.strength / Math.max(1, s.startStrength));
       const by = y + (stats.flying ? 3.8 : big ? 2.1 : 1.75);
-      writeBasis(barBgMat, barN, camBasis, x, by, z, 1);
-      writeBasis(barFillMat, barN, camBasis, x - camRight.x * 0.5, by - camRight.y * 0.5, z - camRight.z * 0.5, frac);
-      const bar = frac > 0.3 ? BAR_GREEN : BAR_LIME;
-      barFillCol[barN * 3] = bar.r; barFillCol[barN * 3 + 1] = bar.g; barFillCol[barN * 3 + 2] = bar.b;
+      const bw = Math.max(1, barPxW); const bh = Math.max(1, barPxH);
+      writeBasis(barBgMat, barN, camBasis, x, by, z, bw, bh);
+      const fx0 = x - camRight.x * 0.5 * bw; const fy0 = by - camRight.y * 0.5 * bw; const fz0 = z - camRight.z * 0.5 * bw;
+      writeBasis(barFillMat, barN, camBasis, fx0, fy0, fz0, frac * bw, bh);
+      const mor = Math.max(0, Math.min(1, (s.morale ?? 100) / 100));
+      writeBasis(moraleMat, barN, camBasis, fx0, fy0, fz0, (s.routed ? 1 : mor) * bw, bh);
+      const pulse = s.routed ? 0.5 + 0.5 * Math.sin(this.time * 8) : 0;
+      tmpColor.copy(frac > 0.6 ? BAR_GREEN : frac > 0.3 ? BAR_AMBER : BAR_RED);
+      if (s.routed) tmpColor.lerp(GREY_ROUT, 0.5 + 0.4 * pulse);
+      barFillCol[barN * 3] = tmpColor.r; barFillCol[barN * 3 + 1] = tmpColor.g; barFillCol[barN * 3 + 2] = tmpColor.b;
+      tmpColor.copy(s.routed ? ROUT_PALE : (s.morale ?? 100) < SHAKEN_AT ? MORALE_SHAKEN : MORALE_STEADY);
+      if (s.routed) tmpColor.lerp(GREY_ROUT, pulse);
+      moraleCol[barN * 3] = tmpColor.r; moraleCol[barN * 3 + 1] = tmpColor.g; moraleCol[barN * 3 + 2] = tmpColor.b;
+      tmpColor.copy(BAR_TRACK).lerp(BAR_TRACK_HIT, flash);
+      barBgCol[barN * 3] = tmpColor.r; barBgCol[barN * 3 + 1] = tmpColor.g; barBgCol[barN * 3 + 2] = tmpColor.b;
       barN += 1;
     });
     this.drawCorpses(cull);
@@ -1520,7 +1561,7 @@ export class BattleRenderer {
         a.clearUpdateRanges(); a.addUpdateRange(0, l.count * a.itemSize); a.needsUpdate = true;
       });
     });
-    [[this.discs, discN], [this.rings, ringN], [this.barBg, barN], [this.barFill, barN], [this.bannerPoles, bannerN], [this.bannerFlags, bannerN]].forEach(([m, n]) => {
+    [[this.discs, discN], [this.rings, ringN], [this.barBg, barN], [this.barFill, barN], [this.moraleFill, barN], [this.bannerPoles, bannerN], [this.bannerFlags, bannerN]].forEach(([m, n]) => {
       m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
     });
   }
@@ -1798,10 +1839,18 @@ export class BattleRenderer {
     });
     this.splatLayers.forEach((m, i) => { m.count = splatN[i]; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; });
     this.markers = this.markers.filter((m) => (m.t += dt) < m.life);
+    // An order's marker (the RTS "order taken" cue): a ring that closes in on the spot and shrinks
+    // away, round a small steady ring for the first two thirds; never smaller than MARKER_PX on screen.
+    const markPx = Math.max(1, (MARKER_PX * this.worldPerPixel()) / 1.7);
+    const mcap = this.markerRings.instanceMatrix.count - 2; // room left for the inspected ring
     this.markers.forEach((m) => {
-      if (mn >= 64) return;
-      const k = m.t / m.life;
-      tmp.rotation.set(0, 0, 0); tmp.position.set(m.x, this.heightAt(m.x, m.z) + 0.08, m.z); const sc = (0.6 + k * 1.2) * m.size; tmp.scale.set(sc, 1, sc); tmp.updateMatrix();
+      if (mn >= Math.min(63, mcap)) return;
+      const k = m.t / m.life; const e = 1 - (1 - k) * (1 - k);
+      tmp.rotation.set(0, 0, 0); tmp.position.set(m.x, this.heightAt(m.x, m.z) + 0.08, m.z);
+      const sc = (1.6 - 1.45 * e) * m.size * markPx; tmp.scale.set(sc, 1, sc); tmp.updateMatrix();
+      this.markerRings.setMatrixAt(mn, tmp.matrix); this.markerRings.setColorAt(mn, colorOf(m.color)); mn += 1;
+      if (k > 0.66) return;
+      const si = 0.42 * m.size * markPx; tmp.scale.set(si, 1, si); tmp.updateMatrix();
       this.markerRings.setMatrixAt(mn, tmp.matrix); this.markerRings.setColorAt(mn, colorOf(m.color)); mn += 1;
     });
     // Orders given while paused (pendingMarks.js): a steady ring, gently breathing, where the
