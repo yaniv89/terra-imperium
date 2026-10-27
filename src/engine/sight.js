@@ -87,14 +87,12 @@ const ringsOf = (tiles, tile, reach) => {
   return rings;
 };
 
-const testCache = new WeakMap(); // state.units -> { regions, nations, techTree, nationId, test }
 /** `(tile) => bool`, the same answer as visibleTiles(state, nationId).has(tile) without building the
  * whole set, for a caller that asks about a few tiles (warOdds.js). A tile is seen when friendly land
  * lies within the land reach of it, or one of the nation's units within that unit's reach
- * (neighbours are symmetric, so the walk starts at the asked tile). */
+ * (neighbours are symmetric, so the walk starts at the asked tile). Read from the state at each
+ * call, never cached on it (resolveTurn's working copies change in place); use the test at once. */
 export const sightTest = (state, nationId = state.playerNationId) => {
-  const hit = testCache.get(state.units);
-  if (hit && hit.regions === state.regions && hit.nations === state.nations && hit.techTree === state.techTree && hit.nationId === nationId) return hit.test;
   const tiles = getTiles();
   const extra = mapEffectsFor(state, nationId).sight;
   const friends = friendsOf(state, nationId);
@@ -122,13 +120,11 @@ export const sightTest = (state, nationId = state.playerNationId) => {
     return false;
   };
   const memo = new Map();
-  const test = (tile) => {
+  return (tile) => {
     if (tile == null) return false;
     if (!memo.has(tile)) memo.set(tile, sees(tile));
     return memo.get(tile);
   };
-  testCache.set(state.units, { regions: state.regions, nations: state.nations, techTree: state.techTree, nationId, test });
-  return test;
 };
 
 export const canSeeTile = (state, tile, nationId = state.playerNationId) => tile != null && visibleTiles(state, nationId).has(tile);

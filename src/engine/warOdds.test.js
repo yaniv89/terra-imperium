@@ -35,6 +35,9 @@ describe('warOdds: how an AI sizes up a war', () => {
     expect(perceivedArmy(st, FR_ID, DE_ID)[0].strength).toBe(hidden);
     // A pass's one-walk index gives the same picture.
     expect(perceivedArmy(st, FR_ID, DE_ID, armiesByOwner(st.units))).toEqual(seen);
+    // Sight is read fresh: a unit of the viewer moved in place (a turn's working copy) counts at once.
+    st.units.f1 = { ...st.units.f1, tile: berlin.tile };
+    expect(perceivedArmy(st, FR_ID, DE_ID)[0].strength).toBe(1000);
   });
 
   it('the bigger army has the better odds, and a nation busy in another war counts as weaker', () => {
