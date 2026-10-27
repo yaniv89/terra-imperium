@@ -36,7 +36,7 @@ import { createEmptyResourcePool } from '../data/resources';
 import { drawEvent, cardOf } from './eventDeck';
 import { processCrises } from './crises';
 import { crisisCardId } from '../data/crises';
-import { applyEventEffects } from './applyEventEffects';
+import { applyEventEffects, getOptionShortfall } from './applyEventEffects';
 import { exploreOn } from './hostility';
 import { calcIncome, nextUnrest, getNationBonusTotal, getFieldedStrength } from '../utils/helpers';
 import { getRegionModifier, getModifier } from './modifiers/sheet';
@@ -1190,9 +1190,20 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const crisis = processCrises({ ...state, turnNumber: newTurnNumber, year: newYear, regions, units, nations: nationsAfterWars, wars });
     if (crisis) {
       crisisChoice = crisis.choice == null ? undefined : { id: crisis.crises.history.at(-1).id, option: crisis.choice };
+      let chains = crisis.pendingEventChains;
+      // The early choice can no longer be paid while another option can: the card opens again instead
+      // of applyEventEffects dropping the answer with only a "can't afford" line.
+      if (crisisChoice) {
+        const card = cardOf(crisisCardId(crisisChoice.id));
+        const short = (o) => getOptionShortfall(state.resources, o?.effects).length > 0;
+        if (short(card.options[crisisChoice.option]) && card.options.some((o) => !short(o))) {
+          chains = [...(chains || []), { id: card.id, dueTurn: newTurnNumber }];
+          crisisChoice = undefined;
+        }
+      }
       nationsAfterWars = crisis.nations;
       wars = crisis.wars;
-      state = { ...state, crises: crisis.crises, pendingEventChains: crisis.pendingEventChains };
+      state = { ...state, crises: crisis.crises, pendingEventChains: chains };
       logs.push(...crisis.logs);
     }
   }

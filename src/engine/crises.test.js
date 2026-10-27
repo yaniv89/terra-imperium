@@ -6,6 +6,7 @@ import { peoplesWorld, cloneWorld, majorIds, addCities } from './testWorld';
 import { resolveTurn } from './resolveTurn';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { gameReducer } from './gameReducer';
+import { getOptionShortfall } from './applyEventEffects';
 import { ActionTypes } from '../data/types';
 import { peopleOf } from './population';
 import { growthThreshold } from './world/cities';
@@ -182,6 +183,16 @@ describe('history crises (U31)', () => {
     expect(paid.crises.history.at(-1).id).toBe('bronze_collapse');
     expect(paid.resources.gold).toBe(unpaid.resources.gold - 40);
     expect(paid.activeEventId).toBe(unpaid.activeEventId);
+    // The early choice can no longer be paid but another option can: the card opens again, nothing is lost.
+    const broke = resolveTurn({ ...answered, ...quiet, resources: { ...answered.resources, gold: 0 } });
+    const card = crisisCardId('bronze_collapse');
+    expect(broke.activeEventId === card || (broke.pendingEventChains || []).some((l) => l.id === card)).toBe(true);
+    if (broke.activeEventId === card) {
+      const pick = cardOf(card).options.findIndex((o) => getOptionShortfall(broke.resources, o.effects).length === 0);
+      const done = gameReducer(broke, { type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex: pick } });
+      expect(done.activeEventId).not.toBe(card);
+      expect(done.crises.coming?.choice).toBeUndefined();
+    }
     // A crisis dropped before it strikes (crises switched off) pays nothing.
     const off = { ...answered, settings: { ...answered.settings, crises: 'off' } };
     expect(processCrises({ ...off, turnNumber: 50 }).choice).toBeUndefined();
