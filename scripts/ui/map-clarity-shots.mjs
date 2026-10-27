@@ -97,7 +97,7 @@ try {
       const ctx = await browser.newContext({ viewport: vp.viewport, isMobile: vp.isMobile, hasTouch: vp.hasTouch, deviceScaleFactor: 1 });
       await ctx.addInitScript(() => { window.__E2E_MAP_TEST__ = true; localStorage.setItem('terra-imperium-map-mode', 'flat'); });
       const page = await ctx.newPage();
-      page.on('pageerror', (e) => errors.push(`${vp.id}/${lang}: ${String(e.message).slice(0, 200)}`));
+      page.on('pageerror', (e) => { errors.push(`${vp.id}/${lang}: ${String(e.message).slice(0, 200)}`); console.log('pageerror', vp.id, lang, String(e.stack || e.message).slice(0, 600)); });
       await startGame(page, lang);
       // pact: Peoples, the first met people at peace, Offer pact, close Peoples
       const foe = await page.evaluate(() => { const s = window.__game.state; const me = s.playerNationId; return Object.keys(s.fog.met[me] || {}).find((id) => id !== me && s.nations[id] && !s.nations[id].hasMilitaryPact && !s.wars.some((w) => w.active && [w.aggressor, w.enemy].includes(id))); });
