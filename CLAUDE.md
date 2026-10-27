@@ -156,6 +156,9 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
 - Timing budgets (80 ms/turn) run only with `PERF_CHECKS=1`. The sandbox varies by 10-20 ms run
   to run: compare against the base commit on the same machine (balance-sim compare.sh), never
   against an old number. Long full-game tests can time out under full-suite load; rerun alone.
+  Known load-only flakes (pass when run alone): stoneAI "two raids at once", battleLoop, sim,
+  worldgen "same bytes", endgameReachability, pack-map-models, battleReportView; Windows only:
+  src/services/challengeFiles.test.js.
 - Invariants: `auditGameState` / `assertGameState` in src/engine/stateAudit.js.
 - A commanded battle never opens with nobody on a side, and any set-up, worker or drawing error shows BattleFailure (Auto or Try again): src/components/battle/battleOpenGuard.js, TacticalBattleHost.jsx. Checkpoints resume only into the battle they were saved from (setupKeyOf; battle ids repeat between games).
 - Plans and audits live in `plans/` (stabilization audit, Civ-style research, unit art brief).
@@ -164,3 +167,24 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   open: long-run loops must answer them.
 - The AI world is quiet by design (only Tier-1 AI nations declare wars).
 - Unit models: CC0 packs go in src/assets/raw-models/, then `npm run import:models`.
+
+## Lead workflow (how the lead session runs lanes)
+- Current state and open user decisions: the newest `plans/HANDOFF-*.md`; loop progress: `plans/LOOP-REPORT.md`;
+  open items: `plans/FOLLOW-UPS-2026-10-21.md`. Status page data: artifact XwVgyvXzntx58knL5nMVyb (datasets `agents`, `plans`).
+- Big lanes run as sub sessions (their own machine and branch); small lanes as local worktrees:
+  `git worktree add --no-checkout -b <branch> ../wt-<name> origin/claude/integration`, then sparse checkout
+  without `/plans/art/downloads/ /plans/art-pilot/ /plans/art/kits/ /docs/`, `git checkout`, and symlink
+  `node_modules` to the main checkout (no npm install). A worktree is about 1.9 GB; remove it after the merge.
+- Every lane brief: ponytail first; targeted tests only when the machine is shared; kill only its own
+  processes by PID (never `pkill -f`, it can kill the caller); push its branch, never merge.
+- Before merging a lane that touches src/engine/ or src/battle/sim/: run the `engine-rules-reviewer` agent
+  and fix real findings. Then merge into claude/integration, lint, `npm run test:quick`, push integration;
+  push main only when that is green (main deploys).
+- After any user interrupt, check every lane is still alive (a stopped agent cannot be resumed: start a new
+  lane on its worktree's edits).
+- A change to a game rule or a past user decision (for example battle rule Q3: a side with bases loses only
+  when its buildings are gone) needs the user's own yes; ask with the options and a recommendation.
+- AI playtester (dev only, never for live players): workflow `.github/workflows/claude-content.yml`, job
+  `human-playtest` (`scripts/ai/human-playtest.mjs`), inputs persona, scene (`campaign` or `battle`), limit,
+  max_usd, slices, size, lang; dispatch on ref claude/integration; results on branch `ai/human-playtest-<run_id>`
+  (report.md, diary.jsonl, shots/). About $0.01 a step. One queue per job, persona and scene.
