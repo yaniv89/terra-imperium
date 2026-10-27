@@ -103,3 +103,9 @@ Merged origin/claude/integration (SETUP_VERSION 27 from battle-stall) first; thi
 | 12 | "A banner covers the Begin button" (step 177). | Not changed: there is no shot of step 177, and I could not stage that card in a browser in reasonable time (the old card-shot script fails on the current world). Left open. | | |
 
 Tests: src/components/battle, src/battle/input and battleQueue: 29 files, 190 passed. Lint clean.
+
+## Round 3: the first-battle tips hold the clock
+
+| # | Weak (evidence) | Change | Reference | Evidence after |
+|---|---|---|---|---|
+| 13 | Playtest 40550085702 step 158: after Start the clock ran while tip 1 of 3 was on screen, and the player's squad was wiped out before any order (the same 400 militia vs 40,000 defence; the hopeless warning of round 2 covers the odds side). | While the first-battle tips are open after Start, the battle's client stops ticking. Next to the end or Skip lets it run; the player's own Pause and Resume still work. The tip says "The battle waits until you close the tips." Only the client's ticking stops: no order, rule or hash changes. | Tutorial tips that wait for the player (AoE II's learning campaign, Total War's advisor in tutorial battles). | Browser at 844x390: 0 ticks in 4 s with the tip open, 79 ticks in the 4 s after Skip; `after-coach-hold-en-phone.jpg`. Tests: src/components/battle and src/i18n, 29 files, 241 passed. |

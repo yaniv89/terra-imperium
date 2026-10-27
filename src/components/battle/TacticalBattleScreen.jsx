@@ -201,6 +201,14 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const hudUp = !!hud;
   const coachOn = coachStep >= 0;
   useEffect(() => { if (coachOn && hudUp) markCoachSeen(); }, [coachOn, hudUp]);
+  // The battle's clock waits while the first-battle tips are open after Start (playtest 40550085702
+  // step 158: a squad was wiped out while tip 1 of 3 was still on screen). Next to the end, Skip,
+  // or the player's own Pause and Resume let it run. The sim only stops ticking: no order or rule changes.
+  const coachHold = started && coachOn && !ended;
+  useEffect(() => {
+    const c = clientRef.current; if (!c || !started) return;
+    if (coachHold) c.pause(); else if (!pausedRef.current) c.resume();
+  }, [coachHold, started]);
   useEffect(() => {
     const el = wrapRef.current; if (!el) return undefined;
     const onDown = (e) => setMouse(e.pointerType !== 'touch');
@@ -1249,7 +1257,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         soundOn={soundOn} onToggleSound={toggleSound}
         selectMode={selectMode} onToggleSelectMode={() => setSelectModeOn(!selectModeRef.current)}
         pathMode={pathMode} onTogglePathMode={() => setPathModeOn(!pathModeRef.current)}
-        coach={coachOn && !ended ? { steps: coachSteps(mouse), step: coachStep, onNext: () => setCoachStep((s) => (s + 1 >= coachSteps(mouse).length ? -1 : s + 1)), onSkip: () => setCoachStep(-1) } : null}
+        coach={coachOn && !ended ? { steps: coachSteps(mouse), step: coachStep, onNext: () => setCoachStep((s) => (s + 1 >= coachSteps(mouse).length ? -1 : s + 1)), onSkip: () => setCoachStep(-1), holding: coachHold && !paused } : null}
         onFocus={(x, y) => rendererRef.current?.centerOn(x / Q, y / Q)}
         onClearSelection={closeX} mouse={mouse}
         onAlertGo={alertGo} leftCard={leftCard}

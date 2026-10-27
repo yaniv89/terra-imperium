@@ -265,6 +265,7 @@ export default {
   'bt.screen.sendLaborers': 'Send laborers',
   'bt.screen.cancelConstruction': 'Cancel construction',
   'bt.screen.objectiveOf': '{label}, {i} of {n}. Tap Enemy again for the next.',
+  'bt.coach.holding': 'The battle waits until you close the tips.',
   'bt.screen.attackIt': 'Attack it',
   'bt.screen.attackingIt': 'Attacking {label}.',
   'bt.screen.objectiveOne': '{label}.',

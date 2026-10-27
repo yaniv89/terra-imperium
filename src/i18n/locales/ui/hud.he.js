@@ -265,6 +265,7 @@ export default {
   'bt.screen.sendLaborers': 'שלחו פועלים',
   'bt.screen.cancelConstruction': 'ביטול הבנייה',
   'bt.screen.objectiveOf': '{label}, {i} מתוך {n}. הקישו שוב על אויב להבא.',
+  'bt.coach.holding': 'הקרב ממתין עד שתסגרו את הטיפים.',
   'bt.screen.attackIt': 'תקוף',
   'bt.screen.attackingIt': 'תוקפים: {label}.',
   'bt.screen.objectiveOne': '{label}.',
