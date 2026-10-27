@@ -179,7 +179,9 @@ describe('a quiet peoples world (integration)', () => {
   it('every AI ruler earns renown, levels and spends within its caps, and the audit stays clean', () => {
     const fired = Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {});
     let s = { ...peoplesWorld({ seed: 11 }), firedEvents: fired, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
+    let prev = s;
     for (let t = 0; t < 40; t++) {
+      prev = s;
       if (s.pendingPeaceOffer) s = gameReducer(s, { type: s.pendingPeaceOffer.terms?.length ? ActionTypes.REJECT_PENDING_PEACE : ActionTypes.ACCEPT_PENDING_PEACE });
       s = resolveTurn(s);
       if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null };
@@ -192,7 +194,8 @@ describe('a quiet peoples world (integration)', () => {
       expect(r.traits.length).toBeGreaterThan(0);
       ['adm', 'dip', 'mil', 'cmd', 'lrn', 'maj'].forEach((a) => expect(r[a]).toBeLessThanOrEqual(attributeCap(s, id)));
       expect(rulerPoints(r).attribute).toBeLessThanOrEqual(1);
-      expect(s.nations[id].ambitions.ageId).toBe(ageOf(s, id)); // U12: every major holds its age's offer
+      // U12: every major holds its age's offer (or the last one, when research moved it on after the rulers phase of the last turn)
+      expect([ageOf(s, id), ageOf(prev, id)]).toContain(s.nations[id].ambitions.ageId);
     });
     expect(() => assertGameState(s)).not.toThrow();
   }, 120000);

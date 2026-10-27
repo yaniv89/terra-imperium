@@ -4,7 +4,7 @@
 // English, or the Hebrew lookup by id (locales/data.he.js) in Hebrew. A missing Hebrew entry shows
 // the English text. Pure: reads only the current language of core.js, so view models may call it
 // (they rebuild when the language changes). Not for the engine's saved text (log lines, reports).
-import { dataText, getLanguage } from './core';
+import { dataText, getLanguage, isolateLtr } from './core';
 import { nameNow } from './names';
 
 const D = (key, english, vars) => dataText(key, english, vars);
@@ -36,7 +36,8 @@ export const doctrineDescription = (id, english) => D(`doctrine.${id}.desc`, eng
 export const playstyleName = (id, english) => D(`playstyle.${id}`, english ?? id);
 export const goalUnit = (id, english) => D(`goalunit.${id}`, english);
 export const goalNext = (id, english) => D(`goalnext.${id}`, english);
-export const goalBonus = (id, english, n) => D(`goalbonus.${id}`, english, { n });
+// The leading signed number ("+15% gold") stays left to right in Hebrew.
+export const goalBonus = (id, english, n) => D(`goalbonus.${id}`, english, { n }).replace(/^([+-]\d+%?)/, (m) => isolateLtr(m));
 
 export const cityStateTypeName = (id, english) => D(`cstype.${id}`, english ?? id);
 export const independentKindName = (id, english) => D(`indep.${id}`, english ?? id);

@@ -51,7 +51,7 @@ export const createDigest = ({ playerId, getResearched = null, isIndependent = (
       if (n.isEliminated && !before.nations?.[id]?.isEliminated && major(after, id)) note(t, 'ai', `${n.name || id} was destroyed`);
     }
     const me0 = before.nations?.[playerId] || {}; const me1 = after.nations?.[playerId] || {};
-    Object.entries(me1.eraGoals || {}).forEach(([age, g]) => { if (!me0.eraGoals?.[age]) note(t, 'eraGoals', `${age} scored: ${g.met?.length ?? 0} goals met${g.legacy ? ', legacy earned' : ', no legacy'}`); });
+    Object.entries(me1.eraGoals || {}).forEach(([age, g]) => { if ('legacy' in g && !('legacy' in (me0.eraGoals?.[age] || {}))) note(t, 'eraGoals', `${age} scored: ${g.met?.length ?? 0} goals met${g.legacy ? ', legacy earned' : ', no legacy'}`); });
     const c0 = before.crises?.history?.length || 0;
     (after.crises?.history || []).slice(c0).forEach((c) => note(t, 'crisis', `${c.id} hit ${(c.nations || []).map((id) => nameOf(after, id)).join(', ')}${(c.nations || []).includes(playerId) ? ' (the player)' : ''}`));
     if (after.research?.lastCompleted && after.research.lastCompleted !== before.research?.lastCompleted) note(t, 'tech', `Researched ${after.research.lastCompleted.techId}`);

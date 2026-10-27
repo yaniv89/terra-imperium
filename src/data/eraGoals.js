@@ -13,11 +13,11 @@ export const ERA_LEGACY_TURNS = 50;
 // The reward is a national modifier `mod`: n = n0 + step per age after the first (rounded down;
 // a percent when `pct`), `sign` its direction; `bonusLabel` shows it.
 export const PLAYSTYLES = {
-  expand: { label: 'Expand', targets: { stone: 4, bronze: 8, classical: 16, kingdoms: 24, gunpowder: 28, modern: 30, information: 30, future: 36 }, unit: 'cities', mod: 'national.hrMult', sign: 1, pct: true, n0: 10, step: 5, bonusLabel: '+{n}% manpower' },
-  wealth: { label: 'Wealth', targets: { stone: 9, bronze: 14, classical: 18, kingdoms: 21, gunpowder: 22, modern: 22, information: 22, future: 24 }, unit: 'kinds of resource', mod: 'national.goldMult', sign: 1, pct: true, n0: 10, step: 5, bonusLabel: '+{n}% gold' },
-  war: { label: 'War', targets: { stone: null, bronze: null, classical: 1, kingdoms: 2, gunpowder: 2, modern: 1, information: 1, future: null }, unit: 'battles won', mod: 'national.moraleRecovery', sign: 1, pct: true, n0: 10, step: 5, bonusLabel: '+{n}% morale recovery' },
-  culture: { label: 'Culture', targets: { stone: 5, bronze: 22, classical: 85, kingdoms: 230, gunpowder: 490, modern: 770, information: 1050, future: 1450 }, unit: 'building levels in one city', mod: 'national.stabilityBonus', sign: 1, pct: false, n0: 1, step: 1 / 3, bonusLabel: '+{n} stability' },
-  science: { label: 'Science', targets: { stone: 2, bronze: 2, classical: 2, kingdoms: 2, gunpowder: 2, modern: 2, information: 2, future: 2 }, unit: 'research boosts', mod: 'national.researchCost', sign: -1, pct: true, n0: 10, step: 2.5, bonusLabel: '-{n}% research cost' }
+  expand: { label: 'Expand', targets: { stone: 4, bronze: 8, classical: 17, kingdoms: 25, gunpowder: 28, modern: 28, information: 29, future: 33 }, unit: 'cities', mod: 'national.hrMult', sign: 1, pct: true, n0: 10, step: 5, bonusLabel: '+{n}% manpower' },
+  wealth: { label: 'Wealth', targets: { stone: 9, bronze: 15, classical: 19, kingdoms: 21, gunpowder: 22, modern: 22, information: 23, future: 24 }, unit: 'kinds of resource', mod: 'national.goldMult', sign: 1, pct: true, n0: 10, step: 5, bonusLabel: '+{n}% gold' },
+  war: { label: 'War', targets: { stone: null, bronze: null, classical: 2, kingdoms: 2, gunpowder: 2, modern: 1, information: 1, future: 1 }, unit: 'battles won', mod: 'national.moraleRecovery', sign: 1, pct: true, n0: 10, step: 5, bonusLabel: '+{n}% morale recovery' },
+  culture: { label: 'Culture', targets: { stone: 3, bronze: 8, classical: 14, kingdoms: 23, gunpowder: 31, modern: 40, information: 49, future: 55 }, unit: 'building levels in one city', mod: 'national.stabilityBonus', sign: 1, pct: false, n0: 1, step: 1 / 3, bonusLabel: '+{n} stability' },
+  science: { label: 'Science', targets: { stone: 7, bronze: 8, classical: 8, kingdoms: 8, gunpowder: 8, modern: 9, information: 6, future: 4 }, unit: 'research boosts', mod: 'national.researchCost', sign: -1, pct: true, n0: 10, step: 2.5, bonusLabel: '-{n}% research cost' }
 };
 
 // What to do next for each goal, in one plain line (the map goal tracker, I149).

@@ -1,7 +1,7 @@
 // scripts/ui/era-goals-shots.mjs
 // Follow-up 24: the era goals and their rewards on every surface that shows them (the map tracker,
 // Research, the nation overview, Legacy) at 844x390 and 1600x900, English and Hebrew, into
-// plans/ui/era-goals/. The player is put in the Bronze Age (five goals, the fullest list) with one
+// plans/ui/era-goals/. The player is put in the Bronze Age (four goals: no War goal yet) with one
 // goal paid. Needs a dev server of this checkout (`npx vite --port 5263`) and a Chrome.
 //   node scripts/ui/era-goals-shots.mjs [--url http://localhost:5263/terra-imperium/] [--chrome <path>]
 import { launchBrowser } from '../lib/browserLaunch.mjs';
@@ -55,7 +55,7 @@ const run = async (browser, name, viewport, mobile, he = false) => {
 
   await click(page.getByTestId('goal-tracker-chip'));
   await page.getByTestId('goal-tracker').waitFor({ timeout: 10000 });
-  check(`${name}: tracker shows five goals with rewards`, (await page.getByTestId('goal-tracker').locator('[data-testid^="goal-"]').count()) === 5);
+  check(`${name}: tracker shows the four Bronze goals`, (await page.getByTestId('goal-tracker').locator('[data-testid^="goal-"]').count()) === 4);
   await noPlaceholder('tracker'); await shot('tracker');
   await click(page.getByTestId('goal-tracker-chip'));
 

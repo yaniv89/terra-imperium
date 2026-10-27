@@ -28,7 +28,7 @@ const LegacyPanel = () => {
   const satisfiedNow = checkAchievements(state);
   const era = eraGoalProgress(state);
   const score = legacyModel(state);
-  const pastEras = Object.entries(state.nations?.[state.playerNationId]?.eraGoals || {});
+  const pastEras = Object.entries(state.nations?.[state.playerNationId]?.eraGoals || {}).filter(([, r]) => 'legacy' in r); // scored ages only
 
   return (
     <div className="space-y-4">
@@ -57,7 +57,7 @@ const LegacyPanel = () => {
           <span>{tNow('legacy.goalsOf', { age: ageName(era.ageId, AGES[era.ageId]?.name) })}</span>
           <span className="text-[11px] font-mono">{tNow('empire.forLegacy', { met: era.met, needed: era.needed })}</span>
         </div>
-        <div className="mt-1.5 grid grid-cols-5 gap-1">
+        <div className="mt-1.5 grid gap-1" style={{ gridTemplateColumns: `repeat(${era.goals.length}, minmax(0, 1fr))` }}>
           {era.goals.map((g) => (
             <div key={g.id} className={`rounded-md px-1 py-1 text-center border ${g.done ? 'border-emerald-500/60 bg-emerald-900/30 text-emerald-200' : 'border-fa-line bg-fa-raised/50 text-fa-text'}`} title={tNow('p1.leg.goalTip', { label: playstyleName(g.id, g.label), value: g.value, target: g.target, unit: goalUnit(g.id, g.unit), bonus: goalBonus(g.id, g.bonus, g.n) })}>
               <div className="text-[10px] font-semibold">{playstyleName(g.id, g.label)}</div>

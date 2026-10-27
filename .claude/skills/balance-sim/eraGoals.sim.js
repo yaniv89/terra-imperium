@@ -4,8 +4,7 @@
 // player. Prints one ERAGOALS line per seed: for every age, the majors scored in it (left it, or
 // were in it at the end) and how many met each goal. Reads only nation.eraGoals, the record the
 // engine keeps, so it runs on a base commit too.
-//   SEEDS=11,12 npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/balance-sim/eraGoals.sim.js
-// Sum the per-seed lines with: node .claude/skills/balance-sim/eraGoalsSum.mjs <log files>
+//   SEEDS=11 npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/balance-sim/eraGoals.sim.js
 import { it } from 'vitest';
 import { resolveTurn } from '../../../src/engine/resolveTurn';
 import { createInitialState, gameReducer } from '../../../src/context/GameContext';

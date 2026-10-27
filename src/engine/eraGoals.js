@@ -62,7 +62,7 @@ export const eraGoalProgress = (state, ageId = ageOf(state, state.playerNationId
   const values = playstyleValues(state, nationId, ageId);
   const paid = state.nations?.[nationId]?.eraGoals?.[ageId]?.met || [];
   // A goal once paid stays met (a city lost later does not take the reward back).
-  const goals = goalsForAge(ageId).map((g) => ({ ...g, value: values[g.id], done: values[g.id] >= g.target || paid.includes(g.id) }));
+  const goals = goalsForAge(ageId).map((g) => (paid.includes(g.id) ? { ...g, value: Math.max(values[g.id], g.target), done: true } : { ...g, value: values[g.id], done: values[g.id] >= g.target }));
   return { ageId, goals, met: goals.filter((g) => g.done).length, needed: ERA_GOALS_FOR_LEGACY };
 };
 
