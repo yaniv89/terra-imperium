@@ -204,6 +204,15 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     independentsAlive: nations.filter((n) => n.kind === 'independent' && !n.isEliminated).length,
     majorsAlive: nations.filter((n) => n.kind !== 'independent' && !n.isEliminated && !n.id.startsWith('free_')).length,
     majorCities: regs.filter((r) => r.owner && s.nations[r.owner]?.kind !== 'independent').length,
+    // AI majors' treasuries, land units and buildings (follow-ups 19 and 24: AI gold balance).
+    ...(() => {
+      const ms = nations.filter((n) => n.kind !== 'independent' && !n.isEliminated && !n.id.startsWith('free_') && n.id !== 'rebels' && n.id !== s.playerNationId);
+      const g = ms.map((n) => n.economy?.gold || 0).sort((a, b) => a - b);
+      const units = {}; Object.values(s.units).forEach((u) => { if (u.domain === 'land' && u.classId !== 'settler') units[u.ownerId] = (units[u.ownerId] || 0) + 1; });
+      const blds = {}; regs.forEach((r) => { if (r.owner) blds[r.owner] = (blds[r.owner] || 0) + Object.values(r.buildings?.categories || {}).reduce((a, x) => a + (Number.isFinite(x) ? x + 1 : 0), 0); });
+      const m = (xs) => +(xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length)).toFixed(1);
+      return { aiMajGoldMean: Math.round(m(g)), aiMajGoldMedian: Math.round(g[Math.floor(g.length / 2)] || 0), aiMajGoldMax: Math.round(g.at(-1) || 0), aiMajUnitsMean: m(ms.map((n) => units[n.id] || 0)), aiMajBuildingsMean: m(ms.map((n) => blds[n.id] || 0)) };
+    })(),
     // Techs of the median AI major (medianAiTechs above counts the independents too), and AI sallies (I125).
     medianMajorTechs: (() => { const n = nations.filter((x) => !x.isPlayer && !x.isEliminated && x.kind !== 'independent' && !x.id.startsWith('free_') && x.id !== 'rebels').map((x) => (x.tech?.researched || []).length).sort((a, b) => a - b); return n[Math.floor(n.length / 2)] || 0; })(),
     sallies: s.indepStats?.sallies || 0, salliesIndep: s.indepStats?.salliesIndep || 0, salliesWon: s.indepStats?.salliesWon || 0,
