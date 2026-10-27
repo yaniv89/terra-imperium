@@ -3,7 +3,8 @@
 // and it never throws without WebAudio.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createBattleAudio, isBattleAudioEnabled, setBattleAudioEnabled, soundForEvent, MAX_VOICES, MAX_NEW_PER_FRAME } from './battleAudio';
-import { setSoundFilesForTest } from '../../audio/soundRegistry';
+import { setSoundFilesForTest, BATTLE_SOUNDS, AGE_SOUND_FAMILY, FAMILY_VOICE } from '../../audio/soundRegistry';
+import { AGE_ORDER } from '../../data/ages';
 import { setPageStateForTest, resetPageStateForTest } from '../../audio/pageLifecycle';
 import { resetAudioContextForTest } from '../../audio/audioContext';
 
@@ -61,6 +62,22 @@ describe('battle audio', () => {
     expect(id({ type: 'shot', from: 2, to: 3 })).toBe('cannon-fire');
     expect(['cavalry-charge', 'chariot-rumble']).toContain(id({ type: 'melee', from: 3, to: 0, damage: 5 }));
     expect(id({ type: 'destroyed', id: 0 })).toBe('death-cry');
+  });
+
+  it('every age has a weapon family, and each family sounds like itself (U95)', () => {
+    AGE_ORDER.forEach((a) => expect(AGE_SOUND_FAMILY[a], a).toBeTruthy());
+    Object.values(FAMILY_VOICE).flatMap(Object.values).forEach((id) => expect(BATTLE_SOUNDS[id]?.synth, id).toBeTruthy());
+    const at = (ageId, extra = {}) => ({ squads: [squad(0, 0, 0, { classId: 'ranged', ageId, ...extra }), squad(1, 0, 0, { side: 1, ageId })] });
+    const id = (ageId, e, extra) => soundForEvent(e, at(ageId, extra), [ageId, ageId], 0).id;
+    expect(id('stone', { type: 'shot', from: 0, to: 1 })).toBe('sling-throw');
+    expect(id('stone', { type: 'melee', from: 0, to: 1, damage: 3 }, { classId: 'infantry' })).toBe('stone-thud');
+    expect(id('stone', { type: 'destroyed', id: 0 })).toBe('stone-shout');
+    expect(id('information', { type: 'shot', from: 0, to: 1 })).toBe('laser-fire');
+    expect(id('information', { type: 'melee', from: 0, to: 1, damage: 0 }, { classId: 'infantry' })).toBe('shield-hum');
+    expect(id('information', { type: 'shot', from: 0, to: 1 }, { classId: 'siege' })).toBe('railgun-crack');
+    expect(id('future', { type: 'melee', from: 0, to: 1, damage: 4 }, { classId: 'infantry' })).toBe('servo-clash');
+    expect(id('future', { type: 'destroyed', id: 0 })).toBe('power-down');
+    expect(id('bronze', { type: 'shot', from: 0, to: 1 })).toBe('arrow-release'); // older ages are unchanged
   });
 
   it('only where the camera looks: off screen builds nothing, at the edge quieter, inside full', () => {

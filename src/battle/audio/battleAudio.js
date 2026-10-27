@@ -18,7 +18,7 @@
 // with its own RNG, so world hashes and replays are unchanged.
 // Haptics use Capacitor's Haptics plugin inside the native app, falling back to navigator.vibrate
 // on the web. They follow the same Sound switch.
-import { BATTLE_SOUNDS, battleFilesFor, createSoundRng, pickVariant } from '../../audio/soundRegistry';
+import { BATTLE_SOUNDS, AGE_SOUND_FAMILY, FAMILY_VOICE, battleFilesFor, createSoundRng, pickVariant } from '../../audio/soundRegistry';
 import { getAudioSettings, setAudioSettings, subscribeAudioSettings } from '../../audio/audioSettings';
 import { audibility, ambienceTarget, easeLevel } from '../../audio/spatial';
 import { isPageAudible, subscribePageAudio } from '../../audio/pageLifecycle';
@@ -59,12 +59,16 @@ const MODERN = getAgeIndex('modern');
 const KINGDOMS = getAgeIndex('kingdoms');
 
 // What a squad's weapon sounds like, by class, age and name (cached per squad by the caller).
+const familyOf = (ageId) => FAMILY_VOICE[AGE_SOUND_FAMILY[ageId]] || {};
 const voiceOf = (q) => {
+  const fam = familyOf(q?.ageId);
   const name = String(getSquadDisplayName(q?.classId, q?.ageId) || '').toLowerCase();
   const age = ageAt(q?.ageId);
   const cls = q?.classId || 'ranged';
+  if (cls === 'siege' && fam.siege) return { shot: fam.siege, melee: 'ram-impact' };
   if (cls === 'siege') return { shot: age >= GUNPOWDER ? 'cannon-fire' : age >= KINGDOMS ? 'trebuchet-release' : 'ballista-release', melee: 'ram-impact' };
   if (cls === 'cavalry') return { shot: age >= GUNPOWDER ? 'musket-volley' : 'arrow-release', melee: /chariot/.test(name) ? 'chariot-rumble' : 'cavalry-charge', move: /chariot/.test(name) ? 'chariot-rumble' : 'cavalry-hooves' };
+  if (fam.shot && cls !== 'cavalry') return { shot: fam.shot, melee: fam.melee };
   const gun = age >= MODERN ? 'rifle-fire' : age >= GUNPOWDER ? 'musket-volley' : 'arrow-release';
   return { shot: gun, melee: /spear|pike|hoplite|phalanx|lanc/.test(name) ? 'spear-thrust' : 'sword-clash' };
 };
@@ -83,16 +87,17 @@ export const soundForEvent = (e, view, ageIds, playerSide, voices = new Map()) =
     case 'towerShot': {
       const age = ageAt(ageIds[1]);
       const s = e.eco !== undefined ? view?.eco?.buildings?.find((b) => b.idx === e.eco) : structure(e.structure);
-      return { id: age >= MODERN ? 'rifle-fire' : age >= GUNPOWDER ? 'musket-volley' : 'arrow-release', ...at(s) };
+      return { id: familyOf(ageIds[1]).tower || (age >= MODERN ? 'rifle-fire' : age >= GUNPOWDER ? 'musket-volley' : 'arrow-release'), ...at(s) };
     }
     case 'melee': {
       const q = sq(e.from); const target = e.to !== undefined ? sq(e.to) : structure(e.structure);
       let id = voice(q).melee;
       if (e.damage === 0 && (id === 'sword-clash' || id === 'spear-thrust')) id = 'shield-block';
+      else if (e.damage === 0 && familyOf(q?.ageId).block) id = familyOf(q.ageId).block;
       return { id, ...at(target || q) };
     }
     case 'impact': { const big = e.radius > 6 * Q; return { id: big || ageAt(ageIds[0]) >= GUNPOWDER || ageAt(ageIds[1]) >= GUNPOWDER ? 'explosion' : 'ram-impact', big, x: e.x / Q, z: e.y / Q }; }
-    case 'destroyed': return { id: 'death-cry', ...at(sq(e.id)), own: sq(e.id)?.side === playerSide };
+    case 'destroyed': return { id: familyOf(sq(e.id)?.ageId).death || 'death-cry', ...at(sq(e.id)), own: sq(e.id)?.side === playerSide };
     case 'keepBreached': case 'structureDestroyed': case 'collapsed': return { id: 'building-collapse', big: true, ...at(structure(e.structure)) };
     case 'buildingRazed': return { id: 'fire-crackle', ...at(structure(e.structure)) };
     case 'ecoDestroyed': return { id: 'building-collapse', ...at(view?.eco?.buildings?.find((b) => b.idx === e.building)) };
@@ -265,6 +270,19 @@ export const createBattleAudio = ({ ageIds = [FIRST_AGE_ID, FIRST_AGE_ID], playe
     routed: [0.5, (c, o, t) => { tone(c, o, t, { type: 'triangle', from: 400, to: 200, peak: 0.1, attack: 0.02, decay: 0.4 }); }],
     chop: [0.15, (c, o, t) => { noiseBurst(c, o, t, { freq: 900, q: 3, peak: 0.2, decay: 0.06 }); tone(c, o, t, { from: 300, to: 180, peak: 0.06, decay: 0.05 }); }],
     mine: [0.2, (c, o, t) => { tone(c, o, t, { type: 'square', from: 2400, to: 2100, peak: 0.04, decay: 0.12 }); noiseBurst(c, o, t, { freq: 3500, q: 5, peak: 0.12, decay: 0.05 }); }],
+    // Age families (U95). Stone: thuds, thrown stones, shouts.
+    throw: [0.2, (c, o, t) => { noiseBurst(c, o, t, { type: 'bandpass', freq: 1400, q: 1.5, peak: 0.12, attack: 0.05, decay: 0.08 }); tone(c, o, t + 0.08, { type: 'triangle', from: 300, to: 120, peak: 0.1, decay: 0.06 }); }],
+    thud: [0.2, (c, o, t) => { tone(c, o, t, { from: 150, to: 55, peak: 0.4, decay: 0.12 }); noiseBurst(c, o, t, { type: 'lowpass', freq: 500, peak: 0.3, decay: 0.07 }); }],
+    shout: [0.45, (c, o, t) => { const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 700; f.Q.value = 2; f.connect(o); tone(c, f, t, { type: 'sawtooth', from: 240, to: 160, peak: 0.16, attack: 0.05, decay: 0.35 }); }],
+    // Energy: lasers, a shield's hum, a railgun's crack.
+    laser: [0.2, (c, o, t) => { tone(c, o, t, { type: 'sawtooth', from: 2400, to: 380, peak: 0.1, attack: 0.002, decay: 0.14 }); tone(c, o, t, { type: 'sine', from: 1200, to: 200, peak: 0.08, decay: 0.12 }); }],
+    laserHit: [0.25, (c, o, t) => { tone(c, o, t, { type: 'square', from: 900, to: 300, peak: 0.07, decay: 0.15 }); noiseBurst(c, o, t, { type: 'highpass', freq: 4000, peak: 0.15, decay: 0.08 }); }],
+    hum: [0.5, (c, o, t) => { tone(c, o, t, { from: 110, to: 120, peak: 0.16, attack: 0.08, decay: 0.4 }); tone(c, o, t, { type: 'triangle', from: 440, to: 460, peak: 0.07, attack: 0.08, decay: 0.4 }); }],
+    railgun: [0.6, (c, o, t) => { noiseBurst(c, o, t, { type: 'highpass', freq: 2500, peak: 0.55, attack: 0.001, decay: 0.05 }); tone(c, o, t, { from: 1800, to: 60, peak: 0.3, attack: 0.001, decay: 0.45 }); }],
+    // Robot: servos and a power-down.
+    robotFire: [0.2, (c, o, t) => { tone(c, o, t, { type: 'square', from: 700, to: 500, peak: 0.07, decay: 0.05 }); noiseBurst(c, o, t, { freq: 3200, q: 3, peak: 0.15, decay: 0.06 }); }],
+    servo: [0.3, (c, o, t) => { tone(c, o, t, { type: 'sawtooth', from: 180, to: 520, peak: 0.1, attack: 0.04, decay: 0.12 }); noiseBurst(c, o, t + 0.1, { freq: 1800, q: 4, peak: 0.25, decay: 0.05 }); }],
+    powerDown: [0.8, (c, o, t) => { tone(c, o, t, { type: 'sawtooth', from: 600, to: 40, peak: 0.14, attack: 0.01, decay: 0.7 }); }],
     click: [0.05, (c, o, t) => { tone(c, o, t, { from: 1400, to: 1100, peak: 0.08, attack: 0.001, decay: 0.03 }); }],
     victory: [1.6, (c, o, t) => { [523, 659, 784].forEach((f, i) => tone(c, o, t + i * 0.15, { type: 'triangle', from: f, peak: 0.15, attack: 0.01, decay: 1.0 })); }],
     defeat: [1.6, (c, o, t) => { [392, 311, 262].forEach((f, i) => tone(c, o, t + i * 0.2, { type: 'triangle', from: f, peak: 0.13, attack: 0.02, decay: 1.0 })); }]
