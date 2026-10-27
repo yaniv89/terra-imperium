@@ -110,7 +110,7 @@ const WorldTopBar = () => {
           <BarItem label={t('topbar.foodAria', { value: m.food.value, delta: signed(m.food.perTurn) })} onClick={() => toggle('food')} expanded={open === 'food'} testId="top-bar-food">
             <FoodIcon /><span className="fa-num text-[12px]">{m.food.value}</span>{delta(m.food.perTurn)}
           </BarItem>
-          <BarItem label={m.science.current ? t('topbar.scienceAria', { n: m.science.perTurn, name: m.science.current.name, turns: t('research.turnsCount', { count: m.science.current.turns }) }) : t('topbar.scienceNone', { n: m.science.perTurn })} onClick={() => openPanelTab('tech')} testId="research-pill">
+          <BarItem label={m.science.current ? t('topbar.scienceAria', { n: m.science.perTurn, name: m.science.current.name, turns: Number.isFinite(m.science.current.turns) ? t('research.turnsCount', { count: m.science.current.turns }) : t('research.noTime') }) : t('topbar.scienceNone', { n: m.science.perTurn })} onClick={() => openPanelTab('tech')} testId="research-pill">
             <ScienceIcon /><span className="fa-num text-[12px]">{m.science.perTurn}</span>
             <span className={`[unicode-bidi:isolate] text-[11px] truncate max-w-[10rem] ${m.science.current ? 'text-fa-muted' : 'text-fa-brass font-semibold'}`}>{m.science.label}</span>
           </BarItem>

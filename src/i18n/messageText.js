@@ -22,11 +22,19 @@ const eventKey = (r) => {
   return null;
 };
 
+// Kinds whose names live under another prefix in the tables (the same keys as gameText.js reads):
+// a building is `btier.<category>.<tier>`, an improvement `impr.<id>`, a wonder `gp.<id>`, ...
+const ALIAS = { building: 'btier', improvement: 'impr', wonder: 'gp', government: 'gov', taxRate: 'tax', cityStateType: 'cstype', district: 'district', resource: 'res', unit: 'uclass', techCategory: 'tc', devType: 'sw.dev', identityPole: 'ident' };
+const aliasKey = (r) => (ALIAS[r.k] && r.id != null ? `${ALIAS[r.k]}.${r.k === 'techCategory' ? String(r.id).toLowerCase() : r.id}` : null);
+
 export const refName = (r, lang) => {
   if (!r) return '';
   if (lang === 'en') return r.en;
   if (NAME_KINDS.has(r.k)) return nameOf(r.k, r.k === 'people' ? r.id : null, r.en, lang);
   if (r.id != null && hasKey(dataKey(r), 'en')) return translate(dataKey(r), null, lang);
+  const ak = aliasKey(r);
+  if (ak && hasKey(ak, 'en')) return translate(ak, null, lang);
+  if (ak && hasDataText(ak)) return dataText(ak, r.en, null, lang);
   const ek = eventKey(r);
   if (ek && hasDataText(ek)) return dataText(ek, r.en, null, lang);
   const dk = `${r.k === 'unitClass' ? 'uclass' : r.k}.${r.id}`; // a unit class is `uclass.<id>` in the data tables

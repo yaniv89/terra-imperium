@@ -11,33 +11,30 @@ import { hasMet } from '../../engine/fog';
 import { attitudeLabel, grudgeTone } from './independentSheetModel';
 import { shieldUrl, shieldColour } from './independentArt';
 import { cityStateViewOf } from './cityStateView';
+import { t } from '../../i18n/core';
+import { nameNow } from '../../i18n/names';
+import { independentKindName } from '../../i18n/gameText';
 
-export const LIST_SORTS = [
-  { id: 'distance', label: 'Nearest' },
-  { id: 'attitude', label: 'Attitude' },
-  { id: 'grudge', label: 'Grudge' },
-  { id: 'name', label: 'Name' }
-];
+// Labels are read when drawn (getters), so they follow the language.
+export const LIST_SORTS = ['distance', 'attitude', 'grudge', 'name'].map((id) => ({ id, get label() { return t(`sw.ind.sort.${id}`); } }));
 export const LIST_FILTERS = [
-  { id: 'all', label: 'All' },
-  { id: 'deals', label: 'Deals' },
-  { id: 'threats', label: 'Threats' },
-  ...PERSONALITY_IDS.map((p) => ({ id: p, label: PERSONALITIES[p].name }))
+  ...['all', 'deals', 'threats'].map((id) => ({ id, get label() { return t(`sw.ind.filter.${id}`); } })),
+  ...PERSONALITY_IDS.map((p) => ({ id: p, get label() { return independentKindName(p, PERSONALITIES[p].name); } }))
 ];
 
 /** The deal that matters most between the player and `n`, or null: { kind, label, tone }. */
 export const dealOf = (state, n) => {
   const me = state.playerNationId;
   const ind = n.indep || {};
-  if (ind.raid && ind.raid.targetNationId === me && ind.raid.phase !== 'home') return { kind: 'raiding', label: 'Raiding you', tone: 'bad' };
+  if (ind.raid && ind.raid.targetNationId === me && ind.raid.phase !== 'home') return { kind: 'raiding', label: t('ind.raidingYou'), tone: 'bad' };
   const demand = (state.tributeDemands || []).find((d) => d.indepId === n.id);
-  if (demand) return { kind: 'demand', label: `Demand ${demand.gold} gold a turn`, tone: 'warn' };
-  if ((state.joinOffers || []).some((o) => o.indepId === n.id)) return { kind: 'joinOffer', label: 'Offer to join', tone: 'good' };
-  if (ind.tributeFrom?.[me]) return { kind: 'youPay', label: `You pay ${ind.tributeFrom[me].gold} a turn`, tone: 'neutral' };
-  if (ind.tributeTo?.[me]) return { kind: 'theyPay', label: `They pay ${ind.tributeTo[me].gold} a turn`, tone: 'good' };
-  if (ind.tradeWith?.[me] != null) return { kind: 'trade', label: 'Trading', tone: 'good' };
+  if (demand) return { kind: 'demand', label: t('sw.ind.deal.demand', { gold: demand.gold }), tone: 'warn' };
+  if ((state.joinOffers || []).some((o) => o.indepId === n.id)) return { kind: 'joinOffer', label: t('sw.ind.deal.joinOffer'), tone: 'good' };
+  if (ind.tributeFrom?.[me]) return { kind: 'youPay', label: t('sw.ind.deal.youPay', { gold: ind.tributeFrom[me].gold }), tone: 'neutral' };
+  if (ind.tributeTo?.[me]) return { kind: 'theyPay', label: t('sw.ind.deal.theyPay', { gold: ind.tributeTo[me].gold }), tone: 'good' };
+  if (ind.tradeWith?.[me] != null) return { kind: 'trade', label: t('sw.ind.deal.trade'), tone: 'good' };
   const hired = Object.values(state.units || {}).some((u) => u.ownerId === me && u.mercenary?.from === n.id);
-  if (hired) return { kind: 'mercs', label: 'Your mercenaries', tone: 'neutral' };
+  if (hired) return { kind: 'mercs', label: t('sw.ind.deal.mercs'), tone: 'neutral' };
   return null;
 };
 
@@ -63,8 +60,8 @@ export const independentsListModel = (state, { sort = 'distance', filter = 'all'
     const label = attitudeLabel(state, n, me, attitude);
     const grudge = Math.round(grudgeOf(n, me));
     all.push({
-      id: n.id, name: n.name, cityId: city.id, cityName: city.name, size: city.size || 1,
-      personality: p, personalityName: PERSONALITIES[p]?.name || p, cityState: cityStateViewOf(state, n, me), colour: shieldColour(p), shieldUrl: shieldUrl(p),
+      id: n.id, name: nameNow('people', n.id, n.name), cityId: city.id, cityName: nameNow('city', city.id, city.name), size: city.size || 1,
+      personality: p, personalityName: independentKindName(p, PERSONALITIES[p]?.name || p), cityState: cityStateViewOf(state, n, me), colour: shieldColour(p), shieldUrl: shieldUrl(p),
       km, attitude, attitudeWord: label.word, attitudeTone: label.tone, grudge, grudgeTone: grudgeTone(grudge),
       deal: dealOf(state, n)
     });
@@ -87,4 +84,4 @@ export const independentsListModel = (state, { sort = 'distance', filter = 'all'
 };
 
 /** "540 km" / "far" for a row. */
-export const kmLabel = (km) => (Number.isFinite(km) ? `${Math.round(km / 10) * 10} km` : 'far');
+export const kmLabel = (km) => (Number.isFinite(km) ? t('sw.km', { n: Math.round(km / 10) * 10 }) : t('sw.far'));

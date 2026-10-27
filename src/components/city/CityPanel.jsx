@@ -39,7 +39,7 @@ import { useWhy } from '../ui/WhyTip';
 import { useT } from '../../i18n/useT';
 import { askConfirm } from '../ui/ConfirmActionDialog';
 import { replaceImprovementConfirm } from '../ui/confirmSpecs';
-import { logText } from '../../i18n/messageText';
+import { logText, reasonText } from '../../i18n/messageText';
 import { rich } from '../../i18n/rich';
 import { t as tNow } from '../../i18n/core';
 
@@ -319,7 +319,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
         const q = queue[buyAt]; const words = rushText(q);
         return (
           <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-fa-line bg-fa-raised px-2.5 py-1.5 text-[12px] leading-snug" data-testid="city-rush-offer">
-            <div className="min-w-0 flex-1">{q.rush.ok ? words.text : `${words.text} ${q.rush.reason}`}</div>
+            <div className="min-w-0 flex-1">{q.rush.ok ? words.text : `${words.text} ${reasonText(q.rush, lang)}`}</div>
             <button type="button" disabled={!q.rush.ok} data-testid="city-rush-pay"
               onClick={() => { dispatch({ type: ActionTypes.RUSH_PRODUCTION, payload: { cityId, index: q.index } }); setBuyAt(null); }}
               className="fa-btn fa-btn-primary fa-btn-sm min-h-[44px] shrink-0 disabled:opacity-40">{t('cy.pay', { n: q.rush.gold })}</button>

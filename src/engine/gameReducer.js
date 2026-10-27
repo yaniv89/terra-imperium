@@ -2098,7 +2098,7 @@ const reduceAction = (state, action) => {
             identityShiftCooldownTurn: state.turnNumber + IDENTITY_SHIFT_COOLDOWN_TURNS
           }
         },
-        logs: [...state.logs, { year: state.year, ...msg('m.act.identityShift', { pole: thing('identityPole', poleName, poleName) }), type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.identityShift', { pole: thing('identityPole', `${axis}.${direction > 0 ? 'pos' : 'neg'}`, poleName) }), type: LogTypes.ACTION }]
       }, costs, 'shiftIdentity');
     }
 
@@ -3037,7 +3037,7 @@ const reduceAction = (state, action) => {
       const { unitIds = [], toTile = null, stop = false } = action.payload || {};
       if (stop) { const stopped = stopExplore(state, unitIds); return stopped ? { ...state, units: stopped } : state; }
       const order = orderExplore(state, unitIds, toTile);
-      if (!order.units) return reject(state, order.reason || msg('m.act.no.scouts'));
+      if (!order.units) return reject(state, order.reason ? whyOf(order) : msg('m.act.no.scouts'));
       // Each scout steps at once on its own route, like a march (routes.js stepMarchesNow).
       let scouted = order.units;
       unitIds.forEach((id) => { scouted = stepMarchesNow({ ...state, units: scouted }, [id]).units; });
