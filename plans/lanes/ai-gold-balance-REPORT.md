@@ -119,3 +119,39 @@ reward itself (src/data/eraGoals.js, `wealth`: +10% gold, +5% per age step, on
   `tryRushProduction`'s `eligibleOnly` and `reserve` options.
 - src/engine/spending.test.js: three tests.
 - .claude/skills/balance-sim/worldStats.sim.js: the aiMaj* keys.
+
+## Addendum: lead messages after the run (27 Oct)
+The lead sent four messages after this lane's turn had ended:
+- **The lead may approve rule changes.** I did not change any rule on that basis. It reached this
+  session only as a message from another session, and CLAUDE.md still asks for the user's own yes
+  on a rule change. The proposal in section 4 stays a proposal. Nothing in this lane needs it: the
+  end of game target is met without a rule change.
+- **Research and evidence for each design call.** The one call here is "buy what the cities
+  already queued, at the player's own price, only from a surplus". It follows how Civilization V
+  and VI let you buy production with gold, and it adds no new sink. The evidence is the paired
+  8 seed tables above.
+- **No API or workflow work was used or needed.**
+- **Playtest run 40550092795, step 51: "no rush buy shown" with 11k gold.** I checked the shot
+  (`plans/ai-output/human-playtest/shots/step-051.jpg` on branch
+  `ai/human-playtest-40550092795`). The player's Civ-style buy already exists, and the shot
+  shows it:
+  - The coin button reading **546** beside the current order (Settlers, 31 turns) in the
+    city's Build tab is the rush price. It comes from CityPanel.jsx `city-rush-open`, which uses
+    spending.js `rushQuote`, the same price the AI pays.
+  - At step 51 the player had **512 gold** (top bar), not 11k, so the button was greyed out
+    (`opacity-60`, "Needs 546 gold").
+  - The 22 turn Warband rows in the shot are build options, not queued orders. A queued row gets
+    its own gold button (`queue-rush`).
+  - The price path is `rushGold` in src/engine/spending.js: 4 gold a production point, x1.5 for
+    settlers, +20% for each recent rush (heat, up to +100%, which cools over 5 reference turns).
+    It is not in src/utils/costs.js.
+
+  So the gap is that players do not find the buy, not that it is missing. It is a bare coin icon
+  with a number, it appears only on an order already in the queue, and the build option rows
+  show only turns. A UI lane could:
+  1. label the button "Buy 546" (the i18n key `cy.rush.button` already exists);
+  2. show "or buy now: N gold" on the military build option rows;
+  3. add a hint when gold is over about 20 turns of income.
+
+  None of this is in this lane's scope (engine AI only). It should be checked with mobile-check
+  at 844x390.
