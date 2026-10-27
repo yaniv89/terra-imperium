@@ -43,4 +43,14 @@ describe('sightTest', () => {
       expect(test(null)).toBe(false);
     });
   });
+  it('reads units moved in place once the nations object changes (resolveTurn drafts)', () => {
+    const S = peoplesWorld({ size: 'standard', seed: 7, independents: true });
+    const me = S.playerNationId;
+    const s = { ...S, units: { ...S.units, probe: { id: 'probe', ownerId: me, tile: 0, domain: 'land', classId: 'infantry', strength: 1000, embarkedOn: null } } };
+    sightTest(s, me);
+    s.units.probe = { ...s.units.probe, tile: 5000 }; // moved in place, as resolveTurn's working copy is
+    const later = { ...s, nations: { ...s.nations } };
+    const set = visibleTiles(later, me); const test = sightTest(later, me);
+    for (let t = 0; t < tiles.count; t++) if (test(t) !== set.has(t)) throw new Error(`tile ${t}`);
+  });
 });
