@@ -173,3 +173,19 @@ Small edits in other areas, kept minimal:
 4. GC is about 8% of the turn: the per-turn spreads of every region record are the main source.
 5. Other per-cell readers (claimCandidates, siteQuality, armies tileAccess, supplies) can switch
    to `ownerSlots` when frequency 100 lands.
+
+## Eight ages budgets (U97, 2026-10-27)
+Base c16d20ae against the U96 branch, same machine, back to back (other sessions running, so
+absolute numbers carry their load).
+- Turn time, `turnProfile.sim.js` seed 11, 300 turns, Normal: mean 106.9 ms base, 104.7 ms head;
+  by 25 turns 34 to 171 (base) and 30 to 175 (head). Turns past about 100 are over the 80 ms
+  budget on both sides: the world reaches 787 cities by turn 300. Largest phases (head, mean/worst):
+  cities 25.8/72, aiWarDeclarations 15.5/44, aiWarProgress 11.6/60, rebellionAndSupply 6.5/30,
+  fog 6.1/15, aiEconomy 6.0/12. The open items above still apply.
+- `PERF_CHECKS=1 src/engine/aiQualityBenchmark.test.js`: 6 of 6 pass.
+- `PERF_CHECKS=1 src/battle/sim/kernel.test.js` (300 a side, p95 x4 within 10 ms): at the edge and
+  load-bound, the same on both sides (head 10.5, 10.9, 29.9, 26.1 ms; base pass, pass, 36.0, pass).
+- Map pan (`scripts/perf/map-pan.mjs --gpu`): step 13.9 ms median at every zoom on both sides;
+  phone fps 114.5 to 144 head, 119 to 144 base; no long task after a pan; map download 107 to 211 kB.
+- Town files (`node scripts/art/town-size-check.mjs`, KTD16): Stone 55.7 MB, Information 14.9,
+  Future 10.0 (each at most 65), no new-age file over 2 MB, total 745.9 MB of 850: pass.
