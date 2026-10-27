@@ -37,3 +37,16 @@ claude/integration, main gets the push once the quick suite and CI are green.
   session_01S3hKeG5pV6nJKZHb7FzPbX (Fun 3.1, Help 3.5).
 - battle-stall merged into integration locally (review: no findings); push waits on test:quick; main
   waits on the grace rework.
+- Sub sessions started 19:04: tech-depth session_01S3hKeJ43dWiNRDrVDT79Ba (Tech 5-6); diplomacy-depth
+  session_01S3hKeGb9LhXRYf9yuZ2uPA (Diplomacy 3-5, no peaceful approach); naval-campaign
+  session_01S3hKeJM2aN5B3eXvzye2Fr (naval never reached); i18n-sweep session_01S3hKeGCDD7j6R5QE9AYmu9 (Hebrew 5).
+- Merged: crisis branch (early answer, famine once at the Granary, log years en/he) plus a fix from its review
+  (an unaffordable early choice reopens the card). Integration green (4035 tests).
+- Round 1 campaign playtests: newcomer-phone $1.25, warmonger $2.38 (real). Fun 3 in both; worst: army
+  orders hidden on phone, at war 90 turns with no contact, production loop. Each sent to its lane.
+- Plan: when the lanes are merged, round 2 = full retest (campaign personas with the new era saves, battle
+  commander) and new grades on the dashboard.
+- Sub session started 19:24: art-animation session_01S3hKeGseHCpBTmPVFxYE1T (user: criticise the art and
+  animations too): reviewer-style scores per area (map, units, animations, VFX, transitions) against AoE IV,
+  Total War, Northgard and Civ VI, then fixes in code and Blender, re-scored on the same shots.
+- Round 2 retest adds art and animation rows to the grades (from this lane's rubric plus the battle playtest).

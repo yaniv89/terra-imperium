@@ -33,8 +33,10 @@ import { displayYear } from './displayYear';
 import { endingSignal, nextDominance, dominanceHold } from './ending';
 import { awardEraLegacy, payEraGoals, eraGoalLog } from './eraGoals';
 import { createEmptyResourcePool } from '../data/resources';
-import { drawEvent } from './eventDeck';
+import { drawEvent, cardOf } from './eventDeck';
 import { processCrises } from './crises';
+import { crisisCardId } from '../data/crises';
+import { applyEventEffects, getOptionShortfall } from './applyEventEffects';
 import { exploreOn } from './hostility';
 import { calcIncome, nextUnrest, getNationBonusTotal, getFieldedStrength } from '../utils/helpers';
 import { getRegionModifier, getModifier } from './modifiers/sheet';
@@ -1183,12 +1185,25 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
 
   // --- history crises (crises.js): world crises from conditions, carried by loyalty, raids, plague,
   // the population model and wars; a hit player gets the opening story as a deck link due now.
+  let crisisChoice; // the option the player picked during the warning, paid once the turn is assembled
   {
     const crisis = processCrises({ ...state, turnNumber: newTurnNumber, year: newYear, regions, units, nations: nationsAfterWars, wars });
     if (crisis) {
+      crisisChoice = crisis.choice == null ? undefined : { id: crisis.crises.history.at(-1).id, option: crisis.choice };
+      let chains = crisis.pendingEventChains;
+      // The early choice can no longer be paid while another option can: the card opens again instead
+      // of applyEventEffects dropping the answer with only a "can't afford" line.
+      if (crisisChoice) {
+        const card = cardOf(crisisCardId(crisisChoice.id));
+        const short = (o) => getOptionShortfall(state.resources, o?.effects).length > 0;
+        if (short(card.options[crisisChoice.option]) && card.options.some((o) => !short(o))) {
+          chains = [...(chains || []), { id: card.id, dueTurn: newTurnNumber }];
+          crisisChoice = undefined;
+        }
+      }
       nationsAfterWars = crisis.nations;
       wars = crisis.wars;
-      state = { ...state, crises: crisis.crises, pendingEventChains: crisis.pendingEventChains };
+      state = { ...state, crises: crisis.crises, pendingEventChains: chains };
       logs.push(...crisis.logs);
     }
   }
@@ -1247,6 +1262,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     rngSeed: rng.getSeed(),
     logs: capLogs([...state.logs, ...logs])
   };
+  // A crisis answered early pays its option now it struck (applyEventEffects clears the open card: keep this turn's).
+  if (crisisChoice) next = { ...applyEventEffects(next, cardOf(crisisCardId(crisisChoice.id)), crisisChoice.option), activeEventId: next.activeEventId, activeProceduralEvent: next.activeProceduralEvent };
   // Players who opted to auto-resolve enemy assaults are never interrupted: fought right away.
   // The battle queue (battleQueue.js): with autoDefend the battles are fought on Auto now, unless an
   // event or a peace offer opened this turn (then they wait for the answer, gameReducer's drain).
