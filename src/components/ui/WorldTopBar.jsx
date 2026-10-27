@@ -35,7 +35,7 @@ const delta = (v) => (v ? <span className={`fa-num text-[11px] ${v < 0 ? 'text-f
 // One item of the bar: a 32 px tall button with an icon, the number and its per-turn change.
 const BarItem = ({ label, onClick, expanded, children, testId }) => (
   <button type="button" onClick={onClick} aria-label={label} aria-expanded={expanded} title={label} data-testid={testId}
-    className={`shrink-0 flex items-center gap-1 h-8 px-1.5 -mx-0.5 rounded-md text-fa-text hover:bg-fa-raised ${expanded ? 'bg-fa-raised' : ''}`}>
+    className={`shrink-0 flex items-center gap-1 h-9 px-1.5 -mx-0.5 rounded-md text-fa-text hover:bg-fa-raised ${expanded ? 'bg-fa-raised' : ''}`}>
     {children}
   </button>
 );
@@ -99,7 +99,7 @@ const WorldTopBar = () => {
       className="age-strip fixed top-0 inset-x-0 z-20 bg-fa-panel/95 border-b border-fa-line text-fa-text
                  pt-[env(safe-area-inset-top)] ps-[max(var(--safe-start),0.75rem)] pe-[max(var(--safe-end),0.75rem)]">
       <div className="h-9 flex items-center gap-3 sm:gap-3.5">
-        <button type="button" onClick={() => openNationOverview()} className="shrink-0 min-w-0 flex items-center gap-1.5 h-8 px-1 -ms-1 rounded-md hover:bg-fa-raised" aria-label={t('topbar.nationAria', { title: m.nation.title })} title={t('topbar.nationAria', { title: m.nation.title })} data-testid="top-bar-nation">
+        <button type="button" onClick={() => openNationOverview()} className="relative before:content-[''] before:absolute before:-inset-y-1.5 before:inset-x-0 shrink-0 min-w-0 flex items-center gap-1.5 h-8 px-1 -ms-1 rounded-md hover:bg-fa-raised" aria-label={t('topbar.nationAria', { title: m.nation.title })} title={t('topbar.nationAria', { title: m.nation.title })} data-testid="top-bar-nation">
           <Shield color={m.nation.color} size={16} />
           <span className={`fa-heading text-[14px] truncate ${portrait ? 'max-w-[5.5rem]' : 'max-w-[9rem]'}`}>{m.nation.name}</span>
         </button>
@@ -129,11 +129,11 @@ const WorldTopBar = () => {
         <span className="text-[11px] text-fa-muted shrink-0 max-w-[5.5rem] truncate" title={m.age.nextName ? t('topbar.ageTip', { age: m.age.name, next: m.age.nextName, n: m.age.techsLeft }) : t('topbar.ageLast', { age: m.age.name })} data-testid="top-bar-age">{m.age.name}</span>
         <span className="fa-num text-[12px] shrink-0 [unicode-bidi:isolate]" title={t('topbar.year')}>{m.year}</span>
         {!portrait && (
-          <button type="button" onClick={() => openTurnReport()} className="[unicode-bidi:isolate] fa-label shrink-0 !text-[11px] h-8 px-1 -me-1 rounded-md hover:bg-fa-raised" title={t('topbar.reportTip')} aria-label={t('topbar.turnAria', { turn: m.turn })} data-testid="top-bar-turn">
+          <button type="button" onClick={() => openTurnReport()} className="relative before:content-[''] before:absolute before:-inset-y-1.5 before:-inset-x-1 [unicode-bidi:isolate] fa-label shrink-0 !text-[11px] h-8 px-1 -me-1 rounded-md hover:bg-fa-raised" title={t('topbar.reportTip')} aria-label={t('topbar.turnAria', { turn: m.turn })} data-testid="top-bar-turn">
             {t('topbar.turn')} <span className="fa-num text-[12px] text-fa-text tracking-normal">{m.turn}</span>
           </button>
         )}
-        <button type="button" onClick={() => openMenu('help')} className="shrink-0 w-8 h-8 -me-1 rounded-full border border-fa-line text-[14px] font-bold text-fa-muted hover:text-fa-text hover:bg-fa-raised" aria-label={t('hub.helpAria')} title={t('hub.helpAria')} data-testid="top-bar-help">?</button>
+        <button type="button" onClick={() => openMenu('help')} className="relative before:content-[''] before:absolute before:-inset-1.5 shrink-0 w-8 h-8 -me-1 rounded-full border border-fa-line text-[14px] font-bold text-fa-muted hover:text-fa-text hover:bg-fa-raised" aria-label={t('hub.helpAria')} title={t('hub.helpAria')} data-testid="top-bar-help">?</button>
       </div>
       {open === 'gold' && (
         <Reasons title={t('topbar.goldTitle')} rows={m.gold.reasons} total={m.gold.perTurn} unit="" onClose={close}

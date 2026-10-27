@@ -44,13 +44,13 @@ const MapGoals = () => {
           <div className="font-semibold leading-tight">{hint.title}</div>
           <div className="text-fa-muted leading-snug">{hint.text}</div>
           <div className="flex gap-2">
-            {hint.back && <button type="button" onClick={() => { setHint(null); openPanelTab(hint.back); }} className="min-h-[36px] px-2 rounded bg-fa-hover hover:bg-fa-line text-fa-text" data-testid="map-hint-back">{t('goals.backResearch')}</button>}
-            <button type="button" onClick={() => setHint(null)} className="min-h-[36px] px-2 rounded bg-fa-hover hover:bg-fa-line text-fa-text" data-testid="map-hint-done">{t('goals.done')}</button>
+            {hint.back && <button type="button" onClick={() => { setHint(null); openPanelTab(hint.back); }} className="min-h-[44px] px-2 rounded bg-fa-hover hover:bg-fa-line text-fa-text" data-testid="map-hint-back">{t('goals.backResearch')}</button>}
+            <button type="button" onClick={() => setHint(null)} className="min-h-[44px] px-2 rounded bg-fa-hover hover:bg-fa-line text-fa-text" data-testid="map-hint-done">{t('goals.done')}</button>
           </div>
         </div>
       )}
       <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} data-testid="goal-tracker-chip"
-        className="pointer-events-auto min-h-[36px] inline-flex items-center gap-1.5 px-2.5 rounded-full bg-fa-panel/90 border border-fa-line text-[12px] text-fa-text">
+        className="relative before:content-[''] before:absolute before:-inset-y-1 before:inset-x-0 pointer-events-auto min-h-[36px] inline-flex items-center gap-1.5 px-2.5 rounded-full bg-fa-panel/90 border border-fa-line text-[12px] text-fa-text">
         <Target size={14} aria-hidden="true" />{t('goals.title')} <span className="fa-num">{era.met}/{era.needed}</span>
       </button>
       {open && (

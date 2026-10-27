@@ -328,7 +328,8 @@ const GameLayout = () => {
       {/* data-map-hud: the map's names keep clear of them (I081). */}
       <div className="fixed z-10 start-[calc(max(var(--safe-start),0.75rem)+var(--city-rail-w,0px))] top-[calc(var(--header-height,2.25rem)+0.625rem)] pointer-events-none needs-you">
         {state.gameStatus === GameStatus.ACTIVE && (
-          <div className="flex flex-col items-start gap-1.5" data-map-hud="group">
+          // On a short phone the column scrolls above the map's bottom buttons instead of running onto them (phone pass).
+          <div className="flex flex-col items-start gap-1.5 max-h-[calc(100dvh-var(--header-height,2.25rem)-6.25rem)] overflow-y-auto [scrollbar-width:none] -m-1.5 p-1.5" data-map-hud="group">
             {/* Decisions that wait behind the one on screen (useExclusivePanel.js), then the chips. */}
             <WaitingChips />
             <NextPrompt />

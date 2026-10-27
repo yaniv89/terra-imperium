@@ -40,7 +40,7 @@ const CrisisBanner = () => {
       <div className="flex items-start gap-1.5">
         <Flame className="w-4 h-4 mt-0.5 shrink-0 text-fa-danger-text" aria-hidden="true" />
         <div className="min-w-0 flex-1 font-semibold leading-tight">{title}</div>
-        <button type="button" onClick={() => setGone(key)} aria-label={t('crisis.dismiss')} className="w-8 h-8 -mt-1 -me-1 shrink-0 flex items-center justify-center rounded hover:bg-fa-raised"><X size={14} aria-hidden="true" /></button>
+        <button type="button" onClick={() => setGone(key)} aria-label={t('crisis.dismiss')} className="relative before:content-[''] before:absolute before:-inset-1.5 w-8 h-8 -mt-1 -me-1 shrink-0 flex items-center justify-center rounded hover:bg-fa-raised"><X size={14} aria-hidden="true" /></button>
       </div>
       {coming ? (
         <>

@@ -47,7 +47,7 @@ const NextPrompt = () => {
         const hint = stackHint(s, single) || (first.hint ? `${first.label}. ${first.hint}` : first.label);
         return (
           <button key={s.key} type="button" onClick={() => go(s)} title={hint} aria-label={s.count > 1 ? hint : undefined} data-count={s.count}
-            className={`pointer-events-auto flex items-center gap-1.5 min-h-[32px] max-w-[min(20rem,44vw,calc(100vw-var(--rail-inset,0px)-var(--safe-start,0px)-5rem))] ps-1.5 pe-2.5 rounded-full bg-fa-panel/95 text-fa-text text-[12px] font-semibold border ${s.kind === 'guide' ? 'border-fa-brass' : 'border-fa-line'} shadow-lg hover:bg-fa-raised`}>
+            className={`relative before:content-[''] before:absolute before:-inset-y-1.5 before:inset-x-0 pointer-events-auto flex items-center gap-1.5 min-h-[32px] max-w-[min(20rem,44vw,calc(100vw-var(--rail-inset,0px)-var(--safe-start,0px)-5rem))] ps-1.5 pe-2.5 rounded-full bg-fa-panel/95 text-fa-text text-[12px] font-semibold border ${s.kind === 'guide' ? 'border-fa-brass' : 'border-fa-line'} shadow-lg hover:bg-fa-raised`}>
             {s.kind === 'guide'
               ? <BookOpen className="w-4 h-4 shrink-0 text-fa-brass ms-0.5" aria-hidden="true" />
               : <span className="w-5 h-5 rounded-full bg-fa-text text-fa-ink fa-num text-[11px] flex items-center justify-center shrink-0" aria-hidden="true">{start + i + 1}</span>}
@@ -58,7 +58,7 @@ const NextPrompt = () => {
       })}
       {(more > 0 || start > 0) && (
         <button type="button" onClick={() => setOffset(more > 0 ? start + SHOWN : 0)} aria-label={more >= 1 ? t('chip.showMore', { n: more }) : t('chip.backFirst')}
-          className="pointer-events-auto min-h-[32px] px-3 rounded-full bg-fa-panel/95 border border-fa-line text-fa-muted text-[12px] font-semibold hover:text-fa-text">
+          className="relative before:content-[''] before:absolute before:-inset-y-1.5 before:inset-x-0 pointer-events-auto min-h-[32px] px-3 rounded-full bg-fa-panel/95 border border-fa-line text-fa-muted text-[12px] font-semibold hover:text-fa-text">
           {more >= 1 ? t('chip.plusN', { n: more }) : t('chip.backFirst')}
         </button>
       )}

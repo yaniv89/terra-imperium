@@ -10,6 +10,7 @@
 // cityEconomy.js, cityEffects.js, through cityBuildModel.js), so the price on a button is the
 // price charged and the turns are the turn's. The Build tab keeps a one-line queue bar pinned at
 // the top and never removes a row while it is open, so a second tap lands on the same row (I045).
+import { isolateLtr } from '../../i18n';
 import { nameNow } from '../../i18n/names';
 import GlossaryLink from '../glossary/GlossaryLink';
 import { unitName as unitDisplayName, unitClassName } from '../../i18n/gameText';
@@ -43,7 +44,7 @@ import { logText } from '../../i18n/messageText';
 import { rich } from '../../i18n/rich';
 import { t as tNow } from '../../i18n/core';
 
-const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
+const signed = (v) => isolateLtr(`${v > 0 ? '+' : ''}${v}`); // Hebrew keeps "+5" and "-5" in order
 const focusLabel = (f) => tNow(`cy.fn.${f}`);
 
 // The icon of a production item (build list and queue): the delivered art, fixed size.
@@ -381,7 +382,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
         <div className="flex gap-1 overflow-x-auto -mx-1 px-1 [scrollbar-width:none]" role="tablist" aria-label={t('cy.buildLists')}>
           {GROUP_FILTERS.filter((g) => g === 'All' || options.some((o) => o.group === g)).map((g) => (
             <button key={g} type="button" role="tab" aria-selected={group === g} onClick={() => setGroup(g)} data-testid={`build-group-${g.toLowerCase()}`}
-              className={`shrink-0 rounded-full border px-3 min-h-[36px] text-[12px] ${group === g ? 'border-fa-brass bg-fa-raised text-fa-text' : 'border-fa-line text-fa-muted'}`}>{groupLabel(g)}</button>
+              className={`shrink-0 rounded-full border px-3 min-h-[44px] text-[12px] ${group === g ? 'border-fa-brass bg-fa-raised text-fa-text' : 'border-fa-line text-fa-muted'}`}>{groupLabel(g)}</button>
           ))}
         </div>
       )}

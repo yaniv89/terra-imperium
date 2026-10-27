@@ -11,7 +11,7 @@ import { canStartTech, getResearchCost, FOCUS_SCIENCE_BONUS, inResearchWindow, a
 import { ageOf, futureTechsOf } from '../../engine/nationState';
 import { getTechDiffusion } from '../../engine/techDiffusion';
 import { researchSchedule, researchStatus, techGate, gateText } from '../../engine/researchStatus';
-import { t as tNow } from '../../i18n';
+import { t as tNow, isolateLtr } from '../../i18n';
 import { ageName } from '../../i18n/core';
 import { mapEffectLabel } from '../../engine/techMapEffects';
 import { techName, unitName, buildingTierName, improvementName } from '../../i18n/gameText';
@@ -19,7 +19,8 @@ import { UNIT_UNLOCKS } from '../../data/unitClasses';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { IMPROVEMENTS } from '../../data/tileYields';
 
-const pct = (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`;
+// Isolated so Hebrew keeps "+10%" in order (it showed "10%+").
+const pct = (v) => isolateLtr(`${v > 0 ? '+' : ''}${Math.round(v * 100)}%`);
 const EFFECT_WORDS = {
   goldMult: (v) => tNow('fx.gold', { pct: pct(v) }),
   hrMult: (v) => tNow('fx.manpower', { pct: pct(v) }),

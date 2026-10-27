@@ -13,7 +13,7 @@ import { focusRegion } from '../map/marchEvents';
 import { describeEffects } from './describeEffects';
 import { getOptionShortfall } from '../../engine/applyEventEffects';
 import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
-import { t as tNow } from '../../i18n';
+import { t as tNow, formatYear } from '../../i18n';
 
 // Plan §M17: describeEffects is the ONE shared effect-description function (src/engine/
 // describeEffects.js) — this replaces the local formatEffectItem/parseEffects pair that used to
@@ -71,7 +71,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
             {event.year != null && (
               <>
                 <Calendar className="w-3 h-3" />
-                <span>{event.year}</span>
+                <span className="[unicode-bidi:isolate]">{formatYear(event.year)}</span>
               </>
             )}
             {placeName && (
@@ -108,7 +108,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
                   className={`w-full p-4 pl:p-2.5 rounded-lg text-start border transition-all group ${blocked ? 'bg-fa-panel border-fa-line opacity-60 cursor-not-allowed' : 'bg-fa-raised hover:bg-fa-hover border-fa-line hover:border-amber-500/50'}`}
                 >
                   {blocked && (
-                    <div className="text-[11px] text-fa-danger-text mb-1">Can&apos;t afford: {shortfalls[index].map((id) => `${-option.effects[id]} ${id}`).join(', ')}</div>
+                    <div className="text-[11px] text-fa-danger-text mb-1">{tNow('evt.cantAfford', { list: shortfalls[index].map((id) => describeEffects({ [id]: option.effects[id] })[0]?.text || id).join(tNow('chip.listSep')) })}</div>
                   )}
                   {/* Option Label */}
                   <div className="font-semibold text-sm text-fa-text group-hover:text-amber-300 transition-colors">
@@ -118,7 +118,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
                   {/* Cost (if specified separately) */}
                   {option.cost && (
                     <div className="text-xs text-fa-danger-text mt-1 font-mono">
-                      Cost: {option.cost}
+                      {tNow('evt.cost', { cost: option.cost })}
                     </div>
                   )}
 
@@ -138,7 +138,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
 
         {/* Footer hint */}
         <div className="px-4 py-2 border-t border-fa-line text-xs text-fa-muted text-center shrink-0 pl:hidden">
-          Choose an option to go on: the turn waits for it. The map stays live behind.
+          {tNow('evt.footer')}
         </div>
       </div>
     </div>

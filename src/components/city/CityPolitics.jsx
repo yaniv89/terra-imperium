@@ -1,6 +1,7 @@
 // src/components/city/CityPolitics.jsx
 // The city sheet's Politics tab (plans/civ-map-rework.md E4): loyalty with its parts, the culture
 // shares, why unrest moves, the governor (seat one from here), a disaster in progress. Phone first: stacked cards, 44 px buttons.
+import { isolateLtr } from '../../i18n';
 import React from 'react';
 import { Heart, Users, Flame, Crown, Scale } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -18,7 +19,7 @@ const Card = ({ icon: Icon, title, children, testId }) => (
     {children}
   </div>
 );
-const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
+const signed = (v) => isolateLtr(`${v > 0 ? '+' : ''}${v}`); // Hebrew keeps "+5" and "-5" in order
 
 const CityPolitics = ({ cityId }) => {
   const { state, dispatch, addLog } = useGame();

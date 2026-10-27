@@ -48,7 +48,9 @@ export const setCurrentLanguage = (id) => {
 };
 
 // {name} -> value. A name with no value is left as written, so a gap is visible.
-const fill = (text, vars) => (vars ? text.replace(/\{(\w+)\}/g, (m, k) => (vars[k] === undefined || vars[k] === null ? m : String(vars[k]))) : text);
+// A "%" right after a left-to-right isolate ("{v}%" with v = isolateLtr("-3")) goes inside it, or
+// Hebrew shows "%-3" (phone pass).
+const fill = (text, vars) => (vars ? text.replace(/\{(\w+)\}/g, (m, k) => (vars[k] === undefined || vars[k] === null ? m : String(vars[k]))).replace(/\u2069%/g, '%\u2069') : text);
 
 const pluralRules = {};
 export const pluralForm = (n, lang = current) => {
@@ -68,11 +70,24 @@ const lookup = (key, lang, vars) => {
   return table[key];
 };
 
+// Right to left, a bare signed number ("+5", "-3", "-12%") as a value keeps its sign in front only
+// inside a left-to-right isolate (Hebrew showed "5+", phone pass).
+const SIGNED = /^[+\-\u2212][\d.,]+%?$/;
+const isolateSigned = (vars) => {
+  if (!vars) return vars;
+  let out = null;
+  for (const k of Object.keys(vars)) {
+    const v = vars[k];
+    if ((typeof v === 'number' && v < 0) || (typeof v === 'string' && SIGNED.test(v))) { out = out || { ...vars }; out[k] = `\u2066${v}\u2069`; }
+  }
+  return out || vars;
+};
+
 /** The text for `key` in `lang` (default: the current language). English is the fallback. */
 export const translate = (key, vars, lang = current) => {
   if (showKeys()) return key;
   const text = lookup(key, lang, vars) ?? lookup(key, 'en', vars);
-  return text === undefined ? key : fill(text, vars);
+  return text === undefined ? key : fill(text, isRtl(lang) ? isolateSigned(vars) : vars);
 };
 export const t = (key, vars) => translate(key, vars, current);
 export const hasKey = (key, lang) => lookup(key, lang, null) !== undefined || lookup(key, lang, { count: 1 }) !== undefined;

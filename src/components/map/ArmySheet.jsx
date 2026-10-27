@@ -139,12 +139,13 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
         <div className="mb-2" data-testid="army-explore-hint">
           <div className="text-[11px] text-fa-muted mb-1">{tr('mx.army.exploreHint')}</div>
           <div className="flex gap-2">
-            {model.explore.tile != null && <button type="button" onClick={() => { startMarch(model.regionId, { unitIds: marching, target: model.explore.tile }); onClose?.(); }} data-testid="army-to-unknown" className="flex-1 min-h-[40px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5"><Compass className="w-3.5 h-3.5" />{tr('mx.army.toUnknown')}</button>}
-            {model.explore.city && <button type="button" onClick={() => { startMarch(model.regionId, { unitIds: marching, target: model.explore.city.id }); onClose?.(); }} data-testid="army-toward-people" className="flex-1 min-h-[40px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold truncate px-2">{tr('mx.army.toward', { name: model.explore.city.name })}</button>}
+            {model.explore.tile != null && <button type="button" onClick={() => { startMarch(model.regionId, { unitIds: marching, target: model.explore.tile }); onClose?.(); }} data-testid="army-to-unknown" className="flex-1 min-h-[44px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5"><Compass className="w-3.5 h-3.5" />{tr('mx.army.toUnknown')}</button>}
+            {model.explore.city && <button type="button" onClick={() => { startMarch(model.regionId, { unitIds: marching, target: model.explore.city.id }); onClose?.(); }} data-testid="army-toward-people" className="flex-1 min-h-[44px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold truncate px-2">{tr('mx.army.toward', { name: model.explore.city.name })}</button>}
           </div>
         </div>
       )}
-      <div className="flex gap-2 mt-1">
+      {/* On a phone the actions stay in view at the bottom of the scrolling card (phone pass). */}
+      <div className="flex gap-2 mt-1 pl:sticky pl:-bottom-3 pl:z-[1] pl:-mx-3 pl:px-3 pl:py-2 pl:-mb-3 pl:bg-fa-panel pl:border-t pl:border-fa-line">
         {model.route
           ? <button type="button" onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { unitIds: model.unitIds } })} className="flex-1 min-h-[44px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold">{tr('mx.army.halt')}</button>
           : <button type="button" disabled={!model.canMarch || !marching.length} onClick={() => { if (model.naval) sail(); else { startMarch(model.regionId, { unitIds: marching }); onClose?.(); } }} data-testid="army-march" className="flex-1 min-h-[44px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:opacity-40 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5"><Flag className="w-3.5 h-3.5" /> {model.naval ? tr('mx.army.sail') : tr('mx.army.march')}{picked ? tr('mx.army.marchOf', { n: marching.length, total: model.unitIds.length }) : ''}…</button>}

@@ -6,6 +6,7 @@
 // (.sheet-backdrop / .sheet-panel, one column), a two-column card on desktop. Every button is at
 // least 44 px; a blocked action stays tappable and shows why (reasons on tap); brass marks the one
 // primary action only; the sheet's frame is the independents' dashed violet.
+import { isolateLtr } from '../../i18n';
 import React, { useMemo, useState } from 'react';
 import { X, Swords, Coins, HeartHandshake, Gift, Crown, ArrowLeftRight, Users, Flame, AlertTriangle } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -35,7 +36,7 @@ const actionClass = (a) => {
   return `${base} bg-fa-raised hover:bg-fa-hover border-fa-line text-fa-text`;
 };
 
-const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
+const signed = (v) => isolateLtr(`${v > 0 ? '+' : ''}${v}`); // Hebrew keeps "+5" and "-5" in order
 
 export const IndependentSheetBody = ({ model: m, onRun, note, onClose }) => {
   const { t } = useT();

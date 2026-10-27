@@ -6,6 +6,7 @@
 //   'danger' for the rest. `hero` sets the Spectral SC label of the big actions (End Turn, Begin).
 //   Selection is never brass: chips, options and tabs show a raised fill with a light outline or
 //   underline through aria-pressed / aria-checked / aria-selected.
+import { isolateLtr } from '../../i18n';
 import React from 'react';
 import { X } from 'lucide-react';
 import { t as tNow } from '../../i18n/core';
@@ -126,4 +127,4 @@ export const Stat = ({ value, label, color, onClick, title }) => {
     : <div className="fa-card px-2 py-1.5 text-center" title={title}>{body}</div>;
 };
 
-export const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
+export const signed = (v) => isolateLtr(`${v > 0 ? '+' : ''}${v}`); // Hebrew keeps "+5" and "-5" in order
