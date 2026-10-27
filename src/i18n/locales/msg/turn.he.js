@@ -49,8 +49,7 @@ export default {
   'm.turn.dominance': '{nation} שולטת בעולם במורשת. אם איש לא יצמצם את הפער בתוך {n} תורות, המשחק ייגמר מוקדם ו{nation} במקום הראשון.',
   'm.turn.dominanceYou': 'המורשת שלך שולטת בעולם. החזק ביתרון {n} תורות והמשחק ייגמר מוקדם עם אומתך במקום הראשון.',
   'm.turn.scoreVictory': 'ניצחון: אומתך מובילה את העולם במורשת!',
-  'm.turn.gameComplete': 'המשחק הסתיים: אומתך מדורגת במקום {rank} בעולם.'
-,
+  'm.turn.gameComplete': 'המשחק הסתיים: אומתך מדורגת במקום {rank} בעולם.',
 
   'report.group.battles': 'קרבות',
   'report.group.raids': 'פשיטות',
