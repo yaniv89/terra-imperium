@@ -87,7 +87,12 @@ export const RAID_SLIP = 0.5;
 // while the round-based exchange multiplies the whole roster gap. The attacker gets back this share
 // (as an exponent) of the defender's roster advantage on a walled assault; 0 = off.
 export const WALLS_AGE_RELIEF = 1.2; // 0.7 before U19: the cross-age assault and fort rows read 0.37 to 0.53
-export const AUTO_TUNE = { AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED, WALLS_NO_SIEGE_MULT, FORT_NO_SIEGE_MULT, AUX_CLOSENESS, WALLS_AGE_RELIEF, RAID_MULT, SACK_MULT, RAID_SLIP_BASE, RAID_SLIP };
+// Robots in a walled garrison (eight ages U67): they never rout, so the real-time ones stand on the
+// walls and in the gate until they fall (parityEco ROBOT=defender: 88 to 97% of them die) while the
+// round-based exchange keeps them whole. On a walled assault the attacker's blows count up to this,
+// scaled by the garrison's robot share; 1 = off. The battle still decides the city: no fall without it.
+export const ASSAULT_ROBOT_MULT = 1.5; // parityEco ROBOT=defender assault, Future and Information, N=32: 9 of 9 in (2: 8, 3: 6)
+export const AUTO_TUNE = { ASSAULT_ROBOT_MULT, AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED, WALLS_NO_SIEGE_MULT, FORT_NO_SIEGE_MULT, AUX_CLOSENESS, WALLS_AGE_RELIEF, RAID_MULT, SACK_MULT, RAID_SLIP_BASE, RAID_SLIP };
 
 /** The raiders' damage multiplier in an auto-resolved raid or sack (see RAID_MULT). */
 export const raidMult = (kind, ins, tune = AUTO_TUNE) => {
@@ -282,11 +287,14 @@ export const autoFromInputs = (args, ins, kind, rng, tune = AUTO_TUNE) => {
   // The attacker's roster disadvantage is eased behind walls (WALLS_AGE_RELIEF).
   const ageGap = walled ? getRosterCombatMultiplier(args.defenderAgeId ?? FIRST_AGE_ID, args.attackerAgeId ?? FIRST_AGE_ID) : 1;
   const ageRelief = ageGap > 1 ? powExact(ageGap, tune.WALLS_AGE_RELIEF ?? WALLS_AGE_RELIEF) : 1;
+  const garrison = (list) => list.reduce((s, u) => s + (u.militia ? 0 : Math.max(0, u.strength)), 0);
+  const robots = cityWalled && contested ? garrison(ins.defenderUnits.filter((u) => u.robot)) / garrison(ins.defenderUnits) : 0;
+  const robotMult = 1 + ((tune.ASSAULT_ROBOT_MULT ?? ASSAULT_ROBOT_MULT) - 1) * robots;
   let battle = resolveBattle({
     ...args,
     attackerUnits: [...ins.attackerUnits, ...auxA],
     defenderUnits: [...ins.defenderUnits, ...auxD],
-    attackerPenaltyMultiplier: (args.attackerPenaltyMultiplier ?? 1) * wallsMult * ageRelief * raidMult(kind, ins, tune),
+    attackerPenaltyMultiplier: (args.attackerPenaltyMultiplier ?? 1) * wallsMult * ageRelief * robotMult * raidMult(kind, ins, tune),
     maxRounds: MAX_BATTLE_ROUNDS + Math.max(auxA.length, auxD.length) * (tune.AUX_ROUNDS ?? AUX_ROUNDS),
     defenderDamageReductionMultiplier: batteredReduction(args.defenderDamageReductionMultiplier ?? 1, ins.hpRatio),
     rng
@@ -299,7 +307,7 @@ export const autoFromInputs = (args, ins, kind, rng, tune = AUTO_TUNE) => {
     ...battle,
     attackerUnits: strip(battle.attackerUnits),
     defenderUnits: strip(battle.defenderUnits),
-    report: { ...battle.report, deployedAttackerIds: kept(battle.report.deployedAttackerIds), deployedDefenderIds: kept(battle.report.deployedDefenderIds), auxiliaries, wallsMult, ageRelief }
+    report: { ...battle.report, deployedAttackerIds: kept(battle.report.deployedAttackerIds), deployedDefenderIds: kept(battle.report.deployedDefenderIds), auxiliaries, wallsMult, ageRelief, robotMult }
   };
   // A battle with bases has no draw (the user's rulings Q3 and Q5; src/battle/sim/base.js): with
   // both lines gone neither base has fallen, so the defender holds, as at the real-time clock.

@@ -42,7 +42,7 @@ const RAW_HISTORICAL_EVENTS = {
     title: 'The Wheel',
     description: 'A turning disc of wood, first for the potter and then for the cart, changes what one pair of hands can move and make.',
     options: [
-      { label: 'Build carts for harvest and market', effects: { gold: -40, cityFood: 10 } },
+      { label: 'Build carts for harvest and market', effects: { gold: -40, hr: 20 } },
       { label: 'Keep the craft to the potters', effects: { gold: 40, techPoints: 10 } }
     ]
   },
@@ -82,7 +82,7 @@ const RAW_HISTORICAL_EVENTS = {
     title: 'The Long Drought',
     description: 'The rains fail for a generation. Fields crack, rivers shrink, and whole peoples move or perish.',
     options: [
-      { label: 'Dig channels and share the stores', effects: { gold: -80, cityFood: 10, controlBonus: 4 } },
+      { label: 'Dig channels and share the stores', effects: { gold: -80, hr: 20, controlBonus: 4 } },
       { label: 'Send the hungry away', effects: { hr: -30, stability: -1 } }
     ]
   },
@@ -367,7 +367,7 @@ const RAW_HISTORICAL_EVENTS = {
     description: 'A new disease moves faster than any before it, carried along the flight paths that tie the world together.',
     options: [
       { label: 'Order a quarantine and close the borders', effects: { gold: -150, addModifier: { label: 'Quarantine', mods: { 'national.goldMult': -0.15 }, duration: 6 } } },
-      { label: 'Keep the country open and treat the sick', effects: { hr: -80, cityUnrest: 10, stability: -1 } }
+      { label: 'Keep the country open and treat the sick', effects: { hr: -80, stability: -1, legitimacy: -5 } }
     ]
   },
   climate_stress: {
@@ -396,8 +396,8 @@ const RAW_HISTORICAL_EVENTS = {
     title: 'The Automation Riots',
     description: 'Machines now do the work of whole towns. The workers they replaced fill the squares and smash the robots at the factory gates.',
     options: [
-      { label: 'Pay every worker a share of what the machines make', effects: { gold: -200, stability: 1, cityLoyalty: 5 } },
-      { label: 'Send in the police and keep the factories running', effects: { gold: 80, cityUnrest: 15, legitimacy: -5 } }
+      { label: 'Pay every worker a share of what the machines make', effects: { gold: -200, stability: 1, legitimacy: 5 } },
+      { label: 'Send in the police and keep the factories running', effects: { gold: 80, stability: -1, legitimacy: -5 } }
     ]
   },
   first_general_ai: {

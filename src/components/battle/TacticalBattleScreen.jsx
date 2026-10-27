@@ -18,7 +18,6 @@ import BattleResultScreen from './BattleResultScreen';
 import BattleFailure from './BattleFailure';
 import BattleLoading, { workingOn } from './BattleLoading';
 import { createStartWatch } from '../../battle/worker/startWatch';
-import { ABILITIES } from '../../battle/sim/effects';
 import { MAX_PATH_POINTS } from '../../battle/sim/orderSchema';
 import { createBattleAudio } from '../../battle/audio/battleAudio';
 import { useAudioSettings, setAudioSettings } from '../../audio/audioSettings';
@@ -33,6 +32,7 @@ import { getMapPrefs } from '../map/mapPrefs';
 import { Check, X as XIcon, Ban, Hammer, Wrench } from 'lucide-react';
 import GameIcon from '../ui/GameIcon';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { useCornerSheet } from '../../hooks/useExclusivePanel';
 import { BuildMenu, BuildingActions, InfoCard, HammerButton, WorkerAutoButtons } from './EconomyHud';
 import { inspectInfo } from './inspectModel';
 import { contextFor, refusedText, enemyObjectives, supplyRate } from './battleHudModel';
@@ -48,13 +48,12 @@ import { commandedSetup } from '../../battle/setup/buildBattleSetup';
 import { arrivalNote } from '../../battle/input/orderFeedback';
 import { t as tNow } from '../../i18n/core';
 import { useT } from '../../i18n/useT';
-import { powerLabel, ecoLabel } from './battleText';
+import { abilityLabel, powerLabel, ecoLabel } from './battleText';
 import { releaseWhenDetached } from '../../utils/glContext';
 import { noteCrashEvent } from '../../utils/crashLog';
 import { coachSeen, markCoachSeen, coachSteps, mouseFirst } from './battleCoach';
 
 const cx = (...p) => p.filter(Boolean).join(' ');
-const ABILITY_LABELS = Object.fromEntries(Object.entries(ABILITIES).map(([id, a]) => [id, a.label]));
 
 const HUD_INTERVAL_MS = 150;
 // The start is watched stage by stage (startWatch.js): it fails only when no new stage arrives for
@@ -138,6 +137,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const [dragLine, setDragLine] = useState(null);
   const [lasso, setLasso] = useState(null);
   const [radial, setRadial] = useState(null);
+  useCornerSheet('battle-radial', !!radial, () => setRadial(null)); // one battle overlay at a time on a phone (BattleHud's sheets)
   const [ended, setEnded] = useState(null);
   const [failure, setFailure] = useState(null); // { message, detail }: BattleFailure
   // The start for the loading screen (BattleLoading): the stage reached, the bar, the seconds so far
@@ -1200,7 +1200,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
               {selectedAbilities.map((a) => (
                 <button key={a.id} type="button" onClick={() => triggerSquadAbility(a.id)} disabled={a.readyIn > 0}
                   className="min-w-[64px] h-11 px-3 rounded-full bg-fa-raised border border-fa-indep text-fa-text text-xs font-semibold shadow-xl disabled:opacity-40">
-                  {ABILITY_LABELS[a.id] || a.id}{a.readyIn > 0 ? ` ${Math.ceil(a.readyIn / TICK_HZ)}s` : ''}
+                  {abilityLabel(a.id)}{a.readyIn > 0 ? ` ${tNow('bt.hud.secShort', { s: Math.ceil(a.readyIn / TICK_HZ) })}` : ''}
                 </button>
               ))}
             </div>

@@ -27,6 +27,11 @@ export default {
   'm.diplo.independenceRising': '{nation} מתקוממת ומכריזה על עצמאות מ{overlord}!',
   'm.diplo.coalitionWar': '{nation} מצטרפת לקואליציה נגד {target}, המעצמה הדוהרת של העולם, ומכריזה מלחמה!',
   'm.diplo.declaresWar': '{nation} הכריזה מלחמה על {target}!',
+  'm.diplo.declaresWarWhy': '{nation} הכריזה מלחמה על {target} {why}!',
+  'm.diplo.warWhy.claim': 'בשל תביעתה על אדמתם',
+  'm.diplo.warWhy.demand': 'אחרי שדחו את דרישתה',
+  'm.diplo.warWhy.grievance': 'בשל טינה ישנה',
+  'm.diplo.warWhy.none': 'בלי עילה צודקת',
 
   // defensive leagues (pacts.js)
   'm.diplo.leagueVsYou': 'בבהלה מכיבושיך, {names} מקימים ברית הגנה נגדך: תקוף אחד מהם והאחרים יענו.',

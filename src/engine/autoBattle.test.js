@@ -4,7 +4,7 @@
 // the decisive field rule, and a small parity guardrail against the real-time battle with the
 // economy on (the full matrix: .claude/skills/battle-lab/parityEco.sim.js).
 import { describe, it, expect } from 'vitest';
-import { autoFromInputs, auxiliariesFor, autoCityDamage, WALLS_NO_SIEGE_MULT, WALLS_AGE_RELIEF, FORT_NO_SIEGE_MULT, AUTO_TUNE } from './autoBattle';
+import { autoFromInputs, auxiliariesFor, autoCityDamage, WALLS_NO_SIEGE_MULT, WALLS_AGE_RELIEF, FORT_NO_SIEGE_MULT, AUTO_TUNE, ASSAULT_ROBOT_MULT } from './autoBattle';
 import { militiaFor } from './battleInputs';
 import { createRng } from '../utils/rng';
 import { getDefenseLevelDamageReductionMultiplier } from './siege';
@@ -54,6 +54,16 @@ describe('the honest auto-resolve', () => {
     const empty = autoFromInputs(args(), ins(att, militiaFor({ ownerId: 'x', cityId: 'c', housing: 60 }), { walled: true }), 'invasion', createRng(1));
     expect(empty.report.wallsMult).toBe(1);
     expect(empty.report.auxiliaries[1].fielded).toBe(0);
+  });
+
+  it('robots in a walled garrison: the attacker blows count ASSAULT_ROBOT_MULT by their share, nowhere else', () => {
+    const robots = (list) => list.map((u) => ({ ...u, robot: true }));
+    const walls = args({ isAttackingFortification: true, battleType: 'assault', attackerAgeId: 'future', defenderAgeId: 'future' });
+    const att = mk('a', ['infantry', 'infantry', 'ranged']);
+    expect(autoFromInputs(walls, ins(att, robots(mk('d', ['infantry', 'ranged'])), { walled: true }), 'invasion', createRng(1)).report.robotMult).toBeCloseTo(ASSAULT_ROBOT_MULT, 9);
+    expect(autoFromInputs(walls, ins(att, [...robots(mk('d', ['infantry'])), ...mk('h', ['infantry'])], { walled: true }), 'invasion', createRng(1)).report.robotMult).toBeCloseTo(1 + (ASSAULT_ROBOT_MULT - 1) / 2, 9);
+    expect(autoFromInputs(walls, ins(att, mk('d', ['infantry', 'ranged']), { walled: true }), 'invasion', createRng(1)).report.robotMult).toBe(1);
+    expect(autoFromInputs(args(), ins(att, robots(mk('d', ['infantry', 'ranged']))), 'field', createRng(1)).report.robotMult).toBe(1);
   });
 
   it('an assault on Auto damages the real city the way the real-time one does: towers and the town hall', () => {

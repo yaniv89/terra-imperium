@@ -29,8 +29,8 @@ import { RelationStatus } from '../data/types';
 import { getBorderingNationIds, getNeighborIds, getOwnedRegionIds } from '../data/regions';
 import { hasMet } from '../engine/fog';
 import { declareWar, isInTruce, hasActiveWarBetween, hasCasusBelli } from '../engine/diplomacy';
-import { claimsOf, claimsInProgressOf, claimableCities, startClaim } from '../engine/claims';
-import { hasOpenDemand, hasStele } from '../engine/accords';
+import { claimsOf, claimsInProgressOf, claimableCities, startClaim, claimsAgainst } from '../engine/claims';
+import { hasOpenDemand, hasStele, hasDemandCasusBelli } from '../engine/accords';
 import { canAnnex } from '../engine/stonePhase';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { decreesOf, spendDecree } from '../engine/decrees';
@@ -42,7 +42,7 @@ import { independenceChance } from '../engine/vassals';
 import { getEffectiveMilitaryPower, canAffordAIRecruit, applyAIRecruitCost } from '../engine/aiEconomy';
 import { warContagionMult } from '../engine/warContagion';
 import { warValue, WAR_COST, armiesByOwner } from '../engine/warOdds';
-import { msg, people } from '../engine/messages';
+import { msg, people, sub } from '../engine/messages';
 import { ageOf, getResearched } from '../engine/nationState';
 
 const DEFAULT_RNG = { next: () => Math.random() };
@@ -464,6 +464,8 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
       }
     }
     const justified = hasCasusBelli(view, nationId, targetId);
+    // Follow-up 26: the log says why (hasCasusBelli's grounds in its order; hostility and opinion are a grievance).
+    const why = !justified ? 'none' : claimsAgainst(view, nationId, targetId).length ? 'claim' : hasDemandCasusBelli(view, nationId, targetId) ? 'demand' : 'grievance';
     const result = declareWar({ ...state, nations: currentNations, wars: currentWars }, targetId, { aggressor: nationId });
     if (result.wars === currentWars) return; // no-op (shouldn't happen given pickWarTarget's filter, but stay defensive)
     draggedIn.add(targetId);
@@ -480,7 +482,7 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     currentWars = result.wars;
     const target = people(targetId, state.nations[targetId]?.name || targetId);
     logs.push({
-      ...msg(targetId === runawayLeaderId ? 'm.diplo.coalitionWar' : 'm.diplo.declaresWar', { nation: people(nationId, nation.name), target }),
+      ...msg(targetId === runawayLeaderId ? 'm.diplo.coalitionWar' : 'm.diplo.declaresWarWhy', { nation: people(nationId, nation.name), target, why: sub(`m.diplo.warWhy.${why}`) }),
       type: 'diplomacy'
     });
   });

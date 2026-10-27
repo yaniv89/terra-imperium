@@ -52,3 +52,52 @@ Akkad seed 1000 to 700 CE, Elam seed 1001 to 1500 CE, Pontic seed 1002 to 900 CE
 40. **Battle keeps running after an army is dead;** result screen headline and reason disagree.
 41. **Units tiny and hidden under trees and buildings; melee is a blob.**
 42. **Phone battle HUD:** powers menu clipped, camera buttons misfire, Hebrew labels missing.
+
+## Status on 27 October (lane leftovers audit)
+
+Checked against claude/integration c16d20ae plus this lane. "Done" rows rest on the commits named and a look at the code, not on a new playtest.
+
+| # | Item | Status | Commit or place | Note |
+|---|---|---|---|---|
+| 1 | Event cards fact-check | done | d1a85b58, c85b6582 | Historian fixes on the cards in the game |
+| 2 | Army sight bug | done | f21604ad | Each unit walks its own seen set |
+| 3 | Late turns slow | open (measure) | b77d142d, 8d1e48f6, c4cd5abc, 38325bd4 | Turn-speed cuts landed (typed tile slots); no new 80 ms measure yet: run the perf skill |
+| 4 | Information parity gaps | design change | 1d804c17 | Field 5 vs 2 rows still out; a fix retunes Auto for every age (list for the user) |
+| 5 | AI energy plants and drones | waits on the user | e956875e | Needs a long Information game (no new AI playtest spend) |
+| 6 | Challenge email name | done | e977d311 | |
+| 7 | Challenge fast-forward | done | 6d4e28ed | |
+| 8 | Challenge switch on | waits on the user | plans/U36-DEPLOY.md | Supabase and GitHub settings |
+| 9 | Mobile bugs H-12 and one more | waits on the user | | Needs the bug report file |
+| 10 | Hebrew 22 skipped fixes | done | f63c68e1 | |
+| 11 | Glossary links | done | 0e8ed532 | |
+| 12 | Hold for help in battle | done | a251214d | Train buttons and unit cards; powers have no glossary entry on purpose |
+| 13 | AI founded line | done | b2cd00ee | Shown in the glossary |
+| 14 | iPhone check: touch | waits on the user | 2e01f447 | Emulated only; needs a real iPhone |
+| 15 | iPhone check: new screens | waits on the user | 2e01f447 | Needs a real iPhone |
+| 16 | Screenshot checker and playtester | waits on the user | bbc24b0c, 14f921a4 | No new AI playtest round for now |
+| 17 | Research stalls after Classical | done | e741e949, a2816433 | |
+| 18 | Calendar freezes then jumps | done | e741e949, beef31be | |
+| 19 | Gold piles up | design change | | Needs gold sinks (U34 parked) |
+| 20 | Expansion very slow | design change | | Settler, growth or AE rule |
+| 21 | Idle cities build no defenders | done | a209a237 | |
+| 22 | City lost with no visible battle | done | a209a237, 74e43362 | |
+| 23 | Events repeat | done | 23e2cb0c (U26 deck) | Cooldowns per card, family and city; story openers once |
+| 24 | Era goals thin | design change | | How many goals, how big the rewards |
+| 25 | Crises rarely touch the player | design change | | Crisis targeting and frequency |
+| 26 | AI declares war with no reason | fixed now | d6c16f26 | The log line names the claim, refused demand, grievance or no just cause |
+| 27 | No path to a battle | done | 9c27ed46 | |
+| 28 | Settlers stuck at 1 turn | done | 32dbc81e | |
+| 29 | Save, load, help, glossary | done | f9e9ae84 | |
+| 30 | End Turn covers panels | done | 7e316d20, 5f577b62 | |
+| 31 | Exploring is aimless | done | 9c27ed46 | |
+| 32 | Disabled actions say nothing | done | 32dbc81e, f8d7a5c8, 30cf7ad9 | |
+| 33 | Map blank after Peoples or pact | done | 77801542 | Not reproducible; a blank-map check guards it |
+| 34 | Late army rows will not queue | done | e3a0a9f4, 3f49057b, 32dbc81e | |
+| 35 | Virtue has no confirm or cost | done | 32dbc81e, 347550a3 | |
+| 36 | Playtest era saves too weak | done | 491c9f03, 4532eaae | |
+| 37 | Sea battles on land | done | 1a3d14d4 | |
+| 38 | Who is winning | done | 0b514191 | |
+| 39 | Battles drag, sack lost on the clock | done | 0b514191, fb920b3e | |
+| 40 | Battle runs after an army is dead | done | 0b514191, 7e3fe8b3 | |
+| 41 | Units tiny and hidden | done (mostly) | dc70b464, b370ba40, fc63d272 | Melee blob not changed (a look decision) |
+| 42 | Phone battle HUD | done | e1601603, 37c2a4ba, 977d1d3a | Plus this lane: Hebrew ability names in the radial, overlays take turns |

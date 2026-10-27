@@ -1,6 +1,7 @@
 // src/components/battle/battleHebrew.test.js
 // Phase H5: the battle screens' text builders write Hebrew with no English left in it.
 import { describe, it, expect, afterEach, beforeEach } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { setCurrentLanguage, tableOf } from '../../i18n/core';
 import { coachSteps, deployHelp, cameraHelp } from './battleCoach';
 import { armyTallyText, nextAlerts, refusedText } from './battleHudModel';
@@ -61,6 +62,8 @@ describe('battle text in Hebrew', () => {
     expect(powerLabel('arrowStorm')).not.toMatch(LATIN);
     Object.keys(POWERS).forEach((id) => expect(powerLabel(id)).not.toMatch(LATIN));
     Object.keys(ABILITIES).forEach((id) => expect(abilityLabel(id)).not.toMatch(LATIN));
+    // the screens name abilities and powers only through abilityLabel / powerLabel (the radial once read ABILITIES' English)
+    ['TacticalBattleScreen.jsx', 'BattleHud.jsx'].forEach((f) => expect(readFileSync(new URL(`./${f}`, import.meta.url), 'utf8'), f).not.toMatch(/\b(ABILITIES|POWERS)\b/));
     ['camp', 'hall', 'house', 'barracks', 'range', 'stable', 'tower'].forEach((id) => ['bronze', 'modern'].forEach((age) => expect(ecoLabel(id, age)).not.toMatch(LATIN)));
   });
 
