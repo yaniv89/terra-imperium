@@ -31,7 +31,7 @@ const OUT = path.join(ROOT, 'plans/ai-output/human-playtest');
 const UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
 const INSET = { left: 47, right: 47, top: 0, bottom: 21 }; // iPhone landscape: notch side and home bar
 export const SIZES = { phone: { width: 844, height: 390, mobile: true }, desktop: { width: 1600, height: 900, mobile: false } };
-export const SLICE_AGES = AGE_ORDER;
+export const SLICE_AGES = AGE_ORDER.slice(1); // the era saves (scripts/ai/era-saves/); the start session is the stone age
 
 export const SCENES = ['campaign', 'battle'];
 export const AREAS = ['start screen and world setup', 'map pan, zoom, close view and fog', 'cities, builds and settlers', 'units and armies',
