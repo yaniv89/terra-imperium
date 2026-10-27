@@ -18,9 +18,9 @@
 //                   what it can lose (risk) or take (gain), the same scale peace terms are priced in.
 //   EV(war)         DECISIVE x (p x gain - (1 - p) x risk) - WAR_COST: declare only when > 0.
 // Pure and deterministic. Cost: O(units + cities of the two nations) per pair, and sight only for
-// the nation deciding (visibleTiles is cached per state).
+// the nation deciding (sight.js sightTest, cached per state).
 import { estimateBattle, powQuarter } from './lanchester';
-import { visibleTiles } from './sight';
+import { sightTest } from './sight';
 import { unitTile } from './armies';
 import { hashRoll } from './aftermath';
 import { getTotalDev } from './development';
@@ -55,9 +55,9 @@ export const perceivedArmy = (state, viewerId, nationId, byOwner = null) => {
   const out = units.map((u) => ({ classId: u.classId, strength: u.strength }));
   if (reserve > 0) out.push({ classId: 'infantry', strength: reserve });
   if (!viewerId || viewerId === nationId) return out;
-  const seen = units.length ? visibleTiles(state, viewerId) : null;
+  const seen = units.length ? sightTest(state, viewerId) : null;
   const report = 1 + INTEL_ERROR * (2 * hashRoll(`${viewerId}|${nationId}|${Math.floor((state.turnNumber || 0) / INTEL_PERIOD)}`) - 1);
-  return out.map((u, i) => (i < units.length && seen && seen.has(unitTile(state, units[i])) ? u : { ...u, strength: u.strength * report }));
+  return out.map((u, i) => (i < units.length && seen && seen(unitTile(state, units[i])) ? u : { ...u, strength: u.strength * report }));
 };
 
 /** An age-and-matchup-aware Lanchester power ratio of `a`'s army against `b`'s, seen by `viewerId`. */

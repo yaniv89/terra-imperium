@@ -61,11 +61,93 @@ export const visibleTiles = (state, nationId = state.playerNationId) => {
     if (u.ownerId !== nationId || aboardShip(u)) return;
     const t = unitTile(state, u);
     if (t == null) return;
-    const rings = ringsForKm(extra + (u.domain === 'naval' ? SIGHT_FLEET_KM + navalSightBonus(navalLineOf(u)) : SIGHT_ARMY_KM + (tiles.reliefOf(t) === 'hills' ? SIGHT_HILLS_BONUS_KM : 0)));
-    grow(tiles, [t], rings, set, new Set());
+    grow(tiles, [t], unitRings(tiles, u, t, extra), set, new Set());
   });
   cache.set(state.units, { regions: state.regions, nations: state.nations, techTree: state.techTree, nationId, set });
   return set;
+};
+
+const unitRings = (tiles, u, t, extra) => ringsForKm(extra + (u.domain === 'naval' ? SIGHT_FLEET_KM + navalSightBonus(navalLineOf(u)) : SIGHT_ARMY_KM + (tiles.reliefOf(t) === 'hills' ? SIGHT_HILLS_BONUS_KM : 0)));
+
+const landOwnersCache = new WeakMap(); // state.regions -> Map(tile -> [owner]): the land visibleTiles grows from
+const landOwners = (regions) => {
+  let m = landOwnersCache.get(regions);
+  if (m) return m;
+  m = new Map();
+  Object.values(regions).forEach((c) => { if (c.tile == null) return; (c.tiles || [c.tile]).forEach((t) => { const l = m.get(t); if (l) l.push(c.owner); else m.set(t, [c.owner]); }); });
+  landOwnersCache.set(regions, m);
+  return m;
+};
+
+// The tiles around `tile` ring by ring ([[tile], ring 1, ...] up to `reach`), memoised per grid:
+// geometry only, asked for the few hundred tiles armies stand on.
+const ringMemo = new WeakMap(); // tiles -> Map(tile -> rings)
+const ringsOf = (tiles, tile, reach) => {
+  let m = ringMemo.get(tiles);
+  if (!m) { m = new Map(); ringMemo.set(tiles, m); }
+  const hit = m.get(tile);
+  if (hit && hit.reach >= reach) return hit.rings;
+  const rings = [[tile]]; const seen = new Set([tile]);
+  for (let d = 0; d < reach; d++) {
+    const next = [];
+    for (const t of rings[d]) for (const n of tiles.neighbors[t] || []) if (!seen.has(n)) { seen.add(n); next.push(n); }
+    rings.push(next);
+  }
+  m.set(tile, { reach, rings });
+  return rings;
+};
+
+const byOwnerCache = new WeakMap(); // state.units -> Map(ownerId -> [unit])
+const unitsByOwner = (units) => {
+  let m = byOwnerCache.get(units);
+  if (m) return m;
+  m = new Map();
+  Object.values(units).forEach((u) => { const l = m.get(u.ownerId); if (l) l.push(u); else m.set(u.ownerId, [u]); });
+  byOwnerCache.set(units, m);
+  return m;
+};
+
+const testCache = new WeakMap(); // state.units -> { regions, nations, techTree, nationId, test }
+/** `(tile) => bool`, the same answer as visibleTiles(state, nationId).has(tile) without building the
+ * whole set, for a caller that asks about a few tiles (warOdds.js). A tile is seen when friendly land
+ * lies within the land reach of it, or one of the nation's units within that unit's reach
+ * (neighbours are symmetric, so the walk starts at the asked tile). */
+export const sightTest = (state, nationId = state.playerNationId) => {
+  const hit = testCache.get(state.units);
+  if (hit && hit.regions === state.regions && hit.nations === state.nations && hit.techTree === state.techTree && hit.nationId === nationId) return hit.test;
+  const tiles = getTiles();
+  const extra = mapEffectsFor(state, nationId).sight;
+  const friends = friendsOf(state, nationId);
+  const owners = landOwners(state.regions);
+  const landRings = ringsForKm(SIGHT_LAND_KM + extra);
+  const unitReach = new Map(); // tile -> the farthest reach of the nation's units on it
+  let reach = landRings;
+  (unitsByOwner(state.units).get(nationId) || []).forEach((u) => {
+    if (aboardShip(u)) return;
+    const t = unitTile(state, u);
+    if (t == null) return;
+    const r = unitRings(tiles, u, t, extra);
+    if (!(unitReach.get(t) >= r)) unitReach.set(t, r);
+    if (r > reach) reach = r;
+  });
+  const sees = (tile) => {
+    const rings = ringsOf(tiles, tile, reach);
+    for (let d = 0; d <= reach && d < rings.length; d++) {
+      for (const t of rings[d]) {
+        if (d <= landRings && owners.get(t)?.some((o) => friends.has(o))) return true;
+        if (unitReach.get(t) >= d) return true;
+      }
+    }
+    return false;
+  };
+  const memo = new Map();
+  const test = (tile) => {
+    if (tile == null) return false;
+    if (!memo.has(tile)) memo.set(tile, sees(tile));
+    return memo.get(tile);
+  };
+  testCache.set(state.units, { regions: state.regions, nations: state.nations, techTree: state.techTree, nationId, test });
+  return test;
 };
 
 export const canSeeTile = (state, tile, nationId = state.playerNationId) => tile != null && visibleTiles(state, nationId).has(tile);
