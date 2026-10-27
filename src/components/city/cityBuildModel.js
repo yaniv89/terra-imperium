@@ -32,6 +32,7 @@ import { buildingEffect, improvementEffect } from '../../engine/cityEffects';
 import { settlingOutlook } from '../../engine/settlers';
 import { rushQuote, rushGold, RUSH_GOLD_PER_HAMMER } from '../../engine/spending';
 import { FIRST_AGE_ID } from '../../data/ages';
+import { techEta, techEtaText } from '../panels/researchView';
 
 export const GROUPS = ['Units', 'Armies', 'Buildings', 'Wonders', 'Improvements'];
 /** The words of a group id ('All' too). */
@@ -101,7 +102,7 @@ export const rushText = (q) => {
   };
 };
 
-/** The catalogue: [{ id, item, group, ok, reason, needsTech, needsName, label, detail, note, tile,
+/** The catalogue: [{ id, item, group, ok, reason, needsTech, needsName, needsEta, needsPlanned, label, detail, note, tile,
  * cost, stored, turns, long, queued }]. `id` is stable for the life of the item (React key). */
 export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
   if (!live) return [];
@@ -113,6 +114,16 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
   const inQueue = new Map();
   [city.production?.current, ...(city.production?.queue || [])].filter(Boolean).forEach((i) => inQueue.set(itemKey(i), (inQueue.get(itemKey(i)) || 0) + 1));
   const out = [];
+  // A locked row names its tech and how far it is (researching, queued, or the research it would take).
+  const locks = new Map();
+  const lockOf = (need) => {
+    if (!need) return { needsTech: null, needsName: null };
+    if (!locks.has(need)) {
+      const eta = techEta(state, need);
+      locks.set(need, { needsTech: need, needsName: techName(need, TECH_TREE[need]?.name || tNow('cy.aTechnology')), needsEta: techEtaText(eta), needsPlanned: eta?.kind === 'current' || eta?.kind === 'queued' });
+    }
+    return locks.get(need);
+  };
   const add = (item, group, extra = {}) => {
     const check = extra.ok === undefined ? canQueue(city, tiles, world, item, { researched, ageId, noRobots: ctx.noRobots }) : { ok: extra.ok, reason: extra.reason };
     const quote = buildQuote(state, cityId, item, live);
@@ -132,7 +143,7 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
   getAvailableClasses(ageId).forEach((classId) => {
     // A unit whose tech is not known yet shows locked, with the tech's name (unitClasses.js UNIT_UNLOCKS).
     const need = isUnitUnlocked(ageId, classId, researched) ? null : unitUnlockTech(ageId, classId);
-    const lock = need ? { needsTech: need, needsName: techName(need, TECH_TREE[need]?.name || tNow('cy.aTechnology')) } : {};
+    const lock = need ? lockOf(need) : {};
     if (classId === 'naval') {
       // Ships are listed only where they can be built: an inland city (river, oasis or lake) has
       // no ship rows at all (I039), instead of rows that look available.
@@ -166,7 +177,7 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
     add(item, 'Buildings', {
       id: `building:${category}`,
       ...(queuedTier ? { ok: false, reason: tNow('cy.alreadyQueued') } : {}),
-      fields: { detail: effect?.text || null, needsTech: need, needsName: need ? techName(need, TECH_TREE[need]?.name || tNow('cy.aTechnology')) : null, lineLabel: buildingCategoryLabel(category, BUILDING_CATEGORIES[category].label) }
+      fields: { detail: effect?.text || null, ...lockOf(need), lineLabel: buildingCategoryLabel(category, BUILDING_CATEGORIES[category].label) }
     });
   });
   const seen = new Map();

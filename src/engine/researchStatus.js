@@ -16,7 +16,7 @@ import { TECH_TREE } from '../data/techTree';
 import { t as tNow, dataText, ageName } from '../i18n/core';
 import { AGES, AGE_ORDER, getAgeIndex } from '../data/ages';
 import { calcIncome } from '../utils/helpers';
-import { getResearchCost, suggestTechs, FOCUS_SCIENCE_BONUS, inResearchWindow, deriveTechAge } from './research';
+import { getResearchCost, suggestTechs, recommendTechs, FOCUS_SCIENCE_BONUS, inResearchWindow, deriveTechAge } from './research';
 import { ageOf } from './nationState';
 
 const researchedOf = (state) => new Set(Object.keys(state.techTree || {}).filter((id) => state.techTree[id]?.researched));
@@ -157,8 +157,8 @@ export const gateText = (gate) => (gate && gate.kind === 'age' ? tNow('research.
 export const advisorPlan = (state) => {
   const status = researchStatus(state);
   if (state.research?.current) return { techId: null, why: null };
-  const pick = suggestTechs(state, state.playerNationId, 1)[0] || null;
-  if (pick) return { techId: pick, why: null };
+  const pick = recommendTechs(state, state.playerNationId, 1)[0] || null; // the same pick End Turn's advisor makes (research.js stepResearch)
+  if (pick) return { techId: pick.techId, why: null, reasons: pick.reasons };
   return { techId: null, why: status.note };
 };
 

@@ -105,9 +105,12 @@ export const queueAgainstPlayer = (next, v, nationId, rng, kind = 'field') => {
 export const aiSally = (state, nationId, rng, byTile = null) => {
   let next = state;
   const tiles = getTiles();
+  let liveIndex = null;
   const camped = (c) => c.tile != null && !!byTile && tiles.neighbors[c.tile].some((t) => (byTile.get(t) || []).some((u) => u.ownerId !== nationId));
   for (const city of getOwnedRegionIds(state.regions, nationId).map((id) => state.regions[id]).filter((c) => c.siege?.by || camped(c)).sort((a, b) => (a.id < b.id ? -1 : 1))) {
-    const by = besiegersOf(next, city);
+    // One index of the live units per units and regions map (a battle replaces them; nothing here writes in place).
+    if (!liveIndex || liveIndex.units !== next.units || liveIndex.regions !== next.regions) liveIndex = { units: next.units, regions: next.regions, byTile: landUnitsByTile(next) };
+    const by = besiegersOf(next, city, next.units, liveIndex.byTile);
     if (!by.size) continue;
     const garrison = Object.values(next.units).filter((u) => u.ownerId === nationId && u.regionId === city.id && u.domain === 'land' && !u.embarkedOn && u.classId !== 'settler' && u.strength > 0 && (u.movesLeft ?? 1) > 0 && unitTile(next, u) === city.tile);
     if (!garrison.length) continue;
@@ -197,11 +200,11 @@ export const attackBlocker = (state, nationId, from, stack, tile, rng) => {
  * the estimate clears FIELD_SEEK_MIN_P. Against the player the battle is queued (Command or Auto).
  * Returns the new state, or null when it does not attack.
  */
-export const seekFieldBattle = (state, nationId, from, stack, at, enemies, rng) => {
+export const seekFieldBattle = (state, nationId, from, stack, at, enemies, rng, index = null) => {
   if (at == null) return null;
   const tiles = getTiles();
-  const centres = new Set(Object.values(state.regions).map((c) => c.tile));
-  const byTile = landUnitsByTile(state);
+  const centres = index?.centres || new Set(Object.values(state.regions).map((c) => c.tile));
+  const byTile = index?.byTile || landUnitsByTile(state);
   const actor = { ...state, playerNationId: nationId, resources: getPool(state, nationId), techAgeId: getTechAgeId(state, nationId) };
   let best = null;
   for (const t of tiles.neighbors[at]) {
@@ -421,6 +424,8 @@ export const processAIOperations = (state, rng) => {
     // Threatened cities (threat.js): besieged, under invasion, or enemy strength within 4 tiles
     // over the garrison; the AI defends them before it advances.
     const byTile = landUnitsByTile(next);
+    const byTileOf = { units: next.units, regions: next.regions };
+    let fieldIndex = null;
     const threatened = new Set(threatenedCities(next, nationId, enemies, byTile));
     const goals = threatened.size ? threatened : fronts;
     next.aiOperations[nationId] = { turn: state.turnNumber, objective: threatened.size ? 'defend' : 'advance', startedTurn:state.aiOperations?.[nationId]?.objective === (threatened.size ? 'defend' : 'advance') ? state.aiOperations[nationId].startedTurn : state.turnNumber, fronts: [...fronts].sort(), targets: [...goals].sort() };
@@ -495,7 +500,14 @@ export const processAIOperations = (state, rng) => {
       }
       if (relieved) continue;
       // Seek battle: an enemy army beside this stack is attacked when the odds allow.
-      const sought = seekFieldBattle(next, nationId, from, stack, at, enemies, rng);
+      // The enemy stacks by tile for seekFieldBattle, rebuilt only when a battle replaced the units
+      // or the regions map: what this nation writes in place moves only its own units, never an enemy.
+      if (!fieldIndex || fieldIndex.units !== next.units || fieldIndex.regions !== next.regions) {
+        const fresh = next.units === byTileOf.units && next.regions === byTileOf.regions;
+        const centres = fieldIndex?.regions === next.regions ? fieldIndex.centres : new Set(Object.values(next.regions).map((c) => c.tile));
+        fieldIndex = { units: next.units, regions: next.regions, byTile: fresh ? byTile : landUnitsByTile(next), centres };
+      }
+      const sought = seekFieldBattle(next, nationId, from, stack, at, enemies, rng, fieldIndex);
       if (sought) { next = sought; stack.forEach(u => committed.add(u.id)); continue; }
       // Units by region, rebuilt only when a battle replaced the units map (the scan per enemy
       // neighbour per stack was most of the phase at a thousand units).
