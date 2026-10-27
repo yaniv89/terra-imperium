@@ -15,3 +15,12 @@ claude/integration, main gets the push once the quick suite and CI are green.
 - Sub sessions started 18:06 (each pushes its branch and writes plans/lanes/<name>-REPORT.md):
   perf-loop-2 session_01S3hKeJAvNcwRMQhCHxbxdb; ai-gold-balance session_01S3hKeG4sgPUDEKd7cPAcEH;
   battle-feedback session_01S3hKeFiy6zNSYf1PXRmoFT; phone-pass session_01S3hKeHH6QsPTedrmMPkuVP.
+  battle-stall session_01S3hKeJKGQw7jmvkQvMgdeD.
+- Design calls by the lead (27 Oct, user made the lead the manager):
+  - Follow-up 19 "gold piles up": approved gold sinks and cost or reward changes inside the
+    ai-gold-balance lane, because idle gold removes decisions for both the AI and the player.
+  - Follow-up 4 "Information parity gaps": approved an Auto retune in the battle-stall lane if the
+    field 5 vs 2 rows stay out of the guardrail, because Auto must match Command to be honest.
+  - battle-feedback may add a sim order to attack buildings (orderSchema row, SETUP_VERSION bump),
+    because players cannot attack walls today and Q3 makes buildings the win condition.
+  - All lanes keep Q3, a city falls only when its defence is beaten, units keep their age.
