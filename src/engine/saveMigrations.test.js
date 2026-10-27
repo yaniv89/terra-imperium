@@ -70,6 +70,17 @@ describe('backfillDefaults', () => {
     expect(result.regions[capital].id).toBe(capital);
   });
 
+  it('never brings back a start city razed since, nor the start owner of a tile freed since', () => {
+    const fresh = peoplesWorld({ independents: true });
+    const gone = Object.keys(fresh.regions).find((id) => fresh.regions[id].owner !== P);
+    const freed = Object.keys(fresh.world.tileOwner)[0];
+    const { [gone]: _city, ...regions } = fresh.regions; // eslint-disable-line no-unused-vars
+    const { [freed]: _tile, ...tileOwner } = fresh.world.tileOwner; // eslint-disable-line no-unused-vars
+    const result = backfillDefaults({ ...fresh, regions, world: { ...fresh.world, tileOwner } });
+    expect(result.regions[gone]).toBeUndefined();
+    expect(result.world.tileOwner[freed]).toBeUndefined();
+  });
+
   it('is idempotent: backfilling an already-complete state changes nothing', () => {
     const fresh = peoplesWorld({ independents: true });
     expect(backfillDefaults(fresh)).toEqual(fresh);
