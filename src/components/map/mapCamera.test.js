@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { geoEquirectangular } from 'd3-geo';
 import {
-  cleanLatLng, normalLng, latLngOfTile, latLngOfCity, latLngOfPlace, cameraTarget, battlePlaces, freshBattleReport,
+  cleanLatLng, normalLng, latLngOfTile, latLngOfCity, knownLatLngOfCity, latLngOfPlace, cameraTarget, battlePlaces, freshBattleReport,
   cameraKey, rememberCamera, recallCamera, forgetCamera, createIntentGate, INTENT_SETTLE_MS
 } from './mapCamera';
 import { carryTransform, isSaneTransform } from './gl/mapView';
@@ -77,6 +77,19 @@ describe('map camera targets', () => {
     expect(cameraTarget(fogged, [{ regionId: 'memphis' }, { tile: 0 }], opts)).toMatchObject({ from: 'place', index: 1, lat: 32.5 });
     expect(cameraTarget(fogged, [{ tile: 1 }], { ...opts, selectedArmyTile: 0 })).toMatchObject({ from: 'army' });
     expect(cameraTarget({ ...fogged, fog: { ...fogged.fog, on: false } }, [{ tile: 1 }], opts)).toMatchObject({ from: 'place', lat: 30.8 });
+  });
+
+  it('an action effect pans only to a city on explored land (issue 8: a pact flew to a fogged capital)', () => {
+    const fogged = { ...state, fog: { on: true, explored: { akkad: { bytes: Uint8Array.of(0b001) } } } }; // only tile 0 explored
+    expect(knownLatLngOfCity(fogged, 'memphis', opts)).toBeNull();
+    expect(knownLatLngOfCity(fogged, 'babylon', opts)).toEqual({ lat: 32.5, lng: 44.4 });
+    expect(knownLatLngOfCity({ ...fogged, fog: { ...fogged.fog, on: false } }, 'memphis', opts)).toEqual({ lat: 30.8, lng: 31 });
+    expect(knownLatLngOfCity(fogged, 'razed', opts)).toBeNull();
+  });
+
+  it('a place found carries its tile, for the map to outline', () => {
+    expect(cameraTarget(state, [{ regionId: 'memphis' }], opts)).toMatchObject({ from: 'place', tile: 1 });
+    expect(cameraTarget(state, [{ tile: 2 }], opts)).toMatchObject({ from: 'place', tile: 2 });
   });
 
   it('a battle is found by its battlefield tile, then the city fought for, then where it came from', () => {

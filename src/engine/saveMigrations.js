@@ -290,7 +290,10 @@ export const backfillDefaults = (state) => {
 
   // Units are a live collection: a missing starting army may have died or been
   // disbanded. Fresh-game entries must never resurrect it during a reload.
-  let out = deepFillMissing(state, { ...freshTop, units: {} });
+  // The world's maps (tileOwner, tileState) are live too: a tile freed since the start (a razed
+  // city's land) must not get its start owner back. Only a missing map itself is filled, empty.
+  const freshWorld = Object.fromEntries(Object.entries(freshTop.world || {}).map(([k, v]) => [k, isPlainObject(v) ? {} : v]));
+  let out = deepFillMissing(state, { ...freshTop, units: {}, ...(state.world ? { world: freshWorld } : {}) });
 
   // `id` is excluded from both identity-key strip lists above on purpose (see NATION_IDENTITY_KEYS/
   // REGION_IDENTITY_KEYS): it's a real, confirmed bug this diagnosed on a live save — a record's
@@ -301,8 +304,9 @@ export const backfillDefaults = (state) => {
   // owner/isPlayer/name/color, a record's `id` can never legitimately differ from the very map key
   // it's stored under, so force-setting it here is always correct, never a save-data overwrite —
   // it's the one identity field safe to unconditionally repair.
+  // Only the cities the save still has: a start city razed since (razing.js) stays gone.
   const regions = { ...(state.regions || {}) };
-  Object.keys(freshRegions).forEach((id) => {
+  Object.keys(freshRegions).filter((id) => regions[id]).forEach((id) => {
     const freshMechanicDefaults = stripIdentity(freshRegions[id], REGION_IDENTITY_KEYS);
     regions[id] = { ...deepFillMissing(regions[id] ?? freshRegions[id], freshMechanicDefaults), id };
   });
