@@ -2929,7 +2929,8 @@ const reduceAction = (state, action) => {
       const picks = only != null ? [{ cityId: only, item: advisorPick(state, only) }].filter((p) => p.item) : advisorPicks(state);
       if (!picks.length) return reject(state, msg('m.act.no.advisorNothing'));
       // A pick the queue refuses is skipped, not logged as a refusal.
-      return picks.reduce((s, p) => { const n = reduceAction(s, { type: ActionTypes.QUEUE_PRODUCTION, payload: p }); return n.regions !== s.regions ? n : s; }, state);
+      const next = picks.reduce((s, p) => { const n = reduceAction(s, { type: ActionTypes.QUEUE_PRODUCTION, payload: p }); return n.regions !== s.regions ? n : s; }, state);
+      return next === state ? reject(state, msg('m.act.no.advisorNothing')) : next;
     }
     case ActionTypes.SET_SETTLER_TARGET: {
       const { unitId, tile } = action.payload || {};

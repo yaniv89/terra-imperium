@@ -29,6 +29,7 @@ export const ACTION_SOUNDS = {
   [T.FOUND_COLONY]: 'city-founded',
   [T.ABANDON_COLONY]: 'ui-confirm',
   [T.QUEUE_PRODUCTION]: (a) => (a.payload?.item?.kind === 'wonder' ? 'wonder-started' : 'building-queued'), // units too: "unit-trained" when done
+  [T.ADVISOR_PRODUCTION]: 'building-queued', // the advisor fills idle cities (productionAdvisor.js)
   [T.SAVE_ARMY_TEMPLATE]: 'ui-confirm',
   [T.RENAME_ARMY]: null,
   [T.PILLAGE_TILE]: 'gold-received',

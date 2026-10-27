@@ -49,7 +49,7 @@ const fallbackPick = (state, city, ctx) => {
 const ownView = (state) => ({ ...state, regions: { ...state.regions } });
 const pickIn = (view, cityId, ctx, counts) => {
   const city = view.regions?.[cityId];
-  if (!city || city.owner !== view.playerNationId || city.outpost || city.production?.current) return null;
+  if (!city || city.owner !== view.playerNationId || city.outpost || city.razing || city.production?.current) return null;
   return chooseProduction(view, city, { ...ctx, units: view.units, counts }) || fallbackPick(view, city, ctx);
 };
 const countsOf = (state) => ({ settlers: 0, outposts: 0, landUnits: 0, ...(nationCounts(state)[state.playerNationId] || {}) });

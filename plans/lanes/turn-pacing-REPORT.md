@@ -55,3 +55,12 @@ at 844x390; no page errors.
 - The advisor changes no AI rule and no balance: it reads aiProduction.js. One subtlety fixed: the AI's
   settler memo is keyed on the regions map, so the advisor reads a copy (the same state always gives the
   same picks, preview or action).
+
+## Checks before the push
+
+- engine-rules-reviewer: no rule broken. Fixed its three findings: the sound map lacked ADVISOR_PRODUCTION
+  (worldSounds.test.js failed), a tap that queues nothing now says so, and the one-city path skips a city being razed.
+- npm run lint clean; npm run test:quick 475 files passed (4042 tests); e2e/landscape.spec.js 4 of 4 passed
+  (build:mobile run first: its web server needs more than the 120 s timeout to build on this machine).
+- Shots kept in plans/ui/turn-pacing/: advisor-build phone en and he, after-advisor desktop en and he, the
+  tutorial at 844x390 en and he.
