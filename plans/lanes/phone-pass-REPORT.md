@@ -1,6 +1,6 @@
 # Lane report: phone pass (branch claude/phone-pass)
 
-ponytail loaded (`.claude/skills/ponytail/SKILL.md`, from claude/integration) and followed for the rest of the lane.
+ponytail read in full at 2026-10-28T04:26Z (`.claude/skills/ponytail/SKILL.md`, from claude/integration; first read at about 2026-10-27T20:37Z) and followed for the rest of the lane.
 
 Goal: every campaign and battle screen reads and works on a phone held sideways (844x390, and
 844x340 with Safari's bars), in English and Hebrew, with nothing overlapping, cut off, under the
