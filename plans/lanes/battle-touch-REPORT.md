@@ -58,7 +58,7 @@ speed group at 640 (was 652), pause at 792 in every state, no console errors.
 
 Tests: battle, render, input and i18n tests green (842). Full `npx vitest run` before the merge: 3 failures
 outside this lane's files (sight, stoneAI "two raids at once", cities 150 ms timing), all three green
-alone (load flakes). After merging origin/claude/integration: see the last commit message on this branch.
+alone (load flakes). After merging origin/claude/integration (fad52830..): `npm run lint` clean, full `npx vitest run` 504 files passed, 2 skipped, 4,720 tests passed, 0 failed.
 
 ## Not done / open for the lead
 - Not checked on a real phone; Hebrew strings are mine, unreviewed by a native speaker.
