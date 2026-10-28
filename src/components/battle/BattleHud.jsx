@@ -493,7 +493,7 @@ const BattleHud = ({
               )}
               <div className="flex items-center gap-1.5 mt-1.5">
                 <button type="button" onClick={() => setDeployMore((v) => !v)} aria-expanded={deployMore} data-testid="battle-deploy-more"
-                  className="fa-btn fa-btn-ghost !min-h-[44px] !px-2 shrink-0 text-[12px]">{deployMore ? t('bt.hud.lessShort') : t('bt.hud.moreShort')}</button>
+                  className="fa-btn fa-btn-ghost !min-h-[44px] min-w-[44px] !px-2 shrink-0 text-[12px]">{deployMore ? t('bt.hud.lessShort') : t('bt.hud.moreShort')}</button>
                 <button type="button" onClick={onTogglePause} className="fa-btn fa-btn-primary flex-1 !min-h-[44px]" data-testid="battle-start">{t('bt.hud.start')}</button>
               </div>
             </div>
