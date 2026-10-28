@@ -264,11 +264,17 @@ export const AI_RUSH_RESERVE = 50;
 export const AI_RUSH_MIN_TURNS = 3;
 export const AI_MAX_RUSHES_PER_THINK = 4;
 export const AI_EXTRA_RUSH_GOLD = 400;
-const tryRushProduction = (state, nation, regions, skip = null) => {
+// `eligibleOnly` (the surplus pass below): pick the biggest city whose order is worth buying, instead
+// of giving up when the biggest one's is not.
+const tryRushProduction = (state, nation, regions, skip = null, { reserve: floor = 0, minTurns = AI_RUSH_MIN_TURNS, eligibleOnly = false } = {}) => {
   const gold = nation.economy?.gold || 0;
-  const reserve = Math.max(AI_RUSH_RESERVE, -(nation.lastNetIncome || 0) * 3);
+  const reserve = Math.max(AI_RUSH_RESERVE, -(nation.lastNetIncome || 0) * 3, floor);
   if (gold - reserve < rushGold(1)) return null;
   const owned = getOwnedRegionIds(regions, nation.id);
+  const ageId = ageOf(state, nation.id);
+  const costCtx = { ageId, citiesOwned: owned.length || 1, speedMult: speedCostMult(state.gameSpeed, ageId), trainMult: speedTrainMult(state.gameSpeed, ageId), costMult: rulerCityCtx(nation).costMult };
+  const missingOf = (c) => productionCost(c.production.current, costCtx) - (c.production.progress || 0);
+  const worthIt = (c, missing) => missing > 0 && !((c.lastYields?.production || 0) > 0 && missing / c.lastYields.production <= minTurns);
   // Under a war plan (warPlans.js, lane W5) the regiments come first: the biggest city training one.
   const wantsUnits = !!nation.warPlan;
   let best = null;
@@ -277,20 +283,44 @@ const tryRushProduction = (state, nation, regions, skip = null) => {
     const item = c?.production?.current;
     if (c.size == null || !item || skip?.has(id) || item.kind === 'wonder' || c.occupiedBy || c.underInvasion || c.siege || c.razing) continue;
     const unitFirst = wantsUnits ? (item.kind === 'unit') - (regions[best]?.production?.current?.kind === 'unit') : 0;
-    if (best == null || unitFirst > 0 || (unitFirst === 0 && c.size > regions[best].size)) best = id;
+    if (!(best == null || unitFirst > 0 || (unitFirst === 0 && c.size > regions[best].size))) continue;
+    if (eligibleOnly && !worthIt(c, missingOf(c))) continue;
+    best = id;
   }
   if (best == null) return null;
   const city = regions[best];
   const p = city.production;
-  const ageId = ageOf(state, nation.id);
-  const cost = productionCost(p.current, { ageId, citiesOwned: owned.length || 1, speedMult: speedCostMult(state.gameSpeed, ageId), trainMult: speedTrainMult(state.gameSpeed, ageId), costMult: rulerCityCtx(nation).costMult });
-  const missing = cost - (p.progress || 0);
-  const perTurn = city.lastYields?.production || 0;
-  if (!(missing > 0) || (perTurn > 0 && missing / perTurn <= AI_RUSH_MIN_TURNS)) return null;
+  const missing = missingOf(city);
+  if (!worthIt(city, missing)) return null;
   const heat = rushHeat(city, state.turnNumber, state.gameSpeed, ageId);
   const bought = rushAffordable(missing, gold - reserve, heat, p.current.kind);
   if (!bought) return null;
   return { nation: { ...nation, economy: { ...nation.economy, gold: gold - bought.gold } }, regionId: best, updatedRegion: applyRush(city, 0, { cost: (p.progress || 0) + bought.hammers, heat }, state.turnNumber) };
+};
+
+// Surplus spending (follow-ups 19 and 24: the era goals' gold piled up in the big majors, 10,000 to
+// 30,000 gold at turn 250 on about 1,000 a turn). Gold above the surplus floor
+//   floor = max(AI_SURPLUS_GOLD, AI_SURPLUS_INCOME_TURNS x net income a turn)
+// buys production at the same rush price in up to AI_SURPLUS_RUSHES more cities a think, any order
+// with more than AI_SURPLUS_MIN_TURNS turns left, never taking the treasury under the floor. Runs
+// after the think's decision (a law and an advisor too), not on a stability emergency or a war chest
+// think. Buys only what the cities' own queues chose.
+export const AI_SURPLUS_GOLD = 3000;
+export const AI_SURPLUS_INCOME_TURNS = 16;
+export const AI_SURPLUS_RUSHES = 6;
+export const AI_SURPLUS_MIN_TURNS = 1;
+export const aiSurplusFloor = (nation) => Math.max(AI_SURPLUS_GOLD, AI_SURPLUS_INCOME_TURNS * (nation.lastNetIncome || 0));
+const spendSurplus = (state, nation, regions) => {
+  const floor = aiSurplusFloor(nation);
+  if ((nation.economy?.gold || 0) <= floor) return nation;
+  const skip = new Set();
+  let next = nation;
+  for (let k = 0; k < AI_SURPLUS_RUSHES && (next.economy?.gold || 0) > floor; k++) {
+    const more = tryRushProduction(state, next, regions, skip, { reserve: floor, minTurns: AI_SURPLUS_MIN_TURNS, eligibleOnly: true });
+    if (!more) break;
+    next = more.nation; regions[more.regionId] = more.updatedRegion; skip.add(more.regionId);
+  }
+  return next;
 };
 
 /** The law an AI nation enacts this think, { category, id } or null (see the think's own note). It needs a decree. */
@@ -342,11 +372,11 @@ export const processAIEconomyTurn = (state, regions, nationId) => {
     // Laws by doctrine (plan C4.5, DOCTRINE_LAWS): the first preferred law the nation can enact,
     // else the highest tier that costs no stability; the AI never moves back to a law it holds.
     const law=pickAILaw(state,nationId,nextNation);
-    if(law){const enacted={...nextNation,economy:pool,laws:{...nextNation.laws,[law.category]:law.id},lawCooldowns:{...nextNation.lawCooldowns,[law.category]:state.turnNumber+LAW_CHANGE_COOLDOWN_TURNS},freeLawChange:false};return {nation:nextNation.freeLawChange?enacted:spendDecree(enacted,'changeLaw',state.turnNumber)};} // the age advance's free change first (rank 11)
+    if(law){const enacted={...nextNation,economy:pool,laws:{...nextNation.laws,[law.category]:law.id},lawCooldowns:{...nextNation.lawCooldowns,[law.category]:state.turnNumber+LAW_CHANGE_COOLDOWN_TURNS},freeLawChange:false};return {nation:spendSurplus(state,nextNation.freeLawChange?enacted:spendDecree(enacted,'changeLaw',state.turnNumber),regions)};} // the age advance's free change first (rank 11)
     const advisorPool=nextNation.isAtWar?'mil':'adm';
     if(!nextNation.advisors?.[advisorPool] && (pool.gold || 0)>500 && (nextNation.lastNetIncome || 0)>20){
       const advisor=generateAdvisorCandidates(nationId,createRng(fnv1a(nationId+state.turnNumber)))[advisorPool].sort((a,b)=>a.level-b.level)[0];
-      if(nextNation.lastNetIncome>getAdvisorSalary(advisor.level)*3)return {nation:{...nextNation,advisors:{...nextNation.advisors,[advisorPool]:advisor},economy:{...pool,gold:pool.gold-getAdvisorHireCost(advisor.level)}}};
+      if(nextNation.lastNetIncome>getAdvisorSalary(advisor.level)*3)return {nation:spendSurplus(state,{...nextNation,advisors:{...nextNation.advisors,[advisorPool]:advisor},economy:{...pool,gold:pool.gold-getAdvisorHireCost(advisor.level)}},regions)};
     }
   }
   if (stabilityResult) {
@@ -380,6 +410,7 @@ export const processAIEconomyTurn = (state, regions, nationId) => {
       }
     }
   }
+  nextNation = spendSurplus(state, nextNation, regions);
 
   // `id` is kept, not stripped: every nation record already carries its own `id` (createInitialState
   // sets it), so stripping it here deleted the REAL field on every AI think — after a few turns most

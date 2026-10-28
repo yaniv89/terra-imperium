@@ -180,3 +180,43 @@ describe('a rich AI treasury buys in more than one city a think (I017, lane W6)'
     expect(rushed.length).toBeLessThanOrEqual(AI_MAX_RUSHES_PER_THINK);
   });
 });
+
+describe('a treasury far over its surplus floor buys short orders too (follow-ups 19 and 24)', () => {
+  const setup = async (gold, net, longFirst = false) => {
+    const { processAIEconomyTurn } = await import('./aiEconomy');
+    const base = fresh(7);
+    const de = rivalOf(base);
+    const { state, cityIds } = addCities(base, de, 3, { loose: true });
+    const ids = [state.nations[de].capitalRegionId, ...cityIds];
+    const regions = { ...state.regions };
+    // Two turns left in every city: the usual rush (more than AI_RUSH_MIN_TURNS turns) skips them.
+    ids.forEach((id) => { regions[id] = { ...regions[id], size: 4, lastYields: { production: 1000 }, production: { current: { kind: 'building', category: 'economy', tier: 0 }, queue: [], progress: 0 } }; });
+    const nations = { ...state.nations, [de]: { ...state.nations[de], isAtWar: false, stability: 1, lastNetIncome: net, economy: { ...state.nations[de].economy, gold, adm: 0, dip: 0, mil: 0 } } };
+    const s = { ...state, regions, nations };
+    const cost = productionCost(regions[ids[0]].production.current, { ageId: 'stone', citiesOwned: ids.length, speedMult: speedCostMult(s.gameSpeed, 'stone'), trainMult: speedTrainMult(s.gameSpeed, 'stone') });
+    ids.forEach((id) => { regions[id] = { ...regions[id], lastYields: { production: cost / 2 } }; });
+    // The capital, the biggest city, on a long order: the usual rush buys it whole first.
+    if (longFirst) regions[ids[0]] = { ...regions[ids[0]], size: 9, lastYields: { production: 1 } };
+    const work = { ...s.regions };
+    const out = processAIEconomyTurn(s, work, de);
+    return { rushed: ids.filter((id) => work[id].rush), gold: out.nation.economy.gold, de, s };
+  };
+
+  it('rushes orders with more than AI_SURPLUS_MIN_TURNS turns left, never under the floor', async () => {
+    const { aiSurplusFloor } = await import('./aiEconomy');
+    const { rushed, gold, de, s } = await setup(100000, 10);
+    expect(rushed.length).toBeGreaterThan(1);
+    expect(gold).toBeGreaterThanOrEqual(aiSurplusFloor(s.nations[de]));
+  });
+
+  it('goes on to the other cities after the usual rush bought the biggest one', async () => {
+    const { rushed } = await setup(100000, 10, true);
+    expect(rushed.length).toBeGreaterThan(2);
+  });
+
+  it('keeps the floor: at the floor it buys nothing it would not have bought before', async () => {
+    const { AI_SURPLUS_GOLD } = await import('./aiEconomy');
+    const { rushed } = await setup(AI_SURPLUS_GOLD, 10);
+    expect(rushed.length).toBe(0);
+  });
+});
