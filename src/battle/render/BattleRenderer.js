@@ -107,6 +107,11 @@ export const SHOT_TRAIL_PX = 2.2;
 export const shotLife = (len) => Math.min(0.7, 0.24 + len * 0.025);
 /** The trail behind a shot `k` of its way along a flight `len` tiles long: [length, thickness] in tiles. */
 export const shotTrail = (k, len, worldPerPx) => [Math.min(1.8, len * 0.18, len * k), Math.max(0.04, SHOT_TRAIL_PX * worldPerPx)];
+// Into and out of a battle (art-2 lane, the way AoE IV and Total War open a field): the field fades
+// in from black while the camera settles from a wider view; at the end it pulls slowly back.
+export const INTRO_S = 1.6; export const INTRO_FROM = 0.72; export const OUTRO_S = 3; export const OUTRO_TO = 0.8;
+/** The camera's zoom share `t` seconds into a move of `s` seconds from `from` to 1 (ease out). */
+export const easeZoom = (t, s, from) => { const k = Math.min(1, Math.max(0, t / s)); return from + (1 - from) * (1 - (1 - k) ** 3); };
 const X_AXIS = new Vector3(1, 0, 0);
 const tmpDir = new Vector3();
 const tmp = new Object3D();
@@ -1020,6 +1025,7 @@ export class BattleRenderer {
   // after: a trackpad or a pinch sends several zooms (and pans) between two frames, and measuring
   // with the last frame's camera let the anchor drift towards the screen's centre.
   zoomBy(factor, px = this.width / 2, py = this.height / 2) {
+    if (this.camMove) { this.camera.zoom = this.camMove.zoom * this.camMove.to; this.camMove = null; } // the player's zoom wins
     this.updateCamera();
     const before = this.screenToGround(px, py);
     this.camera.zoom = Math.max(0.45, Math.min(this.maxZoom || 3, this.camera.zoom * factor));
@@ -1030,6 +1036,27 @@ export class BattleRenderer {
   }
 
   centerOn(x, z) { this.target.set(x, 0, z); this.clampTarget(); }
+
+  /** The first frame: the field fades in from black and the camera settles in (INTRO_S). */
+  startIntro() {
+    this.camMove = { t: 0, s: INTRO_S, zoom: this.camera.zoom, from: INTRO_FROM, to: 1 };
+    const el = this.renderer.domElement;
+    if (!el?.style) return;
+    el.style.opacity = '0'; el.style.transition = 'opacity 0.8s ease-out';
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(() => { el.style.opacity = '1'; }));
+    else el.style.opacity = '1';
+  }
+
+  /** The battle ended: the camera pulls slowly back over the field (OUTRO_S), unless the player zooms. */
+  startOutro() { const z = this.camera.zoom; this.camMove = { t: 0, s: OUTRO_S, zoom: z, from: 1, to: OUTRO_TO }; }
+
+  // the intro's or outro's zoom this frame (a long frame counts as a tenth of a second, so it is seen)
+  stepCamMove(dt) {
+    const m = this.camMove; if (!m) return;
+    m.t += Math.min(dt, 0.1);
+    this.camera.zoom = Math.max(0.45, m.zoom * (m.from + (m.to - m.from) * easeZoom(m.t, m.s, 0))); this.camera.updateProjectionMatrix();
+    if (m.t >= m.s) this.camMove = null;
+  }
 
   updateCamera() {
     this.camera.position.copy(this.target).addScaledVector(ISO_DIR, 120);
@@ -1289,6 +1316,7 @@ export class BattleRenderer {
       this.seenTick = cur.tick; this.seenTickAt = this.time;
     }
     this.adaptResolution(dt);
+    this.stepCamMove(dt);
     this.fitShadows();
     this.updateCamera();
     this.vegetation?.update(this.camera.zoom, { cssPxPerTile: 1 / this.worldPerPixel(), camera: this.camera, budget: this.treeBudget });

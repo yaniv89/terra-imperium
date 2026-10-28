@@ -485,6 +485,15 @@ body {
   animation-name: fadeIn;
 }
 
+/* A battle's result comes up after a beat, so its last moment is seen (art-2 lane). */
+.battle-result-in {
+  animation-duration: 600ms;
+  animation-delay: 900ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .battle-result-in { animation: none; }
+}
+
 .zoom-in {
   animation-name: zoomIn;
 }

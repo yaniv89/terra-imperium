@@ -33,7 +33,7 @@ const BattleResultScreen = ({ ended, setup, playerSide, title, getCampaign, rece
   const pending = m.state === 'pending';
   const counted = m.mine && m.theirs;
   return (
-    <div className="absolute inset-x-0 top-11 bottom-0 z-20 bg-fa-ink/90 overflow-y-auto" data-testid="battle-result" data-result-state={m.state}>
+    <div className="absolute inset-x-0 top-11 bottom-0 z-20 bg-fa-ink/90 overflow-y-auto animate-in fade-in battle-result-in" data-testid="battle-result" data-result-state={m.state}>
       <div className="min-h-full w-full max-w-[64rem] mx-auto flex flex-col lg:justify-center p-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))]">
       <div className="flex items-end gap-4 flex-wrap px-1">
         <div className="min-w-0">

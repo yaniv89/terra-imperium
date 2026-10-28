@@ -3,7 +3,7 @@
 import { describe, it, expect } from 'vitest';
 import { Group, Matrix4, Vector3 } from 'three';
 import { collapseMatrix, COLLAPSE_S } from '../art/structureArt';
-import { shotLife, shotTrail, SHOT_TRAIL_PX } from './BattleRenderer';
+import { shotLife, shotTrail, SHOT_TRAIL_PX, easeZoom, INTRO_FROM, INTRO_S } from './BattleRenderer';
 import { EconomyLayer } from './economyLayer';
 import { createArtIndex } from '../art/artIndex';
 import { parseKit } from '../art/kitLoader';
@@ -56,5 +56,13 @@ describe('shots', () => {
     expect(shotTrail(1, 10, 0.05)[0]).toBeCloseTo(1.8);
     expect(shotTrail(0.5, 10, 0.1)[1]).toBeCloseTo(SHOT_TRAIL_PX * 0.1);
     expect(shotTrail(0.5, 10, 0.001)[1]).toBe(0.04);
+  });
+});
+
+describe('into a battle', () => {
+  it('the camera settles from a wider view, fast first, and stops at the player\'s zoom', () => {
+    expect(easeZoom(0, INTRO_S, INTRO_FROM)).toBeCloseTo(INTRO_FROM);
+    expect(easeZoom(INTRO_S / 2, INTRO_S, INTRO_FROM)).toBeGreaterThan((1 + INTRO_FROM) / 2);
+    expect(easeZoom(INTRO_S * 2, INTRO_S, INTRO_FROM)).toBe(1);
   });
 });
