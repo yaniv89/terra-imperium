@@ -293,7 +293,7 @@ const tryRushProduction = (state, nation, regions, skip = null, { reserve: floor
   const missing = missingOf(city);
   if (!worthIt(city, missing)) return null;
   const heat = rushHeat(city, state.turnNumber, state.gameSpeed, ageId);
-  const bought = rushAffordable(missing, gold - reserve, heat, p.current.kind);
+  const bought = rushAffordable(missing, gold - reserve, heat, p.current);
   if (!bought) return null;
   return { nation: { ...nation, economy: { ...nation.economy, gold: gold - bought.gold } }, regionId: best, updatedRegion: applyRush(city, 0, { cost: (p.progress || 0) + bought.hammers, heat }, state.turnNumber) };
 };
