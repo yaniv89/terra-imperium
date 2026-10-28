@@ -19,7 +19,7 @@ import { PROCEDURAL_TEMPLATES } from '../data/proceduralEvents';
 import { DECK_DRAWS, DECK_LINKS } from '../data/eventDeck/index';
 import { AI_DRAWS } from '../data/eventsAi';
 import { CRISIS_LINKS } from '../data/crises';
-import { AGES, getAgeIndex, speedCostMult } from '../data/ages';
+import { AGES, getAgeIndex, speedCostMult, speedTurns } from '../data/ages';
 import { countryOfNation, peopleOf } from '../data/peoples';
 import { factContext, predicateMet } from './predicates';
 import { ageOf } from './nationState';
@@ -187,7 +187,7 @@ export const raidAftermathCard = (state) => {
   const turn = state.turnNumber || 0;
   const raider = Object.values(state.nations || {}).filter((n) => {
     const last = n.indep?.lastRaidOnPlayer;
-    return !n.isEliminated && last && turn - last.turn <= RAID_AFTERMATH_TURNS && state.eventHistory?.[`raid:${n.id}`] !== last.turn
+    return !n.isEliminated && last && turn - last.turn <= speedTurns(RAID_AFTERMATH_TURNS, state.gameSpeed, ageOf(state, state.playerNationId)) && state.eventHistory?.[`raid:${n.id}`] !== last.turn
       && state.regions?.[last.cityId]?.owner === state.playerNationId;
   }).sort((a, b) => b.indep.lastRaidOnPlayer.turn - a.indep.lastRaidOnPlayer.turn || (a.id < b.id ? -1 : 1))[0];
   if (!raider) return null;

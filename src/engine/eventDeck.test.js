@@ -5,7 +5,8 @@ import { factsUsed, predicateMet, factContext } from './predicates';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { PROCEDURAL_TEMPLATES } from '../data/proceduralEvents';
-import { AGE_ORDER } from '../data/ages';
+import { AGE_ORDER, speedTurns } from '../data/ages';
+import { ageOf } from './nationState';
 import { peoplesWorld } from './testWorld';
 import { createRng } from '../utils/rng';
 
@@ -157,7 +158,7 @@ describe('event deck (U26)', () => {
     expect(out.activeProceduralEvent).toMatchObject({ templateId: 'raid_suffered', cityId: city.id, indepId: raider.id });
     expect(out.activeProceduralEvent.description).toContain(city.name);
     expect(raidAftermathCard({ ...raided, eventHistory: out.eventHistory })).toBeNull(); // once a raid
-    expect(raidAftermathCard({ ...raided, turnNumber: 39 + RAID_AFTERMATH_TURNS + 1 })).toBeNull(); // too late
+    expect(raidAftermathCard({ ...raided, turnNumber: 39 + speedTurns(RAID_AFTERMATH_TURNS, raided.gameSpeed, ageOf(raided, me)) + 1 })).toBeNull(); // too late
     const terms = applyEventEffects({ ...raided, logs: [] }, out.activeProceduralEvent, 1);
     const revenge = applyEventEffects({ ...raided, logs: [] }, out.activeProceduralEvent, 0);
     const g = (st) => st.nations[raider.id].indep?.grudges?.[me] || 0;
