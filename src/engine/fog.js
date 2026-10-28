@@ -183,16 +183,25 @@ const unitRings = (tiles, u, t, extra) => ringsForKm(extra + (u.domain === 'nava
 // the turn rebuilds city records, the land rarely changes), so a quiet turn walks almost no land.
 const LAND_SIGHT_CACHE_MAX = 20000;
 const landSightCache = new Map(); // `${rings}|${tiles}` -> tile list
-onWorldChange(() => landSightCache.clear());
+let sightGen = 0; // a new world (tests switching grids) drops the per-array lists too
+onWorldChange(() => { landSightCache.clear(); sightGen += 1; });
+// A city keeps its `tiles` array until it claims or loses a tile: the list is also kept on that
+// array (per rings, with its length as a guard), which skips building the string key each turn.
+const sightByArray = new WeakMap(); // tiles array -> Map(rings -> { length, list })
 const citySight = (tiles, c, rings, mark, stamp) => {
   const seeds = c.tiles || [c.tile];
+  const byRings = c.tiles ? sightByArray.get(c.tiles) : null;
+  const own = byRings?.get(rings);
+  if (own && own.length === seeds.length && own.gen === sightGen) return own.list;
   const key = `${rings}|${seeds.join(',')}`;
-  const hit = landSightCache.get(key);
-  if (hit) return hit;
-  const list = [];
-  walk(tiles, seeds, rings, mark, stamp, (t) => list.push(t));
-  if (landSightCache.size >= LAND_SIGHT_CACHE_MAX) landSightCache.clear();
-  landSightCache.set(key, list);
+  let list = landSightCache.get(key);
+  if (!list) {
+    list = [];
+    walk(tiles, seeds, rings, mark, stamp, (t) => list.push(t));
+    if (landSightCache.size >= LAND_SIGHT_CACHE_MAX) landSightCache.clear();
+    landSightCache.set(key, list);
+  }
+  if (c.tiles) { const m = byRings || new Map(); m.set(rings, { length: seeds.length, list, gen: sightGen }); if (!byRings) sightByArray.set(c.tiles, m); }
   return list;
 };
 
@@ -214,10 +223,11 @@ export const ownSightAll = (state) => {
     const list = [];
     const visit = (t) => { if (seen[t] !== nationStamp) { seen[t] = nationStamp; list.push(t); } };
     const extra = mapEffectsFor(state, id).sight || 0;
-    if (seeds) { const rings = ringsForKm(SIGHT_LAND_KM + extra); for (const c of seeds) for (const t of citySight(tiles, c, rings, mark, ++stamp)) visit(t); }
+    // Index loops over the cached lists (a for...of here allocated an iterator step per tile).
+    if (seeds) { const rings = ringsForKm(SIGHT_LAND_KM + extra); for (const c of seeds) { const l = citySight(tiles, c, rings, mark, ++stamp); for (let i = 0; i < l.length; i++) visit(l[i]); } }
     // A stack walks once: a unit whose tile was walked as far already adds no tile (same list, same order).
     const walked = new Map(); // tile -> rings walked from it
-    if (own) own.forEach((u) => { const t = unitTile(state, u); const r = unitRings(tiles, u, t, extra); if (walked.get(t) >= r) return; walked.set(t, r); for (const x of citySight(tiles, { tile: t }, r, mark, ++stamp)) visit(x); });
+    if (own) own.forEach((u) => { const t = unitTile(state, u); const r = unitRings(tiles, u, t, extra); if (walked.get(t) >= r) return; walked.set(t, r); const l = citySight(tiles, { tile: t }, r, mark, ++stamp); for (let i = 0; i < l.length; i++) visit(l[i]); });
     out.set(id, list);
   });
   return out;
@@ -413,7 +423,8 @@ export const updateFog = (state, { onlyPlayer = false } = {}) => {
     addTiles(writer, fog, id, list);
     const self = who.index.get(id);
     const meetIdx = (o) => { if (o && o !== self) writer.meet(id, who.ids[o - 1], turn); };
-    for (const t of list) {
+    for (let i = 0; i < list.length; i++) {
+      const t = list[i];
       meetIdx(who.land[t]);
       if (who.unit[t]) { meetIdx(who.unit[t]); const extra = who.more.get(t); if (extra) extra.forEach(meetIdx); }
     }

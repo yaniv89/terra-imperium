@@ -8,7 +8,7 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
 - Big features on a side branch. Merge to `main` only when the user asks; the push deploys the site.
 - Mobile-friendly always: phones play in landscape (844x390 is the reference screen).
 - Automate rather than hand the user manual work.
-- Every session, lane and subagent loads the ponytail skill (`ponytail:ponytail`) first and follows it, to save tokens; every lane brief says so in its first line.
+- Every session, lane and subagent loads the ponytail skill first and follows it, to save tokens; every lane brief says so in its first line. It is vendored in `.claude/skills/ponytail/` (skill `ponytail`) so cloud sessions have it; where the plugin is installed it is also `ponytail:ponytail`.
 - Plain English in messages to the user, no em dashes.
 
 ## Project skills (in .claude/skills/, use them without being asked)
@@ -209,3 +209,7 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
 - Playtest issues marked "open" in an old summary may be fixed already: check the code or a fresh run before starting a lane on them.
 - Dashboard datasets: upload the JSON as an asset first, then point `datasets/<id>` source.url at it with the last `if_version`; one JSON file per upload call.
 - Every evaluation round grades art and animation too (map, units, animations, VFX, transitions), not only rules and UI (user, 27 Oct).
+- Sub sessions often cannot deliver send_message to the lead (prompts, "trusted device"): the lead polls their branches (`git log origin/claude/integration..origin/claude/<lane>`) and `list_sessions` summaries instead of waiting for a message.
+- `npm run test:quick` skips the 17 slow files (resolveTurn.test.js among them), so a red slow test reaches CI unseen: check the latest CI run on integration before pushing main (CI was red on one slow test all of 27 Oct morning). Long-run tests with a passive player should accept peace offers, or the player can be conquered and DEFEAT stops the loop.
+- Cloud sessions do not get the user's plugins: the ponytail plugin was missing in every sub session until it was vendored into .claude/skills/ponytail (27 Oct). Before relying on a skill or tool in a lane brief, check it exists on a fresh cloud machine.
+- Blender on a cloud session: `bash scripts/blender/install.sh` (apt-get update first; Blender 4.0.2 headless works). download.blender.org is blocked. An art lane must install it before saying "no Blender".

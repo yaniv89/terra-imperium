@@ -1,6 +1,7 @@
 // src/components/modals/ResearchChoiceSheet.jsx
 // "Choose your research" (plan §2): opens at the start of a game and whenever a tech is finished
-// with nothing queued after it. Three suggestions for this nation's doctrine, "let my advisor
+// with nothing queued after it. The advisor's three picks (research.js recommendTechs), the first
+// marked recommended, each with why and what it unlocks, "let my advisor
 // choose" (the advisor then picks whenever the queue runs out), or the full Research tab. "Later"
 // closes it for this turn, but End Turn then reads "Choose research"
 // (src/engine/turnBlockers.js) and a tap on it brings the sheet back.
@@ -10,9 +11,8 @@ import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { TECH_TREE } from '../../data/techTree';
 import { GameStatus } from '../../data/types';
-import { suggestTechs } from '../../engine/research';
 import { researchNeedsChoice, advisorPlan } from '../../engine/researchStatus';
-import { describeTech, formatTurns, getSciencePerTurn, techInfo } from '../panels/researchView';
+import { describeTech, formatTurns, getSciencePerTurn, techInfo, recommendedTechs } from '../panels/researchView';
 import { CATEGORY_LABELS } from '../panels/TechPanel';
 import { openPanelTab } from '../panels/panelEvents';
 import { OPEN_RESEARCH_CHOICE } from '../ui/uiEvents';
@@ -48,7 +48,7 @@ const ResearchChoiceSheet = ({ hidden }) => {
   if (!wanted || !turn.shown) return null;
 
   const science = getSciencePerTurn(state);
-  const options = suggestTechs(state, state.playerNationId, 3).map((id) => techInfo(state, id, science));
+  const options = recommendedTechs(state, 3).map((r) => ({ ...techInfo(state, r.techId, science), why: r.text }));
   const done = state.research?.lastCompleted?.turn === state.turnNumber ? TECH_TREE[state.research.lastCompleted.techId] : null;
   const choose = (techId) => dispatch({ type: ActionTypes.RESEARCH_TECH, payload: { techId } });
 
@@ -74,15 +74,17 @@ const ResearchChoiceSheet = ({ hidden }) => {
         </div>
 
         <div className="space-y-2">
-          {options.map((o) => (
+          {options.map((o, i) => (
             <button key={o.tech.id} onClick={() => choose(o.tech.id)} data-testid={`research-option-${o.tech.id}`}
               className="w-full text-start rounded-xl border border-fa-line bg-fa-raised/60 hover:border-purple-400 hover:bg-fa-raised p-3 min-h-[56px]">
               <div className="flex items-baseline justify-between gap-2">
-                <span className="font-semibold text-fa-text">{techName(o.tech.id, o.tech.name)}</span>
+                <span className="font-semibold text-fa-text">{techName(o.tech.id, o.tech.name)}{i === 0 && <span className="ms-1.5 text-[10px] uppercase tracking-wide text-fa-brass" data-testid="research-recommended">{t('p2.rec.label')}</span>}</span>
                 <span className="text-[11px] text-purple-300 shrink-0">{formatTurns(o.turns)}</span>
               </div>
               <div className="text-[11px] text-fa-muted">{t('rc.catCost', { cat: CATEGORY_LABELS[o.tech.category], cost: o.cost })}</div>
+              {o.unlocks.length > 0 && <div className="text-[11px] text-fa-text" data-testid="research-unlocks">{t('p2.tr.unlocks', { list: o.unlocks.join(', ') })}</div>}
               <div className="text-[11px] text-fa-muted">{describeTech(o.tech)}</div>
+              {i === 0 && <div className="text-[11px] text-fa-brass" data-testid="research-why">{o.why}</div>}
             </button>
           ))}
         </div>
