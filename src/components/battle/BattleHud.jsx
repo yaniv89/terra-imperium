@@ -489,8 +489,8 @@ const BattleHud = ({
             {loot && (
               <div data-testid="battle-loot">
                 <div className={cx('flex items-center gap-1.5', lootWarn && 'text-fa-danger-text font-semibold')}>
-                  <span className="whitespace-nowrap">{t('bt.status.loot', { a: Math.min(loot.burned, loot.needed), b: loot.needed })}</span>
-                  <span className="flex-1 h-1.5 rounded-full bg-fa-ink overflow-hidden" role="meter" aria-label={t('bt.status.loot', { a: Math.min(loot.burned, loot.needed), b: loot.needed })} aria-valuenow={Math.min(loot.burned, loot.needed)} aria-valuemin={0} aria-valuemax={loot.needed}>
+                  <span className="whitespace-nowrap">{t(playerSide === 1 ? 'bt.status.lootDef' : 'bt.status.loot', { a: Math.min(loot.burned, loot.needed), b: loot.needed })}</span>
+                  <span className="flex-1 h-1.5 rounded-full bg-fa-ink overflow-hidden" role="meter" aria-label={t(playerSide === 1 ? 'bt.status.lootDef' : 'bt.status.loot', { a: Math.min(loot.burned, loot.needed), b: loot.needed })} aria-valuenow={Math.min(loot.burned, loot.needed)} aria-valuemin={0} aria-valuemax={loot.needed}>
                     <span className={cx('block h-full', lootWarn ? 'bg-fa-danger' : 'bg-fa-brass')} style={{ width: `${(Math.min(loot.burned, loot.needed) / loot.needed) * 100}%` }} />
                   </span>
                 </div>

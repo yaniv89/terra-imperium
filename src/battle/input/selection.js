@@ -131,6 +131,16 @@ const ATTACK_MOVE_LANDED_TILES = 2;
  * turn it into a plain move, so the army stopped short and nobody fought). Otherwise a move.
  * `squads`: the selected squads from the view ({ order, x, y, orderX, orderY } in Q8 units).
  */
+// An attack on an enemy building by a group (Attack it, or a tap on the building) is an attack-move
+// to it: the army fights whoever stands in the way and razes on from there (movement.js
+// continueAssault; siege engines still pick buildings first, combat.js acquireTarget). Sent all at
+// the building, the squads walked past the defenders into the walls' fire one by one and died for a
+// third of theirs (lead check 28 Oct; battle-lab sandboxTrace: 0 wins of 8, attack-move 7 of 8).
+// One squad keeps the plain attack the player chose.
+export const buildingAttackOrders = (squads, target, x, y) => (squads.length > 1
+  ? [{ type: 'attackMove', squads, x, y }]
+  : [{ type: 'attack', squads, target }]);
+
 export const groundOrderType = ({ started, armed, forceAttackMove = false, squads = [] }) => {
   if (!started) return 'deploy';
   if (forceAttackMove || armed === 'attackMove') return 'attackMove';
