@@ -9,7 +9,7 @@ ids without one (`fire-crackle`, `war-drums`).
 ## Format
 - OGG (Vorbis) or MP3, 44.1 kHz, mono for one-shots (the game pans them), stereo is fine for loops.
 - Loudness: -14 to -20 LUFS integrated (short one-shots: peak around -3 dBFS). Keep the folder's
-  variants at the same loudness.
+  variants at the same loudness (`node scripts/audio/mix-levels.mjs --even-variants` does it).
 - One-shots: trimmed tight at the start (no silence before the hit), under 2 s where possible.
 - Loops (`battle-ambience`, `war-drums`): seamless, 10 to 60 s.
 - No gore: `death-cry` is a soft, short cry or groan.

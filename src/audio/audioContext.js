@@ -127,6 +127,22 @@ export const getAudioContext = ({ create = true } = {}) => {
   return ctx;
 };
 
+// The limiter every bus (music, interface, battle) plays into: a war fanfare over the music, or a
+// big melee on sixteen voices, is held under full scale instead of clipping a phone speaker.
+// Settings of a brick-wall limiter: fast attack, hard knee, high ratio, a few dB of headroom.
+export const LIMITER = { threshold: -6, knee: 0, ratio: 20, attack: 0.003, release: 0.25 };
+let output = null; let outputCtx = null;
+/** The node a bus connects to instead of `c.destination` (the destination itself without a compressor). */
+export const audioOutput = (c) => {
+  if (output && outputCtx === c) return output;
+  outputCtx = c;
+  if (!c.createDynamicsCompressor) { output = c.destination; return output; }
+  output = c.createDynamicsCompressor();
+  Object.entries(LIMITER).forEach(([k, v]) => { if (output[k]) output[k].value = v; });
+  output.connect(c.destination);
+  return output;
+};
+
 /** Call from a user gesture: create the context and resume it if the page is on screen. */
 export const unlockAudio = () => {
   const c = getAudioContext();
@@ -166,7 +182,7 @@ export const audioDebugInfo = () => {
 /** Tests: use this context factory (null: the browser's) and forget the current context. */
 export const resetAudioContextForTest = (makeContext = null) => {
   factory = makeContext;
-  ctx = null;
+  ctx = null; output = null; outputCtx = null;
   gestureArmed = false;
   log.length = 0;
   if (unsubscribePage) { unsubscribePage(); unsubscribePage = null; }

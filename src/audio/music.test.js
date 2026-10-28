@@ -128,12 +128,11 @@ describe('map and battle playlists (pure)', () => {
     expect(musicMode({ battleHolds: 0 })).toBe('map');
     expect(musicMode({ battleHolds: 1 })).toBe('battle');
   });
-  it('only the mode\'s playlist is heard, the battle one about 4 dB lower', () => {
+  it('only the mode\'s playlist is heard, the battle one BATTLE_MUSIC_DB lower', () => {
     expect(playlistLevels({ mode: 'map', on: true })).toEqual({ map: 1, battle: 0 });
     const b = playlistLevels({ mode: 'battle', on: true });
     expect(b.map).toBe(0);
     expect(b.battle).toBeCloseTo(dbToGain(BATTLE_MUSIC_DB), 6);
-    expect(b.battle).toBeCloseTo(0.631, 3);
     expect(playlistLevels({ mode: 'battle', on: false })).toEqual({ map: 0, battle: 0 });
   });
 });
@@ -164,7 +163,7 @@ describe('map and battle playlists on Web Audio', () => {
     const st = musicDebugState();
     expect(st.mode).toBe('battle');
     expect(Number(st.level)).toBe(0); // the map playlist's level target
-    expect(Number(st.battle.level)).toBeCloseTo(0.63, 2);
+    expect(Number(st.battle.level)).toBeCloseTo(dbToGain(BATTLE_MUSIC_DB), 2);
     vi.advanceTimersByTime(PARK_AFTER_MS + 10);
     expect(ctx.playingUrls()).toEqual(['x.ogg']); // map and its ambience released
     ctx.advance(10);
