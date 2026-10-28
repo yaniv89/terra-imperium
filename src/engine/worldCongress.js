@@ -10,7 +10,8 @@
 // think of the target (the target votes no), a trade standard or an arms limit by how well they
 // think of the host (the host votes yes), never an arms limit while at war; a middling score
 // abstains. A resolution passes when the yes weight beats the no weight.
-// A passed trade standard or arms limit is a timed modifier on every member; passed sanctions cut
+// A passed trade standard or arms limit is a timed modifier on every member (its gold only for a member
+// that knows CONGRESS_GOLD_TECH: congressMods); passed sanctions cut
 // the player's trade route to each signer (tradeValue.js), cost an AI target SANCTIONS_AI_GOLD_MULT
 // gold and give the target the "sanctioned us" opinion of every signer (opinion.js). Each lasts
 // RESOLUTION_SPANS spans. No victory reads the record.
@@ -25,7 +26,7 @@
 //   sanctions: [{ targetId, signers, untilTurn }], binds: [{ id, nationId, untilTurn }],
 //   record: [{ turn, id, targetId, passed, yes, no }] }
 // Absent until the first member sits (old saves need nothing).
-import { CONGRESS_TECH, CONGRESS_SPAN_REF_TURNS, RESOLUTION_SPANS, CONGRESS_RECORD_MAX, RESOLUTION_ORDER, RESOLUTIONS, SANCTIONS_AI_GOLD_MULT, VOTE_YES_AT, VOTE_NO_BELOW, DOCTRINE_VOTE_LEAN, COUNCIL_TECH, COUNCIL_ORDER, WEAPONS_BAN_REF_TURNS } from '../data/worldCongress';
+import { CONGRESS_TECH, CONGRESS_GOLD_TECH, CONGRESS_SPAN_REF_TURNS, RESOLUTION_SPANS, CONGRESS_RECORD_MAX, RESOLUTION_ORDER, RESOLUTIONS, SANCTIONS_AI_GOLD_MULT, VOTE_YES_AT, VOTE_NO_BELOW, DOCTRINE_VOTE_LEAN, COUNCIL_TECH, COUNCIL_ORDER, WEAPONS_BAN_REF_TURNS } from '../data/worldCongress';
 import { isIndependentNation } from '../data/independents';
 import { speedTurns } from '../data/ages';
 import { ageOf, getResearched } from './nationState';
@@ -34,6 +35,10 @@ import { addNationModifier } from './modifiers/timed';
 import { msg, people } from './messages';
 
 const isMajor = (n) => n && !n.isEliminated && !isIndependentNation(n);
+
+/** A resolution's mods for member `id`: its gold only once the member knows CONGRESS_GOLD_TECH. */
+export const congressMods = (state, id, mods) => (getResearched(state, id).includes(CONGRESS_GOLD_TECH) ? mods
+  : Object.fromEntries(Object.entries(mods).filter(([k]) => k !== 'national.goldMult')));
 
 /** The members, sorted by id: living majors that have researched CONGRESS_TECH. */
 export const congressMembers = (state) => Object.keys(state.nations || {}).sort()
@@ -134,7 +139,7 @@ export const processWorldCongress = (state) => {
     } else if (proposal.id === 'sanctions') {
       sanctions.push({ targetId: proposal.targetId, signers: result.signers, untilTurn: turn + duration });
       if (proposal.targetId !== state.playerNationId) add(proposal.targetId, { 'national.goldMult': SANCTIONS_AI_GOLD_MULT });
-    } else members.forEach((id) => add(id, RESOLUTIONS[proposal.id].mods));
+    } else members.forEach((id) => add(id, congressMods(state, id, RESOLUTIONS[proposal.id].mods)));
   }
   logs.push(msg(result.passed ? 'm.diplo.congressPassed' : 'm.diplo.congressFailed', { yes: result.yes, no: result.no }));
   const votes = prev.votes + 1;

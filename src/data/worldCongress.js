@@ -8,6 +8,10 @@
  * Congress meets in the middle of the game, as Civ VI's does from its Medieval era; it was Global
  * Institutions (Information Age), which most games never saw. */
 export const CONGRESS_TECH = 'governance_royal_chancery';
+/** A member's gold from a passed resolution (the trade standard, the arms limit) needs this tech, the one
+ * that opened the Congress before events-8: from the Age of Kingdoms on, the gold compounded and an AI
+ * reached the Future's goal early (endgameReachability.test.js; balance-sim worldStats seeds 11 to 14). */
+export const CONGRESS_GOLD_TECH = 'governance_global_institutions';
 /** Reference turns between votes, through speedTurns at the host's age. */
 export const CONGRESS_SPAN_REF_TURNS = 10;
 /** A passed resolution lasts this many spans. */
@@ -27,8 +31,8 @@ export const AI_LIMITS_CAP = 40;
 
 // `mods`: the timed nation modifier every member gets while the resolution holds.
 export const RESOLUTIONS = {
-  tradeStandard: { id: 'tradeStandard', name: 'A Trade Standard', description: 'Common weights, measures and rules for goods: +5% gold for every member.', mods: { 'national.goldMult': 0.05 } },
-  armsLimit: { id: 'armsLimit', name: 'An Arms Limit', description: 'Every member caps its forces: -10% manpower, +3% gold.', mods: { 'national.hrMult': -0.1, 'national.goldMult': 0.03 } },
+  tradeStandard: { id: 'tradeStandard', name: 'A Trade Standard', description: 'Common weights, measures and rules for goods: +5% gold for every member that knows Global Institutions.', mods: { 'national.goldMult': 0.05 } },
+  armsLimit: { id: 'armsLimit', name: 'An Arms Limit', description: 'Every member caps its forces: -10% manpower, and +3% gold for a member that knows Global Institutions.', mods: { 'national.hrMult': -0.1, 'national.goldMult': 0.03 } },
   sanctions: { id: 'sanctions', name: 'Sanctions', description: 'The signers cut trade with the target: no trade route between them, and the target loses gold.' },
   // The Planetary Council's (U71): `binds` the signers (worldCongress.binds), each until its own turn.
   orbitalDemilitarisation: { id: 'orbitalDemilitarisation', name: 'Orbital Demilitarisation', description: 'No signer may call an Orbital Strike in battle.', binds: true },

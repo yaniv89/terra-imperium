@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { peoplesWorld, rivalOf } from './testWorld';
-import { congressMembers, processWorldCongress, tallyVote, voteWeight } from './worldCongress';
-import { CONGRESS_TECH } from '../data/worldCongress';
+import { congressMembers, processWorldCongress, tallyVote, voteWeight, congressMods } from './worldCongress';
+import { CONGRESS_TECH, CONGRESS_GOLD_TECH } from '../data/worldCongress';
 import { opinionReasons } from './opinion';
 import { tradeRoutesValue } from './tradeValue';
 import { gameReducer } from './gameReducer';
@@ -80,5 +80,13 @@ describe('World Congress (eight-ages plan U54)', () => {
   it('resolveTurn seats the Congress once a member exists', () => {
     expect(resolveTurn(BASE).worldCongress).toBeUndefined();
     expect(resolveTurn(withTech(BASE, [A, B])).worldCongress?.hostId).toBe([A, B].sort()[0]);
+  });
+
+  it('a resolution pays its gold only to a member that knows Global Institutions (events-8: early Congress, pacing as before)', () => {
+    const s = withTech(BASE, [A, B]);
+    const mods = { 'national.hrMult': -0.1, 'national.goldMult': 0.03 };
+    expect(congressMods(s, A, mods)).toEqual({ 'national.hrMult': -0.1 });
+    const known = { ...s, nations: { ...s.nations, [A]: { ...s.nations[A], tech: { ...s.nations[A].tech, researched: [...s.nations[A].tech.researched, CONGRESS_GOLD_TECH] } } } };
+    expect(congressMods(known, A, mods)).toEqual(mods);
   });
 });
