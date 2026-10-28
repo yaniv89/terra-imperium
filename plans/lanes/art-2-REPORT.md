@@ -69,4 +69,4 @@ No difference beyond run-to-run noise (p95 is dominated by SwiftShader stalls of
 
 ## Final checks
 
-`npm run lint` clean. Full `npx vitest run`: see the last line below.
+`npm run lint` clean. Full `npx vitest run` after merging integration: 505 files passed, 2 skipped; 4,724 tests passed, 17 skipped, 0 failed.
