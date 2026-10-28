@@ -858,3 +858,16 @@ html[data-turn-report] [data-testid="turn-dock"] { display: none; }
 .game-icon-halo { filter: drop-shadow(0 0 1px rgba(241, 245, 249, 0.55)); }
 /* An icon whose choice is not on offer (the capture card, UI15): grey and faint, never a second file. */
 .game-icon-disabled { filter: grayscale(1); opacity: 0.45; }
+
+/* A sideways-scrolling chip row (useScrollHint.js) fades the edge chips hide behind. */
+[data-more~="end"] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
+[data-more~="start"] { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); }
+[data-more="start end"] { -webkit-mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent); }
+html[dir="rtl"] [data-more="end"] { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); }
+html[dir="rtl"] [data-more="start"] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
+
+/* A city sheet open on a phone held sideways (ProvinceModal sets data-city-sheet): the dock's Advisor
+   buttons and the Idle chip would sit on its build list; the sheet's own Advisor pick replaces them. */
+html[data-layout="phone-landscape"][data-city-sheet] [data-testid="advisor-build"],
+html[data-layout="phone-landscape"][data-city-sheet] [data-testid="advisor-always"],
+html[data-layout="phone-landscape"][data-city-sheet] [data-testid="idle-chip"] { display: none; }

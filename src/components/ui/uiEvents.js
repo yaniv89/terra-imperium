@@ -41,5 +41,5 @@ export const setTurnReportShown = (shown) => { reportShown = !!shown; fire(TURN_
 export const isTurnReportShown = () => reportShown;
 
 export const OPEN_GLOSSARY = 'ti:open-glossary';
-/** The glossary entry of a people, city, tech or unit (U30). */
+/** The glossary entry of a people, city, tech, unit or term (U30); openGlossary('index') opens the index. */
 export const openGlossary = (kind, id) => fire(OPEN_GLOSSARY, { kind, id });

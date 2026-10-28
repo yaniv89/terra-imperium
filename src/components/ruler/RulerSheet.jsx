@@ -38,7 +38,8 @@ const RulerSheet = () => {
   const { t } = useT();
   const [picked, setPicked] = useState(null);
   const detailRef = useRef(null);
-  // On a short phone screen the cost and the Take button sit under the fold: bring them up.
+  // On a short phone screen the cost and the Take button sit under the fold: bring them up, clear of
+  // End Turn (scroll-mb-20), so a tap on a virtue always shows its card (newcomer playtest step 21).
   useEffect(() => { if (picked) detailRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }); }, [picked]);
   const m = rulerSheetModel(state);
   if (!m) return null;
@@ -122,7 +123,7 @@ const RulerSheet = () => {
               );
             }))}
           </div>
-          <div ref={detailRef} className="mt-2 rounded-lg bg-fa-raised/60 p-2 text-[12px] min-h-[64px] scroll-mb-3" data-testid="ruler-detail">
+          <div ref={detailRef} className="mt-2 rounded-lg bg-fa-raised/60 p-2 text-[12px] min-h-[64px] scroll-mb-20" data-testid="ruler-detail">
             {sel ? (
               <>
                 <div className="font-semibold">{vName(sel.virtue)} <span className="text-fa-muted font-normal font-mono">{sel.state === 'taken' ? t('ruler.virtue.taken') : t('ruler.virtue.cost', { n: sel.virtue.cost })}</span></div>

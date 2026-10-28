@@ -74,7 +74,8 @@ describe('blocked actions say why', () => {
   });
 
   it('declare war carries its block or its shortfall, and says what gives a cause', () => {
-    const s = peoplesWorld({ seed: 3 });
+    const s0 = peoplesWorld({ seed: 3 });
+    const s = { ...s0, fog: s0.fog && { ...s0.fog, on: false } }; // a people you have seen (an unseen one is blocked first: warActions.js)
     const foe = rivalOf(s, 0);
     const poor = { ...s, resources: { ...s.resources, gold: 0 } };
     const m = declareWarModel(poor, foe);

@@ -320,6 +320,8 @@ export default {
   'cy.inQueue': 'בתור',
   'cy.prodCost': '{cost} ייצור',
   'cy.alreadyDone': '{n} כבר בוצעו',
+  'cy.slowWhy': 'איטי כאן ({production} ייצור בתור): הוסיפו לתור וקנו בערך ב־{gold} זהב',
+  'cy.advisorPick': 'היועץ: {name}',
   'cy.slowHere': 'איטי כאן',
   'cy.needs': 'נדרש {name}',
   'cy.needsLower': 'נדרש {name}',

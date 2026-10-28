@@ -57,6 +57,7 @@ import { settleModeFor, settleModeOver, settleSites, settleUnit, nextSite, settl
 import { SELECT_ARMY, SELECT_TILE, SELECT_NATION, FOCUS_REGION, MANAGE_CITY, FOCUS_PLACE, OPEN_FIELD_ATTACK, pointAtTile } from './marchEvents';
 import { SET_MAP_LENS } from '../ui/uiEvents';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { ActionTypes } from '../../data/types';
 import { useGame } from '../../context/GameContext';
 import { getNationCapital } from '../../data/regions';
 import { useMapPrefs } from './mapPrefs';
@@ -84,7 +85,7 @@ const MapContainer = (props) => (
 );
 
 const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => {
-  const { state } = useGame();
+  const { state, dispatch } = useGame();
   const { t } = useT();
   const marchCtx = useMarch();
   const marching = !!marchCtx?.march && !marchCtx.march.dragging;
@@ -303,7 +304,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
       </div>
       {globeAllowed && <MapModeToggle mode={mode} onChange={handleModeChange} />}
       <MarchBar />
-      {settleView && !marching && <SettleBar model={settleBarModel(state, settle, sites, selectedTile)} onNext={goNextSite} onCancel={() => setSettle(null)} />}
+      {settleView && !marching && <SettleBar model={settleBarModel(state, settle, sites, selectedTile)} onNext={goNextSite} onCancel={() => setSettle(null)} onSendHome={(unitId) => { dispatch({ type: ActionTypes.DISBAND_SETTLERS, payload: { unitId } }); setSettle(null); }} />}
       <MarchAttackPrompt />
       {fieldAttack && <PreBattleModal fromRegionId={fieldAttack.from} tile={fieldAttack.tile} onClose={() => setFieldAttack(null)} />}
       <RegionChooser choice={tapChoice} onPick={(id) => { setTapChoice(null); onSelectRegion(id); }} onClose={() => setTapChoice(null)} />

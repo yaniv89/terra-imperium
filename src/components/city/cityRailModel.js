@@ -57,6 +57,8 @@ export const cityRailModel = (state) => {
       id: c.id, name: c.name, size: c.size, capital: c.id === capital, outpost: !!c.outpost,
       growthTurns, starving: growth.state === 'starving',
       building: shortItemLabel(item, tiles, ageId), buildTurns, buildWait, idle: !item && !c.outpost,
+      // what waits behind it: the list showed only the current item and queued units seemed lost (newcomer playtest step 103)
+      then: shortItemLabel(c.production?.queue?.[0], tiles, ageId), thenMore: Math.max(0, (c.production?.queue?.length || 0) - 1),
       // the thin production bar under the city (W02): how far the current item is
       buildShare: item && cost > 0 ? Math.min(1, (c.production?.progress || 0) / cost) : null,
       unrest: Math.round(c.unrest || 0), restless: (c.unrest || 0) >= UNREST_PROMPT,

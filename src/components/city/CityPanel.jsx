@@ -17,11 +17,14 @@ import { unitName as unitDisplayName, unitClassName } from '../../i18n/gameText'
 import { unitClassLabel as unitClassLabelEn } from '../../data/unitNames';
 import { buildingTierName, wonderName, improvementName, districtName, tileResourceName } from '../../i18n/gameText';
 const unitClassLabel = (c) => unitClassName(c, unitClassLabelEn(c));
+import { useScrollHint } from '../../hooks/useScrollHint';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Lock, Unlock, X, Plus, Coins, Wheat, Hammer, Home, Smile, ArrowUp, ArrowUpToLine, ChevronDown, ChevronUp, MapPin, AlertTriangle, Check } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { getTiles } from '../../data/geo/tiles';
+import { advisorPick } from '../../engine/productionAdvisor';
+import { shortItemLabel } from './cityRailModel';
 import { getResearched, ageOf } from '../../engine/nationState';
 import { stonePhaseOf } from '../../engine/stonePhase';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
@@ -106,6 +109,10 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   const [queueOpen, setQueueOpen] = useState(false);
   const [hintOpen, setHintOpen] = useState(false); // the long-build advice: one line, the rest on a tap
   const [group, setGroup] = useState('All');
+  const keepRow = useScrollHint();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const advisorItem = useMemo(() => (city && !city.production?.current && city.owner === state.playerNationId ? advisorPick(state, cityId) : null), [state, cityId]);
+  const groupRow = useScrollHint();
   const [openRow, setOpenRow] = useState(null);
   const [tap, setTap] = useState(null);
   // The order whose rush offer is open (I019): a tap on Buy shows the quote, a second pays.
@@ -301,6 +308,14 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                   : t('cy.pickBelow')}
             </div>
           </div>
+          {/* Nothing in production: the advisor names one buildable thing, one tap queues it (warmonger
+              playtest step 18: "Choose production does nothing, hard to know what I can build"). */}
+          {mine && !current && advisorItem && (
+            <button type="button" onClick={() => dispatch({ type: ActionTypes.ADVISOR_PRODUCTION, payload: { cityId } })} data-testid="city-advisor-pick"
+              className="fa-btn fa-btn-primary min-h-[44px] px-2.5 shrink min-w-0 max-w-[55%] gap-1.5 text-[12px]">
+              <Hammer className="w-4 h-4 shrink-0" aria-hidden="true" /><span className="truncate">{t('cy.advisorPick', { name: shortItemLabel(advisorItem, getTiles(), ageId) })}</span>
+            </button>
+          )}
           {mine && current?.rush?.gold > 0 && (
             <button type="button" onClick={() => setBuyAt((v) => (v === 0 ? null : 0))} aria-expanded={buyAt === 0} data-testid="city-rush-open"
               className={`fa-btn fa-btn-secondary min-h-[44px] px-2 shrink-0 ${current.rush.ok ? '' : 'opacity-60'}`} title={rushText(current)?.title}>
@@ -314,20 +329,22 @@ const CityPanel = ({ cityId, view = 'city' }) => {
         </div>
         {/* Always there, so the bar is the same height with and without something in production. */}
         <div className="mt-0.5 h-1">{current && <Meter value={current.progress} max={Math.max(1, current.cost)} color="#CDB27A" height={4} />}</div>
+        {/* The buy offer rides in the pinned bar: below it, a scrolled list hid it and the gold button
+            seemed to do nothing (Opus playtest step 244). */}
+        {mine && buyAt != null && queue[buyAt]?.rush && (() => {
+          const q = queue[buyAt]; const words = rushText(q);
+          return (
+            <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-fa-line bg-fa-raised px-2.5 py-1.5 text-[12px] leading-snug" data-testid="city-rush-offer">
+              <div className="min-w-0 flex-1">{q.rush.ok ? words.text : `${words.text} ${reasonText(q.rush, lang)}`}</div>
+              <button type="button" disabled={!q.rush.ok} data-testid="city-rush-pay"
+                onClick={() => { dispatch({ type: ActionTypes.RUSH_PRODUCTION, payload: { cityId, index: q.index } }); setBuyAt(null); }}
+                className="fa-btn fa-btn-primary fa-btn-sm min-h-[44px] shrink-0 disabled:opacity-40">{t('cy.pay', { n: q.rush.gold })}</button>
+              <button type="button" onClick={() => setBuyAt(null)} className="fa-icon-btn min-w-[44px] min-h-[44px] shrink-0" aria-label={t('cy.closeOffer')}><X className="w-4 h-4" /></button>
+            </div>
+          );
+        })()}
       </div>
-      {/* Below the bar, in the scroll: the offer and the queue list never cover the rows (BUILD-01). */}
-      {mine && buyAt != null && queue[buyAt]?.rush && (() => {
-        const q = queue[buyAt]; const words = rushText(q);
-        return (
-          <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-fa-line bg-fa-raised px-2.5 py-1.5 text-[12px] leading-snug" data-testid="city-rush-offer">
-            <div className="min-w-0 flex-1">{q.rush.ok ? words.text : `${words.text} ${reasonText(q.rush, lang)}`}</div>
-            <button type="button" disabled={!q.rush.ok} data-testid="city-rush-pay"
-              onClick={() => { dispatch({ type: ActionTypes.RUSH_PRODUCTION, payload: { cityId, index: q.index } }); setBuyAt(null); }}
-              className="fa-btn fa-btn-primary fa-btn-sm min-h-[44px] shrink-0 disabled:opacity-40">{t('cy.pay', { n: q.rush.gold })}</button>
-            <button type="button" onClick={() => setBuyAt(null)} className="fa-icon-btn min-w-[44px] min-h-[44px] shrink-0" aria-label={t('cy.closeOffer')}><X className="w-4 h-4" /></button>
-          </div>
-        );
-      })()}
+      {/* Below the bar, in the scroll: the queue list never covers the rows (BUILD-01). */}
       {queueOpen && queue.length > 0 && (
         <div className="mt-1.5 max-h-[42vh] overflow-y-auto">
           <ol className="space-y-1" data-testid="city-queue">
@@ -368,7 +385,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
       {mine && (
         <div className="flex items-center gap-1.5 text-[12px]" data-testid="city-keep" title={t('cy.keepTip')}>
           <span className="text-fa-muted shrink-0">{t('cy.keep')}</span>
-          <div className="flex gap-1 overflow-x-auto [scrollbar-width:none]" role="radiogroup" aria-label={t('cy.keep')}>
+          <div ref={keepRow} className="flex gap-1 overflow-x-auto [scrollbar-width:none]" role="radiogroup" aria-label={t('cy.keep')}>
             {[[null, 'cy.keepOff'], ['repeat', 'cy.keepRepeat'], ['advisor', 'cy.keepAdvisor']].map(([mode, key]) => {
               const on = (city.production?.keep || null) === mode;
               return (
@@ -395,7 +412,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
       )}
 
       {mine && options.length > 0 && (
-        <div className="flex gap-1 overflow-x-auto -mx-1 px-1 [scrollbar-width:none]" role="tablist" aria-label={t('cy.buildLists')}>
+        <div ref={groupRow} className="flex gap-1 overflow-x-auto -mx-1 px-1 [scrollbar-width:none]" role="tablist" aria-label={t('cy.buildLists')}>
           {GROUP_FILTERS.filter((g) => g === 'All' || options.some((o) => o.group === g)).map((g) => (
             <button key={g} type="button" role="tab" aria-selected={group === g} onClick={() => setGroup(g)} data-testid={`build-group-${g.toLowerCase()}`}
               className={`shrink-0 rounded-full border px-3 min-h-[44px] text-[12px] ${group === g ? 'border-fa-brass bg-fa-raised text-fa-text' : 'border-fa-line text-fa-muted'}`}>{groupLabel(g)}</button>
@@ -413,8 +430,9 @@ const CityPanel = ({ cityId, view = 'city' }) => {
               {rows.map((o) => {
                 const open = openRow === o.id;
                 const clip = open ? '' : 'truncate';
+                const RowIcon = o.queued && !o.ok ? Check : o.ok ? Plus : Lock; // a locked row shows a lock, never a + (Opus playtest step 185)
                 return (
-                  <li key={o.id} className={`flex items-center gap-2 rounded-lg ps-2 pe-1 py-1 min-h-[44px] text-[13px] border ${o.ok ? 'bg-fa-raised border-fa-line' : 'bg-transparent border-fa-line/60'}`} data-testid="build-row">
+                  <li key={o.id} className={`flex items-center gap-2 rounded-lg ps-2 pe-1 py-1 min-h-[44px] text-[13px] border ${o.ok ? 'bg-fa-raised border-fa-line' : 'bg-transparent border-dashed border-fa-line/60 opacity-75'}`} data-testid="build-row">
                     <div className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0} aria-expanded={open} onClick={() => toggleRow(o)} onKeyDown={(e) => { if (e.key === 'Enter') toggleRow(o); }} title={o.tile != null ? t('cy.showTileDetails') : t('cy.showDetails')}>
                       <ItemIcon item={o.item} ageId={ageId} />
                       <div className="min-w-0 flex-1">
@@ -424,17 +442,18 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                         {open && o.note && <div className="text-[12px] leading-snug text-fa-muted">{o.note}.</div>}
                         <div className="text-fa-muted text-[12px]">
                           {o.queued > 0 && <span className="text-fa-good me-1">{o.queued > 1 ? t('cy.nInQueue', { n: o.queued }) : t('cy.inQueue')}{o.ok ? ' ·' : ''}</span>}
-                          {o.ok ? <>{R('cy.prodCost', { cost: <span className="fa-num">{o.cost}</span> })} · {turnsText(o.turns)}{o.stored > 0 ? ` · ${t('cy.alreadyDone', { n: Math.round(o.stored) })}` : ''}{o.long && <span className="text-fa-brass"> · {t('cy.slowHere')}</span>}</>
+                          {o.ok ? <>{R('cy.prodCost', { cost: <span className="fa-num">{o.cost}</span> })} · {turnsText(o.turns)}{o.stored > 0 ? ` · ${t('cy.alreadyDone', { n: Math.round(o.stored) })}` : ''}{o.long && <span className="text-fa-brass" data-testid="build-slow"> · {t('cy.slowWhy', { production: o.production, gold: o.buyGold })}</span>}</>
                             : o.queued ? null
                               : o.needsName ? <>{t('cy.needs', { name: o.needsName })}{o.needsEta && <span data-testid="build-needs-eta">, {o.needsEta}</span>} {!o.needsPlanned && <button type="button" onClick={(e) => { e.stopPropagation(); dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } }); }} className="underline text-fa-you min-h-[24px]" data-testid="research-for-item">{t('cy.researchIt')}</button>}</>
                                 : o.note || o.reason}
-                          {!o.ok && o.cost > 0 && <span className="text-fa-muted"> · {R('cy.prodCost', { cost: <span className="fa-num">{o.cost}</span> })}{o.item.kind === 'settler' ? '' : ` · ${turnsText(o.turns)}`}</span>}
+                          {/* a locked row shows no turn count: it read as buildable (Opus playtest step 185) */}
+                          {!o.ok && o.cost > 0 && !o.needsName && <span className="text-fa-muted"> · {R('cy.prodCost', { cost: <span className="fa-num">{o.cost}</span> })}</span>}
                         </div>
                         {o.replaces && <div className="flex items-center gap-1 text-[12px] leading-snug text-fa-brass" data-testid="build-replaces"><AlertTriangle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />{t('cy.replaces', { name: o.replaces })}</div>}
                       </div>
                     </div>
                     <button type="button" {...why(!o.ok, o.queued ? t('cy.alreadyInQueue') : o.needsName ? `${t('cy.needsLower', { name: o.needsName })}${o.needsEta ? `, ${o.needsEta}` : ''}` : o.reason, () => (o.replaces ? askConfirm(replaceImprovementConfirm(o.label, o.replaces), () => queueNow(o)) : queueNow(o)))} className="fa-icon-btn min-w-[44px] min-h-[44px] shrink-0 disabled:opacity-40 aria-disabled:opacity-40" aria-label={o.ok ? t('cy.buildAria', { label: o.label }) : `${o.label}: ${o.queued ? t('cy.alreadyInQueue') : o.needsName ? t('cy.needsLower', { name: o.needsName }) : o.reason}`} data-testid="queue-item">
-                      {o.queued && !o.ok ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                      <RowIcon className="w-4 h-4" data-testid={RowIcon === Lock ? 'build-locked' : undefined} />
                     </button>
                   </li>
                 );
