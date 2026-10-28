@@ -858,13 +858,13 @@ export const processAINavalOperations = state => {
     if(id===state.playerNationId || next.nations[id].isEliminated)continue;
     const enemies=new Set(next.wars.filter(w=>w.active&&(w.aggressor===id||w.enemy===id)).map(w=>w.aggressor===id?w.enemy:w.aggressor));
     if(!enemies.size&&!shipsOf[id])continue;
-    const walk=fleet=>{ const units={...next.units}; advanceMarches({...next,playerNationId:id},units,{year:next.year,only:new Set([fleet.id])}); next={...next,units}; return next.units[fleet.id]; };
+    const walk=fleet=>{ const units={...next.units}; advanceMarches({...next,playerNationId:id},units,{year: next.year,only:new Set([fleet.id])}); next={...next,units}; return next.units[fleet.id]; };
     const sailTo=(fleet,to)=>{
       const view={...next,playerNationId:id};
       const found=findSeaPath(view,unitTile(next,fleet),to,id);
       if(!found.path)return false;
       const units={...next.units,[fleet.id]:{...next.units[fleet.id],route:found.path.slice(1),routePace:fleetPace(next,fleet),routeHalt:null}};
-      advanceMarches(view,units,{year:next.year,only:new Set([fleet.id])});
+      advanceMarches(view,units,{year: next.year,only:new Set([fleet.id])});
       next={...next,units};
       return true;
     };
@@ -932,7 +932,7 @@ export const processAINavalOperations = state => {
       fleets=Object.values(next.units).filter(u=>u.ownerId===id&&u.domain==='naval');
     }
     // The player is told when troops stand off one of their cities, a turn before they can land.
-    const warn=(city,n)=>{ if(n&&next.regions[city]?.owner===state.playerNationId)next={...next,logs:[...next.logs,{year:next.year,type:'combat',...msg('m.battle.fleetOffCoast',{nation:people(id,next.nations[id].name),city:cityRef(city,next.regions[city].name),n})}]}; };
+    const warn=(city,n)=>{ if(n&&next.regions[city]?.owner===state.playerNationId)next={...next,logs:[...next.logs,{year: next.year,type:'combat',...msg('m.battle.fleetOffCoast',{nation:people(id,next.nations[id].name),city:cityRef(city,next.regions[city].name),n})}]}; };
     const odds=(troops,target)=>{
       const defenders=Object.values(next.units).filter(u=>u.regionId===target&&u.domain==='land');
       return !defenders.length || estimateBattle({attackerUnits:troops,defenderUnits:defenders,battleType:'landing',attackerAgeId:getTechAgeId(next,id),defenderAgeId:getTechAgeId(next,next.regions[target]?.owner)}).pWin>=LANDING_MIN_P;
