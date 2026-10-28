@@ -40,6 +40,7 @@ import BattleMinimap from './BattleMinimap';
 import { updateSiteLabels } from './siteLabels';
 import { updatePendingPins } from './pendingPins';
 import { badgesFor, updateSquadBadges } from './squadBadges';
+import { powerFx } from '../../battle/render/powerFx';
 import { BUILDINGS, BUILD_RADIUS_HQ, BUILD_RADIUS_OWN } from '../../battle/data/economy';
 import { placementCheck, footprintAt, legalArea, PLACEMENT_REASON } from '../../battle/input/placement';
 import { buildFlowNext, BUILD_FLOW_CLOSED, closePrecedence } from './buildFlow';
@@ -84,8 +85,16 @@ const radialTop = (y, h, abilities) => {
 // "2:35": a battle tick as minutes and seconds of battle time.
 const battleClock = (tick) => { const sec = Math.max(0, Math.floor((tick || 0) / TICK_HZ)); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
 const ORDER_NOTE_MS = 3500;
-const OBJECTIVE_NOTE_MS = 30000; // the Enemy caption with its Attack it button: time to read and tap (7 s was gone before a slow tap, playtest 40650979770)
 const FINISH_SPEED = 16; // Finish now: the same battle run fast to its end (battle-engage)
+// What an armed Attack says when it lands; while paused the "starts when you resume" note leads.
+const attackSentText = (n, paused) => { const t = tNow('bt.order.attackSent', { n }); return paused ? `${pausedOrderText()} ${t}` : t; };
+// The short label of a fired power (powerFx.js): what it did, or that the enemy called it.
+const powerNote = (e, view, playerSide, map) => {
+  const fx = powerFx(e, view, map);
+  const label = powerLabel(e.power, view.powers?.find((p) => p.id === e.power)?.label);
+  if (e.side !== playerSide) return tNow('bt.power.fx.enemy', { label });
+  return fx?.effect ? tNow(`bt.power.fx.${fx.effect}`, { label, n: fx.count ?? fx.bursts.length }) : label;
+};
 
 // U03: the battle screen's usable rectangle. The safe-area insets (a notch or Dynamic Island on the
 // left or right in landscape, the home bar below) as --sa-t/r/b/l for the HUD; `&safe=t,r,b,l` (css
@@ -345,6 +354,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           }
           try {
             if (m.events?.length) renderer.pushEvents(m.events, m.view);
+            m.events?.forEach((e) => { if (e.type === 'power') setOrderNote(powerNote(e, m.view, playerSide, renderer.map)); });
             // Sound only where the camera looks (every frame: the ambience follows the fighting on screen).
             audio.setView(renderer.audioView());
             audio.events(m.events, m.view);
@@ -526,14 +536,20 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   // squads will arrive first (I192, X13).
   const [orderNote, setOrderNote] = useState(null);
   const [restartNote, setRestartNote] = useState(null); // a checkpoint that could not be resumed: shown until Start
-  // The Enemy button's target while its caption shows: one tap on Attack it sends the army at it
-  // (playtest 40550100958 steps 57 to 63: the caption showed the target but could not order it).
+  // The Enemy button's target and caption: one tap on Attack it sends the army at it (playtest
+  // 40550100958 steps 57 to 63). It stays until tapped, dismissed or the target falls: a timer lost
+  // the race with the player (playtest 40650979770 steps 96 to 104).
   const [objTarget, setObjTarget] = useState(null);
   useEffect(() => {
-    if (!orderNote) { setObjTarget(null); return undefined; }
-    const t = setTimeout(() => setOrderNote(null), objTarget ? OBJECTIVE_NOTE_MS : ORDER_NOTE_MS);
+    if (!orderNote) return undefined;
+    const t = setTimeout(() => setOrderNote(null), ORDER_NOTE_MS);
     return () => clearTimeout(t);
-  }, [orderNote, objTarget]);
+  }, [orderNote]);
+  useEffect(() => {
+    const tg = objTarget?.target; if (!tg || !hud) return;
+    const alive = tg.kind === 'structure' ? hud.structures?.[tg.index]?.alive : hud.eco?.buildings?.find((b) => b.idx === tg.index)?.alive;
+    if (!alive) setObjTarget(null);
+  }, [hud, objTarget]);
   // RTS-03: an order given while paused waits in the battle loop until Resume. It shows at once
   // anyway (a steady ring, a footprint), and a note says when it starts. Drawing only.
   const markPending = useCallback((mark) => {
@@ -689,6 +705,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     // the ground under them.
     const hit = r.pick(p.x, p.y, cur, 1.1, { enemyFirst: true, ignoreOwn: true });
     if (!hit) { setOrderNote(tNow('bt.order.noGround')); return true; } // said why, the selection stays
+    // An armed Attack that lands says so (playtest 40651418969: "no feedback"); arrival notes follow it.
+    if (armedRef.current === 'attackMove' && startedRef.current) setOrderNote(attackSentText(sel.length, pausedRef.current));
     const workers = sel.filter((i) => cur.squads[i]?.classId === 'worker');
     const onlyWorkers = workers.length === sel.length;
     const fighters = sel.filter((i) => !workers.includes(i));
@@ -800,6 +818,32 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       default:
     }
   }, [ownSquadAt, ownBuildingAt, inspectAt, inspectThing, updateSelection, selectBuilding, clearSelection, issueAt, send, disarm, markPending]);
+
+  // The minimap with an order armed (Attack, a strike, a rally point): the order lands where it is
+  // tapped instead of moving the camera (playtest 40651418969). Returns true when it took the tap.
+  const orderAtGround = useCallback((g) => {
+    const a = armedRef.current; const r = rendererRef.current; const cur = frames.current.cur;
+    if (!a || !r || !cur || a.type === 'place') return false;
+    const x = Math.round(g.x * Q); const y = Math.round(g.z * Q);
+    const sel = [...selectedRef.current];
+    if (a.type === 'power') {
+      send([{ type: 'power', power: a.id, x, y }]);
+      r.addMarker(g.x, g.z, '#f97316');
+      markPending({ kind: 'power', x: g.x, z: g.z, color: '#f97316' });
+    } else if (a.type === 'rally') {
+      send([{ type: 'rally', building: a.building, x, y }]);
+      r.addMarker(g.x, g.z, '#facc15');
+      r.ecoLayer.setGhost(null);
+    } else if (a === 'attackMove' && sel.length) {
+      const type = groundOrderType({ started: startedRef.current, armed: a, squads: sel.map((i) => cur.squads[i]) });
+      send([{ type, squads: sel, x, y, formation: formationRef.current }]);
+      r.setOrderTarget(sel, null);
+      r.addMarker(g.x, g.z, '#fb923c', 1.6, 1.4);
+      if (type !== 'deploy') { markPending({ kind: type, x: g.x, z: g.z, squads: sel, color: '#fb923c' }); setOrderNote(attackSentText(sel.length, pausedRef.current)); }
+    } else return false;
+    armedRef.current = null; setArmed(null);
+    return true;
+  }, [send, markPending]);
 
   const tapMemory = useRef({ lastTapAt: -1000, lastTapPos: null });
   useEffect(() => {
@@ -980,8 +1024,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     const i = objectiveIdxRef.current % targets.length; objectiveIdxRef.current = i + 1;
     const t = targets[i];
     lookAt(t.x, t.y);
-    setObjTarget(t.target ? { target: t.target, label: t.label, x: t.x, y: t.y } : null);
-    setOrderNote(note || (targets.length > 1 ? tNow('bt.screen.objectiveOf', { label: t.label, i: i + 1, n: targets.length }) : tNow('bt.screen.objectiveOne', { label: t.label })));
+    const text = note || (targets.length > 1 ? tNow('bt.screen.objectiveOf', { label: t.label, i: i + 1, n: targets.length }) : tNow('bt.screen.objectiveOne', { label: t.label }));
+    if (t.target) { setObjTarget({ target: t.target, label: t.label, x: t.x, y: t.y, text }); setOrderNote(null); } else { setObjTarget(null); setOrderNote(text); }
   };
   // Attack it: the selection (else the whole army) at the Enemy button's target, with the same
   // ring, marker and pending mark as a tap on it.
@@ -990,7 +1034,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     if (!r || !cur || !o) return;
     let sel = [...selectedRef.current].filter((i) => cur.squads[i]?.classId !== 'worker');
     if (!sel.length) sel = fightersOf(cur).map((q) => q.idx);
-    if (!sel.length) return;
+    if (!sel.length) { setOrderNote(tNow('bt.order.noTroops')); return; } // never silent (playtest 40651416284 step 166)
     send([{ type: 'attack', squads: sel, target: o.target }]);
     r.setOrderTarget(sel, o.target, 'attack');
     r.addMarker(o.x, o.y, '#ef4444', 1.6, 1.4);
@@ -1223,7 +1267,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           onClickCapture={(e) => { if (performance.now() - radial.at < 400) { e.stopPropagation(); e.preventDefault(); } }}
           style={{ left: Math.min(Math.max(radial.x, 160), (wrapRef.current?.clientWidth || 400) - 160), top: radialTop(radial.y, wrapRef.current?.clientHeight || 400, selectedAbilities.length) }}>
           <div className="flex flex-wrap justify-center gap-2">
-            {[['attackMove', 'bt.hud.attack', () => { arm('attackMove'); setRadial(null); }], ['hold', 'bt.hud.hold'], ['stop', 'bt.hud.stop'],
+            {[['attackMove', 'bt.hud.attack', () => { armedRef.current = 'attackMove'; setArmed('attackMove'); setRadial(null); }], ['hold', 'bt.hud.hold'], ['stop', 'bt.hud.stop'],
               [formation, formation === 'line' ? 'bt.hud.line' : 'bt.hud.column', () => { cycleFormation(); setRadial(null); }], ['retreat', 'bt.hud.retreat']].map(([t, label, act]) => (
               <button key={t} type="button" onClick={act || (() => commandSelected(t))} data-testid={`battle-radial-${t}`} className="min-w-[64px] h-11 px-3 rounded-full bg-fa-panel/95 border border-fa-line text-fa-text text-sm font-semibold shadow-xl">{tNow(label)}</button>
             ))}
@@ -1252,7 +1296,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         onObjective={showObjective}
         follow={follow} onToggleFollow={toggleFollow}
         minimapOn={minimapOn} onToggleMinimap={toggleMinimap}
-        minimap={hud ? <BattleMinimap setup={setup} hud={hud} playerSide={playerSide} getRenderer={getRenderer} onMoved={() => setFollow(false)} {...(compactScreen ? { maxW: 150, maxH: 92 } : { maxW: 220, maxH: 136 })} /> : null}
+        minimap={hud ? <BattleMinimap setup={setup} hud={hud} playerSide={playerSide} getRenderer={getRenderer} onMoved={() => setFollow(false)} onOrderAt={orderAtGround} {...(compactScreen ? { maxW: 150, maxH: 92 } : { maxW: 220, maxH: 136 })} /> : null}
         supplyRate={supplyGain}
         perf={showPerf ? <pre ref={perfRef} className="pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre overflow-hidden" data-testid="battle-perf" /> : null}
         onOpenBuild={() => flowTo({ type: 'toggle' })} buildOpen={buildMenu} onSelectHq={selectHq} onSteward={(on) => send([{ type: 'steward', on }])}
@@ -1280,10 +1324,16 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           {onAbandon && <button type="button" onClick={switchToAuto} data-testid="battle-gone-auto" className="shrink-0 h-11 px-3 -my-1 rounded-full fa-btn fa-btn-secondary text-sm">{tNow('bt.hud.switchAuto')}</button>}
         </div>
       )}
+      {objTarget && !ended && (
+        <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(28rem,calc(100vw-2rem))] flex items-center gap-2 ps-3 py-1 rounded-[10px] bg-fa-panel/95 border border-fa-danger text-[12.5px] leading-snug text-fa-text shadow-xl" style={{ bottom: NOTE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-objective-note">
+          <span>{objTarget.text}</span>
+          <button type="button" onClick={attackObjective} data-testid="battle-objective-attack" className="shrink-0 h-11 px-3 rounded-full bg-fa-danger/90 text-white text-sm font-semibold">{tNow('bt.screen.attackIt')}</button>
+          <button type="button" onClick={() => setObjTarget(null)} aria-label={tNow('bt.close')} data-testid="battle-objective-close" className="shrink-0 w-11 h-11 flex items-center justify-center text-fa-muted"><XIcon className="w-4 h-4" aria-hidden="true" /></button>
+        </div>
+      )}
       {orderNote && !refused && !ended && !gone && (
-        <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(26rem,calc(100vw-2rem))] flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-line text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" style={{ bottom: NOTE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-order-note">
+        <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(26rem,calc(100vw-2rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-line text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" style={{ bottom: objTarget || armed === 'attackMove' || armed?.type === 'power' ? `calc(${NOTE_BOTTOM} + 3.25rem)` : NOTE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-order-note">
           <span>{orderNote}</span>
-          {objTarget && <button type="button" onClick={attackObjective} data-testid="battle-objective-attack" className="pointer-events-auto shrink-0 h-11 px-3 -my-1 rounded-full bg-fa-danger/90 text-white text-sm font-semibold">{tNow('bt.screen.attackIt')}</button>}
         </div>
       )}
       {ended && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} title={title} getCampaign={getCampaign} receipt={receipt} onContinue={() => onFinish?.(ended)} />}
