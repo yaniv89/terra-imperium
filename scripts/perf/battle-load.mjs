@@ -45,7 +45,7 @@ const initScript = () => {
     const w = new W(...a);
     const post = w.postMessage.bind(w);
     w.postMessage = (msg, ...r) => { if (msg && msg.type === 'start') mark('startPosted'); return post(msg, ...r); };
-    w.addEventListener('message', (e) => { if (e.data && e.data.type === 'frame') mark('workerFirstFrame'); });
+    w.addEventListener('message', (e) => { if (e.data && e.data.type === 'frame') mark('workerFirstFrame'); if (e.data?.type === 'stage') mark(`stage_${e.data.stage}`); });
     return w;
   };
   window.Worker.prototype = W.prototype;
@@ -94,7 +94,7 @@ try {
       const r = runs[kind]; const keys = Object.keys(r[0]);
       const row = { age, eco, kind, ...Object.fromEntries(keys.map((k) => [k, med(r.map((x) => x[k] ?? 0))])) };
       out.push(row);
-      console.log(`${age.padEnd(9)} eco ${eco ? 'on ' : 'off'} ${kind}: loadingShown ${row.loadingShown}  modelsReady ${row.modelsReady}  workerCreated ${row.workerCreated}  workerFirstFrame ${row.workerFirstFrame}  paint ${row.paint} ms | glb ${row.glbCount} files ${row.glbKB} KB (slowest ${row.glbSlowestMs} ms, ${row.glbCached} cached) | longest task ${row.longestTask} ms`);
+      console.log(`${age.padEnd(9)} eco ${eco ? 'on ' : 'off'} ${kind}: loadingShown ${row.loadingShown}  modelsReady ${row.modelsReady}  workerCreated ${row.workerCreated}  workerFirstFrame ${row.workerFirstFrame}  paint ${row.paint} ms | glb ${row.glbCount} files ${row.glbKB} KB (slowest ${row.glbSlowestMs} ms, ${row.glbCached} cached) | longest task ${row.longestTask} ms | stages script ${row.stage_script} world ${row.stage_world} sim ${row.stage_sim} start ${row.startPosted} setup ${row.stage_setup}`);
     }
   }
 } finally {

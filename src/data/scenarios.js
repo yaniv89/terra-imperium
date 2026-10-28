@@ -115,7 +115,12 @@ const spreadCapitalsUncached = (tiles, ids, priority) => {
   const out = {};
   const livable = (t) => tiles.land[t] === 1 && tiles.terrainOf(t) !== 'snow' && tiles.featureOf(t) !== 'ice';
   const reach = spacingReach(tiles);
-  const clearOf = (tile, others) => others.every((o) => spacedApart(tiles, o, tile));
+  // spacedApart with each centre's ring search kept for this placement: pass 2 checks every pair
+  // (about 57,000 searches uncached, most of the page's boot: ensureDefaultWorld in registry.js)
+  const rings = new Map();
+  const ringsOf = (t) => { let d = rings.get(t); if (!d) { d = ringsFrom(tiles, t, reach); rings.set(t, d); } return d; };
+  const apart = (a, b) => { const ring = ringsOf(a).get(b); return ring === undefined || !spacingBlocks(tiles, a, b, ring); };
+  const clearOf = (tile, others) => others.every((o) => apart(o, tile));
   // whether a city founded on `tile` would touch the sea through its own land (the registry's
   // coastal rule): a moved capital must not give a landlocked nation a coast (Austria's ring on
   // the coarse grid reaches a tile by the Gulf of Trieste)
@@ -123,11 +128,21 @@ const spreadCapitalsUncached = (tiles, ids, priority) => {
     && tiles.neighbors[t].some((n) => !tiles.land[n] && tiles.terrainOf(n) !== 'lake'));
   const inlandOf = (id) => !seaward(id, tiles.capitals[id]);
   // the nation's own livable tiles, nearest to `from` first (ring distance over the whole grid)
+  // (ringsFrom's walk into one reused array: these searches reach thousands of km)
+  const ring = new Int16Array(tiles.count).fill(-1);
   const ownByDistance = (id, from, maxRing) => {
-    const dist = ringsFrom(tiles, from, maxRing);
+    const queue = [from];
+    ring[from] = 0;
+    for (let i = 0; i < queue.length; i++) {
+      const d = ring[queue[i]];
+      if (d >= maxRing) continue;
+      for (const n of tiles.neighbors[queue[i]]) if (ring[n] < 0) { ring[n] = d + 1; queue.push(n); }
+    }
     const inland = inlandOf(id);
-    return (tiles.countryTiles?.[id] || []).filter((t) => dist.has(t) && livable(t) && !(inland && seaward(id, t)))
-      .sort((a, b) => dist.get(a) - dist.get(b) || a - b);
+    const out = (tiles.countryTiles?.[id] || []).filter((t) => ring[t] >= 0 && livable(t) && !(inland && seaward(id, t)))
+      .sort((a, b) => ring[a] - ring[b] || a - b);
+    queue.forEach((t) => { ring[t] = -1; });
+    return out;
   };
   // livable land within START_ABROAD_KM of the nation's own land, never the land of a nation still
   // to be placed (`waiting`: St. Martin must not take San Juan before Puerto Rico's turn), nearest
@@ -162,8 +177,8 @@ const spreadCapitalsUncached = (tiles, ids, priority) => {
     if (small === priority) return;
     const others = () => order.filter((o) => o !== small).map((o) => out[o]);
     if (clearOf(out[small], others())) return;
-    const near = ringsFrom(tiles, out[small], reach);
-    order.filter((big) => big !== small && big !== priority && size(big) > size(small) && near.has(out[big]) && !spacedApart(tiles, out[big], out[small])).forEach((big) => {
+    const near = ringsOf(out[small]);
+    order.filter((big) => big !== small && big !== priority && size(big) > size(small) && near.has(out[big]) && !apart(out[big], out[small])).forEach((big) => {
       const rest = order.filter((o) => o !== big).map((o) => out[o]);
       const t = ownByDistance(big, out[big], ringsForKm(BIG_MOVE_KM, { tiles })).find((x) => clearOf(x, rest));
       if (t != null) out[big] = t;

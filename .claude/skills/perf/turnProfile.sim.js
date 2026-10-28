@@ -9,7 +9,9 @@ import { createInitialState, gameReducer } from '../../../src/context/GameContex
 import { ActionTypes, GameStatus } from '../../../src/data/types';
 import { HISTORICAL_EVENTS } from '../../../src/data/events';
 import { Session } from 'node:inspector/promises';
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, readFileSync } from 'node:fs';
+import { migrateSave, CURRENT_SAVE_VERSION } from '../../../src/engine/saveMigrations';
+import { syncWorldRegistry } from '../../../src/engine/world/registry';
 import { stateHash } from '../../../src/engine/macroVerify';
 
 const TURNS = Number(process.env.TURNS || 120);
@@ -23,13 +25,16 @@ const WIN = Number(process.env.WIN || 20);
 const CPUPROFILE = process.env.CPUPROFILE;
 // SAVE_STATE=path writes the last state as JSON (for micro benchmarks of single systems).
 const SAVE_STATE = process.env.SAVE_STATE;
+// LOAD_STATE=path starts from a SAVE_STATE file instead of a new world (late turns without the 300 before them).
+const LOAD_STATE = process.env.LOAD_STATE;
 const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((a, id) => ({ ...a, [id]: true }), {});
 
 SEEDS.forEach((seed) => {
   it(`profile seed ${seed}`, async () => {
     const session = CPUPROFILE ? new Session() : null;
     if (session) { session.connect(); await session.post('Profiler.enable'); }
-    let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, scenario: { mode: 'peoples', size: 'standard', seed } }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
+    let s = LOAD_STATE ? migrateSave({ version: CURRENT_SAVE_VERSION, state: JSON.parse(readFileSync(LOAD_STATE, 'utf8')) }).state : { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, scenario: { mode: 'peoples', size: 'standard', seed } }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
+    if (LOAD_STATE) syncWorldRegistry(s);
     s = { ...s, research: { ...s.research, auto: true } };
     const winSums = {};
     const sums = {}; const maxes = {}; let measured = 0; let total = 0; let worst = 0;
