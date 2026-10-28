@@ -19,6 +19,7 @@ import { getGeneralXpMultiplier } from '../../data/generals';
 import { hashRoll, COMMANDER_FALL_CHANCE } from '../../engine/aftermath';
 import { XP_WIN, XP_LOSE } from '../../engine/battleOutcome';
 import { playerWon } from '../../engine/battleReports';
+import { sideTotals } from '../../engine/battleLedger';
 import { TICK_HZ, Q } from '../../battle/sim/constants';
 import { isBaseType } from '../../battle/sim/base';
 import { describeOutcome, verificationNotice } from './battleReportView';
@@ -241,11 +242,11 @@ export const enemyObjectives = (hud, setup, playerSide, from = null) => {
   const targets = [];
   const keep = hud?.structures?.[0];
   // The keep (or the town hall standing for it) is the defender's.
-  if (enemy === 1 && keep?.alive && keep.kind === 'keep' && setup?.battleType !== 'naval') targets.push({ x: keep.x / Q, y: keep.y / Q, label: t('bt.obj.theirKeep') });
+  if (enemy === 1 && keep?.alive && keep.kind === 'keep' && setup?.battleType !== 'naval') targets.push({ x: keep.x / Q, y: keep.y / Q, label: t('bt.obj.theirKeep'), target: { kind: 'structure', index: 0 } });
   const ageId = setup?.sides?.[enemy]?.ageId;
   (hud?.eco?.buildings || []).forEach((b) => {
     if (b.side !== enemy || !b.alive || b.proxy || !b.built || !isBaseType(b.type)) return;
-    targets.push({ x: b.x / Q, y: b.y / Q, label: t('bt.obj.theirs', { what: ecoLabel(b.type, ageId).toLowerCase() }) });
+    targets.push({ x: b.x / Q, y: b.y / Q, label: t('bt.obj.theirs', { what: ecoLabel(b.type, ageId).toLowerCase() }), target: { kind: 'eco', index: b.idx } });
   });
   if (from) targets.sort((a, b) => ((a.x - from.x) ** 2 + (a.y - from.y) ** 2) - ((b.x - from.x) ** 2 + (b.y - from.y) ** 2));
   const map = setup?.map || {};
@@ -290,13 +291,17 @@ export const refusedText = (m) => (m?.full
 /** How long the battle has left at each speed, in minutes. */
 export const minutesLeft = (seconds, speed = 1) => Math.max(0, Math.round(seconds / 60 / speed));
 
-const lossOf = (units, before) => {
-  const start = sum(before, (u) => Math.max(0, u.strength));
-  const end = sum(units, (u) => Math.max(0, u.strength));
-  return { start, end, lost: Math.max(0, start - end), destroyed: units.filter((u) => u.strength <= 0).length, fled: 0, runDown: 0 };
-};
 // A side of the participant ledger (battleLedger.js sideTotals), in the result screen's words.
 const fromLedger = (t) => ({ start: t.before, end: t.after + t.fled, lost: t.fallen, destroyed: t.destroyed, fled: t.fled, runDown: t.runDown });
+// The battle's own reading, unit by unit and with the ledger's arithmetic, so "lost" and "destroyed"
+// can never disagree: each unit in the result is matched to its strength when it came in (its army
+// or the reinforcements that joined; playtest 40550100958 steps 82 and 102 showed "0 lost" beside
+// "1 regiment destroyed" once a joined reinforcement's men were added to the end but not the start).
+const lossOf = (units, side) => {
+  const before = new Map();
+  [...(side.units || []), ...(side.reinforcements || []).flatMap((r) => r.units || [])].forEach((u) => before.set(u.id, u.strength));
+  return fromLedger(sideTotals(units.map((u) => ({ before: before.get(u.id) ?? u.strength, after: u.strength, routed: u.routed }))));
+};
 
 const GENERAL_TEXT = {
   survived: (name) => t('bt.result.generalSurvived', { name }),
@@ -400,7 +405,7 @@ export const battleResultModel = (ended, setup, playerSide, campaign = {}, recei
     state: 'preview', won, draw,
     verdict: draw ? t('bt.result.stalemate') : won ? (playerSide === 1 ? t('bt.result.held') : t('bt.result.victory')) : t('bt.result.defeat'),
     headline: null, line: null,
-    mine: lossOf(myUnits, setup.sides[playerSide].units), theirs: lossOf(theirUnits, setup.sides[1 - playerSide].units),
+    mine: lossOf(myUnits, setup.sides[playerSide]), theirs: lossOf(theirUnits, setup.sides[1 - playerSide]),
     xp, xpRule: xpRuleOf(base, won, draw),
     generals,
     city,

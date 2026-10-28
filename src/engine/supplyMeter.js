@@ -137,6 +137,43 @@ export const supplyAtTile = (state, units, tile) => {
   return worst;
 };
 
+/**
+ * The meter over a whole march (playtest issue 6: armies starved on the way to empty land): each
+ * End Turn the stack steps (routes.js stepTurns: step i is walked on End Turn stepTurns[i], 0 =
+ * now) and then the supply phase applies supplyChange where it stands, as resolveTurn runs them
+ * (marches before the meter). For the unit worst off: { arrive (its meter on arrival), change (a
+ * turn at the target), turns (whole turns it lasts there, null where it refills or holds),
+ * starvesAt (the End Turn its meter empties on the way, else null) }, or null for a stack that
+ * never loses supply on this march. Same shortcut as supplyAtTile (no hunger, stack size or
+ * modifiers). Pure.
+ */
+export const supplyAlongMarch = (state, units, steps, stepTurns, max = SUPPLY_MAX) => {
+  if (!steps?.length) return null;
+  const tiles = getTiles();
+  const last = stepTurns[stepTurns.length - 1] || 0;
+  let worst = null;
+  units.forEach((u) => {
+    if (isExplorer(u) || isSettler(u)) return;
+    let supply = supplyOf(u, max); let lost = false; let starvesAt = null;
+    for (let k = 1; k <= last; k++) {
+      let at = unitTile(state, u);
+      steps.forEach((t, i) => { if (stepTurns[i] <= k) at = t; });
+      const { change } = supplyChange(state, tiles, { ...u, tile: at });
+      if (change < 0) lost = true;
+      supply = Math.max(0, Math.min(max, supply + change));
+      if (supply <= 0 && starvesAt == null && k < last) starvesAt = k;
+    }
+    const { change } = supplyChange(state, tiles, { ...u, tile: steps[steps.length - 1] });
+    if (change < 0) lost = true;
+    if (!lost) return;
+    const turns = change < 0 ? Math.floor(supply / -change) : null;
+    const row = { arrive: supply, change, turns, starvesAt };
+    const rank = (r) => (r.starvesAt != null ? r.starvesAt - 1000 : r.turns ?? 1e6);
+    if (!worst || rank(row) < rank(worst)) worst = row;
+  });
+  return worst;
+};
+
 /** What the army sheet says about a stack's supply (plans/playtest-1.md P2.2): the meter, this
  * turn's real change (supplyChange: the same number the turn applies), the turns left, whether it
  * starves, the distance to your border, the line's reach and the lever to pull.

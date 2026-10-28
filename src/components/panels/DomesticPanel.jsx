@@ -126,7 +126,7 @@ const DomesticPanel = () => {
               <span>-{formatNumber(Object.values(expenses).reduce((s, v) => s + v, 0))}{tNow('empire.g')}</span>
             </div>
             <div className={`flex justify-between font-semibold ${net >= 0 ? 'text-fa-good' : 'text-fa-danger-text'}`}>
-              <span>{tNow('dom.net')}</span><span>{net >= 0 ? '+' : ''}{formatNumber(Math.round(net))}{tNow('empire.g')}</span>
+              <span>{tNow('dom.net')}</span><span><bdi>{net >= 0 ? '+' : ''}{formatNumber(Math.round(net))}</bdi>{tNow('empire.g')}</span>
             </div>
             {!canBorrow ? (
               <div className="text-fa-muted pt-1">{tNow('dom.loans')}</div>

@@ -73,6 +73,8 @@ import { getEffectiveMilitaryPower } from './aiEconomy';
 import { applyPeace, getPeaceAcceptance } from './peace';
 import { levyUnit } from './aftermath';
 import { cardOf } from './eventDeck';
+import { crisisComing } from './crises';
+import { crisisCardId } from '../data/crises';
 import { AGES, FIRST_AGE_ID, isAgeAtLeast, isAgeBefore } from '../data/ages';
 import { endingSignal } from './ending';
 import { ageOf, getResearched } from './nationState';
@@ -140,12 +142,14 @@ import { getLoanCapacity, getLoanInterestRate, getLoanSize, clampMaintenance, ge
 import { canFabricateClaim, claimableCities, startClaim, CLAIM_FABRICATE_TURNS } from './claims';
 import { hasOpenBorders, openBordersAcceptance, setOpenBorders, applyDemand, DEMANDS, hasStele, steleAcceptance, steleTurns, setStele } from './accords';
 import { turnBlockers } from './turnBlockers';
+import { advisorPick, advisorPicks } from './productionAdvisor';
 import { cityGroups, governorChoices, assignGovernor, dismissGovernor, GOVERNOR_ASSIGN_TURNS } from './governors';
 import { validateTemplate, saveTemplate, deleteTemplate, templatesOf, armyOrder } from './armyTemplates';
 import { NAVAL_LINES, navalCargo, navalAir } from '../data/navalLines';
 import { canQueueWonder, wonderItem } from './wonders';
 import { rushQuote, applyRush, rushItemName, infrastructureCosts, defensesCosts, growthCosts } from './spending';
 import { tradeMaps, answerMapOffer } from './mapTrade';
+import { opinionOf, withGift } from './opinion';
 
 
 // How many land units one naval unit can carry (plan §7.5's Embark/Disembark).
@@ -689,7 +693,22 @@ const reduceAction = (state, action) => {
         ? cardOf(state.activeEventId)
         : state.activeProceduralEvent;
       if (!event) return state;
+      // A crisis card answered during its warning: the choice waits on state.crises.coming and is paid at the strike.
+      const coming = state.crises?.coming;
+      if (coming?.answered && state.activeEventId === crisisCardId(coming.id)) {
+        const i = action.payload.optionIndex;
+        if (!Number.isInteger(i) || !event.options[i]) return state;
+        return { ...state, activeEventId: null, crises: { ...state.crises, coming: { ...coming, choice: i } } };
+      }
       return applyEventEffects(state, event, action.payload.optionIndex);
+    }
+
+    case ActionTypes.ANSWER_CRISIS_EARLY: {
+      // The coming crisis's card opens during its warning; answered now (RESOLVE_EVENT keeps the choice
+      // until the strike), it does not open again when the crisis strikes.
+      const coming = crisisComing(state);
+      if (!coming || coming.answered || state.activeEventId || state.activeProceduralEvent) return state;
+      return { ...state, activeEventId: crisisCardId(coming.crisis.id), crises: { ...state.crises, coming: { ...state.crises.coming, answered: true } } };
     }
 
     // ---- Domestic tab (plan §5) — atomic, cost-validated player actions ----
@@ -2081,7 +2100,7 @@ const reduceAction = (state, action) => {
             identityShiftCooldownTurn: state.turnNumber + IDENTITY_SHIFT_COOLDOWN_TURNS
           }
         },
-        logs: [...state.logs, { year: state.year, ...msg('m.act.identityShift', { pole: thing('identityPole', poleName, poleName) }), type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.identityShift', { pole: thing('identityPole', `${axis}.${direction > 0 ? 'pos' : 'neg'}`, poleName) }), type: LogTypes.ACTION }]
       }, costs, 'shiftIdentity');
     }
 
@@ -2281,12 +2300,14 @@ const reduceAction = (state, action) => {
       const { nationId } = action.payload;
       const target = state.nations[nationId];
       const costs = ACTION_COSTS.tradeAgreement;
-      if (!target || target.isAtWar || target.hasTradeAgreement) return state;
+      if (!target || target.hasTradeAgreement) return state;
+      if (target.isAtWar) return reject(state, msg('m.act.no.tradeWar', { nation: people(target.id, target.name) }));
       // Trade Pact capacity (plan §M8.3/§M12) — Globalism/Isolationism identity swings it; see
       // diplomacy.js's getTradePactCapacity. Counts every OTHER nation currently pacted with the
       // player, since hasTradeAgreement lives on the target's own record.
       const activePactCount = Object.values(state.nations).filter((n) => n.hasTradeAgreement).length;
-      if (activePactCount >= getTradePactCapacity(state.nations[state.playerNationId])) return state;
+      const tradeCap = getTradePactCapacity(state.nations[state.playerNationId]);
+      if (activePactCount >= tradeCap) return reject(state, msg('m.act.no.tradeFull', { a: activePactCount, b: tradeCap }));
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
@@ -2364,7 +2385,7 @@ const reduceAction = (state, action) => {
       // gate with a real scored formula.
       // Prestige is the ASKER's (the player's) standing — the formula used to read the target's own.
       const acceptanceScore = (50 - (target.hostility || 0)) / 2 + (state.nations[state.playerNationId]?.prestige || 0) / 10 + (target.hasTradeAgreement ? 20 : 0);
-      if (acceptanceScore < 0) return state;
+      if (acceptanceScore < 0) return reject(state, msg('m.act.no.allianceRefused', { nation: people(target.id, target.name), score: Math.round(acceptanceScore) }));
       if (!canPay(state, costs)) return state;
       return payCost({
         ...state,
@@ -2379,11 +2400,14 @@ const reduceAction = (state, action) => {
       const costs = ACTION_COSTS.giftBribe;
       if (!target) return state;
       if (!canAfford(state.resources, costs)) return state;
+      // A gift lowers the grudge and adds a fading warmth (opinion.js withGift): a stranger has no grudge to lower.
+      const gifted = withGift(state, nationId, state.playerNationId);
+      const nations = { ...state.nations, [nationId]: { ...gifted, hostility: Math.max(target.hostilityFloor || 0, (target.hostility || 0) - GIFT_HOSTILITY_REDUCTION) } };
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
-        nations: { ...state.nations, [nationId]: { ...target, hostility: Math.max(target.hostilityFloor || 0, target.hostility - GIFT_HOSTILITY_REDUCTION) } },
-        logs: [...state.logs, { year: state.year, ...msg('m.act.giftSent', { nation: people(target.id, target.name) }), type: LogTypes.DIPLOMACY }]
+        nations,
+        logs: [...state.logs, { year: state.year, ...msg('m.act.giftSent', { nation: people(target.id, target.name), opinion: opinionOf({ ...state, nations }, nationId) }), type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -2905,6 +2929,15 @@ const reduceAction = (state, action) => {
       if ((item.kind === 'building' || item.kind === 'improvement') && [city.production.current, ...city.production.queue].some((q) => q && itemKey(q) === itemKey(item))) return reject(state, msg('m.act.no.inQueue'));
       return { ...state, regions: { ...state.regions, [id]: queueItem(city, item) } };
     }
+    case ActionTypes.ADVISOR_PRODUCTION: {
+      // The advisor's picks (productionAdvisor.js), each queued as the player would queue it.
+      const only = action.payload?.cityId;
+      const picks = only != null ? [{ cityId: only, item: advisorPick(state, only) }].filter((p) => p.item) : advisorPicks(state);
+      if (!picks.length) return reject(state, msg('m.act.no.advisorNothing'));
+      // A pick the queue refuses is skipped, not logged as a refusal.
+      const next = picks.reduce((s, p) => { const n = reduceAction(s, { type: ActionTypes.QUEUE_PRODUCTION, payload: p }); return n.regions !== s.regions ? n : s; }, state);
+      return next === state ? reject(state, msg('m.act.no.advisorNothing')) : next;
+    }
     case ActionTypes.SET_SETTLER_TARGET: {
       const { unitId, tile } = action.payload || {};
       const unit = state.units[unitId];
@@ -3020,7 +3053,7 @@ const reduceAction = (state, action) => {
       const { unitIds = [], toTile = null, stop = false } = action.payload || {};
       if (stop) { const stopped = stopExplore(state, unitIds); return stopped ? { ...state, units: stopped } : state; }
       const order = orderExplore(state, unitIds, toTile);
-      if (!order.units) return reject(state, order.reason || msg('m.act.no.scouts'));
+      if (!order.units) return reject(state, order.reason ? whyOf(order) : msg('m.act.no.scouts'));
       // Each scout steps at once on its own route, like a march (routes.js stepMarchesNow).
       let scouted = order.units;
       unitIds.forEach((id) => { scouted = stepMarchesNow({ ...state, units: scouted }, [id]).units; });

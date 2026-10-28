@@ -108,3 +108,18 @@ node scripts/simulate.mjs --games 2 --turns 100 --policy scripted --player akkad
   per AI stack per war per turn (nation, tile, from, verdict, route length and goal, halt reason).
 - A stack that never moves in a long war: filter the jsonl by `war` and read `verdict` over time;
   `shuttle` means it returned to the tile it left two turns before.
+
+## Player at war (lane campaign-ai-wars)
+```bash
+TURNS=150 DECLARE_AT=100 SEEDS=11 WHO=player PEACE=refuse PLAYER=akkad \
+  npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/balance-sim/playerWar.sim.js
+```
+A scripted player; at DECLARE_AT a war starts with the nearest living major (WHO=player declares,
+WHO=ai the major does; an existing war is traced instead, `preWar`). One `PWAR {json}` per seed:
+`contactTurns` (turns until an enemy land unit stands on the player's land or beside a player city,
+-1 never), `reports` (battles the player fought), `citiesLost`, `warTurns`, `starvedUnitTurns`,
+`closestRings`, the enemy's plan. `TRACE=1` prints the enemy's stacks every war turn (`SUPPLY=1`
+adds supply, morale, strength): a stack that alternates between two tiles is a shuttle.
+It runs only with DECLARE_AT set (compare.sh skips it). For before/after, run it per seed as its own
+process in a base worktree and the working tree (one seed a process; 8 seeds, Akkad's neighbour
+Israel is 11.7 rings away; Kemet's is next door). Lane numbers: plans/lanes/campaign-ai-wars-REPORT.md.

@@ -89,6 +89,14 @@ describe('battle gestures', () => {
     expect(h.radial).toHaveBeenCalledTimes(1);
   });
 
+  it('with Attack armed, holding on a selected squad is the order (long-press), never the radial', () => {
+    h.isOnSelectedSquad.mockReturnValue(true);
+    h.isArmed = () => true;
+    down(1, 100, 100); vi.advanceTimersByTime(LONG_MS + 10); clock += LONG_MS + 10; up(1, 100, 100);
+    expect(h.radial).not.toHaveBeenCalled();
+    expect(h.longPress).toHaveBeenCalledTimes(1);
+  });
+
   it('double-tap then drag is a lasso', () => {
     down(1, 100, 100); clock += 80; up(1, 100, 100);
     clock += 120; down(1, 100, 100); clock += 30; move(1, 180, 170); up(1, 180, 170);

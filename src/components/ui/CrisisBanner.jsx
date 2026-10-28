@@ -3,7 +3,8 @@
 // top bar tells its story and who it hit. Before one strikes the player (crises.js crisisComing,
 // follow-up 25) the same notice warns: what is coming, in how many turns, and what softens it. A
 // notice (useInteraction), so on a phone it waits as a chip while a decision card has the screen.
-// The crisis's own decision card comes from the event deck; this only follows the crisis.
+// The crisis's own decision card comes from the event deck: during the warning its Decide now button
+// opens it early (ANSWER_CRISIS_EARLY); unanswered, it opens when the crisis strikes.
 import React, { useState } from 'react';
 import { Flame, X } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -11,6 +12,7 @@ import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
 import { useT } from '../../i18n/useT';
 import { CRISES } from '../../data/crises';
 import { crisisComing } from '../../engine/crises';
+import { ActionTypes } from '../../data/types';
 
 export const BANNER_TURNS = 5;
 
@@ -23,7 +25,7 @@ export const activeCrisis = (state) => {
 };
 
 const CrisisBanner = () => {
-  const { state } = useGame();
+  const { state, dispatch } = useGame();
   const { t, dt } = useT();
   const [gone, setGone] = useState(null); // the notice the player dismissed
   const coming = crisisComing(state);
@@ -46,6 +48,7 @@ const CrisisBanner = () => {
         <>
           <div className="leading-snug">{t('crisis.coming', { count: Math.max(1, coming.turn - (state.turnNumber || 0)), n: coming.nations.length })}</div>
           <div className="text-fa-muted leading-snug">{t(`crisis.soften.${a.crisis.effect}`)}</div>
+          {!coming.answered && <button type="button" onClick={() => dispatch({ type: ActionTypes.ANSWER_CRISIS_EARLY })} className="fa-btn fa-btn-primary !min-h-[44px] !px-3 text-[12px]" data-testid="crisis-answer-now">{t('crisis.answerNow')}</button>}
         </>
       ) : (
         <>

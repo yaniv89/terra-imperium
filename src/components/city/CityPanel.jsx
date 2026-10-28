@@ -40,7 +40,7 @@ import { useWhy } from '../ui/WhyTip';
 import { useT } from '../../i18n/useT';
 import { askConfirm } from '../ui/ConfirmActionDialog';
 import { replaceImprovementConfirm } from '../ui/confirmSpecs';
-import { logText } from '../../i18n/messageText';
+import { logText, reasonText } from '../../i18n/messageText';
 import { rich } from '../../i18n/rich';
 import { t as tNow } from '../../i18n/core';
 
@@ -320,7 +320,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
         const q = queue[buyAt]; const words = rushText(q);
         return (
           <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-fa-line bg-fa-raised px-2.5 py-1.5 text-[12px] leading-snug" data-testid="city-rush-offer">
-            <div className="min-w-0 flex-1">{q.rush.ok ? words.text : `${words.text} ${q.rush.reason}`}</div>
+            <div className="min-w-0 flex-1">{q.rush.ok ? words.text : `${words.text} ${reasonText(q.rush, lang)}`}</div>
             <button type="button" disabled={!q.rush.ok} data-testid="city-rush-pay"
               onClick={() => { dispatch({ type: ActionTypes.RUSH_PRODUCTION, payload: { cityId, index: q.index } }); setBuyAt(null); }}
               className="fa-btn fa-btn-primary fa-btn-sm min-h-[44px] shrink-0 disabled:opacity-40">{t('cy.pay', { n: q.rush.gold })}</button>
@@ -410,14 +410,14 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                           {o.queued > 0 && <span className="text-fa-good me-1">{o.queued > 1 ? t('cy.nInQueue', { n: o.queued }) : t('cy.inQueue')}{o.ok ? ' ·' : ''}</span>}
                           {o.ok ? <>{R('cy.prodCost', { cost: <span className="fa-num">{o.cost}</span> })} · {turnsText(o.turns)}{o.stored > 0 ? ` · ${t('cy.alreadyDone', { n: Math.round(o.stored) })}` : ''}{o.long && <span className="text-fa-brass"> · {t('cy.slowHere')}</span>}</>
                             : o.queued ? null
-                              : o.needsName ? <>{t('cy.needs', { name: o.needsName })} <button type="button" onClick={(e) => { e.stopPropagation(); dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } }); }} className="underline text-fa-you min-h-[24px]" data-testid="research-for-item">{t('cy.researchIt')}</button></>
+                              : o.needsName ? <>{t('cy.needs', { name: o.needsName })}{o.needsEta && <span data-testid="build-needs-eta">, {o.needsEta}</span>} {!o.needsPlanned && <button type="button" onClick={(e) => { e.stopPropagation(); dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } }); }} className="underline text-fa-you min-h-[24px]" data-testid="research-for-item">{t('cy.researchIt')}</button>}</>
                                 : o.note || o.reason}
                           {!o.ok && o.cost > 0 && <span className="text-fa-muted"> · {R('cy.prodCost', { cost: <span className="fa-num">{o.cost}</span> })}{o.item.kind === 'settler' ? '' : ` · ${turnsText(o.turns)}`}</span>}
                         </div>
                         {o.replaces && <div className="flex items-center gap-1 text-[12px] leading-snug text-fa-brass" data-testid="build-replaces"><AlertTriangle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />{t('cy.replaces', { name: o.replaces })}</div>}
                       </div>
                     </div>
-                    <button type="button" {...why(!o.ok, o.queued ? t('cy.alreadyInQueue') : o.needsName ? t('cy.needsLower', { name: o.needsName }) : o.reason, () => (o.replaces ? askConfirm(replaceImprovementConfirm(o.label, o.replaces), () => queueNow(o)) : queueNow(o)))} className="fa-icon-btn min-w-[44px] min-h-[44px] shrink-0 disabled:opacity-40 aria-disabled:opacity-40" aria-label={o.ok ? t('cy.buildAria', { label: o.label }) : `${o.label}: ${o.queued ? t('cy.alreadyInQueue') : o.needsName ? t('cy.needsLower', { name: o.needsName }) : o.reason}`} data-testid="queue-item">
+                    <button type="button" {...why(!o.ok, o.queued ? t('cy.alreadyInQueue') : o.needsName ? `${t('cy.needsLower', { name: o.needsName })}${o.needsEta ? `, ${o.needsEta}` : ''}` : o.reason, () => (o.replaces ? askConfirm(replaceImprovementConfirm(o.label, o.replaces), () => queueNow(o)) : queueNow(o)))} className="fa-icon-btn min-w-[44px] min-h-[44px] shrink-0 disabled:opacity-40 aria-disabled:opacity-40" aria-label={o.ok ? t('cy.buildAria', { label: o.label }) : `${o.label}: ${o.queued ? t('cy.alreadyInQueue') : o.needsName ? t('cy.needsLower', { name: o.needsName }) : o.reason}`} data-testid="queue-item">
                       {o.queued && !o.ok ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                     </button>
                   </li>

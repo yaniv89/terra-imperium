@@ -22,11 +22,19 @@ const eventKey = (r) => {
   return null;
 };
 
+// Kinds whose names live under another prefix in the tables (the same keys as gameText.js reads):
+// a building is `btier.<category>.<tier>`, an improvement `impr.<id>`, a wonder `gp.<id>`, ...
+const ALIAS = { building: 'btier', improvement: 'impr', wonder: 'gp', government: 'gov', taxRate: 'tax', cityStateType: 'cstype', district: 'district', resource: 'res', unit: 'uclass', techCategory: 'tc', devType: 'sw.dev', identityPole: 'ident' };
+const aliasKey = (r) => (ALIAS[r.k] && r.id != null ? `${ALIAS[r.k]}.${r.k === 'techCategory' ? String(r.id).toLowerCase() : r.id}` : null);
+
 export const refName = (r, lang) => {
   if (!r) return '';
   if (lang === 'en') return r.en;
   if (NAME_KINDS.has(r.k)) return nameOf(r.k, r.k === 'people' ? r.id : null, r.en, lang);
   if (r.id != null && hasKey(dataKey(r), 'en')) return translate(dataKey(r), null, lang);
+  const ak = aliasKey(r);
+  if (ak && hasKey(ak, 'en')) return translate(ak, null, lang);
+  if (ak && hasDataText(ak)) return dataText(ak, r.en, null, lang);
   const ek = eventKey(r);
   if (ek && hasDataText(ek)) return dataText(ek, r.en, null, lang);
   const dk = `${r.k === 'unitClass' ? 'uclass' : r.k}.${r.id}`; // a unit class is `uclass.<id>` in the data tables
@@ -34,8 +42,14 @@ export const refName = (r, lang) => {
   return r.en;
 };
 
+// A signed number ("+11g", "-5g", "-4700") in a right-to-left line: the sign is a neutral and
+// lands on the far side ("11g+", playtest issue 17). Each one is isolated left to right (LRI ... PDI).
+// A sign right after a letter or digit ("5-10") is a dash, not a sign, and stays.
+const SIGNED = /(^|[^\p{L}\p{N}\u2066])([+\-\u2212]\d[\d,.]*(?:[a-z]{1,2}\b|%)?)/gu;
+export const isolateSigned = (text, lang = getLanguage()) => (lang === 'he' ? String(text).replace(SIGNED, (m, pre, num) => `${pre}\u2066${num}\u2069`) : String(text));
+
 /** A key and vars in `lang` (default: the current language). */
-export const messageOf = (key, vars, lang = getLanguage()) => msgText(key, vars, lang, refName);
+export const messageOf = (key, vars, lang = getLanguage()) => isolateSigned(msgText(key, vars, lang, refName), lang);
 
 /** A log entry's text (or any { message, msgKey, msgVars }) in `lang`. A folded recurring line
  * (engine/logSummary.js) keeps its count note. */
@@ -44,8 +58,8 @@ export const logText = (entry, lang = getLanguage()) => {
   if (typeof entry === 'string') return entry;
   if (!entry.msgKey || lang === 'en') return String(entry.message ?? '');
   const text = msgText(entry.msgKey, entry.msgVars, lang, refName);
-  if (entry.count > 1 && entry.firstYear != null) return `${text} ${msgText('log.foldNote', { count: entry.count, year: entry.firstYear }, lang, refName)}`;
-  return text;
+  if (entry.count > 1 && entry.firstYear != null) return isolateSigned(`${text} ${msgText('log.foldNote', { count: entry.count, year: entry.firstYear }, lang, refName)}`, lang);
+  return isolateSigned(text, lang);
 };
 
 /** The reason of a refusal ({ reason, reasonMsg }, engine/messages.js reasonOf) in `lang`; an old or unconverted one shows its English. */

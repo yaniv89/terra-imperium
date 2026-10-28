@@ -10,7 +10,7 @@ import { isFighting, inRangeOfSquad } from './combat';
 import { canSeeSquad, isTileVisibleTo } from './fog';
 import { getSquadAbilities, powerState, POWERS, empTicks } from './effects';
 import { canGarrison, garrisonRoom } from './objectives';
-import { Q, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
+import { Q, SIDE_ATTACKER, SIDE_DEFENDER, secondsToTicks, battleLimitTicks } from './constants';
 import { makeGrid, rebuildGrid } from './spatial';
 import { thinkEconomy } from './economyAI';
 import { generalsOf } from './squadLists';
@@ -263,6 +263,17 @@ const counterAttack = (w, side, cfg, mine, enemies, keep, orders) => {
   return sent;
 };
 
+// A field defender's march-out (playtest 40550100958). Never before FIELD_GRACE (the attacker's
+// build phase: camp, towers, first training), and only after a third of the clock has passed with
+// FIELD_QUIET of nobody hit: 200 s of a 10-minute economy clock, 400 s of a 20-minute one.
+const FIELD_GRACE = secondsToTicks(180);
+const FIELD_QUIET = secondsToTicks(30);
+const fieldMarchDue = (w) => {
+  if (w.tick < Math.max(FIELD_GRACE, Math.floor(battleLimitTicks(w.setup) / 3))) return false;
+  for (let i = 0; i < w.squads.length; i++) { const q = w.squads[i]; if (!q.worker && w.tick - q.lastHitTick < FIELD_QUIET) return false; }
+  return true;
+};
+const basePos = (w, b) => { const s = b && (b.kind === 'eco' ? w.eco?.buildings[b.index] : w.structures[b.index]); return s ? { x: s.x, y: s.y } : null; };
 const thinkDefender = (w, side, cfg, mine, enemies, orders) => {
   const keep = w.structures[0];
   if (cfg.abilities && w.assimilation === 0) mine = garrisonBuildings(w, side, mine, orders);
@@ -293,6 +304,13 @@ const thinkDefender = (w, side, cfg, mine, enemies, orders) => {
       if (idle.length) orders.push({ side, type: 'attack', squads: idle.map((q) => q.idx), target: goal });
       return;
     }
+  }
+  // A field battle has no walls to hold (playtest 40550100958: an idle attacker, or the remnant of a
+  // beaten one, waited out the clock with nobody fighting): once the march is due (fieldMarchDue)
+  // the defenders go out as one army, with all they trained meanwhile, to the nearest enemy still
+  // standing, else to the enemy's camp. Earlier only the stronger-enemy sally (below) sends them out.
+  if (!threat && (w.setup.battleType || 'field') === 'field' && fieldMarchDue(w)) {
+    threat = nearest(enemies.filter((q) => !q.retreating), keep.x, keep.y) || basePos(w, nearestBase(w, SIDE_ATTACKER, keep.x, keep.y));
   }
   // The keep being taken beats everything else: everyone back to it.
   if (w.assimilation > 0) {

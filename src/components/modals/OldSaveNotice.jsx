@@ -7,8 +7,10 @@ import React, { useState } from 'react';
 import { Download, X, Archive } from 'lucide-react';
 import { getPendingSaveProblem, dismissSaveProblem, getOldSaveText } from '../../context/GameContext';
 import { SAVE_PROBLEM_TEXT } from '../../engine/saveMigrations';
+import { useT } from '../../i18n/useT';
 
 const OldSaveNotice = () => {
+  const { t } = useT();
   const [problem, setProblem] = useState(() => getPendingSaveProblem());
   if (!problem) return null;
   const download = () => {
@@ -27,14 +29,14 @@ const OldSaveNotice = () => {
         <div className="flex items-start gap-3">
           <Archive className="w-6 h-6 text-amber-300 shrink-0 mt-0.5" />
           <div className="min-w-0 flex-1">
-            <div className="text-base font-bold">Your old save was set aside</div>
-            <p className="text-sm text-fa-text mt-1">{SAVE_PROBLEM_TEXT[problem.reason] || SAVE_PROBLEM_TEXT.corrupt} A new game has started on the new world. The old save is kept on this device; download it if you want to keep a copy.</p>
+            <div className="text-base font-bold">{t('sw.oldSave.title')}</div>
+            <p className="text-sm text-fa-text mt-1">{t(`sw.saveProblem.${SAVE_PROBLEM_TEXT[problem.reason] ? problem.reason : 'corrupt'}`)} {t('sw.oldSave.body')}</p>
           </div>
-          <button type="button" onClick={close} aria-label="Dismiss" className="p-2 -me-2 -mt-2 rounded-lg text-fa-muted hover:text-fa-text hover:bg-fa-raised min-w-[44px] min-h-[44px]"><X className="w-5 h-5" /></button>
+          <button type="button" onClick={close} aria-label={t('install.dismiss')} className="p-2 -me-2 -mt-2 rounded-lg text-fa-muted hover:text-fa-text hover:bg-fa-raised min-w-[44px] min-h-[44px]"><X className="w-5 h-5" /></button>
         </div>
         <div className="flex gap-2 mt-4">
-          <button type="button" onClick={download} className="flex-1 min-h-[44px] rounded-xl bg-amber-600 hover:bg-amber-500 text-fa-text text-sm font-semibold flex items-center justify-center gap-2" data-testid="old-save-download"><Download className="w-4 h-4" /> Download the old save</button>
-          <button type="button" onClick={close} className="min-h-[44px] px-4 rounded-xl bg-fa-hover hover:bg-fa-line text-sm font-semibold">Continue</button>
+          <button type="button" onClick={download} className="flex-1 min-h-[44px] rounded-xl bg-amber-600 hover:bg-amber-500 text-fa-text text-sm font-semibold flex items-center justify-center gap-2" data-testid="old-save-download"><Download className="w-4 h-4" /> {t('sw.oldSave.download')}</button>
+          <button type="button" onClick={close} className="min-h-[44px] px-4 rounded-xl bg-fa-hover hover:bg-fa-line text-sm font-semibold">{t('sw.continue')}</button>
         </div>
       </div>
     </div>

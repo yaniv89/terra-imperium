@@ -10,12 +10,12 @@ import { whereText, placeLabel } from './placeText';
 import { getTiles } from '../../data/geo/tiles';
 import { getUnitDefinition, UNIT_CLASSES, ROBOT_VARIANTS } from '../../data/unitClasses';
 import { regimentName } from '../../data/regimentNames';
-import { unitTile, movePoints, aboardShip } from '../../engine/armies';
+import { unitTile, movePoints, aboardShip, tileAccess } from '../../engine/armies';
 import { unitTagText } from '../../i18n/unitTags';
 import { supplyOf, supplyZone, supplyReport, SUPPLY_MAX, SUPPLY_LINE_RINGS, SUPPLY_LINE_LOSS, ROAD_LINE_BONUS, STARVE_STRENGTH, STARVE_MORALE } from '../../engine/supplyMeter';
 import { isFortified } from '../../engine/fieldBattle';
 import { getModifier } from '../../engine/modifiers/sheet';
-import { routeDestination, routeEta } from '../../engine/routes';
+import { routeDestination, routeEta, planMarch } from '../../engine/routes';
 import { armyStatus, isHolding } from '../../engine/standingOrders';
 import { locationOf } from '../../engine/unitLocation';
 import { computeSupplyFlow } from '../../engine/supplies';
@@ -99,6 +99,48 @@ export const exploreHint = (state, tile) => {
   });
   const to = path ? path[path.length - 1] : null;
   return to == null && !city ? null : { tile: to, city };
+};
+
+// How far (rings over land) the sheet looks for the nearest land that refills the meter.
+export const RESUPPLY_SEARCH_RINGS = 40;
+
+/**
+ * The supply state at a glance (lead request, playtest run 40550097406 step 83: an army sat
+ * starving at morale 0 for 12 turns with nothing to say why or how to get back): 'ok' (own or
+ * friendly land, or the meter holds), 'drain' (it falls, `turns` until it starves) or 'starving'.
+ * The pattern of HoI4's out-of-supply flag on the counter and EU4's attrition line on the army.
+ */
+export const supplyState = (report) => {
+  if (!report) return null;
+  if (report.starving) return { kind: 'starving', label: t('mx.sup.stateStarving', { pct: Math.round(STARVE_STRENGTH * 100), morale: STARVE_MORALE }) };
+  if (report.change < 0 && report.turnsLeft != null) return { kind: 'drain', turns: report.turnsLeft, label: t('mx.sup.stateDrain', { count: report.turnsLeft }) };
+  return { kind: 'ok', label: report.zone === 'home' ? t('mx.sup.stateHome') : t('mx.sup.stateHeld') };
+};
+
+/**
+ * The nearest land that refills the meter (own, a vassal's or an ally's: supplyZone 'home') from
+ * `tile`, over land, and the march there for `unitIds` (routes.js planMarch): { tile, target (a
+ * city id when it is a city's centre, else the tile), name, turns } or null (none within
+ * RESUPPLY_SEARCH_RINGS, or no path). The army sheet's one-tap "Back to supply".
+ */
+export const resupplyTarget = (state, tile, regionId, unitIds) => {
+  const tiles = getTiles();
+  const me = state.playerNationId;
+  const home = (t) => { const a = tileAccess(state, t, me); return a === 'own' || a === 'friend'; };
+  let frontier = [tile]; const seen = new Set(frontier);
+  for (let d = 0; d <= RESUPPLY_SEARCH_RINGS && frontier.length; d++) {
+    const hits = frontier.filter(home).sort((a, b) => a - b);
+    for (const at of hits) {
+      const cityId = state.world?.tileOwner?.[at];
+      const target = state.regions[cityId]?.tile === at ? cityId : at;
+      const plan = planMarch(state, regionId, target, unitIds);
+      if (plan.ok) return { tile: at, target, name: placeLabel(state, at), turns: Math.max(1, plan.turns) };
+    }
+    const next = [];
+    for (const t of frontier) for (const n of tiles.neighbors[t]) if (!seen.has(n) && tiles.land[n]) { seen.add(n); next.push(n); }
+    frontier = next;
+  }
+  return null;
 };
 
 export const armySheetModel = (state, tile, fleet = false) => {
@@ -193,6 +235,9 @@ export const armySheetModel = (state, tile, fleet = false) => {
     groups,
     zone: zone.zone, zoneText: report ? supplyText(report, hungry) : inPort ? '' : ZONE_TEXT[zone.zone] || '', // "at sea" would be wrong in port
     supplyReport: report, fortified, mergeFrom,
+    supplyState: supplyState(report),
+    // a stack whose meter falls (or is empty) and has no march: the one tap back to land that refills it
+    resupply: report && !lead && report.zone !== 'home' && (report.change < 0 || report.starving) ? resupplyTarget(state, tile, units[0].regionId, units.map((u) => u.id)) : null,
     // The ETA is the march's own schedule (routes.js routeEta), the number the order promised.
     route: dest != null ? { to: dest, name: placeLabel(state, dest), turns: routeEta(state, lead) ?? 1 } : null,
     status,

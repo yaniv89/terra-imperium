@@ -16,6 +16,7 @@ import { getTiles } from '../../data/geo/tiles';
 import { raidMapModel, raidMapEmpty } from './raidMapModel';
 import { openIndependent } from './independentEvents';
 import { actionIconUrl } from './independentArt';
+import { t } from '../../i18n/core';
 
 const EDGE = 40;
 const RED = '#E5604D'; // the Field Atlas danger
@@ -71,29 +72,29 @@ const RaidMarkersOverlay = ({ projection, transform, width, height }) => {
       {placed.warnings.filter((w) => w.label).map((w) => (
         <button key={`wl-${w.id}-${w.tile}`} type="button" onClick={() => openIndependent(w.id)} className={`${chip} bg-fa-ink/90 border-fa-danger/70 text-fa-danger-text min-h-[24px]`}
           style={{ transform: `translate(${Math.round(w.xy[0])}px, ${Math.round(w.xy[1] - w.r - 8)}px) translate(-50%, -100%)` }} data-raid-target={w.tile}
-          aria-label={`Raid target: ${w.target}${w.eta != null ? `, ${w.eta} turns` : ''}`}>
-          Raid target: {w.target}{w.eta != null ? ` · in ${w.eta} turn${w.eta === 1 ? '' : 's'}` : ''}
+          aria-label={t('sw.raid.target', { target: w.target, eta: w.eta != null ? t('sw.raid.in', { count: w.eta }) : '' })}>
+          {t('sw.raid.target', { target: w.target, eta: w.eta != null ? t('sw.raid.in', { count: w.eta }) : '' })}
         </button>
       ))}
       {placed.parties.map((p) => (
         <button key={`p-${p.id}`} type="button" onClick={() => openIndependent(p.id)} className={`${chip} flex items-center gap-1 min-h-[28px] bg-fa-panel/95 ${p.againstYou ? 'border-fa-danger/80 text-fa-text' : 'border-fa-indep/80 border-dashed text-fa-text'}`}
           style={{ transform: `translate(${Math.round(p.xy[0])}px, ${Math.round(p.xy[1] - 22)}px) translate(-50%, -100%)` }} data-raid-party={p.id}
-          aria-label={`Raid party of ${p.name}, ${p.kindWord}, ${p.phase === 'home' ? 'going home' : `target ${p.target}`}${p.eta != null ? `, ${p.eta} turns` : ''}`}>
+          aria-label={t('sw.raid.partyAria', { name: p.name, kind: p.kindWord, where: p.phase === 'home' ? t('sw.raid.homeWord') : t('sw.raid.toward', { target: p.target }), eta: p.eta != null ? t('sw.raid.in', { count: p.eta }) : '' })}>
           {torch ? <img src={torch} alt="" width={12} height={12} /> : <Flame className="w-3 h-3" style={{ color: p.againstYou ? RED : VIOLET }} aria-hidden="true" />}
-          <span>Raid party{p.phase === 'home' ? ', going home' : p.eta != null ? ` · in ${p.eta} turn${p.eta === 1 ? '' : 's'}` : ''}</span>
+          <span>{t('sw.raid.party', { tail: p.phase === 'home' ? t('sw.raid.home') : p.eta != null ? t('sw.raid.in', { count: p.eta }) : '' })}</span>
         </button>
       ))}
       {placed.sieges.map((s) => (
         <button key={`s-${s.cityId}`} type="button" onClick={() => openIndependent(s.owner)} className={`${chip} flex items-center gap-1 min-h-[24px] bg-fa-panel/95 border-fa-enemy/70 text-fa-text`}
           style={{ transform: `translate(${Math.round(s.xy[0])}px, ${Math.round(s.xy[1] + 16)}px) translate(-50%, 0)` }} data-indep-siege={s.cityId}
-          aria-label={`${s.byName} besiege ${s.name}, walls ${Math.round(s.hp * 100)}%`}>
-          <Castle className="w-3 h-3" aria-hidden="true" />{s.byName} besiege · {Math.round(s.hp * 100)}%
+          aria-label={t('sw.raid.besiegeAria', { who: s.byName, name: s.name, pct: Math.round(s.hp * 100) })}>
+          <Castle className="w-3 h-3" aria-hidden="true" />{t('sw.raid.besiege', { who: s.byName, pct: Math.round(s.hp * 100) })}
         </button>
       ))}
       {placed.burning.map((b) => (
         <span key={`b-${b.cityId}`} className={`${chip} flex items-center gap-1 bg-fa-panel/95 border-fa-danger/70 text-fa-danger-text`}
           style={{ transform: `translate(${Math.round(b.xy[0])}px, ${Math.round(b.xy[1] + 16)}px) translate(-50%, 0)` }} data-burning={b.cityId}>
-          <Flame className="w-3 h-3" aria-hidden="true" />Burning · {b.size} turn{b.size === 1 ? '' : 's'} left
+          <Flame className="w-3 h-3" aria-hidden="true" />{t('sw.raid.burning', { count: b.size })}
         </span>
       ))}
     </div>

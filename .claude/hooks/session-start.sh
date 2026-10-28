@@ -7,3 +7,8 @@ cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}"
 if [ ! -x node_modules/.bin/vitest ]; then
   npm ci --no-audit --no-fund --loglevel=error >/dev/null 2>&1 || npm install --no-audit --no-fund --loglevel=error >/dev/null 2>&1
 fi
+# Cloud sessions lack the user's plugins: put the vendored ponytail skill in every session's context (user rule).
+if [ -f .claude/skills/ponytail/SKILL.md ]; then
+  echo "PONYTAIL MODE ACTIVE (project rule, CLAUDE.md): follow it for the whole session and tell every subagent to."
+  cat .claude/skills/ponytail/SKILL.md
+fi

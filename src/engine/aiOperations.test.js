@@ -7,7 +7,8 @@ import { getTiles } from '../data/geo/tiles';
 import { ringsAround } from './world/cities';
 import { syncWorldRegistry } from './world/registry';
 import { distanceKm } from '../data/geo/geodesic';
-import { processAINavalOperations, processAIOperations, cityAttackWorthIt } from './aiOperations';
+import { processAINavalOperations, processAIOperations, cityAttackWorthIt, ASSAULT_HP } from './aiOperations';
+import { siegeMaxHp } from './sieges';
 import { resolveAllQueuedAuto } from './battleQueue';
 // The rival's capital borders the player's land (neighbourWorld), so the fixture founds a rival
 // interior city beside it that borders no city of the player.
@@ -86,6 +87,25 @@ describe('operational AI',()=>{
     expect(next.units.a.route).toBeFalsy();
     expect(next.pendingDefenses).toHaveLength(0);
   });
+  it('defending a threatened city next door leaves a border city its garrison: no shuttle between two cities (lane campaign-ai-wars)',()=>{
+    const {s,border,interior,target}=setup();
+    const T=(id)=>s.regions[id].tile;
+    s.nations[D]={...s.nations[D],capitalRegionId:border};
+    // The player's garrison next door threatens the empty interior city; the stack waits in the capital.
+    s.units={a:{...s.units.a,regionId:border,tile:T(border)},b:{...s.units.a,id:'b',regionId:border,tile:T(border)},
+      g:{...s.units.a,id:'g',ownerId:P,regionId:target,tile:T(target)}};
+    let st=s;const seen=[];
+    for(let turn=0;turn<4;turn++){
+      st=processAIOperations({...st,turnNumber:(s.turnNumber||1)+turn},createRng(7+turn));
+      const home=Object.values(st.units).filter(u=>u.ownerId===D&&u.tile===T(border)).length;
+      const there=Object.values(st.units).filter(u=>u.ownerId===D&&(u.tile===T(interior)||u.regionId===interior)).length;
+      seen.push([home,there]);
+      st={...st,units:Object.fromEntries(Object.entries(st.units).map(([k,u])=>[k,{...u,movesLeft:1}]))};
+    }
+    // Before: the whole stack hopped to the empty city, left the capital empty, and hopped back every turn.
+    seen.forEach(([home])=>expect(home,JSON.stringify(seen)).toBeGreaterThanOrEqual(1));
+    expect(seen[seen.length-1],JSON.stringify(seen)).toEqual(seen[seen.length-2]);
+  });
   it('marches on tiles toward the player\'s city when its own does not touch it, and halts before it',()=>{
     // A rival (AI) at war with the player: its city does not touch the player's capital, a few tiles away.
     const w0=cloneWorld(peoplesWorld({seed:7,fog:false}));const RV=rivalOf(w0);
@@ -152,6 +172,29 @@ describe('operational AI',()=>{
     };
     expect(run(100)).toBe(1);
     expect(run(15)).toBe(0);
+  });
+  it('a stack starving at the walls falls back home to refill unless its siege breaks the walls within a few turns (lane campaign-ai-wars)',()=>{
+    const {s,border,target}=setup();
+    const tiles=getTiles();
+    const ring1=tiles.neighbors[s.regions[target].tile].find(t=>tiles.land[t]===1);
+    const max=siegeMaxHp(s.regions[target]);
+    const run=(supply,hp)=>{
+      const units={g:{id:'g',ownerId:P,regionId:target,tile:s.regions[target].tile,domain:'land',classId:'infantry',strength:1000,maxStrength:1000,morale:100,movesLeft:1,promotions:[],xp:0}};
+      // Broken (morale 15): no assault (H-15), so the stack would hold the siege.
+      for(let i=0;i<3;i++)units[`a${i}`]={...s.units.a,id:`a${i}`,regionId:border,tile:ring1,morale:15,supply};
+      const regions={...s.regions,[target]:{...s.regions[target],siege:{by:D,hp}}};
+      return processAIOperations({...s,regions,units,pendingDefenses:[]},createRng(7));
+    };
+    const routed=(st)=>['a0','a1','a2'].map(id=>st.units[id].route?.length||0);
+    expect(routed(run(50,0))).toEqual([0,0,0]); // supplied: it holds the siege
+    expect(routed(run(0,Math.ceil(ASSAULT_HP*max)+20))).toEqual([0,0,0]); // starving, but the walls fall in a turn or two
+    const starved=run(0,0); // starving, walls down and still no assault: home
+    expect(starved.pendingDefenses).toHaveLength(0);
+    ['a0','a1','a2'].forEach(id=>{
+      const r=starved.units[id].route;
+      expect(r?.length).toBeGreaterThan(0);
+      expect(Object.values(s.regions).some(c=>c.owner===D&&c.tile===r[r.length-1])).toBe(true);
+    });
   });
   it('can transport a real army to a reachable island front without creating free units',()=>{
     // Two coastal peoples of the small world that reach each other by sea (as in aiLanding.test.js).

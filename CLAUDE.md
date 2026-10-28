@@ -8,7 +8,7 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
 - Big features on a side branch. Merge to `main` only when the user asks; the push deploys the site.
 - Mobile-friendly always: phones play in landscape (844x390 is the reference screen).
 - Automate rather than hand the user manual work.
-- Every session, lane and subagent loads the ponytail skill (`ponytail:ponytail`) first and follows it, to save tokens; every lane brief says so in its first line.
+- Every session, lane and subagent loads the ponytail skill first and follows it, to save tokens; every lane brief says so in its first line. It is vendored in `.claude/skills/ponytail/` (skill `ponytail`) so cloud sessions have it; where the plugin is installed it is also `ponytail:ponytail`.
 - Plain English in messages to the user, no em dashes.
 
 ## Project skills (in .claude/skills/, use them without being asked)
@@ -177,7 +177,9 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   `node_modules` to the main checkout (no npm install). A worktree is about 1.9 GB; remove it after the merge.
 - Every lane brief: ponytail first; targeted tests only when the machine is shared; kill only its own
   processes by PID (never `pkill -f`, it can kill the caller); push its branch, never merge.
-- A sub session lane also follows all of CLAUDE.md, never dispatches workflows or uses the API, and when done
+- A sub session lane also follows all of CLAUDE.md, dispatches API work (AI playtests, content jobs) only with a
+  budget the lead granted by send_message (the lead checks it against the $90 total and records it; the lane
+  sets that job's `max_usd` to its grant and reports the real cost), and when done
   reports back with the claude-code-remote send_message tool to the lead session (its id in the brief), plus a
   report file plans/lanes/<lane>-REPORT.md on its branch.
 - Before merging a lane that touches src/engine/ or src/battle/sim/: run the `engine-rules-reviewer` agent
@@ -185,8 +187,12 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   push main only when that is green (main deploys).
 - After any user interrupt, check every lane is still alive (a stopped agent cannot be resumed: start a new
   lane on its worktree's edits).
-- A change to a game rule or a past user decision (for example battle rule Q3: a side with bases loses only
-  when its buildings are gone) needs the user's own yes; ask with the options and a recommendation.
+- Design decisions (user, 27 Oct): the lead session is the manager and gives the yes for design and rule
+  changes; lanes ask the lead, not the user. Keep the user's own past decisions (battle rule Q3: a side with
+  bases loses only when its buildings are gone; a city falls only when its defence is beaten; units keep
+  their age and upgrade with gold on own land) and the game's core identity. Each design call rests on research (how proven strategy
+  games solve it) and checked evidence (balance-sim, battle-lab parity, shots), never a guess; record it in
+  plans/LOOP-REPORT.md with its reason and evidence.
 - AI playtester (dev only, never for live players): workflow `.github/workflows/claude-content.yml`, job
   `human-playtest` (`scripts/ai/human-playtest.mjs`), inputs persona, scene (`campaign` or `battle`), limit,
   max_usd, slices, size, lang; dispatch on ref claude/integration; results on branch `ai/human-playtest-<run_id>`
@@ -194,3 +200,18 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
 - API budget (the user's rule, 27 Oct): **$90 in total, never beyond.** Before any dispatch, add the job's
   `max_usd` cap to the spend so far in the dashboard's spend data; if the sum would pass $90, do not
   dispatch and tell the user. Record each run's real cost there when it finishes.
+
+## Lessons (mistakes not to repeat; add one line each time)
+- Never edit a file while `npm run test:quick` runs on it: the run reports a false failure. Rerun before calling it red.
+- A design call must respect the player's build phase: a 60 s AI march-out in economy battles skipped towers and training (battle-stall, 27 Oct). Check every timer against the battle clocks and the RTS identity, not only AI-vs-AI traces.
+- A choice stored for later (crisis answered early) must be re-checked when it is paid: if it can no longer be afforded, reopen the card, never drop it silently.
+- Sub sessions stall on a permission prompt for send_message: create them with `extra_allowed_tools: ["mcp__claude-code-remote__send_message"]`, and read a stuck lane's report from its transcript (list_events).
+- Playtest issues marked "open" in an old summary may be fixed already: check the code or a fresh run before starting a lane on them.
+- Dashboard datasets: upload the JSON as an asset first, then point `datasets/<id>` source.url at it with the last `if_version`; one JSON file per upload call.
+- Every evaluation round grades art and animation too (map, units, animations, VFX, transitions), not only rules and UI (user, 27 Oct).
+- Sub sessions often cannot deliver send_message to the lead (prompts, "trusted device"): the lead polls their branches (`git log origin/claude/integration..origin/claude/<lane>`) and `list_sessions` summaries instead of waiting for a message.
+- `npm run test:quick` skips the 17 slow files (resolveTurn.test.js among them), so a red slow test reaches CI unseen: check the latest CI run on integration before pushing main (CI was red on one slow test all of 27 Oct morning). Long-run tests with a passive player should accept peace offers, or the player can be conquered and DEFEAT stops the loop.
+- Cloud sessions do not get the user's plugins: the ponytail plugin was missing in every sub session until it was vendored into .claude/skills/ponytail (27 Oct). Before relying on a skill or tool in a lane brief, check it exists on a fresh cloud machine.
+- Blender on a cloud session: `bash scripts/blender/install.sh` (apt-get update first; Blender 4.0.2 headless works). download.blender.org is blocked. An art lane must install it before saying "no Blender".
+- A lane can "confirm" ponytail without reading it (`head -3`, `wc -l`, then writing "ponytail loaded"): verify by its transcript that the whole SKILL.md was printed (`cat`, no pipe) or that the session start hook printed "PONYTAIL MODE ACTIVE".
+- A lane that skips or fakes the ponytail read after being told (city-builds and phone-pass, 28 Oct) is replaced: it pushes its work, a fresh session continues its branch (the session start hook loads ponytail on every new session).

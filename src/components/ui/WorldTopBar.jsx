@@ -3,7 +3,8 @@
 // on every layout: the nation shield and name, gold, food, science with the current tech and its
 // turns, culture, a war pill when at war, the year and the turn. 36 px tall (plus the notch inset).
 // Every number has its reasons on tap (rule 4): gold, food and culture open a small sheet of lines;
-// science opens Research; the name opens the nation overview; the war pill opens Diplomacy.
+// science opens Research; the name opens the nation overview; the war pill with one enemy opens its
+// card and flies to the nearest place of it you know (peopleWhere.js front), with several Diplomacy.
 // End Turn lives bottom right (TurnDock.jsx), the menu on the tab rail (PanelDrawer.jsx).
 //
 // Publishes its real height as --header-height on <html> and reports it as the map's top inset,
@@ -16,6 +17,8 @@ import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useAgeTheme } from '../../hooks/useAgeTheme';
 import { ageOf } from '../../engine/nationState';
 import { openPanelTab } from '../panels/panelEvents';
+import { peopleWhere } from '../panels/peopleWhere';
+import { selectNation, focusPlace } from '../map/marchEvents';
 import { openNationOverview, openTurnReport, openMenu } from './uiEvents';
 import { topBarModel } from './topBarModel';
 import { Shield, signed } from './atlas';
@@ -93,6 +96,14 @@ const WorldTopBar = () => {
   // (playtest audit I162).
   useOnInteractionOpen(close);
   const portrait = layoutMode === 'phone-portrait' || layoutMode === 'tablet-portrait';
+  // One war: the enemy's card (Show on map, March to) and the map at the nearest place of theirs
+  // you know (playtest 40550092795: at war 90 turns, the front never found); several: Diplomacy.
+  const showWar = () => {
+    if (m.wars.length !== 1) { openPanelTab('diplomacy'); return; }
+    const front = peopleWhere(state, m.wars[0].id).front;
+    selectNation(m.wars[0].id);
+    if (front.length) focusPlace(front);
+  };
 
   return (
     <header ref={ref} data-testid="world-top-bar" data-map-hud=""
@@ -110,7 +121,7 @@ const WorldTopBar = () => {
           <BarItem label={t('topbar.foodAria', { value: m.food.value, delta: signed(m.food.perTurn) })} onClick={() => toggle('food')} expanded={open === 'food'} testId="top-bar-food">
             <FoodIcon /><span className="fa-num text-[12px]">{m.food.value}</span>{delta(m.food.perTurn)}
           </BarItem>
-          <BarItem label={m.science.current ? t('topbar.scienceAria', { n: m.science.perTurn, name: m.science.current.name, turns: t('research.turnsCount', { count: m.science.current.turns }) }) : t('topbar.scienceNone', { n: m.science.perTurn })} onClick={() => openPanelTab('tech')} testId="research-pill">
+          <BarItem label={m.science.current ? t('topbar.scienceAria', { n: m.science.perTurn, name: m.science.current.name, turns: Number.isFinite(m.science.current.turns) ? t('research.turnsCount', { count: m.science.current.turns }) : t('research.noTime') }) : t('topbar.scienceNone', { n: m.science.perTurn })} onClick={() => openPanelTab('tech')} testId="research-pill">
             <ScienceIcon /><span className="fa-num text-[12px]">{m.science.perTurn}</span>
             <span className={`[unicode-bidi:isolate] text-[11px] truncate max-w-[10rem] ${m.science.current ? 'text-fa-muted' : 'text-fa-brass font-semibold'}`}>{m.science.label}</span>
           </BarItem>
@@ -122,7 +133,7 @@ const WorldTopBar = () => {
           </BarItem>
         </div>
         {m.warLabel && (
-          <button type="button" onClick={() => openPanelTab('diplomacy')} className="fa-war-pill shrink-0 max-w-[11rem] truncate" title={t('topbar.warTip', { names: m.wars.map((w) => w.name).join(t('chip.listSep')) })} data-testid="war-pill">
+          <button type="button" onClick={showWar} className="fa-war-pill shrink-0 max-w-[11rem] truncate" title={t('topbar.warTip', { names: m.wars.map((w) => w.name).join(t('chip.listSep')) })} data-testid="war-pill">
             {m.warLabel}
           </button>
         )}

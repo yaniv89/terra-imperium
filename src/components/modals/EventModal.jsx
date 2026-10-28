@@ -13,7 +13,8 @@ import { focusRegion } from '../map/marchEvents';
 import { describeEffects } from './describeEffects';
 import { getOptionShortfall } from '../../engine/applyEventEffects';
 import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
-import { t as tNow, formatYear } from '../../i18n';
+import { t as tNow, formatYear, getLanguage } from '../../i18n';
+import { refName } from '../../i18n/messageText';
 
 // Plan §M17: describeEffects is the ONE shared effect-description function (src/engine/
 // describeEffects.js) — this replaces the local formatEffectItem/parseEffects pair that used to
@@ -36,7 +37,8 @@ const EffectBadge = ({ text, sign, tooltip }) => {
   );
 };
 
-const EventModal = ({ event, onResolve, resources, placeName = null, cityId = null }) => {
+// comingIn: a crisis card answered during its warning (crises.js): the turns until it strikes.
+const EventModal = ({ event, onResolve, resources, placeName = null, cityId = null, comingIn = null }) => {
   const isMobile = useIsMobile();
   // Centre the map on the event's city while the sheet is open; release it after.
   useEffect(() => { if (!event || !cityId) return undefined; focusRegion(cityId); return () => focusRegion(null); }, [event, cityId]);
@@ -79,7 +81,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
             )}
             {event.mandatory && (
               <span className="ms-2 px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[10px]">
-                Mandatory
+                {tNow('sw.event.mandatory')}
               </span>
             )}
           </div>
@@ -87,6 +89,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
 
         {/* Content */}
         <div className="p-4 pl:px-3 pl:py-2 overflow-y-auto flex-1 min-h-0" data-testid="event-body">
+          {comingIn != null && <p className="text-amber-300 text-sm font-semibold mb-2 pl:text-[13px] pl:mb-1" data-testid="event-coming">{tNow('crisis.early', { count: comingIn })}</p>}
           {/* Description */}
           <p className="text-fa-text text-sm leading-relaxed mb-4 pl:text-[13px] pl:leading-snug pl:mb-2">
             {eventDescription(event, { city: placeName || '' })}
@@ -108,7 +111,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
                   className={`w-full p-4 pl:p-2.5 rounded-lg text-start border transition-all group ${blocked ? 'bg-fa-panel border-fa-line opacity-60 cursor-not-allowed' : 'bg-fa-raised hover:bg-fa-hover border-fa-line hover:border-amber-500/50'}`}
                 >
                   {blocked && (
-                    <div className="text-[11px] text-fa-danger-text mb-1">{tNow('evt.cantAfford', { list: shortfalls[index].map((id) => describeEffects({ [id]: option.effects[id] })[0]?.text || id).join(tNow('chip.listSep')) })}</div>
+                    <div className="text-[11px] text-fa-danger-text mb-1">{tNow('sw.event.cantAfford', { list: shortfalls[index].map((id) => `${-option.effects[id]} ${refName({ k: 'resource', id, en: id }, getLanguage())}`).join(', ') })}</div>
                   )}
                   {/* Option Label */}
                   <div className="font-semibold text-sm text-fa-text group-hover:text-amber-300 transition-colors">
@@ -138,7 +141,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
 
         {/* Footer hint */}
         <div className="px-4 py-2 border-t border-fa-line text-xs text-fa-muted text-center shrink-0 pl:hidden">
-          {tNow('evt.footer')}
+          {tNow('event.footer')}
         </div>
       </div>
     </div>

@@ -54,7 +54,7 @@ import { createAtlas } from './spriteAtlas';
 import { onImageLoad } from './spriteArt';
 import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, carryTransform, isSaneTransform, startZoomFor, wheelZoomDelta, maxZoomFor } from './mapView';
 import { kmPerRing } from '../../../data/geo/gridScale';
-import { cleanLatLng, latLngOfCity, cameraTarget, cameraKey, rememberCamera, recallCamera, createIntentGate, INTENT_SETTLE_MS } from '../mapCamera';
+import { cleanLatLng, latLngOfCity, knownLatLngOfCity, cameraTarget, cameraKey, rememberCamera, recallCamera, createIntentGate, INTENT_SETTLE_MS } from '../mapCamera';
 import {
   citySprites, nearView, markerSprites, landSprites, groundMarks, settlerSprites, marchShapes, lensShapes, terrainSprites, tileOutline,
   HEX_FROM_ZOOM, CITY_DETAIL_ZOOM, CLOSE_ZOOM_K
@@ -430,7 +430,8 @@ const GLMapView = ({
     const latest = effects[effects.length - 1];
     if (!latest || latest.id === lastEffectIdRef.current) return;
     lastEffectIdRef.current = latest.id;
-    const target = latLngOfCity(gameStateRef.current, latest.toRegionId);
+    // (only to land the player has explored: an unseen capital is fog, playtest issue 8)
+    const target = knownLatLngOfCity(gameStateRef.current, latest.toRegionId);
     if (!target) return;
     const k = Math.max(transformRef.current.k, INITIAL_FOCUS_ZOOM);
     followRef.current = { lat: target.lat, lng: target.lng, k, until: Date.now() + getEffectPeekDuration(latest.actionType) };
@@ -453,7 +454,7 @@ const GLMapView = ({
     if (!focusRegionId) { focusGate.current.clear(); return; }
     if (!focusGate.current.take(focusRegionId)) return;
     // keep the player's zoom (a phone sits in the close view): only pan, or zoom in to the city
-    const c = latLngOfCity(gameStateRef.current, focusRegionId);
+    const c = knownLatLngOfCity(gameStateRef.current, focusRegionId);
     if (c) fly(c.lat, c.lng, focusZoomFor(transformRef.current.k, INITIAL_FOCUS_ZOOM, ZOOM_MAX));
   }, [focusRegionId, fly, focusOnLatLng, ZOOM_MAX]);
   useEffect(() => {

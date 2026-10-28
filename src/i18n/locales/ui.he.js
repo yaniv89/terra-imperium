@@ -19,5 +19,6 @@ import chronicle from './ui/chronicle.he';
 import challenge from './ui/challenge.he';
 import glossary from './ui/glossary.he';
 import crisis from './ui/crisis.he';
+import sweep from './ui/sweep.he';
 
-export default { ...hud, ...result, ...pre, ...left, ...nation, ...ind, ...misc, ...region, ...city, ...pnl1, ...pnl2, ...mapx, ...misc2, ...decree, ...ruler, ...chronicle, ...challenge, ...glossary, ...crisis };
+export default { ...hud, ...result, ...pre, ...left, ...nation, ...ind, ...misc, ...region, ...city, ...pnl1, ...pnl2, ...mapx, ...misc2, ...decree, ...ruler, ...chronicle, ...challenge, ...glossary, ...crisis, ...sweep };

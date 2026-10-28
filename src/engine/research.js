@@ -16,10 +16,10 @@
 // The player's research lives on state.research and state.techTree; an AI nation's on
 // nation.research and nation.tech. Both use the same step (applyResearchTurn below), run at the
 // very end of resolveTurn, after this turn's income has been credited.
-import { applyBoosts } from './boosts';
+import { applyBoosts, boostOf, nationFacts } from './boosts';
 import { BOOSTS, BOOST_SHARE } from '../data/boosts';
 import { TECH_TREE, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
-import { AGES, AGE_ORDER, getAgeIndex, speedCostMult } from '../data/ages';
+import { AGES, AGE_ORDER, getAgeIndex, speedCostMult, nextAgeId } from '../data/ages';
 import { grantRenown, techRenown } from './renown';
 import { DOCTRINE_TECH_CATEGORY_PRIORITY } from '../data/nations';
 import { LogTypes } from '../data/types';
@@ -32,6 +32,9 @@ import { awardEraLegacy } from './eraGoals';
 import { withLandmark, aiLandmark } from './ageLandmarks';
 import { isIndependentNation } from '../data/independents';
 import { AGRICULTURE_TECH } from '../data/hearths';
+import { UNIT_UNLOCKS } from '../data/unitClasses';
+import { BUILDING_CATEGORIES } from '../data/buildings';
+import { IMPROVEMENTS } from '../data/tileYields';
 
 // Science cost of one tech, by its age, before the speed multiplier. With no calendar and no year
 // gate (eight-ages plan KTD4) these alone pace the ages, calibrated with the balance-sim (U17,
@@ -145,6 +148,51 @@ export const suggestTechs = (state, nationId, count = 3, researched = researched
     .map((t) => t.id);
 };
 
+// What a tech unlocks that a nation of age `ageId` can use: unit classes of its age or the next
+// (UNIT_UNLOCKS), building tiers and tile improvements. Laws are listed by the UI (researchView.js).
+export const techUnlockCounts = (techId, ageId) => {
+  const next = nextAgeId(ageId);
+  const units = [ageId, next].filter(Boolean).flatMap((a) => Object.keys(UNIT_UNLOCKS[a] || {}).filter((c) => UNIT_UNLOCKS[a][c] === techId).map((c) => ({ ageId: a, classId: c })));
+  const buildings = Object.values(BUILDING_CATEGORIES).reduce((n, def) => n + def.tiers.filter((t) => t.requiresTech === techId).length, 0);
+  const improvements = Object.values(IMPROVEMENTS).filter((i) => i.requiresTech === techId).length;
+  return { units, buildings, improvements };
+};
+
+// The player's advisor (tech-depth lane). Civ VI's advisor marks one tech "recommended" and its
+// eurekas make a tech you have earned 40% cheaper; Humankind scores a pick by what it opens now.
+// Among the techs suggestTechs would offer (startable, the earliest age first, Agriculture first for
+// foragers), a tech scores for: its boost earned (met, or paid and the tech not finished: Civ VI's
+// "chase the eureka you have"), a new unit while at war, anything it unlocks, the research focus
+// line. Ties go to the least science left (diffusion, a paid boost), then suggestTechs' order.
+// Returns [{ techId, reasons }] best first; reasons are codes the UI words: 'boost', 'warUnit',
+// 'unlock', 'focus'. Pure and deterministic. The AI keeps suggestTechs (its pace is calibrated).
+export const RECOMMEND_WEIGHTS = { boost: 3, warUnit: 2, unlock: 1, focus: 1 };
+export const recommendTechs = (state, nationId, count = 3, researched = researchedSetOf(state, nationId), ageId = techAgeOf(state, nationId), research = researchOf(state, nationId)) => {
+  const order = suggestTechs(state, nationId, Infinity, researched, ageId);
+  if (!order.length) return [];
+  const facts = nationFacts(state, nationId);
+  const atWar = (state.wars || []).some((w) => w.active && (w.aggressor === nationId || w.enemy === nationId));
+  const focus = isPlayer(state, nationId) ? state.researchFocus : null;
+  const scored = order.map((techId, rank) => {
+    const tech = TECH_TREE[techId];
+    const boost = boostOf(state, nationId, techId, facts, research);
+    const unlocks = techUnlockCounts(techId, ageId);
+    const reasons = [];
+    if (boost && (boost.met || boost.taken)) reasons.push('boost'); // met: paid at the end of this turn; taken: paid, the tech not finished
+    if (atWar && unlocks.units.some((u) => u.ageId === ageId)) reasons.push('warUnit');
+    if (unlocks.units.length || unlocks.buildings || unlocks.improvements) reasons.push('unlock');
+    if (focus && tech.category === focus) reasons.push('focus');
+    const score = reasons.reduce((n, r) => n + RECOMMEND_WEIGHTS[r], 0);
+    return { techId, reasons, score, age: getAgeIndex(tech.ageId), rank, left: getResearchCost(state, nationId, techId) - (research.progress?.[techId] || 0) };
+  });
+  // Agriculture keeps its place for a forager (its first pick in suggestTechs); everything else ranks by score within its age.
+  const pinned = order[0] === AGRICULTURE_TECH && !researched.has(AGRICULTURE_TECH) ? AGRICULTURE_TECH : null;
+  return scored
+    .sort((a, b) => (b.techId === pinned) - (a.techId === pinned) || a.age - b.age || b.score - a.score || a.left - b.left || a.rank - b.rank)
+    .slice(0, count)
+    .map(({ techId, reasons }) => ({ techId, reasons }));
+};
+
 // Turns to finish `techId` at `sciencePerTurn` (Infinity with no science).
 export const turnsToResearch = (state, nationId, techId, sciencePerTurn) => {
   const research = researchOf(state, nationId);
@@ -215,7 +263,9 @@ export const stepResearch = (state, nationId) => {
       if (researched.has(id) || !TECH_TREE[id]) { research.queue.shift(); continue; }
       return canStartTech(id, researched, techAgeId).ok ? research.queue.shift() : null; // the next one isn't ready yet: wait
     }
-    return auto ? suggestTechs(state, nationId, 1, researched, techAgeId)[0] || null : null;
+    if (!auto) return null;
+    // The player's advisor picks what it recommends (recommendTechs); the AI keeps suggestTechs.
+    return (isPlayer(state, nationId) ? recommendTechs(state, nationId, 1, researched, techAgeId, research)[0]?.techId : suggestTechs(state, nationId, 1, researched, techAgeId)[0]) || null;
   };
   while (stock > 0 && completed.length < MAX_COMPLETIONS_PER_TURN) {
     if (!research.current || researched.has(research.current) || !canStartTech(research.current, researched, techAgeId).ok) {

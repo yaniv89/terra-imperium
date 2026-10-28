@@ -3,12 +3,12 @@
 // and the Research Map button):
 //   the hint    "what to do here", set by showMapHint (uiEvents.js) when a Research boost sends you
 //               to the map, with a way back to Research and a Done button
-//   the tracker the era goals as one chip ("Goals 1/2"); open, each goal has its bar, the legacy it
+//   the tracker the era goals as one chip naming the goal closest to done ("Goal: 2/4 cities"); open, each goal has its bar, the legacy it
 //               gives and what to do next (data/eraGoals.js). Closed by default so the map stays clear.
 import React, { useEffect, useMemo, useState } from 'react';
 import { Target, X } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
-import { eraGoalProgress } from '../../engine/eraGoals';
+import { eraGoalProgress, nextGoal } from '../../engine/eraGoals';
 import { GOAL_NEXT_ACTION, ERA_LEGACY_TURNS } from '../../data/eraGoals';
 import { AGES } from '../../data/ages';
 import { MAP_HINT } from '../ui/uiEvents';
@@ -30,6 +30,9 @@ const MapGoals = () => {
     return () => window.removeEventListener(MAP_HINT, on);
   }, []);
   const era = useMemo(() => eraGoalProgress(state), [state]);
+  // The chip names the goal closest to done (Polytopia keeps its goals on one screen; lane
+  // turn-pacing: "Goals 0/2" said nothing about what to do next).
+  const next = nextGoal(era);
   // The hint is a notice (useExclusivePanel.js): on a phone it waits as a chip while a card or a
   // panel has the screen.
   const { shown: hintShown } = useInteraction('map-hint', !!hint, { priority: PRIORITY.notice, kind: 'notice', label: hint ? tNow('wait.mapHint', { title: hint.title }) : null, testId: 'map-hint-chip' });
@@ -51,7 +54,9 @@ const MapGoals = () => {
       )}
       <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} data-testid="goal-tracker-chip"
         className="relative before:content-[''] before:absolute before:-inset-y-1 before:inset-x-0 pointer-events-auto min-h-[36px] inline-flex items-center gap-1.5 px-2.5 rounded-full bg-fa-panel/90 border border-fa-line text-[12px] text-fa-text">
-        <Target size={14} aria-hidden="true" />{t('goals.title')} <span className="fa-num">{era.met}/{era.needed}</span>
+        <Target size={14} aria-hidden="true" />
+        {next ? <span>{t('goals.chipNext', { value: Math.min(next.value, next.target), target: next.target, unit: goalUnit(next.id, next.unit) })}</span>
+          : <>{t('goals.title')} <span className="fa-num">{era.met}/{era.needed}</span></>}
       </button>
       {open && (
         <div className={`pointer-events-auto fa-panel !bg-fa-panel shadow-xl p-2 ${wide} max-h-[calc(100dvh-8rem)] overflow-y-auto space-y-1.5`} data-testid="goal-tracker">

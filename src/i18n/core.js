@@ -47,6 +47,10 @@ export const setCurrentLanguage = (id) => {
   return changed;
 };
 
+// A signed number ("+10%", "-3", "+1.5Kg") in right-to-left text, isolated left to right: bidi would
+// put its sign on the wrong side ("11+"). Only a sign after a space, a bracket or a colon is a sign.
+export const isolateSigned = (text) => String(text).replace(/(^|[\s(:[\u2068])([+\-\u2212]\d[\d.,]*[%KMg]?)/g, '$1\u2066$2\u2069');
+
 // {name} -> value. A name with no value is left as written, so a gap is visible.
 // A "%" right after a left-to-right isolate ("{v}%" with v = isolateLtr("-3")) goes inside it, or
 // Hebrew shows "%-3" (phone pass).
@@ -67,27 +71,16 @@ const lookup = (key, lang, vars) => {
     const hit = table[`${key}.${form}`] ?? table[`${key}.other`];
     if (hit !== undefined) return hit;
   }
-  return table[key];
-};
-
-// Right to left, a bare signed number ("+5", "-3", "-12%") as a value keeps its sign in front only
-// inside a left-to-right isolate (Hebrew showed "5+", phone pass).
-const SIGNED = /^[+\-\u2212][\d.,]+%?$/;
-const isolateSigned = (vars) => {
-  if (!vars) return vars;
-  let out = null;
-  for (const k of Object.keys(vars)) {
-    const v = vars[k];
-    if ((typeof v === 'number' && v < 0) || (typeof v === 'string' && SIGNED.test(v))) { out = out || { ...vars }; out[k] = `\u2066${v}\u2069`; }
-  }
-  return out || vars;
+  // a plural key asked without a usable count (none, or Infinity) reads its general form, never the bare key
+  return table[key] ?? table[`${key}.other`];
 };
 
 /** The text for `key` in `lang` (default: the current language). English is the fallback. */
 export const translate = (key, vars, lang = current) => {
   if (showKeys()) return key;
   const text = lookup(key, lang, vars) ?? lookup(key, 'en', vars);
-  return text === undefined ? key : fill(text, isRtl(lang) ? isolateSigned(vars) : vars);
+  if (text === undefined) return key;
+  return isRtl(lang) ? isolateSigned(fill(text, vars)) : fill(text, vars);
 };
 export const t = (key, vars) => translate(key, vars, current);
 export const hasKey = (key, lang) => lookup(key, lang, null) !== undefined || lookup(key, lang, { count: 1 }) !== undefined;
@@ -112,7 +105,7 @@ export const formatYear = (year, lang = current) => {
 export const dataText = (key, english, vars, lang = current) => {
   if (lang !== 'he') return english;
   const hit = dataHe[key];
-  return hit === undefined ? english : fill(hit, vars);
+  return hit === undefined ? english : isolateSigned(fill(hit, vars));
 };
 export const hasDataText = (key, lang = 'he') => lang === 'he' && dataHe[key] !== undefined;
 export const dataTable = (lang = 'he') => (lang === 'he' ? dataHe : {});

@@ -51,9 +51,17 @@ const placeKnown = (state, place) => {
 };
 
 /**
+ * The lat/lng of city `id` only when the player has explored its tile, else null. An action's
+ * effect (a pact, a gift: NationCard triggers it toward the other people's capital) pans the map
+ * through this: a capital the player has never seen is fog, and the camera used to land there and
+ * leave the whole screen dark (playtest issue 8).
+ */
+export const knownLatLngOfCity = (state, id, opts = {}) => (placeKnown(state, { regionId: id }) ? latLngOfCity(state, id, opts) : null);
+
+/**
  * Where the camera goes for a list of places, first found wins, then the player's selected army's
  * tile (`selectedArmyTile`), then the player's capital. { lat, lng, from } or null (stay put).
- * `from` says which one: 'place' (with `index`), 'army' or 'capital'.
+ * `from` says which one: 'place' (with `index`, and the place's `tile` for the map to outline), 'army' or 'capital'.
  * A place on a tile the player has not explored is skipped (the camera would land in black fog,
  * mobile audit H-19); with fog off every tile counts as explored.
  */
@@ -61,7 +69,7 @@ export const cameraTarget = (state, places = [], { selectedArmyTile = null, ...o
   const list = Array.isArray(places) ? places : [places];
   for (let i = 0; i < list.length; i++) {
     const ll = latLngOfPlace(state, list[i], opts);
-    if (ll && placeKnown(state, list[i])) return { ...ll, from: 'place', index: i };
+    if (ll && placeKnown(state, list[i])) return { ...ll, from: 'place', index: i, tile: list[i].tile ?? state?.regions?.[list[i].regionId]?.tile ?? null };
   }
   const army = selectedArmyTile != null ? latLngOfTile(selectedArmyTile, opts.tiles) : null;
   if (army) return { ...army, from: 'army' };

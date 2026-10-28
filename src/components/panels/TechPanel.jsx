@@ -23,7 +23,7 @@ import { ageIconUrl } from '../../data/icons';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes, TechCategories } from '../../data/types';
-import { getTechsByCategory } from '../../data/techTree';
+import { getTechsByCategory, TECH_TREE } from '../../data/techTree';
 import { ACTION_COSTS, FUND_SCHOLARS_TECHPOINTS } from '../../data/actionCosts';
 import { getNationCapital } from '../../data/regions';
 import { isAgeBefore } from '../../data/ages';
@@ -37,7 +37,7 @@ import { setMapLens, showMapHint } from '../ui/uiEvents';
 import { focusPlace } from '../map/marchEvents';
 import { openPanelTab, closePanels } from './panelEvents';
 import { advisorPlan, scholarsPreview } from '../../engine/researchStatus';
-import { describeTech, formatTurns, formatEta, techInfo, techGraph, GRAPH_NODE_W, GRAPH_NODE_H } from './researchView';
+import { describeTech, formatTurns, formatEta, techInfo, techGraph, recommendedTechs, GRAPH_NODE_W, GRAPH_NODE_H } from './researchView';
 import { researchSheetModel } from './researchSheetModel';
 import { techName, boostLabel, playstyleName, goalUnit, goalBonus } from '../../i18n/gameText';
 import { dataText, ageName } from '../../i18n/core';
@@ -56,7 +56,7 @@ const SCIENCE = 'var(--fa-science)';
 // A leading signed number in a Hebrew bonus phrase ("+10% gold") stays left to right.
 const signed = (text) => String(text || '').replace(/^([+-]\d+%?)/, (m) => isolateLtr(m));
 
-const TechRow = ({ info, onResearch, onQueue }) => {
+const TechRow = ({ info, onResearch, onQueue, recommended }) => {
   const { tech, researched, current, queuedAt, canStart, reasonText, cost, turns, share, diffusion, boost, mapEffect, unlocks } = info;
   const status = researched ? tNow('p2.tr.known') : current ? tNow('p2.tr.researching', { turns: formatTurns(turns) }) : queuedAt >= 0 ? tNow('p2.tr.queued', { n: queuedAt + 2 }) : canStart ? tNow('p2.tr.costTurns', { cost, turns: formatTurns(turns) }) : info.gateText ? `${reasonText}: ${info.gateText}` : reasonText;
   const diffusionNote = !diffusion || researched ? '' : diffusion.pioneer ? tNow('p2.tr.pioneer')
@@ -81,6 +81,7 @@ const TechRow = ({ info, onResearch, onQueue }) => {
       {unlocks?.length > 0 && <div className="text-[11px] text-fa-text" data-testid="tech-unlocks">{tNow('p2.tr.unlocks', { list: unlocks.join(', ') })}</div>}
       {mapEffect && <div className="text-[11px] text-fa-you" data-testid="tech-map-effect">{tNow('p2.tr.map', { text: dataText(`mapfx.${tech.id}`, mapEffect) })}</div>}
       {boost && <div className={`text-[11px] ${boost.taken ? 'text-fa-good' : boost.met ? 'text-fa-good' : 'text-fa-muted'}`} data-testid="tech-boost">{tNow('p2.tr.boost', { label: boostLabel(tech.id, boost.label), tail: boost.taken ? tNow('p2.tr.taken') : boost.met ? tNow('p2.tr.met') : '' })}</div>}
+      {recommended && <div className="text-[11px] text-fa-brass" data-testid="tech-recommended">{recommended}</div>}
       {current && <Meter value={share} max={1} color={SCIENCE} />}
     </div>
   );
@@ -214,6 +215,8 @@ const TechPanel = () => {
   const { triggerEffect } = useEffects();
   const categories = getTechsByCategory();
   const m = useMemo(() => researchSheetModel(state), [state]);
+  // The advisor's top pick wears its reason in the lines (Civ VI's "recommended" mark).
+  const top = useMemo(() => { const planned = [state.research?.current, ...(state.research?.queue || [])]; return recommendedTechs(state, 4).find((r) => !planned.includes(r.techId)) || null; }, [state]);
   const science = m.science;
   const [web, setWeb] = useState(false); // the research web (plan C3.1) or the lines as lists
   // The web's jump strip: a fully known past age is one thin column until its strip cell is tapped.
@@ -283,6 +286,18 @@ const TechPanel = () => {
                 </span>
               ))}
             </div>
+            {top && (
+              <div className="fa-card flex items-center gap-2 ps-3 pe-1.5 py-1.5 min-h-[48px]" data-testid="research-recommend">
+                <Sparkles className="w-4 h-4 shrink-0 text-fa-brass" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[13px] font-semibold leading-tight truncate">{techName(top.techId, TECH_TREE[top.techId]?.name)} <span className="fa-num text-[11px] text-fa-muted font-normal">{formatTurns(techInfo(state, top.techId, science).turns)}</span></div>
+                  <div className="text-[11px] leading-snug text-fa-brass">{top.text}</div>
+                </div>
+                {state.research?.current
+                  ? <button type="button" onClick={() => queue(top.techId)} aria-label={tNow('tech.queueAria', { name: techName(top.techId, TECH_TREE[top.techId]?.name) })} title={tNow('tech.addQueue')} className="fa-icon-btn shrink-0"><ListPlus className="w-4 h-4" aria-hidden="true" /></button>
+                  : <Button size="sm" onClick={() => research(top.techId)}>{tNow('tech.research')}</Button>}
+              </div>
+            )}
             <Switch label={tNow('tech.advisor')} hint={m.auto && !m.current ? m.status.note : tNow('tech.advisorHint')} checked={m.auto} onChange={(v) => { const plan = v ? advisorPlan(state) : null; dispatch({ type: ActionTypes.SET_RESEARCH_AUTO, payload: { auto: v } }); if (plan?.techId) dispatch({ type: ActionTypes.RESEARCH_TECH, payload: { techId: plan.techId } }); }} testId="research-auto" />
           </section>
         </div>
@@ -349,7 +364,7 @@ const TechPanel = () => {
         return (
           <CollapsibleSection key={categoryId} title={CATEGORY_LABELS[categoryId]} defaultOpen={categoryId === openCategory} summary={tNow('p2.sec.known', { a: researchedCount, b: techs.length })}>
             <div className="space-y-1.5">
-              {techs.map((tech) => <TechRow key={tech.id} info={techInfo(state, tech.id, science)} onResearch={research} onQueue={queue} />)}
+              {techs.map((tech) => <TechRow key={tech.id} info={techInfo(state, tech.id, science)} onResearch={research} onQueue={queue} recommended={top?.techId === tech.id ? top.text : null} />)}
             </div>
           </CollapsibleSection>
         );

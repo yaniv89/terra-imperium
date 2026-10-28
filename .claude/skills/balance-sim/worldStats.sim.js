@@ -195,6 +195,8 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     nationsAliveShare: +kaplanMeier(lives, [t]).at[t].toFixed(3), leadChanges: counters.leadChanges,
     // Plague: cities carrying the 'plague' mark now, and distinct cities struck so far (the old
     // independent roll in cityDisasters.js and the SIR epidemic in plague.js both set the mark).
+    famineStrikes: counters.famine.strikes, faminePeopleLost: Math.round(counters.famine.lost), famineShareLost: +(counters.famine.shares.reduce((a, b) => a + b, 0) / Math.max(1, counters.famine.shares.length)).toFixed(4),
+    worldPopulation: Math.round(regs.reduce((k, c) => k + (c.currentPopulation || 0), 0)), meanCityFood: +(regs.reduce((k, c) => k + (c.food || 0), 0) / Math.max(1, regs.length)).toFixed(2),
     plagueCitiesNow: regs.filter(isPlagued).length, plagueCitiesStruck: counters.plagued.size,
     // History crises (crises.js): how many started, and the nations they hit that are gone now.
     crises: s.crises?.history?.length || 0, crisisNationsLost: new Set((s.crises?.history || []).flatMap((h) => h.nations).filter((id) => s.nations[id]?.isEliminated)).size,
@@ -204,6 +206,15 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     independentsAlive: nations.filter((n) => n.kind === 'independent' && !n.isEliminated).length,
     majorsAlive: nations.filter((n) => n.kind !== 'independent' && !n.isEliminated && !n.id.startsWith('free_')).length,
     majorCities: regs.filter((r) => r.owner && s.nations[r.owner]?.kind !== 'independent').length,
+    // AI majors' treasuries, land units and buildings (follow-ups 19 and 24: AI gold balance).
+    ...(() => {
+      const ms = nations.filter((n) => n.kind !== 'independent' && !n.isEliminated && !n.id.startsWith('free_') && n.id !== 'rebels' && n.id !== s.playerNationId);
+      const g = ms.map((n) => n.economy?.gold || 0).sort((a, b) => a - b);
+      const units = {}; Object.values(s.units).forEach((u) => { if (u.domain === 'land' && u.classId !== 'settler') units[u.ownerId] = (units[u.ownerId] || 0) + 1; });
+      const blds = {}; regs.forEach((r) => { if (r.owner) blds[r.owner] = (blds[r.owner] || 0) + Object.values(r.buildings?.categories || {}).reduce((a, x) => a + (Number.isFinite(x) ? x + 1 : 0), 0); });
+      const m = (xs) => +(xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length)).toFixed(1);
+      return { aiMajGoldMean: Math.round(m(g)), aiMajGoldMedian: Math.round(g[Math.floor(g.length / 2)] || 0), aiMajGoldMax: Math.round(g.at(-1) || 0), aiMajUnitsMean: m(ms.map((n) => units[n.id] || 0)), aiMajBuildingsMean: m(ms.map((n) => blds[n.id] || 0)) };
+    })(),
     // Techs of the median AI major (medianAiTechs above counts the independents too), and AI sallies (I125).
     medianMajorTechs: (() => { const n = nations.filter((x) => !x.isPlayer && !x.isEliminated && x.kind !== 'independent' && !x.id.startsWith('free_') && x.id !== 'rebels').map((x) => (x.tech?.researched || []).length).sort((a, b) => a - b); return n[Math.floor(n.length / 2)] || 0; })(),
     sallies: s.indepStats?.sallies || 0, salliesIndep: s.indepStats?.salliesIndep || 0, salliesWon: s.indepStats?.salliesWon || 0,
@@ -272,7 +283,7 @@ SEEDS.forEach((seed) => {
     const telemetry = createTelemetry({ playerId: s.playerNationId, isIndependent: isIndependentNation, authorityOf, getOverextension, metNations, getTiles, traceFile: TRACE_WARS, writeLine: traceStream == null ? null : (line) => fs.writeSync(traceStream, line + '\n') });
     let telemMs = 0;
     s = { ...s, research: { ...s.research, auto: true } }; // the passive player lets its advisor pick research
-    const counters = { leagues: 0, conquests: 0, changedHands: 0, flips: 0, civilWars: 0, leadChanges: 0, plagued: new Set(), pastAt: {}, actions: scripted ? { turns: 0, turns100: 0, gap: 0, maxGap: 0, maxGap100: 0, over5: 0, techsPrev: null } : null };
+    const counters = { leagues: 0, conquests: 0, changedHands: 0, flips: 0, civilWars: 0, leadChanges: 0, plagued: new Set(), famine: { strikes: 0, lost: 0, shares: [] }, pastAt: {}, actions: scripted ? { turns: 0, turns100: 0, gap: 0, maxGap: 0, maxGap100: 0, over5: 0, techsPrev: null } : null };
     const logSum = (l) => l.queued + l.settled + l.events + l.peace + l.defenses + l.joins + l.demands.length + l.tribute.length + (l.rushes || 0);
     const techCount = (st) => Object.values(st.techTree || {}).filter((x) => x.researched).length;
     // One life per nation alive at the start; a nation that dies and comes back starts a new life.
@@ -307,6 +318,11 @@ SEEDS.forEach((seed) => {
       s = resolveTurn(s);
       if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null };
       if (s.activeEventId) s = { ...s, activeEventId: null }; // a crisis story (crises.js) left unanswered
+      // A famine crisis (crises.js): its hit nations' people the turn before it struck vs the turn after
+      // (resolveTurn rewrites the people number each turn, so the strike turn's own number is not comparable).
+      { const f = counters.famine; const pop = (st, hit) => Object.values(st.regions).filter((c) => hit.has(c.owner)).reduce((k, c) => k + (c.currentPopulation || 0), 0);
+        if (f.open) { const lost = f.open.before - pop(s, f.open.hit); f.strikes += 1; f.lost += lost; f.shares.push(lost / Math.max(1, f.open.before)); f.open = null; }
+        const h = s.crises?.history?.at(-1); if (h && h.turn === s.turnNumber && h !== pre.crises?.history?.at(-1) && h.id === 'little_ice_age') { const hit = new Set(h.nations); f.open = { hit, before: pop(pre, hit) }; } }
       const tm0 = performance.now(); telemetry.observe(pre, s); telemMs += performance.now() - tm0;
       turnsSince += 1;
       // The share of living majors past an age at that age's target end turn (SC4); the leader gap

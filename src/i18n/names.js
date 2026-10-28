@@ -166,11 +166,15 @@ export const nameOf = (kind, id, english, lang) => (lang === 'he' ? hebrewName(k
 /** nameOf in the current language, for view models that are not components (they rebuild when the language changes). */
 export const nameNow = (kind, id, english) => nameOf(kind, id, english, getLanguage());
 
+// A one-word Hebrew plural in -ים joins the people's name in the construct state, as a native
+// speaker says it: ציידים -> ציידי אכד. Anything else keeps "של": "חיל רגלים של אכד".
+const constructOf = (baseName, people) => (/^[\u05d0-\u05ea]+ים$/.test(baseName) ? `${baseName.slice(0, -2)}י ${people}` : `${baseName} של ${people}`);
+
 /** A unit's regiment name in the current language: "3rd Akkadian Spearmen" in English; in Hebrew
- * "<unit> של <people> (גדוד 3)". `baseName` is the unit's name already in the current language. */
+ * "ציידי אכד (גדוד 3)". `baseName` is the unit's name already in the current language. */
 export const regimentLabel = (english, peopleId, baseName, regiment) => {
   if (getLanguage() !== 'he') return english;
   const people = HE_PEOPLES[peopleId];
   if (!people) return baseName;
-  return `${baseName} של ${people}${regiment ? ` (גדוד ${regiment})` : ''}`;
+  return `${constructOf(baseName, people)}${regiment ? ` (גדוד ${regiment})` : ''}`;
 };

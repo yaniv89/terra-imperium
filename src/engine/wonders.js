@@ -15,6 +15,7 @@ import { tileFacts } from '../data/tileYields';
 import { getAgeIndex } from '../data/ages';
 import { ageOf } from './nationState';
 import { GREAT_PROJECTS, GREAT_PROJECT_TIER_COST, meetsSiteRule } from '../data/greatProjects';
+import { reasonOf, sub, thing } from './messages';
 
 export const WONDER_PRODUCTION_PER_TURN = 25;
 export const WONDER_TILE_RULES = {
@@ -47,25 +48,28 @@ export const wonderSites = (state, city, projectId) => {
   return (city.tiles || []).filter((t) => t !== city.tile && tiles.land[t] === 1 && !tileState[t]?.wonder && (!homeland || onHomeland(t, homeland, state.scenario?.sites)) && rule.ok(tileFacts(tiles, t, tileState[t]))).sort((a, b) => a - b);
 };
 
+// A homeland in a reason: its own line in the message tables ("Israel's land"), else "its homeland".
+const homelandRef = (project) => sub(project.homeland === 'il' ? 'm.why.homeland.il' : 'm.why.homeland.any');
+
 /** Can `city` queue tier `tier` of `projectId` now? { ok, reason, tile }. */
 export const canQueueWonder = (state, city, projectId, tier = 1, nationId = state.playerNationId) => {
   const project = GREAT_PROJECTS[projectId];
-  if (!project || !city) return { ok: false, reason: 'No such wonder.' };
-  if (!city.owner || city.owner !== nationId) return { ok: false, reason: 'Not your city.' };
-  if (getAgeIndex(project.ageId) > getAgeIndex(ageOf(state, nationId))) return { ok: false, reason: `Needs the ${project.ageId} age.` };
+  if (!project || !city) return { ok: false, ...reasonOf('m.why.noWonder') };
+  if (!city.owner || city.owner !== nationId) return { ok: false, ...reasonOf('m.why.notYourCity') };
+  if (getAgeIndex(project.ageId) > getAgeIndex(ageOf(state, nationId))) return { ok: false, ...reasonOf('m.why.needsAge', { age: thing('age', project.ageId, project.ageId) }) };
   const queued = [city.production?.current, ...(city.production?.queue || [])].some((i) => i?.kind === 'wonder' && i.projectId === projectId);
-  if (queued) return { ok: false, reason: 'Already in the queue.' };
+  if (queued) return { ok: false, ...reasonOf('m.why.inQueue') };
   const entry = state.greatProjects?.[projectId];
   if (tier === 1) {
-    if (entry) return { ok: false, reason: 'Already built elsewhere.' };
-    if (!meetsSiteRule(project, city, city.id)) return { ok: false, reason: project.homeland ? `Only a city on ${project.homelandLabel || 'its homeland'} can build it.` : 'The city does not meet its rule.' };
+    if (entry) return { ok: false, ...reasonOf('m.why.builtElsewhere') };
+    if (!meetsSiteRule(project, city, city.id)) return { ok: false, ...(project.homeland ? reasonOf('m.why.homelandOnly', { land: homelandRef(project) }) : reasonOf('m.why.siteRule')) };
     const sites = wonderSites(state, city, projectId);
-    if (!sites.length) return { ok: false, reason: `Needs ${wonderTileRule(projectId).label}${project.homeland ? ` on ${project.homelandLabel || 'its homeland'}` : ''} in the city's border.` };
+    if (!sites.length) return { ok: false, ...reasonOf('m.why.wonderSite', { tile: sub(`m.why.tile.${WONDER_TILE_RULE[projectId] || 'any'}`), on: project.homeland ? sub('m.why.wonderOn', { land: homelandRef(project) }) : '' }) };
     return { ok: true, tile: sites[0] };
   }
-  if (!entry || entry.regionId !== city.id) return { ok: false, reason: 'Not built here.' };
-  if (entry.tier !== tier - 1) return { ok: false, reason: 'Tiers are built in order.' };
-  if (tier > 3) return { ok: false, reason: 'At its last tier.' };
+  if (!entry || entry.regionId !== city.id) return { ok: false, ...reasonOf('m.why.notBuiltHere') };
+  if (entry.tier !== tier - 1) return { ok: false, ...reasonOf('m.why.tierOrder') };
+  if (tier > 3) return { ok: false, ...reasonOf('m.why.lastTier') };
   return { ok: true, tile: entry.tile ?? null };
 };
 

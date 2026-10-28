@@ -1,5 +1,5 @@
-Hebrew audit (he) 2026-10-15T05:56:29.464Z
-screens: 130, with Latin: 6, skipped: 21, unique Latin strings: 2
+Hebrew audit (he) 2026-10-27T20:01:43.048Z
+screens: 117, with Latin: 1, skipped: 25, unique Latin strings: 1
 
 clean   start: people list: 0
 clean   start: start-step-people: 0
@@ -12,6 +12,7 @@ clean   onboarding 3: 0
 clean   onboarding 4: 0
 clean   onboarding 5: 0
 clean   onboarding 6: 0
+clean   onboarding 7: 0
 clean   map: political: 0
 clean   map: lens political: 0
 clean   map: lens yields: 0
@@ -23,6 +24,8 @@ clean   map: lens settle: 0
 clean   map: lens list open: 0
 clean   rail: האימפריה: 0
 SKIPPED rail: האימפריה: tabs: no tabs visible
+LATIN   rail: שליט: 1
+SKIPPED rail: שליט: tabs: no tabs visible
 clean   rail: ערים: 0
 SKIPPED rail: ערים: tabs: no tabs visible
 clean   rail: מחקר: 0
@@ -35,13 +38,8 @@ clean   log: 0
 clean   menu: settings: 0
 SKIPPED menu: tabs: no tabs visible
 clean   city: opened: 0
-clean   city > סקירה: 0
-clean   city > בנייה: 0
-clean   city > אזרחים: 0
-clean   city > מבנים: 0
-clean   city > פוליטיקה: 0
-clean   city > הגנה: 0
-LATIN   research choice: 1
+SKIPPED city: tabs: no tabs visible
+clean   research choice: 0
 clean   tech: lines: 0
 clean   tech: web (tech tree): 0
 SKIPPED first contact: card did not show
@@ -49,30 +47,29 @@ clean   peoples: list: 0
 clean   peoples: nation card: 0
 clean   nation sheet: 0
 SKIPPED nation sheet: tabs: no tabs visible
-clean   event: great_flood_myth: 0
-clean   event: bronze_trade_networks: 0
-clean   event: rise_of_writing: 0
+clean   event: great_migrations: 0
+clean   event: the_horse: 0
+clean   event: the_wheel: 0
 clean   turn report: 0
 clean   tile sheet: free: 0
-clean   tile sheet: own: 0
+SKIPPED tile sheet: own: no such tile found
 clean   tile sheet: water: 0
 clean   tile sheet: foreign: 0
 clean   army sheet: 0
 clean   march bar: start: 0
 clean   march bar: target free: 0
-clean   march bar: target own: 0
 clean   march bar: target water: 0
 clean   march bar: target foreign: 0
 clean   settler sheet (tile with settlers): 0
-SKIPPED settle mode: no choose-a-site button
+clean   settle mode (site card): 0
 clean   settle lens with settlers: 0
 clean   battle: before start (deploy): 0
 clean   battle: HUD: 0
-LATIN   battle: camp (HQ card): 1
-LATIN   battle: all selected: 1
-LATIN   battle: wand: 1
-LATIN   battle: laborers selected: 1
-LATIN   battle: build sheet (laborers selected): 1
+clean   battle: camp (HQ card): 0
+clean   battle: all selected: 0
+clean   battle: wand: 0
+clean   battle: laborers selected: 0
+clean   battle: build sheet (laborers selected): 0
 clean   battle: pause: 0
 clean   battle: retreat card: 0
 clean   battle: result: 0
@@ -87,29 +84,19 @@ clean   title screen: 0
 clean   title: load view: 0
 clean   title: settings: 0
 clean   city build: after queueing: 0
-clean   city buildings: with buildings built: 0
+SKIPPED city-buildings: error: Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'buildings')
 clean   city politics: unrest, devastation, low loyalty: 0
 clean   city defense: under siege: 0
 clean   city overview: under siege: 0
 clean   city citizens: tiles: 0
-clean   mapx: fleet army sheet: 0
-SKIPPED mapx-fleet: error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.
+SKIPPED mapx-fleet: error: Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'forEach')
 clean   mapx: army sheet beside an independent city (siege order, assault): 0
 SKIPPED mapx: army sheet, siege laid: no siege order button
-clean   mapx: army sheet with a merge button: 0
-clean   mapx: army sheet, marching (route, halt the march): 0
-clean   mapx: tile sheet, foreign army at peace (declare war card): 0
-clean   mapx: army sheet beside a city at peace (declare war button): 0
-SKIPPED mapx-marchbar: error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.
-clean   mapx: settle mode, settler tile sheet: 0
-SKIPPED mapx: settle mode, next good site: no next-site button (no known site in reach)
-clean   mapx: settle lens legend: 0
-clean   mapx: settle mode, blocked site (too close): 0
-clean   mapx: settle mode, foreign land (no city here): 0
-clean   mapx: tile sheet, settlers on their way (arrive, Cancel): 0
-clean   mapx: tile sheet, settler status line (heading for): 0
+SKIPPED mapx-route: error: Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'forEach')
+SKIPPED mapx-peace: error: Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'forEach')
+SKIPPED mapx-marchbar: error: Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'forEach')
+SKIPPED mapx-settle: error: Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'forEach')
 SKIPPED pnl1-empire: error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.
-SKIPPED pnl1-space: error: Error: no Space button on the rail
 SKIPPED pnl1-legacy: error: Error: no Legacy button on the rail
 clean   pnl1 nation overview (rich empire): 0
 clean   pnl1 game over: victory: 0
@@ -133,5 +120,4 @@ clean   turn 12: report: 0
 SKIPPED turns: error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.
 
 Unique Latin strings, with the first screen each appeared on:
-  Mycenae   <research choice>
-  ניקוי הבחירה (Esc)   <battle: camp (HQ card)>
+  A   <rail: שליט>

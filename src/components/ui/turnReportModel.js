@@ -8,8 +8,12 @@
 //   cities    cities founded, taken and lost; growth folded into one line
 //   research  techs learned
 //   news      the other new log lines worth a look (crises, diplomacy, milestones, events)
-// A place is a city id the sheet can jump to, or a nation id for a contact. Quiet turns (nothing
-// but growth and research) are `quiet`, and the sheet does not open by itself for them.
+// A place is a city id the sheet can jump to, or a nation id for a contact. An item `matters` when
+// it is a battle, a raid, a contact, a city founded, taken or lost, a crisis or a fight in the
+// news, a new age, or other news that names the player or one of the player's cities. A turn with
+// nothing that matters (growth, research, other peoples' pacts and milestones) is `quiet`, and the
+// sheet does not open by itself for it (lane turn-pacing: it opened nearly every turn and cost a
+// tap each time; the turn number on the top bar still opens it).
 import { LogTypes } from '../../data/types';
 import { TECH_TREE } from '../../data/techTree';
 import { AGES } from '../../data/ages';
@@ -33,6 +37,18 @@ export const REPORT_GROUPS = [
   { id: 'research', label: 'Research' },
   { id: 'news', label: 'News' }
 ];
+// Does a log line name the player's people or one of the player's cities (by its refs, else its words)?
+const aboutPlayer = (state, line) => {
+  const me = state.playerNationId;
+  const refs = Object.values(line.msgVars || {});
+  if (refs.some((v) => (v?.k === 'people' && v.id === me) || (v?.k === 'city' && state.regions?.[v.id]?.owner === me))) return true;
+  const text = String(line.message || '');
+  const name = state.nations?.[me]?.name;
+  return (!!name && text.includes(name)) || placeIn(state, text)?.mine === true;
+};
+const MATTERS_ALWAYS = new Set(['battles', 'raids', 'contacts']);
+const matters = (i) => MATTERS_ALWAYS.has(i.group) || (i.group === 'cities' && !i.growth) || (i.group === 'news' && !i.unmet && (i.tone !== 'muted' || i.mine));
+
 const groupsIn = (lang) => REPORT_GROUPS.map((g) => ({ ...g, label: translate(`report.group.${g.id}`, null, lang) }));
 
 const RAID_WORDS = /pillag|plunder|raider|raid\b|raids\b|sack/i;
@@ -49,7 +65,7 @@ const placeIn = (state, message) => {
     if (!mine && !isExplored(state, c.tile)) return;
     if (!best || (mine && best.owner !== me) || c.name.length > best.name.length) best = c;
   });
-  return best ? { kind: 'city', id: best.id, name: best.name } : null;
+  return best ? { kind: 'city', id: best.id, name: best.name, mine: best.owner === me } : null;
 };
 
 // A line is "unmet" news when it names a major people the player has not met or a city the player
@@ -121,7 +137,7 @@ export const turnReportModel = (before, after, lang = getLanguage()) => {
     if (RAID_WORDS.test(msg) && (l.type === LogTypes.COMBAT || l.type === LogTypes.CRISIS)) {
       add('raids', { tone: 'danger', title: shown, sub: null, place: placeOf(msg) });
     } else if (NEWS_TYPES.has(l.type) && !/^A new era dawns/.test(msg)) {
-      add('news', { tone: l.type === LogTypes.CRISIS ? 'danger' : l.type === LogTypes.COMBAT ? 'enemy' : 'muted', title: shown, sub: null, place: placeOf(msg) });
+      add('news', { tone: l.type === LogTypes.CRISIS ? 'danger' : l.type === LogTypes.COMBAT ? 'enemy' : 'muted', title: shown, sub: null, place: placeOf(msg), mine: aboutPlayer(after, l) });
     }
   });
 
@@ -185,7 +201,8 @@ export const turnReportModel = (before, after, lang = getLanguage()) => {
   if (ageAfter !== ageBefore) add('news', { tone: 'you', title: tr('report.newAge', { age: lang === 'en' ? (AGES[ageAfter]?.name || ageAfter) : ageName(ageAfter, AGES[ageAfter]?.name || ageAfter) }), sub: null, place: null });
 
   const counts = Object.fromEntries(REPORT_GROUPS.map((g) => [g.id, items.filter((i) => i.group === g.id).length]));
-  const quiet = items.every((i) => i.group === 'research' || i.growth || i.unmet);
+  items.forEach((i) => { i.matters = matters(i); });
+  const quiet = !items.some((i) => i.matters);
   const turns = after.turnNumber - before.turnNumber;
   return {
     title: turns > 1 ? tr('report.titleMany', { from: before.turnNumber, to: after.turnNumber - 1 }) : tr('report.titleOne', { n: before.turnNumber }),
