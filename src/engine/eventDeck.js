@@ -94,10 +94,12 @@ export const nextStory = (state) => {
 export const EVENT_COOLDOWN_TURNS = { template: 14, family: 5, city: 7 };
 export const cooldownTurns = (state, kind) => Math.ceil(EVENT_COOLDOWN_TURNS[kind] * speedCostMult(state.gameSpeed, ageOf(state, state.playerNationId)));
 // A card rests longer each time it is drawn (River Rises four times in a game, round 2): its
-// cooldown is EVENT_COOLDOWN_TURNS.template times (1 + the times it was drawn).
+// cooldown is EVENT_COOLDOWN_TURNS.template times (1 + the times it was drawn), at most
+// REST_GROWTH_MAX + 1 times (uncapped, the last two ages ran out of cards: storyPulse.sim.js).
+export const REST_GROWTH_MAX = 2;
 const onCooldown = (state, key, kind, times = 0) => {
   const last = state.eventHistory?.[key];
-  return last != null && (state.turnNumber || 0) - last < cooldownTurns(state, kind) * (1 + times);
+  return last != null && (state.turnNumber || 0) - last < cooldownTurns(state, kind) * (1 + Math.min(times, REST_GROWTH_MAX));
 };
 
 /** The event history after `event` fired this turn: its card, its family and its city rest. */

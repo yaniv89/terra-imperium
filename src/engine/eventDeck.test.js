@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CARDS, cardOf, drawEvent, cooldownTurns, cardChoice, eraDawnCard, raidAftermathCard, RAID_AFTERMATH_TURNS } from './eventDeck';
+import { CARDS, cardOf, drawEvent, cooldownTurns, cardChoice, eraDawnCard, raidAftermathCard, RAID_AFTERMATH_TURNS, REST_GROWTH_MAX } from './eventDeck';
 import { applyEventEffects } from './applyEventEffects';
 import { factsUsed, predicateMet, factContext } from './predicates';
 import { HISTORICAL_EVENTS } from '../data/events';
@@ -119,7 +119,7 @@ describe('event deck (U26)', () => {
     const seen = {};
     play(s, 300).filter((e) => e.templateId).forEach((e) => {
       const prev = seen[e.templateId];
-      if (prev) expect(e.turn - prev.turn, e.templateId).toBeGreaterThanOrEqual(cd * (1 + prev.n));
+      if (prev) expect(e.turn - prev.turn, e.templateId).toBeGreaterThanOrEqual(cd * (1 + Math.min(prev.n, REST_GROWTH_MAX)));
       seen[e.templateId] = { turn: e.turn, n: (prev?.n || 0) + 1 };
     });
     expect(Object.values(seen).some((x) => x.n > 1)).toBe(true);
