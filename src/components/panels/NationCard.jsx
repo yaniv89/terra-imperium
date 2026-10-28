@@ -9,6 +9,7 @@ import { Target, Gift, Eye, Heart, Users, Crown, Ban, AlertTriangle, ChevronDown
 import { useGame } from '../../context/GameContext';
 import { Chip } from '../ui/atlas';
 import { askConfirm } from '../ui/ConfirmActionDialog';
+import { declareWarModel } from './warActions';
 import { useWhy } from '../ui/WhyTip';
 import { declareWarConfirm } from '../ui/confirmSpecs';
 import TopLayer from '../ui/TopLayer';
@@ -123,6 +124,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
 
   const atWarWithPlayer = isAtWarWithPlayer(state, nation.id);
   const where = peopleWhere(state, nation.id);
+  const warBlock = declareWarModel(state, nation.id)?.blocked || null; // e.g. never seen: no war with nobody to fight
   const marchCity = where.cities.find((c) => c.id === where.march?.target) || (!where.march ? where.cities[0] : null);
   // War score (plan §M13), shown from the player's own perspective regardless of which side of
   // the war record (aggressor/enemy) the player happens to be.
@@ -241,10 +243,11 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
               looksDisabled={!!tribute.reason || !canPay(state, ACTION_COSTS.demand)}
               onClick={() => (tribute.reason ? say(tributeReason) : dispatchIfAffordable(ActionTypes.DEMAND, ACTION_COSTS.demand, { kind: 'tribute', cityId: null }))} />
             <Tile label={t('nc.declareWar')} testId="declare-war"
-              sub={t('nc.declareSub', { cause: justified ? t('nc.cause') : t('nc.noCause'), cost: costLine(declareWarCosts), fighting: theirOtherEnemies.length ? t('nc.alreadyFighting', { list: theirOtherEnemies.join(', ') }) : '' })}
-              looksDisabled={!canPay(state, declareWarCosts) || !!player.vassalOf}
+              sub={warBlock || t('nc.declareSub', { cause: justified ? t('nc.cause') : t('nc.noCause'), cost: costLine(declareWarCosts), fighting: theirOtherEnemies.length ? t('nc.alreadyFighting', { list: theirOtherEnemies.join(', ') }) : '' })}
+              looksDisabled={!canPay(state, declareWarCosts) || !!player.vassalOf || !!warBlock}
               onClick={() => {
                 if (player.vassalOf) return say(t('nc.vassalNoWar'));
+                if (warBlock) return say(warBlock);
                 if (!canPay(state, declareWarCosts)) return dispatchIfAffordable(ActionTypes.DECLARE_WAR, declareWarCosts);
                 // Two taps: the card shows the cost and the opinion hit first (H-08).
                 askConfirm(declareWarConfirm(state, nation.id), () => dispatchIfAffordable(ActionTypes.DECLARE_WAR, declareWarCosts));

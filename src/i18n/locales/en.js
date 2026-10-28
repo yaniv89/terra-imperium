@@ -399,6 +399,8 @@ export default {
   'install.dismiss': 'Dismiss',
   'turn.moves': 'The world moves…',
   'turn.stillWorking': 'Still working…',
+  'turn.advisorAlways': 'Always',
+  'turn.advisorAlwaysTip': 'Let the advisor pick in every city whenever its queue runs dry (change it in a city\'s Build tab)',
   'turn.advisorBuild': 'Advisor builds',
   'turn.advisorBuildMany': 'Advisor builds ({n})',
   'turn.advisorTip': 'Fill every city that has nothing to build with the advisor\'s pick. Change any of them in the city.',

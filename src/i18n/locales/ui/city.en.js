@@ -308,6 +308,8 @@ export default {
   'cy.inQueue': 'In the queue',
   'cy.prodCost': '{cost} production',
   'cy.alreadyDone': '{n} already done',
+  'cy.slowWhy': 'slow here ({production} production a turn): queue it and buy for about {gold} gold',
+  'cy.advisorPick': 'Advisor: {name}',
   'cy.slowHere': 'slow here',
   'cy.needs': 'Needs {name}',
   'cy.needsLower': 'needs {name}',

@@ -45,6 +45,19 @@ Sources: newcomer-phone run 40650969714 (report, diary, shots on `ai/human-playt
    - Rail measured at 844x390: 8 rows of 44x52 px, no scroll and no overlap. The mis-taps look like persona taps on row edges. No change.
    - The city sheet's sideways rows (queue-dry chips, build groups, city tabs) now fade the edge where chips hide. `useScrollHint` sets `data-more` and index.css adds the mask, mirrored in Hebrew.
 
+
+## The lead's five items from the warmonger run 40650973042 (message of 09:09)
+
+1. **Advisor builds before every End Turn.** The dock now shows **Always** beside Advisor builds. One tap gives every city the standing order "advisor picks when the queue runs dry" (city-builds' `SET_PRODUCTION_KEEP 'advisor'`), so the banner stops coming back. Each city's Build tab still changes it. Shot: `after2/dock-map-*`.
+2. **Build list stuck under the banners (step 67).** In the browser the sheet's body scrolls as a whole (243 px visible at 844x390). The dock's Advisor builds button and the Idle chip sat on its lower part, so about one row was free and drags landed on the buttons. Now, on a phone held sideways with a city sheet open, those dock buttons hide (ProvinceModal sets `html[data-city-sheet]`, index.css). The sheet's own queue bar gets an **Advisor: <item>** button when nothing is in production. Shots: `before2/build-idle-*` vs `after2/build-idle-*`.
+3. **Choose production did nothing (step 18).** Pressing "Choose production: X" while X's sheet is already open now queues the advisor's pick for X. Browser check: before, the city's production stayed `null`; after, it is `{ kind: 'settler' }` (`*/build-idle-dockpress-*`).
+4. **War on a people you never saw, and "0 MET".**
+   - `declareWarModel` (warActions.js), read by the nation card, the tile and army sheets and the confirm, now blocks war while you know none of their cities and see none of their armies: "Find them first ... Explore toward them."
+   - This is a UI rule. The reducer still accepts DECLARE_WAR, since the AI's wars go through `declareWar`. Say if you want it as an engine rule.
+   - "0 MET" was the band-start elimination bug above.
+   - Test: confirmSpecs.test.js. Shot: `after2/peoples-war-*`.
+5. **6 to 150 turns with no reason.** Each slow row in the build list now reads "slow here (N production a turn): queue it and buy for about G gold". The price is the same rush price RUSH_PRODUCTION charges (spending.js `rushGold`). The 150-turn quote is this city's production; the same unit is faster in a bigger city. Test: cityBuildModel.test.js.
+
 ## Evidence
 
 - Shots: `plans/ui/newcomer/before/` and `after/`. Covered: 844x390 and 1600x900, en and he, these screens: map-fresh, step-tap, map, glossary, cities, peoples, ruler-virtue, law (after only), build and foreign-unit. Script: `node scripts/ui/newcomer-shots.mjs --tag after --swgl` (dev server on 5197).

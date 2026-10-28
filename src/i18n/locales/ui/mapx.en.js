@@ -15,6 +15,7 @@ export default {
   'mx.tile.attackUnits.two': ' ({count} units)',
   'mx.tile.attackUnits.other': ' ({count} units)',
   'mx.tile.attackMoved': ' (already moved)',
+  'mx.war.unseen': 'Find them first: you have not seen any of their cities or armies. Explore toward them.',
   'mx.tile.seePeople': 'About them (opinion {opinion})',
   'mx.tile.foreignArmy.one': '{name}\'s army here: {count} unit (at peace)',
   'mx.tile.foreignArmy.two': '{name}\'s army here: {count} units (at peace)',

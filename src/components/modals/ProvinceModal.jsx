@@ -90,6 +90,14 @@ const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
   const isShown = open && !!regionId;
   useReportInset('province-panel', isMobile ? 'bottom' : 'left', sheetRef, isShown);
   const [peeking, cancelPeek] = useAutoPeek(isShown && isMobile);
+  // Which city's sheet is open, for the End Turn dock (TurnDock.jsx, index.css): on a phone held
+  // sideways it keeps its Advisor buttons off the build list, and "Choose production" for this city
+  // queues the advisor's pick instead of reopening what is already open (warmonger playtest).
+  useEffect(() => {
+    if (!isShown || typeof document === 'undefined') return undefined;
+    document.documentElement.dataset.citySheet = regionId;
+    return () => { if (document.documentElement.dataset.citySheet === regionId) delete document.documentElement.dataset.citySheet; };
+  }, [isShown, regionId]);
   // Opening the tab panel beside it, or a decision card that arrives, closes this one when both
   // would not leave room for the map (the interaction registry, useExclusivePanel.js). It does not
   // come back by itself: one close returns to the map (playtest audit I155), not to the city's

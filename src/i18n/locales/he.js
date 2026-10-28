@@ -402,6 +402,8 @@ export default {
   'install.dismiss': 'סגירה',
   'turn.moves': 'העולם בתנועה…',
   'turn.stillWorking': 'עדיין עובד…',
+  'turn.advisorAlways': 'תמיד',
+  'turn.advisorAlwaysTip': 'היועץ יבחר בכל עיר בכל פעם שהתור שלה מתרוקן (אפשר לשנות בלשונית הבנייה של העיר)',
   'turn.advisorBuild': 'היועץ בונה',
   'turn.advisorBuildMany': 'היועץ בונה ({n})',
   'turn.advisorTip': 'ממלא כל עיר שאין בה מה לבנות בבחירת היועץ. אפשר לשנות כל אחת בעיר.',

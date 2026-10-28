@@ -23,6 +23,8 @@ import { Lock, Unlock, X, Plus, Coins, Wheat, Hammer, Home, Smile, ArrowUp, Arro
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { getTiles } from '../../data/geo/tiles';
+import { advisorPick } from '../../engine/productionAdvisor';
+import { shortItemLabel } from './cityRailModel';
 import { getResearched, ageOf } from '../../engine/nationState';
 import { stonePhaseOf } from '../../engine/stonePhase';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
@@ -108,6 +110,8 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   const [hintOpen, setHintOpen] = useState(false); // the long-build advice: one line, the rest on a tap
   const [group, setGroup] = useState('All');
   const keepRow = useScrollHint();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const advisorItem = useMemo(() => (city && !city.production?.current && city.owner === state.playerNationId ? advisorPick(state, cityId) : null), [state, cityId]);
   const groupRow = useScrollHint();
   const [openRow, setOpenRow] = useState(null);
   const [tap, setTap] = useState(null);
@@ -304,6 +308,14 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                   : t('cy.pickBelow')}
             </div>
           </div>
+          {/* Nothing in production: the advisor names one buildable thing, one tap queues it (warmonger
+              playtest step 18: "Choose production does nothing, hard to know what I can build"). */}
+          {mine && !current && advisorItem && (
+            <button type="button" onClick={() => dispatch({ type: ActionTypes.ADVISOR_PRODUCTION, payload: { cityId } })} data-testid="city-advisor-pick"
+              className="fa-btn fa-btn-primary min-h-[44px] px-2.5 shrink min-w-0 max-w-[55%] gap-1.5 text-[12px]">
+              <Hammer className="w-4 h-4 shrink-0" aria-hidden="true" /><span className="truncate">{t('cy.advisorPick', { name: shortItemLabel(advisorItem, getTiles(), ageId) })}</span>
+            </button>
+          )}
           {mine && current?.rush?.gold > 0 && (
             <button type="button" onClick={() => setBuyAt((v) => (v === 0 ? null : 0))} aria-expanded={buyAt === 0} data-testid="city-rush-open"
               className={`fa-btn fa-btn-secondary min-h-[44px] px-2 shrink-0 ${current.rush.ok ? '' : 'opacity-60'}`} title={rushText(current)?.title}>
@@ -427,7 +439,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                         {open && o.note && <div className="text-[12px] leading-snug text-fa-muted">{o.note}.</div>}
                         <div className="text-fa-muted text-[12px]">
                           {o.queued > 0 && <span className="text-fa-good me-1">{o.queued > 1 ? t('cy.nInQueue', { n: o.queued }) : t('cy.inQueue')}{o.ok ? ' ·' : ''}</span>}
-                          {o.ok ? <>{R('cy.prodCost', { cost: <span className="fa-num">{o.cost}</span> })} · {turnsText(o.turns)}{o.stored > 0 ? ` · ${t('cy.alreadyDone', { n: Math.round(o.stored) })}` : ''}{o.long && <span className="text-fa-brass"> · {t('cy.slowHere')}</span>}</>
+                          {o.ok ? <>{R('cy.prodCost', { cost: <span className="fa-num">{o.cost}</span> })} · {turnsText(o.turns)}{o.stored > 0 ? ` · ${t('cy.alreadyDone', { n: Math.round(o.stored) })}` : ''}{o.long && <span className="text-fa-brass" data-testid="build-slow"> · {t('cy.slowWhy', { production: o.production, gold: o.buyGold })}</span>}</>
                             : o.queued ? null
                               : o.needsName ? <>{t('cy.needs', { name: o.needsName })}{o.needsEta && <span data-testid="build-needs-eta">, {o.needsEta}</span>} {!o.needsPlanned && <button type="button" onClick={(e) => { e.stopPropagation(); dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } }); }} className="underline text-fa-you min-h-[24px]" data-testid="research-for-item">{t('cy.researchIt')}</button>}</>
                                 : o.note || o.reason}
