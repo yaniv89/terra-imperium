@@ -6,6 +6,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import BattleHud from './BattleHud';
+import { EconomySheet } from './EconomyHud';
 import { coachSteps } from './battleCoach';
 
 const sq = (idx, o = {}) => ({ idx, side: 0, classId: 'infantry', ageId: 'bronze', strength: 50, maxStrength: 100, morale: 80, alive: true, onField: true, fled: false, routed: false, x: 0, y: 0, reserve: false, enterTick: -1, ...o });
@@ -56,7 +57,13 @@ describe('BattleHud', () => {
     expect(btn(idle, 'battle-idle-squads')).toContain('Select the 1 regiments');
     expect(html()).not.toContain('battle-idle-squads');
     const eco = { stock: [100, 100, 100], pop: 5, cap: 10, workers: 2, idleWorkers: [], buildings: [], nodes: [], steward: true };
-    expect(btn(html({ hud: { ...hud, eco }, onSteward: vi.fn() }), 'battle-steward')).toContain('aria-pressed="true"');
+    expect(btn(html({ hud: { ...hud, eco }, onSteward: vi.fn() }), 'battle-economy')).toContain('aria-label="Economy:');
+    const sheet = renderToStaticMarkup(React.createElement(EconomySheet, { eco: { ...eco, preset: 'wood', gathering: [1, 4, 0, 0], popSplit: { army: 3, workers: 2, training: 0 } }, hq: { idx: 0, queue: [{ role: 'worker' }] }, onSteward: vi.fn(), onPreset: vi.fn(), onRebuild: vi.fn(), onTrainLaborer: vi.fn(), onIdle: vi.fn(), onClose: vi.fn() }));
+    expect(btn(sheet, 'battle-steward')).toContain('aria-pressed="true"');
+    expect(btn(sheet, 'battle-economy-preset-wood')).toContain('aria-pressed="true"');
+    expect(sheet).toMatch(/Wood<span[^>]*> 4/); // laborers on wood now
+    expect(sheet).toContain('+1'); // a laborer queued at the camp
+    expect(btn(sheet, 'battle-economy-idle')).toContain('disabled');
     expect(html({ groups: [0, 0, 0, 0], onGroup: vi.fn() })).not.toContain('battle-groups');
     const g = html({ groups: [3, 0, 0, 0], onGroup: vi.fn(), selectedSquads: [hud.squads[0]] });
     expect(g).toContain('data-testid="battle-group-1"');
@@ -157,5 +164,17 @@ describe('BattleHud', () => {
     const done = html({ ended: true });
     expect(done).toContain('data-testid="battle-top-bar"');
     expect(done).not.toContain('data-testid="battle-commands"');
+  });
+});
+
+describe('powers say what they do (lane battle-hud-8)', () => {
+  it('every ability and commander power has a one-line effect in English and Hebrew', async () => {
+    const { POWERS, ABILITIES } = await import('../../battle/sim/effects');
+    const en = (await import('../../i18n/locales/ui/hud.en.js')).default;
+    const he = (await import('../../i18n/locales/ui/hud.he.js')).default;
+    [...Object.keys(POWERS), ...Object.keys(ABILITIES)].forEach((id) => {
+      expect(en[`bt.pdesc.${id}`], id).toBeTruthy();
+      expect(he[`bt.pdesc.${id}`], id).toBeTruthy();
+    });
   });
 });
