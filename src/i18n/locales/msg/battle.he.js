@@ -113,6 +113,7 @@ export default {
   'm.battle.siegeBrokeOurWalls': 'ביצורי {city} נשברו במצור. גרשו את הצרים לפני שיתקפו.',
   'm.battle.fortStopsYou': 'המבצר ליד {place} עוצר את הצבא שלכם: עליו להילחם כדי לעבור.',
   'm.battle.fortStopsThem': 'המבצר שלכם ליד {place} עוצר את צבא {nation}.',
+  'm.battle.fleetOffCoast': 'צי אויב מול {city} ({nation}), ועליו חיילים (גדודים: {n}): הוא יכול לנחות בתור הבא. חזקו את חיל המצב או צאו לקראתו בים.',
   'm.battle.invasionFleetSunk': 'הצי שלכם הטביע את צי הפלישה של {nation} מול חופי {city}.',
   'm.battle.aiAttacksFrom': '{nation} תוקפת מ{from} לעבר {to}.',
   'm.battle.aiPillages': '{nation} בוזזת את אדמות {city} ({place}).',

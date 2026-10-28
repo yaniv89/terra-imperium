@@ -73,6 +73,8 @@ export default {
   'cy.rush.button': 'Buy {gold}g',
   'cy.rush.title': 'Pay {gold} gold for the {hammers} production {label} still needs',
   'cy.rush.text': '{label}: {hammers} production for {gold} gold ({each} gold each). Done next turn, {wait}.',
+  'cy.shipCarries': 'Carries troops: {n} · sails {tiles} sea tiles a turn',
+  'cy.shipPace': 'Carries no troops · sails {tiles} sea tiles a turn',
   'cy.settlerNoSite': 'No good site is known within reach: these settlers would have nowhere worth going. Explore first.',
   'cy.settlerDetail': 'Founds a new city. Takes one citizen from this one.',
   'cy.settlerMin': 'The city must reach size {n} first',

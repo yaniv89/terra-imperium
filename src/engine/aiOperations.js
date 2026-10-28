@@ -24,8 +24,11 @@ import { ACTION_COSTS } from '../data/actionCosts';
 import { landUnitsByTile } from './sieges';
 import { threatenedCities, besiegerStacksBeside, pillageTile, threatOf, THREAT_DEFEND_RATIO } from './threat';
 import { playerRouteTiles } from './plunder';
-import { ringsAround } from './world/cities';
+import { ringsAround, hasSeaCoast } from './world/cities';
 import { enemyFleetsAt, AI_FLEET_ATTACK_RATIO, validateFleetAttack } from './navalBattle';
+import { findSeaPath, fleetPace, atSea, touchesCoastOf } from './fleets';
+import { navalLineOf } from '../data/navalLines';
+import { distanceKm } from '../data/geo/geodesic';
 import { estimateBattle } from './lanchester';
 import { getTotalDev } from './development';
 import { getDefenseLevelDamageReductionMultiplier, hasMeleeUnitDeployed } from './siege';
@@ -814,12 +817,36 @@ export const processIndependentOps = (state, nationId, rng) => {
 
 // Island fronts need real paid transports and cargo. Shared actions retain interception,
 // reach, transport capacity, supply costs and the same landing aftermath as player orders.
+// Voyages (lane naval-8, the Total War way): a fleet sails tile by tile (routes.js sailFleet) to the
+// waters off its target, stands there a turn and lands the next, so every landing is seen coming and
+// the defender's fleets beside that coast meet it (aiLanding.js). A warship with no troops to carry
+// blockades the target (fleets.js isBlockaded). Fleets with nothing to do go home, and at peace.
 export const processAINavalOperations = state => {
   let next=state;
+  const tiles=getTiles();
+  const T=next.turnNumber;
+  const shipsOf={};
+  Object.values(next.units).forEach(u=>{ if(u.domain==='naval')(shipsOf[u.ownerId]||=[]).push(u.id); });
   for(const id of Object.keys(next.nations).sort()){
     if(id===state.playerNationId || next.nations[id].isEliminated)continue;
     const enemies=new Set(next.wars.filter(w=>w.active&&(w.aggressor===id||w.enemy===id)).map(w=>w.aggressor===id?w.enemy:w.aggressor));
-    if(!enemies.size)continue;
+    if(!enemies.size&&!shipsOf[id])continue;
+    const walk=fleet=>{ const units={...next.units}; advanceMarches({...next,playerNationId:id},units,{year:next.year,only:new Set([fleet.id])}); next={...next,units}; return next.units[fleet.id]; };
+    const sailTo=(fleet,to)=>{
+      const view={...next,playerNationId:id};
+      const found=findSeaPath(view,unitTile(next,fleet),to,id);
+      if(!found.path)return false;
+      const units={...next.units,[fleet.id]:{...next.units[fleet.id],route:found.path.slice(1),routePace:fleetPace(next,fleet),routeHalt:null}};
+      advanceMarches(view,units,{year:next.year,only:new Set([fleet.id])});
+      next={...next,units};
+      return true;
+    };
+    // Home is its last port, or (that port lost) the nearest own sea port a path reaches.
+    const home=fleet=>{
+      const at=tiles.centres[unitTile(next,fleet)];
+      const own=Object.values(next.regions).filter(c=>c.owner===id&&c.tile!=null&&!c.outpost&&hasSeaCoast(tiles,c)).sort((a,b)=>(b.id===fleet.regionId)-(a.id===fleet.regionId)||distanceKm(at,tiles.centres[a.tile])-distanceKm(at,tiles.centres[b.tile])||a.id.localeCompare(b.id));
+      for(const c of own.slice(0,3))if(sailTo(fleet,c.tile))return;
+    };
     const actor=()=>({...next,playerNationId:id,resources:getPool(next,id),techAgeId:getTechAgeId(next,id)});
     const apply=action=>{
       const before=actor(),after=gameReducer(before,action);
@@ -827,11 +854,13 @@ export const processAINavalOperations = state => {
       // was written as if to the player, four a turn in the player's log (playtest 4 P4-M4).
       if(after===before||(after.units===before.units&&after.regions===before.regions&&after.wars===before.wars))return false;
       // The reducer ran as this nation: a battle report it wrote names the AI as "the player". Keep
-      // only the battles the real player fought, seen from their side (battleReports.js).
+      // only the battles the real player fought, seen from their side (battleReports.js). Its log lines
+      // are in the AI's voice too ("Your amphibious assault on Sinope was repelled", playtest round 2):
+      // every action here is AI against AI (the player's battles are queued), so none reach the log.
       const me=state.playerNationId;
       const fresh=(after.battleReports||[]).slice(0,(after.battleReportSeq||0)-(before.battleReportSeq||0)).filter(b=>b.attackerNationId===me||b.defenderNationId===me).map(b=>({...b,playerSide:b.attackerNationId===me?'attacker':'defender'}));
       const reports=fresh.length?[...fresh,...(next.battleReports||[])].slice(0,(after.battleReports||[]).length||fresh.length):next.battleReports;
-      next={...next,regions:after.regions,units:after.units,wars:after.wars,world:after.world,rngSeed:after.rngSeed,nextUnitSeq:after.nextUnitSeq,hiredCommanders:after.hiredCommanders,nations:{...after.nations,[id]:{...after.nations[id],economy:after.resources}},logs:after.logs,battleReports:reports,battleReportSeq:after.battleReportSeq,lastBattleReport:fresh.length?after.lastBattleReport:next.lastBattleReport};
+      next={...next,regions:after.regions,units:after.units,wars:after.wars,world:after.world,rngSeed:after.rngSeed,nextUnitSeq:after.nextUnitSeq,hiredCommanders:after.hiredCommanders,nations:{...after.nations,[id]:{...after.nations[id],economy:after.resources}},logs:next.logs,battleReports:reports,battleReportSeq:after.battleReportSeq,lastBattleReport:fresh.length?after.lastBattleReport:next.lastBattleReport};
       return true;
     };
     const aiFleetAttack=(fleet)=>{
@@ -858,29 +887,72 @@ export const processAINavalOperations = state => {
     };
     const coast=Object.keys(next.regions).filter(r=>enemies.has(next.regions[r].owner)&&isCoastal(r)).sort();
     const ports=getOwnedRegionIds(next.regions,id).filter(isCoastal).sort();
-    if(!coast.length || !ports.length)continue;
+    if(!coast.length || !ports.length){
+      // Nothing to fight at sea: under way sails on, at sea goes home, in port the troops step ashore.
+      for(const fid of shipsOf[id]||[]){
+        let f=next.units[fid];
+        if(!f || !(f.strength>0))continue;
+        if(f.route?.length){ if(f.marchedTurn!==T)f=walk(f); continue; }
+        if(atSea(next,f)){ home(f); continue; }
+        for(const u of Object.values(next.units))if(u.embarkedOn===fid&&u.id!==fid)apply({type:ActionTypes.DISEMBARK_UNIT,payload:{landUnitId:u.id}});
+      }
+      continue;
+    }
     let fleets=Object.values(next.units).filter(u=>u.ownerId===id&&u.domain==='naval'&&u.strength>0&&!isUnitInBattle(next,u.id));
     if(!fleets.length){
       const port=ports.find(p=>coast.some(t=>isReachableBySea(p,t,ageOf(next,id)))&&Object.values(next.units).some(u=>u.ownerId===id&&u.domain==='land'&&u.regionId===p&&!u.embarkedOn));
       if(port && (getPool(next,id).gold || 0)>300)apply({type:ActionTypes.RECRUIT_UNIT,payload:{regionId:port,classId:'naval'}});
       fleets=Object.values(next.units).filter(u=>u.ownerId===id&&u.domain==='naval');
     }
-    for(const fleet of fleets.sort((a,b)=>a.id.localeCompare(b.id))){
-      if((fleet.movesLeft ?? 0)<=0 || isUnitInBattle(next,fleet.id))continue;
+    // The player is told when troops stand off one of their cities, a turn before they can land.
+    const warn=(city,n)=>{ if(n&&next.regions[city]?.owner===state.playerNationId)next={...next,logs:[...next.logs,{year:next.year,type:'combat',...msg('m.battle.fleetOffCoast',{nation:people(id,next.nations[id].name),city:cityRef(city,next.regions[city].name),n})}]}; };
+    const odds=(troops,target)=>{
+      const defenders=Object.values(next.units).filter(u=>u.regionId===target&&u.domain==='land');
+      return !defenders.length || estimateBattle({attackerUnits:troops,defenderUnits:defenders,battleType:'landing',attackerAgeId:getTechAgeId(next,id),defenderAgeId:getTechAgeId(next,next.regions[target]?.owner)}).pWin>=LANDING_MIN_P;
+    };
+    for(const f0 of fleets.sort((a,b)=>a.id.localeCompare(b.id))){
+      let fleet=next.units[f0.id];
+      if(!fleet || (fleet.movesLeft ?? 0)<=0 || isUnitInBattle(next,fleet.id))continue;
       // An enemy fleet on a sea tile beside this one, weaker by AI_FLEET_ATTACK_RATIO: a sea battle (navalBattle.js).
       if(aiFleetAttack(fleet))continue;
-      const target=coast.find(t=>isReachableBySea(fleet.regionId,t,ageOf(next,id))||getNeighborIds(fleet.regionId).includes(t));
+      // Under way: sail on, once a turn (the land march may have walked it already).
+      if(fleet.route?.length && fleet.marchedTurn!==T)fleet=walk(fleet);
+      const aboard=Object.values(next.units).filter(u=>u.embarkedOn===fleet.id);
+      const off=atSea(next,fleet)?coast.find(t=>touchesCoastOf(next,tiles,fleet.tile,t)):null;
+      if(off==null){
+        if(fleet.route?.length)continue;
+        if(atSea(next,fleet)){ home(fleet); continue; }
+      } else {
+        if(fleet.route?.length)next={...next,units:{...next.units,[fleet.id]:{...fleet,route:undefined,routeHalt:null}}};
+        // It stands off the coast this turn: the landing comes next turn, in plain sight.
+        if(fleet.marchedTurn===T){
+          warn(off,aboard.length);
+          continue;
+        }
+        if(!aboard.length){ if(navalLineOf(fleet)==='transport')home(fleet); continue; } // a warship holds the blockade, a transport fetches more troops
+        if(!odds(aboard,off)){ home(fleet); continue; }
+      }
+      const target=off ?? coast.filter(t=>isReachableBySea(fleet.regionId,t,ageOf(next,id))||getNeighborIds(fleet.regionId).includes(t))
+        .sort((a,b)=>distanceKm(tiles.centres[next.regions[a].tile],tiles.centres[next.regions[fleet.regionId].tile])-distanceKm(tiles.centres[next.regions[b].tile],tiles.centres[next.regions[fleet.regionId].tile])||a.localeCompare(b))[0];
       if(!target)continue;
-      const cargo=Object.values(next.units).filter(u=>u.ownerId===id&&u.domain==='land'&&u.regionId===fleet.regionId&&!u.embarkedOn&&u.movesLeft>0&&!isUnitInBattle(next,u.id));
-      for(const unit of cargo.slice(0,fleet.transportCapacity || 0))apply({type:ActionTypes.EMBARK_UNIT,payload:{landUnitId:unit.id,navalUnitId:fleet.id}});
-      const embarked=Object.values(next.units).filter(u=>u.embarkedOn===fleet.id);
-      const defenders=Object.values(next.units).filter(u=>u.regionId===target&&u.domain==='land');
-      if(!embarked.length || (defenders.length && estimateBattle({attackerUnits:embarked,defenderUnits:defenders,battleType:'landing',attackerAgeId:getTechAgeId(next,id),defenderAgeId:getTechAgeId(next,next.regions[target]?.owner)}).pWin<LANDING_MIN_P))continue;
+      if(off==null){
+        if(fleet.marchedTurn===T)continue; // it reached port this turn: it sails again next turn
+        // In port: board what can win, then sail; a warship with no troops sails to blockade.
+        const cargo=Object.values(next.units).filter(u=>u.ownerId===id&&u.domain==='land'&&u.regionId===fleet.regionId&&!u.embarkedOn&&u.movesLeft>0&&!isUnitInBattle(next,u.id)&&u.classId!=='settler');
+        const troops=[...aboard,...cargo.slice(0,Math.max(0,(fleet.transportCapacity || 0)-aboard.length))];
+        if(troops.length&&odds(troops,target)){ for(const unit of troops)if(!unit.embarkedOn)apply({type:ActionTypes.EMBARK_UNIT,payload:{landUnitId:unit.id,navalUnitId:fleet.id}}); }
+        else { for(const unit of aboard)apply({type:ActionTypes.DISEMBARK_UNIT,payload:{landUnitId:unit.id}}); if(navalLineOf(fleet)==='transport')continue; }
+        sailTo(next.units[fleet.id],next.regions[target].tile);
+        const there=next.units[fleet.id];
+        const carried=Object.values(next.units).filter(u=>u.embarkedOn===fleet.id).length;
+        if(atSea(next,there)&&touchesCoastOf(next,tiles,there.tile,target))warn(target,carried);
+        continue;
+      }
       // On the player's coast the landing (and the player's fleets' interception) waits in the
       // battle queue for their Command or Auto (aiLanding.js); elsewhere it is fought at once.
       if(next.regions[target]?.owner===state.playerNationId){
         const v=validateAmphibious(actor(),fleet.id,target);
-        if(!v.ok)continue;
+        if(!v.ok){ home(fleet); continue; } // e.g. it cannot pay the landing: never parked off the coast
         const units={...next.units};
         [fleet,...v.embarkedLandUnits].forEach(u=>{units[u.id]={...units[u.id],movesLeft:0};});
         next={...next,units,nations:{...next.nations,[id]:{...next.nations[id],economy:applyCosts(getPool(next,id),ACTION_COSTS.amphibiousAssault)}},pendingDefenses:[...(next.pendingDefenses||[]),...landingRecords(next,v,id)]};

@@ -2,7 +2,7 @@ import { describe,it,expect } from 'vitest';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
 import { getNeighborIds, getNationCapital } from '../data/regions';
 import { createRng } from '../utils/rng';
-import { addCity, neighbourWorld, peoplesWorld, cloneWorld, majorIds, rivalOf } from './testWorld';
+import { addCity, neighbourWorld, peoplesWorld, cloneWorld, majorIds, rivalOf, aiVoyage } from './testWorld';
 import { getTiles } from '../data/geo/tiles';
 import { ringsAround } from './world/cities';
 import { syncWorldRegistry } from './world/registry';
@@ -205,7 +205,7 @@ describe('operational AI',()=>{
     s.nations[A]={...s.nations[A],isAtWar:true,economy:{gold:1000,hr:1000,mil:100,adm:100},tech:{ageId:'modern',researched:[]}};
     s.nations[D2]={...s.nations[D2],isAtWar:true};s.units={fleet:{id:'fleet',ownerId:A,regionId:port,domain:'naval',classId:'naval',strength:1000,maxStrength:1000,morale:100,movesLeft:1,transportCapacity:2,promotions:[]},army:{id:'army',ownerId:A,regionId:port,homeRegionId:port,domain:'land',classId:'infantry',strength:1000,maxStrength:1000,morale:100,movesLeft:1,promotions:[],xp:0}};
     // On the player's coast the landing waits in the battle queue (aiLanding.js), paid and moved.
-    const queued=processAINavalOperations(s);expect(Object.keys(queued.units)).toHaveLength(2);
+    const queued=aiVoyage(processAINavalOperations,s);expect(Object.keys(queued.units)).toHaveLength(2);
     expect(queued.pendingDefenses.map(d=>d.kind)).toEqual(['landing']);
     expect(queued.units.army.embarkedOn).toBe('fleet');expect(queued.units.army.movesLeft).toBe(0);expect(queued.units.fleet.movesLeft).toBe(0);
     const next=resolveAllQueuedAuto(queued);expect(next.pendingDefenses).toHaveLength(0);

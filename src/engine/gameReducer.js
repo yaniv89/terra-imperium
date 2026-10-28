@@ -1285,7 +1285,8 @@ const reduceAction = (state, action) => {
       const costs = ACTION_COSTS.embarkUnit;
       if (!landUnit || landUnit.ownerId !== state.playerNationId || landUnit.domain !== 'land' || landUnit.embarkedOn) return state;
       if (!navalUnit || navalUnit.ownerId !== state.playerNationId || navalUnit.domain !== 'naval') return state;
-      if (landUnit.regionId !== navalUnit.regionId) return state;
+      // A fleet at sea keeps its last port's regionId: troops board only a ship in port.
+      if (landUnit.regionId !== navalUnit.regionId || atSea(state, navalUnit)) return state;
       // Aircraft board a carrier by its air capacity (navalLines.js); troops by the ship's cargo.
       const air = landUnit.classId === 'air';
       const cargoCount = Object.values(state.units).filter(u => u.embarkedOn === navalUnitId && (u.classId === 'air') === air).length;

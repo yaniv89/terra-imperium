@@ -24,6 +24,8 @@ import { applyBattleOutcome, makeBattleOutcome } from './battleOutcome';
 import { validateAmphibious, getAmphibiousBattleContext, applyAmphibiousLanding } from './invasion';
 import { cityMilitia } from './battleInputs';
 import { hashRoll } from './aftermath';
+import { atSea, touchesCoastOf } from './fleets';
+import { getTiles } from '../data/geo/tiles';
 import { commandGenerals } from '../data/generals';
 
 export const LANDING_KINDS = ['intercept', 'landing'];
@@ -32,9 +34,12 @@ export const isLandingKind = (kind) => LANDING_KINDS.includes(kind);
 const viewOf = (state, nationId) => ({ ...state, playerNationId: nationId, techAgeId: getTechAgeId(state, nationId) });
 const drop = (state, id) => ({ ...state, pendingDefenses: (state.pendingDefenses || []).filter((d) => d.id !== id) });
 
-/** The player's fleets (any fleet not the lander's) in the target city's waters. */
+/** True when fleet `u` guards city `regionId`'s coast: in its port, or at sea on a water tile beside its land. */
+const guardsCoast = (state, u, regionId) => u.domain === 'naval' && u.strength > 0 && (atSea(state, u) ? touchesCoastOf(state, getTiles(), u.tile, regionId) : u.regionId === regionId);
+/** The city owner's fleets in the target city's port or waters (lane naval-8: a fleet standing off the
+ * coast meets the landing too; another people's fleet in the port never does). */
 const interceptorsAt = (state, regionId, aggressorId) => Object.values(state.units)
-  .filter((u) => u.regionId === regionId && u.domain === 'naval' && u.strength > 0 && u.ownerId !== aggressorId).sort((a, b) => (a.id < b.id ? -1 : 1));
+  .filter((u) => u.ownerId === state.regions[regionId]?.owner && u.ownerId !== aggressorId && guardsCoast(state, u, regionId)).sort((a, b) => (a.id < b.id ? -1 : 1));
 
 /**
  * The queue records of an AI landing on the player's coast: [intercept?, landing]. `v` is
@@ -58,7 +63,7 @@ export const landingRecords = (state, v, aggressorId) => {
 export const interceptArmies = (state, def) => {
   const ship = state.units[def.navalUnitId];
   if (!ship || !(ship.strength > 0)) return null;
-  const defenderUnits = def.defenderUnitIds.map((id) => state.units[id]).filter((u) => u && u.strength > 0 && u.domain === 'naval' && u.regionId === def.regionId);
+  const defenderUnits = def.defenderUnitIds.map((id) => state.units[id]).filter((u) => u && guardsCoast(state, u, def.regionId));
   return defenderUnits.length ? { attackerUnits: [ship], defenderUnits } : null;
 };
 

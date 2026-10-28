@@ -2,7 +2,7 @@
 // wait in the battle queue for Command or Auto (src/engine/aiLanding.js; master plan 6.1, 6.10).
 import { describe, it, expect } from 'vitest';
 import { gameReducer } from './gameReducer';
-import { peoplesWorld, cloneWorld } from './testWorld';
+import { peoplesWorld, cloneWorld, aiVoyage } from './testWorld';
 import { ActionTypes } from '../data/types';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
 import { processAINavalOperations } from './aiOperations';
@@ -11,6 +11,8 @@ import { buildInvasionSetup } from '../battle/setup/buildBattleSetup';
 import { runHeadless } from '../battle/sim/headless';
 import { resolveQueuedAuto, queuedBattleView, nextQueuedBattle } from './battleQueue';
 import { isUnitInBattle } from './invasion';
+import { atSea, portWaters } from './fleets';
+import { getTiles } from '../data/geo/tiles';
 
 // An island people (AI, at war with the player's coastal people) carries an army to a coastal city of the defender.
 // Two coastal peoples of the small world that reach each other by sea: the attacker 'brigantes', the defender
@@ -36,10 +38,19 @@ const fixture = ({ player = 'ahhiyawa', def = player, frenchFleet = 0, guard = t
   return { s: { ...s, battleSettings: { autoDefend: false } }, port, target, A, D };
 };
 
+// The fleet sails to the target's waters over turns, stands off the coast a turn, then lands (lane naval-8).
+const voyage = (s, done, turns) => aiVoyage(processAINavalOperations, s, done, turns);
+
 describe('an AI landing on the player\'s coast is queued', () => {
   it('waits for Command or Auto, paid and moved, and pauses the turn', () => {
     const { s, target, A } = fixture();
-    const q = processAINavalOperations(s);
+    // The fleet first stands off the coast in plain sight, and the player is told, a turn before it may land.
+    const off = voyage(s, (x) => x.logs.some((l) => l.msgKey === 'm.battle.fleetOffCoast'));
+    expect(off.pendingDefenses).toHaveLength(0);
+    expect(atSea(off, off.units.fleet)).toBe(true);
+    expect(off.units.army.embarkedOn).toBe('fleet');
+    const q = voyage(off);
+    expect(q.turnNumber).toBe(off.turnNumber + 1);
     expect(q.pendingDefenses.map((d) => d.kind)).toEqual(['landing']);
     const def = q.pendingDefenses[0];
     expect(def).toMatchObject({ aggressorId: A, regionId: target, warId: 'island', navalUnitId: 'fleet' });
@@ -57,7 +68,7 @@ describe('an AI landing on the player\'s coast is queued', () => {
 
   it('the player\'s fleets intercept first; a sunk transport takes its army down and the landing never comes', () => {
     const { s } = fixture({ frenchFleet: 3 });
-    const q = processAINavalOperations(s);
+    const q = voyage(s);
     expect(q.pendingDefenses.map((d) => d.kind)).toEqual(['intercept', 'landing']);
     expect(nextQueuedBattle(q).kind).toBe('intercept');
     const ic = q.pendingDefenses[0];
@@ -70,9 +81,23 @@ describe('an AI landing on the player\'s coast is queued', () => {
     expect(resolveQueuedAuto(after, ic.id)).toBe(after); // exactly once
   });
 
+  it('a fleet of the player standing off the threatened coast intercepts; a bystander\'s fleet in the port does not', () => {
+    const { s, target, D } = fixture();
+    const water = portWaters(s, getTiles(), target)[0];
+    const other = Object.keys(s.regions).find((r) => s.regions[r].owner === D && r !== target) || target;
+    const X = Object.keys(s.nations).find((n) => n !== D && n !== 'brigantes' && s.nations[n].kind !== 'independent');
+    s.units.guardShip = { id: 'guardShip', ownerId: D, regionId: other, tile: water, domain: 'naval', classId: 'naval', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, promotions: [] };
+    s.units.visitor = { id: 'visitor', ownerId: X, regionId: target, domain: 'naval', classId: 'naval', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, promotions: [] };
+    const q = voyage(s);
+    const ic = q.pendingDefenses.find((d) => d.kind === 'intercept');
+    // The transport either meets the guard at sea on its way (a sea battle) or at the coast (the interception).
+    if (ic) expect(ic.defenderUnitIds).toEqual(['guardShip']);
+    else expect(q.pendingDefenses.map((d) => d.kind)).toContain('naval');
+  });
+
   it('Auto: the landing through the outcome service under the record\'s id, reported from the player\'s side', () => {
     const { s, target, A, D } = fixture();
-    const q = processAINavalOperations(s);
+    const q = voyage(s);
     const def = q.pendingDefenses[0];
     const done = gameReducer(q, { type: ActionTypes.RESOLVE_DEFENSE_AUTO, payload: { defenseId: def.id } });
     expect(done.pendingDefenses).toHaveLength(0);
@@ -85,7 +110,7 @@ describe('an AI landing on the player\'s coast is queued', () => {
 
   it('Command: the player defends the beach in the real-time landing; the interception is a real sea battle', () => {
     const { s, A } = fixture({ frenchFleet: 1 });
-    const q = processAINavalOperations(s);
+    const q = voyage(s);
     const [ic, ld] = q.pendingDefenses;
     const sea = gameReducer(q, { type: ActionTypes.BEGIN_DEFENSE_BATTLE, payload: { defenseId: ic.id } });
     expect(sea.pendingBattle).toMatchObject({ kind: 'intercept', playerSide: 'defender', attackerNationId: A, defenseId: ic.id });
@@ -111,11 +136,27 @@ describe('an AI landing on the player\'s coast is queued', () => {
     expect(resolved.battleReports[0]).toMatchObject({ commanded: true, playerSide: 'defender' });
   }, 120000);
 
-  it('AI against AI is still fought at once', () => {
+  it('at peace a fleet whose port was lost sails to another own port and its troops step ashore; an empty transport never parks off an enemy coast', () => {
+    const { s, port, target, A } = fixture();
+    const water = portWaters(s, getTiles(), port)[0];
+    const peace = { ...s, wars: [], units: { ...s.units, fleet: { ...s.units.fleet, regionId: target, tile: water }, army: { ...s.units.army, embarkedOn: 'fleet', tile: water } } };
+    const back = voyage(peace, (x) => !atSea(x, x.units.fleet) && !x.units.army.embarkedOn, 6);
+    expect(atSea(back, back.units.fleet)).toBe(false);
+    expect(back.regions[back.units.fleet.regionId].owner).toBe(A);
+    expect(back.units.army.embarkedOn).toBeNull();
+    // At war, an empty transport off the enemy coast goes back for troops.
+    const off = portWaters(s, getTiles(), target)[0];
+    const war = { ...s, units: { fleet: { ...s.units.fleet, navalLine: 'transport', tile: off }, guard: s.units.guard } };
+    const after = voyage(war, () => false, 1);
+    expect(after.units.fleet.tile).not.toBe(off);
+  });
+
+  it('AI against AI is fought at once when the fleet arrives, never queued', () => {
     const { s, target } = fixture({ player: 'akkad', def: 'ahhiyawa' });
-    const next = processAINavalOperations(s);
+    const next = voyage(s, (x) => x.units.army?.lastBattleTurn != null || x.regions[target].owner !== 'ahhiyawa');
     expect(next.pendingDefenses || []).toHaveLength(0);
-    expect(next.units.fleet.movesLeft).toBe(0);
     expect(next.units.army.lastBattleTurn ?? next.regions[target].owner).toBeTruthy();
+    // The reducer ran as the AI: its "Your amphibious assault on Sinope was repelled" was the AI's, never the player's (playtest round 2).
+    expect(next.logs).toEqual(s.logs);
   });
 });
