@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { loadTiles } from '../../data/geo/tiles';
 import {
   emptyWorld, foundCity, canFoundCity, allocateTiles, cityYields, housingOf, processCity, processCities, queueItem,
-  canQueue, productionCost, claimCandidates, growthThreshold, setFocus, toggleLock, FOOD_PER_CITIZEN, MIN_CITY_SPACING, MIN_CITY_SPACING_KM, sizeToPeople
+  canQueue, productionCost, claimCandidates, growthThreshold, setFocus, toggleLock, FOOD_PER_CITIZEN, PRODUCTION_FLOOR, MIN_CITY_SPACING, MIN_CITY_SPACING_KM, sizeToPeople
 } from './cities';
 import { ringsForKm } from '../../data/geo/gridScale';
 
@@ -10,6 +10,16 @@ let tiles;
 beforeAll(async () => { tiles = await loadTiles(); });
 
 const ctx = (over = {}) => ({ researched: [], ageId: 'bronze', turnNumber: 1, citiesOwned: 1, luxuries: 0, ...over });
+
+describe('production floor (lane cities-8)', () => {
+  it('a city makes at least the floor times its age\'s unit cost multiplier, a besieged one less', () => {
+    const { world, city } = foundCity(emptyWorld(), tiles, { nationId: 'eg', tile: tiles.capitals.eg, name: 'Memphis', size: 1 });
+    const bare = { ...city, underInvasion: true }; // the centre alone
+    expect(cityYields(bare, tiles, world, [], [], ctx({ ageId: 'gunpowder' })).production).toBeCloseTo(PRODUCTION_FLOOR * 2.8, 5);
+    expect(cityYields({ ...bare, siege: { by: 'x' } }, tiles, world, [], [], ctx({ ageId: 'gunpowder' })).production).toBeLessThan(PRODUCTION_FLOOR * 2.8);
+    expect(cityYields(bare, tiles, world, [], [], ctx({ ageId: 'stone' })).production).toBeGreaterThanOrEqual(PRODUCTION_FLOOR);
+  });
+});
 
 describe('cities on the grid', () => {
   it('founds a city on the Nile with its ring and refuses one too close', () => {

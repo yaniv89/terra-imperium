@@ -2929,7 +2929,10 @@ const reduceAction = (state, action) => {
       // One order per building tier and per tile improvement: a second tap says so instead of
       // paying for the same thing twice (playtest audits I045).
       if ((item.kind === 'building' || item.kind === 'improvement') && [city.production.current, ...city.production.queue].some((q) => q && itemKey(q) === itemKey(item))) return reject(state, msg('m.act.no.inQueue'));
-      return { ...state, regions: { ...state.regions, [id]: queueItem(city, item) } };
+      const queued = queueItem(city, item);
+      // `front`: build it first (the Defense tab's walls in a siege, round 2 civ veteran step 62); no progress is lost (moveQueueItem).
+      const last = queued.production.queue.length;
+      return { ...state, regions: { ...state.regions, [id]: action.payload.front && last > 0 ? moveQueueItem(queued, last, 0) : queued } };
     }
     case ActionTypes.ADVISOR_PRODUCTION: {
       // The advisor's picks (productionAdvisor.js), each queued as the player would queue it.

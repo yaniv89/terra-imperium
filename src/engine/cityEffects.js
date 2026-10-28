@@ -102,6 +102,15 @@ export const buildingEffect = (state, cityId, category, toTier, fromTier = undef
   return { deltas, parts: effectParts(deltas), text: effectText(deltas) };
 };
 
+/** What the next citizen brings, measured (the city one size bigger, its new tile picked by the
+ * usual allocation, two more food eaten): { deltas, parts, text }. "Grows visibly" (lane cities-8). */
+export const nextCitizenEffect = (state, cityId) => {
+  const city = state.regions?.[cityId];
+  if (!city || city.outpost || city.tile == null) return null;
+  const deltas = diff(baseOf(state, cityId), measure(state, cityId, { size: (city.size || 1) + 1 }));
+  return { deltas, parts: effectParts(deltas), text: effectText(deltas) };
+};
+
 // What a road and a fort do is movement and battle, not yields (armies.js tile costs; forts.js).
 const IMPROVEMENT_NOTES = {
   road: 'cy.fx.noteRoad',
