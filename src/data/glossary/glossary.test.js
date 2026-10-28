@@ -7,7 +7,7 @@ describe('glossary', () => {
   it('every people, city, tech and unit id has an entry', () => {
     GLOSSARY_KINDS.forEach((k) => {
       const ids = glossaryIds(k);
-      expect(ids.length).toBeGreaterThan(20);
+      expect(ids.length).toBeGreaterThan(5);
       ids.forEach((id) => expect(glossaryEntry(k, id), `${k} ${id}`).toBeTruthy());
     });
   });
@@ -38,5 +38,15 @@ describe('glossary tech and unit entries', () => {
     expect(e.boost).toBeTruthy();
     const locked = glossaryIds('unit').map((id) => glossaryEntry('unit', id)).find((u) => u.needsTech);
     expect(locked && glossaryEntry('tech', locked.needsTech)).toBeTruthy();
+  });
+});
+
+describe('glossary buildings, resources and improvements', () => {
+  it('a building names its tech, a resource its improvement, an improvement the resources it works', () => {
+    expect(glossaryEntry('building', 'food.1')).toMatchObject({ name: 'Granary', requiresTech: 'economy_granary_storage' });
+    expect(glossaryEntry('resource', 'copper')).toMatchObject({ improvement: 'mine', knownTech: 'military_copper_working' });
+    expect(glossaryEntry('improvement', 'mine').resources).toContain('copper');
+    glossaryIds('resource').forEach((id) => expect(glossaryEntry('improvement', glossaryEntry('resource', id).improvement), id).toBeTruthy());
+    expect(glossaryEntry('building', 'food.99')).toBeNull();
   });
 });

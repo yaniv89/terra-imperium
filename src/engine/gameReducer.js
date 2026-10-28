@@ -1287,7 +1287,8 @@ const reduceAction = (state, action) => {
       const costs = ACTION_COSTS.embarkUnit;
       if (!landUnit || landUnit.ownerId !== state.playerNationId || landUnit.domain !== 'land' || landUnit.embarkedOn) return state;
       if (!navalUnit || navalUnit.ownerId !== state.playerNationId || navalUnit.domain !== 'naval') return state;
-      if (landUnit.regionId !== navalUnit.regionId) return state;
+      // A fleet at sea keeps its last port's regionId: troops board only a ship in port.
+      if (landUnit.regionId !== navalUnit.regionId || atSea(state, navalUnit)) return state;
       // Aircraft board a carrier by its air capacity (navalLines.js); troops by the ship's cargo.
       const air = landUnit.classId === 'air';
       const cargoCount = Object.values(state.units).filter(u => u.embarkedOn === navalUnitId && (u.classId === 'air') === air).length;
@@ -2930,7 +2931,10 @@ const reduceAction = (state, action) => {
       // One order per building tier and per tile improvement: a second tap says so instead of
       // paying for the same thing twice (playtest audits I045).
       if ((item.kind === 'building' || item.kind === 'improvement') && [city.production.current, ...city.production.queue].some((q) => q && itemKey(q) === itemKey(item))) return reject(state, msg('m.act.no.inQueue'));
-      return { ...state, regions: { ...state.regions, [id]: queueItem(city, item) } };
+      const queued = queueItem(city, item);
+      // `front`: build it first (the Defense tab's walls in a siege, round 2 civ veteran step 62); no progress is lost (moveQueueItem).
+      const last = queued.production.queue.length;
+      return { ...state, regions: { ...state.regions, [id]: action.payload.front && last > 0 ? moveQueueItem(queued, last, 0) : queued } };
     }
     case ActionTypes.ADVISOR_PRODUCTION: {
       // The advisor's picks (productionAdvisor.js), each queued as the player would queue it.

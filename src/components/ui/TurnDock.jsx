@@ -26,6 +26,7 @@ import { endTurnButton, endTurnPress, buyHint } from './endTurnModel';
 import { goToPrompt, goToBlocker, chipLabel } from './promptActions';
 import { prewarmTurnWorker, abandonTurnInWorker } from '../../services/turnClient';
 import IdleChip from './IdleChip';
+import NextArmyButton from './NextArmyButton';
 import { interactions, useOverlayOpen } from '../../hooks/useExclusivePanel';
 import { useT } from '../../i18n/useT';
 
@@ -103,6 +104,8 @@ const TurnDock = () => {
       )}
       <div className="flex items-stretch gap-2 pointer-events-auto">
         {/* "Idle N": the next army or settler that waits, one tap each (IdleChip.jsx). */}
+        {/* the next army, waiting or marching, one tap each (NextArmyButton.jsx) */}
+        {btn.mode !== 'moving' && <NextArmyButton />}
         {btn.mode !== 'moving' && <IdleChip />}
         {/* "Buy N": the order that saves the most turns for its gold, while the treasury is well above
             ten turns of income (endTurnModel.js buyHint). */}

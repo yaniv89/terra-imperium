@@ -711,6 +711,8 @@ export const ecoView = (w, playerSide) => {
     houses: eco.buildings.filter((b) => b.side === playerSide && b.type === 'house' && ready(w, b)).length,
     preset: eco.preset[playerSide], autoRebuild: eco.rebuild[playerSide], steward: eco.steward[playerSide],
     idleWorkers: workers.filter((q) => !q.job || q.order.type !== 'work').map((q) => q.idx),
+    // How many laborers gather each stock now (the Economy sheet's counts).
+    gathering: RESOURCES.map((r) => workers.filter((q) => q.job?.t === 'gather' && q.order.type === 'work' && eco.nodes[q.job.node]?.res === r).length),
     buildings: eco.buildings.map((b) => {
       const alive = ecoAlive(w, b);
       const own = b.side === playerSide;

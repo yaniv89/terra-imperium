@@ -7,6 +7,9 @@
 import { getTiles } from '../../data/geo/tiles';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
 import { isExplored } from '../../engine/fog';
+import { unitTile } from '../../engine/armies';
+import { isSettler } from '../../engine/settlers';
+import { idleArmyTiles } from '../../engine/standingOrders';
 
 /** `lng` brought into [-180, 180). */
 export const normalLng = (lng) => (lng >= -180 && lng < 180 ? lng : ((((lng + 180) % 360) + 360) % 360) - 180);
@@ -138,3 +141,23 @@ export const createIntentGate = (settleMs = INTENT_SETTLE_MS) => {
     clear: () => { last = null; at = -Infinity; }
   };
 };
+
+/**
+ * The player's army stacks the "next army" button cycles (Civ VI's unit cycling, map-8): the ones
+ * waiting for orders first (standingOrders idleArmyTiles), then the ones marching, one tile per
+ * stack in unit id order. After End Turn this is where the moving armies went (playtest run
+ * 40651416284 steps 70-72: the player panned to find a marching army).
+ */
+export const armyCycle = (state, nationId = state.playerNationId) => {
+  const idle = idleArmyTiles(state, nationId);
+  const out = [...idle];
+  const seen = new Set(idle);
+  Object.values(state.units || {})
+    .filter((u) => u.ownerId === nationId && u.strength > 0 && u.domain !== 'naval' && !isSettler(u) && u.route?.length) // (one crossing water on its own boats too)
+    .sort((a, b) => (a.id < b.id ? -1 : 1))
+    .forEach((u) => { const t = unitTile(state, u); if (t != null && !seen.has(t)) { seen.add(t); out.push(t); } });
+  return out;
+};
+
+/** The tile after `lastTile` in `tiles`, wrapping; the first when `lastTile` is gone. */
+export const nextTileAfter = (tiles, lastTile) => (tiles.length ? tiles[(tiles.indexOf(lastTile) + 1) % tiles.length] : null);

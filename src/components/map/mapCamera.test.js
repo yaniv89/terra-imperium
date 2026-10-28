@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { geoEquirectangular } from 'd3-geo';
 import {
   cleanLatLng, normalLng, latLngOfTile, latLngOfCity, knownLatLngOfCity, latLngOfPlace, cameraTarget, battlePlaces, freshBattleReport,
-  cameraKey, rememberCamera, recallCamera, forgetCamera, createIntentGate, INTENT_SETTLE_MS
+  cameraKey, rememberCamera, recallCamera, forgetCamera, createIntentGate, INTENT_SETTLE_MS, armyCycle, nextTileAfter
 } from './mapCamera';
 import { carryTransform, isSaneTransform } from './gl/mapView';
 import { getTiles } from '../../data/geo/tiles';
@@ -191,5 +191,34 @@ describe('a camera intent is applied once (I072)', () => {
     gate.clear();
     expect(gate.last()).toBeNull();
     expect(gate.take('city-a', 9000)).toBe(true); // the same city opened again later
+  });
+});
+
+describe('the next army button (armyCycle)', () => {
+  const land = []; for (let t = 0; land.length < 5; t++) if (getTiles().land[t] === 1) land.push(t);
+  const [A, B, C, D, E] = land;
+  const unit = (id, tile, extra = {}) => ({ id, ownerId: 'me', tile, strength: 10, domain: 'land', classId: 'infantry', movesLeft: 1, ...extra });
+  const state = {
+    playerNationId: 'me',
+    regions: {},
+    units: {
+      b: unit('b', B, { route: [C, D] }), // marching
+      a: unit('a', A), // waiting for orders
+      c: unit('c', C, { hold: true }), // holding: neither
+      d: unit('d', D, { domain: 'naval', route: [E] }), // a fleet
+      e: unit('e', E, { ownerId: 'them' }),
+      f: unit('f', A), // the same stack as a
+      g: unit('g', E, { route: [D], embarkedOn: 'g' }) // marching across water on its own boats
+    }
+  };
+  it('lists the stacks waiting for orders, then the marching ones, one tile each', () => {
+    expect(armyCycle(state)).toEqual([A, B, E]);
+  });
+  it('goes on to the next stack and wraps', () => {
+    expect(nextTileAfter([100, 200], null)).toBe(100);
+    expect(nextTileAfter([100, 200], 100)).toBe(200);
+    expect(nextTileAfter([100, 200], 200)).toBe(100);
+    expect(nextTileAfter([100, 200], 999)).toBe(100);
+    expect(nextTileAfter([], 100)).toBeNull();
   });
 });

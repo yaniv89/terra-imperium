@@ -314,3 +314,58 @@ export const BuildingActions = ({ building, ageId, stock, eco = null, onTrain, o
     </div>
   );
 };
+
+/** The economy in two taps (lane battle-hud-8; AoE IV mobile's economy wheel, Northgard's one
+ * panel): the bottom bar's Economy opens this sheet; one more tap sets the steward, what the
+ * laborers gather (with how many are on each now), trains a laborer at the camp, picks the idle
+ * ones or turns auto rebuild. Every button is an order the HUD already had. */
+export const EconomySheet = ({ eco, hq = null, onSteward, onPreset, onRebuild, onTrainLaborer, onIdle, onClose }) => {
+  const { t } = useT();
+  const gathering = eco.gathering || [];
+  const laborCost = UNITS.worker.cost;
+  const queued = hq ? hq.queue.filter((it) => it.role === 'worker').length : 0;
+  const chip = 'min-h-[44px] rounded-[10px] border text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 leading-none';
+  return (
+    <div className="w-[min(26rem,100%)] p-1.5 fa-panel !bg-fa-panel/95 shadow-2xl pointer-events-auto text-[11px]" role="dialog" aria-label={t('bt.eco.sheet')} data-testid="battle-economy-sheet">
+      <div className="flex items-center gap-2 ps-1">
+        <span className="fa-label">{t('bt.eco.sheet')}</span>
+        {eco.popSplit && <span className="flex-1 min-w-0 text-[10px] text-fa-muted truncate fa-num">{t('bt.eco.popSplit', { pop: eco.pop, cap: eco.cap, army: eco.popSplit.army, workers: eco.popSplit.workers, training: eco.popSplit.training })}</span>}
+        <button type="button" onClick={onClose} aria-label={t('bt.close')} data-testid="battle-economy-close" className="ms-auto w-11 h-11 -my-1 shrink-0 flex items-center justify-center text-fa-muted"><X className="w-4 h-4" aria-hidden="true" /></button>
+      </div>
+      <button type="button" onClick={() => onSteward(!eco.steward)} aria-pressed={!!eco.steward} data-testid="battle-steward"
+        className={cx('w-full min-h-[44px] px-2 mb-1 rounded-[10px] border flex items-center gap-2 text-start', eco.steward ? 'bg-fa-raised border-fa-good' : 'border-fa-line')}>
+        <Users className={cx('w-5 h-5 shrink-0', eco.steward ? 'text-fa-good' : 'text-fa-muted')} aria-hidden="true" />
+        <span className="flex-1 min-w-0"><span className="block font-semibold text-[12px]">{eco.steward ? t('bt.eco.stewardOn') : t('bt.eco.stewardOff')}</span>
+          <span className="block text-[10.5px] text-fa-muted leading-snug">{t('bt.eco.stewardLine')}</span></span>
+      </button>
+      <div className="ps-1 pb-0.5 text-fa-muted">{t('bt.eco.gatherFocus')}</div>
+      <div className="grid grid-cols-5 gap-1 mb-1" role="group" aria-label={t('bt.eco.gatherFocus')} data-testid="battle-economy-presets">
+        {Object.keys(WORKER_PRESETS).map((id) => {
+          const n = RESOURCES.includes(id) ? gathering[RESOURCES.indexOf(id)] : null;
+          return (
+            <button key={id} type="button" onClick={() => onPreset(id)} aria-pressed={eco.preset === id} data-testid={`battle-economy-preset-${id}`}
+              className={cx(chip, eco.preset === id ? 'bg-fa-raised border-fa-brass text-fa-text' : 'border-fa-line text-fa-muted')}>
+              {RESOURCES.includes(id) ? <ResIcon res={id} size={16} /> : <Users className="w-4 h-4" aria-hidden="true" />}
+              <span>{t(`bt.eco.mix.${id}`)}{n != null && <span className="fa-num"> {n}</span>}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="grid grid-cols-3 gap-1">
+        <button type="button" onClick={onTrainLaborer} disabled={!hq || !canPay(laborCost, eco.stock)} data-testid="battle-economy-train"
+          className={cx(chip, 'border-fa-line bg-fa-raised disabled:opacity-45')}>
+          <span className="flex items-center gap-1"><Hammer className="w-3.5 h-3.5" aria-hidden="true" />{t('bt.eco.trainLaborer')}{queued > 0 && <span className="fa-num text-fa-good">+{queued}</span>}</span>
+          <Cost cost={laborCost} stock={eco.stock} size={10} />
+        </button>
+        <button type="button" onClick={onIdle} disabled={!eco.idleWorkers.length} data-testid="battle-economy-idle"
+          className={cx(chip, 'border-fa-line bg-fa-raised disabled:opacity-45')}>
+          <Hourglass className="w-3.5 h-3.5" aria-hidden="true" /><span className="fa-num">{t('bt.hud.idle', { n: eco.idleWorkers.length })}</span>
+        </button>
+        <button type="button" onClick={() => onRebuild(!eco.autoRebuild)} aria-pressed={!!eco.autoRebuild} data-testid="battle-economy-rebuild"
+          className={cx(chip, eco.autoRebuild ? 'bg-fa-raised border-fa-good text-fa-text' : 'border-fa-line text-fa-muted')}>
+          <Hammer className="w-3.5 h-3.5" aria-hidden="true" /><span>{t('bt.eco.autoRebuild')}</span>
+        </button>
+      </div>
+    </div>
+  );
+};

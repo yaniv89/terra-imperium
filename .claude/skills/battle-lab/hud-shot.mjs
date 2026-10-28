@@ -25,12 +25,14 @@ const exe = opt('browser', process.env.CHROMIUM || 'C:/Program Files (x86)/Micro
 const base = process.env.URL || 'http://localhost:5199/terra-imperium/';
 const url = `${base}?battleSandbox&autostart&age=bronze${safe ? `&safe=${safe}` : ''}${extra}`;
 fs.mkdirSync(outDir, { recursive: true });
-const tag = `${W}x${H}${safe ? '-safe' : ''}${opt('tag', '')}`;
+const lang = opt('lang', 'en'); // --lang he: the same states right to left
+const tag = `${W}x${H}${safe ? '-safe' : ''}${lang === 'en' ? '' : `-${lang}`}${opt('tag', '')}`;
 
 const browser = await launchBrowser({ executablePath: exe, headless: true });
 const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1, hasTouch: touch });
 // Ordinary play: the first-battle coach (RTS-01) is taken as seen (`--hint 1` shows it).
 if (opt('hint', '0') !== '1') await ctx.addInitScript(() => { try { localStorage.setItem('ti.coach.firstBattle', '1'); } catch { /* blocked */ } });
+await ctx.addInitScript((l) => { try { localStorage.setItem('terra-imperium.language', l); } catch { /* blocked */ } }, lang);
 const page = await ctx.newPage();
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -82,6 +84,18 @@ const shot = async (name) => {
 };
 
 await shot('1-deploy');
+// The deploy card's presets (Wings when there is cavalry, else Wide) and its slim bar.
+const preset = (await page.getByTestId('battle-deploy-preset-wings').count()) ? 'wings' : 'wide';
+if (await page.getByTestId(`battle-deploy-preset-${preset}`).count()) {
+  await page.getByTestId(`battle-deploy-preset-${preset}`).click();
+  await page.waitForTimeout(800);
+  await shot(`1b-deploy-${preset}`);
+}
+if (await page.getByTestId('battle-deploy-hide').count()) {
+  await page.getByTestId('battle-deploy-hide').click();
+  await page.waitForTimeout(300);
+  await shot('1c-deploy-hidden');
+}
 await page.getByTestId('battle-pause').click(); // Start
 await page.waitForTimeout(2500);
 await page.getByTestId('battle-select-all').click();
@@ -122,6 +136,12 @@ if (await page.getByTestId('battle-minimap-toggle').count()) {
   await shot('5-minimap');
   await viewMenu();
   await page.getByTestId('battle-minimap-toggle').click();
+}
+if (await page.getByTestId('battle-economy').count()) {
+  await page.getByTestId('battle-economy').click();
+  await page.waitForTimeout(600);
+  await shot('7-economy');
+  await page.getByTestId('battle-economy-close').click();
 }
 await page.getByTestId('battle-pause').click();
 await page.waitForTimeout(600);
