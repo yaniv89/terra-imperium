@@ -13,6 +13,7 @@
 import { isolateLtr } from '../../i18n';
 import { nameNow } from '../../i18n/names';
 import GlossaryLink from '../glossary/GlossaryLink';
+import { buildingId } from '../../data/glossary';
 import { unitName as unitDisplayName, unitClassName } from '../../i18n/gameText';
 import { unitClassLabel as unitClassLabelEn } from '../../data/unitNames';
 import { buildingTierName, wonderName, improvementName, districtName, tileResourceName } from '../../i18n/gameText';
@@ -436,7 +437,9 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                     <div className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0} aria-expanded={open} onClick={() => toggleRow(o)} onKeyDown={(e) => { if (e.key === 'Enter') toggleRow(o); }} title={o.tile != null ? t('cy.showTileDetails') : t('cy.showDetails')}>
                       <ItemIcon item={o.item} ageId={ageId} />
                       <div className="min-w-0 flex-1">
-                        <div className={clip}>{o.tile != null && <MapPin className="inline w-3 h-3 me-0.5 -mt-0.5 text-fa-muted" aria-hidden="true" />}{o.item.kind === 'unit' && o.item.classId !== 'naval' && !o.item.explorer ? <GlossaryLink kind="unit" id={`${ageId}_${o.item.classId}`}>{o.label}</GlossaryLink> : o.label}</div>
+                        <div className={clip}>{o.tile != null && <MapPin className="inline w-3 h-3 me-0.5 -mt-0.5 text-fa-muted" aria-hidden="true" />}{o.item.kind === 'unit' && o.item.classId !== 'naval' && !o.item.explorer ? <GlossaryLink kind="unit" id={`${ageId}_${o.item.classId}`}>{o.label}</GlossaryLink>
+                          : o.item.kind === 'building' ? <GlossaryLink kind="building" id={buildingId(o.item.category, o.item.tier)}>{o.label}</GlossaryLink>
+                            : o.item.kind === 'improvement' ? <GlossaryLink kind="improvement" id={o.item.improvement}>{o.label}</GlossaryLink> : o.label}</div>
                         {o.detail && <div className={`text-[12px] leading-snug text-fa-text/80 ${clip}`} data-testid="build-effect">{o.detail}</div>}
                         {o.tag && <div className={`text-[12px] leading-snug text-fa-brass ${clip}`} data-testid="build-tag">{o.tag}</div>}
                         {open && o.note && <div className="text-[12px] leading-snug text-fa-muted">{o.note}.</div>}
