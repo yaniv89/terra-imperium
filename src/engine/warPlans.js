@@ -28,19 +28,21 @@
 // battles per war and captures, and the defender's threat picture (a big stack near a border
 // city makes it 'threatened', threat.js).
 // Pure and deterministic: no randomness; ties by id. New persisted field: nation.warPlan
-// (absent = no plan; every reader defaults it).
+// (absent = no plan; every reader defaults it); plan.unreachable: targets its strike found no road to.
 import { getTiles } from '../data/geo/tiles';
 import { ringsApart, kmPerRing } from '../data/geo/gridScale';
-import { canFight } from './hostility';
+import { canFight, exploreOn } from './hostility';
 import { MOVE_KM, DEFAULT_MOVE_KM } from './armies';
 import { NAVAL_KM_BY_AGE } from './fleets';
 import { wallsOf } from './sieges';
 import { getTotalDev } from './development';
 import { getUnlockedClasses } from '../data/unitClasses';
-import { getResearched } from './nationState';
 import { UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
 import { unitUpkeepGold } from './economy';
 import { claimsInProgressOf } from './claims';
+import { speedTurns } from '../data/ages';
+import { getResearched } from './nationState';
+import { waitAgeOf } from './ageRefs';
 
 export const STRIKE_PER_GARRISON = 2;
 export const STRIKE_PER_WALL = 1.5;
@@ -97,14 +99,14 @@ export const armyCap = (nation, cities, strike, landUnits, upkeep = UNIT_UPKEEP_
 const ownCities = (state, nationId) => Object.values(state.regions).filter((c) => c.owner === nationId && c.tile != null && !(c.occupiedBy && c.occupiedBy !== nationId));
 
 /** The enemy city to go for: the goal, else the nearest to our cities (ties: richer, then id). */
-export const pickTargetCity = (state, nationId, enemies, goalIds = [], mine = ownCities(state, nationId), maxRings = Infinity) => {
-  const goal = goalIds.map((id) => state.regions[id]).find((c) => c && enemies.has(c.owner) && c.tile != null);
+export const pickTargetCity = (state, nationId, enemies, goalIds = [], mine = ownCities(state, nationId), maxRings = Infinity, skip = []) => {
+  const goal = goalIds.map((id) => state.regions[id]).find((c) => c && enemies.has(c.owner) && c.tile != null && !skip.includes(c.id));
   if (goal) return goal.id;
   if (!mine.length) return null;
   const tiles = getTiles();
   let best = null; let bestD = Infinity; let bestDev = -1;
   for (const c of Object.values(state.regions)) {
-    if (!enemies.has(c.owner) || c.tile == null) continue;
+    if (!enemies.has(c.owner) || c.tile == null || skip.includes(c.id)) continue;
     let d = Infinity;
     for (const m of mine) { const r = ringsApart(m.tile, c.tile, tiles); if (r < d) d = r; }
     if (d > maxRings) continue;
@@ -138,15 +140,19 @@ export const updateWarPlan = (state, nationId, wars, ageId, { maxRings = Infinit
     // Arming: the claim being made names the city and its owner (a claim that is ready leads to the
     // war itself within a few turns; one never used must not keep a nation arming for ever).
     const claimed = claimsInProgressOf(nation).map((c) => state.regions[c.cityId]).filter((c) => c && c.owner && c.owner !== nationId && !state.nations[c.owner]?.isEliminated);
-    if (!claimed.length) return null;
     claimed.forEach((c) => enemies.add(c.owner));
     goalIds = claimed.map((c) => c.id);
+    // A war decided and being armed for (warPrep, aiLogic.js processAIWarDecisions).
+    const prep = prepLive(state, nationId) ? nation.warPrep.target : null;
+    if (prep) enemies.add(prep);
+    if (!enemies.size) return null;
   }
   const mine = ownCities(state, nationId);
   if (!mine.length) return null;
   const old = nation.warPlan;
-  const keep = old && state.regions[old.cityId] && enemies.has(state.regions[old.cityId].owner) && state.regions[old.staging]?.owner === nationId;
-  const cityId = keep ? old.cityId : pickTargetCity(state, nationId, enemies, goalIds, mine, maxRings);
+  const unreachable = old?.unreachable || [];
+  const keep = old && state.regions[old.cityId] && enemies.has(state.regions[old.cityId].owner) && state.regions[old.staging]?.owner === nationId && !unreachable.includes(old.cityId);
+  const cityId = keep ? old.cityId : pickTargetCity(state, nationId, enemies, goalIds, mine, maxRings, unreachable);
   if (!cityId) return null;
   const city = state.regions[cityId];
   const staging = keep ? old.staging : pickStaging(state, mine, city.tile);
@@ -156,7 +162,7 @@ export const updateWarPlan = (state, nationId, wars, ageId, { maxRings = Infinit
   const cap = armyCap(nation, mine.filter((c) => !c.outpost).length || 1, strike, land, unitUpkeepGold(state, { ageId, ownerId: nationId }));
   const siege = wallsOf(city) > 0 && getUnlockedClasses(ageId, getResearched(state, nationId)).includes('siege');
   const since = keep ? old.since : state.turnNumber;
-  const plan = { enemy: city.owner, cityId, staging, strike, cap, siege, since, waves: keep ? (old.waves || 0) : 0 };
+  const plan = { enemy: city.owner, cityId, staging, strike, cap, siege, since, waves: keep ? (old.waves || 0) : 0, ...(unreachable.length ? { unreachable } : {}) };
   if (old && Object.keys(plan).every((k) => old[k] === plan[k])) return old;
   return plan;
 };
@@ -199,5 +205,36 @@ export const goSize = (plan) => Math.max(GATHER_MIN_UNITS, Math.ceil(plan.strike
 /** May this many units march on the plan's target now? */
 export const readyToStrike = (plan, units, turn) => units >= goSize(plan) || (turn - (plan.since || 0) >= GATHER_MAX_TURNS && units >= GATHER_MIN_UNITS);
 
+/** The plan after its strike found no road to the target (an island, or beyond AI_MARCH_STEPS): the
+ * next updateWarPlan picks another city. A muster used to wait at the staging city all war (lane ai-armies). */
+export const dropTarget = (plan) => ({ ...plan, unreachable: [...(plan.unreachable || []), plan.cityId] });
+
 /** The plan after a wave marched: the gathering clock restarts and later waves may be smaller. */
 export const launched = (plan, turn) => ({ ...plan, waves: (plan.waves || 0) + 1, since: turn });
+
+// Arming before a declaration (lane ai-armies; Civ VI's and Old World's AIs build up and move to the
+// border before they declare). A Tier-1 AI that has decided on a war (aiLogic.js) keeps
+// `nation.warPrep = { target, since }`: its plan arms (updateWarPlan above), recruits join the muster
+// point, and it declares once the stack there can strike (its garrison left behind: goSize), or after
+// WAR_PREP_REF_TURNS reference turns (speedTurns at its age) whatever it has. Declaring with the army
+// scattered left 2-unit stacks at home for most of the war.
+export const WAR_PREP_REF_TURNS = 8;
+const prepTurns = (state, nationId, targetId) => speedTurns(WAR_PREP_REF_TURNS, state.gameSpeed, waitAgeOf(state, nationId, targetId));
+/** Is the nation's warPrep still live: its target alive and fightable, and not left over (twice the
+ * wait: a nation that dropped out of Tier 1 or became a vassal never declares, and must not arm for ever)? */
+export const prepLive = (state, nationId) => {
+  const prep = state.nations[nationId]?.warPrep;
+  const target = prep && state.nations[prep.target];
+  return !!target && !target.isEliminated && !exploreOn(state) && (state.turnNumber || 0) - prep.since < 2 * prepTurns(state, nationId, prep.target);
+};
+export const armedFor = (state, nationId, targetId) => {
+  const nation = state.nations[nationId];
+  const prep = nation?.warPrep;
+  if (prep?.target === targetId && (state.turnNumber || 0) - prep.since >= prepTurns(state, nationId, targetId)) return true;
+  const plan = nation?.warPlan;
+  const staging = plan && state.regions[plan.staging];
+  if (!plan || plan.enemy !== targetId || staging?.tile == null) return false;
+  let there = 0;
+  for (const u of Object.values(state.units || {})) if (u.ownerId === nationId && isLandArmy(u) && u.tile === staging.tile) there += 1;
+  return there - 1 >= goSize(plan);
+};
