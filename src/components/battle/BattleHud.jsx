@@ -465,7 +465,8 @@ const BattleHud = ({
                 <button type="button" onClick={() => setDeployHidden(true)} aria-expanded={true} aria-label={t('bt.hud.hideDeploy')} title={t('bt.hud.hideDeploy')} data-testid="battle-deploy-hide"
                   className="w-11 h-11 -my-2 -me-2 shrink-0 flex items-center justify-center text-fa-muted"><ChevronUp className="w-4 h-4" aria-hidden="true" /></button>
               </div>
-              <div className="text-fa-brass"><span className="fa-num">{fmtTime(timeLeft)}</span>: {goal}</div>
+              {/* a short screen keeps the goal for More: the objective card above already says it */}
+              {!short && <div className="text-fa-brass"><span className="fa-num">{fmtTime(timeLeft)}</span>: {goal}</div>}
               {deployPresets.length > 1 && (
                 <div className="mt-1 flex items-center gap-1" role="group" aria-label={t('bt.hud.formationPick')} data-testid="battle-deploy-presets">
                   <span className="text-fa-muted shrink-0 me-0.5">{t('bt.hud.formationPick')}</span>
@@ -478,6 +479,7 @@ const BattleHud = ({
               <div className="mt-1 text-fa-muted" data-testid="battle-deploy-controls">{deployPreset ? t(`bt.hud.preset.${deployPreset}.title`) : deployHelp(mouse, naval)}</div>
               {deployMore && (
                 <div className="mt-1 space-y-1" data-testid="battle-deploy-details">
+                  {short && <div className="text-fa-brass"><span className="fa-num">{fmtTime(timeLeft)}</span>: {goal}</div>}
                   {deployPreset && <div className="text-fa-muted">{deployHelp(mouse, naval)}</div>}
                   {setup.structures.some((st) => st.kind === 'building') && (
                     <div className="text-fa-you" data-testid="battle-buildings">
