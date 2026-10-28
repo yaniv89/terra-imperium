@@ -47,3 +47,5 @@ Tests: `citySearch.test.js` (new), two new cases in `defenseSheetModel.test.js`.
 ## Full suite
 
 `npx vitest run` after the merge with claude/integration (3da7f3e7): 513 files passed, 2 skipped; 4,796 tests passed, 17 skipped, 0 failed. `npm run lint` clean.
+
+After the rerun items (same integration head): 513 files passed, 1 failed, 2 skipped; 4,799 tests passed. The one failure is `scripts/art/pack-map-models.test.mjs`, a known load-only flake (CLAUDE.md); it passes alone (3 of 3). Lint clean.
