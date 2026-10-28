@@ -23,6 +23,7 @@ import { messageOf } from '../../i18n/messageText';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search, HeartHandshake, Sparkles, Unlock, Ban } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
+import { OPEN_PEOPLE, takePending } from './panelEvents';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
 import {
@@ -53,7 +54,14 @@ const DiplomacyPanel = () => {
   const { lang, name: nameIn, n } = useT();
   const { triggerEffect } = useEffects();
   const [search, setSearch] = useState('');
-  const [picked, setPicked] = useState(null);
+  // A people asked for from elsewhere (first contact, the next step: panelEvents openPeople), even
+  // while this tab was still opening.
+  const [picked, setPicked] = useState(() => takePending(OPEN_PEOPLE));
+  useEffect(() => {
+    const on = (e) => { takePending(OPEN_PEOPLE); setPicked(e.detail); };
+    window.addEventListener(OPEN_PEOPLE, on);
+    return () => window.removeEventListener(OPEN_PEOPLE, on);
+  }, []);
 
   const handleCulturalExport = () => {
     if (!canPay(state, ACTION_COSTS.culturalExport)) return addLog(tNow('nc.notEnoughNeed', { list: shortfallLine(walletOf(state), ACTION_COSTS.culturalExport) }), 'action');

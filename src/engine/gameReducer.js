@@ -2153,7 +2153,8 @@ const reduceAction = (state, action) => {
       if (!justified) {
         // Unjustified aggression costs stability at home and relations with everyone else — the
         // plan's own framing, not just a bigger gold bill.
-        nextRegions = { ...afterWar.regions, [homeRegionId]: { ...homeRegion, unrest: Math.min(100, (homeRegion.unrest || 0) + UNJUSTIFIED_WAR_HOME_UNREST) } };
+        // (a band with no village yet has no home city to unsettle)
+        if (homeRegion) nextRegions = { ...afterWar.regions, [homeRegionId]: { ...homeRegion, unrest: Math.min(100, (homeRegion.unrest || 0) + UNJUSTIFIED_WAR_HOME_UNREST) } };
         Object.keys(nextNations).forEach(id => {
           if (id === state.playerNationId || id === nationId) return;
           nextNations[id] = { ...nextNations[id], hostility: Math.min(100, (nextNations[id].hostility || 0) + UNJUSTIFIED_WAR_GLOBAL_HOSTILITY) };

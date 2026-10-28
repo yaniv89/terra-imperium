@@ -30,7 +30,7 @@ import { wonderOptions, wonderItem } from '../../engine/wonders';
 import { cityLive, queueView, buildQuote, worldOf, isLongBuild, longBuildTurns, focusPreview } from '../../engine/cityEconomy';
 import { buildingEffect, improvementEffect } from '../../engine/cityEffects';
 import { settlingOutlook } from '../../engine/settlers';
-import { rushQuote, rushGold, RUSH_GOLD_PER_HAMMER } from '../../engine/spending';
+import { rushQuote, rushGold, rushRate, RUSH_GOLD_PER_HAMMER } from '../../engine/spending';
 import { FIRST_AGE_ID } from '../../data/ages';
 import { techEta, techEtaText } from '../panels/researchView';
 
@@ -98,7 +98,7 @@ export const rushText = (q) => {
   return {
     button: tNow('cy.rush.button', { gold: r.gold }),
     title: r.ok ? tNow('cy.rush.title', { gold: r.gold, hammers: r.hammers, label: q.label }) : r.reason,
-    text: `${tNow('cy.rush.text', { label: q.label, hammers: r.hammers, gold: r.gold, each: RUSH_GOLD_PER_HAMMER, wait })}${heat}`
+    text: `${tNow('cy.rush.text', { label: q.label, hammers: r.hammers, gold: r.gold, each: Math.round(RUSH_GOLD_PER_HAMMER * rushRate(q.item) * 10) / 10, wait })}${heat}`
   };
 };
 
@@ -128,10 +128,13 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
     const check = extra.ok === undefined ? canQueue(city, tiles, world, item, { researched, ageId, noRobots: ctx.noRobots }) : { ok: extra.ok, reason: extra.reason };
     const quote = buildQuote(state, cityId, item, live);
     const queued = inQueue.get(extra.key || itemKey(item)) || 0;
+    const long = check.ok && isLongBuild(state, ageId, quote.turns);
     out.push({
       id: extra.id || itemKey(item), item, group, ok: check.ok, reason: check.ok ? null : reasonText(check),
       label: itemLabel(item, tiles, ageId, city.tile), tile: null, detail: null, note: null, needsTech: null, needsName: null,
-      cost: quote.cost, stored: quote.stored, turns: quote.turns, long: check.ok && isLongBuild(state, ageId, quote.turns), queued,
+      cost: quote.cost, stored: quote.stored, turns: quote.turns, long, queued,
+      // a slow row says why (this city's production a turn) and what gold would buy it (warmonger playtest: 6 to 150 turns, no reason)
+      production: long ? Math.round(live.yields.production * 10) / 10 : null, buyGold: long ? rushGold(Math.max(0, quote.cost - quote.stored), 0, item) : null,
       ...extra.fields
     });
   };
@@ -216,7 +219,7 @@ export const focusHint = (state, cityId, options, live = cityLive(state, cityId)
   const better = best && !best.current && best.production > production ? { focus: 'production', production: best.production, food: best.food } : null;
   // Gold is the other way out (I027): the cheapest slow build, bought outright once queued.
   const cheapest = options.filter((o) => o.long && o.group !== 'Wonders' && o.ok).sort((a, b) => (a.cost - a.stored) - (b.cost - b.stored))[0];
-  const buy = cheapest ? { label: cheapest.label, gold: rushGold(Math.max(0, cheapest.cost - cheapest.stored), 0, cheapest.item.kind) } : null;
+  const buy = cheapest ? { label: cheapest.label, gold: rushGold(Math.max(0, cheapest.cost - cheapest.stored), 0, cheapest.item) } : null;
   const buyText = buy ? ` ${tNow('cy.hint.buy', { label: buy.label, gold: buy.gold })}` : '';
   const text = better
     ? `${tNow('cy.hint.better', { count: slow, limit, production, better: better.production, starve: better.food < 0 ? ` ${tNow('cy.hint.starve')}` : '' })}${buyText}`

@@ -58,7 +58,7 @@ export const peoplesModel = (state, search = '') => {
   return {
     rows: shown,
     counts: {
-      met: rows.filter((r) => !r.eliminated).length,
+      met: rows.length, // every people listed, a fallen one too (the header said "0 met" over a listed people)
       war: rows.filter((r) => r.relation === 'war').length,
       pact: rows.filter((r) => r.relation === 'pact').length,
       trade: rows.filter((r) => r.relation === 'trade' || (r.relation === 'pact' && state.nations[r.id]?.hasTradeAgreement)).length,

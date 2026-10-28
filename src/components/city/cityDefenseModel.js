@@ -4,13 +4,77 @@
 // 20, minus the houses in ruins), the damage a battle left and when it is repaired (free; nothing
 // repairs under siege), the walls and the siege. From the city's manifest (cityManifest.js). Pure.
 import { cityManifestOf, cityDamageOf, cityHousingCap } from '../../engine/cityManifest';
-import { wallsOf } from '../../engine/sieges';
+import { wallsOf, besiegersOf } from '../../engine/sieges';
+import { validateFieldAttack } from '../../engine/fieldBattle';
+import { unitTile } from '../../engine/armies';
+import { describeAttackBlock } from '../../utils/attackAvailability';
+import { menText } from '../../engine/battleLedger';
+import { raidEta } from '../../engine/raids';
+import { isIndependentNation } from '../../data/independents';
+import { getTiles } from '../../data/geo/tiles';
+import { distanceKm } from '../../data/geo/geodesic';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { t as tNow } from '../../i18n/core';
 import { nameNow } from '../../i18n/names';
 import { buildingTierName } from '../../i18n/gameText';
 
 const wallName = (tier, def) => buildingTierName('defense', tier, def?.name);
+
+/**
+ * Engage the besiegers (playtest 40650976677 step 67: the only way into the battle was the enemy's
+ * banner on the map): a sally from the city on the weakest besieging stack, the same pre-battle card
+ * as any attack. { tile, men, ok, reason } or null when nobody of the player's besieges it.
+ */
+export const engageTarget = (state, cityId) => {
+  const city = state.regions?.[cityId];
+  if (!city?.siege?.by || city.owner !== state.playerNationId || city.tile == null) return null;
+  const stacks = new Map();
+  besiegersOf(state, city).forEach((units) => units.forEach((u) => { const t = unitTile(state, u); stacks.set(t, (stacks.get(t) || 0) + Math.max(0, u.strength)); }));
+  const [tile, strength] = [...stacks].sort((a, b) => a[1] - b[1] || a[0] - b[0])[0] || [];
+  if (tile == null) return null;
+  const v = validateFieldAttack(state, cityId, tile);
+  return { tile, men: menText(strength), ok: v.ok, reason: describeAttackBlock(v) };
+};
+
+/**
+ * Who is coming for this city of the player's (lead: the raid and march warnings must be actionable):
+ * raid parties out against it and armies marching on it, each { kind, nationId, name, men, turns|tiles },
+ * plus `armyTile`, the player's nearest field army outside the city (Send an army), or null.
+ */
+export const comingFor = (state, cityId) => {
+  const city = state.regions?.[cityId];
+  if (!city || city.owner !== state.playerNationId || city.tile == null) return null;
+  const tiles = getTiles();
+  const name = (id) => nameNow('nation', id, state.nations?.[id]?.name || id);
+  const strengthOf = (list) => list.reduce((n, u) => n + Math.max(0, u.strength), 0);
+  const list = [];
+  Object.keys(state.nations || {}).sort().forEach((id) => {
+    const raid = state.nations[id]?.indep?.raid;
+    if (!isIndependentNation(state.nations[id]) || !raid || raid.phase !== 'out' || raid.targetNationId !== state.playerNationId) return;
+    if (raid.targetCityId !== cityId && state.world?.tileOwner?.[raid.targetTile] !== cityId) return;
+    const party = Object.values(state.units || {}).filter((u) => u.raidOf === id && u.strength > 0);
+    if (party.length) list.push({ kind: 'raid', nationId: id, name: name(id), men: menText(strengthOf(party)), turns: raidEta(state, id)?.turns ?? null });
+  });
+  const marching = new Map();
+  Object.values(state.units || {}).forEach((u) => {
+    if (u.ownerId === state.playerNationId || u.raidOf || !u.route?.length || u.route[u.route.length - 1] !== city.tile || !(u.strength > 0)) return;
+    const m = marching.get(u.ownerId) || { units: [], tiles: u.route.length };
+    m.units.push(u); m.tiles = Math.min(m.tiles, u.route.length);
+    marching.set(u.ownerId, m);
+  });
+  marching.forEach((m, id) => list.push({ kind: 'army', nationId: id, name: name(id), men: menText(strengthOf(m.units)), tiles: m.tiles }));
+  if (!list.length) return null;
+  const at = tiles.centres[city.tile];
+  let armyTile = null; let best = Infinity;
+  Object.values(state.units || {}).forEach((u) => {
+    if (u.ownerId !== state.playerNationId || u.domain !== 'land' || u.classId === 'settler' || u.embarkedOn || !(u.strength > 0)) return;
+    const t = unitTile(state, u);
+    if (t == null || t === city.tile) return;
+    const d = distanceKm(tiles.centres[t], at);
+    if (d < best) { best = d; armyTile = t; }
+  });
+  return { list, armyTile };
+};
 
 export const cityDefenseModel = (state, cityId) => {
   const city = state.regions?.[cityId];
@@ -66,6 +130,9 @@ export const cityDefenseModel = (state, cityId) => {
     paths,
     garrison,
     walls: wallsOf(city),
+    cityId,
+    engage: mine ? engageTarget(state, cityId) : null,
+    coming: mine ? comingFor(state, cityId) : null,
     siege: city.siege ? { by: city.siege.by ? nameNow('nation', city.siege.by, state.nations?.[city.siege.by]?.name || tNow('cy.rebels')) : null, hp: city.siege.hp, maxHp: city.siege.maxHp, encircled: !!city.siege.encircled } : null
   };
 };

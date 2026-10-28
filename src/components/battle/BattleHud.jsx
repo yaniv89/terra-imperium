@@ -193,6 +193,7 @@ const BattleHud = ({
   const [alerts, setAlerts] = useState([]);
   const prevRef = useRef(null);
   const lastRef = useRef({});
+  const baseMaxRef = useRef([1, 1]); // the most base buildings each side (yours, theirs) has had: the base bars' full width
   // B06: alerts from what changed since the last frame.
   useEffect(() => {
     if (!hud) return;
@@ -218,6 +219,8 @@ const BattleHud = ({
   const eco = hud.eco || null;
   // Base buildings standing (sim/base.js): [yours, theirs], null in a battle without bases.
   const base = hud.base ? [hud.base[playerSide], hud.base[1 - playerSide]] : null;
+  if (base) baseMaxRef.current = [Math.max(1, baseMaxRef.current[0], base[0]), Math.max(1, baseMaxRef.current[1], base[1])];
+  const baseMax = baseMaxRef.current;
   // Allied reinforcements still marching in on their own (U10: nobody calls them).
   const marching = mine.filter((q) => q.reinforcement && !q.onField && q.enterTick >= 0);
   const keep = setup?.battleType === 'naval' ? null : hud.structures[0]; // a sea battle's anchorage is no objective
@@ -407,6 +410,7 @@ const BattleHud = ({
           {/* Who is winning, the objective and the loot (playtest issues 3 to 5); the base rule in words (sim/base.js, UI16). */}
           <div className="pointer-events-auto fa-panel !bg-fa-panel/95 !rounded-[10px] px-2 py-0.5 text-[10.5px] leading-tight w-[min(20rem,100%)] shadow-xl" data-testid="battle-status">
             <div className="flex items-center gap-1.5" title={t('bt.status.title')} role="img" aria-label={t('bt.status.aria', { a: youPct, b: themPct })}>
+              <span className="font-semibold text-fa-muted">{t('bt.status.army')}</span>
               <span className="font-semibold text-fa-you">{t('bt.status.you')}</span>
               <span className="fa-num text-fa-you" data-testid="battle-status-you">{youPct}%</span>
               <span className="flex-1 min-w-[1.5rem] h-1.5 rounded-full bg-fa-ink overflow-hidden flex justify-end" aria-hidden="true"><span className="h-full bg-fa-you" style={{ width: `${youPct}%` }} /></span>
@@ -415,10 +419,15 @@ const BattleHud = ({
               <span className="font-semibold text-fa-enemy">{t('bt.status.them')}</span>
             </div>
             <div className="line-clamp-2 text-fa-brass" title={objective} data-testid="battle-objective-line">{objective}</div>
+            {/* What decides it (Q3): base buildings standing, each bar against the most that side has had (battle-engage). */}
             {base && (
-              <div className="whitespace-nowrap text-fa-muted truncate" title={t('bt.hud.baseTitle')} data-testid="battle-base">
-                {t('bt.status.buildings', { a: base[0], b: base[1] })}
-                {marching.length > 0 && <span className="text-fa-you">{t('bt.hud.arriving', { n: marching.length })}</span>}
+              <div className="flex items-center gap-1.5 text-fa-muted" title={t('bt.hud.baseTitle')} role="img" aria-label={t('bt.status.buildings', { a: base[0], b: base[1] })} data-testid="battle-base">
+                <span className="font-semibold">{t('bt.status.base')}</span>
+                <span className="fa-num text-fa-you" data-testid="battle-base-you">{base[0]}</span>
+                <span className="flex-1 min-w-[1.5rem] h-1.5 rounded-full bg-fa-ink overflow-hidden flex justify-end" aria-hidden="true"><span className="h-full bg-fa-you" style={{ width: `${(base[0] / baseMax[0]) * 100}%` }} /></span>
+                <span className="flex-1 min-w-[1.5rem] h-1.5 rounded-full bg-fa-ink overflow-hidden" aria-hidden="true"><span className="block h-full bg-fa-enemy" style={{ width: `${(base[1] / baseMax[1]) * 100}%` }} /></span>
+                <span className="fa-num text-fa-enemy" data-testid="battle-base-them">{base[1]}</span>
+                {marching.length > 0 && <span className="text-fa-you whitespace-nowrap">{t('bt.hud.arriving', { n: marching.length })}</span>}
               </div>
             )}
             {loot && (

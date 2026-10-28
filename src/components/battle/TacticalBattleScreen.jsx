@@ -35,7 +35,7 @@ import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useCornerSheet } from '../../hooks/useExclusivePanel';
 import { BuildMenu, BuildingActions, InfoCard, HammerButton, WorkerAutoButtons } from './EconomyHud';
 import { inspectInfo } from './inspectModel';
-import { contextFor, refusedText, enemyObjectives, supplyRate } from './battleHudModel';
+import { contextFor, refusedText, enemyObjectives, supplyRate, armyGone } from './battleHudModel';
 import BattleMinimap from './BattleMinimap';
 import { updateSiteLabels } from './siteLabels';
 import { updatePendingPins } from './pendingPins';
@@ -85,6 +85,7 @@ const radialTop = (y, h, abilities) => {
 // "2:35": a battle tick as minutes and seconds of battle time.
 const battleClock = (tick) => { const sec = Math.max(0, Math.floor((tick || 0) / TICK_HZ)); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
 const ORDER_NOTE_MS = 3500;
+const FINISH_SPEED = 16; // Finish now: the same battle run fast to its end (battle-engage)
 // What an armed Attack says when it lands; while paused the "starts when you resume" note leads.
 const attackSentText = (n, paused) => { const t = tNow('bt.order.attackSent', { n }); return paused ? `${pausedOrderText()} ${t}` : t; };
 // The short label of a fired power (powerFx.js): what it did, or that the enemy called it.
@@ -1105,6 +1106,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   }, [hud, playerSide]);
 
   const timeLeft = hud ? Math.max(0, Math.ceil((battleLimitTicks(setup) - hud.tick) / TICK_HZ)) : 0;
+  // No soldier left and none coming: Finish now runs the same battle fast to its end (Q3 still decides it).
+  const gone = started && !ended && !failure && speed !== FINISH_SPEED && armyGone(hud, playerSide);
   const selectedSquads = useMemo(() => (hud ? selected.map((i) => hud.squads[i]).filter((q) => q && q.alive) : []), [hud, selected]);
   // Abilities the selection can use (a general's, or legendary archers' Volley), best cooldown first.
   const selectedAbilities = useMemo(() => {
@@ -1314,6 +1317,13 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       {restartNote && !started && !ended && (
         <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(26rem,calc(100vw-2rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-danger text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" style={{ top: 56 }} role="status" aria-live="polite" data-testid="battle-resume-rejected">{restartNote}</div>
       )}
+      {gone && (
+        <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(30rem,calc(100vw-2rem))] flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-danger text-[12.5px] leading-snug text-fa-text shadow-xl" style={{ bottom: NOTE_BOTTOM }} role="status" data-testid="battle-army-gone">
+          <span>{tNow('bt.screen.armyGone')}{hud?.eco ? ` ${tNow('bt.screen.armyGoneTrain')}` : ''}</span>
+          <button type="button" onClick={() => { if (paused) togglePause(); changeSpeed(FINISH_SPEED); }} data-testid="battle-finish-now" className="shrink-0 h-11 px-3 -my-1 rounded-full bg-fa-danger/90 text-white text-sm font-semibold">{tNow('bt.screen.finishNow')}</button>
+          {onAbandon && <button type="button" onClick={switchToAuto} data-testid="battle-gone-auto" className="shrink-0 h-11 px-3 -my-1 rounded-full fa-btn fa-btn-secondary text-sm">{tNow('bt.hud.switchAuto')}</button>}
+        </div>
+      )}
       {objTarget && !ended && (
         <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(28rem,calc(100vw-2rem))] flex items-center gap-2 ps-3 py-1 rounded-[10px] bg-fa-panel/95 border border-fa-danger text-[12.5px] leading-snug text-fa-text shadow-xl" style={{ bottom: NOTE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-objective-note">
           <span>{objTarget.text}</span>
@@ -1321,7 +1331,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           <button type="button" onClick={() => setObjTarget(null)} aria-label={tNow('bt.close')} data-testid="battle-objective-close" className="shrink-0 w-11 h-11 flex items-center justify-center text-fa-muted"><XIcon className="w-4 h-4" aria-hidden="true" /></button>
         </div>
       )}
-      {orderNote && !refused && !ended && (
+      {orderNote && !refused && !ended && !gone && (
         <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(26rem,calc(100vw-2rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-line text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" style={{ bottom: objTarget || armed === 'attackMove' || armed?.type === 'power' ? `calc(${NOTE_BOTTOM} + 3.25rem)` : NOTE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-order-note">
           <span>{orderNote}</span>
         </div>

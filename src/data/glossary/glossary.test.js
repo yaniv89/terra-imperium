@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { GLOSSARY_KINDS, glossaryIds, glossaryEntry } from './index';
+import { GLOSSARY_KINDS, GLOSSARY_TERMS, glossaryIds, glossaryEntry } from './index';
+import { hasKey } from '../../i18n/core';
 import { PEOPLES_LIST } from '../peoples';
 
 describe('glossary', () => {
@@ -20,5 +21,12 @@ describe('glossary', () => {
       const e = glossaryEntry('people', p.id);
       ['note', 'founded'].forEach((f) => ['en', 'he'].forEach((l) => expect(e[f]?.[l], `${p.id} ${f} ${l}`).toBeTruthy()));
     });
+  });
+  it('every game term has an entry and its words in English and Hebrew', () => {
+    GLOSSARY_TERMS.forEach((id) => {
+      expect(glossaryEntry('term', id)).toEqual({ kind: 'term', id });
+      ['en', 'he'].forEach((lang) => [`gloss.term.${id}`, `gloss.term.${id}.text`].forEach((k) => expect(hasKey(k, lang), `${k} ${lang}`).toBe(true)));
+    });
+    expect(glossaryEntry('term', 'nope')).toBeNull();
   });
 });
