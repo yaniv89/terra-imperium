@@ -69,24 +69,53 @@ export const centralPlaceBonus = (rank) => {
   return { housing: Math.floor(CENTRAL_HOUSING / r), food: Math.floor(CENTRAL_FOOD / r) };
 };
 
+// Static per grid: each tile's cell key and the 27 keys around it, and the kernel weight of a pair
+// of centres (distance only). Memoised per tiles object, so a new world starts clean.
+const gridMemo = new WeakMap(); // tiles -> { cells: Map tile -> { own, around }, kernel: Map tile -> Map tile -> w }
+const memoFor = (tiles) => {
+  let m = gridMemo.get(tiles);
+  if (!m) { m = { cells: new Map(), kernel: new Map() }; gridMemo.set(tiles, m); }
+  return m;
+};
+const cellsOfTile = (memo, tiles, tile) => {
+  let hit = memo.cells.get(tile);
+  if (hit) return hit;
+  const v = tiles.centres[tile];
+  const cx = Math.floor(v[0] / CELL); const cy = Math.floor(v[1] / CELL); const cz = Math.floor(v[2] / CELL);
+  const around = [];
+  for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) around.push(`${cx + dx},${cy + dy},${cz + dz}`);
+  hit = { own: cellKey(v), around };
+  memo.cells.set(tile, hit);
+  return hit;
+};
+// One row per centre tile, small-integer keys (a single pair key would be a heap number).
+const kernelRow = (memo, a) => { let row = memo.kernel.get(a); if (!row) { row = new Map(); memo.kernel.set(a, row); } return row; };
+const kernelOf = (row, tiles, a, b) => {
+  let w = row.get(b);
+  if (w === undefined) { w = marketKernel(distanceKm(tiles.centres[a], tiles.centres[b])); row.set(b, w); }
+  return w;
+};
+
 /**
  * Market access for every settled city in `cities` (id -> city record). Returns Map id -> access.
  */
 export const marketAccess = (cities, tiles) => {
+  const memo = memoFor(tiles);
   const list = Object.keys(cities).sort().map((id) => cities[id]).filter((c) => c && c.owner && !c.outpost && c.tile != null);
   const cells = new Map();
-  list.forEach((c) => { const k = cellKey(tiles.centres[c.tile]); (cells.get(k) || cells.set(k, []).get(k)).push(c); });
+  list.forEach((c) => { const k = cellsOfTile(memo, tiles, c.tile).own; (cells.get(k) || cells.set(k, []).get(k)).push(c); });
   const out = new Map();
   list.forEach((c) => {
-    const v = tiles.centres[c.tile];
-    const cx = Math.floor(v[0] / CELL); const cy = Math.floor(v[1] / CELL); const cz = Math.floor(v[2] / CELL);
+    const { around } = cellsOfTile(memo, tiles, c.tile);
+    const row = kernelRow(memo, c.tile);
     let access = 0; // neighbours only: an isolated city gains nothing
-    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
-      const bucket = cells.get(`${cx + dx},${cy + dy},${cz + dz}`);
+    for (let i = 0; i < around.length; i++) {
+      const bucket = cells.get(around[i]);
       if (!bucket) continue;
-      for (const d of bucket) {
+      for (let j = 0; j < bucket.length; j++) {
+        const d = bucket[j];
         if (d === c) continue;
-        const w = marketKernel(distanceKm(v, tiles.centres[d.tile]));
+        const w = kernelOf(row, tiles, c.tile, d.tile);
         if (w > 0) access += (d.size || 1) * w;
       }
     }

@@ -212,6 +212,15 @@ export const canFoundCity = (world, tiles, tile, nationId) => {
   return { ok: true };
 };
 
+/** canFoundCity(...).ok without building the reason (a site search asks it for every tile in reach). */
+export const canFoundCityOk = (world, tiles, tile, nationId) => {
+  if (!tiles.land[tile]) return false;
+  if (tiles.terrainOf(tile) === 'snow' || tiles.featureOf(tile) === 'ice') return false;
+  const owner = world.tileOwner[tile];
+  if (owner && cityHolder(world.cities[owner]) !== nationId) return false;
+  return blockedTiles(world.cities, tiles).by[tile] < 0;
+};
+
 const cityFacts = (tiles, id) => ({ river: tiles.rivers[id] !== 0, coastal: tiles.coastal[id] === 1, lake: tiles.neighbors[id].some((n) => tiles.terrainOf(n) === 'lake') });
 
 /** Founds a city: the centre and every free workable tile of its founding disk (gridScale.js
@@ -725,18 +734,20 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
   let cultureBank = c.cultureBank + y.culture;
   // No tile costs less than a ring-1 one: below that the candidate search cannot claim anything.
   const affordable = cultureBank >= tileCultureCost(c, 1, mapEffectsOf(researched).tileCostMult);
-  const candidates = affordable ? claimCandidates({ ...next, tiles: c.tiles }, tiles, w, { ageId, researched, maxBorderRing: ctx.maxBorderRing ?? Infinity }) : [];
+  const candidates = affordable ? claimCandidates(next, tiles, w, { ageId, researched, maxBorderRing: ctx.maxBorderRing ?? Infinity }) : []; // next.tiles is c.tiles
   let claimed = [];
   if (candidates.length) {
     const best = candidates[0];
     if (cultureBank >= best.cost) { cultureBank -= best.cost; claimed = [best.tile]; }
   }
-  next = { ...next, production, buildings, cultureBank: Math.round(cultureBank * 10) / 10 };
+  // `next` is this turn's own copy (made above, read by no one else): written in place, the same
+  // keys in the same order as a spread, one 30-field copy less per city a turn.
+  next.production = production; next.buildings = buildings; next.cultureBank = Math.round(cultureBank * 10) / 10;
   if (claimed.length) {
     const r = claimTile(w, next, claimed[0], inPlace); w = r.world; next = r.city;
     logs.push(msg('m.city.borders', { city: cityRef(c.id, c.name), land: tiles.names[claimed[0]] ? place(tiles.names[claimed[0]]) : sub('m.city.newLand') }));
   }
-  return { city: next, world: w, yields: y, completed, logs };
+  return { city: next, world: w, yields: y, completed, logs, fresh: true };
 };
 
 /** Every city of the world, in id order. `ctxFor(city)` gives the per-nation context. */
@@ -745,6 +756,7 @@ export const processCities = (world, tiles, ctxFor) => {
   let w = { ...world, [PRIVATE]: new Set() };
   const cities = {};
   const results = {};
+  const fresh = new Set(); // cities whose record this pass made (processCity `fresh`): the caller may write them in place
   const logs = []; const completed = [];
   Object.keys(world.cities).sort().forEach((id) => {
     const city = w.cities[id] || world.cities[id];
@@ -752,11 +764,12 @@ export const processCities = (world, tiles, ctxFor) => {
     w = r.world;
     cities[id] = r.city;
     results[id] = r.yields;
+    if (r.fresh) fresh.add(id);
     const holder = cityHolder(city);
     r.logs.forEach((m) => logs.push({ cityId: id, nationId: holder, ...carry(m) }));
     completed.push(...r.completed.map((x) => ({ ...x, nationId: holder })));
   });
-  return { world: { ...w, cities }, yields: results, logs, completed };
+  return { world: { ...w, cities }, yields: results, logs, completed, fresh };
 };
 
 // People from size (C2), city and countryside together: 1,000 x size^2.8 (size 2 is 7,000, size 5

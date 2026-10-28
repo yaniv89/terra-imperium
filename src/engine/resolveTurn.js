@@ -176,7 +176,17 @@ const runCitiesPhase = (state, newTurnNumber) => {
   };
   // A governed city (governors.js) adds its governor's food, production and culture to the nation's context.
   // A city's own national wonder adds its culture (greatProjects.js cityEffects, Solomon's Temple).
+  // Pure in (owner, id) for the phase (the state is fixed): one context per city, read by the AI's
+  // build choice, the city pass and the settlers alike.
+  const cityCtxCache = new Map();
   const ctxFor = (city) => {
+    if (city.id == null) return ctxOfCity(city);
+    const key = `${city.owner}|${city.id}`;
+    let ctx = cityCtxCache.get(key);
+    if (!ctx) { ctx = ctxOfCity(city); cityCtxCache.set(key, ctx); }
+    return ctx;
+  };
+  const ctxOfCity = (city) => {
     let base = nationCtx(city.owner);
     const wonderCulture = cityWonderTotal(state.greatProjects, city.id, 'local.culture');
     if (wonderCulture) base = { ...base, cultureBonus: (base.cultureBonus || 0) + wonderCulture };
@@ -210,7 +220,11 @@ const runCitiesPhase = (state, newTurnNumber) => {
   const regions = {};
   Object.entries(result.world.cities).forEach(([id, c]) => {
     const y = result.yields[id];
-    regions[id] = y ? { ...c, lastYields: { gold: y.gold, production: y.production, food: y.food, science: y.science, culture: y.culture, luxuries: y.luxuries, strategic: y.strategic }, dev: devFromYields(y, c) } : c; // bought development is inside the yields and the mirror (development.js, I031)
+    if (!y) { regions[id] = c; return; }
+    const lastYields = { gold: y.gold, production: y.production, food: y.food, science: y.science, culture: y.culture, luxuries: y.luxuries, strategic: y.strategic };
+    const dev = devFromYields(y, c); // bought development is inside the yields and the mirror (development.js, I031)
+    // A record the city pass made this turn is written in place (the same keys and order as a spread).
+    if (result.fresh?.has(id)) { c.lastYields = lastYields; c.dev = dev; regions[id] = c; } else regions[id] = { ...c, lastYields, dev };
   });
   // Floods, fires and plagues by tile facts (cityDisasters.js).
   const disasterLogs = rollCityDisasters(regions, newTurnNumber);
