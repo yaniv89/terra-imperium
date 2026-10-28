@@ -61,11 +61,17 @@ on:
         description: human-playtest only, en or he (empty = the persona's)
         required: false
         default: ''
+      play_model:
+        description: human-playtest only, the model that plays (opus plays better, costs twice as much a step)
+        required: false
+        type: choice
+        default: sonnet
+        options: [sonnet, opus]
 permissions:
   contents: write
 concurrency:
   # One queue per job, persona and scene: GitHub keeps one waiting run per group and cancels the rest.
-  group: claude-content-${{ inputs.job }}-${{ inputs.persona }}-${{ inputs.scene }}
+  group: claude-content-${{ inputs.job }}-${{ inputs.persona }}-${{ inputs.scene }}-${{ inputs.play_model }}
   cancel-in-progress: false
 jobs:
   run:
@@ -134,6 +140,7 @@ jobs:
           BATTLE_AGES: ${{ inputs.slices }}
           SIZE: ${{ inputs.size }}
           LANG_UI: ${{ inputs.lang }}
+          PLAY_MODEL: ${{ inputs.play_model }}
           SWGL: '1'
         run: node "scripts/ai/$JOB.mjs" --max-usd "$MAX_USD" ${LIMIT:+--limit "$LIMIT"}
       - name: Push the results to a new branch

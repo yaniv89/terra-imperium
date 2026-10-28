@@ -23,7 +23,7 @@ import { AGE_ORDER } from '../../src/data/ages.js';
 import { eraSaveFile, readEraSave } from './build-era-saves.mjs';
 
 const API = 'https://api.anthropic.com/v1/messages';
-export const PLAY_MODEL = 'claude-sonnet-5-5';
+export const PLAY_MODEL = process.env.PLAY_MODEL === 'opus' ? 'claude-opus-5-5' : 'claude-sonnet-5-5'; // workflow input play_model
 export const REPORT_MODEL = 'claude-opus-5-5';
 const PLAY_MAX_TOKENS = 4000;
 const REPORT_MAX_TOKENS = 16000;
