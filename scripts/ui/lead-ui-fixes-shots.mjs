@@ -28,39 +28,41 @@ try {
     await loadSlice(g, saves.kingdoms);
     await shot('0-map');
     const rail = page.locator('nav').last().locator('button');
-    // a blocked hire (200 gold, the save has less): its reason bubble
-    await rail.first().click();
+    await page.evaluate(() => { const st = window.__game.state; window.__game.dispatch({ type: 'LOAD_GAME', payload: { ...st, resources: { ...st.resources, gold: 50 } } }); });
+    await wait(500);
+    // a blocked hire (gold set to 50): its reason bubble
+    await rail.first().dispatchEvent('click');
     await wait(800);
-    const court = page.getByRole('button', { name: /Court|חצר/ }).first();
-    if (await court.count()) { await court.click().catch(() => {}); await wait(500); }
-    const blocked = page.locator('[aria-disabled="true"]').filter({ hasText: /200/ }).first();
+    await page.evaluate(() => document.querySelectorAll('[data-testid="landscape-dock"] [aria-expanded="false"]').forEach((b) => b.click())); // open every section
+    await wait(800);
+    const blocked = page.getByTestId('landscape-dock').locator('[aria-disabled="true"]').last();
     if (await blocked.count()) {
-      await blocked.click();
+      await blocked.dispatchEvent('click'); // no scroll first, as the lead's script did: the bubble's button scrolls itself into view
       await wait(600);
       const tip = await boxOf(page, '[data-testid="why-tip"]');
       const dock = await boxOf(page, '[data-testid="turn-dock"]');
       check(`${lang} ${sz} why bubble clear of End Turn`, tip && !hit(tip, dock), JSON.stringify({ tip, dock }));
       await shot('1-why');
-    } else console.log(`skip ${lang} ${sz}: no blocked 200 gold button found`);
+    } else console.log(`skip ${lang} ${sz}: no blocked button found`);
     await page.keyboard.press('Escape');
-    await rail.first().click();
+    await rail.first().dispatchEvent('click');
     await wait(500);
     // the Log sheet: its last line ends above the turn dock
-    await rail.nth(-2).click();
+    await rail.nth(-2).dispatchEvent('click');
     await wait(1200);
     const scroller = await page.evaluate(() => { const els = [...document.querySelectorAll('.fixed.inset-0.z-40 *')].filter((e) => e.scrollHeight > e.clientHeight + 4 && getComputedStyle(e).overflowY !== 'visible'); const e = els[0]; if (!e) return null; e.scrollTop = e.scrollHeight; const b = e.getBoundingClientRect(); return { l: Math.round(b.left), t: Math.round(b.top), r: Math.round(b.right), b: Math.round(b.bottom) }; });
     await wait(300);
     const dock = await boxOf(page, '[data-testid="turn-dock"]');
     if (size.mobile) check(`${lang} ${sz} Log text ends above End Turn`, scroller && dock && scroller.b <= dock.t + 2, JSON.stringify({ scroller, dock }));
     await shot('2-log');
-    await page.keyboard.press('Escape');
+    await page.locator('.fixed.inset-0.z-40').first().dispatchEvent('click'); // the backdrop closes it
     await wait(500);
     // a city sheet: nothing of the legend shows beside it
-    await rail.nth(2).click();
+    await rail.nth(2).dispatchEvent('click');
     await wait(600);
     const row = page.getByTestId('city-rail-row').first();
     if (await row.count()) {
-      await row.click();
+      await row.dispatchEvent('click');
       await wait(1200);
       check(`${lang} ${sz} legend hidden while a city sheet is open`, (await page.locator('text=/each its own colour|כל אחד בצבעו/').count()) === 0);
       await shot('3-city');

@@ -189,15 +189,13 @@ const main = async () => {
   // The era banner hides after five seconds even when a turn ends inside them.
   await patch(page, `const ids = Object.keys(m.AGES); const next = ids[ids.indexOf(s.techAgeId) + 1]; return { ...s, techAgeId: next, turnNumber: s.turnNumber + 1 };`, ['data/ages.js']);
   const banner = page.getByTestId('age-banner');
-  await banner.waitFor({ timeout: 5000 });
-  // Its entry animation starts 16 px higher (headless Chrome can hold that first frame): even
-  // there it must be clear of the bar.
-  // One read while it shows: it hides itself after 5 s, and three reads on a slow machine (software GL) outlasted it (lead check 28 Oct).
-  const { bb, hb, rest } = await banner.evaluate((el) => ({
-    bb: { top: Math.round(el.getBoundingClientRect().top) },
-    hb: { bottom: Math.round(document.querySelector('[data-testid="world-top-bar"]').getBoundingClientRect().bottom) },
-    rest: parseFloat(getComputedStyle(el).top)
-  }));
+  // Read in the page the moment it shows: it hides itself after 5 s, and on a slow machine (software GL, about
+  // 2.6 s a round trip) separate reads landed on the removed element and read NaN (lead check 28 Oct).
+  const { bb, hb, rest } = await (await page.waitForFunction(() => {
+    const el = document.querySelector('[data-testid="age-banner"]');
+    const bar = document.querySelector('[data-testid="world-top-bar"]');
+    return el && bar && { bb: { top: Math.round(el.getBoundingClientRect().top) }, hb: { bottom: Math.round(bar.getBoundingClientRect().bottom) }, rest: parseFloat(getComputedStyle(el).top) };
+  }, null, { timeout: 15000, polling: 'raf' })).jsonValue();
   check('the era banner is below the top bar, also at the start of its slide', bb.top >= hb.bottom && rest >= hb.bottom + 16, `rests at ${rest}, drawn at ${bb.top}, bar ends at ${hb.bottom}`);
   await patch(page, 'return { ...s, turnNumber: s.turnNumber + 1 };');
   await wait(5200);
