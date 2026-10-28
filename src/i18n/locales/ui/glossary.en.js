@@ -75,5 +75,21 @@ export default {
   'gloss.term.catchup': "Catching up",
   'gloss.term.catchup.text': "A technology is cheaper when peoples you have met already know it. Behind the leaders you catch up faster; the first people to a technology pays full price.",
   'gloss.term.help': "Getting help",
-  'gloss.term.help.text': "The ? at the top opens Help and this glossary. A dotted name opens its entry. On a phone, hold a finger for half a second on a name, a technology or a number in the top bar."
+  'gloss.term.help.text': "The ? at the top opens Help and this glossary. A dotted name opens its entry. On a phone, hold a finger for half a second on a name, a technology or a number in the top bar.",
+  'gloss.building': "Building",
+  'gloss.resource': "Resource",
+  'gloss.improvement': "Tile improvement",
+  'gloss.tab.building': "Buildings",
+  'gloss.tab.resource': "Resources",
+  'gloss.tab.improvement': "Improvements",
+  'gloss.buildingLine': "A building of the {line} line, from the {age}. A city builds it from its Build tab; each line's next level replaces the one before.",
+  'gloss.improvementLine': "A city builds it on one of its tiles, from the city's Build tab. Takes {n} turns.",
+  'gloss.res.bonus': "A bonus resource: more yield where it lies.",
+  'gloss.res.strategic': "A strategic resource: a worked one fills your stocks, and recruiting units of some ages spends it.",
+  'gloss.res.luxury': "A luxury resource: extra gold where it is worked.",
+  'gloss.workedBy': "Gives {yields} once worked by a {link}.",
+  'gloss.seenWith': "Shows on the map once you know {tech}.",
+  'gloss.seenFrom': "Shows on the map from the {age}.",
+  'gloss.works': "Works: {list}",
+  'gloss.moreWith': "Yields more with: {list}"
 };
