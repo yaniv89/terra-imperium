@@ -178,6 +178,7 @@ const BattleHud = ({
   const [supplyOpen, setSupplyOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [deployFolded, setDeployFolded] = useState(false);
+  const [attrOpen, setAttrOpen] = useState(false); // the attrition chip's why, on a tap (a phone has no hover title)
   const [stocksOpen, setStocksOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   // On a phone one battle overlay shows at a time (the radial too, TacticalBattleScreen): the one opened last.
@@ -228,7 +229,7 @@ const BattleHud = ({
   const target = selectedSquads.find((q) => q.targetKind === 'structure' && q.target >= 0);
   const targetSt = target ? hud.structures[target.target] : null;
   const city = cityAssaultView(hud, setup);
-  const { shown: shownAlerts, history } = visibleAlerts(alerts, hud.tick);
+  const { shown: shownAlerts, history } = visibleAlerts(alerts, hud.tick, short ? 1 : 2); // a phone keeps one on the field at a time
   const pauseOpen = started && paused && !sheetHidden;
   const bt = BATTLE_TYPES[hud.battleType || 'field'];
   const youPct = Math.round(strengthShare(hud, playerSide) * 100);
@@ -409,11 +410,12 @@ const BattleHud = ({
           {shownAlerts.length > 0 && !pauseOpen && !historyOpen && (
             <div className="space-y-1" data-testid="battle-alerts">
               {shownAlerts.map((a) => (
-                <div key={a.id} className={cx('pointer-events-auto flex items-center gap-1.5 ps-2 rounded-[10px] bg-fa-panel/95 border shadow-xl', a.tone === 'good' ? 'border-fa-good/70' : 'border-fa-danger/80')} role="status">
+                // The whole alert is its Go (playtest 40651418969 step 232: a tap beside the small Go missed it).
+                <div key={a.id} onClick={() => (onAlertGo ? onAlertGo(a) : onFocus?.(a.x, a.y))} className={cx('pointer-events-auto flex items-center gap-1.5 ps-2 rounded-[10px] bg-fa-panel/95 border shadow-xl cursor-pointer', a.tone === 'good' ? 'border-fa-good/70' : 'border-fa-danger/80')} role="status">
                   {a.tone === 'good' ? <Flag className="w-4 h-4 shrink-0 text-fa-good" aria-hidden="true" /> : <AlertTriangle className="w-4 h-4 shrink-0 text-fa-danger-text" aria-hidden="true" />}
                   <span className="min-w-0 flex-1 text-[12px] font-semibold leading-tight truncate" title={a.detail}>{a.title}</span>
-                  {a.kind === 'shaken' && rallyCry && <button type="button" onClick={() => onPower(rallyCry)} disabled={!rallyReady} className="fa-btn fa-btn-secondary !min-h-[44px] !px-2 shrink-0 text-[11px]" data-testid="battle-alert-rally">{t('bt.hud.rally')}</button>}
-                  {(onAlertGo || onFocus) && <button type="button" onClick={() => (onAlertGo ? onAlertGo(a) : onFocus(a.x, a.y))} className="shrink-0 min-w-[44px] h-11 px-2 text-[12px] font-semibold text-fa-text" data-testid="battle-alert-go">{t('bt.go')}</button>}
+                  {a.kind === 'shaken' && rallyCry && <button type="button" onClick={(e) => { e.stopPropagation(); onPower(rallyCry); }} disabled={!rallyReady} className="fa-btn fa-btn-secondary !min-h-[44px] !px-2 shrink-0 text-[11px]" data-testid="battle-alert-rally">{t('bt.hud.rally')}</button>}
+                  {(onAlertGo || onFocus) && <button type="button" onClick={(e) => { e.stopPropagation(); if (onAlertGo) onAlertGo(a); else onFocus(a.x, a.y); }} className="shrink-0 min-w-[44px] h-11 px-2 text-[12px] font-semibold text-fa-text" data-testid="battle-alert-go">{t('bt.go')}</button>}
                 </div>
               ))}
             </div>
@@ -473,7 +475,7 @@ const BattleHud = ({
               <span className={cx('fa-num', sel.share < 0.35 ? 'text-fa-danger-text' : 'text-fa-good')}>{Math.round(sel.share * 100)}%</span>
               {sel.shaken > 0 && <span className="px-1.5 rounded-md bg-fa-brass/20 text-fa-brass text-[11px] font-bold whitespace-nowrap" title={t('bt.hud.shakenTitle')} data-testid="battle-selection-shaken">{sel.squads > 1 ? t('bt.hud.shakenN', { n: sel.shaken }) : t('bt.hud.shaken')}</span>}
               {sel.noPath > 0 && <span className="px-1.5 rounded-md bg-fa-danger/20 text-fa-danger-text text-[11px] font-bold whitespace-nowrap" title={t('bt.hud.noPathTitle')} data-testid="battle-selection-nopath">{t('bt.hud.noPath')}</span>}
-              {sel.attrition > 0 && <span className="text-fa-muted text-[11px] whitespace-nowrap fa-num" title={t('bt.hud.attritionTitle')} data-testid="battle-selection-attrition">{t('bt.hud.attrition', { men: menText(sel.attrition) })}</span>}
+              {sel.attrition > 0 && <button type="button" onClick={() => setAttrOpen((v) => !v)} aria-expanded={attrOpen} className="min-h-[44px] -my-2.5 text-fa-muted text-[11px] whitespace-nowrap fa-num underline decoration-dotted" title={t('bt.hud.attritionTitle')} data-testid="battle-selection-attrition">{t('bt.hud.attrition', { men: menText(sel.attrition) })}</button>}
               {sel.routed && <span className="text-fa-danger-text font-semibold">{t('bt.hud.routed')}</span>}
               {targetSt && <span className="text-fa-enemy whitespace-nowrap hidden lg:inline">{t('bt.hud.target', { word: structureLabel(targetSt.kind, STRUCTURE_WORD[targetSt.kind] || targetSt.kind), hp: `${Math.round(targetSt.hp)}/${targetSt.maxHp}` })}</span>}
               {sel.shaken > 0 && rallyCry && <button type="button" onClick={() => onPower(rallyCry)} disabled={!rallyReady} className="fa-btn fa-btn-secondary !min-h-[44px] !px-2.5 -my-2 shrink-0 text-[11px]" data-testid="battle-selection-rally" title={rallyReady ? t('bt.hud.rallyReadyTitle') : t('bt.hud.rallyNotReady')}>{t('bt.hud.rallyCry')}</button>}
@@ -484,6 +486,9 @@ const BattleHud = ({
                 </button>
               )}
             </div>
+          )}
+          {sel && attrOpen && sel.attrition > 0 && !pauseOpen && started && (
+            <div className="pointer-events-auto max-w-[min(20rem,100%)] px-2.5 py-1 rounded-[10px] bg-fa-panel/95 border border-fa-line text-[11.5px] leading-snug shadow-xl" data-testid="battle-attrition-why">{t('bt.hud.attritionTitle')}</div>
           )}
         </div>
 

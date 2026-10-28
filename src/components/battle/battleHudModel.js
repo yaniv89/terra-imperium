@@ -229,9 +229,9 @@ export const nextAlerts = (prev, cur, playerSide, setup, last = {}) => {
  * never pile up over the field), how many others there are, and the whole list newest first (the
  * history the player can open).
  */
-export const visibleAlerts = (alerts, tick) => {
+export const visibleAlerts = (alerts, tick, max = 2) => {
   const fresh = alerts.filter((a) => tick - a.tick < ALERT_SHOW_TICKS);
-  const shown = fresh.slice(-2).reverse();
+  const shown = fresh.slice(-max).reverse();
   return { shown, older: Math.max(0, alerts.length - shown.length), history: [...alerts].reverse() };
 };
 

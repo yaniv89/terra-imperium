@@ -971,12 +971,23 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   // follow ends (I199).
   const lookAt = (x, z) => { rendererRef.current?.centerOn(x, z); setFollow(false); };
   const lookAtSquads = (list) => { if (list.length) lookAt(list.reduce((s, q) => s + q.x, 0) / list.length / Q, list.reduce((s, q) => s + q.y, 0) / list.length / Q); };
+  const lookAtNearestIfOff = (list) => {
+    const r = rendererRef.current; if (!r) return;
+    const at = list.map((q) => ({ q, p: r.worldToScreen(q.x / Q, q.y / Q) }));
+    if (at.some(({ p }) => p && p.x >= 0 && p.y >= 0 && p.x <= r.width && p.y <= r.height)) return;
+    const d = (q) => (q.x / Q - r.target.x) ** 2 + (q.y / Q - r.target.z) ** 2;
+    const near = list.reduce((b, q) => (d(q) < d(b) ? q : b));
+    lookAt(near.x / Q, near.y / Q);
+  };
   const selectClass = (classId) => {
     const cur = frames.current.cur; if (!cur) return;
     const idle = classId === 'idle' ? new Set(cur.eco?.idleWorkers || []) : null;
     const picked = classId === 'all' ? fightersOf(cur) : classId === 'idleSquads' ? fightersOf(cur).filter(isIdleSquad) : cur.squads.filter((q) => q.side === playerSide && q.alive && q.onField && !q.fled && !q.routed && (idle ? idle.has(q.idx) : q.classId === classId));
     updateSelection(picked.map((q) => q.idx));
-    if ((idle || classId === 'idleSquads') && picked.length) lookAtSquads(picked);
+    if (idle && picked.length) lookAtSquads(picked);
+    // Idle squads (AoE's idle button): the camera stays while one is on screen, else goes to the nearest one, never to the
+    // middle of all of them (playtest 40651418969 step 230: that was home, every time).
+    else if (classId === 'idleSquads' && picked.length) lookAtNearestIfOff(picked);
   };
   // Rank 6: four control groups. Hold a slot (or tap an empty one) to save the selection, tap to
   // select it, tap again while it is the selection to bring the camera to it. UI only: no orders.
@@ -1281,7 +1292,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         minimap={hud ? <BattleMinimap setup={setup} hud={hud} playerSide={playerSide} getRenderer={getRenderer} onMoved={() => setFollow(false)} {...(compactScreen ? { maxW: 150, maxH: 92 } : { maxW: 220, maxH: 136 })} /> : null}
         supplyRate={supplyGain}
         perf={showPerf ? <pre ref={perfRef} className="pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre overflow-hidden" data-testid="battle-perf" /> : null}
-        onOpenBuild={() => flowTo({ type: 'toggle' })} buildOpen={buildMenu} onSelectHq={selectHq} onSteward={(on) => send([{ type: 'steward', on }])}
+        onOpenBuild={() => flowTo({ type: 'toggle' })} buildOpen={buildMenu} onSelectHq={selectHq} onSteward={(on) => { send([{ type: 'steward', on }]); setOrderNote(tNow(on ? 'bt.hud.stewardOn' : 'bt.hud.stewardOff')); }}
         groups={groupCounts} onGroup={pickGroup}
         soundOn={soundOn} onToggleSound={toggleSound}
         selectMode={selectMode} onToggleSelectMode={() => setSelectModeOn(!selectModeRef.current)}
