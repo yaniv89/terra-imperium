@@ -125,5 +125,5 @@ with a priority nation) and the default world's registry are byte-identical to b
 
 ## Tests
 
-- Full `npx vitest run` before the final push: see the commit message of the push.
+- Full `npx vitest run` on the merged branch: 509 files passed, 2 skipped (4,762 tests passed, 17 skipped).
 - Lint clean on every changed file.
