@@ -77,3 +77,6 @@ claude/integration, main gets the push once the quick suite and CI are green.
   layer; only a retest proves a grade. Five lanes started 08:42: battle-engage session_01S3hKeHj5rji3KbwDmD1SZs,
   battle-touch session_01S3hKeGMJPicF3ohf5ZWqnJ, gold-sinks session_01S3hKeJ4vxmpksQdZvP4Hsg, newcomer-flow
   session_01S3hKeGsvQ56fHfNHdvLCTM, battle-odds session_01S3hKeJH1jTbRuQwHYLS21e. Real costs 1.85, 2.21, 1.88.
+- Final deliverable (user, 28 Oct): when the loop ends (every area 8+ or the budget stops it), a very extensive,
+  detailed report of everything done and the current status of every area, with screenshots and explanations
+  (published as an artifact; before/after shots from the playtests and lanes, grades per round, what is left).
