@@ -196,7 +196,8 @@ const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
               {target !== loyalty && <span className={`fa-num text-[12px] ${target > loyalty ? 'text-fa-good' : 'text-fa-danger-text'}`}>{signed(target - loyalty)}</span>}
             </div>
           </div>
-          <CloseButton onClick={onClose} />
+          {/* the X goes back to the map, not to the city card under the sheet (Sonnet civ veteran steps 16-17, 54-55, 64-65: two closes) */}
+          <CloseButton onClick={() => onClose({ toMap: true })} />
         </div>
 
         {/* A phone held sideways scrolls the whole sheet: the name scrolls away, the tabs (45 px) and the

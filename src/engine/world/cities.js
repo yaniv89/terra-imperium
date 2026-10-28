@@ -384,7 +384,7 @@ export const cityYields = (city, tiles, world, worked, researched = [], ctx = {}
   // gold that production feeds (development.js devFromYields) reads `devProduction`, the land's part.
   const prodMult = (1 + tierEffect(city, 'industry', 'local.productionIncome') + tierEffect(city, 'energy', 'local.productionIncome') + (ctx.productionMult || 0)) * dm.production;
   const devProduction = Math.round((sum.production + palace.production) * prodMult * 10) / 10;
-  const floor = PRODUCTION_FLOOR * (AGES[ctx.ageId]?.unitCostMult ?? 1) * (besieged ? SIEGE_YIELD_MULT : 1);
+  const floor = PRODUCTION_FLOOR * (AGES[ctx.ageId]?.unitCostMult ?? 1) * (besieged ? SIEGE_YIELD_MULT : 1) * dm.production; // a fire cuts it too
   const production = Math.round(Math.max(floor, (sum.production + palace.production + PRODUCTION_PER_SIZE * city.size + tierEffect(city, 'industry', 'local.flatProduction')) * prodMult) * 10) / 10;
   const gold = Math.round(((sum.gold + palace.gold) * (1 + tierEffect(city, 'economy', 'local.taxIncome') + (ctx.goldMult || 0)) + tierEffect(city, 'economy', 'local.flatGold') + tierEffect(city, 'industry', 'local.flatGold') + tierEffect(city, 'naval', 'local.tradeIncome')) * 10) / 10;
   // The ruler (lawRules.js rulerCityCtx): Learning and the Sage virtues.
