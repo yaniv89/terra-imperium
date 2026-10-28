@@ -146,6 +146,16 @@ describe('battle gestures', () => {
     move(1, 420, 127); move(2, 420, 273); up(2, 420, 273); up(1, 420, 127);
     expect(stop).toHaveBeenCalled();
     expect(h.zoom.mock.calls[h.zoom.mock.calls.length - 1][0]).toBeLessThan(1);
+    // the other way round: the first finger on a HUD button, the second on the field; the button's click is swallowed
+    h.zoom.mockClear();
+    el.winHandlers.pointerdown(ev(4, 420, 61, { target: 'hud-button', stopPropagation: vi.fn() }));
+    down(5, 420, 339);
+    move(4, 420, 127); move(5, 420, 273); up(5, 420, 273); el.winHandlers.pointerup(ev(4, 420, 127)); up(4, 420, 127);
+    expect(h.zoom.mock.calls[h.zoom.mock.calls.length - 1][0]).toBeLessThan(1);
+    const clickStop = vi.fn();
+    el.winHandlers.click({ timeStamp: clock + 100, preventDefault: () => {}, stopPropagation: clickStop });
+    expect(clickStop).toHaveBeenCalled();
+    expect(h.tap).not.toHaveBeenCalled();
     // a lone touch on the HUD is the HUD's
     const stop2 = vi.fn();
     el.winHandlers.pointerdown(ev(3, 420, 339, { target: 'hud-button', stopPropagation: stop2 }));

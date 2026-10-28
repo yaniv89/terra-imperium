@@ -136,7 +136,7 @@ export const createGestureRecognizer = (el, h, memory = { lastTapAt: -1000, last
     const p = pos(e);
     pointers.delete(e.pointerId);
     clearLong();
-    if (mode === 'pinch') { if (pointers.size === 0) { mode = 'idle'; start = null; } return; }
+    if (mode === 'pinch') { if (pointers.size === 0) { mode = 'idle'; start = null; if (swallowClickUntil === Infinity) swallowClickUntil = e.timeStamp + 500; } return; }
     if (!start) return;
     const quick = e.timeStamp - start.t < TAP_MS;
     if (mode === 'place') h.placeEnd?.(p, { moved: !!start.moved, onGhost: !!start.onGhost, quick });
@@ -154,14 +154,28 @@ export const createGestureRecognizer = (el, h, memory = { lastTapAt: -1000, last
     mode = 'idle'; start = null;
   };
 
-  const cancel = (e) => { pointers.delete(e.pointerId); clearLong(); if (mode === 'formation' || mode === 'lasso' || mode === 'path') h.cancel?.(); mode = 'idle'; start = null; };
+  const cancel = (e) => { pointers.delete(e.pointerId); if (!pointers.size && swallowClickUntil === Infinity) swallowClickUntil = 0; clearLong(); if (mode === 'formation' || mode === 'lasso' || mode === 'path') h.cancel?.(); mode = 'idle'; start = null; };
   const wheel = (e) => { e.preventDefault(); const p = pos(e); h.zoom?.(e.deltaY < 0 ? 1.12 : 1 / 1.12, p.x, p.y); };
   const context = (e) => e.preventDefault();
-  // A second finger that lands on the HUD still joins the pinch (playtest 40651418969 steps 24, 181:
-  // a pinch out starts with the fingers apart, one on the bottom bar, and the zoom never moved).
-  const downElsewhere = (e) => {
-    if (e.pointerType !== 'touch' || pointers.size !== 1 || el.contains(e.target)) return;
-    e.preventDefault(); e.stopPropagation();
+  // A finger on the HUD still makes a pinch with one on the field, whichever lands first (playtest
+  // 40651418969 steps 24, 181: a pinch out starts with the fingers apart, one on a HUD button, and
+  // the zoom never moved). Its button then never clicks.
+  const hudTouches = new Map(); // touches held on the HUD: id -> position
+  let swallowClickUntil = 0;
+  const adopt = (id, p) => { el.setPointerCapture?.(id); pointers.set(id, p); swallowClickUntil = Infinity; };
+  const hudDown = (e) => {
+    if (e.pointerType !== 'touch' || el.contains(e.target)) return;
+    if (pointers.size === 1) { e.preventDefault(); e.stopPropagation(); swallowClickUntil = Infinity; down(e); return; }
+    hudTouches.set(e.pointerId, pos(e));
+  };
+  const hudUp = (e) => { hudTouches.delete(e.pointerId); };
+  const swallowClick = (e) => { if (e.timeStamp <= swallowClickUntil) { e.preventDefault(); e.stopPropagation(); } };
+  const downField = (e) => {
+    if (e.pointerType === 'touch' && !pointers.size && hudTouches.size) {
+      const [id, p] = [...hudTouches][0];
+      hudTouches.clear();
+      adopt(id, p);
+    }
     down(e);
   };
   // Space is a held modifier for panning; a typing field keeps its own Space.
@@ -170,7 +184,7 @@ export const createGestureRecognizer = (el, h, memory = { lastTapAt: -1000, last
   const keyUp = (e) => { if (e.code === 'Space') spaceHeld = false; };
   const blur = () => { spaceHeld = false; };
 
-  el.addEventListener('pointerdown', down);
+  el.addEventListener('pointerdown', downField);
   el.addEventListener('pointermove', move);
   el.addEventListener('pointerup', up);
   el.addEventListener('pointercancel', cancel);
@@ -180,14 +194,20 @@ export const createGestureRecognizer = (el, h, memory = { lastTapAt: -1000, last
   win?.addEventListener('keydown', keyDown);
   win?.addEventListener('keyup', keyUp);
   win?.addEventListener('blur', blur);
-  win?.addEventListener('pointerdown', downElsewhere, true);
+  win?.addEventListener('pointerdown', hudDown, true);
+  win?.addEventListener('pointerup', hudUp, true);
+  win?.addEventListener('pointercancel', hudUp, true);
+  win?.addEventListener('click', swallowClick, true);
   return () => {
-    win?.removeEventListener('pointerdown', downElsewhere, true);
+    win?.removeEventListener('pointerdown', hudDown, true);
+    win?.removeEventListener('pointerup', hudUp, true);
+    win?.removeEventListener('pointercancel', hudUp, true);
+    win?.removeEventListener('click', swallowClick, true);
     win?.removeEventListener('keydown', keyDown);
     win?.removeEventListener('keyup', keyUp);
     win?.removeEventListener('blur', blur);
     clearLong();
-    el.removeEventListener('pointerdown', down);
+    el.removeEventListener('pointerdown', downField);
     el.removeEventListener('pointermove', move);
     el.removeEventListener('pointerup', up);
     el.removeEventListener('pointercancel', cancel);
