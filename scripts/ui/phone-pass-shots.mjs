@@ -68,6 +68,19 @@ const audit = (page, phone) => page.evaluate((phone) => {
       if (!widened) out.push(`SMALL ${label(el)} ${Math.round(r.width)}x${Math.round(r.height)}`);
     }
   }
+  // End Turn over a control (playtest issue 5): the overlap's middle hits the turn dock, not the control.
+  const dock = document.querySelector('[data-testid="turn-dock"]');
+  if (phone && dock) {
+    const d = dock.getBoundingClientRect();
+    for (const el of document.querySelectorAll('button,a[href],input,select,[role=button],[role=tab]')) {
+      if (dock.contains(el) || !vis(el)) continue;
+      const r = el.getBoundingClientRect();
+      const x0 = Math.max(r.left, d.left); const x1 = Math.min(r.right, d.right); const y0 = Math.max(r.top, d.top); const y1 = Math.min(r.bottom, d.bottom);
+      if (x1 - x0 < 4 || y1 - y0 < 4) continue;
+      const hit = document.elementFromPoint((x0 + x1) / 2, (y0 + y1) / 2);
+      if (hit && dock.contains(hit) && el.closest('.sheet-panel,[role=dialog],[data-testid="landscape-dock"],[data-testid="army-sheet"],[data-testid="tile-sheet"]')) out.push(`ENDTURN over ${label(el)}`);
+    }
+  }
   // Right to left: a signed number whose sign lands on the wrong side ("50+" for "+50"), measured.
   if (document.documentElement.dir === 'rtl') {
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -113,6 +126,28 @@ const run = async (cfg) => {
     const issues = await audit(page, cfg.phone).catch((e) => [`audit failed ${e}`]);
     report.push({ cfg: cfg.id, name, issues });
     console.log(`${cfg.id} ${name}: ${issues.length ? `\n    ${issues.join('\n    ')}` : 'clean'}`);
+    // The last rows of every scroll area, scrolled down: End Turn and the rail must not cover them (playtest issue 5).
+    const scrolled = await page.evaluate(() => [...document.querySelectorAll('*')].filter((el) => /(auto|scroll)/.test(getComputedStyle(el).overflowY) && el.clientHeight > 80 && el.scrollHeight > el.clientHeight + 4).map((el) => { el.scrollTop = el.scrollHeight; return 1; }).length).catch(() => 0);
+    if (!scrolled || !cfg.phone) return;
+    await wait(300);
+    await page.screenshot({ path: path.join(OUT, `${cfg.id}-${name}-bottom.png`), timeout: 120000 }).catch(() => {});
+    const low = await audit(page, cfg.phone).catch((e) => [`audit failed ${e}`]);
+    report.push({ cfg: cfg.id, name: `${name}-bottom`, issues: low });
+    console.log(`${cfg.id} ${name}-bottom: ${low.length ? `\n    ${low.join('\n    ')}` : 'clean'}`);
+  };
+  // A touch tap on a close button closes only its panel: nothing under it opens (playtest issue 18).
+  const tapClose = async (name, mouse = false) => {
+    if (!cfg.phone) return;
+    const btn = page.locator('button[aria-label="Close"]:visible, button[aria-label="סגירה"]:visible, button[aria-label="סגור"]:visible').first();
+    if (!(await btn.count())) { console.log(`${cfg.id} ${name}-tapclose: no close button`); return; }
+    const b = await btn.boundingBox();
+    if (process.env.PP_DEBUG) console.log('close at', JSON.stringify(b), await page.evaluate(({ x, y }) => { const h = document.elementFromPoint(x, y); return `${h?.tagName} ${h?.getAttribute('aria-label')} in ${h?.closest('[data-testid]')?.dataset.testid}`; }, { x: b.x + b.width / 2, y: b.y + b.height / 2 }));
+    // the AI playtester clicks with a mouse at phone size, a player taps
+    if (mouse) await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2); else await page.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2);
+    await wait(700);
+    const opened = await page.evaluate(() => ['tile-sheet', 'army-sheet', 'city-card', 'region-chooser'].filter((id) => document.querySelector(`[data-testid="${id}"]`)?.offsetParent));
+    report.push({ cfg: cfg.id, name: `${name}-tapclose`, issues: opened.map((id) => `TAPTHROUGH ${id}`) });
+    console.log(`${cfg.id} ${name}-tapclose: ${opened.length ? `TAPTHROUGH ${opened.join(' ')}` : 'clean'}`);
   };
   const want = (s) => !SCREENS.length || SCREENS.includes(s);
   await page.goto(URL_BASE);
@@ -164,14 +199,15 @@ const run = async (cfg) => {
   if (want('map')) await shot('map-hud');
   const capId = await page.evaluate(() => window.__game.state.nations[window.__game.state.playerNationId].capitalRegionId);
   if (want('city')) {
-    await fire(page, 'ti:select-region', capId); await wait(900); await shot('city-card');
+    await fire(page, 'ti:select-region', capId); await wait(900); await shot('city-card'); await tapClose('city-card');
+    await fire(page, 'ti:select-region', capId); await wait(900);
     await fire(page, 'ti:manage-city', { regionId: capId, tab: 'overview' }); await wait(900); await shot('city-sheet');
-    await fire(page, 'ti:manage-city', { regionId: capId, tab: 'build' }); await wait(900); await shot('city-build');
+    await fire(page, 'ti:manage-city', { regionId: capId, tab: 'build' }); await wait(900); await shot('city-build'); await tapClose('city-build', true);
     await closeAll(page);
   }
   if (want('army')) {
     const tile = await page.evaluate(() => { const s = window.__game.state; return Object.values(s.units).find((u) => u.ownerId === s.playerNationId && u.tile != null)?.tile; });
-    if (tile != null) { await fire(page, 'ti:select-army', tile); await wait(900); await shot('army-sheet'); }
+    if (tile != null) { await fire(page, 'ti:select-army', tile); await wait(900); await shot('army-sheet'); await tapClose('army-sheet', true); await fire(page, 'ti:select-army', tile); await wait(900); }
     const march = page.getByRole('button', { name: /^(March|צעד|הצעד)/ }).first();
     if (await march.isVisible().catch(() => false)) { await click(march); await wait(900); await shot('march-bar'); }
     await closeAll(page);
@@ -185,7 +221,7 @@ const run = async (cfg) => {
   if (want('menu')) {
     await fire(page, 'ti:open-menu', 'all'); await wait(800); await shot('menu');
     await closeAll(page);
-    await fire(page, 'ti:open-settings'); await wait(800); await shot('settings');
+    await fire(page, 'ti:open-settings'); await wait(800); await shot('settings'); await tapClose('settings');
     await closeAll(page);
     await fire(page, 'ti:open-nation-overview'); await wait(800); await shot('nation-overview');
     await closeAll(page);

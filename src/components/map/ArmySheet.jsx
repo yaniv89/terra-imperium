@@ -47,7 +47,7 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
   const rename = () => { if (renaming?.trim()) dispatch({ type: ActionTypes.RENAME_ARMY, payload: { unitIds: model.unitIds, name: renaming.trim() } }); setRenaming(null); };
   const body = (
     <>
-      <div className="flex justify-between items-start border-b border-fa-line pb-2 mb-2">
+      <div className="flex justify-between items-start border-b border-fa-line pb-2 mb-2 pl:sticky pl:-top-3 pl:z-[1] pl:-mx-3 pl:px-3 pl:pt-3 pl:-mt-3 pl:bg-fa-panel">
         <div className="flex items-center gap-2 min-w-0">
           <Shield className="w-4 h-4 text-fa-good shrink-0" />
           <div className="min-w-0">
@@ -62,7 +62,7 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
             <button type="button" onClick={() => onCycleUnit(1)} aria-label={tOr('mx.army.nextUnit', 'Next unit on this tile')} className="p-1 rounded hover:bg-fa-hover text-fa-muted hover:text-fa-text"><ChevronRight className="w-4 h-4 rtl:rotate-180" /></button>
           </div>
         )}
-        <button onClick={onClose} aria-label={tr('at.close')} className="p-1 hover:bg-fa-hover rounded text-fa-muted hover:text-fa-text shrink-0"><X className="w-4 h-4" /></button>
+        <button onClick={onClose} aria-label={tr('at.close')} className="relative before:content-[''] before:absolute before:-inset-2.5 p-1 hover:bg-fa-hover rounded text-fa-muted hover:text-fa-text shrink-0"><X className="w-4 h-4" /></button>
       </div>
       {model.other && <button type="button" onClick={() => setFleetView(!model.naval)} data-testid="army-switch" className="w-full mb-2 min-h-[40px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold">{model.naval ? tr('mx.army.showTroops') : tr('mx.army.showFleet')}</button>}
       {model.inPort && (model.board.length > 0 || model.cargo.length > 0) && (

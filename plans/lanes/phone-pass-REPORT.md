@@ -1,3 +1,5 @@
+ponytail read in full at 05:34 UTC, 28 Oct (second session on this branch, `cat` of the whole SKILL.md)
+
 # Lane report: phone pass (branch claude/phone-pass)
 
 Goal: every campaign and battle screen reads and works on a phone held sideways (844x390, and
@@ -35,6 +37,29 @@ rule changed.
 | 7 | Map, 844x340 | The needs-you column (chips, crisis notice, goals) ran onto the map's lens buttons | the column scrolls above the bottom buttons (`max-h`, no scrollbar) | 07-chip-column-he340-before.jpg | 07-chip-column-he340-after.jpg |
 | 8 | Research choice, 844x340 | "Let my advisor choose" and "All techs" fell below the fold | on phone-landscape the two buttons stick to the true bottom of the sheet, the row padding the strip the sheet keeps clear for End Turn, so no option shows under it; 40 to 44 px | 08-research-choice-he340-before.jpg | 08-research-choice-he340-after.jpg |
 | 9 | Tap targets | Under 44 px: top bar nation, turn and help (32), stat items (32), needs-you chips (32), goals chip (36), march and settle bar buttons (32 to 36), crisis close (32), research close (28), glossary links (20), build filters (36), start screen region chips and language switch (36) | 44 px hit areas: a `::before` inset where the visible size must stay (top bar, chips, bars, glossary links, crisis close), else min-height 44 (build filters, start chips, language switch, research close). The stat items sit in the top bar's sideways scroller, which clips any inset: they now fill the 36 px bar | 09-build-filters-before.jpg | 09-build-filters-after.jpg |
+| 10 | City sheet, phone | The sheet sits at the start edge and its last rows ran under "Advisor builds" and End Turn (template Delete hidden; playtest issue 5) | the sheet's scroll area pads the End Turn strip on phone-landscape, as `.sheet-panel` does | 10-city-build-bottom-before.jpg | 10-city-build-bottom-after.jpg |
+| 11 | Army, tile and city corner cards, phone | With Idle N, Advisor builds and End Turn all up, the Idle chip covered the army card's rename button (x 278 against a card ending at 308) | index.css: `.corner-card` on phone-landscape ends above the End Turn row; the action row was already pinned, so the card loses nothing (the map's lens buttons show again too) | 11-idle-over-army-card-340-before.jpg | 11-idle-over-army-card-340-after.jpg |
+| 12 | Army card, phone | Scrolled down, its header and close button scrolled away (found by the new tap-close check) | the header sticks to the top on phone-landscape like the action row at the bottom; the 24 px close gets a 44 px hit area | (none) | 12-army-card-scrolled-he340-after.jpg |
+
+## Second session (28 Oct): merge and checks
+
+- Merged claude/integration: its Hebrew sign isolate over the whole filled string replaced this
+  lane's per-value isolate (one rule, not two); its event card keys replaced `evt.cantAfford` and
+  `evt.footer`; this lane's hit areas kept on the goals chip and march bar.
+- `scripts/ui/panels-shots.mjs` runs again on today's worlds (it founds the band's first city
+  first): 31 of 31 checks pass at 844x340 and 1280x800, with a new one, "the army card ends above
+  the End Turn row". Two stale checks rewritten: the gold popover no longer has ADM pools
+  (decrees replaced them), and a map tap under a decision card lets the tile take the screen while
+  the card waits as a chip, which is the interaction rule (player-opened wins, the card is never
+  closed), so the check accepts the chip.
+- `scripts/ui/phone-pass-shots.mjs` now also scrolls every scroll area to its bottom and audits
+  again (`-bottom` shots), measures End Turn over any sheet control (`ENDTURN`), and taps or
+  clicks each close button and checks nothing under it opened (`TAPTHROUGH`, playtest issue 18).
+  After: no tap-through at 844x390 or 844x340, en or he (city card, city sheet, army card);
+  End Turn covers no sheet's last row. Desktop 1600x900 en and he: clean.
+- Playtest issue 5 (End Turn over the bottom of Settings, Empire, Research, Peoples, Legacy):
+  checked scrolled down at 844x390 and 844x340, every last row clears End Turn (already fixed by
+  `.sheet-panel` padding); the city sheet was the one left (fix 10).
 
 ## Design calls (the lead's rule of 27 Oct: each with its reason, reference and shots)
 
@@ -85,6 +110,11 @@ desktop 1600x900 in both languages.
 
 ## Left open
 
+- Mid-scroll, a city build row can pass under Advisor builds / End Turn (End Turn rides above
+  sheets by design; the row scrolls clear and the last one now clears).
+- Playtest issues 11 (half faded panel) and 16 (Peoples / turn report loop) did not show in these
+  runs; no repro, so not touched.
+
 - On a short phone the settle legend pill runs partly under the band sheet (its lens buttons sit
   in the same corner as the sheet).
 - In Hebrew with a tab open, the first chip slightly covers the map's search button (already so
@@ -97,6 +127,9 @@ desktop 1600x900 in both languages.
 
 ## Tests
 
+- Second session: lint clean (whole repo); full `npx vitest run`: 4667 pass, 1 fail (the same
+  resolveTurn.test.js AI war test below, no engine file changed here); panels-shots 31 of 31.
+
 - Lint: zero warnings on every changed file.
 - `npm run test:related` over the changed src files: 354 of 357 files pass, 2 skipped, 1 failing
   test (the engine test above, failing on the base too).
@@ -105,6 +138,5 @@ desktop 1600x900 in both languages.
 
 ## Note to the lead
 
-send_message to the lead session fails from this machine (the lead session needs a trusted device),
-so this file is the report. Interim note sent nowhere: army orders on a phone were fixed first, as
+First session: send_message failed (trusted device), so this file is the report. Interim note sent nowhere: army orders on a phone were fixed first, as
 asked (fixes 2 and 3).
