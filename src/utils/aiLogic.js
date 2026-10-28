@@ -374,7 +374,7 @@ const warRollChance = (nation, aggressionMult = 1, coalitionMult = 1, opinionMul
 // A war this factor alone let through needs a casus belli: the AI starts a claim instead of
 // declaring unjustified, so the player sees it coming on the nation card ("Holds a claim").
 // Ripples: wars on the player (battles, sieges, peace offers), the AI's claims and decrees.
-export const WEAK_NEIGHBOUR_WAR_MULT = 1.5;
+export const WEAK_NEIGHBOUR_WAR_MULT = 1.25; // 1.5 sent one AI to the Future goal 147 turns early in endgameReachability's passive run (the lead: lower it rather than drop it)
 export const WEAK_NEIGHBOUR_REF_TURNS = 40;
 export const weakNeighbourMult = (state, nationId, targetId) => {
   if (targetId !== state.playerNationId) return 1;
