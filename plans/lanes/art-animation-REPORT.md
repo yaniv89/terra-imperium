@@ -96,3 +96,8 @@ finish here (its screenshots time out on software GL). **Open for the lead:** re
 - Building collapse was not seen in the city run (rubble stayed 0): needs a longer assault shot.
 - The same crest (or a dyed plume) for the other Bronze and Classical foot units, and the other
   build scripts' export call need the same 4.0 guard before they can be rebuilt on a cloud machine.
+
+## Final checks (after merging integration 28 Oct)
+
+`npm run lint` clean. `npm run test:quick`: 4073 passed, 1 failed: pack-map-models "are packed"
+timed out at 60 s under load (a known load-only flake in CLAUDE.md); alone it passes (3 of 3).
