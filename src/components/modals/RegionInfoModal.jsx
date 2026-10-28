@@ -34,7 +34,9 @@ import { declareWarConfirm } from '../ui/confirmSpecs';
 import { BuildingIcon, ExtractionIcon, ResourceIcon, UnitIcon, WonderIcon } from '../ui/icons';
 import { getTotalDev } from '../../engine/development';
 import { validateInvasion, validateAmphibious } from '../../engine/invasion';
-import { attackReach, planMarchAttack } from '../../engine/marchAttack';
+import { attackReach, planMarchAttack, marchAttackUnits } from '../../engine/marchAttack';
+import { estimateMarchOdds } from '../../engine/battleOdds';
+import { marchOddsText } from '../map/marchOddsText';
 import { describeAttackBlock } from '../../utils/attackAvailability';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
@@ -160,7 +162,9 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           where: whereLabel(state, marchOrigin(state, nId))?.text || null,
           unitCount: Object.values(state.units).filter((u) => u.regionId === nId && u.ownerId === state.playerNationId && u.domain === 'land').length,
           blockedReason: far ? null : describeAttackBlock(validateInvasion(state, nId, regionId)),
-          march: far ? planMarchAttack(state, nId, regionId) : null
+          march: far ? planMarchAttack(state, nId, regionId) : null,
+          // The target's known strength and Auto's odds before the march (playtest 40651416284 step 286).
+          odds: far ? marchOddsText(estimateMarchOdds(state, marchAttackUnits(state, nId), regionId), nameNow('city', null, regionState.name)) : null
         };
       })
       .filter((source) => source.unitCount > 0)
@@ -474,12 +478,12 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           {regionState.integratingUntil > state.turnNumber && <p className="text-xs text-amber-200">{t('ri.integrating', { n: regionState.integratingUntil })}</p>}
           {ownerNation?.hasTradeAgreement && (() => { const route = tradeRouteStatus(state, ownerNation.id); return route ? <p className={`text-xs ${route.pays ? 'text-fa-text' : 'text-fa-danger-text'}`} data-testid="trade-route-status">{t('ri.tradeRoute', { text: msgRefText(route.textMsg, route.text), bigger: route.pays ? t('ri.biggerPay') : '', advice: route.advice ? ` ${msgRefText(route.adviceMsg, route.advice)}` : '' })}</p> : null; })()}
           {isNeutralFrontier && <ColonyBlock regionId={regionId} />}
-          {atWarWithOwner && invasionSources.map(({ regionId: srcId, unitCount, blockedReason, march, where }) => (march ? (
+          {atWarWithOwner && invasionSources.map(({ regionId: srcId, unitCount, blockedReason, march, where, odds }) => (march ? (
             <ActionButton
               key={srcId}
               icon={Swords}
               label={t('ri.marchOn', { city: nameNow('city', null, regionState.name), where: where ? t('ri.armyWhere', { where }) : '' })}
-              description={march.ok ? t('ri.marchDesc', { turns: turnsOf(march.turns), stops: march.stopsAt ? t('ri.stopsAt', { city: state.regions[march.stopsAt]?.name ? nameNow('city', null, state.regions[march.stopsAt].name) : t('ri.anEnemyCity') }) : '' }) : reasonText(march)}
+              description={march.ok ? t('ri.marchDesc', { turns: turnsOf(march.turns), stops: march.stopsAt ? t('ri.stopsAt', { city: state.regions[march.stopsAt]?.name ? nameNow('city', null, state.regions[march.stopsAt].name) : t('ri.anEnemyCity') }) : '' }) + (odds ? ` ${odds.text}` : '') : reasonText(march)}
               onClick={() => dispatch({ type: ActionTypes.SET_ROUTE, payload: { fromRegionId: srcId, toRegionId: regionId, attack: true } })}
               disabled={!march.ok}
               why={march.ok ? null : reasonText(march)}

@@ -6,7 +6,7 @@
 // attack the engine refuses says why on the bar and the button is off, ACT-01); a far one gets a
 // march to attack (marchAttack.js): the route preview and the turns to arrive show here first ("4 turns, stops at Der"), and the assault is offered when it arrives.
 import { reasonText } from '../../i18n/messageText';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Flag, Spline, Swords, X } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
@@ -15,6 +15,8 @@ import { getTiles } from '../../data/geo/tiles';
 import { accessOf, marchingUnits, marchOrigin, moveNowCheck } from '../../engine/routes';
 import { supplyAlongMarch } from '../../engine/supplyMeter';
 import { attackReach } from '../../engine/marchAttack';
+import { estimateMarchOdds } from '../../engine/battleOdds';
+import { marchOddsText } from './marchOddsText';
 import { consequenceLines } from '../battle/consequenceText';
 import { canSeeTile } from '../../engine/sight';
 import { enemyStackAt, validateFieldAttack } from '../../engine/fieldBattle';
@@ -79,6 +81,8 @@ export const marchBarModel = (state, march, plan) => {
     attackBlocked,
     marchAttackBlocked,
     consequences: enemyCity && !marchAttackBlocked && !attackBlocked ? consequenceLines(state, target) : [],
+    // The target's known strength and Auto's odds before the march starts (playtest 40651416284 step 286).
+    odds: enemyCity && reach === 'far' && !!plan?.ok && !marchAttackBlocked ? marchOddsText(estimateMarchOdds(state, units, target), name(target)) : null,
     stopsAt: plan?.ok && plan.haltAt && plan.haltAt !== target ? plan.haltAt : null,
     // Leaving supply (supplyMeter.js): the meter over the whole march, turn by turn, then how long
     // it lasts where the march ends; `starvesAt` when it empties on the way (playtest issue 6).
@@ -97,9 +101,10 @@ const MarchBar = () => {
   // A notice in the one-on-screen registry: a rail panel the player opens tucks the bar into a chip
   // instead of drawing it over the panel's header (phone pass); the chip brings it back.
   const { shown } = useInteraction('march-bar', choosing && fieldAttack == null && cityAttack == null, { priority: PRIORITY.notice, kind: 'notice', user: true, label: tNow('wait.march'), testId: 'march-chip' });
+  // Memo: the odds line runs the auto-resolve (battleOdds.js), not on every redraw of the bar.
+  const m = useMemo(() => (choosing ? marchBarModel(state, ctx.march, ctx.plan) : null), [choosing, state, ctx?.march, ctx?.plan]);
   if (!choosing) return null;
   const { march, plan, cancel } = ctx;
-  const m = marchBarModel(state, march, plan);
   const { target, isTile, naval } = m;
   const targetName = isTile ? placeLabel(state, target) : name(target);
 
@@ -162,6 +167,7 @@ const MarchBar = () => {
       {/* A phone held sideways: two lines at most, so the bar stays a strip and the route under it shows (I083); the title holds the rest. */}
       <div className="flex-1 min-w-0 leading-snug">
         <div className="pl:line-clamp-2" data-testid="march-line">{line}</div>
+        {m.odds && <div className={`${m.odds.hopeless ? 'text-fa-danger-text font-semibold' : 'text-fa-brass'} pl:line-clamp-2`} data-testid="march-odds" data-hopeless={m.odds.hopeless ? '' : undefined}>{m.odds.text}</div>}
         {m.supplyOut && (m.supplyOut.starvesAt != null || m.supplyOut.change < 0) && <div className="text-fa-danger-text pl:line-clamp-1" data-testid="march-supply-out" data-starves={m.supplyOut.starvesAt != null ? 'way' : undefined}>
           {m.supplyOut.starvesAt != null
             ? t('march.starvesOnWay', { turns: turnsText(m.supplyOut.starvesAt) })
