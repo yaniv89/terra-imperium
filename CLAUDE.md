@@ -197,7 +197,7 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   `human-playtest` (`scripts/ai/human-playtest.mjs`), inputs persona, scene (`campaign` or `battle`), limit,
   max_usd, slices, size, lang; dispatch on ref claude/integration; results on branch `ai/human-playtest-<run_id>`
   (report.md, diary.jsonl, shots/). About $0.01 a step. One queue per job, persona and scene.
-- API budget (the user's rule, 27 Oct): **$90 in total, never beyond.** Before any dispatch, add the job's
+- API budget (the user's rule, 27 Oct): **$90 a calendar month, never beyond** (the account gets $100 of API credit on the 1st of each month; October spent $59.23 by 28 Oct, November starts a fresh $90 on 1 Nov). Before any dispatch, add the job's
   `max_usd` cap to the spend so far in the dashboard's spend data; if the sum would pass $90, do not
   dispatch and tell the user. Record each run's real cost there when it finishes.
 
