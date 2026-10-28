@@ -160,7 +160,7 @@ const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
         <Tabs tabs={tabs} value={tab} onChange={setTab} label={t('cy.sections')} className="shrink-0" />
 
         {/* Content */}
-        <div className="p-3 overflow-y-auto flex-1 space-y-3">
+        <div className="p-3 overflow-y-auto flex-1 space-y-3 pl:pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+3.5rem)]">
           {tab === 'overview' && defense?.alert && (
             <div className="flex items-center gap-2 rounded-lg border border-fa-danger bg-[rgba(229,96,77,0.12)] ps-3 pe-1.5 py-1.5 text-[13px]" data-testid="city-damage-alert">
               <AlertTriangle className="w-4 h-4 text-fa-danger-text shrink-0" aria-hidden="true" />

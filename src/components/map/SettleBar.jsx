@@ -28,12 +28,12 @@ const SettleBar = ({ model, onNext, onCancel }) => {
       </div>
       {model.nextLabel && (
         <button type="button" onClick={onNext} data-testid="settle-next-site"
-          className="shrink-0 min-h-[36px] px-3 rounded-lg bg-amber-600 hover:bg-amber-500 font-semibold text-fa-text flex items-center gap-1.5">
+          className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-amber-600 hover:bg-amber-500 font-semibold text-fa-text flex items-center gap-1.5">
           <Compass className="w-3.5 h-3.5" aria-hidden="true" />{model.nextLabel}
         </button>
       )}
       <button type="button" onClick={onCancel} aria-label={t('settle.stop')} title={t('settle.stop')} data-testid="settle-cancel"
-        className="shrink-0 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-fa-raised text-fa-muted"><X className="w-4 h-4" /></button>
+        className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-fa-raised text-fa-muted"><X className="w-4 h-4" /></button>
     </div>
   );
 };

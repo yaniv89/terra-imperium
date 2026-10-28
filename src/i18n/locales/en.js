@@ -408,6 +408,8 @@ export default {
   'wait.independent': 'Independent city',
   'wait.tribute': '{name} demand tribute',
   'wait.join': '{name} offer to join you',
+  'wait.march': 'Choose where the army marches',
+  'evt.cost': 'Cost: {cost}',
   'wait.mapHint': 'Map: {title}',
   'wait.event': 'Event: {title}',
   'event.footer': 'Choose an option to go on: the turn waits for it. The map stays live behind.',

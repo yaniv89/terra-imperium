@@ -688,6 +688,12 @@ html[data-turn-report] [data-testid="turn-dock"] { display: none; }
   border-inline-end: 0;
   margin-inline-end: var(--safe-end);
 }
+/* Phone held sideways: the corner cards (city, tile, army) end above the End Turn row, whose Idle and
+   advisor chips reach under a 300 px card (Idle 3 covered the army card's rename button). Their
+   action rows stick to the bottom, so a shorter card loses nothing. */
+[data-layout="phone-landscape"] .corner-card {
+  max-height: calc(100dvh - var(--header-height, 2.25rem) - 0.5rem - max(env(safe-area-inset-bottom), 0.75rem) - 3.25rem);
+}
 /* Two sheets stacked on a tablet: the city card keeps the top half of the left edge and the tile
    or army sheet opened from it takes the bottom half (MapContainer sets data-stacked). */
 [data-layout="tablet"] [data-stacked] .corner-card {

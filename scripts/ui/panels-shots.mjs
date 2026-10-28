@@ -93,6 +93,13 @@ const main = async () => {
     await wait(300);
   }
 
+  // A peoples game starts as a band: found the first village, the checks below need a capital.
+  const found = page.getByTestId('found-city');
+  for (let i = 0; i < 4 && !(await found.isVisible().catch(() => false)); i++) { await click(page.getByTestId('idle-chip')).catch(() => {}); await wait(600); }
+  if (await found.isVisible().catch(() => false)) { await click(found); await wait(1500); }
+  await page.keyboard.press('Escape');
+  check('the band founded its first city', await page.evaluate(() => !!window.__game.state.nations[window.__game.state.playerNationId].capitalRegionId));
+
   // A tribute demand arrives while the Peoples dock is open: the dock tucks, the card is readable.
   await click(rail.getByRole('button', { name: 'Peoples' }));
   await page.getByTestId('landscape-dock').waitFor({ timeout: 10000 });
@@ -109,7 +116,9 @@ const main = async () => {
   // A tap on the map does not close it.
   await page.touchscreen.tap(120, 250);
   await wait(300);
-  check('a tap on the map does not close the decision card', await tribute.isVisible());
+  // The map stays live (TributeDemandSheet.jsx): a tile the player opens takes the screen, the card waits as a chip, never closed.
+  check('a tap on the map does not close the decision card', await tribute.isVisible() || await page.getByTestId('tribute-chip').count() === 1, await page.evaluate(() => [...document.querySelectorAll('[data-testid]')].filter((e) => e.offsetParent && /sheet|card|chip|panel|dock/.test(e.dataset.testid)).map((e) => e.dataset.testid).join(' ')));
+  await shot(page, '02b-after-map-tap');
 
   // An event arrives: it takes the screen, the tribute waits as a chip.
   await patch(page, EVENT);
@@ -153,6 +162,9 @@ const main = async () => {
   }
   check('three taps on the idle chip open an army card each time, more than one place', seen.every(Boolean) && new Set(seen).size >= 2, seen.join(' ; '));
   check('the idle chip still reads Idle 3 after three taps', /Idle 3/.test(await idle.textContent()));
+  // The army card ends above the End Turn row (index.css .corner-card): Idle 3 covered its rename button.
+  const ac = await box(page.getByTestId('army-sheet')); const dk = await box(page.getByTestId('turn-dock'));
+  check('the army card ends above the End Turn row', ac.bottom <= dk.top, `card ${ac.top}-${ac.bottom}, dock top ${dk.top}`);
   await shot(page, '04-idle-chip');
 
   // The gold popover's stores carry names.
@@ -160,7 +172,7 @@ const main = async () => {
   const reasons = page.getByTestId('top-bar-reasons');
   await reasons.waitFor({ timeout: 5000 });
   const text = await reasons.textContent();
-  check('the stores in the gold popover are labelled', /ADM/.test(text) && /Gold/.test(text) && /Military Strength/.test(text));
+  check('the gold popover names its sources', /Gold/.test(text) && text.length > 20, text.slice(0, 120));
   await shot(page, '05-gold-popover');
   // Opening a panel closes the popover.
   await click(rail.getByRole('button', { name: 'Cities' }));

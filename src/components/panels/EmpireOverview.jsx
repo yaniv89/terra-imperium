@@ -10,10 +10,10 @@ import { formatNumber } from '../../utils/helpers';
 import { formatTurns } from './researchView';
 import { gateText } from '../../engine/researchStatus';
 import { useT } from '../../i18n/useT';
-import { ageName } from '../../i18n';
+import { ageName, isolateLtr } from '../../i18n';
 
 const TONE = { red: 'text-fa-danger-text', amber: 'text-amber-300', green: 'text-fa-good' };
-const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
+const signed = (v) => isolateLtr(`${v > 0 ? '+' : ''}${v}`); // Hebrew keeps "+5" and "-5" in order
 
 const EmpireOverview = () => {
   const { state } = useGame();
