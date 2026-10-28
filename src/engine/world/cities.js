@@ -262,12 +262,28 @@ export const foundCity = (world, tiles, { nationId, tile, name, size = 1, turn =
 // A tile's facts and yields change only with its sparse state entry and the owner's researched
 // list: both are memoised on those identities, so the thousands of tiles a turn cost one
 // computation each (and none when nothing changed since the last turn).
+// The turn worker gets a structured clone of the state each turn (turn.worker.js): every object is
+// new, so an equal entry or list also counts, and the memo then keeps the new object.
+const sameEntry = (a, b) => {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  const ka = Object.keys(a);
+  return ka.length === Object.keys(b).length && ka.every((k) => k in b && a[k] === b[k]);
+};
+const listTwin = new WeakMap(); // a list -> an equal list met before
+const sameList = (a, b) => {
+  if (a === b || (a && listTwin.get(a) === b)) return true;
+  if (!a || !b || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  listTwin.set(a, b);
+  return true;
+};
 const factsMemo = new Map(); // tile -> { dyn, facts }
 const yieldMemo = new Map(); // tile -> { dyn, researched, y }
 const factsOf = (tiles, world, id) => {
   const dyn = world.tileState[id];
   const hit = factsMemo.get(id);
-  if (hit && hit.dyn === dyn) return hit.facts;
+  if (hit && sameEntry(hit.dyn, dyn)) { hit.dyn = dyn; return hit.facts; }
   const facts = tileFacts(tiles, id, dyn);
   factsMemo.set(id, { dyn, facts });
   return facts;
@@ -275,7 +291,7 @@ const factsOf = (tiles, world, id) => {
 const yieldsOfTile = (tiles, world, id, researched) => {
   const dyn = world.tileState[id];
   const hit = yieldMemo.get(id);
-  if (hit && hit.dyn === dyn && hit.researched === researched) return hit.y;
+  if (hit && sameEntry(hit.dyn, dyn) && sameList(hit.researched, researched)) { hit.dyn = dyn; hit.researched = researched; return hit.y; }
   const y = tileYields(factsOf(tiles, world, id), researched);
   yieldMemo.set(id, { dyn, researched, y });
   return y;
@@ -300,16 +316,16 @@ const focusScore = (y, focus) => {
 
 /** Which tiles the city works this turn: locked tiles first, then enough food not to starve, then
  * the focus score. Returns tile ids (the centre is always worked and not listed). */
-// The last allocation per city, reused while its inputs are the same objects: the candidate tiles'
-// yield records (memoised above, so equal identity means equal yields), size, focus, locks and the
-// centre. Most cities change none of them in a turn, and the two sorts were the cost.
+// The last allocation per city, reused while its inputs are the same: the candidate tiles' yield
+// records (memoised above, so equal identity means equal yields), size, focus, locks (an equal
+// list counts) and the centre. Most cities change none of them in a turn, and the two sorts were the cost.
 const allocMemo = new Map(); // city id -> { candidates, ys, size, focus, locked, centre, chosen }
 export const allocateTiles = (city, tiles, world, researched = [], blocked = new Set()) => {
   const candidates = city.tiles.filter((t) => t !== city.tile && !blocked.has(t) && isWorkable(tiles, t));
   const ys = candidates.map((t) => yieldsOfTile(tiles, world, t, researched));
   const centreY = yieldsOfTile(tiles, world, city.tile, researched);
   const memo = allocMemo.get(city.id);
-  if (memo && memo.size === city.size && memo.focus === city.focus && memo.locked === city.locked && memo.centre === centreY
+  if (memo && memo.size === city.size && memo.focus === city.focus && sameList(memo.locked, city.locked) && memo.centre === centreY
     && memo.candidates.length === candidates.length && candidates.every((t, i) => memo.candidates[i] === t && memo.ys[i] === ys[i])) return memo.chosen.slice();
   const chosen = allocateFresh(city, tiles, world, researched, candidates, ys);
   allocMemo.set(city.id, { candidates, ys, size: city.size, focus: city.focus, locked: city.locked, centre: centreY, chosen: chosen.slice() });

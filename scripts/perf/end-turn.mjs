@@ -9,6 +9,7 @@
 //
 //   node scripts/perf/end-turn.mjs --state s.json [--turns 5] [--profile phone|desktop] [--no-build]
 //        [--port 4211] [--channel chrome] [--out file.json] [--cpuprofile main.cpuprofile] [--trace t.json]
+//        [--close]  also time zooming into the close view at the capital (cold and warm)
 //        [--sheets Empire,Ruler,Cities]  also time opening those rail sheets (tap to the second frame)
 // Builds the mobile bundle with VITE_QA_HOOK=1 (window.__game) unless --no-build.
 import { execSync, spawn } from 'node:child_process';
@@ -48,6 +49,7 @@ page.on('pageerror', (e) => console.log('pageerror', e.message));
 await page.goto(`http://localhost:${PORT}/`);
 await page.evaluate((text) => { localStorage.clear(); localStorage.setItem('terra-imperium-save-v1', text); }, saveText);
 await page.addInitScript(() => {
+  window.__E2E_MAP_TEST__ = true; // window.__map2DTest (GLMapView): the zoom steps of --close
   window.__longTasks = [];
   new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__longTasks.push([e.startTime, e.duration]); }).observe({ type: 'longtask', buffered: true });
 });
@@ -60,8 +62,35 @@ if (PROFILE.throttle > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rat
 await page.waitForTimeout(Number(arg('warm', '15000'))); // the map's first build, the close view's models and the worker prewarm
 
 const rows = [];
+// --close: zoom from k 4 to k 40 around the screen centre (the capital: the camera starts there),
+// twice (cold: the close view's models load; warm), and time each zoom to a quiet main thread.
+const zoomTo = (k) => page.evaluate(async (kk) => {
+  const m = window.__map2DTest; const t = m.transform();
+  const r = document.querySelector('[data-testid="flat-map"]').getBoundingClientRect();
+  const f = kk / t.k; const cx = r.width / 2; const cy = r.height / 2;
+  window.__longTasks = [];
+  const t0 = performance.now();
+  m.setTransform({ k: kk, x: cx - (cx - t.x) * f, y: cy - (cy - t.y) * f });
+  for (;;) {
+    await new Promise((res) => setTimeout(res, 50));
+    const now = performance.now();
+    const last = window.__longTasks.reduce((a, [st, d]) => Math.max(a, st + d), t0);
+    if (now - last >= 1000 || now - t0 > 60000) {
+      const tasks = window.__longTasks.filter(([st]) => st >= t0);
+      return { settle: Math.round(last - t0), main: Math.round(tasks.reduce((a, [, d]) => a + d, 0)), longest: Math.round(tasks.reduce((a, [, d]) => Math.max(a, d), 0)), tasks: tasks.length };
+    }
+  }
+}, k);
+if (process.argv.includes('--close')) {
+  await zoomTo(4);
+  for (const pass of ['cold', 'warm']) {
+    if (CPUPROFILE && pass === 'cold') { await cdp.send('Profiler.enable'); await cdp.send('Profiler.start'); }
+    console.log(JSON.stringify({ close: pass, ...(await zoomTo(40)) }));
+    await zoomTo(4);
+  }
+}
 if (TRACE) await browser.startTracing(page, { path: TRACE, categories: ['devtools.timeline', 'disabled-by-default-devtools.timeline', 'v8', 'blink', 'toplevel'] });
-if (CPUPROFILE) { await cdp.send('Profiler.enable'); await cdp.send('Profiler.start'); }
+if (CPUPROFILE && !process.argv.includes('--close')) { await cdp.send('Profiler.enable'); await cdp.send('Profiler.start'); }
 for (let i = 0; i < TURNS; i++) {
   // Answer whatever stops a turn (events, peace offers, blockers) through the reducer, then press.
   await page.evaluate(() => {

@@ -281,12 +281,40 @@ const assignDeposits = (cities, regions) => {
   Object.values(regions).forEach((r) => { r.deposits ||= []; });
 };
 
-// Rebuilds the registry in place when `state.regions` is a different object than last time.
+// What the registry was last built from: per city (in key order) its id and the fields
+// buildRegistry reads, copied at build time (a record written in place later cannot fool it). A
+// regions map that matches gives the same registry: the turn worker gets a structured clone of
+// the state every turn, which would otherwise rebuild the registry it already has.
+const BUILD_FIELDS = ['id', 'tile', 'owner', 'founderId', 'isCapital', 'name', 'size', 'walls', 'razing'];
+let builtFrom = null; // { source, keys, values, tiles }: valid only while `source` is WORLD_REGISTRY.source
+const snapshotOf = (regions) => {
+  const keys = Object.keys(regions); const values = []; const tiles = [];
+  keys.forEach((k) => { const c = regions[k]; BUILD_FIELDS.forEach((f) => values.push(c?.[f])); tiles.push(c?.tiles ? c.tiles.slice() : c?.tiles); });
+  return { source: regions, keys, values, tiles };
+};
+const matchesBuild = (regions) => {
+  if (!builtFrom || builtFrom.source !== WORLD_REGISTRY.source) return false;
+  const keys = Object.keys(regions);
+  if (keys.length !== builtFrom.keys.length) return false;
+  for (let i = 0, v = 0; i < keys.length; i++) {
+    if (keys[i] !== builtFrom.keys[i]) return false;
+    const c = regions[keys[i]];
+    for (let f = 0; f < BUILD_FIELDS.length; f++, v++) if (c?.[BUILD_FIELDS[f]] !== builtFrom.values[v]) return false;
+    const t = c?.tiles; const was = builtFrom.tiles[i];
+    if (t !== was && (!t || !was || t.length !== was.length || t.some((x, j) => x !== was[j]))) return false;
+  }
+  return true;
+};
+
+// Rebuilds the registry in place when `state.regions` is a different object than last time
+// (unless its cities would build the same registry).
 export const syncWorldRegistry = (state) => {
   if (!state || !state.regions) return state;
   noteZoneSites(state.scenario?.sites); // culture zones of a generated world (cultureZones.js)
   if (WORLD_REGISTRY.source === state.regions) return state;
+  if (WORLD_REGISTRY.source && matchesBuild(state.regions)) { WORLD_REGISTRY.source = state.regions; builtFrom.source = state.regions; return state; }
   const built = buildRegistry(state.regions);
+  builtFrom = snapshotOf(state.regions);
   // Mutate in place: the exported objects are shared by reference with src/data/regions.js and
   // src/data/regionCoordinates.js.
   Object.keys(WORLD_REGISTRY.regions).forEach((k) => { delete WORLD_REGISTRY.regions[k]; });

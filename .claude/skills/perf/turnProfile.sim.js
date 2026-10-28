@@ -12,6 +12,8 @@ import { Session } from 'node:inspector/promises';
 import { writeFileSync, readFileSync } from 'node:fs';
 import { migrateSave, CURRENT_SAVE_VERSION } from '../../../src/engine/saveMigrations';
 import { syncWorldRegistry } from '../../../src/engine/world/registry';
+import { reviveFog } from '../../../src/engine/fog';
+import { reviveTileMaps } from '../../../src/engine/world/tileIndex';
 import { stateHash } from '../../../src/engine/macroVerify';
 
 const TURNS = Number(process.env.TURNS || 120);
@@ -27,6 +29,9 @@ const CPUPROFILE = process.env.CPUPROFILE;
 const SAVE_STATE = process.env.SAVE_STATE;
 // LOAD_STATE=path starts from a SAVE_STATE file instead of a new world (late turns without the 300 before them).
 const LOAD_STATE = process.env.LOAD_STATE;
+// WORKER=1 runs each turn as the turn worker does: a structured clone of the state (revived), then
+// gameReducer ADVANCE_TURN (the clone is not timed; caches keyed on the state's objects all miss).
+const WORKER = process.env.WORKER === '1';
 const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((a, id) => ({ ...a, [id]: true }), {});
 
 SEEDS.forEach((seed) => {
@@ -42,8 +47,9 @@ SEEDS.forEach((seed) => {
     for (let t = 1; t <= TURNS && s.gameStatus === GameStatus.ACTIVE; t++) {
       if (s.pendingPeaceOffer) s = gameReducer(s, { type: s.pendingPeaceOffer.terms?.length ? ActionTypes.REJECT_PENDING_PEACE : ActionTypes.ACCEPT_PENDING_PEACE });
       const phases = {};
+      if (WORKER) { const c = structuredClone(s); s = reviveTileMaps(c.fog ? { ...c, fog: reviveFog(c.fog) } : c); }
       const t0 = performance.now();
-      s = resolveTurn(s, { onPhase: (name, ms) => { phases[name] = (phases[name] || 0) + ms; } });
+      s = WORKER ? gameReducer(s, { type: ActionTypes.ADVANCE_TURN }) : resolveTurn(s, { onPhase: (name, ms) => { phases[name] = (phases[name] || 0) + ms; } });
       const ms = performance.now() - t0;
       if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null };
       const w = WINDOWS.find((e) => t > e - WIN && t <= e);

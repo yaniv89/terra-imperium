@@ -11,7 +11,7 @@ import { createBattleLoop } from '../../../src/battle/worker/battleLoop';
 const RUNS = Number(process.env.RUNS || 5);
 const revive = (k, v) => (v && v.__ta ? new globalThis[v.__ta](v.d) : v);
 
-it('battle start in the worker', async () => {
+it.skipIf(!process.env.SETUP)('battle start in the worker', async () => {
   const text = readFileSync(process.env.SETUP, 'utf8');
   const session = process.env.CPUPROFILE ? new Session() : null;
   const times = [];
