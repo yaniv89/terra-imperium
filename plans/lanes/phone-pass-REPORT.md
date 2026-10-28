@@ -35,7 +35,7 @@ rule changed.
 | 5 | Event card | The date was a raw "-3500" (Hebrew "3500-"); "Can't afford", "Cost" and the footer were English only | `formatYear` (c. 3500 BCE, כ־3500 לפנה״ס), isolated; three new keys `evt.cantAfford`, `evt.cost`, `evt.footer` in en and he | 05-event-year-he-before.jpg | 05-event-year-he-after.jpg |
 | 6 | Hebrew everywhere | Signed numbers flipped: "%-3" for "-3%", "10%+" for "+10%", "15+" for "+15" | i18n core: a bare signed number passed to a translated string is isolated left to right, and a "%" after an isolate moves inside it; the shared `signed()` helpers (atlas, CityPanel, CityPolitics, EmpireOverview, PeaceDealSheet, IndependentSheet) and research effect percents isolate too | 06-signed-numbers-he-before.jpg | 06-signed-numbers-he-after.jpg |
 | 7 | Map, 844x340 | The needs-you column (chips, crisis notice, goals) ran onto the map's lens buttons | the column scrolls above the bottom buttons (`max-h`, no scrollbar) | 07-chip-column-he340-before.jpg | 07-chip-column-he340-after.jpg |
-| 8 | Research choice, 844x340 | "Let my advisor choose" and "All techs" fell below the fold | on phone-landscape the two buttons stick to the bottom of the sheet (the strip kept clear for End Turn is painted, so no option shows under it); 40 to 44 px | 08-research-choice-he340-before.jpg | 08-research-choice-he340-after.jpg |
+| 8 | Research choice, 844x340 | "Let my advisor choose" and "All techs" fell below the fold | on phone-landscape the two buttons stick to the true bottom of the sheet, the row padding the strip the sheet keeps clear for End Turn, so no option shows under it; 40 to 44 px | 08-research-choice-he340-before.jpg | 08-research-choice-he340-after.jpg |
 | 9 | Tap targets | Under 44 px: top bar nation, turn and help (32), stat items (32), needs-you chips (32), goals chip (36), march and settle bar buttons (32 to 36), crisis close (32), research close (28), glossary links (20), build filters (36), start screen region chips and language switch (36) | 44 px hit areas: a `::before` inset where the visible size must stay (top bar, chips, bars, glossary links, crisis close), else min-height 44 (build filters, start chips, language switch, research close). The stat items sit in the top bar's sideways scroller, which clips any inset: they now fill the 36 px bar | 09-build-filters-before.jpg | 09-build-filters-after.jpg |
 
 ## Design calls (the lead's rule of 27 Oct: each with its reason, reference and shots)
@@ -74,6 +74,11 @@ rule changed.
 
 ## Checked and fine
 
+The measured sign-order audit (every text node with "+N" or "-N" in Hebrew, sign position against
+the first digit) found nothing on the six tabs and the event card at 844x390 and 844x340 after the
+fixes. The attack card (10-attack-card-he340-checked.jpg) and the battle HUD
+(11-battle-hud-he340-checked.jpg) read in order in Hebrew at 844x340.
+
 Start screen steps (no sideways scroll at any size), city sheet tabs and build list, Peoples tab,
 Ruler tab, Legacy tab with the chronicle and era goals, menu, settings, nation overview, glossary,
 turn report, battle HUD, deploy card, pause sheet, retreat and result screen in both languages
@@ -97,4 +102,11 @@ desktop 1600x900 in both languages.
 - Lint: zero warnings on every changed file.
 - `npm run test:related` over the changed src files: 354 of 357 files pass, 2 skipped, 1 failing
   test (the engine test above, failing on the base too).
-- Landscape e2e: see the line below.
+- i18n test for the Hebrew signed-number isolate: src/i18n/i18n.test.js, 13 of 13 pass.
+- Landscape e2e (`e2e/landscape.spec.js`, on a fresh `npm run build:mobile`): 4 of 4 pass.
+
+## Note to the lead
+
+send_message to the lead session fails from this machine (the lead session needs a trusted device),
+so this file is the report. Interim note sent nowhere: army orders on a phone were fixed first, as
+asked (fixes 2 and 3).
