@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { badgesFor, BADGE_MAX_ZOOM, HIT_FLASH_TICKS } from './squadBadges';
+import { badgesFor, BADGE_MAX_ZOOM, HIT_FLASH_TICKS, declutterFlags } from './squadBadges';
 import { TILE } from '../../battle/setup/mapgen';
 
 const sq = (idx, over = {}) => ({ idx, side: 0, alive: true, onField: true, fled: false, visible: true, x: 256 * 2.5, y: 256 * 2.5, strength: 50, maxStrength: 100, striking: false, ...over });
@@ -28,5 +28,14 @@ describe('squad flags', () => {
     const [a, b] = badgesFor(null, cur, 0, opts());
     expect(a).toMatchObject({ morale: 0.3, routed: false, hit: 1 });
     expect(b).toMatchObject({ routed: true, hit: 0 });
+  });
+});
+
+describe('flag declutter (art-2 lane)', () => {
+  it('lifts a flag that would cover another, leaves apart ones alone', () => {
+    const r = declutterFlags([{ x: 0, y: 100 }, { x: 10, y: 98 }, { x: 200, y: 100 }], 42, 13);
+    expect(r[0].y).toBe(100);
+    expect(r[1].y).toBe(98 - 15);
+    expect(r[2].y).toBe(100);
   });
 });
