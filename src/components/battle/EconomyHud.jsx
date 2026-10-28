@@ -133,7 +133,7 @@ export const BuildMenu = ({ ageId, stock, workers = 1, onPick, onClose = null, e
         {d ? (
           <div className="min-w-0 text-[11px] leading-snug" data-testid="battle-build-detail">
             <span className="font-semibold text-[12.5px]">{d.title}</span>
-            <span className="text-fa-muted fa-num">{t('bt.eco.detailLine', { hp: d.hp, size: d.size, time: d.time })}</span>
+            <span className="text-fa-muted">{t('bt.eco.detailLine', { hp: d.hp, size: d.size, time: d.time })}</span>
             <span className="block text-fa-muted truncate">{d.lines.join('. ')}</span>
             {dBlock && <span className="block text-fa-danger-text font-semibold">{dBlock.text}</span>}
           </div>
@@ -265,7 +265,7 @@ export const BuildingActions = ({ building, ageId, stock, eco = null, onTrain, o
       <div className="flex items-center gap-2 px-1 pb-1">
         <span className="fa-label">{t('bt.eco.train')}</span>
         {roles.some((r) => r !== 'worker') && <span className="text-[10px] text-fa-brass truncate" data-testid="battle-train-temporary" title={t('bt.auxNote')}>{t('bt.eco.temporary')}</span>}
-        {eco?.popSplit && <span className="text-[10px] text-fa-muted truncate fa-num" data-testid="battle-pop-split">{t('bt.eco.popSplit', { pop: eco.pop, cap: eco.cap, army: eco.popSplit.army, workers: eco.popSplit.workers, training: eco.popSplit.training })}</span>}
+        {eco?.popSplit && <span className="text-[10px] text-fa-muted truncate" data-testid="battle-pop-split">{t('bt.eco.popSplit', { pop: eco.pop, cap: eco.cap, army: eco.popSplit.army, workers: eco.popSplit.workers, training: eco.popSplit.training })}</span>}
       </div>
       {(building.queue.length > 0 || waiting.length > 0) && (
         <div className="flex flex-wrap gap-1 px-0.5 pb-1" data-testid="battle-train-queue">
@@ -331,7 +331,7 @@ export const EconomySheet = ({ eco, hq = null, onSteward, onPreset, onRebuild, o
     <div className="w-[min(26rem,100%)] p-1.5 fa-panel !bg-fa-panel/95 shadow-2xl pointer-events-auto text-[11px]" role="dialog" aria-label={t('bt.eco.sheet')} data-testid="battle-economy-sheet">
       <div className="flex items-center gap-2 ps-1">
         <span className="fa-label">{t('bt.eco.sheet')}</span>
-        {eco.popSplit && <span className="flex-1 min-w-0 text-[10px] text-fa-muted truncate fa-num">{t('bt.eco.popSplit', { pop: eco.pop, cap: eco.cap, army: eco.popSplit.army, workers: eco.popSplit.workers, training: eco.popSplit.training })}</span>}
+        {eco.popSplit && <span className="flex-1 min-w-0 text-[10px] text-fa-muted truncate">{t('bt.eco.popSplit', { pop: eco.pop, cap: eco.cap, army: eco.popSplit.army, workers: eco.popSplit.workers, training: eco.popSplit.training })}</span>}
         <button type="button" onClick={onClose} aria-label={t('bt.close')} data-testid="battle-economy-close" className="ms-auto w-11 h-11 -my-1 shrink-0 flex items-center justify-center text-fa-muted"><X className="w-4 h-4" aria-hidden="true" /></button>
       </div>
       <button type="button" onClick={() => onSteward(!eco.steward)} aria-pressed={!!eco.steward} data-testid="battle-steward"
@@ -361,7 +361,7 @@ export const EconomySheet = ({ eco, hq = null, onSteward, onPreset, onRebuild, o
         </button>
         <button type="button" onClick={onIdle} disabled={!eco.idleWorkers.length} data-testid="battle-economy-idle"
           className={cx(chip, 'border-fa-line bg-fa-raised disabled:opacity-45')}>
-          <Hourglass className="w-3.5 h-3.5" aria-hidden="true" /><span className="fa-num">{t('bt.hud.idle', { n: eco.idleWorkers.length })}</span>
+          <Hourglass className="w-3.5 h-3.5" aria-hidden="true" /><span>{t('bt.hud.idle', { n: eco.idleWorkers.length })}</span>
         </button>
         <button type="button" onClick={() => onRebuild(!eco.autoRebuild)} aria-pressed={!!eco.autoRebuild} data-testid="battle-economy-rebuild"
           className={cx(chip, eco.autoRebuild ? 'bg-fa-raised border-fa-good text-fa-text' : 'border-fa-line text-fa-muted')}>

@@ -242,6 +242,12 @@ describe('W4 raid marks on the map', () => {
     expect(out.hits.every((h) => h.kind === 'indep')).toBe(true);
     expect(out.hits.map((h) => h.id)).toContain(raider.id);
     expect(out.sprites.length).toBeGreaterThanOrEqual(3);
+    // the party label's bottom clears the top of the army banner on its tile (26 px, lead check 28 Oct)
+    const { armyBannerOffset, hexPxOf } = await import('../map/closeView/scale');
+    const { CLOSE_ZOOM_K } = await import('../map/gl/sceneModel');
+    const close = raidShapes({ model, projection, k: CLOSE_ZOOM_K * 2, dpr: 1 });
+    const partyLabel = close.sprites.filter((sp) => sp.label)[1]; // warnings first, then the party
+    expect(partyLabel.offset[1] + partyLabel.size[1] / 2).toBeLessThanOrEqual(armyBannerOffset(hexPxOf(projection, CLOSE_ZOOM_K * 2))[1] - 13);
     expect(raidShapes({ model: { parties: [], warnings: [], sieges: [], burning: [] }, projection, k: 4, dpr: 1 })).toEqual({ lines: [], sprites: [], hits: [] });
   });
 

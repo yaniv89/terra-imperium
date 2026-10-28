@@ -42,6 +42,7 @@ import { selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLe
 import { menText } from '../../engine/battleLedger';
 import { deployHelp, cameraHelp } from './battleCoach';
 import { useT } from '../../i18n/useT';
+import { isRtl } from '../../i18n';
 import { useCornerSheet } from '../../hooks/useExclusivePanel';
 import { abilityLabel, powerLabel, structureLabel, battleTypeText, battleGoal, buildingEffect } from './battleText';
 import { structureName } from './inspectModel';
@@ -416,7 +417,8 @@ const BattleHud = ({
       {!ended && <>
       {/* B09 top row: alerts and the info card (left), the objective and the selection (centre), the
           city and the minimap (right), side by side in one row so they never cover each other */}
-      <div className="absolute flex items-start gap-2 pointer-events-none" style={{ top: UNDER_BAR, insetInlineStart: SAFE_L, insetInlineEnd: SAFE_R }} data-testid="battle-top-row">
+      {/* While deploying, the side column sits on the deploy card's physical side and the objective box keeps to the far edge, clear of it (lead check 28 Oct: it overlapped in either language). */}
+      <div className="absolute flex items-start gap-2 pointer-events-none" style={{ top: UNDER_BAR, insetInlineStart: SAFE_L, insetInlineEnd: SAFE_R, flexDirection: deployCard && (playerSide === 1) === isRtl() ? 'row-reverse' : 'row' }} data-testid="battle-top-row">
         <div className="w-[min(15rem,32vw)] lg:w-[17rem] shrink-0 flex flex-col gap-1.5">
           {perf}
           {historyOpen && (
@@ -447,7 +449,7 @@ const BattleHud = ({
           {leftCard && !pauseOpen && <div className="pointer-events-auto">{leftCard}</div>}
         </div>
 
-        <div className="min-w-0 flex-1 flex flex-col items-center gap-1">
+        <div className="min-w-0 flex-1 flex flex-col items-center gap-1" style={deployCard ? { alignItems: (playerSide === 1) !== isRtl() ? 'flex-end' : 'flex-start' } : undefined}>
           <div className="flex items-center justify-center gap-1.5 flex-wrap max-w-full">
           {/* Objective: the keep (any battle with one); a 44 px target round a slim chip */}
           {keep && !city && (
@@ -501,11 +503,11 @@ const BattleHud = ({
           {sel && !pauseOpen && started && (
             <div className={cx('max-w-full ps-3 py-1 rounded-full bg-fa-panel/95 border border-fa-line text-[12px] shadow-xl pointer-events-auto flex items-center gap-2', onClearSelection ? 'pe-0' : 'pe-3')} data-testid="battle-selection">
               <span className="font-semibold truncate min-w-[3rem] max-w-[9rem] lg:max-w-none">{sel.name}</span>
-              <span className="text-fa-muted whitespace-nowrap hidden lg:inline fa-num">{t(naval ? 'bt.hud.shipsCrew' : 'bt.hud.squadsMen', { count: sel.squads, men: menText(sel.men) })}</span>
+              <span className="text-fa-muted whitespace-nowrap hidden lg:inline">{t(naval ? 'bt.hud.shipsCrew' : 'bt.hud.squadsMen', { count: sel.squads, men: menText(sel.men) })}</span>
               <span className={cx('fa-num', sel.share < 0.35 ? 'text-fa-danger-text' : 'text-fa-good')}>{Math.round(sel.share * 100)}%</span>
               {sel.shaken > 0 && <span className="px-1.5 rounded-md bg-fa-brass/20 text-fa-brass text-[11px] font-bold whitespace-nowrap" title={t('bt.hud.shakenTitle')} data-testid="battle-selection-shaken">{sel.squads > 1 ? t('bt.hud.shakenN', { n: sel.shaken }) : t('bt.hud.shaken')}</span>}
               {sel.noPath > 0 && <span className="px-1.5 rounded-md bg-fa-danger/20 text-fa-danger-text text-[11px] font-bold whitespace-nowrap" title={t('bt.hud.noPathTitle')} data-testid="battle-selection-nopath">{t('bt.hud.noPath')}</span>}
-              {sel.attrition > 0 && <button type="button" onClick={() => setAttrOpen((v) => !v)} aria-expanded={attrOpen} className="min-h-[44px] -my-2.5 text-fa-muted text-[11px] whitespace-nowrap fa-num underline decoration-dotted" title={t('bt.hud.attritionTitle')} data-testid="battle-selection-attrition">{t('bt.hud.attrition', { men: menText(sel.attrition) })}</button>}
+              {sel.attrition > 0 && <button type="button" onClick={() => setAttrOpen((v) => !v)} aria-expanded={attrOpen} className="min-h-[44px] -my-2.5 text-fa-muted text-[11px] whitespace-nowrap underline decoration-dotted" title={t('bt.hud.attritionTitle')} data-testid="battle-selection-attrition">{t('bt.hud.attrition', { men: menText(sel.attrition) })}</button>}
               {sel.routed && <span className="text-fa-danger-text font-semibold">{t('bt.hud.routed')}</span>}
               {targetSt && <span className="text-fa-enemy whitespace-nowrap hidden lg:inline">{t('bt.hud.target', { word: structureLabel(targetSt.kind, STRUCTURE_WORD[targetSt.kind] || targetSt.kind), hp: `${Math.round(targetSt.hp)}/${targetSt.maxHp}` })}</span>}
               {sel.shaken > 0 && rallyCry && <button type="button" onClick={() => onPower(rallyCry)} disabled={!rallyReady} className="fa-btn fa-btn-secondary !min-h-[44px] !px-2.5 -my-2 shrink-0 text-[11px]" data-testid="battle-selection-rally" title={rallyReady ? t('bt.hud.rallyReadyTitle') : t('bt.hud.rallyNotReady')}>{t('bt.hud.rallyCry')}</button>}
@@ -618,7 +620,7 @@ const BattleHud = ({
                     <Wand2 className="w-4 h-4 shrink-0 text-fa-indep" aria-hidden="true" />
                     <span className="flex-1 min-w-0 py-1"><span className="block text-[12px] font-semibold leading-tight">{abilityLabel(a.id, naval)}</span>
                       <span className="block text-[10.5px] text-fa-muted leading-snug" data-testid="battle-power-desc">{t(`bt.pdesc.${a.id}`)}</span></span>
-                    <span className={cx('text-[11px] fa-num shrink-0', a.readyIn > 0 ? 'text-fa-muted' : 'text-fa-good')}>{a.readyIn > 0 ? t('bt.hud.secShort', { s: Math.ceil(a.readyIn / TICK_HZ) }) : t('bt.hud.readyCap')}</span>
+                    <span className={cx('text-[11px] shrink-0', a.readyIn > 0 ? 'text-fa-muted' : 'text-fa-good')}>{a.readyIn > 0 ? t('bt.hud.secShort', { s: Math.ceil(a.readyIn / TICK_HZ) }) : t('bt.hud.readyCap')}</span>
                   </button>
                 ))}
                 {powerCards.map((pw) => {
@@ -683,7 +685,7 @@ const BattleHud = ({
         <div className="absolute w-[min(16rem,calc(50vw-1rem))] px-3 pt-2 pb-1 rounded-[10px] bg-fa-panel/95 border border-fa-brass/70 text-[12px] leading-snug shadow-xl pointer-events-none" style={{ insetInlineStart: SAFE_L, bottom: ABOVE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-coach">
           <div className="flex items-baseline gap-2">
             <span className="fa-label text-fa-brass flex-1 min-w-0 truncate">{coach.steps[coach.step].title}</span>
-            <span className="fa-num text-[10.5px] text-fa-muted shrink-0">{t('bt.hud.stepOf', { a: coach.step + 1, b: coach.steps.length })}</span>
+            <span className="text-[10.5px] text-fa-muted shrink-0">{t('bt.hud.stepOf', { a: coach.step + 1, b: coach.steps.length })}</span>
           </div>
           <div className="mt-0.5" data-testid="battle-coach-text">{coach.steps[coach.step].text}</div>
           {coach.holding && <div className="mt-1 text-[11px] text-fa-brass" data-testid="battle-coach-hold">{t('bt.coach.holding')}</div>}

@@ -10,6 +10,7 @@ import { metNations } from '../../src/engine/fog.js';
 import { getTiles } from '../../src/data/geo/tiles.js';
 import { getTechAgeId } from '../../src/engine/nationState.js';
 import { isIndependentNation } from '../../src/data/independents.js';
+import { pendingLandmarkAge } from '../../src/engine/ageLandmarks.js';
 import { eraSaveFile, readEraSave, ENEMY_REACH_KM } from './build-era-saves.mjs';
 
 // The playtester's era saves (scripts/ai/build-era-saves.mjs): each loads as window.__game.load does and keeps its promises.
@@ -29,6 +30,8 @@ describe('playtest era saves', () => {
     expect(auditGameState(s)).toEqual([]);
     const p = s.playerNationId;
     expect(getTechAgeId(s, p)).toBe(age);
+    // a player picks each landmark as its age comes (lead check 28 Oct: gunpowder still asked for the bronze one)
+    expect(pendingLandmarkAge(s)).toBeNull();
     const mine = Object.values(s.regions).filter((c) => c.owner === p && !c.outpost);
     expect(mine.length).toBe(facts.cities);
     // an empire of the age: as many cities as the median major at least, from the classical age on several

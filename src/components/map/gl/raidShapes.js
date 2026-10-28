@@ -11,6 +11,9 @@ import { labelArt, discArt, iconArt } from './spriteArt';
 import { cssColor } from './cssColor';
 import { actionIconUrl } from '../../independents/independentArt';
 import { t } from '../../../i18n/core';
+import { CLOSE_ZOOM_K } from './sceneModel';
+import { MARKER_OFFSET } from '../mapBanners';
+import { armyBannerOffset, hexPxOf } from '../closeView/scale';
 
 const WHITE = [1, 1, 1, 1];
 /** Below this zoom only the parties carry a label (the rings stay): the far map stays readable. */
@@ -82,13 +85,16 @@ export const raidShapes = ({ model, projection, k, dpr }) => {
   });
   // Parties: an icon (or disc) and a label.
   const torch = actionIconUrl('raid');
+  // The party's own army banner (26 px, sceneModel markerSprites) stands on its tile: the label clears its top (lead check 28 Oct: "?" cut the label).
+  const bannerY = k >= CLOSE_ZOOM_K ? armyBannerOffset(hexPxOf(projection, k))[1] : MARKER_OFFSET.army[1];
+  const partyDy = Math.min(-30, bannerY - 13 - 3);
   model.parties.forEach((p) => {
     const at = pointOf(projection, p.tile);
     if (!at) return;
     const c = cssColor(p.againstYou ? RED : VIOLET);
     const icon = torch ? iconArt(torch, 16, dpr) : discArt(32);
     sprites.push({ art: icon, anchor: at, offset: [0, -18, 0, 0], size: torch ? [icon.css.w, icon.css.h] : [10, 10], exp: [0, 0], color: torch ? WHITE : [c[0], c[1], c[2], 1] });
-    label(t('sw.raid.party', { tail: p.phase === 'home' ? t('sw.raid.home') : p.eta != null ? t('sw.raid.in', { count: p.eta }) : '' }), p.againstYou ? '#fecaca' : '#e9e5fb', at, -30, p.id, p.againstYou ? 300 : 50);
+    label(t('sw.raid.party', { tail: p.phase === 'home' ? t('sw.raid.home') : p.eta != null ? t('sw.raid.in', { count: p.eta }) : '' }), p.againstYou ? '#fecaca' : '#e9e5fb', at, partyDy, p.id, p.againstYou ? 300 : 50);
   });
   // Sieges of independents by others, and burning cities.
   model.sieges.forEach((s) => {
