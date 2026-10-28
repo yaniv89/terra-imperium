@@ -37,6 +37,7 @@ import AdminPage from './components/admin/AdminPage';
 const TacticalBattleHost = lazyWithReload(() => import('./components/battle/TacticalBattleHost'));
 import { GameStatus, ActionTypes } from './data/types';
 import { cardOf } from './engine/eventDeck';
+import { scaleEventGold } from './engine/applyEventEffects';
 import { crisisCardId } from './data/crises';
 import { AGES } from './data/ages';
 import { getNationCapital } from './data/regions';
@@ -308,6 +309,9 @@ const GameLayout = () => {
   if (showStartScreen) {
     return <><StartScreen onStart={handleStart} onBackToTitle={cameFromTitle ? backToTitle : undefined} headerExtra={CHALLENGES_ON ? <ChallengeEntry onStart={handleStart} /> : null} /><OldSaveNotice /></>;
   }
+  // The open card with its gold in turns of income (applyEventEffects.js scaleEventGold), as it will be paid.
+  const eventOpen = state.activeEventId ? cardOf(state.activeEventId) : state.activeProceduralEvent;
+  const eventShown = eventOpen ? scaleEventGold(state, eventOpen) : null;
 
   return (
     <div className="h-[100dvh] w-full bg-fa-ink text-fa-text relative overflow-hidden">
@@ -373,9 +377,7 @@ const GameLayout = () => {
       {/* Event Modal - overlays everything when active. A drawn card (or a link bound to a city) is
           carried in full on the state; a story or a link fired by id is a deck card (eventDeck.js). */}
       <EventModal
-        event={state.activeEventId
-          ? cardOf(state.activeEventId)
-          : state.activeProceduralEvent}
+        event={eventShown}
         onResolve={resolveEvent}
         resources={state.resources}
         placeName={state.activeProceduralEvent?.cityId ? state.regions[state.activeProceduralEvent.cityId]?.name || null : null}

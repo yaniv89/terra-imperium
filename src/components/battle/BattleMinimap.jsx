@@ -10,7 +10,7 @@ import { useT } from '../../i18n/useT';
 import { Q } from '../../battle/sim/constants';
 import { minimapFrame, TILE_RGB } from './minimapModel';
 
-const YOU = '#60a5fa'; const ENEMY = '#f87171';
+const YOU = '#4fa3ff'; const ENEMY = '#ff5a4f';
 
 const BattleMinimap = ({ setup, hud, playerSide, getRenderer, onMoved, onOrderAt, maxW = 168, maxH = 104 }) => {
   useT();
@@ -60,16 +60,21 @@ const BattleMinimap = ({ setup, hud, playerSide, getRenderer, onMoved, onOrderAt
     }
     // Back to minimap pixels for the marks.
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const dot = (x, z, color, size) => { const p = frame.toMini(x, z); ctx.fillStyle = color; ctx.fillRect(p.x - size / 2, p.y - size / 2, size, size); };
+    // every mark has a dark edge so it reads on grass, sand and fog alike (round 2 playtest: dots hard to read)
+    const dot = (x, z, color, size) => {
+      const p = frame.toMini(x, z);
+      ctx.fillStyle = 'rgba(8,10,16,0.85)'; ctx.fillRect(p.x - size / 2 - 1, p.y - size / 2 - 1, size + 2, size + 2);
+      ctx.fillStyle = color; ctx.fillRect(p.x - size / 2, p.y - size / 2, size, size);
+    };
     hud.structures.forEach((s, i) => {
       if (!s.alive || s.kind === 'wall' || s.kind === 'house') return;
-      dot(s.x / Q, s.y / Q, i === 0 ? (playerSide === 1 ? YOU : ENEMY) : '#d6d3d1', i === 0 ? 5 : 3);
+      dot(s.x / Q, s.y / Q, i === 0 ? (playerSide === 1 ? YOU : ENEMY) : '#d6d3d1', i === 0 ? 7 : 3);
     });
-    (hud.eco?.buildings || []).forEach((bd) => { if (bd.alive && !bd.proxy) dot(bd.x / Q, bd.y / Q, bd.side === playerSide ? YOU : ENEMY, 4); });
+    (hud.eco?.buildings || []).forEach((bd) => { if (bd.alive && !bd.proxy) dot(bd.x / Q, bd.y / Q, bd.side === playerSide ? YOU : ENEMY, 5); });
     hud.squads.forEach((q) => {
       if (!q.alive || !q.onField || q.fled) return;
       if (q.side !== playerSide && q.visible === false) return;
-      dot(q.x / Q, q.y / Q, q.side === playerSide ? YOU : ENEMY, 2.5);
+      dot(q.x / Q, q.y / Q, q.side === playerSide ? YOU : ENEMY, 3.5);
     });
     // The camera's view.
     if (r?.width) {

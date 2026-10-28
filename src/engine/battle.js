@@ -292,8 +292,10 @@ export const resolveBattle = ({
     attFront = refillLine(attFront, attReserve, combatWidth, attFought);
     defFront = refillLine(defFront, defReserve, combatWidth, defFought);
     // Local auxiliaries (autoBattle.js, the battle economy's trained troops) fight in the line but
-    // never hold it alone: a side whose own army has broken is beaten, its auxiliaries or not.
-    const ownLeft = (front, reserve) => front.some((u) => !u.auxiliary) || reserve.some((u) => !u.auxiliary && canFight(u));
+    // never hold it alone: a side whose own army has broken is beaten, its auxiliaries or not
+    // (except `holdsLine` ones: a walled assault's, autoBattle.js ASSAULT_AUX_HOLD).
+    const holds = (u) => !u.auxiliary || u.holdsLine;
+    const ownLeft = (front, reserve) => front.some(holds) || reserve.some((u) => holds(u) && canFight(u));
     attackerBroken = !ownLeft(attFront, attReserve);
     defenderBroken = !ownLeft(defFront, defReserve);
     timeline.push({ round: rounds, att: Math.round(standing(attAll)), def: Math.round(standing(defAll)), attBroken: attackerBroken, defBroken: defenderBroken });

@@ -13,6 +13,8 @@ export const SQUAD_PICK_PX = 22;
 /** Smallest pick radius on the ground, tiles (near zoom). */
 export const SQUAD_PICK_TILES = 1.1;
 export const ENEMY_PICK_MULT = 1.45;
+/** A ship is a long hull, not a block of men: picked anywhere along it (playtest 40651418969 steps 103-106, 255). */
+export const SHIP_PICK_TILES = 2.2;
 
 /**
  * The circle a squad is picked by, in tiles: { cx, cz, r } from its drawn block (`memo`: the
@@ -43,7 +45,7 @@ export const pickSquadAt = (g, view, { memoOf = () => undefined, wpp = 0, radius
     const mine = s.side === view.playerSide;
     if (mine && ignoreOwn) return;
     if (!mine && s.visible === false) return;
-    const c = squadPickCircle(s, memoOf(s.idx), minR);
+    const c = squadPickCircle(s, memoOf(s.idx), s.classId === 'naval' ? Math.max(minR, SHIP_PICK_TILES) : minR);
     const r = mine ? c.r : c.r * ENEMY_PICK_MULT;
     const score = ((c.cx - g.x) ** 2 + (c.cz - g.z) ** 2) / (r * r);
     if (score >= 1) return;

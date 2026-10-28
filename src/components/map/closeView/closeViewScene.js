@@ -17,7 +17,7 @@
 // grows in a river's band.
 import {
   HemisphereLight, DirectionalLight, Mesh, MeshLambertMaterial, MeshBasicMaterial, InstancedMesh, PlaneGeometry, CanvasTexture, SRGBColorSpace,
-  InstancedBufferAttribute, DynamicDrawUsage, Object3D, Color, Matrix4, Box3, BufferGeometry
+  InstancedBufferAttribute, DynamicDrawUsage, Object3D, Color, Matrix4, Box3, BufferGeometry, RingGeometry, CircleGeometry
 } from 'three';
 import { REGION_COORDINATES } from '../../../data/regionCoordinates';
 import { markerLatLng } from '../../../utils/markerPosition';
@@ -60,6 +60,7 @@ import { PLAYER_BANNER_COLOR } from '../mapBanners';
 const TREE_KINDS = ['conifer', 'broad', 'palm'];
 const MAX_WORKS = 400;
 const MAX_SOLDIERS = 240;
+const BASE_SQUASH = 0.5; // a ground ring seen from the map's tilted camera
 // A standing army turns a little toward the viewer: body, kilt and spear show beside the shield's
 // face (team colour and device) on the left arm, not just the shield or its back.
 const STAND_HEADING = 0.15;
@@ -162,6 +163,17 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
   t.plots.instanceColor = new InstancedBufferAttribute(new Float32Array(MAX_PLOTS * 3), 3).setUsage(DynamicDrawUsage);
   t.plots.count = 0; t.plots.frustumCulled = false; t.plots.renderOrder = -1;
   root.add(t.plots);
+  // Every army and settler stands on a ring of its owner's colour (art-2 lane, Civ VI's unit bases):
+  // the figures read on sand, grass and snow alike, and whose they are without a tap.
+  const baseMaterial = new MeshBasicMaterial({ transparent: true, opacity: 0.9, depthWrite: false });
+  t.bases = new InstancedMesh(new RingGeometry(0.62, 1, 28), baseMaterial, MAX_SOLDIERS);
+  const shadeMaterial = new MeshBasicMaterial({ color: '#0b0f14', transparent: true, opacity: 0.35, depthWrite: false });
+  t.baseShade = new InstancedMesh(new CircleGeometry(0.62, 28), shadeMaterial, MAX_SOLDIERS); // the dark inside: the ring reads on light ground
+  t.baseShade.count = 0; t.baseShade.frustumCulled = false; t.baseShade.instanceMatrix = t.bases.instanceMatrix;
+  root.add(t.baseShade);
+  t.bases.instanceColor = new InstancedBufferAttribute(new Float32Array(MAX_SOLDIERS * 3), 3).setUsage(DynamicDrawUsage);
+  t.bases.count = 0; t.bases.frustumCulled = false;
+  root.add(t.bases);
 
   /**
    * Lays the models out for a view. `projection`: the map's d3 projection (town room and gaps are
@@ -607,6 +619,13 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     const placeArmies = (markers) => {
       t.layoutK = k;
       t.layers.forEach((l) => { l.levels.forEach((m) => { m.count = 0; }); });
+      t.bases.count = 0; t.baseShade.count = 0;
+      // the ring under a figure `h` px tall standing at (x, y): an ellipse on the ground, just under its feet
+      const base = (x, y, h, c) => {
+        if (t.bases.count >= MAX_SOLDIERS) return;
+        tmp.position.set(x, -y, y * 0.05 + 39.5); tmp.rotation.set(0, 0, 0); tmp.scale.set(h * 0.55, h * 0.55 * BASE_SQUASH, 1); tmp.updateMatrix();
+        t.bases.setMatrixAt(t.bases.count, tmp.matrix); t.bases.setColorAt(t.bases.count, c); t.bases.count += 1; t.baseShade.count = t.bases.count;
+      };
       // The battle's own soldier: the artist's GLB where the unit has one (loaded once, then the
       // layer is rebuilt on it; the procedural body meanwhile and if it fails), else the procedural
       // model. The full model whenever the figures on screen fit MAP_FIGURE_TRIS (the clustered
@@ -702,6 +721,8 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
           l.variant.setXYZW(k2, soldierSkinTone(tone, mi, i), cell, ((mi + i) % 5) / 5 - 0.4, 0);
           l.mesh.count += 1;
         }
+        const [bx, by] = armySpotPx(hexPx, !!m.inCity);
+        base(at.x + bx, at.y + by, scale * l.height, color);
       });
       // Settlers: the party of the owner's age band (settlerModels.js) on their tile, facing and
       // walking toward their target; until its model is in, the map's wagon disc stands alone.
@@ -741,6 +762,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         l.mesh.setMatrixAt(k2, tmp.matrix);
         color.set(u.ownerId === state.playerNationId ? PLAYER_COLOR : getNationColor(u.ownerId) || '#64748b');
         l.mesh.setColorAt(k2, color);
+        base(at.x, at.y, scale * l.height, color);
         l.anim.setXYZ(k2, (si * 1.3) % 6.28, walking ? 1 : 0, 0);
         l.variant.setXYZW(k2, soldierSkinTone(skinToneFor(u.ownerId), si, 0), emblemCellFor(u.ownerId === state.playerNationId ? 0 : 1, si), 0, 0);
         l.mesh.count += 1;
@@ -756,6 +778,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         full.instanceMatrix.needsUpdate = true; l.color.needsUpdate = true; l.anim.needsUpdate = true; l.variant.needsUpdate = true;
       });
       t.moving = moving;
+      t.bases.instanceMatrix.needsUpdate = true; t.bases.instanceColor.needsUpdate = true;
 
       // Fleets: 1 to 3 warships of the owner's age (shipModels.js) on their sea tile, turned toward
       // the next step of their route. With no ship file for the age only the banner stands.
@@ -835,7 +858,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     dispose: () => {
       offEvict(); hold.release(); kitHold.release();
       t.trees.forEach((m) => m.dispose()); t.works.forEach((m) => m.dispose());
-      t.ridges.forEach((m) => m.dispose()); t.hills.dispose(); t.plots.dispose(); t.plots.geometry.dispose(); plotMaterial.dispose(); plotMap?.dispose();
+      t.ridges.forEach((m) => m.dispose()); t.hills.dispose(); t.plots.dispose(); t.plots.geometry.dispose(); plotMaterial.dispose(); t.bases.dispose(); t.bases.geometry.dispose(); baseMaterial.dispose(); t.baseShade.geometry.dispose(); shadeMaterial.dispose(); plotMap?.dispose();
       t.towns.forEach((m) => root.remove(m)); t.wonders.forEach((m) => root.remove(m)); t.fieldWorks.forEach((g) => root.remove(g));
       t.layers.forEach(dropLayer);
       t.buildings.dispose();

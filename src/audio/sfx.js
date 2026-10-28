@@ -14,6 +14,7 @@ import { UI_SOUNDS, WORLD_SOUNDS, uiFilesFor, worldFilesFor, voiceFilesFor, crea
 import { getAudioSettings } from './audioSettings';
 import { isPageAudible } from './pageLifecycle';
 import { audioAvailable, getAudioContext, unlockAudio, resumeAudio, registerAudioConsumer, audioOutput } from './audioContext';
+import { duckMusic } from './music';
 
 export const MASTER = 0.6; // the bus at full Effects volume (a phone speaker stays sane)
 export const MAX_CONCURRENT = 6;
@@ -98,7 +99,7 @@ const load = (url) => {
   return buffers.get(url);
 };
 
-const start = (url, level) => {
+const start = (url, level, duck = false) => {
   load(url).then((buf) => {
     if (!buf || !ctx || active >= MAX_CONCURRENT) return;
     const src = ctx.createBufferSource(); src.buffer = buf;
@@ -107,6 +108,7 @@ const start = (url, level) => {
     active += 1;
     src.onended = () => { active = Math.max(0, active - 1); try { g.disconnect(); } catch { /* gone */ } };
     src.start();
+    if (duck) duckMusic(Math.min(6, buf.duration)); // a fanfare takes the stage: the music dips under it
   }).catch(() => {});
 };
 
@@ -133,7 +135,7 @@ export const playSound = (id, { gain = 1 } = {}) => {
     lastAt[id] = t;
     if (category === 'world') lastWorldAt = t;
     const i = pickVariant(files, rng, lastVariant[id]); lastVariant[id] = i;
-    start(files[i], def.gain * gain);
+    start(files[i], def.gain * gain, !!def.big);
     return true;
   } catch { return false; }
 };
