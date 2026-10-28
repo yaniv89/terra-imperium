@@ -78,6 +78,13 @@ describe('battle gestures', () => {
     expect(h.tap).not.toHaveBeenCalled();
   });
 
+  it('a press on a selected squad held past LONG_MS whose timer never ran still opens the radial', () => {
+    h.isOnSelectedSquad = vi.fn(() => true); h.radialSelect = vi.fn();
+    down(1, 100, 100); clock += LONG_MS + 40; up(1, 100, 100);
+    expect(h.radial).toHaveBeenCalledTimes(1);
+    expect(h.tap).not.toHaveBeenCalled();
+  });
+
   it('a drag on empty ground pans, and never becomes a long-press', () => {
     down(1, 100, 100); clock += 50; move(1, 130, 100); vi.advanceTimersByTime(LONG_MS + 50); clock += 400; move(1, 160, 110); up(1, 160, 110);
     expect(h.pan).toHaveBeenCalled();

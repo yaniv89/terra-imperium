@@ -149,6 +149,7 @@ export const createGestureRecognizer = (el, h, memory = { lastTapAt: -1000, last
     // 260 to 380 ms used to be neither, and an armed Attack seemed to ignore the tap). A busy frame
     // can starve the long-press timer: a press held past LONG_MS on the ground is still a long press.
     else if (mode === 'press' && e.timeStamp - start.t >= LONG_MS) { mode = 'done'; h.longPress?.(start); }
+    else if (mode === 'press-selected' && e.timeStamp - start.t >= LONG_MS) { h.radial?.(start); h.radialSelect?.(p); }
     else if (mode === 'press' || mode === 'press-selected' || mode === 'lasso-armed' || mode === 'path-armed') { h.tap?.(p); memory.lastTapAt = e.timeStamp; memory.lastTapPos = p; }
     else if (mode === 'mouse-left') (h.click || h.tap)?.(p, { shift: start.shift });
     else if (mode === 'mouse-right') h.order?.(p);
