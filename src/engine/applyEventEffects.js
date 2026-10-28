@@ -57,8 +57,17 @@ export const scaleEventGold = (state, event) => {
   return { ...event, options: event.options.map((o) => (o.effects?.gold ? { ...o, effects: { ...o.effects, gold: round5(o.effects.gold * k) } } : o)) };
 };
 
-export const applyEventEffects = (state, unscaled, optionIndex) => {
-  const event = scaleEventGold(state, unscaled);
+/** `goldScaled`: the event's gold is already what the player was shown (a crisis answered early pays the amount of its answer). */
+/** The crisis card as an early answer pays it: the chosen option's gold fixed to the amount shown then
+ * (`gold`, from ANSWER of the crisis card), the other options scaled for `state`. */
+export const crisisAnswerCard = (state, card, option, gold) => {
+  const scaled = scaleEventGold(state, card);
+  if (gold == null || !scaled.options[option]) return scaled;
+  return { ...scaled, options: scaled.options.map((o, i) => (i === option ? { ...o, effects: { ...o.effects, gold } } : o)) };
+};
+
+export const applyEventEffects = (state, unscaled, optionIndex, { goldScaled = false } = {}) => {
+  const event = goldScaled ? unscaled : scaleEventGold(state, unscaled);
   const option = event.options[optionIndex];
   if (!option) return state;
   // Events can't be skipped, so an unaffordable choice used to go through anyway and push the

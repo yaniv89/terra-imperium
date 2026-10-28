@@ -120,7 +120,7 @@ import { verifyCommandedBattle, fieldedUnitIds } from './battleVerify';
 // on its own, too.
 export { replayBattle };
 import { applyDefenseResult, getDefenseArmies, applyDefenseWithdrawal } from './defense';
-import { applyEventEffects } from './applyEventEffects';
+import { applyEventEffects, scaleEventGold } from './applyEventEffects';
 import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier } from './siege';
 import { pillageTile } from './threat';
 import { canPromote, getPerk } from '../data/promotions';
@@ -698,7 +698,9 @@ const reduceAction = (state, action) => {
       if (coming?.answered && state.activeEventId === crisisCardId(coming.id)) {
         const i = action.payload.optionIndex;
         if (!Number.isInteger(i) || !event.options[i]) return state;
-        return { ...state, activeEventId: null, crises: { ...state.crises, coming: { ...coming, choice: i } } };
+        // The gold shown on the card now is the gold paid at the strike (scaleEventGold, gold-sinks).
+        const gold = scaleEventGold(state, event).options[i].effects?.gold;
+        return { ...state, activeEventId: null, crises: { ...state.crises, coming: { ...coming, choice: i, ...(gold != null ? { choiceGold: gold } : {}) } } };
       }
       return applyEventEffects(state, event, action.payload.optionIndex);
     }

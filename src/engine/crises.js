@@ -17,9 +17,9 @@
 // inside its age window that it spares gets its answer card (events-8: aid, profit or stay out,
 // bound to the struck majors, after Civ VI's emergencies). Memory:
 // state.crises = { last: { id: turn }, lastAny, history: [{ id, turn, nations }], coming?: { id, turn,
-// nations, raiders, answered?, choice? } }; absent = none yet (save 20: all optional, no migration).
+// nations, raiders, answered?, choice?, choiceGold? } }; absent = none yet (save 20: all optional, no migration).
 // `answered`: the player opened the card during the warning (ANSWER_CRISIS_EARLY), so it does not open
-// again at the strike; `choice`: the option picked then, paid only when the crisis strikes the player (a
+// again at the strike; `choice`: the option picked then (`choiceGold`: its gold as the card showed it, paid as is), paid only when the crisis strikes the player (a
 // crisis dropped or passing pays nothing).
 // state.settings.crises === 'off' stops all. Pure apart from the turn's working regions and units.
 import { CRISES, crisisCardId, crisisAnswerId } from '../data/crises';
@@ -173,5 +173,5 @@ export const processCrises = (state) => {
   const pendingEventChains = hitSet.has(me) && !coming.answered ? [...(state.pendingEventChains || []), { id: crisisCardId(crisis.id), dueTurn: turn }]
     : spared ? [...(state.pendingEventChains || []), { id: crisisAnswerId(crisis.id), dueTurn: turn, nations: crisis.effect === 'war' ? hit.slice(1, 2) : hit }] : state.pendingEventChains;
   const choice = hitSet.has(state.playerNationId) && Number.isInteger(coming.choice) ? coming.choice : undefined;
-  return { nations, wars, crises, pendingEventChains, choice, logs: [{ year: state.year, type: 'milestone', ...msg(`m.world.crisis.${crisis.id}`) }] };
+  return { nations, wars, crises, pendingEventChains, choice, ...(choice !== undefined && coming.choiceGold != null ? { choiceGold: coming.choiceGold } : {}), logs: [{ year: state.year, type: 'milestone', ...msg(`m.world.crisis.${crisis.id}`) }] };
 };

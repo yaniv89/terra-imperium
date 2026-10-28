@@ -6,7 +6,7 @@ import { peoplesWorld, cloneWorld, majorIds, addCities } from './testWorld';
 import { resolveTurn } from './resolveTurn';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { gameReducer } from './gameReducer';
-import { getOptionShortfall, applyEventEffects } from './applyEventEffects';
+import { getOptionShortfall, applyEventEffects, scaleEventGold } from './applyEventEffects';
 import { ActionTypes } from '../data/types';
 import { peopleOf } from './population';
 import { growthThreshold } from './world/cities';
@@ -190,6 +190,10 @@ describe('history crises (U31)', () => {
     expect(paid.crises.history.at(-1).id).toBe('bronze_collapse');
     expect(paid.resources.gold).toBe(unpaid.resources.gold - 40);
     expect(paid.activeEventId).toBe(unpaid.activeEventId);
+    // The strike pays the gold the card showed when it was answered, not the gold at the strike's scale (gold-sinks).
+    expect(answered.crises.coming.choiceGold).toBe(scaleEventGold(opened, cardOf(crisisCardId('bronze_collapse'))).options[0].effects.gold);
+    const shown = resolveTurn({ ...answered, ...quiet, crises: { coming: { ...answered.crises.coming, choiceGold: -55 } } });
+    expect(shown.resources.gold).toBe(unpaid.resources.gold - 55);
     // The early choice can no longer be paid but another option can: the card opens again, nothing is lost.
     const broke = resolveTurn({ ...answered, ...quiet, resources: { ...answered.resources, gold: 0 } });
     const card = crisisCardId('bronze_collapse');

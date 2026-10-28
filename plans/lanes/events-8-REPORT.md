@@ -94,6 +94,14 @@ The `engine-rules-reviewer` agent found no rule broken. I fixed two of its findi
 - The aid option now respects a broken truce's hostility floor.
 - In a world war, the answer card concerns only the side under attack.
 
+## Lead request (12:34): early crisis answers pay the gold they showed
+
+- A crisis answered during its warning now stores the scaled gold the card showed (`coming.choiceGold`, gameReducer RESOLVE_EVENT), and the strike pays exactly that.
+  - Built by `crisisAnswerCard` in applyEventEffects.js; `applyEventEffects(..., { goldScaled: true })` skips the second scaling.
+  - The other options are still scaled at the strike for the payable check, and the card reopens if the chosen amount can no longer be paid.
+- Test: crises.test.js "the player may answer a coming crisis during its warning". The stored gold equals the scaled amount on the card, and a stored -55 is paid as 55, whatever the scale at the strike.
+- Checks: `npm run test:quick` (490 files, 4,188 tests) and resolveTurn.test.js (95 tests) pass.
+
 ## For the lead (design calls I made, please confirm)
 
 1. **The Congress moves to the Age of Kingdoms.**

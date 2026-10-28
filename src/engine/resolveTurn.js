@@ -36,7 +36,7 @@ import { createEmptyResourcePool } from '../data/resources';
 import { drawEvent, cardOf } from './eventDeck';
 import { processCrises } from './crises';
 import { crisisCardId } from '../data/crises';
-import { applyEventEffects, getOptionShortfall, scaleEventGold } from './applyEventEffects';
+import { applyEventEffects, getOptionShortfall, crisisAnswerCard } from './applyEventEffects';
 import { exploreOn } from './hostility';
 import { calcIncome, nextUnrest, getNationBonusTotal, getFieldedStrength } from '../utils/helpers';
 import { getRegionModifier, getModifier } from './modifiers/sheet';
@@ -1207,12 +1207,12 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   {
     const crisis = processCrises({ ...state, turnNumber: newTurnNumber, year: newYear, regions, units, nations: nationsAfterWars, wars });
     if (crisis) {
-      crisisChoice = crisis.choice == null ? undefined : { id: crisis.crises.history.at(-1).id, option: crisis.choice };
+      crisisChoice = crisis.choice == null ? undefined : { id: crisis.crises.history.at(-1).id, option: crisis.choice, gold: crisis.choiceGold };
       let chains = crisis.pendingEventChains;
       // The early choice can no longer be paid while another option can: the card opens again instead
       // of applyEventEffects dropping the answer with only a "can't afford" line.
       if (crisisChoice) {
-        const card = scaleEventGold(state, cardOf(crisisCardId(crisisChoice.id)));
+        const card = crisisAnswerCard(state, cardOf(crisisCardId(crisisChoice.id)), crisisChoice.option, crisisChoice.gold);
         const short = (o) => getOptionShortfall(state.resources, o?.effects).length > 0;
         if (short(card.options[crisisChoice.option]) && card.options.some((o) => !short(o))) {
           chains = [...(chains || []), { id: card.id, dueTurn: newTurnNumber }];
@@ -1282,13 +1282,14 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   };
   // A crisis answered early pays its option now it struck (applyEventEffects clears the open card: keep this turn's).
   // Checked again on the state it is paid from: this turn's income and upkeep move the treasury and the
-  // card's gold scale (scaleEventGold), so a choice that can no longer be paid reopens the card next turn.
+  // card's gold scale (scaleEventGold; the chosen option keeps the gold it showed), so a choice that can no longer be paid reopens the card next turn.
   if (crisisChoice) {
     const card = cardOf(crisisCardId(crisisChoice.id));
-    const scaled = scaleEventGold(next, card);
+    // The chosen option pays the gold the card showed when it was answered (crisisAnswerCard).
+    const scaled = crisisAnswerCard(next, card, crisisChoice.option, crisisChoice.gold);
     const short = (o) => getOptionShortfall(next.resources, o?.effects).length > 0;
     if (short(scaled.options[crisisChoice.option]) && scaled.options.some((o) => !short(o))) next = { ...next, pendingEventChains: [...(next.pendingEventChains || []), { id: card.id, dueTurn: newTurnNumber + 1 }] };
-    else next = { ...applyEventEffects(next, card, crisisChoice.option), activeEventId: next.activeEventId, activeProceduralEvent: next.activeProceduralEvent };
+    else next = { ...applyEventEffects(next, scaled, crisisChoice.option, { goldScaled: true }), activeEventId: next.activeEventId, activeProceduralEvent: next.activeProceduralEvent };
   }
   // Players who opted to auto-resolve enemy assaults are never interrupted: fought right away.
   // The battle queue (battleQueue.js): with autoDefend the battles are fought on Auto now, unless an
