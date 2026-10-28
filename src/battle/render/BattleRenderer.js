@@ -982,6 +982,8 @@ export class BattleRenderer {
     // Phones (short side <= 500 css px) may zoom closer: at 3x a soldier is still only about 29 css
     // px tall on a 390 px tall landscape screen, too small to see the unit art.
     this.maxZoom = Math.min(width, height) <= 500 ? PHONE_MAX_ZOOM : 3;
+    // ...and as far out as a desktop (playtest 40651418969 steps 24, 181: army and objective on one screen).
+    this.minZoom = Math.min(width, height) <= 500 ? 0.45 * (PHONE_VIEW_TILES / VIEW_TILES) : 0.45;
     // The soldiers' share of the triangle budget (RTS plan 13.1: about 0.5 M a frame on a phone
     // with terrain and scenery, 1 to 1.5 M on a desktop).
     this.figureBudget = Math.min(width, height) <= 500 ? BATTLE_GRAPHICS.figureTriangles.phone : BATTLE_GRAPHICS.figureTriangles.desktop;
@@ -1011,7 +1013,7 @@ export class BattleRenderer {
   zoomBy(factor, px = this.width / 2, py = this.height / 2) {
     this.updateCamera();
     const before = this.screenToGround(px, py);
-    this.camera.zoom = Math.max(0.45, Math.min(this.maxZoom || 3, this.camera.zoom * factor));
+    this.camera.zoom = Math.max(this.minZoom || 0.45, Math.min(this.maxZoom || 3, this.camera.zoom * factor));
     this.camera.updateProjectionMatrix();
     this.updateCamera();
     const after = this.screenToGround(px, py);

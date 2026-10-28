@@ -4,9 +4,11 @@
 // never turn into a different one mid-way — so panning can't accidentally open a menu (Company of
 // Heroes mobile's main complaint).
 //
-// Touch:  tap · one-finger drag = pan · drag starting on a selected squad = formation line ·
-//         double-tap then drag = lasso select · long-press = context (ground: attack-move;
-//         selected squad: radial) · two fingers = pinch-zoom + pan
+// Touch:  tap · one-finger drag = pan (on a selected squad too: playtest 40651418969, an army
+//         selected with All covered the screen and every drag drew a line) · hold a selected squad
+//         = radial, then drag on = formation line (the radial closes) · double-tap then drag = lasso
+//         select · long-press on the ground = attack-move · two fingers = pinch-zoom + pan (a second
+//         finger on the HUD around the field still pinches: `pinchFrom`)
 //         A lasso that closes on itself (a circle) selects what the loop encloses (`opts.polygon`).
 //         Select mode (the HUD's Select button, `h.isSelectMode()`): a one-finger drag draws the
 //         lasso instead of panning; a completed lasso calls `h.selectModeDone()` (the HUD turns
@@ -25,6 +27,7 @@ export const LONG_MS = 380;
 export const MOVE_PX = 10;
 export const DOUBLE_TAP_MS = 300;
 export const DOUBLE_TAP_PX = 40; // a second tap farther away is a new gesture: a drag from it pans
+export const RADIAL_DRAG_PX = 24; // a finger held on a selected squad that then travels this far draws a line
 
 /** A lasso stroke that loops back to where it began (a circle) selects what it encloses; an open drag keeps the box. */
 export const isClosedStroke = (pts) => {
@@ -46,7 +49,8 @@ export const insidePolygon = (pt, poly) => {
 };
 
 // `memory` carries the last tap across recognizers: the screen rebuilds the recognizer whenever its handlers change (a tap changes the selection), which must not forget the first tap of a double-tap.
-export const createGestureRecognizer = (el, h, memory = { lastTapAt: -1000, lastTapPos: null }) => {
+// `pinchFrom` (optional): the element around `el` (the battle screen); a second finger landing on it, outside `el`, joins a pinch.
+export const createGestureRecognizer = (el, h, memory = { lastTapAt: -1000, lastTapPos: null }, { pinchFrom = null } = {}) => {
   const pointers = new Map();
   let mode = 'idle';
   let start = null;
@@ -68,6 +72,8 @@ export const createGestureRecognizer = (el, h, memory = { lastTapAt: -1000, last
   const down = (e) => {
     el.setPointerCapture?.(e.pointerId);
     const p = pos(e);
+    if (hudTouch && !pointers.size && e.pointerType === 'touch') { pointers.set(hudTouch.id, hudTouch.p); el.setPointerCapture?.(hudTouch.id); }
+    hudTouch = null;
     pointers.set(e.pointerId, p);
     if (pointers.size === 2) {
       clearLong();
@@ -118,8 +124,8 @@ export const createGestureRecognizer = (el, h, memory = { lastTapAt: -1000, last
     if (mode === 'place') { if (moved) start.moved = true; if (start.moved) h.placeDrag?.(p); last = p; return; }
     if (!moved && ['press', 'press-selected', 'lasso-armed', 'path-armed', 'mouse-left', 'mouse-right', 'mouse-pan'].includes(mode)) return;
     clearLong();
-    if (mode === 'press' || mode === 'mouse-pan') mode = 'pan';
-    else if (mode === 'press-selected') mode = 'formation';
+    if (mode === 'radial') { if (Math.hypot(p.x - start.x, p.y - start.y) < RADIAL_DRAG_PX) return; h.radialCancel?.(); mode = 'formation'; }
+    else if (mode === 'press' || mode === 'press-selected' || mode === 'mouse-pan') mode = 'pan';
     else if (mode === 'lasso-armed' || mode === 'mouse-left') mode = 'lasso';
     else if (mode === 'path-armed') mode = 'path';
     else if (mode === 'mouse-right') mode = h.hasSelection?.() ? 'formation' : 'pan';
@@ -127,7 +133,6 @@ export const createGestureRecognizer = (el, h, memory = { lastTapAt: -1000, last
     else if (mode === 'formation') h.formationDrag?.(start, p);
     else if (mode === 'lasso') { trail.push(p); h.lassoDrag?.(start, p, { polygon: isClosedStroke(trail) ? trail : null }); }
     else if (mode === 'path') { if (Math.hypot(p.x - trail[trail.length - 1].x, p.y - trail[trail.length - 1].y) >= MOVE_PX) trail.push(p); h.pathDrag?.(trail); }
-    else if (mode === 'radial') h.radialHover?.(p);
     last = p;
   };
 
@@ -159,7 +164,20 @@ export const createGestureRecognizer = (el, h, memory = { lastTapAt: -1000, last
   const keyUp = (e) => { if (e.code === 'Space') spaceHeld = false; };
   const blur = () => { spaceHeld = false; };
 
+  // The HUD's panels sit over the field: a pinch whose second finger lands on one still zooms (the first finger is on the field).
+  // Either finger may come first: one held on the HUD waits (`hudTouch`) for a finger on the field.
+  let hudTouch = null;
+  const joinDown = (e) => {
+    if (e.pointerType !== 'touch' || e.target === el || pointers.has(e.pointerId)) return;
+    if (pointers.size === 1) down(e); else if (!pointers.size) hudTouch = { id: e.pointerId, p: pos(e) };
+  };
+  const hudMove = (e) => { if (hudTouch?.id === e.pointerId) hudTouch.p = pos(e); };
+  const hudUp = (e) => { if (hudTouch?.id === e.pointerId) hudTouch = null; };
   el.addEventListener('pointerdown', down);
+  pinchFrom?.addEventListener('pointerdown', joinDown, true);
+  pinchFrom?.addEventListener('pointermove', hudMove, true);
+  pinchFrom?.addEventListener('pointerup', hudUp, true);
+  pinchFrom?.addEventListener('pointercancel', hudUp, true);
   el.addEventListener('pointermove', move);
   el.addEventListener('pointerup', up);
   el.addEventListener('pointercancel', cancel);
@@ -175,6 +193,10 @@ export const createGestureRecognizer = (el, h, memory = { lastTapAt: -1000, last
     win?.removeEventListener('blur', blur);
     clearLong();
     el.removeEventListener('pointerdown', down);
+    pinchFrom?.removeEventListener('pointerdown', joinDown, true);
+    pinchFrom?.removeEventListener('pointermove', hudMove, true);
+    pinchFrom?.removeEventListener('pointerup', hudUp, true);
+    pinchFrom?.removeEventListener('pointercancel', hudUp, true);
     el.removeEventListener('pointermove', move);
     el.removeEventListener('pointerup', up);
     el.removeEventListener('pointercancel', cancel);

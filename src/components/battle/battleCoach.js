@@ -29,7 +29,7 @@ export const resetCoachSession = () => { shownThisSession = false; };
 export const coachSteps = (mouse) => [1, 2, 3].map((i) => ({ title: t(`bt.coach.${mouse ? 'mouse' : 'touch'}.${i}.title`), text: t(`bt.coach.${mouse ? 'mouse' : 'touch'}.${i}.text`) }));
 
 /** The deployment card's words. */
-export const deployHelp = (mouse) => t(mouse ? 'bt.coach.deployMouse' : 'bt.coach.deployTouch');
+export const deployHelp = (mouse, naval = false) => t(`bt.coach.deploy${mouse ? 'Mouse' : 'Touch'}${naval ? 'Sea' : ''}`);
 
 /** The camera line under "More about this battle". */
 export const cameraHelp = (mouse) => t(mouse ? 'bt.coach.cameraMouse' : 'bt.coach.cameraTouch');

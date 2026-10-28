@@ -35,7 +35,7 @@ import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useCornerSheet } from '../../hooks/useExclusivePanel';
 import { BuildMenu, BuildingActions, InfoCard, HammerButton, WorkerAutoButtons } from './EconomyHud';
 import { inspectInfo } from './inspectModel';
-import { contextFor, refusedText, enemyObjectives, supplyRate } from './battleHudModel';
+import { contextFor, refusedText, enemyObjectives, supplyRate, endVerdict } from './battleHudModel';
 import BattleMinimap from './BattleMinimap';
 import { updateSiteLabels } from './siteLabels';
 import { updatePendingPins } from './pendingPins';
@@ -49,7 +49,7 @@ import { commandedSetup } from '../../battle/setup/buildBattleSetup';
 import { arrivalNote } from '../../battle/input/orderFeedback';
 import { t as tNow } from '../../i18n/core';
 import { useT } from '../../i18n/useT';
-import { abilityLabel, powerLabel, ecoLabel } from './battleText';
+import { abilityLabel, powerLabel, ecoLabel, LAND_ONLY_ABILITIES } from './battleText';
 import { releaseWhenDetached } from '../../utils/glContext';
 import { noteCrashEvent } from '../../utils/crashLog';
 import { coachSeen, markCoachSeen, coachSteps, mouseFirst } from './battleCoach';
@@ -75,6 +75,7 @@ const perfOn = () => PERF_URL || !!getMapPrefs().perf;
 // `ordersRefused` when the shared order schema turns an order down or the order log is full.
 const REFUSED_MS = 4000;
 const pausedOrderText = () => tNow('bt.screen.pausedOrder');
+const END_BEAT_MS = 1500;
 // Rank 6: the radial's top edge: above the finger when it fits under the top bar, else below it, kept
 // between the top bar and the bottom buttons (a 44 px row of commands, abilities about four a row).
 const radialTop = (y, h, abilities) => {
@@ -556,6 +557,15 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   }, []);
   // The battle is over: the result screen opens at once, and the campaign counts the battle right
   // after (a tick later, so "counting" is on screen while the replay runs).
+  // Total War's end beat: a moment on the last of the fighting (the camera on it, the verdict) before the card covers the field.
+  const [resultShown, setResultShown] = useState(false);
+  useEffect(() => {
+    if (!ended) return undefined;
+    const alive = (frames.current.cur?.squads || []).filter((q) => q.alive && q.onField && !q.fled && q.classId !== 'worker');
+    if (alive.length) rendererRef.current?.centerOn(alive.reduce((a, q) => a + q.x, 0) / alive.length / Q, alive.reduce((a, q) => a + q.y, 0) / alive.length / Q);
+    const beat = setTimeout(() => setResultShown(true), END_BEAT_MS);
+    return () => clearTimeout(beat);
+  }, [ended]);
   useEffect(() => {
     if (!ended) return undefined;
     onEnded?.(ended);
@@ -815,9 +825,11 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   }, [ownSquadAt, ownBuildingAt, inspectAt, inspectThing, updateSelection, selectBuilding, clearSelection, issueAt, send, disarm, markPending]);
 
   const tapMemory = useRef({ lastTapAt: -1000, lastTapPos: null });
+  // The handlers change with the selection and the phase; the recognizer itself lives as long as the
+  // canvas: rebuilt with them, it dropped a drag or pinch in progress (playtest 40651418969 steps 15, 207).
+  const gestureHandlers = useRef({});
   useEffect(() => {
-    const el = canvasRef.current;
-    return createGestureRecognizer(el, {
+    gestureHandlers.current = {
       isSelectMode: () => selectModeRef.current,
       isPathMode: () => pathModeRef.current && selectedRef.current.size > 0,
       pathDrag: (pts) => setDrawPath([...pts]),
@@ -854,6 +866,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       longPress: (p) => { if (selectedRef.current.size) issueAt(p, true); },
       radial: (p) => setRadial({ x: p.x, y: p.y, at: performance.now() }),
       radialSelect: () => setRadial((r) => r && { ...r, at: performance.now() }), // the finger lifted: its click is swallowed (below)
+      radialCancel: () => setRadial(null), // held, then dragged: a battle line instead
       pan: (dx, dy) => { rendererRef.current?.pan(dx, dy); if (followRef.current && Math.abs(dx) + Math.abs(dy) > 2) setFollow(false); },
       zoom: (factor, x, y) => rendererRef.current?.zoomBy(factor, x, y),
       formationDrag: (s, p) => setDragLine({ x0: s.x, y0: s.y, x1: p.x, y1: p.y }),
@@ -879,8 +892,9 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         updateSelection(mods?.shift ? [...new Set([...selectedRef.current, ...ids])] : ids);
       },
       cancel: () => { setDragLine(null); setLasso(null); setDrawPath(null); }
-    }, tapMemory.current);
+    };
   }, [pointer, issueAt, ownSquadAt, playerSide, send, updateSelection, setSelectModeOn, setPathModeOn, setGhostAt, setFollow, markPending]);
+  useEffect(() => createGestureRecognizer(canvasRef.current, new Proxy({}, { get: (_, k) => gestureHandlers.current[k] }), tapMemory.current, { pinchFrom: wrapRef.current }), []);
 
   // I198: the mouse resting at the screen's edge moves the camera (a mouse only; the HUD's own
   // buttons are not the field, so pointing at them never pans).
@@ -1077,11 +1091,12 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const timeLeft = hud ? Math.max(0, Math.ceil((battleLimitTicks(setup) - hud.tick) / TICK_HZ)) : 0;
   const selectedSquads = useMemo(() => (hud ? selected.map((i) => hud.squads[i]).filter((q) => q && q.alive) : []), [hud, selected]);
   // Abilities the selection can use (a general's, or legendary archers' Volley), best cooldown first.
+  const naval = setup.battleType === 'naval';
   const selectedAbilities = useMemo(() => {
     const byId = new Map();
-    selectedSquads.forEach((q) => (q.abilities || []).forEach((a) => { const cur = byId.get(a.id); if (!cur || a.readyIn < cur.readyIn) byId.set(a.id, a); }));
+    selectedSquads.forEach((q) => (q.abilities || []).forEach((a) => { if (naval && LAND_ONLY_ABILITIES.has(a.id)) return; const cur = byId.get(a.id); if (!cur || a.readyIn < cur.readyIn) byId.set(a.id, a); }));
     return [...byId.values()];
-  }, [selectedSquads]);
+  }, [selectedSquads, naval]);
 
   // The context panel (B10): the actions of the selection only.
   const context = contextFor({ selectedSquads, building: ecoBuilding, inspect: seenInfo ? inspect : null, armed });
@@ -1244,7 +1259,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
               {selectedAbilities.map((a) => (
                 <button key={a.id} type="button" onClick={() => triggerSquadAbility(a.id)} disabled={a.readyIn > 0}
                   className="min-w-[64px] h-11 px-3 rounded-full bg-fa-raised border border-fa-indep text-fa-text text-xs font-semibold shadow-xl disabled:opacity-40">
-                  {abilityLabel(a.id)}{a.readyIn > 0 ? ` ${tNow('bt.hud.secShort', { s: Math.ceil(a.readyIn / TICK_HZ) })}` : ''}
+                  {abilityLabel(a.id, naval)}{a.readyIn > 0 ? ` ${tNow('bt.hud.secShort', { s: Math.ceil(a.readyIn / TICK_HZ) })}` : ''}
                 </button>
               ))}
             </div>
@@ -1296,7 +1311,12 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           <span>{orderNote}</span>
         </div>
       )}
-      {ended && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} title={title} getCampaign={getCampaign} receipt={receipt} onContinue={() => onFinish?.(ended)} />}
+      {ended && !resultShown && (
+        <button type="button" onClick={() => setResultShown(true)} className="absolute inset-0 z-20 flex items-center justify-center bg-transparent" data-testid="battle-end-beat">
+          <span className="fa-heading text-[30px] px-5 py-2 rounded-[12px] bg-fa-ink/80 border border-fa-line shadow-2xl">{endVerdict(ended.result.outcome, playerSide)}</span>
+        </button>
+      )}
+      {ended && resultShown && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} title={title} getCampaign={getCampaign} receipt={receipt} onContinue={() => onFinish?.(ended)} />}
       {start && !failure && !ended && <BattleLoading stage={start.stage} fraction={start.fraction} seconds={start.seconds} retry={start.retry} onAuto={() => onAbandon?.()} />}
       {failure && !ended && <BattleFailure title={failure.message} detail={failure.detail} onAuto={() => onAbandon?.('screen_error')} onRetry={onRetry} />}
     </div>

@@ -79,14 +79,41 @@ describe('battle gestures', () => {
     expect(h.tap).not.toHaveBeenCalled();
   });
 
-  it('dragging from a selected squad draws a formation line; holding it opens the radial', () => {
+  it('dragging from a selected squad pans; holding it opens the radial, and dragging on draws a formation line', () => {
     h.isOnSelectedSquad.mockReturnValue(true);
+    h.radialCancel = vi.fn();
     down(1, 100, 100); clock += 30; move(1, 200, 140); up(1, 200, 140);
-    expect(h.formationDrag).toHaveBeenCalled();
-    expect(h.formationEnd).toHaveBeenCalledTimes(1);
+    expect(h.pan).toHaveBeenCalled();
+    expect(h.formationDrag).not.toHaveBeenCalled();
     clock += 1000;
     down(2, 100, 100); vi.advanceTimersByTime(LONG_MS + 10);
     expect(h.radial).toHaveBeenCalledTimes(1);
+    move(2, 110, 104); // a wobble keeps the radial
+    expect(h.radialCancel).not.toHaveBeenCalled();
+    move(2, 200, 140); up(2, 200, 140);
+    expect(h.radialCancel).toHaveBeenCalledTimes(1);
+    expect(h.formationEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('a second finger on the HUD around the field joins a pinch', () => {
+    dispose();
+    const wrap = { handlers: {}, addEventListener(t, fn) { this.handlers[t] = fn; }, removeEventListener(t) { delete this.handlers[t]; } };
+    dispose = createGestureRecognizer(el, h, undefined, { pinchFrom: wrap });
+    down(1, 100, 200);
+    wrap.handlers.pointerdown({ ...ev(2, 100, 60), target: {} }); // on a HUD panel
+    move(2, 100, 20); move(1, 100, 240);
+    expect(h.zoom).toHaveBeenCalled();
+    expect(h.zoom.mock.calls.at(-1)[0]).toBeGreaterThan(1);
+    wrap.handlers.pointerdown({ ...ev(3, 300, 60), target: el }); // the field's own finger is the field's
+    expect(h.zoom).toHaveBeenCalledTimes(2);
+    up(2, 100, 20); up(1, 100, 240);
+    // the HUD finger first (a synthesized pinch-out puts the upper finger on the status card)
+    wrap.handlers.pointerdown({ ...ev(4, 100, 60), target: {} });
+    wrap.handlers.pointermove({ ...ev(4, 100, 70), target: {} });
+    down(5, 100, 300);
+    move(4, 100, 150); move(5, 100, 250);
+    expect(h.zoom.mock.calls.at(-1)[0]).toBeLessThan(1);
+    expect(h.tap).not.toHaveBeenCalled();
   });
 
   it('with Attack armed, holding on a selected squad is the order (long-press), never the radial', () => {
