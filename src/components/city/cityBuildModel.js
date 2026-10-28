@@ -129,10 +129,13 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
     const check = extra.ok === undefined ? canQueue(city, tiles, world, item, { researched, ageId, noRobots: ctx.noRobots }) : { ok: extra.ok, reason: extra.reason };
     const quote = buildQuote(state, cityId, item, live);
     const queued = inQueue.get(extra.key || itemKey(item)) || 0;
+    const long = check.ok && isLongBuild(state, ageId, quote.turns);
     out.push({
       id: extra.id || itemKey(item), item, group, ok: check.ok, reason: check.ok ? null : reasonText(check),
       label: itemLabel(item, tiles, ageId, city.tile), tile: null, detail: null, note: null, needsTech: null, needsName: null,
-      cost: quote.cost, stored: quote.stored, turns: quote.turns, long: check.ok && isLongBuild(state, ageId, quote.turns), queued,
+      cost: quote.cost, stored: quote.stored, turns: quote.turns, long, queued,
+      // a slow row says why (this city's production a turn) and what gold would buy it (warmonger playtest: 6 to 150 turns, no reason)
+      production: long ? Math.round(live.yields.production * 10) / 10 : null, buyGold: long ? rushGold(Math.max(0, quote.cost - quote.stored), 0, item) : null,
       ...extra.fields
     });
   };

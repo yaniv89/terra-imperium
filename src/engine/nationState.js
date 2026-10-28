@@ -22,8 +22,12 @@ const researchedMemo = new WeakMap();
 /** How many times a nation has finished the repeatable Future Tech (research.js, U65). */
 export const futureTechsOf = (state, nationId) => ((nationId === state.playerNationId ? state.research : state.nations?.[nationId]?.research)?.futureTechs || 0);
 
+// A view of the state as an AI nation acts in it (`viewAs`) moves `playerNationId` to that nation and
+// keeps the human in `humanView`; the human's research still lives on the top-level fields.
+const isHuman = (state, nationId) => nationId != null && nationId === (state.humanView?.id ?? state.playerNationId);
+
 export const getResearched = (state, nationId) => {
-  if (nationId === state.playerNationId) {
+  if (isHuman(state, nationId)) {
     const tree = state.techTree;
     if (!tree) return [];
     const hit = researchedMemo.get(tree);
@@ -42,8 +46,22 @@ export const getResearched = (state, nationId) => {
  * (an unknown id, rebels, an unowned city) is in the first age.
  */
 export const ageOf = (state, nationId) => {
-  const id = nationId != null && nationId === state.playerNationId ? state.techAgeId : state.nations?.[nationId]?.tech?.ageId;
+  const id = nationId == null ? null
+    : nationId === state.playerNationId ? state.techAgeId
+    : isHuman(state, nationId) ? state.humanView.ageId
+    : state.nations?.[nationId]?.tech?.ageId;
   return AGES[id] ? id : FIRST_AGE_ID;
+};
+
+/**
+ * `state` as `nationId` acts in it: the gates written for "the player" (validateInvasion, the battle
+ * contexts) read its pool and age, and the human's age and research stay readable (a view that
+ * forgot them fought the player's armies at the first age: battle-odds lane).
+ */
+export const viewAs = (state, nationId, resources = getPool(state, nationId)) => {
+  if (nationId === state.playerNationId) return state;
+  const humanView = state.humanView && state.humanView.id !== state.playerNationId ? state.humanView : { id: state.playerNationId, ageId: state.techAgeId };
+  return { ...state, playerNationId: nationId, resources, techAgeId: ageOf(state, nationId), humanView };
 };
 /** The rank of ageOf in AGE_ORDER. */
 export const ageIndexOf = (state, nationId) => getAgeIndex(ageOf(state, nationId));

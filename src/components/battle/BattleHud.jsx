@@ -193,6 +193,7 @@ const BattleHud = ({
   const [alerts, setAlerts] = useState([]);
   const prevRef = useRef(null);
   const lastRef = useRef({});
+  const baseMaxRef = useRef([1, 1]); // the most base buildings each side (yours, theirs) has had: the base bars' full width
   // B06: alerts from what changed since the last frame.
   useEffect(() => {
     if (!hud) return;
@@ -218,6 +219,8 @@ const BattleHud = ({
   const eco = hud.eco || null;
   // Base buildings standing (sim/base.js): [yours, theirs], null in a battle without bases.
   const base = hud.base ? [hud.base[playerSide], hud.base[1 - playerSide]] : null;
+  if (base) baseMaxRef.current = [Math.max(1, baseMaxRef.current[0], base[0]), Math.max(1, baseMaxRef.current[1], base[1])];
+  const baseMax = baseMaxRef.current;
   // Allied reinforcements still marching in on their own (U10: nobody calls them).
   const marching = mine.filter((q) => q.reinforcement && !q.onField && q.enterTick >= 0);
   const keep = setup?.battleType === 'naval' ? null : hud.structures[0]; // a sea battle's anchorage is no objective
@@ -316,8 +319,9 @@ const BattleHud = ({
               className={cx('fa-icon-btn !w-11 !h-11 !rounded-none first:!rounded-s-[10px] last:!rounded-e-[10px] fa-num text-[13px] font-semibold', speed === s && '!bg-fa-raised !text-fa-text outline outline-2 -outline-offset-2 outline-fa-text')}>{s}×</button>)}
           </div>
         )}
+        {/* a clear gap: a tap aimed at 3x must never open the pause sheet (playtest 40650979770 step 12) */}
         <button type="button" onClick={onTogglePause} aria-label={!started ? t('bt.hud.start') : paused ? t('bt.hud.resume') : t('bt.hud.pause')} data-testid="battle-pause"
-          className={cx('fa-icon-btn !w-11 !h-11 shrink-0', !started && '!bg-fa-brass !text-fa-ink !border-transparent')}>
+          className={cx('fa-icon-btn !w-11 !h-11 shrink-0 ms-3', !started && '!bg-fa-brass !text-fa-ink !border-transparent')}>
           {!started || paused ? <Play className="w-4 h-4" aria-hidden="true" /> : <Pause className="w-4 h-4" aria-hidden="true" />}
         </button>
       </div>
@@ -406,6 +410,7 @@ const BattleHud = ({
           {/* Who is winning, the objective and the loot (playtest issues 3 to 5); the base rule in words (sim/base.js, UI16). */}
           <div className="pointer-events-auto fa-panel !bg-fa-panel/95 !rounded-[10px] px-2 py-0.5 text-[10.5px] leading-tight w-[min(20rem,100%)] shadow-xl" data-testid="battle-status">
             <div className="flex items-center gap-1.5" title={t('bt.status.title')} role="img" aria-label={t('bt.status.aria', { a: youPct, b: themPct })}>
+              <span className="font-semibold text-fa-muted">{t('bt.status.army')}</span>
               <span className="font-semibold text-fa-you">{t('bt.status.you')}</span>
               <span className="fa-num text-fa-you" data-testid="battle-status-you">{youPct}%</span>
               <span className="flex-1 min-w-[1.5rem] h-1.5 rounded-full bg-fa-ink overflow-hidden flex justify-end" aria-hidden="true"><span className="h-full bg-fa-you" style={{ width: `${youPct}%` }} /></span>
@@ -414,10 +419,15 @@ const BattleHud = ({
               <span className="font-semibold text-fa-enemy">{t('bt.status.them')}</span>
             </div>
             <div className="line-clamp-2 text-fa-brass" title={objective} data-testid="battle-objective-line">{objective}</div>
+            {/* What decides it (Q3): base buildings standing, each bar against the most that side has had (battle-engage). */}
             {base && (
-              <div className="whitespace-nowrap text-fa-muted truncate" title={t('bt.hud.baseTitle')} data-testid="battle-base">
-                {t('bt.status.buildings', { a: base[0], b: base[1] })}
-                {marching.length > 0 && <span className="text-fa-you">{t('bt.hud.arriving', { n: marching.length })}</span>}
+              <div className="flex items-center gap-1.5 text-fa-muted" title={t('bt.hud.baseTitle')} role="img" aria-label={t('bt.status.buildings', { a: base[0], b: base[1] })} data-testid="battle-base">
+                <span className="font-semibold">{t('bt.status.base')}</span>
+                <span className="fa-num text-fa-you" data-testid="battle-base-you">{base[0]}</span>
+                <span className="flex-1 min-w-[1.5rem] h-1.5 rounded-full bg-fa-ink overflow-hidden flex justify-end" aria-hidden="true"><span className="h-full bg-fa-you" style={{ width: `${(base[0] / baseMax[0]) * 100}%` }} /></span>
+                <span className="flex-1 min-w-[1.5rem] h-1.5 rounded-full bg-fa-ink overflow-hidden" aria-hidden="true"><span className="block h-full bg-fa-enemy" style={{ width: `${(base[1] / baseMax[1]) * 100}%` }} /></span>
+                <span className="fa-num text-fa-enemy" data-testid="battle-base-them">{base[1]}</span>
+                {marching.length > 0 && <span className="text-fa-you whitespace-nowrap">{t('bt.hud.arriving', { n: marching.length })}</span>}
               </div>
             )}
             {loot && (
@@ -522,10 +532,10 @@ const BattleHud = ({
           </div>
         </div>
       )}
-      {armed?.type === 'power' && (
+      {(armed?.type === 'power' || armed === 'attackMove') && (
         <div className="absolute inset-x-0 flex justify-center pointer-events-none" style={{ bottom: ABOVE_BOTTOM }}>
-          <div className="pointer-events-auto flex items-center gap-1 ps-3 rounded-full bg-fa-panel/95 border border-fa-enemy text-xs font-semibold shadow-xl" data-testid="battle-power-armed">
-            {t(mouse ? 'bt.hud.clickStrike' : 'bt.hud.tapStrike', { label: powerLabel(armed.id, armed.label) })}
+          <div className="pointer-events-auto flex items-center gap-1 ps-3 rounded-full bg-fa-panel/95 border border-fa-enemy text-xs font-semibold shadow-xl" data-testid={armed === 'attackMove' ? 'battle-attack-armed' : 'battle-power-armed'}>
+            {armed === 'attackMove' ? t(mouse ? 'bt.hud.clickAttack' : 'bt.hud.tapAttack') : t(mouse ? 'bt.hud.clickStrike' : 'bt.hud.tapStrike', { label: powerLabel(armed.id, armed.label) })}
             {onCancelArmed && <button type="button" onClick={onCancelArmed} aria-label={t('bt.hud.cancelStrike')} className="w-11 h-11 flex items-center justify-center text-fa-muted"><X className="w-4 h-4" aria-hidden="true" /></button>}
           </div>
         </div>
@@ -656,7 +666,6 @@ const BattleHud = ({
           </div>
           <div className="flex gap-1.5">
             {onAbandon && <button type="button" onClick={() => onAbandon()} className="fa-btn fa-btn-secondary flex-1 !min-h-[44px] !px-1.5 text-[12px]" data-testid="battle-switch-auto">{t('bt.hud.switchAuto')}</button>}
-            <button type="button" onClick={() => setConfirmRetreat(true)} className="fa-btn fa-btn-danger flex-1 !min-h-[44px] !px-1.5 text-[12px]" data-testid="battle-leave">{t('bt.hud.retreat')}</button>
             {onToggleSound && <button type="button" onClick={onToggleSound} aria-label={soundOn ? t('bt.hud.muteSound') : t('bt.hud.soundOn')} className="fa-icon-btn !w-11 !h-11 shrink-0" data-testid="battle-sound">{soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}</button>}
           </div>
           {powerCards.length > 0 && (
@@ -671,6 +680,8 @@ const BattleHud = ({
             <div><span className="text-fa-enemy font-semibold">{t('bt.hud.theirs')}</span> {armyTallyText(armyTally(hud, 1 - playerSide))}.</div>
           </div>
           <div className="text-[10.5px] text-fa-muted leading-snug">{t('bt.hud.retreatHelp', { siege: bt === BATTLE_TYPES.assault ? t('bt.hud.siegeLifted') : '' })}</div>
+          {/* Retreat sits apart from Switch to Auto: a tap meant for Auto landed on it (playtest 40650973042 step 86) */}
+          <button type="button" onClick={() => setConfirmRetreat(true)} className="fa-btn fa-btn-danger w-full shrink-0 !min-h-[44px] mt-2 text-[12px]" data-testid="battle-leave">{t('bt.hud.retreat')}</button>
         </div>
       )}
 
@@ -684,9 +695,10 @@ const BattleHud = ({
             <div className="fa-heading text-[17px]">{t('bt.hud.retreatTitle')}</div>
             <p className="text-xs text-fa-muted" data-testid="battle-retreat-consequences">{t('bt.hud.retreatBody', { count: allCount, siege: bt === BATTLE_TYPES.assault ? t('bt.hud.andSiegeLifted') : '' })}</p>
             <div className="grid grid-cols-1 gap-2">
-              <button type="button" onClick={() => { setConfirmRetreat(false); onRetreatAll(); }} className="fa-btn fa-btn-danger !min-h-[44px]" data-testid="battle-retreat-all">{t('bt.hud.soundRetreat')}</button>
-              {onAbandon && <button type="button" onClick={() => { setConfirmRetreat(false); onAbandon(); }} className="fa-btn fa-btn-secondary !min-h-[44px]">{t('bt.hud.autoInstead')}</button>}
-              <button type="button" onClick={() => setConfirmRetreat(false)} className="fa-btn fa-btn-ghost !min-h-[44px]">{t('bt.hud.keepFighting')}</button>
+              {/* the safe answers first, the rout last and apart (step 87 tapped the top button expecting Auto) */}
+              <button type="button" onClick={() => setConfirmRetreat(false)} className="fa-btn fa-btn-secondary !min-h-[44px]" data-testid="battle-keep-fighting">{t('bt.hud.keepFighting')}</button>
+              {onAbandon && <button type="button" onClick={() => { setConfirmRetreat(false); onAbandon(); }} className="fa-btn fa-btn-secondary !min-h-[44px]" data-testid="battle-auto-instead">{t('bt.hud.autoInstead')}</button>}
+              <button type="button" onClick={() => { setConfirmRetreat(false); onRetreatAll(); }} className="fa-btn fa-btn-danger !min-h-[44px] mt-3" data-testid="battle-retreat-all">{t('bt.hud.soundRetreat')}</button>
             </div>
           </div>
         </div>

@@ -18,7 +18,7 @@ import { REGIONS_DATA } from '../data/regions';
 import { LogTypes } from '../data/types';
 import { msg, sub, people, cityRef } from './messages';
 import { createRng } from '../utils/rng';
-import { getTechAgeId, ageOf } from './nationState';
+import { ageOf, viewAs } from './nationState';
 import { resolveAutoBattle } from './autoBattle';
 import { applyBattleOutcome, makeBattleOutcome } from './battleOutcome';
 import { validateAmphibious, getAmphibiousBattleContext, applyAmphibiousLanding } from './invasion';
@@ -31,7 +31,7 @@ import { commandGenerals } from '../data/generals';
 export const LANDING_KINDS = ['intercept', 'landing'];
 export const isLandingKind = (kind) => LANDING_KINDS.includes(kind);
 
-const viewOf = (state, nationId) => ({ ...state, playerNationId: nationId, techAgeId: getTechAgeId(state, nationId) });
+const viewOf = viewAs;
 const drop = (state, id) => ({ ...state, pendingDefenses: (state.pendingDefenses || []).filter((d) => d.id !== id) });
 
 /** True when fleet `u` guards city `regionId`'s coast: in its port, or at sea on a water tile beside its land. */
@@ -123,10 +123,11 @@ export const landingHoldChance = (state, def, samples = 30) => {
   const armies = isIntercept ? interceptArmies(state, def) : landingArmies(state, def);
   if (!armies) return { armies: null, holdChance: 1 };
   const args = isIntercept ? interceptArgs(state, def, armies) : landingArgs(state, def, armies);
-  let held = 0;
+  let held = 0; let auxA = 0; let auxD = 0;
   for (let i = 0; i < samples; i++) {
     const r = resolveAutoBattle(state, args, isIntercept ? { kind: 'lane' } : { kind: 'landing', cityId: def.regionId, fromRegionId: def.fromRegionId, militia: def.militia || null }, createRng((def.seed + i * 0x9e3779b1) >>> 0));
     if (r.outcome !== 'attacker') held += 1;
+    auxA += r.report?.auxiliaries?.[0]?.fielded || 0; auxD += r.report?.auxiliaries?.[1]?.fielded || 0;
   }
-  return { armies, holdChance: held / samples };
+  return { armies, holdChance: held / samples, auxiliaries: { attacker: Math.round(auxA / samples), defender: Math.round(auxD / samples) } };
 };

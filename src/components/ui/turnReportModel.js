@@ -28,6 +28,7 @@ import { translate, getLanguage, formatYear, ageName, hasKey } from '../../i18n/
 import { nameOf } from '../../i18n/names';
 import { logText } from '../../i18n/messageText';
 import { techName } from '../../i18n/gameText';
+import { engageTarget } from '../city/cityDefenseModel';
 
 export const REPORT_GROUPS = [
   { id: 'battles', label: 'Battles' },
@@ -134,10 +135,16 @@ export const turnReportModel = (before, after, lang = getLanguage()) => {
     const shown = logText(l, lang);
     const placeOf = (m) => { const p = placeIn(after, m); return p ? { ...p, name: nameOf('city', null, p.name, lang) } : null; };
     if (l.type !== LogTypes.ACTION && l.type !== LogTypes.TECH && isUnmet(msg)) { unmetNews.push(shown); return; }
+    // Raiders or an army coming for one of the player's cities: Defend opens its Defense tab (pay, send an army, train, walls).
+    const coming = (l.msgKey === 'm.battle.raidersNear' || l.msgKey === 'm.battle.armyNears') && l.msgVars?.place?.k === 'city' && after.regions?.[l.msgVars.place.id]?.owner === after.playerNationId
+      ? { engage: { cityId: l.msgVars.place.id, tile: null, defend: true } } : {};
     if (RAID_WORDS.test(msg) && (l.type === LogTypes.COMBAT || l.type === LogTypes.CRISIS)) {
-      add('raids', { tone: 'danger', title: shown, sub: null, place: placeOf(msg) });
+      add('raids', { tone: 'danger', title: shown, sub: null, place: placeOf(msg), ...coming });
     } else if (NEWS_TYPES.has(l.type) && !/^A new era dawns/.test(msg)) {
-      add('news', { tone: l.type === LogTypes.CRISIS ? 'danger' : l.type === LogTypes.COMBAT ? 'enemy' : 'muted', title: shown, sub: null, place: placeOf(msg), mine: aboutPlayer(after, l) });
+      const place = placeOf(msg);
+      // A siege on one of the player's cities: Engage opens the attack card on the besiegers, else the city's Defense tab says why not.
+      const siege = l.msgKey === 'm.battle.underSiege' && place?.mine && after.regions?.[place.id]?.siege?.by ? engageTarget(after, place.id) : null;
+      add('news', { tone: l.type === LogTypes.CRISIS ? 'danger' : l.type === LogTypes.COMBAT ? 'enemy' : 'muted', title: shown, sub: null, place, mine: aboutPlayer(after, l), ...(siege ? { engage: { cityId: place.id, tile: siege.ok ? siege.tile : null } } : coming) });
     }
   });
 

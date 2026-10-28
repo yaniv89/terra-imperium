@@ -15,7 +15,7 @@ describe('peoples model (W07)', () => {
     const m = peoplesModel(s);
     const met = metNations(s).filter((id) => id !== FR && !isIndependentNation(s.nations[id]));
     expect(m.rows.map((r) => r.id).sort()).toEqual(met.sort());
-    expect(m.counts.met).toBe(met.filter((id) => !s.nations[id].isEliminated).length);
+    expect(m.counts.met).toBe(met.length);
     expect(m.counts.unmet).toBeGreaterThan(0);
     if (m.rows.length) {
       const one = m.rows[0];

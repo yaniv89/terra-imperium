@@ -79,7 +79,7 @@ describe('human-playtest battle scene', () => {
   });
 
   it('opens the sandbox in each age with the setups in turn', () => {
-    expect(battleUrl('http://x/terra-imperium/', 'stone', 0)).toBe('http://x/terra-imperium/?battleSandbox&age=stone');
+    expect(battleUrl('http://x/terra-imperium/', 'stone', 0)).toBe('http://x/terra-imperium/?battleSandbox&age=stone&fort=0');
     expect(battleUrl('http://x/', 'bronze', 1)).toBe(`http://x/?battleSandbox&age=bronze${BATTLE_SETUPS[1].query}`);
     expect(battleUrl('http://x/?lang=he', 'future', 6)).toBe(`http://x/?lang=he&battleSandbox&age=future${BATTLE_SETUPS[2].query}`);
   });

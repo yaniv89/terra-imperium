@@ -285,7 +285,7 @@ const GameLayout = () => {
     save: saveNow,
     load: () => openTitle('load'),
     help: () => setShowHelp(true),
-    glossary: () => openGlossary('people', state.playerNationId),
+    glossary: () => openGlossary('index'), // the index, never one people's page (newcomer playtest step 71)
     settings: () => setShowSettings(true),
     title: () => openTitle('main')
   };

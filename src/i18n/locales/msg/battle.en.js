@@ -179,6 +179,8 @@ export default {
   'm.battle.raidStopped': 'Your army near {place} stopped {raiders}.',
   'm.battle.raidersNear.one': '{raiders} are {count} tile from {place}.',
   'm.battle.raidersNear.other': '{raiders} are {count} tiles from {place}.',
+  'm.battle.armyNears.one': '{nation} marches on {place} with {men} men, 1 tile away.',
+  'm.battle.armyNears.other': '{nation} marches on {place} with {men} men, {count} tiles away.',
   'm.battle.tributeMissed': 'You could not pay your tribute to {raiders}: the deal is off and they will raid again.',
   'm.battle.tributeDemand': '{raiders} {raiders:agree=demand} {gold} gold a turn for {turns} turns, or they will raid you ({place} is within their reach). Answer under Relations on the Empire tab within {answer} turns.',
   'm.battle.tributeIgnored': 'You ignored the tribute demand of {raiders}: they take it as a refusal.',

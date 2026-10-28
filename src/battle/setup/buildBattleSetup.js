@@ -26,7 +26,7 @@ import { placeCity, cityKeepInset } from './cityBattle';
 import { cityManifestOf, cityDamageOf } from '../../engine/cityManifest';
 import { buildEconomySetup } from './economySetup';
 import { battleInputs } from '../../engine/battleInputs';
-import { getTechAgeId } from '../../engine/nationState';
+import { viewAs } from '../../engine/nationState';
 import { isRaidKind, queuedRaidArmies, raidSpecOf, raidBattleContext } from '../../engine/raidBattle';
 import { interceptArmies, interceptArgs } from '../../engine/aiLanding';
 import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from '../sim/constants';
@@ -77,7 +77,7 @@ import { FIRST_AGE_ID } from '../../data/ages';
 // v17: H-25, an oasis field is drawn as desert ground (the combat terrain stays).
 // v22: the AI defender goes out to a threat as one army (battle endings lane)
 // v21: sea battles: fleets form up facing each other mid-sea, a flagship for the admiral, the anchorage passive, the AI fleet engages (naval only)
-export const SETUP_VERSION = 28; // v28: the battle AI plays the counters, focuses its archers' fire, keeps its cavalry in reserve until the lines meet, holds its walls, guards its archers and laborers, raids laborers and pulls spent squads out (battle-ai-tactics); v27: the AI defender of a field battle goes out once a third of the clock (never before 3 minutes) has passed with nobody hit for 30 s (playtest 40550100958: no more battles waited out with nobody fighting); v26: Kingdoms pikes x2.2 against cavalry, Modern and Information ranged even against cavalry, signature units +25% against one class (the AoE and Civ report's rank 16); v25: the age edge is a fixed x1.4 step per age of difference (ages.js ageGapMult); v24: Future powers, Orbital Strike, EMP and Hijack, and robot squads without morale (eight ages U67, U68); v23: economy clocks cut to 10 and 20 minutes; v20: Information commander powers, Drone Strike, Cyber Jam and Drone Recon (eight ages U58); v19: Modern machine-gun suppression, Information precision and drones (U50)
+export const SETUP_VERSION = 29; // v29: an assault on a town with no walls standing marches its defender out like a field battle's, and a squad whose foe died with nobody else in sight goes on to the enemy's nearest base building within 18 tiles, and a soldier trained with a rally point attack-moves to it (battle-engage); v28: the battle AI plays the counters, focuses its archers' fire, keeps its cavalry in reserve until the lines meet, holds its walls, guards its archers and laborers, raids laborers and pulls spent squads out (battle-ai-tactics); v27: the AI defender of a field battle goes out once a third of the clock (never before 3 minutes) has passed with nobody hit for 30 s (playtest 40550100958: no more battles waited out with nobody fighting); v26: Kingdoms pikes x2.2 against cavalry, Modern and Information ranged even against cavalry, signature units +25% against one class (the AoE and Civ report's rank 16); v25: the age edge is a fixed x1.4 step per age of difference (ages.js ageGapMult); v24: Future powers, Orbital Strike, EMP and Hijack, and robot squads without morale (eight ages U67, U68); v23: economy clocks cut to 10 and 20 minutes; v20: Information commander powers, Drone Strike, Cyber Jam and Drone Recon (eight ages U58); v19: Modern machine-gun suppression, Information precision and drones (U50)
 // v18: Stone battles (eight ages U37 to U40): guard on foot, Stone stats, powers and fields
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
@@ -346,9 +346,7 @@ const buildDefenseSetup = (state, pb) => {
 
 // A field or sea battle an AI started against the player (battleQueue.js) is gated as the
 // aggressor's attack: the same gate, from its side.
-const gateOf = (state, pb) => (pb.attackerNationId && pb.attackerNationId !== state.playerNationId
-  ? { ...state, playerNationId: pb.attackerNationId, techAgeId: getTechAgeId(state, pb.attackerNationId) }
-  : state);
+const gateOf = (state, pb) => (pb.attackerNationId ? viewAs(state, pb.attackerNationId) : state);
 
 // A commanded amphibious landing (T9): the invaders come ashore on a beach at the west edge, with
 // their fleet's guns (two Naval Bombardment salvos) covering the shore half of the field. Their
