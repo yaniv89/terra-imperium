@@ -14,6 +14,7 @@ import { createWorld } from '../../../src/battle/sim/world';
 import { step } from '../../../src/battle/sim/step';
 import { toStrategicResult } from '../../../src/battle/sim/result';
 import { battleLimitTicks } from '../../../src/battle/sim/constants';
+import { inRangeOfSquad } from '../../../src/battle/sim/combat';
 import { thinkAI as newThink, AI_FEATURES } from '../../../src/battle/sim/tacticalAI';
 import { ECO_FEATURES } from '../../../src/battle/sim/economyAI';
 import { buildTownManifest } from '../../../src/data/townLayout';
@@ -34,9 +35,14 @@ const TRACE = Number(process.env.TRACE || 0); // ticks between squad lines (one 
 (process.env.FEAT_OFF || '').split(',').filter(Boolean).forEach((k) => { if (k in ECO_FEATURES) ECO_FEATURES[k] = false; else AI_FEATURES[k] = false; });
 const LAND = [
   [['infantry', 'infantry', 'cavalry', 'ranged', 'ranged'], ['infantry', 'infantry', 'cavalry', 'ranged', 'ranged']],
-  [['infantry', 'cavalry', 'cavalry', 'ranged'], ['infantry', 'infantry', 'ranged', 'ranged']]
+  [['infantry', 'cavalry', 'cavalry', 'ranged'], ['infantry', 'infantry', 'ranged', 'ranged']],
+  [['infantry', 'infantry', 'cavalry', 'ranged', 'siege'], ['infantry', 'infantry', 'cavalry', 'ranged', 'siege']]
 ].filter((_, i) => !process.env.MATCH || process.env.MATCH.split(',').map(Number).includes(i));
-const SEA = [[['warship', 'warship', 'warship', 'raider'], ['warship', 'warship', 'raider', 'raider']]];
+const SEA = [
+  [['warship', 'warship', 'warship', 'raider'], ['warship', 'warship', 'raider', 'raider']],
+  [['warship', 'warship', 'warship', 'warship', 'raider', 'raider'], ['warship', 'warship', 'warship', 'warship', 'raider', 'raider']],
+  [['warship', 'warship', 'warship', 'warship', 'warship', 'raider', 'raider', 'raider'], ['warship', 'warship', 'warship', 'warship', 'raider', 'raider', 'transport', 'transport']]
+].filter((_, i) => !process.env.SEAMATCH || process.env.SEAMATCH.split(',').map(Number).includes(i));
 const ofAge = (cls, ageId) => cls.map((c) => (getAvailableClasses(ageId).includes(c) ? c : 'infantry'));
 const mk = (p, cls, sea) => cls.map((c, i) => ({ id: `${p}${i}`, classId: sea ? 'naval' : c, ...(sea ? { navalLine: c, domain: 'naval' } : { domain: 'land' }), strength: 1000, maxStrength: 1000, morale: 100, promotions: [], commanderId: null }));
 const sum = (units) => units.reduce((x, u) => x + Math.max(0, u.strength), 0);
@@ -52,7 +58,7 @@ it('old AI against new AI', async () => {
       thinkA(w, 0, orders); thinkD(w, 1, orders);
       step(w, orders);
       w.events.length = 0;
-      if (TRACE && w.tick % TRACE === 0) console.log(`  t=${w.tick / 20}s ${w.squads.filter((q) => q.alive && q.onField && !q.fled && !q.worker && !q.isGeneral).map((q) => `${q.side}#${q.idx}${q.classId[0]}${Math.round(q.strength / 10)}${q.routed ? 'R' : ''}:${q.order.type.slice(0, 4)}@${q.x >> 8},${q.y >> 8}`).join(' ')}`);
+      if (TRACE && w.tick % TRACE === 0) console.log(`  t=${w.tick / 20}s ${w.squads.filter((q) => q.alive && q.onField && !q.fled && !q.worker && !q.isGeneral).map((q) => `${q.side}#${q.idx}${q.classId[0]}${Math.round(q.strength / 10)}${q.routed ? 'R' : ''}:${q.order.type.slice(0, 4)}${q.target >= 0 ? `>${q.targetKind === 'squad' ? '' : q.targetKind[0]}${q.target}${q.targetKind === 'squad' && inRangeOfSquad(q, w.squads[q.target]) ? '!' : ''}` : ''}@${q.x >> 8},${q.y >> 8}`).join(' ')}`);
     }
     return toStrategicResult(w);
   };

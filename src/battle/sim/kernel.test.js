@@ -54,7 +54,7 @@ describe('packed spatial grids', () => {
 
   it('target finding picks the same enemy as a scan of every squad in index order', () => {
     const w = makeBenchWorld(150, 3);
-    for (let i = 0; i < 400; i++) { step(w, []); w.events.length = 0; }
+    for (let i = 0; i < 600; i++) { step(w, []); w.events.length = 0; } // the lines in contact (battle-ai-2: they march in line, so later)
     buildTargetGrid(w);
     buildSpatialHash(w);
     const ref = referenceGrid(w);
