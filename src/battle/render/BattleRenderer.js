@@ -100,6 +100,15 @@ export const hitFlash = (hitTick, tick, tickRate = 20) => {
   const age = (tick - hitTick) / tickRate;
   return age < 0 || age >= HIT_FLASH_S ? 0 : HIT_FLASH_MAX * (1 - age / HIT_FLASH_S);
 };
+// Shots (art-2 lane): a shot flies for SHOT_LIFE seconds by its length (the sim's hit is already
+// in, so the flight is art only: short enough to land with it), trails a streak at least
+// SHOT_TRAIL_PX css px thick in its side's colour mixed with white, and kicks up a puff where it lands.
+export const SHOT_TRAIL_PX = 2.2;
+export const shotLife = (len) => Math.min(0.7, 0.24 + len * 0.025);
+/** The trail behind a shot `k` of its way along a flight `len` tiles long: [length, thickness] in tiles. */
+export const shotTrail = (k, len, worldPerPx) => [Math.min(1.8, len * 0.18, len * k), Math.max(0.04, SHOT_TRAIL_PX * worldPerPx)];
+const X_AXIS = new Vector3(1, 0, 0);
+const tmpDir = new Vector3();
 const tmp = new Object3D();
 const ORDER_DASHES = 48; // dashes per order target line at most
 const tmpColor = new Color();
@@ -882,6 +891,9 @@ export class BattleRenderer {
     });
     instanceColors(this.structBarFill);
     this.tracers = mk(new BoxGeometry(1, 0.05, 0.05).translate(0.5, 0, 0), '#fde68a');
+    // shot trails (SHOT_TRAIL_PX): a unit cone reaching back from the shot's head to a point, coloured per shot
+    this.trails = new InstancedMesh(this.track(new ConeGeometry(0.5, 1, 5).rotateZ(Math.PI / 2).translate(-0.5, 0, 0)), this.track(new MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.75, depthWrite: false, toneMapped: false, fog: false })), 128);
+    Object.assign(this.trails, { count: 0, frustumCulled: false, renderOrder: 3 }); instanceColors(this.trails); this.scene.add(this.trails);
     this.sparks = mk(new DodecahedronGeometry(0.12, 0), '#fbbf24');
     this.sparks.dispose(); this.scene.remove(this.sparks);
     this.sparks = new InstancedMesh(this.track(new DodecahedronGeometry(0.12, 0)), this.track(new MeshBasicMaterial({ color: '#ffffff' })), 128);
@@ -1164,7 +1176,8 @@ export class BattleRenderer {
         // who shot (the projectile art by class and age; a tower shoots with the defender's age)
         const shooter = e.type === 'towerShot' ? { classId: 'tower', ageId: this.setup.sides[1].ageId } : { classId: from?.classId, ageId: from?.ageId };
         const beam = e.type === 'shot' && getBattleStats(shooter.classId, shooter.ageId).beam; // Future plasma and lasers: a line, no projectile (U66)
-        if (from && to) this.fx.push({ kind: beam ? 'beam' : 'tracer', x0: from.x / Q, z0: from.y / Q, x1: to.x / Q, z1: to.y / Q, t: 0, life: beam ? 0.12 : 0.22, shooter });
+        const side = e.type === 'towerShot' ? 1 : from?.side;
+        if (from && to) this.fx.push({ kind: beam ? 'beam' : 'tracer', x0: from.x / Q, z0: from.y / Q, x1: to.x / Q, z1: to.y / Q, t: 0, life: beam ? 0.12 : shotLife(Math.hypot(to.x - from.x, to.y - from.y) / Q), shooter, side });
         if (from && e.type === 'shot' && isAgeAtLeast(shooter.ageId, 'gunpowder') && this.fxSprites.has('muzzle-flash')) this.fx.push({ kind: 'sprite', sheet: 'muzzle-flash', x: from.x / Q, z: from.y / Q, y: 0.5, t: 0, life: 0.15 });
       } else if (e.type === 'shieldHit') {
         // a Future shield takes the hit: its bubble flashes cyan (U66)
@@ -1777,8 +1790,15 @@ export class BattleRenderer {
   }
 
   drawFx(dt) {
-    let tn = 0; let sn = 0; let mn = 0;
-    this.fx = this.fx.filter((f) => (f.t += dt) < f.life);
+    let tn = 0; let sn = 0; let mn = 0; let rn = 0;
+    const landed = [];
+    this.fx = this.fx.filter((f) => { if ((f.t += dt) < f.life) return true; if (f.kind === 'tracer') landed.push(f); return false; });
+    // where a shot lands: a small puff of dust (sparks on stone or without the sheet)
+    landed.forEach((f) => {
+      if (this.fxSprites.has('dust')) this.fx.push({ kind: 'sprite', sheet: 'dust', x: f.x1, z: f.z1, y: 0, t: 0, life: 0.45, size: 0.45 });
+      else this.fx.push({ kind: 'spark', x: f.x1, z: f.z1, t: 0, life: 0.3, seed: 0 });
+    });
+    const wpp = this.worldPerPixel();
     const sprites = this.fxSprites; const shots = this.projectileArt;
     sprites.begin(CAM_BASIS.makeRotationFromQuaternion(this.camera.quaternion).elements);
     shots.begin();
@@ -1794,9 +1814,18 @@ export class BattleRenderer {
         const peak = Math.min(2.5, len * 0.12);
         const arc = Math.sin(k * Math.PI) * peak;
         // the projectile's model when its file has one (projectiles.js), else the tracer streak
+        const slope = (Math.PI * peak * Math.cos(k * Math.PI)) / Math.max(0.1, len);
+        const hy = this.heightAt(hx, hz) + 0.8 + arc;
+        if (rn < 128 && len > 0.5) {
+          const [tl, th] = shotTrail(k, len, wpp * 1.4); // the cone's middle is the streak's width
+          tmp.position.set(hx, hy, hz); tmp.quaternion.setFromUnitVectors(X_AXIS, tmpDir.set(dx / len, slope, dz / len).normalize());
+          tmp.scale.set(tl, th, th); tmp.updateMatrix();
+          this.trails.setMatrixAt(rn, tmp.matrix);
+          this.trails.setColorAt(rn, tmpColor.copy(colorOf(this.setup.sides[f.side]?.color || '#fde68a')).lerp(WHITE, 0.55)); rn += 1;
+        }
         const obj = f.shooter && shots.objectFor(f.shooter.classId, f.shooter.ageId);
-        if (obj) { shots.add(obj, hx, this.heightAt(hx, hz) + 0.8 + arc, hz, dx, dz, (Math.PI * peak * Math.cos(k * Math.PI)) / Math.max(0.1, len)); return; }
-        tmp.position.set(hx, this.heightAt(hx, hz) + 0.8 + arc, hz);
+        if (obj) { shots.add(obj, hx, hy, hz, dx, dz, slope); return; }
+        tmp.position.set(hx, hy, hz);
         tmp.rotation.set(0, -Math.atan2(dz, dx), 0); tmp.scale.set(0.6, 1, 1); tmp.updateMatrix();
         this.tracers.setMatrixAt(tn, tmp.matrix); tn += 1;
       } else if (f.kind === 'beam' && tn < 64) {
@@ -1897,7 +1926,7 @@ export class BattleRenderer {
       tmp.rotation.set(0, 0, 0); tmp.position.set(x, this.heightAt(x, z) + 0.1, z); tmp.scale.set(sc, 1, sc); tmp.updateMatrix();
       this.markerRings.setMatrixAt(mn, tmp.matrix); this.markerRings.setColorAt(mn, colorOf('#ece5d3')); mn += 1;
     }
-    [[this.tracers, tn], [this.sparks, sn], [this.markerRings, mn]].forEach(([m, n]) => { m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; });
+    [[this.tracers, tn], [this.sparks, sn], [this.markerRings, mn], [this.trails, rn]].forEach(([m, n]) => { m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; });
   }
 
   dispose() {
