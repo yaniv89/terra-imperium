@@ -23,6 +23,11 @@ test.describe('tactical battle', () => {
     const start = page.getByTestId('battle-start');
     await start.waitFor({ state: 'visible', timeout: 30000 });
     await click(start);
+    // A fresh device shows the first-battle tips, and they hold the clock until closed (battle-feedback lane).
+    await expect(page.getByTestId('battle-coach-hold')).toBeVisible({ timeout: 15000 });
+    expect(await page.evaluate(() => window.__battleTest.tick())).toBe(0);
+    await click(page.getByTestId('battle-coach-skip'));
+    await expect(page.getByTestId('battle-coach')).toBeHidden();
     await page.waitForFunction(() => window.__battleTest?.tick() > 0, null, { timeout: 60000 });
 
     // Select the whole army, then give an order from the command row.
@@ -38,7 +43,7 @@ test.describe('tactical battle', () => {
 
     // Pause menu, then Retreat and confirm. The army walks off at 3x, then the result screen shows.
     await click(page.getByTestId('battle-pause'));
-    await click(page.getByRole('radio', { name: 'Speed 3' }));
+    await click(page.getByTestId('battle-pause-sheet').getByRole('radio', { name: 'Speed 3' }));
     await click(page.getByTestId('battle-leave'));
     await expect(page.getByTestId('battle-retreat-confirm')).toBeVisible();
     await click(page.getByTestId('battle-retreat-all'));
