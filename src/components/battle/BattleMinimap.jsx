@@ -12,7 +12,7 @@ import { minimapFrame, TILE_RGB } from './minimapModel';
 
 const YOU = '#60a5fa'; const ENEMY = '#f87171';
 
-const BattleMinimap = ({ setup, hud, playerSide, getRenderer, onMoved, maxW = 168, maxH = 104 }) => {
+const BattleMinimap = ({ setup, hud, playerSide, getRenderer, onMoved, onOrderAt, maxW = 168, maxH = 104 }) => {
   useT();
   const canvasRef = useRef(null);
   const map = setup.map;
@@ -83,12 +83,12 @@ const BattleMinimap = ({ setup, hud, playerSide, getRenderer, onMoved, maxW = 16
     }
   }, [hud, frame, ground, getRenderer, playerSide, map]);
 
-  // A tap or a drag moves the camera there (the follow stops: onMoved).
+  // A tap or a drag moves the camera there (the follow stops: onMoved); with an order armed the tap
+  // is that order's target instead (onOrderAt returns true when it took it).
   const dragRef = useRef(false);
+  const worldAt = (e) => { const cv = canvasRef.current; if (!cv) return null; const rect = cv.getBoundingClientRect(); return frame.toWorld(e.clientX - rect.left, e.clientY - rect.top); };
   const goTo = (e) => {
-    const cv = canvasRef.current; const r = getRenderer?.(); if (!cv || !r) return;
-    const rect = cv.getBoundingClientRect();
-    const g = frame.toWorld(e.clientX - rect.left, e.clientY - rect.top);
+    const r = getRenderer?.(); const g = worldAt(e); if (!r || !g) return;
     r.centerOn(g.x, g.z);
     onMoved?.();
   };
@@ -96,7 +96,7 @@ const BattleMinimap = ({ setup, hud, playerSide, getRenderer, onMoved, maxW = 16
     <div className="pointer-events-auto rounded-[10px] bg-fa-ink/85 border border-fa-line shadow-xl p-1" data-testid="battle-minimap">
       <canvas ref={canvasRef} style={{ width: frame.width, height: frame.height, touchAction: 'none', display: 'block' }}
         aria-label={tNow('bt.screen.minimapAria')} role="img"
-        onPointerDown={(e) => { e.stopPropagation(); dragRef.current = true; e.currentTarget.setPointerCapture?.(e.pointerId); goTo(e); }}
+        onPointerDown={(e) => { e.stopPropagation(); const g = worldAt(e); if (g && onOrderAt?.(g)) return; dragRef.current = true; e.currentTarget.setPointerCapture?.(e.pointerId); goTo(e); }}
         onPointerMove={(e) => { if (dragRef.current) goTo(e); }}
         onPointerUp={() => { dragRef.current = false; }}
         onPointerCancel={() => { dragRef.current = false; }} />

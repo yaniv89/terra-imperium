@@ -98,6 +98,9 @@ export const settleBarModel = (state, mode, sites, selectedTile = null) => {
     hint: sites.length ? tNow('settle.hint') : tNow('settle.hintNone'),
     count: sites.length,
     index,
-    nextLabel: !sites.length ? null : index < 0 ? tNow('settle.best') : tNow('settle.next', { i: ((index + 1) % sites.length) + 1, n: sites.length })
+    nextLabel: !sites.length ? null : index < 0 ? tNow('settle.best') : tNow('settle.next', { i: ((index + 1) % sites.length) + 1, n: sites.length }),
+    // no site in reach: the one useful order is Send home (they join a city, settlers.js disbandSettlers)
+    unitId: u.id,
+    sendHome: !sites.length
   };
 };

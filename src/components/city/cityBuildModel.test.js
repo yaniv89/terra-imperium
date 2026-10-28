@@ -110,6 +110,9 @@ describe('build options', () => {
     expect(hint.short).toMatch(/slow here/); // the one line the Build tab shows before More (BUILD-01)
     expect(hint.short.length).toBeLessThan(hint.text.length);
     expect(options.filter((o) => o.long).every((o) => o.ok)).toBe(true);
+    // each slow row says why and what gold would buy it (warmonger playtest: 6 to 150 turns, no reason)
+    options.filter((o) => o.long).forEach((o) => { expect(o.production).toBe(Math.round(hint.production * 10) / 10); expect(o.buyGold).toBeGreaterThan(0); });
+    expect(options.filter((o) => !o.long).every((o) => o.buyGold == null)).toBe(true);
     expect(focusHint(S, paris, [])).toBeNull();
     // With a food focus and hills to work, Production focus is the answer.
     const helped = focusHint({ ...poor, regions: { ...poor.regions, [paris]: { ...city, isCapital: false, size: 3, focus: 'food' } } }, paris, [{ long: true }]);

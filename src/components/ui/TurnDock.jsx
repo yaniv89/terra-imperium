@@ -9,14 +9,15 @@
 //                   waiting", the second ends the turn (it disarms by itself)
 //   Advisor builds  beside a "Choose production" blocker: one tap queues the advisor's pick in every
 //                   city with nothing to build (ADVISOR_PRODUCTION, productionAdvisor.js; playtest:
-//                   about five taps a city otherwise)
+//                   about five taps a city otherwise); "Always" beside it sets that as every
+//                   city's standing order (SET_PRODUCTION_KEEP 'advisor')
 //   The world moves while the turn worker runs, a progress strip instead of the button
 // Enter presses the button (the first blocker, or the end of the turn) when nothing is being typed.
 // Sits left of the tab rail (--rail-w, never the dock: it stays in the same place when a panel
 // opens, playtest audit X17 / I156; the dock leaves a strip at its foot for it) and above the
 // bottom bar of a phone held upright.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Hammer, FlaskConical, Scroll, Shield, Feather, Bell, Swords, HeartHandshake, Coins } from 'lucide-react';
+import { Hammer, Repeat, FlaskConical, Scroll, Shield, Feather, Bell, Swords, HeartHandshake, Coins } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { useIsMobile } from '../../hooks/useIsMobile';
@@ -62,6 +63,9 @@ const TurnDock = () => {
   const press = () => {
     const r = endTurnPress(state, { turnPending, armed });
     if (!r.none) interactions.dismissOverlays();
+    // "Choose production" for the city whose sheet is already open: the advisor picks (a second
+    // open of the same sheet did nothing, warmonger playtest step 18).
+    if (r.go?.action === 'city' && typeof document !== 'undefined' && document.documentElement.dataset.citySheet === r.go.target?.regionId) { dispatch({ type: ActionTypes.ADVISOR_PRODUCTION, payload: { cityId: r.go.target.regionId } }); return; }
     if (r.go) { goToBlocker(state, r.go); return; }
     if (r.arm) { setArmed(true); return; }
     if (r.end) { setArmed(false); advanceTurn(); }
@@ -104,6 +108,15 @@ const TurnDock = () => {
             className="fa-btn fa-btn-secondary !min-h-[50px] pl:!min-h-[44px] shadow-xl gap-1.5 !px-3 text-[13px]" data-testid="advisor-build" title={t('turn.advisorTip')}>
             <Hammer className="w-4 h-4 shrink-0" aria-hidden="true" />
             <span className="whitespace-nowrap">{btn.idleCities > 1 ? t('turn.advisorBuildMany', { n: btn.idleCities }) : t('turn.advisorBuild')}</span>
+          </button>
+        )}
+        {/* The standing order (productionAdvisor.js keepBuilding) for every city at once: the advisor
+            picks whenever a queue runs dry, so this banner stops coming back (warmonger playtest:
+            Advisor builds before nearly every End Turn). Each city's Build tab can change it. */}
+        {blocking && btn.idleCities > 0 && (
+          <button type="button" onClick={() => { interactions.dismissOverlays(); Object.values(state.regions).filter((c) => c.owner === state.playerNationId && !c.outpost && !c.production?.keep).forEach((c) => dispatch({ type: ActionTypes.SET_PRODUCTION_KEEP, payload: { cityId: c.id, keep: 'advisor' } })); }}
+            className="fa-btn fa-btn-secondary !min-h-[50px] pl:!min-h-[44px] shadow-xl gap-1 !px-2.5 text-[13px]" data-testid="advisor-always" title={t('turn.advisorAlwaysTip')} aria-label={t('turn.advisorAlwaysTip')}>
+            <Repeat className="w-4 h-4 shrink-0" aria-hidden="true" /><span className="whitespace-nowrap">{t('turn.advisorAlways')}</span>
           </button>
         )}
         {btn.mode === 'moving' ? (
