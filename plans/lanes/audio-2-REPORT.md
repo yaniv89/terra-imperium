@@ -27,6 +27,16 @@ soundfont (MIT, Frank Wen; its notice is in LICENSES.md), released CC0. The sea,
 beds are synthesised noise from `scripts/audio/make-ambience.py` (CC0). Both scripts rebuild the
 files byte for byte from their seeds.
 
+## Lead's licence check (message of 11:02)
+
+- SoundFont: FluidR3_GM.sf2 (Frank Wen, 2000-2008), Debian/Ubuntu package fluid-soundfont-gm 3.1,
+  upstream http://www.musescore.org/download/fluid-soundfont.tar.gz. Licence: MIT ("I hereby release
+  Fluid under the MIT license"), which allows commercial use; its notice is reproduced in
+  src/assets/audio/LICENSES.md under "This project's own music". No other soundfont was used.
+- Total added audio: +22.2 MB on disk (17 music files 20.6 MB, 2 stings 0.2 MB, 3 beds 0.8 MB).
+- Lazy per age: only the player's age's tracks are fetched, one at a time as each starts (the next
+  40 s before the current ends); beds only for the land in view; nothing is precached.
+
 ## Every change
 
 | Change | Reference | Where |
