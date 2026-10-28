@@ -4,13 +4,14 @@
 // so every line goes through the usual i18n keys. A unit id is `<age>_<class>` (the roster).
 import { PEOPLES, PEOPLES_LIST } from '../peoples';
 import { TECH_TREE } from '../techTree';
-import { UNIT_ROSTER, UNIT_CLASSES } from '../unitClasses';
+import { UNIT_ROSTER, UNIT_CLASSES, UNIT_UNLOCKS } from '../unitClasses';
+import { BOOSTS } from '../boosts';
 import PEOPLE_NOTES from './peopleNotes.json'; // AI-drafted, reviewed: { note, founded: {en, he}, uncertain }
 
 export const GLOSSARY_KINDS = ['people', 'city', 'tech', 'unit'];
 // The game's own words, for a newcomer (newcomer playtest: Glossary opened a people page, never a
 // list). Text lives in the i18n keys gloss.term.<id> and gloss.term.<id>.text.
-export const GLOSSARY_TERMS = ['gold', 'production', 'science', 'settlers', 'scouts', 'army', 'battle', 'war', 'pact', 'independents', 'ruler', 'decrees', 'governor', 'laws', 'ages', 'goals'];
+export const GLOSSARY_TERMS = ['gold', 'production', 'science', 'settlers', 'scouts', 'army', 'battle', 'war', 'pact', 'independents', 'ruler', 'decrees', 'governor', 'laws', 'ages', 'goals', 'food', 'culture', 'boosts', 'queue', 'focus', 'landmarks', 'catchup', 'help'];
 
 /** Every id of a kind that has an entry. */
 export const glossaryIds = (kind) => ({
@@ -36,12 +37,14 @@ export const glossaryEntry = (kind, id) => {
   }
   if (kind === 'tech') {
     const t = TECH_TREE[id];
-    return t && { kind, id, name: t.name, category: t.category, ageId: t.ageId, prerequisites: t.prerequisites.map((r) => ({ id: r, name: TECH_TREE[r].name })) };
+    if (!t) return null;
+    const leadsTo = Object.values(TECH_TREE).filter((x) => x.prerequisites.includes(id)).map((x) => ({ id: x.id, name: x.name }));
+    return { kind, id, name: t.name, category: t.category, ageId: t.ageId, effects: t.effects, prerequisites: t.prerequisites.map((r) => ({ id: r, name: TECH_TREE[r].name })), leadsTo, boost: BOOSTS[id]?.label || null };
   }
   if (kind === 'unit') {
     const [ageId, classId] = String(id).split('_');
     const u = UNIT_ROSTER[ageId]?.[classId];
-    return u && { kind, id, name: u.name, ageId, classId, role: UNIT_CLASSES[classId]?.role, attack: u.baseAttack, defense: u.baseDefense };
+    return u && { kind, id, name: u.name, ageId, classId, role: UNIT_CLASSES[classId]?.role, attack: u.baseAttack, defense: u.baseDefense, needsTech: UNIT_UNLOCKS[ageId]?.[classId] || null };
   }
   return null;
 };
