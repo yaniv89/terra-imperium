@@ -41,6 +41,13 @@ export const BATTLE_AREAS = ['battle setup screen (age, armies, terrain, walls)'
   'unit readability and size', 'camera pan and zoom', 'combat clarity (who is winning, damage, morale, rout)', 'economy and workers HUD', 'powers',
   'buildings, sieges and walls', 'naval', 'end of battle and the result screen', 'speed and smoothness', 'layout on this screen and language', 'fun'];
 export const AREAS_OF = { campaign: AREAS, battle: BATTLE_AREAS };
+// Round 2 graded several areas after one glance: these are done for real before done (lead, 28 Oct).
+export const MUST_DO = {
+  campaign: ['open the tech tree, tap three techs and open one tech\'s glossary entry', 'pinch and drag the map, open the close view on a city, find your army with the next army button',
+    'build a ship in a coastal city, carry an army by sea and land it', 'answer at least three event cards and look for the World Congress or a crisis', 'hold a name for help and open the glossary index',
+    'build in a city and buy one item with gold', 'meet a neighbour, open its card and try a diplomatic action', 'fight one battle yourself and one on Auto'],
+  battle: ['deploy with a preset, then move one squad by hand', 'circle select and draw a path', 'use every power once', 'train a worker and a unit', 'attack a building or the walls', 'zoom the camera in and out']
+};
 // One setup per battle, in turn, so a run meets walls, the sea and a sack as well as an open field (BattleSandbox.jsx URL options).
 export const BATTLE_SETUPS = [
   { id: 'field', query: '&fort=0', what: 'an open field battle, your army against theirs' }, // the sandbox's own default is fort 2: an assault on a base (battle-engage)
@@ -167,6 +174,8 @@ If the screen did not change after a tap, the tap may have missed or the game ma
 Use note for anything the team should know: bugs (something broken or wrong), ux (hard to find or use, too small, covered), confusing (you do not understand it), boring, slow, fun and praise. Be specific: what you did, what you expected, what happened. One note per finding.
 ${scene === 'battle' ? `${BATTLE_PLAY}\n` : ''}Play naturally, in your own style, but cover this checklist; before done make sure each area was at least looked at:
 ${AREAS_OF[scene].map((a) => `- ${a}`).join('\n')}
+Before done, also do each of these for real (several steps each, not one look), so your grades rest on use:
+${MUST_DO[scene].map((a) => `- ${a}`).join('\n')}
 ${scene === 'battle' ? `Judge the controls on this screen${size.mobile ? ' with your fingers: are the units and buttons big enough to hit' : ''}, and ${lang === 'he' ? 'the Hebrew text and right-to-left layout' : 'the text'}.` : 'End turns now and then so the world moves (the End Turn button); answer the cards and prompts the game shows. If a battle opens, play it or pick Auto as your persona would.'} Do not stop early. No em dashes.`;
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
