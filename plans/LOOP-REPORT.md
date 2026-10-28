@@ -90,3 +90,6 @@ claude/integration, main gets the push once the quick suite and CI are green.
 - Evidence: a player who starts no war meets a major's war in 1 of 4 games by turn 200 (worldStats seeds 11-14); two of four round 2 testers found no fight; Wars and AI 3.3-4/10. AI-AI wars are healthy (25-31 sieges, 9-16 captures a game).
 - Research: Civ VI and Old World AIs target the weaker neighbour; EU4 and Humankind warn before a forced peace.
 - Decision: yes to a 1.5x war roll by a bordering Tier-1 major that outnumbers the player, not before speedTurns(40), not under a truce or a met demand, through declareWar (explore mode blocks it), with the warning shown first. Target: 2-3 of 4 games see a major's war on the player; passive-player defeats no higher than base, else 1.25x. Idle 2-unit stacks (arm before declaring) left for a later lane.
+
+### 28 Oct 14:20: the user's go for main
+- User: "u have my go to push when all sessions done and ready for main". Plan: when wars-8, perf-8 and events-8 (held back: passive world reaches the Future goal before the turn limit) are merged, reviewed and tested, and integration CI is green, push integration to main once (deploys the 18-lane wave).
