@@ -108,5 +108,6 @@ export default {
   'report.play': 'שחקו תור {n}',
   'report.goTo': 'עברו אל {name}',
   'report.engage': 'צא לקרב',
+  'report.defend': 'הגנה',
   'report.battleToast': 'דוח קרב'
 };

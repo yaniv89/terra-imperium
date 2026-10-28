@@ -109,5 +109,6 @@ export default {
   'report.play': 'Play turn {n}',
   'report.goTo': 'Go to {name}',
   'report.engage': 'Engage',
+  'report.defend': 'Defend',
   'report.battleToast': 'Battle Report'
 };

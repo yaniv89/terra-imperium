@@ -29,7 +29,7 @@ const ReportRow = ({ item, onGo, onEngage, t }) => (
       <div className="text-[13px] font-semibold leading-tight">{item.title}</div>
       {item.sub && <div className="text-[12px] text-fa-muted leading-tight">{item.sub}</div>}
     </div>
-    {item.engage && <Button size="sm" variant="primary" className="shrink-0" onClick={() => onEngage(item.engage)} data-testid="turn-report-engage">{t('report.engage')}</Button>}
+    {item.engage && <Button size="sm" variant="primary" className="shrink-0" onClick={() => onEngage(item.engage)} data-testid="turn-report-engage">{t(item.engage.defend ? 'report.defend' : 'report.engage')}</Button>}
     {item.place && (
       <Button size="sm" className="shrink-0 max-w-[9rem]" onClick={() => onGo(item.place)} aria-label={t('report.goTo', { name: item.place.name })}>
         <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden="true" /><span className="truncate">{item.place.name}</span>

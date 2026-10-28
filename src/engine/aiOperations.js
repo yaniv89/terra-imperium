@@ -1,6 +1,7 @@
 import { gameReducer } from './gameReducer';
 import { getResearched, ageOf, viewAs } from './nationState';
-import { ActionTypes } from '../data/types';
+import { ActionTypes, LogTypes } from '../data/types';
+import { menText } from './battleLedger';
 import { msg, people, cityRef, place as placeRef, sub } from './messages';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
 import { coloniesOf, colonySlots, foundColony, foundingCost, validateColony } from './colonies';
@@ -697,7 +698,33 @@ const marchAiArmies = (next, nationId) => {
   const actor = { ...next, playerNationId: nationId };
   const units = { ...next.units };
   advanceMarches(actor, units, { year: next.year });
-  return { ...next, units };
+  const warnings = warnMarches(next, nationId, units);
+  return { ...next, units, ...(warnings.length ? { logs: [...next.logs, ...warnings] } : {}) };
+};
+
+/** A stack marching on one of the player's cities warns once, this many tiles out (the raid warning's twin, raids.js). */
+export const ARMY_WARN_TILES = 3;
+// Lead, lane city-builds: outlying cities fell to armies nobody announced. `unit.marchWarned` is the
+// city tile the stack already warned of, so a new march on another city warns again.
+export const warnMarches = (state, nationId, units) => {
+  const me = state.playerNationId;
+  const lines = [];
+  const warned = new Set();
+  Object.values(units).forEach((u) => {
+    if (u.ownerId !== nationId || !u.route?.length || u.route.length > ARMY_WARN_TILES) return;
+    const goal = u.route[u.route.length - 1];
+    if (u.marchWarned === goal) return;
+    const cityId = state.world?.tileOwner?.[goal];
+    const city = cityId != null ? state.regions[cityId] : null;
+    if (!city || city.tile !== goal || city.owner !== me) return;
+    units[u.id] = { ...u, marchWarned: goal };
+    if (warned.has(cityId)) return;
+    warned.add(cityId);
+    const at = unitTile(state, u);
+    const men = menText(Object.values(units).filter((x) => x.ownerId === nationId && x.domain === 'land' && unitTile(state, x) === at).reduce((n, x) => n + Math.max(0, x.strength), 0));
+    lines.push({ year: state.year, nationId: me, type: LogTypes.CRISIS, ...msg('m.battle.armyNears', { nation: people(nationId, state.nations[nationId]?.name || nationId), men, count: u.route.length, place: cityRef(cityId, city.name) }) });
+  });
+  return lines;
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -820,7 +847,7 @@ export const processAINavalOperations = state => {
     if(id===state.playerNationId || next.nations[id].isEliminated)continue;
     const enemies=new Set(next.wars.filter(w=>w.active&&(w.aggressor===id||w.enemy===id)).map(w=>w.aggressor===id?w.enemy:w.aggressor));
     if(!enemies.size)continue;
-    const actor=()=>({...next,playerNationId:id,resources:getPool(next,id),techAgeId:getTechAgeId(next,id)});
+    const actor=()=>viewAs(next,id);
     const apply=action=>{
       const before=actor(),after=gameReducer(before,action);
       // A refused order (the reducer only logged why) is no order: its "That army has already moved" line
@@ -846,7 +873,7 @@ export const processAINavalOperations = state => {
         if(!foe.length || foe.reduce((s,u)=>s+u.strength,0)*AI_FLEET_ATTACK_RATIO>power)continue;
         // Against the player's fleet: queued for the player's Command or Auto (battleQueue.js).
         if(foe[0].ownerId===state.playerNationId){
-          const v=validateFleetAttack({...next,playerNationId:id,resources:getPool(next,id)},from,n,{ignoreCost:true});
+          const v=validateFleetAttack(viewAs(next,id),from,n,{ignoreCost:true});
           if(!v.ok)continue;
           const before=next;
           next=queueAgainstPlayer(next,v,id,{next:()=>(((next.rngSeed||0)+n*2654435761)>>>0)/4294967296},'naval');

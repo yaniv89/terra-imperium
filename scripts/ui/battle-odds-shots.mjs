@@ -26,9 +26,9 @@ const SIEGE = `
   const u = (id, owner, regionId, tile, classId, strength, extra = {}) => ({ id, ownerId: owner, regionId, homeRegionId: regionId, tile, domain: 'land', classId, strength, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null, embarkedOn: null, ...extra });
   const units = { ...Object.fromEntries(Object.entries(s.units).filter(([, x]) => x.regionId !== capId && !ring.includes(x.tile))),
     g1: u('g1', me, capId, cap.tile, 'infantry', 600, { ageId: 'stone' }), g2: u('g2', me, capId, cap.tile, 'ranged', 400, { ageId: 'bronze' }),
-    e1: u('e1', foe, null, ring[0], 'infantry', 1000), e2: u('e2', foe, null, ring[0], 'infantry', 1000), e3: u('e3', foe, null, ring[0], 'ranged', 900), e4: u('e4', foe, null, ring[0], 'cavalry', 800) };
+    e1: u('e1', foe, null, ring[0], 'infantry', 1000, { route: [cap.tile] }), e2: u('e2', foe, null, ring[0], 'infantry', 1000), e3: u('e3', foe, null, ring[0], 'ranged', 900), e4: u('e4', foe, null, ring[0], 'cavalry', 800) };
   s = { ...s, units, regions: { ...s.regions, [capId]: { ...cap, siege: { by: foe, hp: 300, maxHp: 640 } } } };
-  if (QUEUE) s = { ...s, pendingDefenses: [m.createDefenseRecord(s, { war: { ...war, aggressor: foe }, regionId: capId, aggressorShare: 0.8, seed: 7, index: 1 })] };
+  if (QUEUE) s = { ...s, battleSettings: { defaultMode: 'ask', autoDefend: false }, pendingDefenses: [m.createDefenseRecord(s, { war: { ...war, aggressor: foe }, regionId: capId, aggressorShare: 0.8, seed: 7, index: 1 })] };
   window.__bo = { capId };
   return s;
 `;
@@ -67,7 +67,7 @@ try {
       await page.evaluate(() => window.dispatchEvent(new CustomEvent('ti:manage-city', { detail: { regionId: window.__bo.capId, tab: 'defense' } })));
       await wait(2000); await page.screenshot({ path: path.join(OUT, `debug-${lang}-${vp.id}.png`) });
       await page.getByTestId('city-defense').waitFor({ timeout: 20000 });
-      await page.getByTestId('city-engage').scrollIntoViewIfNeeded();
+      await page.getByTestId('city-coming').scrollIntoViewIfNeeded();
       await wait(800);
       await page.screenshot({ path: path.join(OUT, `defense-tab-${lang}-${vp.id}.png`) });
       await page.getByTestId('city-engage-button').dispatchEvent('click');

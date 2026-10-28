@@ -46,4 +46,21 @@ describe('the city sheet Defense tab (W05)', () => {
     expect(engageTarget(alone, cap)).toMatchObject({ ok: false, reason: expect.any(String) });
     expect(engageTarget(base, cap)).toBeNull(); // no siege
   });
+
+  it('Coming for this city: an army marching on it and a raid party, with the nearest army to send (lead: actionable warnings)', () => {
+    const me = base.playerNationId; const foe = rivalOf(base, 0); const city = base.regions[cap];
+    const tiles = getTiles();
+    const near = tiles.neighbors[city.tile].filter((t) => tiles.land[t] === 1);
+    const far = tiles.neighbors[near[0]].find((t) => t !== city.tile && tiles.land[t] === 1 && !near.includes(t));
+    const indep = Object.keys(base.nations).find((id) => base.nations[id].indep) || 'indep_x';
+    const u = (id, ownerId, tile, extra = {}) => ({ id, ownerId, tile, domain: 'land', classId: 'infantry', strength: 500, maxStrength: 1000, morale: 100, ...extra });
+    const s = { ...base,
+      nations: { ...base.nations, [indep]: { ...(base.nations[indep] || { id: indep, name: 'Raiders', indep: {} }), kind: 'independent', indep: { ...(base.nations[indep]?.indep || {}), raid: { phase: 'out', targetNationId: me, targetCityId: cap, targetTile: city.tile, route: [near[1]] } } } },
+      units: { m1: u('m1', foe, far, { route: [near[0], city.tile] }), r1: u('r1', indep, near[1], { raidOf: indep }), mine: u('mine', me, far) } };
+    const c = cityDefenseModel(s, cap).coming;
+    expect(c.list.map((x) => x.kind).sort()).toEqual(['army', 'raid']);
+    expect(c.list.find((x) => x.kind === 'army')).toMatchObject({ nationId: foe, tiles: 2 });
+    expect(c.armyTile).toBe(far);
+    expect(cityDefenseModel(base, cap).coming).toBeNull();
+  });
 });

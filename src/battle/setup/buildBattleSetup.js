@@ -346,7 +346,7 @@ const buildDefenseSetup = (state, pb) => {
 
 // A field or sea battle an AI started against the player (battleQueue.js) is gated as the
 // aggressor's attack: the same gate, from its side.
-const gateOf = (state, pb) => (pb.attackerNationId ? viewAs(state, pb.attackerNationId, state.resources) : state);
+const gateOf = (state, pb) => (pb.attackerNationId ? viewAs(state, pb.attackerNationId) : state);
 
 // A commanded amphibious landing (T9): the invaders come ashore on a beach at the west edge, with
 // their fleet's guns (two Naval Bombardment salvos) covering the shore half of the field. Their

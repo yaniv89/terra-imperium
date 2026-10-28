@@ -101,6 +101,8 @@ const DefenseSheet = () => {
             <div className="flex-1 min-w-0"><OddsBar compact mine={m.odds.hold} labelLeft={m.attacking ? t('bt.def.theyHold') : t('bt.def.theyTakeIt')} labelRight={m.attacking ? t('bt.def.youWin') : t('bt.def.youHold')} /></div>
           </div>
         )}
+        {/* the choice right under the odds: a long warning pushed it off a phone's sheet (playtest 40650973042 step 129) */}
+        <ModeCards options={options} value={chosen} onChange={setMode} compact />
         {m.reasons.length > 0 && (
           <div className="flex flex-wrap gap-1 px-0.5" data-testid="defense-odds-factors">
             {m.reasons.map((f) => (
@@ -109,7 +111,6 @@ const DefenseSheet = () => {
           </div>
         )}
         {m.warning && <div role="status" className="text-[12px] leading-snug text-fa-danger-text rounded-[8px] border border-fa-danger/60 px-2 py-1" data-testid="defense-hopeless">{m.warning}</div>}
-        <ModeCards options={options} value={chosen} onChange={setMode} compact />
         {m.commandBlocked && (
           <div role="status" className="text-[12px] leading-snug text-fa-muted" data-testid="defense-no-command"><b className="text-fa-text">{t('bt.def.cmdNotPossible')}</b> {m.commandBlocked}</div>
         )}

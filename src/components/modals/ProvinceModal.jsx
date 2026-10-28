@@ -29,7 +29,7 @@ import CityBuildings from '../city/CityBuildings';
 import CityPolitics from '../city/CityPolitics';
 import { cityRailModel } from '../city/cityRailModel';
 import { cityDefenseModel } from '../city/cityDefenseModel';
-import { openFieldAttack } from '../map/marchEvents';
+import { openFieldAttack, selectNation, selectArmy } from '../map/marchEvents';
 import { Button, CloseButton, Label, Meter, Tabs, signed } from '../ui/atlas';
 import { useT } from '../../i18n/useT';
 
@@ -61,6 +61,23 @@ const CityDefense = ({ model, onOpenTab }) => {
       <div className="fa-card px-3 py-2"><div className="text-fa-muted text-[12px]">{t('cy.def.siege')}</div><div className="font-semibold">{model.siege ? (model.siege.by ? t('cy.def.siegeBy', { name: model.siege.by, encircled: model.siege.encircled ? `, ${t('cy.def.encircled')}` : '' }) : t('cy.def.recovering')) : t('cy.def.none')}</div></div>
     </div>
     {model.siege && <Meter value={model.siege.hp} max={Math.max(1, model.siege.maxHp)} color="var(--fa-enemy)" label={t('cy.def.holdsOut', { hp: model.siege.hp, max: model.siege.maxHp })} />}
+    {model.coming && (
+      <div className="fa-card p-3 text-[13px]" data-testid="city-coming">
+        <Label>{t('cy.def.coming')}</Label>
+        <ul className="mt-1 space-y-1.5">
+          {model.coming.list.map((c) => (
+            <li key={`${c.kind}:${c.nationId}`} className="flex items-center gap-2">
+              <span className="flex-1 min-w-0">{c.kind === 'raid' ? t('cy.def.raidComing', { name: c.name, men: c.men, turns: c.turns ?? '?' }) : t('cy.def.armyComing', { name: c.name, men: c.men, tiles: c.tiles })}</span>
+              {c.kind === 'raid' && <Button size="sm" className="min-h-[44px] shrink-0" onClick={() => selectNation(c.nationId)} data-testid="city-coming-pay">{t('cy.def.payThem')}</Button>}
+            </li>
+          ))}
+        </ul>
+        <div className="flex items-center gap-2 mt-2">
+          <span className="flex-1 min-w-0 text-fa-muted text-[12px]">{t('cy.def.comingHint', { n: model.garrison })}</span>
+          <Button size="sm" className="min-h-[44px] shrink-0" disabled={model.coming.armyTile == null} why={t('cy.def.noArmy')} onClick={() => selectArmy(model.coming.armyTile)} data-testid="city-coming-army">{t('cy.def.sendArmy')}</Button>
+        </div>
+      </div>
+    )}
     {model.engage && (
       <div className="fa-card p-3 flex items-center gap-2 text-[13px]" data-testid="city-engage">
         <span className="flex-1 min-w-0">{model.engage.ok ? t('cy.def.engageText', { men: model.engage.men }) : model.engage.reason}</span>
