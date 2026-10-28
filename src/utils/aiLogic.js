@@ -44,6 +44,8 @@ import { warContagionMult } from '../engine/warContagion';
 import { warValue, WAR_COST, armiesByOwner } from '../engine/warOdds';
 import { msg, people, sub } from '../engine/messages';
 import { ageOf, getResearched } from '../engine/nationState';
+import { speedTurns } from '../data/ages';
+import { waitAgeOf } from '../engine/ageRefs';
 
 const DEFAULT_RNG = { next: () => Math.random() };
 const DEFAULT_DOCTRINE = DOCTRINES.attrition;
@@ -356,11 +358,30 @@ const pickWarTarget = (state, nationId, preferredTargetId = null, excludeId = nu
 // `opinionMult`: the opinion factor (opinion.js warRollOpinionMult) of this nation's view of the
 // player: 0 for a friend, 1.2 for a sworn enemy; with no map reasons it is the old
 // hostility / 100 + 0.2.
-const shouldDeclareWar = (nation, rng, aggressionMult = 1, coalitionMult = 1, opinionMult = (nation.hostility || 0) / 100 + 0.2) => {
+// null for a doctrine that never rolls (no draw is taken, as before).
+const warRollChance = (nation, aggressionMult = 1, coalitionMult = 1, opinionMult = (nation.hostility || 0) / 100 + 0.2) => {
   const doctrine = DOCTRINES[nation.doctrine] || DEFAULT_DOCTRINE;
-  if (doctrine.warRollMult <= 0) return false;
-  const chance = BASE_WAR_ROLL_CHANCE * doctrine.warRollMult * aggressionMult * coalitionMult * opinionMult * rulerWarMult(nation); // the ruler's virtues (rulerBias.js)
-  return rng.next() < chance;
+  if (doctrine.warRollMult <= 0) return null;
+  return BASE_WAR_ROLL_CHANCE * doctrine.warRollMult * aggressionMult * coalitionMult * opinionMult * rulerWarMult(nation); // the ruler's virtues (rulerBias.js)
+};
+
+// The weak-neighbour roll (lane wars-8, the lead's yes of 28 Oct): a quiet world left a player who
+// starts no war without a major's war in 3 of 4 games over 200 turns (balance-sim warsOnPlayer).
+// Civ VI and Old World AIs pick the weak neighbour. A Tier-1 major (the only ones that roll) that
+// borders the player and fields more than it rolls WEAK_NEIGHBOUR_WAR_MULT x on the player, from
+// WEAK_NEIGHBOUR_REF_TURNS reference turns (speedTurns) on, never while a demand the player met
+// still holds (accords.js demandMet; the truce it bought is already filtered by pickWarTarget).
+// A war this factor alone let through needs a casus belli: the AI starts a claim instead of
+// declaring unjustified, so the player sees it coming on the nation card ("Holds a claim").
+// Ripples: wars on the player (battles, sieges, peace offers), the AI's claims and decrees.
+export const WEAK_NEIGHBOUR_WAR_MULT = 1.5;
+export const WEAK_NEIGHBOUR_REF_TURNS = 40;
+export const weakNeighbourMult = (state, nationId, targetId) => {
+  if (targetId !== state.playerNationId) return 1;
+  if ((state.turnNumber || 0) < speedTurns(WEAK_NEIGHBOUR_REF_TURNS, state.gameSpeed, waitAgeOf(state, nationId, targetId))) return 1;
+  if ((state.nations[nationId]?.demandMet?.[targetId]?.until ?? -1) >= (state.turnNumber || 0)) return 1;
+  if (!getBorderingNationIds(state.regions, nationId).includes(targetId)) return 1;
+  return getEffectiveMilitaryPower(state, nationId) > getEffectiveMilitaryPower(state, targetId) ? WEAK_NEIGHBOUR_WAR_MULT : 1;
 };
 
 // Tier 1 nations may each declare one war this turn (a second front only rarely, never a third), biased by their own doctrine, hostility, the
@@ -449,7 +470,15 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     const targetId = readyTarget || pickWarTarget(view, nationId, canStrikeLeader ? runawayLeaderId : null, warRollOpinionMult(opinion) <= 0 ? state.playerNationId : null, canStrikeLeader ? runawayLeaderId : null, byOwner);
     if (!targetId) return;
     // Recent wars nearby raise the roll (warContagion.js, a Hawkes process).
-    if (!readyTarget && !shouldDeclareWar(activeNation, rng, aggressionMult, coalitionMult * warContagionMult(activeNation) * (fronts > 0 ? SECOND_FRONT_ROLL_MULT : 1), warRollOpinionMult(opinionOf(view, nationId, targetId)))) return;
+    // One draw as before; the weak-neighbour factor widens only the player's band of it.
+    let boostedOnly = false;
+    if (!readyTarget) {
+      const chance = warRollChance(activeNation, aggressionMult, coalitionMult * warContagionMult(activeNation) * (fronts > 0 ? SECOND_FRONT_ROLL_MULT : 1), warRollOpinionMult(opinionOf(view, nationId, targetId)));
+      if (chance == null) return;
+      const draw = rng.next();
+      if (draw >= chance * weakNeighbourMult(view, nationId, targetId)) return;
+      boostedOnly = draw >= chance;
+    }
     if (!hasCasusBelli(view, nationId, targetId)) {
       // No justification yet: fabricate a claim on the nearest city of the target when the gold and a
       // decree are there, and come back for the war when it is ready; a nation that cannot (no city
@@ -462,6 +491,7 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
         currentNations = { ...currentNations, [nationId]: startClaim(spendDecree({ ...activeNation, economy: { ...pool, gold: pool.gold - cost.gold } }, 'fabricateClaim', state.turnNumber), site.city.id, state.turnNumber) };
         return;
       }
+      if (boostedOnly) return; // the weak-neighbour roll never makes an unjustified surprise war
     }
     const justified = hasCasusBelli(view, nationId, targetId);
     // Follow-up 26: the log says why (hasCasusBelli's grounds in its order; hostility and opinion are a grievance).
