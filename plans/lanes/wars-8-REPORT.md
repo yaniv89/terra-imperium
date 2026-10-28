@@ -58,22 +58,29 @@ The first head run found a second bug the warning exposed: once both sides were 
 
 Full suite before the merge: 505 files passed, 2 skipped (4,725 tests). After merging integration 54627085: lint clean, related tests (diplomacy, sieges, panels, turn report, i18n) 241 passed.
 
-## For the lead: is the AI world too quiet?
+## The weak-neighbour war roll (the lead's yes, 28 Oct)
 
-Base telemetry (worldStats, POLICY=scripted, Normal, 200 turns, seeds 11-14, Akkad):
+Asked: is the AI world too quiet? On the old base cece290d (seeds 11-14, 200 turns, scripted) a major's war reached the player in 1 of 4 games, and two of four round 2 players found no fight. The lead said yes to a 1.5x roll with guardrails; built as `weakNeighbourMult` in src/utils/aiLogic.js:
+- only a Tier-1 major (the only ones that roll), only on the player, only when it borders the player and fields more (getEffectiveMilitaryPower), through declareWar (explore mode still blocks it);
+- not before speedTurns(40) reference turns (waitAgeOf of both), not while a demand the player met still holds (demandMet), and pickWarTarget already skips a truce;
+- one rng draw as before (`warRollChance` split out of shouldDeclareWar), so every other roll is unchanged; a roll only the factor let through never declares unjustified: it starts a claim, which the nation card shows ("Holds a claim on my city"), or does nothing.
+- Tests: src/utils/weakNeighbour.test.js. engine-rules-reviewer: no rule findings; its one design note (the warning could repeat when the score swayed around 70) is fixed with a clear line at 50 (PEACE_WARN_CLEAR_SCORE). CLAUDE.md quirk updated.
 
-| seed | AI wars total | wars on the player | major demands | tribute demands | raids on the player |
-|---|---|---|---|---|---|
-| 11 | 11 | 0 | 2 | 4 | 4 |
-| 12 | 9 | 0 | 2 | 2 | 3 |
-| 13 | 8 | 0 | 2 | 2 | 5 |
-| 14 | 7 | 2 (from T116) | 1 | 2 | 3 |
+Evidence, compare.sh origin/claude/integration 54627085, 200 turns, seeds 11-18, PLAYER=akkad:
 
-AI wars are not empty: 4 to 11 battles each, 25-31 sieges and 9-16 captures per game. But a player who does not start wars meets a major's war in 1 of 4 games in 200 turns, and something hostile (raid, demand, war) about every 20 turns. Two of four round 2 players called the early game "End Turn plus cards" and found no fight. I did not change it (CLAUDE.md: quiet by design). Proposal if the lead agrees: let a Tier-1 neighbour that borders the player and outnumbers it use the war roll on the player at 1.5x after turn 40 (Civ VI and Old World AIs pick the weak neighbour), checked with balance-sim warsOnPlayer and playerWar.sim.
+| policy | significant changes | wars on the player per seed, base | head | defeats base / head |
+|---|---|---|---|---|
+| scripted | none (warsOnPlayer +0.13, [-0.17, 0.42]) | 1 1 1 2 1 1 1 1 | 1 1 2 2 1 1 1 1 | 0 / 0 |
+| passive | none (263 metrics identical on every seed) | 1 0 1 1 0 1 2 2 | same | 0 / 0 |
+
+Head, scripted: the first war on the player came at turns 190, 169, 180, 116, 100, 147, 116 and 137 (seeds 11 to 18), all after reference turn 40, in 8 of 8 games. AI-AI wars and world metrics: inside noise (warsTotal +0.13, no starred row).
+
+Plainly: the lead's target (a major's war on the player in about 2 to 3 of 4 games) is already met by the current integration base (8 of 8 scripted, 6 of 8 passive). Lanes merged since cece290d changed that, not this roll. The factor adds little (one more war in one seed) and costs nothing measurable, so I kept it at 1.5 as approved; the lead may drop it. What players still miss is an early fight: the first war comes at turn 100 or later. Bringing it forward means touching the wait (40 reference turns) or the Tier-1 roll itself, which is a design call for the lead.
 
 Also measured, not changed (the lead's call): aggressor stacks of 2+ units stand idle at home in 61% of their war turns (warstacks.jsonl). Instrumented: almost all are 2-unit stacks in a "threatened" border city that hold as their own muster point and never reach the strike size. Wars still produce battles and captures, so I left it; a fix belongs with arming before the declaration (Civ VI war preparation), a bigger change for a later lane.
 
 ## Not done
 
 - naval-8: the unordered Sinope landing (O 197).
-- The AI aggression question above waits on the lead.
+- An earlier first war on the player (now turn 100 or later): the lead's call.
+- Arming before a declaration (idle 2-unit stacks): a later lane, as the lead said.
