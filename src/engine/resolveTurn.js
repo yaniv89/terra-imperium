@@ -66,6 +66,7 @@ import { createRng } from '../utils/rng';
 import { processCities, growthThreshold, privateWorld, unitWaitsForTech } from './world/cities';
 import { makeSettler, processSettlers, bestSites, isSettler, foundAiVillages } from './settlers';
 import { chooseProduction, nationCounts } from './aiProduction';
+import { keepBuilding, setKeep } from './productionAdvisor';
 import { syncWorldRegistry } from './world/registry';
 import { lodPeriod, settlesThisTurn, turnsToSettle } from './world/lod';
 import { applyMarketHousing } from './world/market';
@@ -199,7 +200,10 @@ const runCitiesPhase = (state, newTurnNumber) => {
   let cities = state.regions;
   const counts = nationCounts(state);
   Object.values(state.regions).forEach((city) => {
-    if (!city.owner || city.owner === state.playerNationId || city.outpost) return;
+    if (city.owner === state.playerNationId) return;
+    // A standing order is the player's (productionAdvisor.js): a city lost, freed or ceded drops it.
+    if (city.production?.keep) { if (cities === state.regions) cities = { ...cities }; city = cities[city.id] = setKeep(city, null); }
+    if (!city.owner || city.outpost) return;
     // An order the new age's tech now holds up (cities.js unitWaitsForTech) is chosen again.
     const nc = city.production?.current ? nationCtx(city.owner) : null;
     if (nc && !unitWaitsForTech(city.production.current, nc.ageId, nc.researched, nc.techFree)) return;
@@ -343,7 +347,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // extends its borders. Runs first so income reads this turn's yields (dev mirrors them) and
   // every later phase sees the new sizes and borders. Finished units are created here.
   const cityTurn = runCitiesPhase(state, newTurnNumber);
-  state = cityTurn.state;
+  state = keepBuilding(cityTurn.state); // the player's standing orders refill dry queues (productionAdvisor.js)
   cityTurn.logs.forEach((l) => logs.push({ year: newYear, ...carry(l), type: LogTypes.ACTION }));
   mark('cities');
 

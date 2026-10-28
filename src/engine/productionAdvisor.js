@@ -13,7 +13,7 @@ import { getResearched, ageOf } from './nationState';
 import { speedCostMult, speedTrainMult } from '../data/ages';
 import { rulerCityCtx } from './lawRules';
 import { isBound } from '../data/worldCongress';
-import { canQueue } from './world/cities';
+import { canQueue, queueItem } from './world/cities';
 import { getTiles } from '../data/geo/tiles';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 
@@ -75,4 +75,39 @@ export const advisorPicks = (state) => {
     out.push({ cityId: city.id, item });
   });
   return out;
+};
+
+// --- Keep building (lane city-builds) ----------------------------------------------------------
+// A standing order per city (Civ IV's "repeat" and automated production, Humankind's repeat
+// toggle): `city.production.keep` is 'repeat' (the last unit again, cities.js processCity) or
+// 'advisor' (the advisor's pick whenever the queue runs dry). The cities phase calls keepBuilding
+// after the cities have worked, so a city with a standing order never meets the player as idle.
+// A 'repeat' city whose last order was not a unit takes the advisor's pick too.
+export const KEEP_MODES = ['repeat', 'advisor'];
+export const setKeep = (city, keep) => {
+  const next = KEEP_MODES.includes(keep) ? keep : undefined;
+  if (city.production?.keep === next) return city;
+  const production = { ...city.production };
+  if (next) production.keep = next; else delete production.keep;
+  return { ...city, production };
+};
+
+/** The player's cities with a standing order and nothing to build, each given the advisor's pick
+ * (counted like advisorPicks). The same state when there is nothing to fill. */
+export const keepBuilding = (state) => {
+  const me = state.playerNationId;
+  const waiting = idleCities(state).filter((c) => c.owner === me && c.production?.keep);
+  if (!waiting.length) return state;
+  const ctx = playerProductionCtx(state);
+  const counts = countsOf(state);
+  const view = ownView(state);
+  const regions = { ...state.regions };
+  waiting.forEach((city) => {
+    const item = pickIn(view, city.id, ctx, counts);
+    if (!item) return;
+    if (item.kind === 'settler') counts.settlers += 1;
+    if (item.kind === 'unit') counts.queuedUnits = (counts.queuedUnits || 0) + 1;
+    regions[city.id] = queueItem(regions[city.id], item);
+  });
+  return { ...state, regions };
 };

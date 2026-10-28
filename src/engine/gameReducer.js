@@ -142,7 +142,7 @@ import { getLoanCapacity, getLoanInterestRate, getLoanSize, clampMaintenance, ge
 import { canFabricateClaim, claimableCities, startClaim, CLAIM_FABRICATE_TURNS } from './claims';
 import { hasOpenBorders, openBordersAcceptance, setOpenBorders, applyDemand, DEMANDS, hasStele, steleAcceptance, steleTurns, setStele } from './accords';
 import { turnBlockers } from './turnBlockers';
-import { advisorPick, advisorPicks } from './productionAdvisor';
+import { advisorPick, advisorPicks, setKeep, keepBuilding } from './productionAdvisor';
 import { cityGroups, governorChoices, assignGovernor, dismissGovernor, GOVERNOR_ASSIGN_TURNS } from './governors';
 import { validateTemplate, saveTemplate, deleteTemplate, templatesOf, armyOrder } from './armyTemplates';
 import { NAVAL_LINES, navalCargo, navalAir } from '../data/navalLines';
@@ -2937,6 +2937,16 @@ const reduceAction = (state, action) => {
       // A pick the queue refuses is skipped, not logged as a refusal.
       const next = picks.reduce((s, p) => { const n = reduceAction(s, { type: ActionTypes.QUEUE_PRODUCTION, payload: p }); return n.regions !== s.regions ? n : s; }, state);
       return next === state ? reject(state, msg('m.act.no.advisorNothing')) : next;
+    }
+    case ActionTypes.SET_PRODUCTION_KEEP: {
+      // A city's standing order (productionAdvisor.js setKeep): 'repeat', 'advisor' or none. With
+      // nothing in production the city starts on its order now, as the turn would do.
+      const { cityId: id, keep } = action.payload || {};
+      const city = state.regions[id];
+      if (!city || city.owner !== state.playerNationId) return reject(state, msg('m.act.no.notYourCity'));
+      const next = setKeep(city, keep);
+      if (next === city) return state;
+      return keepBuilding({ ...state, regions: { ...state.regions, [id]: next } });
     }
     case ActionTypes.SET_SETTLER_TARGET: {
       const { unitId, tile } = action.payload || {};

@@ -11,7 +11,8 @@ import { stateHash } from './macroVerify';
 import { ActionTypes } from '../data/types';
 import { ENGINE_BUILD, TURN_LIMIT, MAX_LOG_BYTES } from '../data/challenges';
 
-const WEEK = '2026-W43';
+// A week whose passive 100-turn run survives (W43's one-city Elam is conquered by Israel since city-builds): a lost game cannot be submitted.
+const WEEK = '2026-W42';
 const play = (first = []) => {
   const c = challengeForWeek(WEEK);
   let log = startLog(c.start);

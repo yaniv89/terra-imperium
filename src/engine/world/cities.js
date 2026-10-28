@@ -42,7 +42,7 @@
 import { DISTRICTS, districtSite, districtEntry, districtYields, hasDistrict, repairedDistrict } from '../districts';
 import { AGES, FIRST_AGE_ID, buildSpeedMult, isAgeBefore } from '../../data/ages';
 import { ringsForKm, gridSpacing, foundingDisk } from '../../data/geo/gridScale';
-import { BUILDING_CATEGORIES, getBuildingTierCost, canBuildTier, createEmptyRegionBuildings } from '../../data/buildings';
+import { BUILDING_CATEGORIES, getBuildingBuildCost, canBuildTier, createEmptyRegionBuildings } from '../../data/buildings';
 import { getAvailableClasses, isUnitUnlocked } from '../../data/unitClasses';
 import { canBuildRobot, ROBOT_PRODUCTION_MULT } from '../robots';
 import { tileFacts, tileYields, canImprove, IMPROVEMENTS, strategicSupply, RESOURCES_ON_TILES } from '../../data/tileYields';
@@ -70,6 +70,9 @@ export const CULTURE_PER_SIZE = 0.25;
 export const CULTURE_BASE = 1;
 export const CULTURE_PER_TIER = 2; // Culture building line
 export const SCIENCE_PER_SIZE = 0.5;
+// Every citizen adds production of its own (Humankind's workers, EU4's development): a growing city
+// builds faster even on poor land, so growth pays off in hammers too (lane city-builds).
+export const PRODUCTION_PER_SIZE = 0.5;
 // The capital's palace (C2): a flat income every nation starts with, so a one-city Dawn nation
 // can pay for its first army and still save a little.
 export const PALACE_YIELDS = { gold: 4, production: 2, science: 2, culture: 1 };
@@ -371,7 +374,11 @@ export const cityYields = (city, tiles, world, worked, researched = [], ctx = {}
   const foodTier = (city.buildings?.categories?.food ?? -1) + 1;
   const dm = disasterMults(city, ctx.turnNumber); // a flood or a fire (cityDisasters.js)
   const food = Math.round((sum.food * dm.food + foodTier + (ctx.foodBonus || 0) + (city.marketFood || 0) - FOOD_PER_CITIZEN * city.size) * 10) / 10; // marketFood: world/market.js
-  const production = Math.round((sum.production + palace.production) * (1 + tierEffect(city, 'industry', 'local.productionIncome') + tierEffect(city, 'energy', 'local.productionIncome') + (ctx.productionMult || 0)) * dm.production * 10) / 10;
+  // Citizens' own work and the Workshop line's flat hammers build things but are not taxed: the
+  // gold that production feeds (development.js devFromYields) reads `devProduction`, the land's part.
+  const prodMult = (1 + tierEffect(city, 'industry', 'local.productionIncome') + tierEffect(city, 'energy', 'local.productionIncome') + (ctx.productionMult || 0)) * dm.production;
+  const devProduction = Math.round((sum.production + palace.production) * prodMult * 10) / 10;
+  const production = Math.round((sum.production + palace.production + PRODUCTION_PER_SIZE * city.size + tierEffect(city, 'industry', 'local.flatProduction')) * prodMult * 10) / 10;
   const gold = Math.round(((sum.gold + palace.gold) * (1 + tierEffect(city, 'economy', 'local.taxIncome') + (ctx.goldMult || 0)) + tierEffect(city, 'economy', 'local.flatGold') + tierEffect(city, 'industry', 'local.flatGold') + tierEffect(city, 'naval', 'local.tradeIncome')) * 10) / 10;
   // The ruler (lawRules.js rulerCityCtx): Learning and the Sage virtues.
   const science = Math.round(((SCIENCE_PER_SIZE * city.size + palace.science + tierEffect(city, 'science', 'local.techPoints') + districts.science) * (1 + (ctx.scienceMult || 0)) + (city.isCapital ? ctx.capitalScience || 0 : 0)) * 10) / 10;
@@ -381,7 +388,7 @@ export const cityYields = (city, tiles, world, worked, researched = [], ctx = {}
   worked.forEach((t) => { const s = strategicSupply(factsOf(tiles, world, t), researched); if (s) strategic[s.resource] = (strategic[s.resource] || 0) + s.amount; });
   const luxuries = new Set();
   worked.forEach((t) => { const f = factsOf(tiles, world, t); const r = RESOURCES_ON_TILES[f.resource]; if (r?.kind === 'luxury' && f.improvement === r.improvement && !f.pillaged) luxuries.add(f.resource); });
-  return { food, production, gold, science, culture, strategic, luxuries: [...luxuries].sort(), raw: sum };
+  return { food, production, gold, science, culture, strategic, luxuries: [...luxuries].sort(), raw: sum, devProduction };
 };
 
 export const amenitiesOf = (city, ctx = {}) => {
@@ -399,7 +406,7 @@ const TRAINED_KINDS = new Set(['unit', 'settler', 'army']);
 export const productionCost = (item, { ageId = FIRST_AGE_ID, citiesOwned = 1, speedMult = 1, trainMult = null, costMult = null } = {}) => Math.round(baseProductionCost(item, { ageId, citiesOwned }) * (TRAINED_KINDS.has(item.kind) ? trainMult ?? speedMult : buildSpeedMult(speedMult, ageId)) * (1 + (costMult?.[item.kind] || 0)));
 const baseProductionCost = (item, { ageId = FIRST_AGE_ID, citiesOwned = 1 } = {}) => {
   switch (item.kind) {
-    case 'building': return getBuildingTierCost(item.category, item.tier) ?? 9999;
+    case 'building': return getBuildingBuildCost(item.category, item.tier) ?? 9999;
     case 'unit': return Math.round(UNIT_BASE_COST * (AGES[ageId]?.unitCostMult ?? AGES[FIRST_AGE_ID].unitCostMult) * (item.explorer ? EXPLORER_COST_SHARE : UNIT_CLASS_COST[item.classId] || 1) * (item.robot ? ROBOT_PRODUCTION_MULT : 1));
     case 'improvement': return (IMPROVEMENTS[item.improvement]?.turns || 2) * IMPROVEMENT_COST_PER_TURN;
     case 'settler': return SETTLER_BASE_COST + SETTLER_COST_PER_CITY * citiesOwned;
@@ -714,9 +721,12 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
       completed.push({ ...item, city: c.id, tile: c.tile });
       if (item.kind === 'unit') logs.push(item.explorer ? msg('m.city.trainsScouts', { city: cityRef(c.id, c.name) }) : msg('m.city.trains', { city: cityRef(c.id, c.name), unit: thing('unit', item.classId, item.classId) }));
     }
-    const [following, ...rest] = production.queue;
+    // Repeat (Civ IV's "repeat" order): a city set to keep building trains the same unit again
+    // when its queue runs dry, so a standing order never leaves it idle (productionAdvisor.js keepBuilding).
+    const again = !production.queue.length && production.keep === 'repeat' && item.kind === 'unit' && canQueue(next, tiles, w, item, ctx).ok ? item : null; // a lost coast, a ban or a retired class ends it
+    const [following, ...rest] = again ? [again] : production.queue;
     // The next order takes the overflow, plus whatever it had stored from an earlier turn at the front.
-    production = promote({ current: null, queue: rest, progress: 0, ...(production.stored ? { stored: production.stored } : {}) }, following || null, rest, production.progress);
+    production = promote({ current: null, queue: rest, progress: 0, ...(production.stored ? { stored: production.stored } : {}), ...(production.keep ? { keep: production.keep } : {}) }, following || null, rest, production.progress);
   }
   if (!production.current) production = { ...production, progress: Math.min(production.progress, 50) }; // idle cities bank a little
 

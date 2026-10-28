@@ -34,6 +34,7 @@ export const ActionTypes = {
   QUEUE_PRODUCTION: 'QUEUE_PRODUCTION',
   // The production advisor (productionAdvisor.js): payload { cityId? }; no cityId fills every idle city.
   ADVISOR_PRODUCTION: 'ADVISOR_PRODUCTION',
+  SET_PRODUCTION_KEEP: 'SET_PRODUCTION_KEEP',
   SAVE_ARMY_TEMPLATE: 'SAVE_ARMY_TEMPLATE',
   RENAME_ARMY: 'RENAME_ARMY',
   PILLAGE_TILE: 'PILLAGE_TILE',

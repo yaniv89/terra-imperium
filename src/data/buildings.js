@@ -99,11 +99,11 @@ export const BUILDING_CATEGORIES = {
     label: 'Industry',
     costMult: 1.2,
     tiers: [
-      { age: 'classical', name: 'Workshop', requiresTech: 'science_geometry', effects: { 'local.productionIncome': 0.20, 'local.flatGold': 3 } },
-      { age: 'gunpowder', name: 'Manufactory', requiresTech: 'science_calculus', effects: { 'local.productionIncome': 0.35, 'local.flatGold': 6, 'local.stabilityBonus': -0.5 } },
-      { age: 'modern', name: 'Factory', requiresTech: 'economy_industrial_capital', effects: { 'local.productionIncome': 0.50, 'local.flatGold': 10, 'local.stabilityBonus': -0.75 } },
-      { age: 'information', name: 'Automated Plant', requiresTech: 'economy_global_markets', effects: { 'local.productionIncome': 0.65, 'local.flatGold': 14, 'local.stabilityBonus': -0.75 } },
-      { age: 'future', name: 'Nanoforge', requiresTech: 'economy_automated_industry', effects: { 'local.productionIncome': 0.80, 'local.flatGold': 18, 'local.stabilityBonus': -0.75 } }
+      { age: 'classical', name: 'Workshop', requiresTech: 'science_geometry', effects: { 'local.productionIncome': 0.20, 'local.flatProduction': 2, 'local.flatGold': 3 } },
+      { age: 'gunpowder', name: 'Manufactory', requiresTech: 'science_calculus', effects: { 'local.productionIncome': 0.35, 'local.flatProduction': 4, 'local.flatGold': 6, 'local.stabilityBonus': -0.5 } },
+      { age: 'modern', name: 'Factory', requiresTech: 'economy_industrial_capital', effects: { 'local.productionIncome': 0.50, 'local.flatProduction': 6, 'local.flatGold': 10, 'local.stabilityBonus': -0.75 } },
+      { age: 'information', name: 'Automated Plant', requiresTech: 'economy_global_markets', effects: { 'local.productionIncome': 0.65, 'local.flatProduction': 8, 'local.flatGold': 14, 'local.stabilityBonus': -0.75 } },
+      { age: 'future', name: 'Nanoforge', requiresTech: 'economy_automated_industry', effects: { 'local.productionIncome': 0.80, 'local.flatProduction': 10, 'local.flatGold': 18, 'local.stabilityBonus': -0.75 } }
     ]
   },
   culture: {
@@ -206,6 +206,18 @@ const tierRank = (category, tierIndex) => tierIndex + (category.tiers[0].age ===
 
 // Gold cost to build/upgrade to `tierIndex` in `categoryId`, before national.buildingCost (e.g.
 // the Architect ruler trait, M3).
+// What a tier costs in PRODUCTION (cities.js productionCost; lane city-builds). The gold table above
+// rose about 1.7 times an age while a city's production rose about 1.3 times, so the age's own
+// building took 8 turns in the Stone Age and 23 in the Gunpowder Age (balance-sim cityBuilds).
+// This curve rises about as fast as production does (Civ VI: an Industrial building costs about
+// four times an Ancient one, not thirty). The gold price of the old buy path keeps the table above.
+const BUILD_TIER_COST = [30, 55, 90, 130, 175, 225, 280, 340];
+export const getBuildingBuildCost = (categoryId, tierIndex) => {
+  const category = BUILDING_CATEGORIES[categoryId];
+  if (!category?.tiers[tierIndex]) return null;
+  return Math.round(BUILD_TIER_COST[tierRank(category, tierIndex)] * category.costMult);
+};
+
 export const getBuildingTierCost = (categoryId, tierIndex, buildingCostMult = 0) => {
   const category = BUILDING_CATEGORIES[categoryId];
   if (!category?.tiers[tierIndex]) return null;
