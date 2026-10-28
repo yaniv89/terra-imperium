@@ -123,20 +123,20 @@ them listed), which is allowed under CC0. The raw downloads are kept outside the
 
 License for every file in this table: CC0 1.0.
 
-## Map music (src/assets/audio/music/)
+## Map music (src/assets/audio/music/ages/<age>/)
 
 | File | Length | Source page | Author | Original file(s) |
 | --- | --- | --- | --- | --- |
-| 01-exploration.ogg | 232.9 s | https://opengameart.org/content/medieval-exploration | RandomMind | Exploration.wav |
-| 02-desert-settlement.ogg | 299.6 s | https://opengameart.org/content/desert-settlement | vitalezzz | desert_settlement.wav |
-| 03-harvest-season.ogg | 213.1 s | https://opengameart.org/content/medieval-harvest-season | RandomMind | harvestseason.wav |
-| 04-egyptian-meditation.ogg | 123.7 s | https://opengameart.org/content/egyptian-meditation-music | HaelDB | v312.ogg |
-| 05-lute-dowland.ogg | 158.4 s | https://opengameart.org/content/historic-renaissance-music-from-1597-if-my-complaints-could-passions-move-by-john-dowland | Of Far Different Nature (composition by John Dowland, 1597, public domain) | Of Far Different Nature x John Dowland - If my Complaints Could Passions Move_0.mp3 |
-| 06-greek-instruments.ogg | 100.7 s | https://opengameart.org/content/experimenting-with-greek-instrument-samples | Spring Spring | greek instruments_0.ogg |
-| 07-rising-moon.ogg | 221.4 s | https://opengameart.org/content/fantasy-rising-moon | RandomMind | Rising_Moon_0.mp3 |
-| 08-mystic-bazaar.ogg | 113.3 s | https://opengameart.org/content/mystical-enigmatic-background-music | CleytonKauffman | CleytonRX - Mystical Enigmatic Background Music.mp3 |
-| 09-bards-tale.ogg | 152.8 s | https://opengameart.org/content/medieval-the-bards-tale | RandomMind | The_Bards_Tale.mp3 |
-| 10-temple-relics.ogg | 71.8 s | https://opengameart.org/content/relics-of-past | Centurion_of_war | relic_of_past.v2ogg_0.ogg |
+| ages/stone/01-exploration.ogg | 232.9 s | https://opengameart.org/content/medieval-exploration | RandomMind | Exploration.wav |
+| ages/bronze/02-desert-settlement.ogg | 299.6 s | https://opengameart.org/content/desert-settlement | vitalezzz | desert_settlement.wav |
+| ages/kingdoms/03-harvest-season.ogg | 213.1 s | https://opengameart.org/content/medieval-harvest-season | RandomMind | harvestseason.wav |
+| ages/bronze/04-egyptian-meditation.ogg | 123.7 s | https://opengameart.org/content/egyptian-meditation-music | HaelDB | v312.ogg |
+| ages/gunpowder/05-lute-dowland.ogg | 158.4 s | https://opengameart.org/content/historic-renaissance-music-from-1597-if-my-complaints-could-passions-move-by-john-dowland | Of Far Different Nature (composition by John Dowland, 1597, public domain) | Of Far Different Nature x John Dowland - If my Complaints Could Passions Move_0.mp3 |
+| ages/classical/06-greek-instruments.ogg | 100.7 s | https://opengameart.org/content/experimenting-with-greek-instrument-samples | Spring Spring | greek instruments_0.ogg |
+| ages/stone/07-rising-moon.ogg | 221.4 s | https://opengameart.org/content/fantasy-rising-moon | RandomMind | Rising_Moon_0.mp3 |
+| ages/bronze/08-mystic-bazaar.ogg | 113.3 s | https://opengameart.org/content/mystical-enigmatic-background-music | CleytonKauffman | CleytonRX - Mystical Enigmatic Background Music.mp3 |
+| ages/kingdoms/09-bards-tale.ogg | 152.8 s | https://opengameart.org/content/medieval-the-bards-tale | RandomMind | The_Bards_Tale.mp3 |
+| ages/classical/10-temple-relics.ogg | 71.8 s | https://opengameart.org/content/relics-of-past | Centurion_of_war | relic_of_past.v2ogg_0.ogg |
 
 License for every file in this table: CC0 1.0.
 
@@ -154,16 +154,49 @@ Each source page's license field was checked on 2026-10-07 and shows CC0 only.
 
 License for every file in this table: CC0 1.0.
 
-## Map ambience (src/assets/audio/ambience/)
+## Map ambience (src/assets/audio/music/ambience/<id>/)
 
 | File | Length | Source page | Author | Original file(s) |
 | --- | --- | --- | --- | --- |
-| birds-loop.ogg | 45.0 s | https://bigsoundbank.com/evening-birds-s1859.html | Joseph Sardin (BigSoundBank) | bsb-1859.wav ("Evening Birds") |
-| countryside-loop.ogg | 45.0 s | https://bigsoundbank.com/countryside-s0097.html | Joseph Sardin (BigSoundBank) | bsb-0097.wav ("Countryside") |
+| map-fields/birds-loop.ogg | 45.0 s | https://bigsoundbank.com/evening-birds-s1859.html | Joseph Sardin (BigSoundBank) | bsb-1859.wav ("Evening Birds") |
+| map-fields/countryside-loop.ogg | 45.0 s | https://bigsoundbank.com/countryside-s0097.html | Joseph Sardin (BigSoundBank) | bsb-0097.wav ("Countryside") |
 | market-loop.ogg | 45.0 s | https://bigsoundbank.com/outdoor-market-1-s2728.html | Joseph Sardin (BigSoundBank) | bsb-2728.wav ("Outdoor Market") |
-| wind-loop.ogg | 45.0 s | https://bigsoundbank.com/wind-in-tall-grass-s0908.html | Joseph Sardin (BigSoundBank) | bsb-0908.wav ("Wind in Tall Grass") |
+| map-wind/wind-loop.ogg | 45.0 s | https://bigsoundbank.com/wind-in-tall-grass-s0908.html | Joseph Sardin (BigSoundBank) | bsb-0908.wav ("Wind in Tall Grass") |
 
 License for every file in this table: CC0 1.0.
+
+## This project's own music, stings and beds (made 2026-10-28)
+
+Composed for Terra Imperium and dedicated to the public domain under CC0 1.0 by the project. The
+pieces are generated from seeded MIDI by `scripts/audio/compose-music.py` and rendered with
+FluidSynth and the FluidR3 GM soundfont (Frank Wen, MIT licence, which allows any use; since the
+rendered audio holds the soundfont's samples, its notice is kept here: "Copyright (c) 2000-2002, 2008
+Frank Wen. Permission is hereby granted, free of charge, to any person obtaining a copy of this
+software and associated documentation files, to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+sell copies of the Software, subject to the following conditions: The above copyright notice and this
+permission notice shall be included in all copies or substantial portions of the Software. THE
+SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND."); the beds are synthesised
+noise by `scripts/audio/make-ambience.py`. Re-run either script to rebuild them byte for byte from
+the same seeds (FluidSynth 2.3.4, fluid-soundfont-gm 3.1).
+
+| File | What |
+| --- | --- |
+| music/ages/stone/stone-1.ogg | Stone age: pan flute, choir, toms (minor pentatonic) |
+| music/ages/bronze/bronze-1.ogg | Bronze age: double reed, harp, sitar, hand drums (Phrygian dominant) |
+| music/ages/classical/classical-1.ogg | Classical: flute, harp, clarinet, strings in 3/4 (Dorian) |
+| music/ages/kingdoms/kingdoms-1.ogg | Kingdoms: recorder, shawm, lute, bagpipe drone, tabor in 6/8 (Mixolydian) |
+| music/ages/gunpowder/gunpowder-1.ogg, -2.ogg | Gunpowder: violin, harpsichord, strings, cello (harmonic minor) |
+| music/ages/modern/modern-1.ogg, -2.ogg | Modern: horn, piano, strings, timpani (Aeolian) |
+| music/ages/information/information-1.ogg, -2.ogg | Information: vibraphone, electric piano, pads, light kit (Lydian) |
+| music/ages/future/future-1.ogg, -2.ogg | Future: crystal bells, halo and bowed pads, voice (Lydian) |
+| music/battle/gunpowder/gunpowder-battle-1.ogg | Battle, gunpowder and modern: snare, brass, low strings |
+| music/battle/information/information-battle-1.ogg | Battle, information and future: synth bass, kit, synth brass |
+| battle/victory/victory-1.ogg | Battle won: brass fanfare and timpani |
+| battle/defeat/defeat-1.ogg | Battle lost: falling horn over low strings |
+| music/ambience/map-sea/sea-loop.ogg | Surf and swell (synthesised, seamless 32 s loop) |
+| music/ambience/map-desert/desert-loop.ogg | Desert wind and blown sand (synthesised) |
+| music/ambience/map-jungle/jungle-loop.ogg | Jungle air, cicadas, crickets, distant birds (synthesised) |
 
 ## Credits
 

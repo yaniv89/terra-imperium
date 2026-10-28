@@ -80,7 +80,8 @@ for (const age of ages) {
     await page.waitForTimeout(150);
     await hold(page, sq.x, sq.y, 600);
     await page.waitForTimeout(500);
-    if (await page.getByTestId('battle-radial-attackMove').count()) {
+    // headless frames are slow: the long-press timer and the render can lag by seconds
+    if (await page.waitForSelector('[data-testid="battle-radial-attackMove"]', { state: 'attached', timeout: 6000 }).then(() => true, () => false)) {
       await tap(page, 'battle-radial-attackMove'); await page.waitForTimeout(250);
       const armedNow = await visible(page, 'battle-attack-armed');
       await page.touchscreen.tap(W * 0.7, H * 0.4); await page.waitForTimeout(250);

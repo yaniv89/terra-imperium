@@ -36,7 +36,7 @@ import { createEmptyResourcePool } from '../data/resources';
 import { drawEvent, cardOf } from './eventDeck';
 import { processCrises } from './crises';
 import { crisisCardId } from '../data/crises';
-import { applyEventEffects, getOptionShortfall } from './applyEventEffects';
+import { applyEventEffects, getOptionShortfall, scaleEventGold } from './applyEventEffects';
 import { exploreOn } from './hostility';
 import { calcIncome, nextUnrest, getNationBonusTotal, getFieldedStrength } from '../utils/helpers';
 import { getRegionModifier, getModifier } from './modifiers/sheet';
@@ -77,7 +77,7 @@ import { levyUnit, decayDevastation, devastationGrowthPenalty } from './aftermat
 import { expireNationModifiers, expireRegionModifiers } from './modifiers/timed';
 import { TAX_RATES } from '../data/taxRates';
 import {
-  UNIT_UPKEEP_GOLD_PER_TURN, ARMY_MAINTENANCE_DEFAULT, FORT_UPKEEP_GOLD_PER_FORT_LEVEL,
+  ARMY_MAINTENANCE_DEFAULT, FORT_UPKEEP_GOLD_PER_FORT_LEVEL,
   DIPLOMAT_IMPROVE_RELATIONS_HOSTILITY_DECAY_PER_TURN, VASSAL_TRIBUTE_RATE, VASSAL_TRIBUTE_GOLD_PER_DEV_POINT,
   RIVAL_ELIMINATED_PRESTIGE_REWARD, CAPITAL_OCCUPIED_STABILITY_PENALTY,
   ECONOMIC_COLLAPSE_STABILITY_PENALTY
@@ -92,7 +92,7 @@ import { applyResearchTurn, researchesThisTurn } from './research';
 import { processNationalPowerTurn, clampStability, clampPrestige, STABILITY_MAX, getOverextension } from './nationalPower';
 import { GREAT_PROJECTS, cityWonderTotal } from '../data/greatProjects';
 import { BUILDING_CATEGORIES } from '../data/buildings';
-import { clampMaintenance, getLoanCapacity, getLoanSize, getLoanInterestRate, applyBankruptcy, buildingUpkeepOf } from './economy';
+import { clampMaintenance, getLoanCapacity, getLoanSize, getLoanInterestRate, applyBankruptcy, buildingUpkeepOf, unitsUpkeepGold, unitUpkeepGold } from './economy';
 import {
   nextLowStabilityStreak, isStabilityCivilWarTrigger, startCivilWar, processCivilWarTurn, inCivilWarCooldown
 } from './civilWar';
@@ -892,8 +892,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     // Laws and reforms move the army's upkeep (lawRules.js unitUpkeepMult), as the forecast in economy.js does.
     const armyMaintenanceMult = clampMaintenance(nation.armyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100 * Math.max(0, 1 + (lawRulesOf(nation).unitUpkeepMult || 0));
     const navyMaintenanceMult = clampMaintenance(nation.navyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100;
-    const armyUpkeep = Math.round(playerUnits.filter((u) => u.domain !== 'naval').length * UNIT_UPKEEP_GOLD_PER_TURN * armyMaintenanceMult);
-    const navyUpkeep = Math.round(playerUnits.filter((u) => u.domain === 'naval').length * UNIT_UPKEEP_GOLD_PER_TURN * navyMaintenanceMult);
+    const armyUpkeep = Math.round(unitsUpkeepGold(state, playerUnits.filter((u) => u.domain !== 'naval')) * armyMaintenanceMult);
+    const navyUpkeep = Math.round(unitsUpkeepGold(state, playerUnits.filter((u) => u.domain === 'naval')) * navyMaintenanceMult);
     // Fort upkeep (plan §M6.2/§M11): 1g x fortLevel/turn — the Defense building line's
     // local.fortLevel already existed with no upkeep consumer until now.
     const fortLevels = Object.values(regions).filter((r) => r.owner === playerId).reduce((sum, r) => {
@@ -907,7 +907,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const advisorSalaryCost = advisors.reduce((sum, a) => sum + getAdvisorSalary(a.level), 0);
     const loanInterestCost = (nation.loans || []).reduce((sum, loan) => sum + Math.round(loan.principal * loan.interestRate), 0);
     // Marching armies (routes.js) cost a quarter more upkeep the turn they march.
-    const marchingUpkeep = marchUpkeep(units, playerId, state.turnNumber, UNIT_UPKEEP_GOLD_PER_TURN * armyMaintenanceMult);
+    const marchingUpkeep = marchUpkeep(units, playerId, state.turnNumber, (u) => unitUpkeepGold(state, u) * armyMaintenanceMult);
     const totalExpenses = armyUpkeep + marchingUpkeep + navyUpkeep + fortUpkeep + buildingUpkeep + advisorSalaryCost + loanInterestCost;
 
     if (totalExpenses > 0) {
@@ -1213,7 +1213,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       // The early choice can no longer be paid while another option can: the card opens again instead
       // of applyEventEffects dropping the answer with only a "can't afford" line.
       if (crisisChoice) {
-        const card = cardOf(crisisCardId(crisisChoice.id));
+        const card = scaleEventGold(state, cardOf(crisisCardId(crisisChoice.id)));
         const short = (o) => getOptionShortfall(state.resources, o?.effects).length > 0;
         if (short(card.options[crisisChoice.option]) && card.options.some((o) => !short(o))) {
           chains = [...(chains || []), { id: card.id, dueTurn: newTurnNumber }];
@@ -1282,7 +1282,15 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     logs: capLogs([...state.logs, ...logs])
   };
   // A crisis answered early pays its option now it struck (applyEventEffects clears the open card: keep this turn's).
-  if (crisisChoice) next = { ...applyEventEffects(next, cardOf(crisisCardId(crisisChoice.id)), crisisChoice.option), activeEventId: next.activeEventId, activeProceduralEvent: next.activeProceduralEvent };
+  // Checked again on the state it is paid from: this turn's income and upkeep move the treasury and the
+  // card's gold scale (scaleEventGold), so a choice that can no longer be paid reopens the card next turn.
+  if (crisisChoice) {
+    const card = cardOf(crisisCardId(crisisChoice.id));
+    const scaled = scaleEventGold(next, card);
+    const short = (o) => getOptionShortfall(next.resources, o?.effects).length > 0;
+    if (short(scaled.options[crisisChoice.option]) && scaled.options.some((o) => !short(o))) next = { ...next, pendingEventChains: [...(next.pendingEventChains || []), { id: card.id, dueTurn: newTurnNumber + 1 }] };
+    else next = { ...applyEventEffects(next, card, crisisChoice.option), activeEventId: next.activeEventId, activeProceduralEvent: next.activeProceduralEvent };
+  }
   // Players who opted to auto-resolve enemy assaults are never interrupted: fought right away.
   // The battle queue (battleQueue.js): with autoDefend the battles are fought on Auto now, unless an
   // event or a peace offer opened this turn (then they wait for the answer, gameReducer's drain).

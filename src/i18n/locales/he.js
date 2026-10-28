@@ -407,6 +407,8 @@ export default {
   'turn.advisorBuild': 'היועץ בונה',
   'turn.advisorBuildMany': 'היועץ בונה ({n})',
   'turn.advisorTip': 'ממלא כל עיר שאין בה מה לבנות בבחירת היועץ. אפשר לשנות כל אחת בעיר.',
+  'turn.buy': 'קנו {gold}',
+  'turn.buyTip': 'קנו עכשיו את ההזמנה הנוכחית ב{city}: {gold} זהב, {turns} תורות מוקדם יותר. כל קנייה בעיר מעלה את המחיר הבא שלה.',
   'turn.endAnyway': 'לסיים בכל זאת? {n} ממתינים',
   'turn.stillWaiting': '{n} עדיין ממתינים',
   'turn.runHere': 'הרצה כאן',
