@@ -87,7 +87,8 @@ describe('W14 defenseSheetModel', () => {
     const units = m.reasons.find((f) => f.id === 'units');
     expect(units.value).toBeLessThan(1); // read as yours
     expect(units.label).toBe("Units' age");
-    if (m.reasons[0].value < 1) expect(m.warning).toContain(`mostly from ${m.reasons[0].label}`);
+    const worst = m.reasons.find((f) => f.value < 1);
+    expect(m.warning).toContain(`mostly from ${worst.label}`);
   });
 
   it('an empty city holding this turn says when its defences fall at this rate (lane battle-odds: 100% hold, taken in 3 turns)', () => {

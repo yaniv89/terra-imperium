@@ -78,9 +78,10 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
   // or Auto) is still the one chosen: an intentional Command stays playable.
   // A city held by its militia alone counts too (playtest 40550092795 step 183: 400 militia against
   // 40,000 was offered as Command with no warning and lost in seconds).
+  const worst = reasons.find((f) => f.value < 1); // the biggest factor against you
   const hopeless = !attacking && hold < HOPELESS_HOLD && !(odds.undefended && !militia.length);
   const warning = hopeless
-    ? t('bt.def.warning', { pct, why: reasons[0] && reasons[0].value < 1 ? t('bt.def.warnWhy', { reason: `${reasons[0].label} x${reasons[0].value.toFixed(2)}` }) : '', body: city ? t('bt.def.warnCity', { place }) : t('bt.def.warnField'), withdraw: withdrawTo ? t('bt.def.warnWithdraw', { to: withdrawTo }) : '' })
+    ? t('bt.def.warning', { pct, why: worst ? t('bt.def.warnWhy', { reason: `${worst.label} x${worst.value.toFixed(2)}` }) : '', body: city ? t('bt.def.warnCity', { place }) : t('bt.def.warnField'), withdraw: withdrawTo ? t('bt.def.warnWithdraw', { to: withdrawTo }) : '' })
     : null;
   const setting = state.battleSettings?.defaultMode;
   const preferred = setting === 'auto' || setting === 'command' ? setting : hopeless ? (withdrawTo ? 'withdraw' : 'auto') : 'command';

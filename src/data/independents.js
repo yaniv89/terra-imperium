@@ -199,8 +199,8 @@ export const SACK_GARRISON_RATIO = 0.5;
 export const SACK_INCOME_TURNS = 3;
 export const SACK_MIN_GOLD = 15;
 /** A sacked city or a burned outpost is left alone this many reference turns (no raid twice on the same ashes;
- * ages.js speedTurns: 19 to 24 at Normal, about the 20 it was, and the same span of history at every speed and age). */
-export const RAID_SPARE_REF_TURNS = 12;
+ * ages.js speedTurns: 20 to 21 at Normal up to kingdoms, as before, 25 later, and the same span of history at every speed and age). */
+export const RAID_SPARE_REF_TURNS = 12.5;
 /** At most this many raid parties are out against one nation at a time, from all independents
  * together: grudges that ripen together no longer arrive as one wave (playtest audit I107).
  * PROVISIONAL: the rule is fixed, the number waits for the tuning pass. */

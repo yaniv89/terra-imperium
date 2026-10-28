@@ -67,7 +67,7 @@ const CityDefense = ({ model, onOpenTab }) => {
         <ul className="mt-1 space-y-1.5">
           {model.coming.list.map((c) => (
             <li key={`${c.kind}:${c.nationId}`} className="flex items-center gap-2">
-              <span className="flex-1 min-w-0">{c.kind === 'raid' ? t('cy.def.raidComing', { name: c.name, men: c.men, turns: c.turns ?? '?' }) : t('cy.def.armyComing', { name: c.name, men: c.men, tiles: c.tiles })}</span>
+              <span className="flex-1 min-w-0">{c.kind === 'raid' ? t('cy.def.raidComing', { name: c.name, men: c.men, turns: c.turns != null ? t('cy.turns', { count: c.turns }) : '?' }) : t('cy.def.armyComing', { name: c.name, men: c.men, tiles: t('cy.def.tiles', { count: c.tiles }) })}</span>
               {c.kind === 'raid' && <Button size="sm" className="min-h-[44px] shrink-0" onClick={() => selectNation(c.nationId)} data-testid="city-coming-pay">{t('cy.def.payThem')}</Button>}
             </li>
           ))}
