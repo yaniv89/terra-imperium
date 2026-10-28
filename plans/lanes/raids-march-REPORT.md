@@ -66,6 +66,9 @@ Turn time and world stats (`compare.sh 2f4fab48 100 11-12`, JOBS=1, passive play
 ## Engine review
 `engine-rules-reviewer` on the diff: no rule violations. Its three findings were fixed: the city card ran the odds on every render (now only for a valid march), air support left out of the march odds (added), militia rebuilt per candidate city (cached per turn).
 
+## Full suite
+`npx vitest run` (15:18 UTC, after merging integration, which had not moved): 507 files passed, 1 failed of 510; 4,763 tests passed. The one failure was mine: `ageRefs.test.js` "the raid factor falls..." expected the classical and kingdoms raid scores to be exactly equal. A sack now weighs the town's militia, whose housing follows the age, so they differ by 4.6%. The test now checks them within 10% (the era factor ordering is unchanged) and passes. `npm run lint` is clean.
+
 ## Questions for the lead
 - Raid parties still outweigh an unguarded town 5 to 15 to 1. I did not shrink parties or raise the town militia (battleInputs.js is shared by every battle and the parityEco calibration). If raids should be weaker against empty towns too, that needs your yes.
 - The set-out warning is given even when the party is in the fog (read as scouts' report). Say if it should need sight of the party.

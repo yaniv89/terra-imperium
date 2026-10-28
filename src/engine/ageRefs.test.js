@@ -149,6 +149,8 @@ describe('independents price and raid at independentAgeOf', () => {
     expect(k).toBeTypeOf('number');
     expect(g).toBeLessThan(k); // RAID_ERA_FACTOR 1 -> 0.8
     expect(mo).toBeLessThan(g); // -> 0.5
-    expect(score('classical')).toBeCloseTo(k, 9); // 1 -> 1
+    // Classical and kingdoms share factor 1; a sack also weighs the town's militia, whose housing follows the age, so only near.
+    expect(score('classical') / k).toBeGreaterThan(0.9);
+    expect(score('classical') / k).toBeLessThan(1.1);
   });
 });
