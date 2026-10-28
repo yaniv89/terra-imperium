@@ -316,8 +316,9 @@ const BattleHud = ({
               className={cx('fa-icon-btn !w-11 !h-11 !rounded-none first:!rounded-s-[10px] last:!rounded-e-[10px] fa-num text-[13px] font-semibold', speed === s && '!bg-fa-raised !text-fa-text outline outline-2 -outline-offset-2 outline-fa-text')}>{s}×</button>)}
           </div>
         )}
+        {/* a clear gap: a tap aimed at 3x must never open the pause sheet (playtest 40650979770 step 12) */}
         <button type="button" onClick={onTogglePause} aria-label={!started ? t('bt.hud.start') : paused ? t('bt.hud.resume') : t('bt.hud.pause')} data-testid="battle-pause"
-          className={cx('fa-icon-btn !w-11 !h-11 shrink-0', !started && '!bg-fa-brass !text-fa-ink !border-transparent')}>
+          className={cx('fa-icon-btn !w-11 !h-11 shrink-0 ms-3', !started && '!bg-fa-brass !text-fa-ink !border-transparent')}>
           {!started || paused ? <Play className="w-4 h-4" aria-hidden="true" /> : <Pause className="w-4 h-4" aria-hidden="true" />}
         </button>
       </div>
@@ -522,10 +523,10 @@ const BattleHud = ({
           </div>
         </div>
       )}
-      {armed?.type === 'power' && (
+      {(armed?.type === 'power' || armed === 'attackMove') && (
         <div className="absolute inset-x-0 flex justify-center pointer-events-none" style={{ bottom: ABOVE_BOTTOM }}>
-          <div className="pointer-events-auto flex items-center gap-1 ps-3 rounded-full bg-fa-panel/95 border border-fa-enemy text-xs font-semibold shadow-xl" data-testid="battle-power-armed">
-            {t(mouse ? 'bt.hud.clickStrike' : 'bt.hud.tapStrike', { label: powerLabel(armed.id, armed.label) })}
+          <div className="pointer-events-auto flex items-center gap-1 ps-3 rounded-full bg-fa-panel/95 border border-fa-enemy text-xs font-semibold shadow-xl" data-testid={armed === 'attackMove' ? 'battle-attack-armed' : 'battle-power-armed'}>
+            {armed === 'attackMove' ? t(mouse ? 'bt.hud.clickAttack' : 'bt.hud.tapAttack') : t(mouse ? 'bt.hud.clickStrike' : 'bt.hud.tapStrike', { label: powerLabel(armed.id, armed.label) })}
             {onCancelArmed && <button type="button" onClick={onCancelArmed} aria-label={t('bt.hud.cancelStrike')} className="w-11 h-11 flex items-center justify-center text-fa-muted"><X className="w-4 h-4" aria-hidden="true" /></button>}
           </div>
         </div>

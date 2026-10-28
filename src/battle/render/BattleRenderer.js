@@ -28,8 +28,8 @@ import { soldierLodGeometries, pickSoldierTier, triangleCount } from './soldierL
 import { SKIRT, buildTileMask, makeSkirtHeight, hasCoast, horizonLevel, buildSkirtGeometry, patchGroundMaterial, fitShadowBox, dryGrassBlend, DRY_GRASS } from './terrainSurface';
 import { vegetationKitFor } from '../art/vegetation';
 import { Q } from '../sim/constants';
-import { POWERS } from '../sim/effects';
 import { zonePerimeter } from './deployZone';
+import { powerFx, POWER_FX_COLOR } from './powerFx';
 import { CityLayer, CITY_KINDS } from './cityLayer';
 import { EconomyLayer } from './economyLayer';
 import { TreeFelling } from './treeFelling';
@@ -125,6 +125,7 @@ const HIT_FLASH_TICKS = 3;   // ticks a hit squad's figures and bar flash (0.15 
 const HIT_SHOW_TICKS = 60;   // a squad hit in the last 3 s keeps its bar up
 const BAR_PX = 34;           // the strength bar is at least this wide on screen (css px)
 const BAR_H_PX = 5;          // ...and this tall
+const MARKER_RING_R = 0.85 * 0.96; // a marker ring's world radius at size 1 (the 1.7 decal, ring to 0.96)
 const MARKER_PX = 46;        // an order marker is at least this wide on screen
 const SHAKEN_AT = 40;        // morale under this: the morale strip turns amber
 // Write position · turn about the vertical (yaw) · scale into slot k of an instance matrix array
@@ -1092,7 +1093,8 @@ export class BattleRenderer {
     return best && this.structureSeen(best.index ?? -1) ? { ...best, ground: g } : { kind: 'ground', ground: g };
   }
 
-  addMarker(x, z, color = '#a3e635', size = 1, life = 1.1) { this.markers.push({ x, z, t: 0, color, size, life }); }
+  // mode: 'order' (closes in on the spot), 'area' (holds a ring of world radius size * MARKER_RING_R), 'burst' (opens out)
+  addMarker(x, z, color = '#a3e635', size = 1, life = 1.1, mode = 'order') { this.markers.push({ x, z, t: 0, color, size, life, mode }); }
 
   /** An order given while paused (RTS-03): drawn steady until the sim steps past this tick. */
   addPendingMark(mark) {
@@ -1185,12 +1187,14 @@ export class BattleRenderer {
         } else for (let k = 0; k < n; k++) this.fx.push({ kind: 'spark', x: e.x / Q + (hash01(e.t * 11 + k) - 0.5) * r * 1.6, z: e.y / Q + (hash01(e.t * 17 + k) - 0.5) * r * 1.6, t: 0, life: 0.9, seed: k, big: true, fire: true });
         this.addMarker(e.x / Q, e.y / Q, '#f97316');
       } else if (e.type === 'power') {
-        // Playtest 13: a fired power shows. Strikes and Ambush: a wide ring over the ground they cover;
-        // Rally Cry: a ring round every squad of the side that calls it. Each stays about a second and a half.
-        const p = POWERS[e.power];
-        const D = !p ? 0 : p.hide ? 2 * p.hide.radius / Q : p.line ? p.impacts * 1.2 + 2 * p.radius / Q : p.impacts ? 2 * ((p.spread || Q) + p.radius) / Q : 0;
-        if (D) this.addMarker(e.x / Q, e.y / Q, p.hide ? '#a78bfa' : '#fbbf24', D / (1.7 * 1.8), 1.6);
-        else if (e.power === 'rallyCry') view.squads.filter((q) => q.side === e.side && q.alive && q.onField && !q.fled && q.classId !== 'worker').slice(0, 30).forEach((q) => this.addMarker(q.x / Q, q.y / Q, '#fde047', 1.3, 1.4));
+        // A fired power shows (powerFx.js): a ring over the ground or the army it covers, held for
+        // two seconds, and a burst on each squad it touched.
+        const fx = powerFx(e, view, this.map);
+        if (fx?.ring) this.addMarker(fx.ring.x, fx.ring.z, fx.ring.color, fx.ring.r / MARKER_RING_R, 2, 'area');
+        fx?.bursts.forEach((b) => this.addMarker(b.x, b.z, fx.color, 1.2, 0.9, 'burst'));
+      } else if (e.type === 'hijacked') {
+        const q = view.squads[e.id];
+        if (q) this.addMarker(q.x / Q, q.y / Q, POWER_FX_COLOR.hijack, 1.4, 1.2, 'burst');
       } else if (e.type === 'ability') {
         const src = view.squads[e.id];
         if (src) this.addMarker(src.x / Q, src.y / Q, '#c084fc');
@@ -1867,9 +1871,10 @@ export class BattleRenderer {
       if (mn >= Math.min(63, mcap)) return;
       const k = m.t / m.life; const e = 1 - (1 - k) * (1 - k);
       tmp.rotation.set(0, 0, 0); tmp.position.set(m.x, this.heightAt(m.x, m.z) + 0.08, m.z);
-      const sc = (1.6 - 1.45 * e) * m.size * markPx; tmp.scale.set(sc, 1, sc); tmp.updateMatrix();
+      const sc = m.mode === 'area' ? m.size * (0.9 + 0.1 * e) : m.mode === 'burst' ? (0.3 + 1.3 * e) * m.size * markPx : (1.6 - 1.45 * e) * m.size * markPx;
+      tmp.scale.set(sc, 1, sc); tmp.updateMatrix();
       this.markerRings.setMatrixAt(mn, tmp.matrix); this.markerRings.setColorAt(mn, colorOf(m.color)); mn += 1;
-      if (k > 0.66) return;
+      if (k > 0.66 || m.mode !== 'order') return;
       const si = 0.42 * m.size * markPx; tmp.scale.set(si, 1, si); tmp.updateMatrix();
       this.markerRings.setMatrixAt(mn, tmp.matrix); this.markerRings.setColorAt(mn, colorOf(m.color)); mn += 1;
     });

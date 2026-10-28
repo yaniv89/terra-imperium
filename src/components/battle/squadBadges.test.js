@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { badgesFor, BADGE_MAX_ZOOM, HIT_FLASH_TICKS } from './squadBadges';
+import { badgesFor, clusterFlags, BADGE_MAX_ZOOM, HIT_FLASH_TICKS } from './squadBadges';
 import { TILE } from '../../battle/setup/mapgen';
 
 const sq = (idx, over = {}) => ({ idx, side: 0, alive: true, onField: true, fled: false, visible: true, x: 256 * 2.5, y: 256 * 2.5, strength: 50, maxStrength: 100, striking: false, ...over });
@@ -28,5 +28,14 @@ describe('squad flags', () => {
     const [a, b] = badgesFor(null, cur, 0, opts());
     expect(a).toMatchObject({ morale: 0.3, routed: false, hit: 1 });
     expect(b).toMatchObject({ routed: true, hit: 0 });
+  });
+  it('merge one side\'s overlapping flags into one with a count, the group\'s strength and weakest morale', () => {
+    const f = (sx, side, classId, str, morale) => ({ sx, sy: 100, side, classId, str, max: 100, share: str / 100, morale, routed: false, hit: 0, striking: false, selected: false });
+    const out = clusterFlags([f(100, 'you', 'infantry', 100, 1), f(110, 'you', 'infantry', 50, 0.3), f(112, 'you', 'cavalry', 30, 0.9), f(110, 'them', 'ranged', 80, 1), f(300, 'you', 'ranged', 10, 1)]);
+    expect(out).toHaveLength(3);
+    const g = out[0];
+    expect(g).toMatchObject({ n: 3, classId: 'infantry', morale: 0.3 });
+    expect(g.share).toBeCloseTo(180 / 300);
+    expect(out[1]).toMatchObject({ side: 'them', n: 1 });
   });
 });
