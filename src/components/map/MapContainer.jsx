@@ -295,7 +295,8 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
       {selectedArmy != null && (stacking || !selectedRegion) && selectedTile == null && <ArmySheet tile={selectedArmy} unitId={unitPick?.tile === selectedArmy ? unitPick.unitId : null} onCycleUnit={cycleUnitPick} onClose={() => setSelectedArmy(null)} onSelectRegion={onSelectRegion} />}
       {selectedNation && !selectedRegion && selectedTile == null && selectedArmy == null && <NationSheet nationId={selectedNation} onClose={() => setSelectedNation(null)} onSelectRegion={onSelectRegion} />}
       <div className={`absolute start-[calc(var(--city-rail-w,0px)+0.75rem)] ${lensOpen ? 'z-20' : 'z-10'} flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.75rem)] lg:bottom-3 pl:bottom-3 pl:start-[max(var(--safe-start),0.75rem)]`} data-map-hud="group">
-        {miniOpen && <MapLegend />}
+        {/* The city sheet covers this corner; the wider legend peeked out from under it (lead check 28 Oct, 1600x900). */}
+        {miniOpen && !selectedRegion && <MapLegend />}
         {miniOpen && <div className="relative"><MiniMap onOpen={() => setModalOpen(true)} viewportBounds={viewportBounds} onNavigate={handleMiniMapNavigate} /><button type="button" onClick={() => setMini(false)} aria-label={t('minimap.hide')} data-testid="minimap-hide" className="absolute -top-2 -end-2 w-8 h-8 rounded-full bg-fa-panel border border-fa-line text-fa-text text-sm pointer-events-auto">×</button></div>}
         <div className="flex items-end gap-2">
           <LensStrip lens={shownLens} onChange={pickLens} onOpenChange={setLensOpen} />

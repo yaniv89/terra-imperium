@@ -24,10 +24,11 @@ const LogDrawer = ({ open, onClose }) => {
       <div className="absolute inset-0 bg-black/60" />
       <div
         className="relative w-full lg:w-96 h-[70vh] lg:h-full mt-auto lg:mt-0 rounded-t-2xl lg:rounded-none
-                   pl:w-[min(400px,56vw)] pl:h-full pl:mt-0 pl:rounded-none pl:border-t-0 pl:border-s
+                   pl:w-[min(400px,56vw)] pl:h-full pl:mt-0 pl:rounded-none pl:border-t-0 pl:border-s pl:pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+3.5rem)]
                    flex flex-col bg-fa-ink border-t lg:border-t-0 lg:border-s border-fa-line shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* pl: End Turn rides above the sheets (TurnDock.jsx), so the log's last lines scroll clear of it, as .sheet-panel does. */}
         {/* A phone held sideways has about 300 px of height: the log's own header already names it,
             so this second title row goes and the close button hangs off the edge as on a desktop
             (playtest audit I169: the log showed about four lines). */}

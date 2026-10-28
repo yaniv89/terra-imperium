@@ -192,9 +192,12 @@ const main = async () => {
   await banner.waitFor({ timeout: 5000 });
   // Its entry animation starts 16 px higher (headless Chrome can hold that first frame): even
   // there it must be clear of the bar.
-  const bb = await box(banner);
-  const hb = await box(page.getByTestId('world-top-bar'));
-  const rest = await banner.evaluate((el) => parseFloat(getComputedStyle(el).top));
+  // One read while it shows: it hides itself after 5 s, and three reads on a slow machine (software GL) outlasted it (lead check 28 Oct).
+  const { bb, hb, rest } = await banner.evaluate((el) => ({
+    bb: { top: Math.round(el.getBoundingClientRect().top) },
+    hb: { bottom: Math.round(document.querySelector('[data-testid="world-top-bar"]').getBoundingClientRect().bottom) },
+    rest: parseFloat(getComputedStyle(el).top)
+  }));
   check('the era banner is below the top bar, also at the start of its slide', bb.top >= hb.bottom && rest >= hb.bottom + 16, `rests at ${rest}, drawn at ${bb.top}, bar ends at ${hb.bottom}`);
   await patch(page, 'return { ...s, turnNumber: s.turnNumber + 1 };');
   await wait(5200);

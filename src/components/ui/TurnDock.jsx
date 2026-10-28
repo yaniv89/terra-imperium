@@ -114,7 +114,7 @@ const TurnDock = () => {
             className="fa-btn fa-btn-secondary !min-h-[50px] pl:!min-h-[44px] shadow-xl gap-1.5 !px-3 text-[13px]" data-testid="dock-buy"
             title={t('turn.buyTip', { city: buy.name, gold: buy.gold, turns: buy.turns })} aria-label={t('turn.buyTip', { city: buy.name, gold: buy.gold, turns: buy.turns })}>
             <Coins className="w-4 h-4 shrink-0 text-fa-brass" aria-hidden="true" />
-            <span className="whitespace-nowrap fa-num">{t('turn.buy', { gold: buy.gold })}</span>
+            <span className="whitespace-nowrap">{t('turn.buy', { gold: buy.gold })}</span>
           </button>
         )}
         {blocking && btn.idleCities > 0 && (

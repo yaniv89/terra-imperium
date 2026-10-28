@@ -81,7 +81,7 @@ const DefenseSheet = () => {
         </div>
         <div className="text-end text-[11px] leading-tight shrink-0 pt-0.5">
           <div className="font-semibold">{t('bt.def.endTurnPaused')}</div>
-          <div className="text-fa-muted fa-num">{defenses.length > 1 ? t('bt.def.nOfM', { a: 1, b: defenses.length }) : t('bt.def.oneBattle')}</div>
+          <div className="text-fa-muted">{defenses.length > 1 ? t('bt.def.nOfM', { a: 1, b: defenses.length }) : t('bt.def.oneBattle')}</div>
         </div>
         <IconButton label={t('bt.def.lookMap')} icon={ChevronDown} onClick={turn.tuck} className="!w-9 !h-9 -me-1" data-testid="defense-later" />
       </div>
