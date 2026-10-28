@@ -73,3 +73,5 @@ Sources: newcomer-phone run 40650969714 (report, diary, shots on `ai/human-playt
 ## Tests
 
 The full `npx vitest run` passed 4692 tests across 498 files. 3 failed under full-suite load: worldgen "same bytes", battleLoop replay and the cities 150 ms budget. The first two are on the known-flake list. All 3 pass when run alone (29 tests). Lint is clean.
+
+After the lead's items, a second full `npx vitest run`: 4695 passed and 1 failed. The failure was sayWhy.test.js, whose rival was never seen, so the new war block came before the gold shortfall. The test now uses a world with fog off and passes (6 of 6). Lint is clean.
