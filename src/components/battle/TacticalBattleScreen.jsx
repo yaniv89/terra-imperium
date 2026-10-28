@@ -351,6 +351,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
             const own = m.view.squads.filter((q) => q.side === playerSide && q.alive && q.onField);
             if (own.length) renderer.centerOn(own.reduce((a, q) => a + q.x, 0) / own.length / Q, own.reduce((a, q) => a + q.y, 0) / own.length / Q);
             f.centered = true;
+            renderer.startIntro?.();
             // Resumed: say where it picks up (playtest 4 H2); a rejected checkpoint says so instead.
             if (!resumeRejected && resume?.log && m.view.tick > 0) setOrderNote(tNow('bt.screen.resumedAt', { time: battleClock(m.view.tick) }));
           }
@@ -370,7 +371,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           // Asked when the page was hidden (below): kept as the battle's latest checkpoint, so a
           // phone that drops the tab picks up here, not up to 10 s earlier (playtest 4 H2).
           else if (!endedSeen && m.tick > 0) { sw.checkpoint = m; onCheckpoint?.(m); }
-        } else if (m.type === 'ended') { endedSeen = true; setEnded(m); }
+        } else if (m.type === 'ended') { endedSeen = true; setEnded(m); renderer.startOutro?.(); }
         else if (m.type === 'ordersRefused') setRefused({ count: m.count, full: !!m.full });
         else if (m.type === 'resumeRejected') {
           // The saved checkpoint was not this battle's: it starts fresh, at deployment, and says so
