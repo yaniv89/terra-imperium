@@ -33,6 +33,16 @@ describe('city rail model', () => {
     expect(rows[1]).toMatchObject({ capital: false, idle: true, starving: true, restless: true, besieged: true, growthTurns: null });
     expect(cityRailModel({ ...s0, playerNationId: 'nope' })).toEqual([]);
   }, 30000);
+  it('names what waits behind the current build (queued units never look lost)', () => {
+    let s = peoplesWorld({ seed: 7 });
+    const cap = getNationCapital(FR);
+    expect(cityRailModel(s).find((r) => r.id === cap).then).toBeNull();
+    s = gameReducer(s, { type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId: cap, item: { kind: 'settler' } } });
+    s = gameReducer(s, { type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId: cap, item: { kind: 'unit', classId: 'support', explorer: true } } });
+    expect(cityRailModel(s).find((r) => r.id === cap)).toMatchObject({ building: 'Settlers', then: 'Scouts', thenMore: 0 });
+    s = gameReducer(s, { type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId: cap, item: { kind: 'settler' } } });
+    expect(cityRailModel(s).find((r) => r.id === cap).thenMore).toBe(1);
+  }, 30000);
   it('names build items shortly and the per-turn strip reads the balance', () => {
     expect(shortItemLabel({ kind: 'settler' })).toBe('Settlers');
     expect(shortItemLabel({ kind: 'unit', classId: 'infantry' })).toMatch(/\w/);

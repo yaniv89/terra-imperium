@@ -2,7 +2,7 @@
 // Jump to the thing a "needs you" prompt is about (nextPromptModel.js): a city card, an army sheet,
 // the tile of idle settlers, the Research or Peoples tab. Shared by the chips under the top bar and
 // the End Turn dock's warning list.
-import { openPanelTab, OPEN_SECTION } from '../panels/panelEvents';
+import { openPanelTab, openSection, openPeople } from '../panels/panelEvents';
 import { selectArmy, selectTile, selectRegion, manageCity, focusRegion } from '../map/marchEvents';
 import { openTributeDemand, openJoinOffer } from '../independents/independentEvents';
 import { showCapture } from '../capture/captureEvents';
@@ -25,7 +25,8 @@ export const goToPrompt = (state, p) => {
     if (cap) selectRegion(cap);
     return;
   }
-  if (p.tab) { openPanelTab(p.tab); if (p.section) window.dispatchEvent(new CustomEvent(OPEN_SECTION, { detail: p.section })); return; }
+  if (p.nationId && p.tab === 'diplomacy') { openPeople(p.nationId); return; }
+  if (p.tab) { openPanelTab(p.tab); if (p.section) openSection(p.section); return; }
   if (p.kind === 'army' || p.kind === 'supply') { selectArmy(p.tile); return; }
   if (p.kind === 'settler') { selectTile(p.tile); return; }
   if (p.kind === 'city') { manageCity(p.regionId, 'build'); return; }

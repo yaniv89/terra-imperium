@@ -67,7 +67,7 @@ describe('W14 defenseSheetModel', () => {
     const view = { ...real, odds: { ...(real.odds || {}), undefended: false, holdChance: 0.05 } };
     const m = defenseSheetModel(st, def, { view });
     expect(m.hopeless).toBe(true);
-    expect(m.warning).toMatch(/^Badly outnumbered: Auto holds only 5% of the time\./);
+    expect(m.warning).toMatch(/^Hopeless: Auto holds only 5% of the time(, mostly from .+)?\./);
     expect(m.warning).not.toMatch(/—/);
     expect(m.suggested).toBe(m.withdraw?.ok ? 'withdraw' : 'auto');
     const chosen = defenseSheetModel({ ...st, battleSettings: { defaultMode: 'command' } }, def, { view });
@@ -76,6 +76,29 @@ describe('W14 defenseSheetModel', () => {
     expect(even.hopeless).toBe(false);
     expect(even.warning).toBeNull();
     expect(even.suggested).toBe('command');
+  });
+
+  it('states what moved the odds as yours, and the hopeless warning names the worst of it', () => {
+    const { st, def } = withAttack();
+    const old = { ...st, units: { ...st.units, g1: { ...st.units.g1, ageId: 'stone' }, g2: { ...st.units.g2, ageId: 'stone' } }, techAgeId: 'kingdoms' };
+    const odds = estimateDefenseOdds(old, def, 20);
+    expect(odds.reasons.find((f) => f.id === 'units').value).toBeGreaterThan(1); // the attacker's view: old defenders help it
+    const m = defenseSheetModel(old, def, { view: { ...queuedBattleView(old, def, 2), odds: { ...odds, holdChance: 0.05 } } });
+    const units = m.reasons.find((f) => f.id === 'units');
+    expect(units.value).toBeLessThan(1); // read as yours
+    expect(units.label).toBe("Units' age");
+    const aux = defenseSheetModel(old, def, { view: { ...queuedBattleView(old, def, 2), odds: { ...odds, auxiliaries: { attacker: 3164, defender: 2182 } } } });
+    expect(aux.aux).toBe('Auto also counts the auxiliaries each side trains during the battle: about 21,820 men yours, 31,640 theirs.');
+    const worst = m.reasons.find((f) => f.value < 1);
+    expect(m.warning).toContain(`mostly from ${worst.label}`);
+  });
+
+  it('an empty city holding this turn says when its defences fall at this rate (lane battle-odds: 100% hold, taken in 3 turns)', () => {
+    const { st, def } = withAttack();
+    const real = queuedBattleView(st, def, 2);
+    const m = defenseSheetModel(st, def, { view: { ...real, odds: { undefended: true, holdChance: 1, city: { hpBefore: 405, hpAfter: 298, maxHp: 640 } } } });
+    expect(m.odds).toMatchObject({ fallsIn: 4, verdict: 'Holds this turn' });
+    expect(m.odds.text).toMatch(/fall in about 4 turns\.$/);
   });
 
   it('offers Withdraw only with somewhere to fall back to', () => {

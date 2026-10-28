@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { turnReportModel } from './turnReportModel';
 import { cap } from '../../engine/testWorld';
 import { LogTypes } from '../../data/types';
+import { msg, people, cityRef } from '../../engine/messages';
 import { peoplesWorld } from '../../engine/testWorld';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
@@ -21,6 +22,13 @@ describe('turn report model (W10)', () => {
     expect(m.counts.cities).toBe(1);
     expect(m.items[0].place).toEqual({ kind: 'city', id: capId, name: before.regions[capId].name });
     expect(m.quiet).toBe(true);
+  });
+
+  it('an army or raiders coming for a city of yours carry Defend (the city\'s Defense tab)', () => {
+    const capId = cap(FR);
+    const line = { year: before.year, type: LogTypes.CRISIS, ...msg('m.battle.armyNears', { nation: people('x', 'Hittites'), men: '8,000', count: 2, place: cityRef(capId, before.regions[capId].name) }) };
+    const m = turnReportModel(before, next({ logs: [...(before.logs || []), line] }));
+    expect(m.items.find((i) => i.engage)?.engage).toEqual({ cityId: capId, tile: null, defend: true });
   });
 
   it('groups a battle, a raid line and a city lost, and is not quiet then', () => {

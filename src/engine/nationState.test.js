@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ageOf, ageIndexOf } from './nationState';
+import { ageOf, ageIndexOf, viewAs, getResearched } from './nationState';
 import { peoplesWorld, rivalOf } from './testWorld';
 import { resolveTurn } from './resolveTurn';
 import { FIRST_AGE_ID, getAgeIndex } from '../data/ages';
@@ -45,4 +45,17 @@ describe('ageOf', () => {
     expect(ageOf(s, me)).toBe('modern');
     expect(ageOf(s, ai)).toBe('modern');
   }, 60000);
+});
+
+describe('viewAs: the state as an AI nation acts in it', () => {
+  const state = { playerNationId: 'p', techAgeId: 'kingdoms', techTree: { writing: { researched: true } }, resources: { gold: 5 }, nations: { p: {}, a: { tech: { ageId: 'classical', researched: ['bronzeWorking'] }, economy: { gold: 9 } } } };
+  it('reads the actor as the player and keeps the human\'s age and research (they were read as the first age)', () => {
+    const v = viewAs(state, 'a');
+    expect([v.playerNationId, v.techAgeId, v.resources.gold]).toEqual(['a', 'classical', 9]);
+    expect(ageOf(v, 'p')).toBe('kingdoms');
+    expect(getResearched(v, 'p')).toEqual(['writing']);
+    expect(getResearched(v, 'a')).toEqual(['bronzeWorking']);
+    expect(ageOf(viewAs(v, 'p'), 'p')).toBe('kingdoms');
+    expect(viewAs(state, 'p')).toBe(state);
+  });
 });

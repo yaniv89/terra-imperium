@@ -239,6 +239,17 @@ describe('a field battle never runs to the clock with nobody fighting (playtest 
     expect(w.ended.tick).toBeLessThan(setup.limitTicks);
     expect(hit).toBe(true);
   });
+  // battle-engage (playtest 40650979770 step 108): the sandbox's fort-2 base with no walls is an
+  // assault; its defender held still for the whole 20-minute clock and nobody lost a man.
+  it('so does the defender of an assault on a town with no walls', () => {
+    const setup = buildSetupFromArmies({ regionId: 'stall-test', terrain: 'mixed', seed: 7, attackerUnits: units('a'), defenderUnits: units('d'), attackerAgeId: 'gunpowder', defenderAgeId: 'gunpowder', fortLevel: 2, controllers: ['player', 'ai'], economy: true });
+    expect(setup.battleType).toBe('assault');
+    const w = createWorld(setup);
+    let hit = false;
+    while (!w.ended) { step(w, []); hit ||= w.squads.some((q) => !q.worker && q.lastHitTick >= 0); }
+    expect(hit).toBe(true);
+    expect(w.ended.reason).not.toBe('timeLimit');
+  }, 60000);
 });
 
 describe('the AI fights like a player would (battle-ai-tactics)', () => {
