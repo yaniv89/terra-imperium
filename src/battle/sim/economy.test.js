@@ -108,6 +108,19 @@ describe('battle economy', () => {
     expect(w.squads.filter((q) => q.side === 0 && !q.worker && q.alive).length).toBe(army);
   });
 
+  // battle-engage (playtest 40651418969 step 181): trained squads sat idle at camp or walked past fights.
+  it('a soldier trained with a rally point attack-moves to it', () => {
+    const w = createWorld(ecoSetup());
+    const hq = w.eco.buildings.find((b) => b.side === 0 && b.type === 'camp');
+    hq.type = 'barracks'; // (bookkeeping only: a building that trains infantry)
+    w.eco.stock[0] = w.eco.stock[0].map(() => 5000 * MILLI);
+    run(w, 1, [{ side: 0, type: 'rally', building: hq.idx, x: hq.x + 30 * Q, y: hq.y }, { side: 0, type: 'train', building: hq.idx, role: 'infantry' }]);
+    for (let i = 0; i < 20 * 120 && !(w.eco.stats[0].trained.infantry > 0); i++) { step(w, []); w.events.length = 0; }
+    const q = w.squads[w.squads.length - 1];
+    expect(q.classId).toBe('infantry');
+    expect(q.order).toMatchObject({ type: 'attackMove', x: hq.x + 30 * Q, y: hq.y });
+  });
+
   it('a city assault houses the defender in its real houses; destroying them lowers the cap', () => {
     const manifest = buildTownManifest({ cityId: 'eco-city', ageId: 'bronze', tierId: 'medium', style: 'levant', seed: 5, capital: false, defenseTier: 1, buildings: {} });
     const setup = ecoSetup({ cityManifest: manifest, fortLevel: 2 });

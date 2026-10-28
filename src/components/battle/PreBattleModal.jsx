@@ -53,7 +53,8 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
     [state, fromRegionId, targetRegionId, navalUnitId, tile, fromTile]);
   const turn = useInteraction(arrival ? 'pre-battle-arrival' : 'pre-battle', true, { priority: PRIORITY.preBattle, label: tNow('wait.commandOrAuto', { name: m.name }), testId: 'pre-battle-chip', tone: 'danger', user: !arrival });
   useEffect(() => { prewarmBattleWorker(); }, []); // the battle's worker loads while the player decides
-  const preferred = state.battleSettings?.defaultMode === 'auto' ? 'auto' : 'command';
+  const setting = state.battleSettings?.defaultMode;
+  const preferred = setting === 'auto' || (setting !== 'command' && m.hopeless) ? 'auto' : 'command';
   const [mode, setMode] = useState(preferred);
   const [prefer, setPrefer] = useState(false);
   const [quick, setQuick] = useState(false);
@@ -157,6 +158,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
                 <div className="mt-1"><OddsBar mine={c.win} compact /></div>
                 <div className="text-[11px] text-fa-muted leading-snug pl:hidden">{c.losses}{m.v?.ok && !c.take && !field && m.cityRule !== 'garrison' ? t('bt.pre.needInfantry') : ''}</div>
                 {c.range && <div className="text-[11.5px] font-semibold leading-snug mt-1" data-testid="battle-odds-range">{c.range}</div>}
+                {c.aux && <div className="text-[11px] text-fa-muted leading-snug mt-0.5" data-testid="battle-odds-aux">{c.aux}</div>}
                 {c.reasons.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1" data-testid="battle-odds-factors">
                     {c.reasons.map((f) => (
@@ -207,6 +209,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
         </div>
 
         {blockedReason && <div role="status" className="mx-2.5 mb-1.5 text-[12.5px] text-fa-brass rounded-[8px] border border-fa-brass/50 px-2.5 py-1.5" data-testid="battle-blocked-reason">{blockedReason}</div>}
+        {!blockedReason && m.hopelessText && <div role="status" className="mx-2.5 mb-1.5 text-[12px] leading-snug text-fa-danger-text rounded-[8px] border border-fa-danger/60 px-2 py-1" data-testid="pre-battle-hopeless">{m.hopelessText}</div>}
         {!blockedReason && m.siegeAdvice && <div role="status" className="mx-2.5 mb-1.5 text-[12px] leading-snug text-fa-brass" data-testid="pre-battle-siege-advice">{m.siegeAdvice}</div>}
         {!blockedReason && m.consequences.length > 0 && <div role="status" className="mx-2.5 mb-1.5 text-[11.5px] leading-snug text-fa-brass" data-testid="pre-battle-consequences">{m.consequences.map((c) => <p key={c.id} data-testid={`pre-battle-${c.id}`}>{c.text}</p>)}</div>}
         {!blockedReason && !affordable && <div role="status" className="mx-2.5 mb-1.5 text-[12.5px] text-fa-danger-text">{t('bt.pre.notEnoughLaunch')}</div>}

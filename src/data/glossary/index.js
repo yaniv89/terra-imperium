@@ -8,6 +8,9 @@ import { UNIT_ROSTER, UNIT_CLASSES } from '../unitClasses';
 import PEOPLE_NOTES from './peopleNotes.json'; // AI-drafted, reviewed: { note, founded: {en, he}, uncertain }
 
 export const GLOSSARY_KINDS = ['people', 'city', 'tech', 'unit'];
+// The game's own words, for a newcomer (newcomer playtest: Glossary opened a people page, never a
+// list). Text lives in the i18n keys gloss.term.<id> and gloss.term.<id>.text.
+export const GLOSSARY_TERMS = ['gold', 'production', 'science', 'settlers', 'scouts', 'army', 'battle', 'war', 'pact', 'independents', 'ruler', 'decrees', 'governor', 'laws', 'ages', 'goals'];
 
 /** Every id of a kind that has an entry. */
 export const glossaryIds = (kind) => ({
@@ -22,6 +25,7 @@ const CITY_HOME = new Map();
 PEOPLES_LIST.forEach((p) => p.cities.forEach((c, i) => { if (!CITY_HOME.has(c)) CITY_HOME.set(c, { peopleId: p.id, capital: i === 0 }); }));
 
 export const glossaryEntry = (kind, id) => {
+  if (kind === 'term') return GLOSSARY_TERMS.includes(id) ? { kind, id } : null;
   if (kind === 'people') {
     const p = PEOPLES[id];
     return p && { kind, id, name: p.name, capital: p.capital.name, land: p.landName, cities: p.cities.slice(0, 6), ...PEOPLE_NOTES[id] };

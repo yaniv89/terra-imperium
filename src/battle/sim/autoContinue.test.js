@@ -42,6 +42,25 @@ describe('H-26: on to the next building', () => {
     expect(b.order.type).toBe('idle');
   });
 
+  // battle-engage (playtest 40650979770 step 130): units stood idle in the enemy's base after their fight.
+  it('a squad whose foe died with nobody else in sight goes on to the nearest base building', () => {
+    const w = createWorld(town({ tierId: 'medium', buildings: { economy: 1, military: 1 } }));
+    const [a, far] = army(w, 0);
+    const foe = w.squads.find((q) => q.side === 1 && !q.worker && q.onField);
+    const keep = w.structures[0];
+    w.squads.filter((q) => q.side === 1 && q !== foe).forEach((q) => { q.onField = false; });
+    a.x = keep.x - 16 * Q; a.y = keep.y; far.x = 3 * Q; far.y = keep.y;
+    a.stats = { ...a.stats, sight: 1 }; // nothing in sight: only the new rule can find it work
+    applyOrder(w, { side: 0, type: 'attack', squads: [a.idx], target: { kind: 'squad', index: foe.idx } });
+    applyOrder(w, { side: 0, type: 'attack', squads: [far.idx], target: { kind: 'squad', index: foe.idx } });
+    foe.alive = false; foe.strength = 0;
+    acquireTargets(w);
+    expect(a.order.type).toBe('attack');
+    expect(a.targetKind === 'structure' || a.targetKind === 'eco').toBe(true);
+    expect(far.order.type).toBe('idle'); // far from their base it stands, as before
+    expect(far.target).toBe(-1);
+  });
+
   it('an idle squad a tower shoots turns on it', () => {
     const w = createWorld(town());
     const keep = w.structures[0];

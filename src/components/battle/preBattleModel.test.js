@@ -62,6 +62,16 @@ describe('W11 preBattleModel', () => {
     expect(preBattleModel({ ...s, intel: {} }, { fromRegionId: from, targetRegionId: target }, { samples: 4 }).chance.range).toBeUndefined();
   });
 
+  it('a hopeless attack says so with its main reason; an even one does not (I011 for attacks)', { timeout: 20000 }, () => {
+    const { s, from, target } = setup();
+    const spy = { ...s, intel: { [DE]: s.turnNumber + 3 } };
+    const weak = { ...spy, units: { ...spy.units, a: { ...spy.units.a, strength: 60 }, d: { ...spy.units.d, strength: 1000, maxStrength: 1000 } } };
+    const m = preBattleModel(weak, { fromRegionId: from, targetRegionId: target }, { samples: 20 });
+    expect(m.hopeless).toBe(true);
+    expect(m.hopelessText).toMatch(/^Hopeless: Auto wins only \d+% of the time, mostly from Numbers x0\.\d\d\. Call off/);
+    expect(preBattleModel(spy, { fromRegionId: from, targetRegionId: target }, { samples: 20 }).hopelessText).toBeNull();
+  });
+
   it('no parity record or no range yields no line, never a made-up number', () => {
     expect(parityLine('naval')).toBeNull();
     expect(parityLine(undefined)).toBeNull();

@@ -34,6 +34,7 @@ const CityList = ({ onSelect, compact = false }) => {
                 {r.outpost ? t('cities.growing') : r.idle ? t('cities.nothingQueued') : `${r.building}${r.buildWait ? ` · ${r.buildWait}` : r.buildTurns ? t('cities.inTurns', { n: n(r.buildTurns) }) : ''}`}
                 {r.growthTurns ? t('cities.growsIn', { n: n(r.growthTurns) }) : ''}
               </span>
+              {r.then && <span className="block text-[11px] text-fa-muted truncate" data-testid="city-rail-then">{t(r.thenMore ? 'cities.thenMore' : 'cities.then', { name: r.then, n: n(r.thenMore) })}</span>}
               {!r.idle && !r.outpost && r.buildShare != null && (
                 <span className="fa-bar mt-1 w-full max-w-[9rem]" style={{ height: 3 }} aria-hidden="true"><span style={{ width: `${Math.round(r.buildShare * 100)}%`, background: '#CDB27A' }} /></span>
               )}

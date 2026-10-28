@@ -17,7 +17,7 @@ export const NATION_ELIMINATION_REWARD = { gold: 200 };
 // does for an AI one). Before plan §M15 the player had NO losing condition at all; checkPlayerDefeat
 // is that condition now.
 // A Stone Age band that has not founded its village yet (settlers.js makeBand) is a holding too.
-const hasBand = (units, nationId) => Object.values(units || {}).some((u) => u.band && u.ownerId === nationId);
+export const hasBand = (units, nationId) => Object.values(units || {}).some((u) => u.band && u.ownerId === nationId);
 
 export const checkNationElimination = (nations, regions, nationId, units = {}) => {
   const nation = nations[nationId];

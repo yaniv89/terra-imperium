@@ -434,7 +434,8 @@ const spawnUnit = (w, b, role, atStart = false) => {
     if (rallied >= 0) setJob(q, { t: 'gather', node: rallied, phase: 0, drop: -1 });
     else autoGather(w, q);
   } else if (b.rally) {
-    q.order = { type: 'move', x: b.rally.x, y: b.rally.y };
+    // Ready to fight on the way, and razing on if the rally is in their base (AoE's rally on the enemy; battle-engage).
+    q.order = { type: 'attackMove', x: b.rally.x, y: b.rally.y };
   }
   if (!atStart) w.events.push({ t: w.tick, type: 'trained', id: q.idx, side, role });
   return q;
