@@ -102,6 +102,27 @@ The `engine-rules-reviewer` agent found no rule broken. I fixed two of its findi
 - Test: crises.test.js "the player may answer a coming crisis during its warning". The stored gold equals the scaled amount on the card, and a stored -55 is paid as 55, whatever the scale at the strike.
 - Checks: `npm run test:quick` (490 files, 4,188 tests) and resolveTurn.test.js (95 tests) pass.
 
+## Lead request (14:20): the passive endgame test ended on the Future's goal
+
+The lead reported that endgameReachability.test.js "a passive run never wins by default" failed with this branch: an AI reached the Future's goal before the turn limit.
+
+- **Cause:** the Congress at Royal Chancery. A member's gold from a passed trade standard (+5%) or arms limit (+3%) compounded from the Age of Kingdoms on. I narrowed it down with one variant at a time, each run on the endgame test and on balance-sim worldStats (seeds 11 to 14, full Normal games, base integration 033e03aa):
+  - The Congress back at Global Institutions: matches base, and the test passes.
+  - The Congress at Constitutional Law, or at Civil Service: the test still fails.
+  - The Congress at Royal Chancery with the resolutions' gold removed: seeds 12 to 14 match base number for number, and the test passes.
+- **Fix:** `CONGRESS_GOLD_TECH` (data/worldCongress.js) and `congressMods` (engine/worldCongress.js). The Congress still meets and votes from Royal Chancery, with sanctions and the arms limit's manpower cut. A member gets a resolution's gold only once it knows Global Institutions, the tech that opened the Congress before. The resolution texts say so in English and Hebrew. A test is in worldCongress.test.js. The endgame test is unchanged.
+- **Evidence** (L = leader reaches the age, H = half the majors, ending):
+
+| Seed | Base | This branch before the fix | With the fix |
+|---|---|---|---|
+| 11 | Lfuture 501, Hfuture 678, futureGoal at 912 | Lfuture 602, Hfuture 704, turnLimit | Lfuture 501, Hfuture 678, turnLimit |
+| 12 | Lfuture 513, Hfuture 681, turnLimit | Lfuture 492, Hfuture 687, futureGoal at 745 | Lfuture 513, Hfuture 681, turnLimit |
+| 13 | Lfuture 549, Hfuture 702, turnLimit | Lfuture 516, Hfuture 697, futureGoal at 889 | Lfuture 549, Hfuture 704, turnLimit |
+| 14 | Lfuture 501, Hfuture 715, futureGoal at 757 | Lfuture 525, Hfuture 699, futureGoal at 763 | Lfuture 501, Hfuture 715, futureGoal at 760 |
+
+  Every age's leader and half-world turns match base within 2 turns on every seed.
+- **Tests:** the full `npx vitest run` after merging integration: 508 files and 4,772 tests passed, 0 failed.
+
 ## For the lead (design calls I made, please confirm)
 
 1. **The Congress moves to the Age of Kingdoms.**
