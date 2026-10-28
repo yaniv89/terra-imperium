@@ -1033,7 +1033,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     if (!r || !cur || !o) return;
     let sel = [...selectedRef.current].filter((i) => cur.squads[i]?.classId !== 'worker');
     if (!sel.length) sel = fightersOf(cur).map((q) => q.idx);
-    if (!sel.length) return;
+    if (!sel.length) { setOrderNote(tNow('bt.order.noTroops')); return; } // never silent (playtest 40651416284 step 166)
     send([{ type: 'attack', squads: sel, target: o.target }]);
     r.setOrderTarget(sel, o.target, 'attack');
     r.addMarker(o.x, o.y, '#ef4444', 1.6, 1.4);

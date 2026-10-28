@@ -303,6 +303,7 @@ export default {
   'bt.host.crashMessage': 'הטלפון סגר את המשחק בזמן שהקרב היה פתוח. המשיכו ממקום השמירה האחרון, או תנו לאוטומטי להילחם בו.',
   'bt.host.resume': 'המשך',
   'bt.order.attackSent': 'התקדמות בהתקפה: {n} יחידות בדרך.',
+  'bt.order.noTroops': 'אין חיילים בשדה לשלוח: כולם נפלו, ברחו או טרם הגיעו.',
   'bt.order.noGround': 'אין פקודה: הקישו על שדה הקרב עצמו.',
   'bt.order.whoCavalry': 'פרשים',
   'bt.order.whoAircraft': 'כלי טיס',

@@ -98,7 +98,8 @@ for (const age of ages) {
     await shot('1-objective');
     if (still) { await tap(page, 'battle-objective-attack'); await page.waitForTimeout(300); console.log(`${age} objective: after Attack it: "${await text(page, 'battle-order-note')}"`); await page.waitForTimeout(1000); console.log(`${age} objective: squads with an attack order: ${await page.evaluate(() => window.__battleView().squads.filter((q) => q.side === 0 && q.alive && q.onField && q.order === 'attack').length)} of ${await page.evaluate(() => window.__battleView().squads.filter((q) => q.side === 0 && q.alive && q.onField && q.classId !== 'worker').length)}`); }
   }
-  // 3. Powers: each one as soon as it can be paid for
+  // 3. Powers: each one as soon as it can be paid for (PART=orders skips them)
+  if (part !== 'orders') {
   const powers = await page.evaluate(() => (window.__battleView?.()?.powers || []).map((p) => ({ id: p.id, cost: p.cost, targeted: p.targeted })));
   for (const pw of powers) {
     await page.waitForFunction((id) => { const p = window.__battleView?.()?.powers?.find((x) => x.id === id); const v = window.__battleView?.(); return p && p.readyIn <= 0 && v.supply[0] >= p.cost; }, pw.id, { timeout: 60000 }).catch(() => null);
@@ -126,6 +127,7 @@ for (const age of ages) {
     console.log(`${age} power ${pw.id}: note "${await text(page, 'battle-order-note')}"`);
     await shot(`4-power-${pw.id}`);
     if (pw.targeted) { await page.waitForTimeout(1500); await shot(`4-power-${pw.id}-landed`); } // a strike lands after its delay
+  }
   }
   // 4. Flags zoomed out over the army
   await page.evaluate(() => { const v = window.__battleView(); const r = window.__battleRenderer; const own = v.squads.filter((q) => q.side === 0 && q.alive && q.onField); r.centerOn(own.reduce((s, q) => s + q.x, 0) / own.length / 256, own.reduce((s, q) => s + q.y, 0) / own.length / 256); r.zoomBy(0.6, innerWidth / 2, innerHeight / 2); r.updateCamera(); });
