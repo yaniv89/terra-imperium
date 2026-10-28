@@ -17,6 +17,8 @@ const exe = process.env.CHROMIUM || '/opt/pw-browsers/chromium';
 fs.mkdirSync(outDir, { recursive: true });
 const browser = await launchBrowser({ executablePath: exe, headless: true });
 const visible = (page, id) => page.getByTestId(id).isVisible().catch(() => false);
+// a raw tap at the element's centre: the HUD re-renders every frame, which stalls locator.tap's stability wait
+const tap = async (page, id) => { const bb = await page.getByTestId(id).boundingBox(); if (bb) await page.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2); };
 const text = (page, id) => page.getByTestId(id).textContent().catch(() => null);
 
 for (const age of ages) {
@@ -31,23 +33,23 @@ for (const age of ages) {
   await page.goto(`${base}?battleSandbox&autostart&age=${age}`, { timeout: 240000, waitUntil: 'domcontentloaded' });
   await page.getByTestId('battle-pause').waitFor({ timeout: 120000 });
   await page.waitForTimeout(1500);
-  await page.getByTestId('battle-pause').tap(); // Start
-  if (await page.getByTestId('battle-speed-3').count()) await page.getByTestId('battle-speed-3').tap();
+  await tap(page, 'battle-pause'); // Start
+  if (await page.getByTestId('battle-speed-3').count()) await tap(page, 'battle-speed-3');
   await page.waitForTimeout(1500);
   // 1. Enemy: Attack it must wait for the player (it used to go in 7 s)
   if (await page.getByTestId('battle-objective').count()) {
-    await page.getByTestId('battle-objective').tap();
+    await tap(page, 'battle-objective');
     await page.waitForTimeout(10000);
     const still = await visible(page, 'battle-objective-attack');
     console.log(`${age} objective: Attack it after 10 s: ${still ? 'shown' : 'GONE'} | "${await text(page, 'battle-objective-note')}"`);
     await shot('1-objective');
-    if (still) { await page.getByTestId('battle-objective-attack').tap(); await page.waitForTimeout(300); console.log(`${age} objective: after Attack it: "${await text(page, 'battle-order-note')}"`); }
+    if (still) { await tap(page, 'battle-objective-attack'); await page.waitForTimeout(300); console.log(`${age} objective: after Attack it: "${await text(page, 'battle-order-note')}"`); }
   }
   // 2. Attack armed, then a tap on the ground
-  await page.getByTestId('battle-select-all').tap();
+  await tap(page, 'battle-select-all');
   await page.waitForTimeout(300);
   if (await page.getByTestId('battle-attack-move').count()) {
-    await page.getByTestId('battle-attack-move').tap();
+    await tap(page, 'battle-attack-move');
     await page.waitForTimeout(300);
     console.log(`${age} attack armed chip: ${await visible(page, 'battle-attack-armed')}`);
     await shot('2-armed');
@@ -60,9 +62,9 @@ for (const age of ages) {
   const powers = await page.evaluate(() => (window.__battleView?.()?.powers || []).map((p) => ({ id: p.id, cost: p.cost, targeted: p.targeted })));
   for (const pw of powers) {
     await page.waitForFunction((id) => { const p = window.__battleView?.()?.powers?.find((x) => x.id === id); const v = window.__battleView?.(); return p && p.readyIn <= 0 && v.supply[0] >= p.cost; }, pw.id, { timeout: 60000 }).catch(() => null);
-    if (!(await page.getByTestId('battle-wand').count())) { await page.getByTestId('battle-select-all').tap(); await page.waitForTimeout(200); }
+    if (!(await page.getByTestId('battle-wand').count())) { await tap(page, 'battle-select-all'); await page.waitForTimeout(200); }
     if (!(await page.getByTestId('battle-wand').count())) break;
-    await page.getByTestId('battle-wand').tap();
+    await tap(page, 'battle-wand');
     await page.waitForTimeout(250);
     const btn = page.getByTestId(`battle-power-${pw.id}`);
     if (!(await btn.count()) || await btn.isDisabled()) { console.log(`${age} power ${pw.id}: not ready`); await page.keyboard.press('Escape'); continue; }

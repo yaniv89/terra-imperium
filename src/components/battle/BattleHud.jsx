@@ -657,7 +657,6 @@ const BattleHud = ({
           </div>
           <div className="flex gap-1.5">
             {onAbandon && <button type="button" onClick={() => onAbandon()} className="fa-btn fa-btn-secondary flex-1 !min-h-[44px] !px-1.5 text-[12px]" data-testid="battle-switch-auto">{t('bt.hud.switchAuto')}</button>}
-            <button type="button" onClick={() => setConfirmRetreat(true)} className="fa-btn fa-btn-danger flex-1 !min-h-[44px] !px-1.5 text-[12px]" data-testid="battle-leave">{t('bt.hud.retreat')}</button>
             {onToggleSound && <button type="button" onClick={onToggleSound} aria-label={soundOn ? t('bt.hud.muteSound') : t('bt.hud.soundOn')} className="fa-icon-btn !w-11 !h-11 shrink-0" data-testid="battle-sound">{soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}</button>}
           </div>
           {powerCards.length > 0 && (
@@ -672,6 +671,8 @@ const BattleHud = ({
             <div><span className="text-fa-enemy font-semibold">{t('bt.hud.theirs')}</span> {armyTallyText(armyTally(hud, 1 - playerSide))}.</div>
           </div>
           <div className="text-[10.5px] text-fa-muted leading-snug">{t('bt.hud.retreatHelp', { siege: bt === BATTLE_TYPES.assault ? t('bt.hud.siegeLifted') : '' })}</div>
+          {/* Retreat sits apart from Switch to Auto: a tap meant for Auto landed on it (playtest 40650973042 step 86) */}
+          <button type="button" onClick={() => setConfirmRetreat(true)} className="fa-btn fa-btn-danger w-full shrink-0 !min-h-[44px] mt-2 text-[12px]" data-testid="battle-leave">{t('bt.hud.retreat')}</button>
         </div>
       )}
 
@@ -685,9 +686,10 @@ const BattleHud = ({
             <div className="fa-heading text-[17px]">{t('bt.hud.retreatTitle')}</div>
             <p className="text-xs text-fa-muted" data-testid="battle-retreat-consequences">{t('bt.hud.retreatBody', { count: allCount, siege: bt === BATTLE_TYPES.assault ? t('bt.hud.andSiegeLifted') : '' })}</p>
             <div className="grid grid-cols-1 gap-2">
-              <button type="button" onClick={() => { setConfirmRetreat(false); onRetreatAll(); }} className="fa-btn fa-btn-danger !min-h-[44px]" data-testid="battle-retreat-all">{t('bt.hud.soundRetreat')}</button>
-              {onAbandon && <button type="button" onClick={() => { setConfirmRetreat(false); onAbandon(); }} className="fa-btn fa-btn-secondary !min-h-[44px]">{t('bt.hud.autoInstead')}</button>}
-              <button type="button" onClick={() => setConfirmRetreat(false)} className="fa-btn fa-btn-ghost !min-h-[44px]">{t('bt.hud.keepFighting')}</button>
+              {/* the safe answers first, the rout last and apart (step 87 tapped the top button expecting Auto) */}
+              <button type="button" onClick={() => setConfirmRetreat(false)} className="fa-btn fa-btn-secondary !min-h-[44px]" data-testid="battle-keep-fighting">{t('bt.hud.keepFighting')}</button>
+              {onAbandon && <button type="button" onClick={() => { setConfirmRetreat(false); onAbandon(); }} className="fa-btn fa-btn-secondary !min-h-[44px]" data-testid="battle-auto-instead">{t('bt.hud.autoInstead')}</button>}
+              <button type="button" onClick={() => { setConfirmRetreat(false); onRetreatAll(); }} className="fa-btn fa-btn-danger !min-h-[44px] mt-3" data-testid="battle-retreat-all">{t('bt.hud.soundRetreat')}</button>
             </div>
           </div>
         </div>
