@@ -61,6 +61,17 @@ The other losses checked were honest:
   - Train and walls are already on that tab.
 - **Sacks:** a sacked city was already spared a fixed 20 turns. That spare is now 12.5 reference turns through `speedTurns`: 20 to 21 at Normal up to kingdoms, 25 later, longer on Marathon, shorter on Fast. Hazor's sacks in the kingdoms save came about 27 turns apart, after a "raiders N tiles away" warning each time. The town had no garrison (220 militia against 2,000).
 
+## Lead's later items (playtests 40650973042 and 40651416284)
+- **Auxiliaries on the card** (40651416284 step 237): the odds simulation and the queued landing, raid and field views now average the auxiliaries Auto trains from the battle economy. Both cards show them as a line ("Auto also counts the auxiliaries each side trains during the battle: about 4,360 men yours, ...") and as an "Auxiliaries" factor. The Tirzah landing itself (14,900 musketeers against 10,000 pikemen, held 0%) was also the stone-age bug above: the defenders' side age was read as stone.
+- **Defence card buttons hidden by the Idle chip and the Defend chip** (step 76, and 40650973042 step 129):
+  - the choice row now sits under the odds
+  - the card is z-71, above the End Turn dock (z-70 while an overlay is open)
+- **Raid report contradiction** (step 152): "none of yours lost" next to "2,200 lost". It counted regiments, and militia are not regiments. It now reads "none of your regiments lost" (Hebrew already said regiments).
+- **Hazor every 24 turns, no counter** (steps 152, 296): the spare between sacks is unchanged at Normal (20 to 21 turns up to kingdoms, 25 later). There is now a counter: the raid warning comes 3 tiles out, and Defend opens the Defense tab with Pay them (tribute is a truce, and the raid turns back at the target), Send an army, Train and Walls. Not done, for the lead: the town militia does not scale with the age, so 2,000 militia against 15,760 modern raiders is a balance question for the independents' lane (`battleInputs.cityMilitia`, `RAID_ERA_FACTOR`).
+- **Not done, for the lead:**
+  - "March to Zafar" walks 10k into a 228k to 342k garrison (step 286). On arrival the attack card now shows the hopeless line and pre-selects Auto, but the March order itself does not warn, and the AI garrison size needs its own look (AI recruitment, aiLogic.js).
+  - The forced peace and the unordered amphibious assault on Sinope (step 197) belong to diplomacy, peace.js and the player's march code. I did not investigate them.
+
 ## Evidence
 - **Shots** (`node scripts/ui/battle-odds-shots.mjs <dir>`, dev server on 5197): 844x390 and 1600x900, en and he, no page errors. Engage card: "Numbers x0.27, Units' age x0.42, Technology x1.96", hopeless line, Auto chosen. Defence card: the choice row is visible. Defense tab with Coming and Engage. Hebrew reads right to left.
 - **balance-sim compare** (`compare.sh origin/claude/integration 150 11-18`, PLAYER=akkad), first pass with a 12-turn spare:
@@ -70,9 +81,23 @@ The other losses checked were honest:
   - wars, cities and the player's economy unchanged within noise
 
   The sack rise came from the spare dropping from 20 to 19 turns early. It is now 12.5; the second pass is below.
-- SECOND_PASS
-- PARITY
-- TESTS
+- **Second compare** (after the merge of integration, spare 12.5): nothing significant over 8 seeds:
+  - sacks 17.4 to 18.1
+  - raidsHit 67.6 to 69.0
+  - captures 5.6 to 5.5
+  - wars 5.1 to 5.0
+  - citiesChangedHands 9.5 to 9.5
+- **battle-lab parityEco** (N=16, TYPES field, assault, town, raid, sack, landing; ages bronze:bronze and classical:kingdoms): 34 of 36 rows are inside the guardrail. Two are OUT: raid bronze, cavalry+cavalry+infantry 0.48x and cavalry+cavalry 0.46x (tactical raids cost the raiders less than Auto says). This branch touches neither `autoBattle.js` nor `src/battle/sim`, and parityEco builds its battles without the views, so before equals after by construction. The two raid rows are base state for the battle lanes.
+- **Full `npx vitest run`** after merging origin/claude/integration: 499 files, 4,699 passed, 17 skipped, 0 failed. Lint is clean.
+- New tests:
+  - nationState "viewAs"
+  - aiLanding "the landing fights the player at the player's own age"
+  - defenseSheetModel: reasons read as yours, the worst factor in the warning, the auxiliaries line, "Holds this turn" with "fall in about 4 turns"
+  - preBattleModel: the hopeless attack
+  - cityDefenseModel: Engage, and Coming for this city
+  - turnReportModel: Defend on a march warning
+  - marchWarning.test.js
+  - battleOdds.range: the auxiliaries factor
 
 ## Not done, for the lead
 - The economy view in `economy.js:109` (AI income through a view with the player's `techAgeId`) is the same bug class in someone else's lane.
