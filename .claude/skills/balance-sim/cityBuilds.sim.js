@@ -10,6 +10,7 @@
 //   cityTurns      player city-turns in all; idleShare = idleCityTurns / cityTurns
 //   KEEP=advisor|repeat  every player city gets that standing order (SET_PRODUCTION_KEEP) once its
 //                  first idle turn is counted: idle turns are then only a new city's first turn
+//   KEEP_CAPITAL=1 with KEEP: only the capital gets the order once; new cities inherit it from their settlers' home
 //   TURNS=300 SEEDS=11,12 PLAYER=akkad npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/balance-sim/cityBuilds.sim.js
 import { it } from 'vitest';
 import { resolveTurn } from '../../../src/engine/resolveTurn';
@@ -29,6 +30,7 @@ const PLAYER = process.env.PLAYER || 'akkad';
 const SIZE = process.env.SIZE || 'standard';
 const SAMPLE = Number(process.env.SAMPLE || 10);
 const KEEP = process.env.KEEP || null;
+const KEEP_CAPITAL = !!process.env.KEEP_CAPITAL;
 
 const pct = (xs, p) => { if (!xs.length) return null; const s = [...xs].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(p * s.length))]; };
 const ageBuildings = (ageId) => Object.entries(BUILDING_CATEGORIES).flatMap(([category, c]) => c.tiers.map((t, tier) => ({ t, tier })).filter(({ t }) => t.age === ageId).map(({ tier }) => ({ kind: 'building', category, tier })));
@@ -63,7 +65,7 @@ SEEDS.forEach((seed) => {
       out.cityTurns += mine.length;
       const idle = turnBlockers(s).filter((b) => b.kind === 'city').length;
       out.idleCityTurns += idle;
-      if (KEEP) mine.filter((c) => !c.production?.keep).forEach((c) => { s = gameReducer(s, { type: ActionTypes.SET_PRODUCTION_KEEP, payload: { cityId: c.id, keep: KEEP } }); });
+      if (KEEP) mine.filter((c) => !c.production?.keep && (!KEEP_CAPITAL || (c.isCapital && t === 1))).forEach((c) => { s = gameReducer(s, { type: ActionTypes.SET_PRODUCTION_KEEP, payload: { cityId: c.id, keep: KEEP } }); });
       if (turnBlockers(s).some((b) => b.kind === 'city')) s = gameReducer(s, { type: ActionTypes.ADVISOR_PRODUCTION });
       if (t % SAMPLE === 0) sample(s, acc);
       const at = s.turnNumber;

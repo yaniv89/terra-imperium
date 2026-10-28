@@ -7,6 +7,7 @@ import { processCity, emptyWorld } from './world/cities';
 import { getTiles } from '../data/geo/tiles';
 import { peoplesWorld } from './testWorld';
 import { resolveTurn } from './resolveTurn';
+import { makeSettler, bestSites, foundOutpost } from './settlers';
 
 const EMPTY = { current: null, queue: [], progress: 0 };
 const idleGame = () => {
@@ -74,6 +75,18 @@ describe('keep building (standing orders)', () => {
     const lost = { ...S, regions: { ...S.regions, [city.id]: { ...city, owner: other.id, production: { current: { kind: 'unit', classId: 'infantry' }, queue: [], progress: 0, keep: 'repeat' } } } };
     const next = resolveTurn(lost);
     expect(next.regions[city.id].production?.keep).toBeUndefined();
+  });
+
+  it('a city founded by settlers takes its home city\'s standing order', () => {
+    const S = idleGame();
+    const home = { ...myCity(S), production: { ...EMPTY, keep: 'advisor' } };
+    const regions = { ...S.regions, [home.id]: home };
+    const site = bestSites({ ...S, regions }, S.playerNationId, home.tile, 'stone', { rings: 6, limit: 1 })[0];
+    expect(site).toBeTruthy();
+    const settler = { ...makeSettler('s1', home, S.playerNationId), tile: site.tile };
+    const r = foundOutpost(S, regions, S.world, settler, 5);
+    expect(r.city.production.keep).toBe('advisor');
+    expect(foundOutpost(S, S.regions, S.world, settler, 5).city.production.keep).toBeUndefined();
   });
 
   it('refuses a city that is not the player\'s', () => {
