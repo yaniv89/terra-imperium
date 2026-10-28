@@ -111,6 +111,9 @@ one array push per pan event and one Set per marker update; the glide itself is 
 
 Evidence: after2-* shots for every scene, phone and desktop, en and he; mapCamera.test.js (armyCycle,
 nextTileAfter), armySheetModel.test.js; src/components/map and ui 58 files pass.
+Full `npx vitest run` after merging origin/claude/integration (second pass): 506 files passed, 2 failed under
+load (src/engine/sight.test.js, a known load flake, and scripts/build-edge-engine.test.mjs, new from
+integration); both pass alone (2 files, 10 tests). Neither touches this lane's files. Lint clean.
 
 ## 7. Left open (for the lead)
 
