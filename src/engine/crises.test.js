@@ -114,6 +114,13 @@ describe('history crises (U31)', () => {
     expect(war?.aggressor).toBe(rival);
   });
 
+  it('a spared player answers a world war about the side under attack only', () => {
+    const s = world('modern');
+    const [a, b] = majorIds(s).filter((id) => id !== s.playerNationId);
+    const out = processCrises({ ...s, turnNumber: 50, crises: { coming: { id: 'world_war', turn: 50, nations: [a, b] } } });
+    expect(out.pendingEventChains).toContainEqual({ id: crisisAnswerId('world_war'), dueTurn: 50, nations: [b] });
+  });
+
   it('explore mode or crises off drop an announced crisis: it never strikes', () => {
     const s = world('bronze');
     const crises = { coming: { id: 'bronze_collapse', turn: 50, nations: [s.playerNationId] } };
@@ -216,6 +223,9 @@ describe('history crises (U31)', () => {
     const before = s0.nations[others[0]].hostility || 0;
     const after = applyEventEffects({ ...s0, logs: [] }, out.activeProceduralEvent, 0);
     expect(after.nations[others[0]].hostility).toBe(Math.max(0, before - 15));
+    // A broken truce's floor holds.
+    const floored = { ...s0, logs: [], nations: { ...s0.nations, [others[0]]: { ...s0.nations[others[0]], hostility: 45, hostilityFloor: 40 } } };
+    expect(applyEventEffects(floored, out.activeProceduralEvent, 0).nations[others[0]].hostility).toBe(40);
     // Outside its age window the player gets nothing.
     const later = cloneWorld(s0);
     later.nations[me].tech.ageId = 'classical';

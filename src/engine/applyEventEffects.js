@@ -229,10 +229,10 @@ export const applyEventEffects = (state, event, optionIndex) => {
   }
 
   // A crisis answer (crises.js): the majors it struck (event.nations) remember it, hostility
-  // being the grudge opinion.js reads (aid lowers it, profiting raises it).
+  // being the grudge opinion.js reads (aid lowers it, never under a broken truce's floor; profiting raises it).
   if (effects.struckHostility && event.nations?.length) {
     const nations = { ...next.nations };
-    event.nations.forEach((nId) => { if (nations[nId] && nId !== playerNationId) nations[nId] = { ...nations[nId], hostility: Math.max(0, Math.min(100, (nations[nId].hostility || 0) + effects.struckHostility)) }; });
+    event.nations.forEach((nId) => { if (nations[nId] && nId !== playerNationId) nations[nId] = { ...nations[nId], hostility: Math.max(nations[nId].hostilityFloor || 0, Math.min(100, (nations[nId].hostility || 0) + effects.struckHostility)) }; });
     next.nations = nations;
   }
 

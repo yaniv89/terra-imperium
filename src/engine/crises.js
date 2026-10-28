@@ -167,10 +167,11 @@ export const processCrises = (state) => {
   }
   const crises = { ...rest, history: [...(mem.history || []), { id: crisis.id, turn, nations: hit }] };
   const me = state.playerNationId;
-  // A player it spares but whose age it covers gets its answer card (aid, profit or stay out), bound to the struck.
+  // A player it spares but whose age it covers gets its answer card (aid, profit or stay out), bound to the
+  // struck: in a war only the side under attack (hit[1], declareWar's target above; the player is not in `hit`).
   const spared = !hitSet.has(me) && hit.length > 0 && alive(me) && predicateMet(ruleOf({ ...crisis, hits: { all: [] } }), factContext(state, me));
   const pendingEventChains = hitSet.has(me) && !coming.answered ? [...(state.pendingEventChains || []), { id: crisisCardId(crisis.id), dueTurn: turn }]
-    : spared ? [...(state.pendingEventChains || []), { id: crisisAnswerId(crisis.id), dueTurn: turn, nations: hit }] : state.pendingEventChains;
+    : spared ? [...(state.pendingEventChains || []), { id: crisisAnswerId(crisis.id), dueTurn: turn, nations: crisis.effect === 'war' ? hit.slice(1, 2) : hit }] : state.pendingEventChains;
   const choice = hitSet.has(state.playerNationId) && Number.isInteger(coming.choice) ? coming.choice : undefined;
   return { nations, wars, crises, pendingEventChains, choice, logs: [{ year: state.year, type: 'milestone', ...msg(`m.world.crisis.${crisis.id}`) }] };
 };
