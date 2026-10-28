@@ -11,7 +11,8 @@ test.describe('tactical battle', () => {
   test.use({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
 
   test('select, order, advance, retreat, result screen', async ({ page }) => {
-    test.setTimeout(260000);
+    // About 105 s on a dev machine (each step waits about 3.5 s on the software-GL page); slow CI runners take 2.5x and more.
+    test.setTimeout(480000);
     const errors = [];
     page.on('pageerror', (err) => errors.push(String(err)));
     page.on('console', (msg) => { if (msg.type() === 'error' && !/WebGL|GPU stall|ReadPixels/i.test(msg.text())) errors.push(msg.text()); });
