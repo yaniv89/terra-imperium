@@ -10,7 +10,7 @@ import { computePosition } from './Tooltip';
 
 const SHOW_MS = 3500;
 
-const Bubble = ({ rect, text }) => {
+export const Bubble = ({ rect, text }) => {
   const ref = useRef(null);
   const [at, setAt] = useState(null);
   useLayoutEffect(() => { if (ref.current) setAt(computePosition(rect, ref.current.getBoundingClientRect(), 'top')); }, [rect, text]);

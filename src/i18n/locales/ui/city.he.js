@@ -71,6 +71,8 @@ export default {
   'cy.rush.instead': 'במקום {turns}',
   'cy.rush.heat': 'המחיר גבוה ב־{pct}% בגלל הרכישות האחרונות של העיר; הוא יורד עם חלוף התורות.',
   'cy.rush.button': 'קנו ב־{gold} זהב',
+  'cy.rush.save': 'יש לכם {have} זהב: {turns} של הכנסה כדי לחסוך אותו.',
+  'cy.rush.noIncome': 'יש לכם {have} זהב ואין הכנסת זהב כדי לחסוך אותו.',
   'cy.rush.title': 'שלמו {gold} זהב על {hammers} הייצור שעוד חסר ל{label}',
   'cy.rush.text': '{label}: {hammers} ייצור תמורת {gold} זהב ({each} זהב לכל אחד). מוכן בתור הבא, {wait}.',
   'cy.shipCarries': 'נושאת חיילים: {n} · {tiles} משבצות ים בתור',

@@ -5,7 +5,7 @@
 // explains WHY — the multipliers each side fights under (numbers, matchups, terrain, walls, age)
 // — so the calculation isn't a black box. Pure and fast (~a few ms for 200 samples).
 import { resolveAutoBattle } from './autoBattle';
-import { battleInputs } from './battleInputs';
+import { battleInputs, reinforcementSources } from './battleInputs';
 import { createRng } from '../utils/rng';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, validateAmphibious, getAmphibiousBattleContext } from './invasion';
 import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs } from './fieldBattle';
@@ -173,7 +173,12 @@ export const estimateMarchOdds = (state, attackerUnits, cityId, samples = 100) =
   const v = { attackerUnits: withAirSupport(state, state.playerNationId, city.tile, land, defenderUnits), defenderUnits: withAirSupport(state, city.owner, city.tile, defenderUnits, land), targetRegion: city };
   const ctx = getInvasionBattleContext(state, { targetRegionId: cityId, targetRegion: city, defenderUnits: v.defenderUnits });
   const r = simulate(state, v, getResolveBattleArgs(v, ctx), ctx, samples, { kind: 'invasion', cityId, fromRegionId: land[0].regionId });
-  return { known: true, capture: r.capture, attackerStrength: r.attackerStrength, defenderStrength: r.defenderStrength, range: r.range, reasons: r.reasons };
+  // The troops a commanded assault would call in for the city (the same reinforcementSources as the
+  // pending battle), as far as the player sees them: a 1,600-man garrison with 20,000 beside it is
+  // not a weak city (newcomer playtest, round 3).
+  const standby = reinforcementSources(state, cityId, city.owner, state.playerNationId)
+    .flatMap((src) => src.unitIds.map((id) => state.units[id])).filter((u) => u && canSeeTile(state, u.tile));
+  return { known: true, capture: r.capture, attacker: r.attacker, autoRule: r.autoRule, city: r.city, standbyStrength: sumStrength(standby), attackerStrength: r.attackerStrength, defenderStrength: r.defenderStrength, range: r.range, reasons: r.reasons };
 };
 
 // The land battle of an amphibious landing (the naval interception, if any, is fought first and
