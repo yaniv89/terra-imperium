@@ -176,6 +176,7 @@ export default {
   'm.act.peaceRejected': '{nation} דוחה את תנאי השלום שלכם.',
   'm.act.peaceSigned': 'נחתם שלום עם {nation}.',
   'm.act.peaceAccepted': 'קיבלתם שלום עם {nation}.',
+  'm.act.stillAtWar': 'אתם עדיין במלחמה עם {nation}.',
   'm.act.peaceOfferRejected': 'דחיתם את הצעת השלום של {nation}: הם עשויים לבקש שוב בהמשך.',
   'm.act.tradeAgreement': 'נחתם הסכם סחר עם {nation}.',
   'm.act.bordersRefused': '{nation} משאירה את גבולותיה סגורים בפניכם (דעה {opinion}, נדרש {needed}{war}).',

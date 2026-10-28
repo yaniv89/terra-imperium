@@ -419,9 +419,13 @@ const scoreWarFromIndexes = (war, indexes) => {
 };
 
 // --- Peace flow thresholds (plan §M13/§B, trimmed — see this file's other M13 comments) ---
-const PEACE_SCORE_OFFER_THRESHOLD = 30;    // the AI offers the player peace once winning by this much
-const PEACE_SCORE_ENFORCE_THRESHOLD = 90;  // an overwhelming win enforces peace outright, no offer needed
+export const PEACE_SCORE_OFFER_THRESHOLD = 30;    // the AI offers the player peace once winning by this much
+export const PEACE_SCORE_ENFORCE_THRESHOLD = 90;  // an overwhelming win enforces peace outright, no offer needed
                                             // (trim: the plan's own "held for 3 turns" streak isn't tracked)
+// The player is told a turn ahead (lane wars-8: a forced peace came with no warning, civ veteran
+// playtest step 100). At this score the AI's lead is announced, and it dictates terms only on a
+// later turn than the warning (war.peaceWarnedTurn); falling back under the line clears it.
+export const PEACE_WARN_SCORE = 70;
 const AI_VS_AI_PEACE_SCORE_THRESHOLD = 25;
 // Below that score, two AI nations sign a white peace once both would accept one (their outlooks
 // have converged), checked every CONVERGE_PERIOD turns after CONVERGE_MIN_TURNS of war.
@@ -627,9 +631,13 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
     // Involves the player: the AI side may enforce, offer (queuing state.pendingPeaceOffer for the
     // player to accept/reject via the reducer), or simply wait out its own cooldown. Only one offer
     // is queued per turn — if another war already queued one this turn, this war just waits.
-    if (nextPendingPeaceOffer || state.turnNumber < (currentWar.peaceOfferCooldownTurn || 0)) return currentWar;
     const aiSide = currentWar.aggressor === state.playerNationId ? currentWar.enemy : currentWar.aggressor;
     const aiScore = aiSide === currentWar.aggressor ? currentWar.score : -currentWar.score;
+    if (aiScore >= PEACE_WARN_SCORE && currentWar.peaceWarnedTurn == null) {
+      logs.push({ ...msg('m.diplo.peaceWarn', { nation: nationRef(nextNations, aiSide), score: aiScore, at: PEACE_SCORE_ENFORCE_THRESHOLD }), type: 'combat' });
+      currentWar = { ...currentWar, peaceWarnedTurn: state.turnNumber };
+    } else if (aiScore < PEACE_WARN_SCORE && currentWar.peaceWarnedTurn != null) currentWar = { ...currentWar, peaceWarnedTurn: null };
+    if (nextPendingPeaceOffer || state.turnNumber < (currentWar.peaceOfferCooldownTurn || 0)) return currentWar;
     // A stalemate (CB09, I121): no battle, siege or held land for WAR_STALEMATE_IDLE_TURNS. The AI
     // offers a white peace and says why, instead of claiming an exhaustion the war never caused.
     if (aiScore < PEACE_SCORE_OFFER_THRESHOLD && isStalemate(currentWar, state.turnNumber)) {
@@ -641,7 +649,7 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
     if (aiScore < PEACE_SCORE_OFFER_THRESHOLD) return currentWar;
 
     const terms = buildAITerms(snapshotState, currentWar, aiSide);
-    if (aiScore >= PEACE_SCORE_ENFORCE_THRESHOLD) {
+    if (aiScore >= PEACE_SCORE_ENFORCE_THRESHOLD && currentWar.peaceWarnedTurn < state.turnNumber) {
       logs.push({ ...msg('m.diplo.forcesPeace', { nation: nationRef(nextNations, aiSide) }), type: 'diplomacy' });
       return concludeWar(currentWar, aiSide, terms, snapshotState);
     }

@@ -108,6 +108,8 @@ export default {
   'm.battle.generalFell': '{general} נפל בקרב יחד עם חייליו.',
   'm.battle.garrisonAbandons': 'חיל המצב שלכם נוטש את {city} לידי {enemy} ונסוג אל {to}.',
   'm.battle.underSiege': '{city} נתונה במצור של {by}.',
+  'm.battle.siegeLifted': 'המצור שלנו על {city} נגמר: אין לידה עוד צבא שלנו.',
+  'm.battle.siegeLiftedOurs': 'המצור על {city} הוסר: אין לידה עוד צבא אויב.',
   'm.battle.laySiege': 'הצבא שלכם מטיל מצור על {city} (חומות {walls}, {hp} נק"פ).',
   'm.battle.siegeBrokeWalls': 'ביצורי {city} נשברו (0 נק"פ). מצור לעולם אינו כובש עיר: תקפו אותה כדי לכבוש.',
   'm.battle.siegeBrokeOurWalls': 'ביצורי {city} נשברו במצור. גרשו את הצרים לפני שיתקפו.',

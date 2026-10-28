@@ -541,10 +541,41 @@ describe('resolveWarProgress (Task 32 + plan §M13: occupation, war score, and t
         id: 'war_1', aggressor: CA_ID, enemy: US_ID, active: true, goalAchieved: true, startYear: state.year, startTurn: state.turnNumber,
         cb: 'none', battleScore: 95, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'destroy_military', threshold: 1 }
       };
+      // Warned first (lane wars-8): the turn it crosses the line it says so and offers its terms...
       const withWar = { ...state, wars: [war] };
-      const result = resolveWarProgress(withWar, withWar.regions, withWar.nations, withWar.wars, neverRolls);
+      const first = resolveWarProgress(withWar, withWar.regions, withWar.nations, withWar.wars, neverRolls);
+      expect(first.wars[0].active).toBe(true);
+      expect(first.wars[0].peaceWarnedTurn).toBe(state.turnNumber);
+      expect(first.logs.some((l) => l.msgKey === 'm.diplo.peaceWarn')).toBe(true);
+      expect(first.pendingPeaceOffer.from).toBe(CA_ID);
+      // ...and dictates the peace on a later turn, once the offer is answered and its wait is over.
+      const later = { ...withWar, turnNumber: first.wars[0].peaceOfferCooldownTurn, pendingPeaceOffer: null, wars: first.wars };
+      const result = resolveWarProgress(later, later.regions, later.nations, later.wars, neverRolls);
       expect(result.wars[0].active).toBe(false);
       expect(result.pendingPeaceOffer).toBeNull();
+      expect(result.logs.some((l) => l.msgKey === 'm.diplo.peaceWarn')).toBe(false);
+    });
+
+    it('accepting one peace says which war goes on (lane wars-8)', async () => {
+      const { gameReducer } = await import('./gameReducer');
+      const { ActionTypes } = await import('../data/types');
+      const state = usState();
+      const w = (id, foe) => ({ id, aggressor: foe, enemy: US_ID, active: true, goalAchieved: false, startTurn: state.turnNumber, cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'destroy_military', threshold: 1 } });
+      const s = { ...state, wars: [w('war_a', CA_ID), w('war_b', MX_ID)], pendingPeaceOffer: { warId: 'war_a', from: CA_ID, terms: [] } };
+      const next = gameReducer(s, { type: ActionTypes.ACCEPT_PENDING_PEACE });
+      const fresh = next.logs.slice(s.logs.length);
+      expect(fresh.filter((l) => l.msgKey === 'm.act.stillAtWar').map((l) => l.msgVars.nation.id)).toEqual([MX_ID]);
+    });
+
+    it('a warning is cleared when the player claws back under the line, and given again later', () => {
+      const state = usState();
+      const war = {
+        id: 'war_1', aggressor: CA_ID, enemy: US_ID, active: true, goalAchieved: true, startYear: state.year, startTurn: state.turnNumber,
+        cb: 'none', battleScore: 20, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, peaceWarnedTurn: 1, goal: { type: 'destroy_military', threshold: 1 }
+      };
+      const withWar = { ...state, wars: [war] };
+      const result = resolveWarProgress(withWar, withWar.regions, withWar.nations, withWar.wars, neverRolls);
+      expect(result.wars[0].peaceWarnedTurn).toBeNull();
     });
 
     it('an unrelated AI-vs-AI war processed the same turn does not disturb the player\'s pending offer', () => {

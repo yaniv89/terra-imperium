@@ -180,6 +180,8 @@ export const processSieges = (state, regions, units, { turn }) => {
         const full = siegeMaxHp(city, state.greatProjects);
         const hp = Math.min(full, city.siege.hp + Math.round(full * SIEGE_HEAL));
         regions[id] = hp >= full ? { ...city, siege: null } : { ...city, siege: { ...city.siege, hp, by: null, encircled: false } };
+        // Told to both sides: a siege marker that just vanished left the player guessing (playtest step 148).
+        if (city.siege.by) logs.push({ nationId: city.siege.by, ...msg('m.battle.siegeLifted', { city: cityRef(id, city.name) }) }, { nationId: city.owner, ...msg('m.battle.siegeLiftedOurs', { city: cityRef(id, city.name) }) });
       }
       return;
     }
