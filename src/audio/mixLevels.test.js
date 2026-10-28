@@ -31,7 +31,7 @@ const TIER = {
     ...tiers(-28, ['arrow-volley', 'arrow-whoosh', 'cavalry-charge', 'musket-volley', 'rifle-fire', 'ballista-release', 'trebuchet-release', 'ram-impact', 'stone-impact']),
     ...tiers(-26, ['cannon-fire', 'explosion', 'under-attack', 'retreat-horn', 'rally-cry', 'power-used', 'horn-order']),
     ...tiers(-34, ['cavalry-hooves', 'chariot-rumble']),
-    ...tiers(-24, ['building-collapse', 'gate-breached', 'wall-destroyed', 'general-killed']),
+    ...tiers(-24, ['building-collapse', 'gate-breached', 'wall-destroyed', 'general-killed', 'victory', 'defeat']),
     ...tiers(-37, ['worker-chop', 'worker-mine', 'worker-build']),
     'fire-crackle': -38,
     ...tiers(-33, ['order-move', 'order-attack', 'order-click', 'worker-task', 'building-placed', 'battle-ambience', 'war-drums']),

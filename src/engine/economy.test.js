@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { addCities } from './testWorld';
 import { createEmptyRegionBuildings } from '../data/buildings';
-import { ACTION_COSTS } from '../data/actionCosts';
+import { ACTION_COSTS, UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
+import { AGES } from '../data/ages';
+import { lawRulesOf } from './lawRules';
 import {
   clampMaintenance, hasBankingHouses, getLoanCapacity, getLoanInterestRate, getLoanSize,
-  calcNationBalance, getRecruitUnitCost
+  calcNationBalance, getRecruitUnitCost, unitUpkeepGold
 } from './economy';
 import { peoplesWorld, rivalOf } from './testWorld';
 
@@ -182,5 +184,19 @@ describe('getRecruitUnitCost (plan §M11 resource sink)', () => {
     expect([both.oil, both.rareMetals, both.gold]).toEqual([8, 2, ACTION_COSTS.recruitUnit.gold]);
     const noMetals = getRecruitUnitCost({ resources: { oil: 100, rareMetals: 1 } }, 'information');
     expect([noMetals.oil, noMetals.rareMetals, noMetals.gold]).toEqual([undefined, undefined, Math.round(ACTION_COSTS.recruitUnit.gold * 1.5)]);
+  });
+});
+
+// Lane gold-sinks: a unit's upkeep follows its own age's unit cost (Civ VI maintenance, EU4 regiments).
+describe('unitUpkeepGold', () => {
+  const unit = (id, ageId) => ({ id, ownerId: FR_ID, regionId: PEOPLES_WORLD.nations[FR_ID].capitalRegionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, ageId });
+  it('charges each unit at its own age, so an old army stays cheap and an upgrade costs upkeep', () => {
+    const state = peoplesWorld({ seed: 1 });
+    expect(unitUpkeepGold(state, unit('a', 'stone'))).toBe(UNIT_UPKEEP_GOLD_PER_TURN);
+    expect(unitUpkeepGold(state, unit('a', 'kingdoms'))).toBeCloseTo(UNIT_UPKEEP_GOLD_PER_TURN * AGES.kingdoms.unitCostMult, 6);
+    const army = (ageId) => calcNationBalance({ ...state, units: { a: unit('a', ageId), b: unit('b', ageId) } }, FR_ID).expenses.armyUpkeep;
+    const mult = ((state.nations[FR_ID].armyMaintenance ?? 100) / 100);
+    expect(army('stone')).toBe(Math.round(2 * UNIT_UPKEEP_GOLD_PER_TURN * mult * (1 + (lawRulesOf(state.nations[FR_ID]).unitUpkeepMult || 0))));
+    expect(army('gunpowder')).toBeGreaterThan(army('stone') * 2.5);
   });
 });

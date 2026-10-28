@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { geoEquirectangular } from 'd3-geo';
-import { worldRect, wrapNear, viewFor, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, startZoomFor, EARTH_RADIUS_KM, wheelZoomDelta, WHEEL_MAX_STEP } from './mapView';
+import { worldRect, wrapNear, viewFor, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, startZoomFor, EARTH_RADIUS_KM, wheelZoomDelta, WHEEL_MAX_STEP, flingVelocity } from './mapView';
 import { cssColor } from './cssColor';
 import { packShelf, ATLAS_SIZE } from './spriteAtlas';
 import { indexCities, buildTileTexels, buildCityTexels, buildTintTexels, FLAG_ENEMY, FLAG_OWN, PLAYER_BAND_COLOR } from './territoryData';
@@ -74,6 +74,17 @@ describe('the WebGL map camera', () => {
     expect(wheelZoomDelta({ deltaY: -3, deltaMode: 1 })).toBeCloseTo(0.15, 6);
     expect(wheelZoomDelta({ deltaY: -10, deltaMode: 0, ctrlKey: true })).toBeCloseTo(0.2, 6); // a trackpad pinch
     expect(wheelZoomDelta({ deltaY: NaN })).toBe(0);
+  });
+
+  it('flings a quick pan on release, never a slow one or one that rested before the lift', () => {
+    const swipe = [0, 16, 32, 48, 64].map((t, i) => ({ t: 1000 + t, x: 400 - 24 * i, y: 200 }));
+    const v = flingVelocity(swipe, 1070);
+    expect(v.vx).toBeCloseTo(-1.5, 5); // 96 px in 64 ms, to the left
+    expect(v.vy).toBe(0);
+    expect(flingVelocity(swipe, 1200)).toBeNull(); // the finger rested 136 ms
+    expect(flingVelocity(swipe.map((s, i) => ({ ...s, x: 400 - i })), 1070)).toBeNull(); // a slow drag
+    expect(flingVelocity([], 0)).toBeNull();
+    expect(flingVelocity([swipe[0]], 1001)).toBeNull();
   });
 });
 

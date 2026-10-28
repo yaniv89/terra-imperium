@@ -46,4 +46,10 @@ describe('squad picking (I218)', () => {
     expect(pickSquadAt({ x: 10.8, z: 10 }, v, { wpp: 0.1 })).toMatchObject({ idx: 0 });
     expect(pickSquadAt({ x: 11.2, z: 10 }, v, { wpp: 0.1 })).toMatchObject({ idx: 1 });
   });
+
+  it('a ship is picked along its hull, a soldier block is not', () => {
+    const v = view([sq(0, 0, 10, 10, { classId: 'naval' }), sq(1, 0, 20, 10)]);
+    expect(pickSquadAt({ x: 12, z: 10 }, v, { wpp: 0.01 })).toMatchObject({ idx: 0 });
+    expect(pickSquadAt({ x: 22, z: 10 }, v, { wpp: 0.01 })).toBeNull();
+  });
 });

@@ -8,6 +8,8 @@ import { turnBlockers } from '../../engine/turnBlockers';
 import { GameStatus } from '../../data/types';
 import { endTurnWarnings } from './nextPromptModel';
 import { t as tNow } from '../../i18n';
+import { calcNationBalance } from '../../engine/economy';
+import { rushQuote } from '../../engine/spending';
 
 /**
  * { mode, label, badge, blocker, count, idleCities }:
@@ -39,4 +41,25 @@ export const endTurnPress = (state, { turnPending = false, armed = false } = {})
   if (b.mode === 'blocker') return { go: b.blocker };
   if (b.mode === 'ready' && endTurnWarnings(state) > 0) return { arm: true };
   return { end: true };
+};
+
+// The dock's "Buy" chip (lane gold-sinks): round 2 playtesters piled up 36,000 gold in the "Advisor
+// builds, End Turn" loop without finding the rush buy (spending.js). While the treasury holds more than
+// BUY_HINT_INCOME_TURNS turns of net income, the chip offers the current order that saves the most turns
+// for its price, keeping that reserve; one tap is one RUSH_PRODUCTION, so the city's rush heat raises the
+// next price and the chip moves on or goes away. Never a blocker.
+export const BUY_HINT_INCOME_TURNS = 10;
+/** { cityId, name, gold, turns } for the chip, or null. */
+export const buyHint = (state) => {
+  const me = state.playerNationId;
+  const gold = state.resources?.gold || 0;
+  const reserve = Math.max(0, BUY_HINT_INCOME_TURNS * calcNationBalance(state, me).net);
+  let best = null;
+  for (const c of Object.values(state.regions || {})) {
+    if (c.owner !== me || !c.production?.current) continue;
+    const q = rushQuote(state, c.id, 0);
+    if (!q.ok || !(q.turns > 1) || gold - q.gold < reserve) continue;
+    if (!best || q.turns / q.gold > best.turns / best.gold) best = { cityId: c.id, name: c.name, gold: q.gold, turns: q.turns };
+  }
+  return best;
 };
