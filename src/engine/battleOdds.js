@@ -18,6 +18,7 @@ import { getTerrainCombatModifier } from '../data/terrain';
 import { menOf } from './battleLedger';
 import { canSeeTile } from './sight';
 import { canSeeRegionDetails } from './intel';
+import { withAirSupport } from './airPower';
 import parity from '../data/autoParity.json';
 
 const sumStrength = (units) => units.reduce((s, u) => s + Math.max(0, u.strength), 0);
@@ -168,8 +169,9 @@ export const estimateMarchOdds = (state, attackerUnits, cityId, samples = 100) =
   if (!city || !land.length) return null;
   if (!canSeeTile(state, city.tile) && !canSeeRegionDetails(state, cityId)) return { known: false };
   const defenderUnits = Object.values(state.units).filter((u) => u.regionId === cityId && u.domain === 'land' && u.classId !== 'settler' && u.ownerId !== state.playerNationId);
-  const v = { attackerUnits: land, defenderUnits, targetRegion: city };
-  const ctx = getInvasionBattleContext(state, { targetRegionId: cityId, targetRegion: city, defenderUnits });
+  // Aircraft in range join each side, as validateInvasion adds them (airPower.js).
+  const v = { attackerUnits: withAirSupport(state, state.playerNationId, city.tile, land, defenderUnits), defenderUnits: withAirSupport(state, city.owner, city.tile, defenderUnits, land), targetRegion: city };
+  const ctx = getInvasionBattleContext(state, { targetRegionId: cityId, targetRegion: city, defenderUnits: v.defenderUnits });
   const r = simulate(state, v, getResolveBattleArgs(v, ctx), ctx, samples, { kind: 'invasion', cityId, fromRegionId: land[0].regionId });
   return { known: true, capture: r.capture, attackerStrength: r.attackerStrength, defenderStrength: r.defenderStrength, range: r.range, reasons: r.reasons };
 };

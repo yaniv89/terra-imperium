@@ -130,7 +130,13 @@ const sumStrength = (units) => units.reduce((s, u) => s + Math.max(0, u.strength
  * them (raidBattle.js raidBattleContext). A party sacks only a city it outweighs 1 / SACK_GARRISON_RATIO
  * to 1 by this measure, and turns back on the way when the city has grown past it. `garrison`: known already.
  */
-const cityHeld = (w, c, garrison = sumStrength((indexOf(w).armed.get(c.tile) || []).filter((u) => u.ownerId === c.owner))) => (garrison + sumStrength(cityMilitia(w.view, c.id))) / getDefenseLevelDamageReductionMultiplier(c.defenseLevel || 0);
+const cityHeld = (w, c, garrison = sumStrength((indexOf(w).armed.get(c.tile) || []).filter((u) => u.ownerId === c.owner))) => (garrison + militiaOf(w, c.id)) / getDefenseLevelDamageReductionMultiplier(c.defenseLevel || 0);
+// One militia figure per city per working set (it builds the town's layout; a sack in the turn changes it, so cleared then).
+const militiaOf = (w, cityId) => {
+  if (!w.militia) w.militia = new Map();
+  if (!w.militia.has(cityId)) w.militia.set(cityId, sumStrength(cityMilitia(w.view, cityId)));
+  return w.militia.get(cityId);
+};
 
 /** May independent `id` raid nation `owner`? A living major it may fight (no truce, no tribute). */
 const victimOk = (w, id, owner) => !!owner && owner !== id && owner !== REBEL_OWNER_ID && !!w.nations[owner] && !w.nations[owner].isEliminated
@@ -443,6 +449,7 @@ const takeLoot = (w, id, raid) => {
       ? { city: { ...city, sackedTurn: w.turn }, lostSize: (raid.sizeBefore ?? city.size) - city.size, lostBuilding: null }
       : sackedCity(city, w.turn);
     w.regions[city.id] = s.city; w.regionsChanged = true;
+    w.militia?.delete(city.id);
     w.stats.sacks += 1;
     what = ['Sack', {
       city: cityRef(city.id, city.name), gold,
