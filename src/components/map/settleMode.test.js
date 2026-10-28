@@ -9,6 +9,8 @@ import { isExplored } from '../../engine/fog';
 import { ringDistance } from '../../engine/world/cities';
 import { resourceKnown } from '../../data/tileYields';
 import { citySpacingRings } from '../../data/geo/citySpacing';
+import { nextPrompts } from '../ui/nextPromptModel';
+import { emptyBits } from '../../engine/fog';
 import { settleModeFor, settleModeOver, settleSites, settleUnit, nextSite, settleBarModel, idleSettlerOn, firstIdleSettler } from './settleMode';
 import { settlerLines, settlerRoad, settlerEta, settlerStatus } from './settleRoutes';
 import { settleSiteModel, spacingRule, SITE_WARNING_TEXT } from './settleSiteModel';
@@ -93,6 +95,14 @@ describe('the settle mode', () => {
     expect(settleBarModel(s, mode, sites, sites[0].tile).nextLabel).toBe(`Next good site (${sites.length > 1 ? 2 : 1} of ${sites.length})`);
     expect(settleBarModel(s, mode, [], null).nextLabel).toBeNull();
     expect(settleBarModel(s, mode, [], null).hint).toMatch(/No good site/);
+    // no site in reach: Send home is offered (Opus playtest step 385), never while sites exist
+    expect(settleBarModel(s, mode, [], null)).toMatchObject({ sendHome: true, unitId: 'u_set' });
+    expect(settleBarModel(s, mode, sites, null).sendHome).toBe(false);
+    // and such settlers leave the Idle count: an unexplored world has no site known in reach
+    const prompts = (x) => nextPrompts(x).filter((p) => p.kind === 'settler').map((p) => p.id);
+    expect(prompts(s)).toContain('settler:u_set');
+    const blind = { ...s, fog: { ...s.fog, explored: { ...s.fog.explored, [s.playerNationId]: emptyBits() } } };
+    expect(prompts(blind)).not.toContain('settler:u_set');
     expect(settleBarModel(base, mode, sites, null)).toBeNull();
   });
 

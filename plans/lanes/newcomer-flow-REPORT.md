@@ -58,6 +58,25 @@ Sources: newcomer-phone run 40650969714 (report, diary, shots on `ai/human-playt
    - Test: confirmSpecs.test.js. Shot: `after2/peoples-war-*`.
 5. **6 to 150 turns with no reason.** Each slow row in the build list now reads "slow here (N production a turn): queue it and buy for about G gold". The price is the same rush price RUSH_PRODUCTION charges (spending.js `rushGold`). The 150-turn quote is this city's production; the same unit is faster in a bigger city. Test: cityBuildModel.test.js.
 
+
+## The lead's items from the Opus campaign run 40651416284 (message of 10:16)
+
+- **"Free law change" and "Appoint governors" open the generic Empire overview (steps 279, 370).** Already fixed on this branch (item 4 above). That run played integration, which did not yet carry the fix.
+- **"0 MET" (step 25).** The band-start elimination bug, fixed above.
+- **Locked builds look buildable (steps 185, 267).**
+  - A locked row now has a dashed border, is dimmed, has no turn count, and shows a lock instead of the + button.
+  - It still says what it needs and offers "Research it".
+  - Shots: `before3/` vs `after3/build-locked-*` and the rows in `after3/rush-offer-scrolled-*`.
+- **Buying with gold does nothing (step 244).**
+  - Cause: the gold button opens an offer, but the offer sat below the pinned queue bar in the scroll. With the list scrolled down it was off screen.
+  - Browser check: before, the Pay button was at y -439 to -395 (out of view); after, at y 218 to 262.
+  - The offer now rides inside the pinned bar.
+- **The + button half under the bottom bar (step 264).** Same cause as the warmonger item 2: the dock over a phone city sheet. Fixed there.
+- **Idle never clears, and stranded settlers have no order (step 385).**
+  - Settlers with no good site known in reach no longer count as idle (nextPromptModel.js, through settlers.js `settlingOutlook`; bands still count).
+  - When the settle bar finds no site, it offers **Send them home**: they join their city (DISBAND_SETTLERS).
+  - Test: settleMode.test.js.
+
 ## Evidence
 
 - Shots: `plans/ui/newcomer/before/` and `after/`. Covered: 844x390 and 1600x900, en and he, these screens: map-fresh, step-tap, map, glossary, cities, peoples, ruler-virtue, law (after only), build and foreign-unit. Script: `node scripts/ui/newcomer-shots.mjs --tag after --swgl` (dev server on 5197).

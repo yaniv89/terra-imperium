@@ -329,20 +329,22 @@ const CityPanel = ({ cityId, view = 'city' }) => {
         </div>
         {/* Always there, so the bar is the same height with and without something in production. */}
         <div className="mt-0.5 h-1">{current && <Meter value={current.progress} max={Math.max(1, current.cost)} color="#CDB27A" height={4} />}</div>
+        {/* The buy offer rides in the pinned bar: below it, a scrolled list hid it and the gold button
+            seemed to do nothing (Opus playtest step 244). */}
+        {mine && buyAt != null && queue[buyAt]?.rush && (() => {
+          const q = queue[buyAt]; const words = rushText(q);
+          return (
+            <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-fa-line bg-fa-raised px-2.5 py-1.5 text-[12px] leading-snug" data-testid="city-rush-offer">
+              <div className="min-w-0 flex-1">{q.rush.ok ? words.text : `${words.text} ${reasonText(q.rush, lang)}`}</div>
+              <button type="button" disabled={!q.rush.ok} data-testid="city-rush-pay"
+                onClick={() => { dispatch({ type: ActionTypes.RUSH_PRODUCTION, payload: { cityId, index: q.index } }); setBuyAt(null); }}
+                className="fa-btn fa-btn-primary fa-btn-sm min-h-[44px] shrink-0 disabled:opacity-40">{t('cy.pay', { n: q.rush.gold })}</button>
+              <button type="button" onClick={() => setBuyAt(null)} className="fa-icon-btn min-w-[44px] min-h-[44px] shrink-0" aria-label={t('cy.closeOffer')}><X className="w-4 h-4" /></button>
+            </div>
+          );
+        })()}
       </div>
-      {/* Below the bar, in the scroll: the offer and the queue list never cover the rows (BUILD-01). */}
-      {mine && buyAt != null && queue[buyAt]?.rush && (() => {
-        const q = queue[buyAt]; const words = rushText(q);
-        return (
-          <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-fa-line bg-fa-raised px-2.5 py-1.5 text-[12px] leading-snug" data-testid="city-rush-offer">
-            <div className="min-w-0 flex-1">{q.rush.ok ? words.text : `${words.text} ${reasonText(q.rush, lang)}`}</div>
-            <button type="button" disabled={!q.rush.ok} data-testid="city-rush-pay"
-              onClick={() => { dispatch({ type: ActionTypes.RUSH_PRODUCTION, payload: { cityId, index: q.index } }); setBuyAt(null); }}
-              className="fa-btn fa-btn-primary fa-btn-sm min-h-[44px] shrink-0 disabled:opacity-40">{t('cy.pay', { n: q.rush.gold })}</button>
-            <button type="button" onClick={() => setBuyAt(null)} className="fa-icon-btn min-w-[44px] min-h-[44px] shrink-0" aria-label={t('cy.closeOffer')}><X className="w-4 h-4" /></button>
-          </div>
-        );
-      })()}
+      {/* Below the bar, in the scroll: the queue list never covers the rows (BUILD-01). */}
       {queueOpen && queue.length > 0 && (
         <div className="mt-1.5 max-h-[42vh] overflow-y-auto">
           <ol className="space-y-1" data-testid="city-queue">
@@ -429,7 +431,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                 const open = openRow === o.id;
                 const clip = open ? '' : 'truncate';
                 return (
-                  <li key={o.id} className={`flex items-center gap-2 rounded-lg ps-2 pe-1 py-1 min-h-[44px] text-[13px] border ${o.ok ? 'bg-fa-raised border-fa-line' : 'bg-transparent border-fa-line/60'}`} data-testid="build-row">
+                  <li key={o.id} className={`flex items-center gap-2 rounded-lg ps-2 pe-1 py-1 min-h-[44px] text-[13px] border ${o.ok ? 'bg-fa-raised border-fa-line' : 'bg-transparent border-dashed border-fa-line/60 opacity-75'}`} data-testid="build-row">
                     <div className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0} aria-expanded={open} onClick={() => toggleRow(o)} onKeyDown={(e) => { if (e.key === 'Enter') toggleRow(o); }} title={o.tile != null ? t('cy.showTileDetails') : t('cy.showDetails')}>
                       <ItemIcon item={o.item} ageId={ageId} />
                       <div className="min-w-0 flex-1">
@@ -443,13 +445,14 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                             : o.queued ? null
                               : o.needsName ? <>{t('cy.needs', { name: o.needsName })}{o.needsEta && <span data-testid="build-needs-eta">, {o.needsEta}</span>} {!o.needsPlanned && <button type="button" onClick={(e) => { e.stopPropagation(); dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } }); }} className="underline text-fa-you min-h-[24px]" data-testid="research-for-item">{t('cy.researchIt')}</button>}</>
                                 : o.note || o.reason}
-                          {!o.ok && o.cost > 0 && <span className="text-fa-muted"> · {R('cy.prodCost', { cost: <span className="fa-num">{o.cost}</span> })}{o.item.kind === 'settler' ? '' : ` · ${turnsText(o.turns)}`}</span>}
+                          {/* a locked row shows no turn count: it read as buildable (Opus playtest step 185) */}
+                          {!o.ok && o.cost > 0 && !o.needsName && <span className="text-fa-muted"> · {R('cy.prodCost', { cost: <span className="fa-num">{o.cost}</span> })}</span>}
                         </div>
                         {o.replaces && <div className="flex items-center gap-1 text-[12px] leading-snug text-fa-brass" data-testid="build-replaces"><AlertTriangle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />{t('cy.replaces', { name: o.replaces })}</div>}
                       </div>
                     </div>
                     <button type="button" {...why(!o.ok, o.queued ? t('cy.alreadyInQueue') : o.needsName ? `${t('cy.needsLower', { name: o.needsName })}${o.needsEta ? `, ${o.needsEta}` : ''}` : o.reason, () => (o.replaces ? askConfirm(replaceImprovementConfirm(o.label, o.replaces), () => queueNow(o)) : queueNow(o)))} className="fa-icon-btn min-w-[44px] min-h-[44px] shrink-0 disabled:opacity-40 aria-disabled:opacity-40" aria-label={o.ok ? t('cy.buildAria', { label: o.label }) : `${o.label}: ${o.queued ? t('cy.alreadyInQueue') : o.needsName ? t('cy.needsLower', { name: o.needsName }) : o.reason}`} data-testid="queue-item">
-                      {o.queued && !o.ok ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                      {o.queued && !o.ok ? <Check className="w-4 h-4" /> : o.ok ? <Plus className="w-4 h-4" /> : <Lock className="w-4 h-4" data-testid="build-locked" />}
                     </button>
                   </li>
                 );

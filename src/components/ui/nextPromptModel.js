@@ -24,7 +24,8 @@
 //   law       a new age gave one law change for no decree (laws.js lawChangeCost)
 //   crisis    a history crisis will strike the player (crises.js crisisComing): the turns left and what softens it
 import { unitTile } from '../../engine/armies';
-import { isSettler, isBand } from '../../engine/settlers';
+import { isSettler, isBand, settlingOutlook } from '../../engine/settlers';
+import { ageOf } from '../../engine/nationState';
 import { tutorialPrompt } from '../../engine/tutorial';
 import { demandWaiting } from '../../engine/aiAccords';
 import { researchNeedsChoice } from '../../engine/researchStatus';
@@ -90,7 +91,10 @@ export const nextPrompts = (state) => {
   if (nation?.ruler && decreesOf(nation) >= decreeCap(nation)) out.push({ id: 'decrees', kind: 'decrees', label: tNow('prompt.decrees'), tab: 'ruler' });
   const units = Object.values(state.units || {}).filter((u) => u.ownerId === me && u.strength > 0).sort((a, b) => (a.id < b.id ? -1 : 1));
   // (settlers told to wait, settlers.js setSettlerHold, are not asked about again: I093)
-  units.forEach((u) => { if (isSettler(u) && u.target == null && u.tile != null && !u.hold) out.push({ id: `settler:${u.id}`, kind: 'settler', label: tNow(isBand(u) ? 'prompt.band' : 'prompt.settlers'), tile: u.tile }); });
+  // Settlers with no good site known in reach are not idle either: nothing to order but Send home, and
+  // the Idle badge never cleared on a settled map (Opus playtest step 385). Bands found anywhere.
+  const ageId = ageOf(state, me);
+  units.forEach((u) => { if (isSettler(u) && u.target == null && u.tile != null && !u.hold && (isBand(u) || settlingOutlook(state, me, u.tile, ageId).ok)) out.push({ id: `settler:${u.id}`, kind: 'settler', label: tNow(isBand(u) ? 'prompt.band' : 'prompt.settlers'), tile: u.tile }); });
   // Idle armies (src/engine/standingOrders.js idleArmyTiles): a stack that marches, holds (the
   // Hold order), besieges a city or garrisons one is busy, not idle.
   idleArmyTiles(state, me).forEach((t) => out.push({ id: `army:${t}`, kind: 'army', label: tNow('prompt.army'), tile: t }));
