@@ -96,3 +96,19 @@ describe('keep building (standing orders)', () => {
     expect(next.regions[other.id].production?.keep).toBeUndefined();
   });
 });
+
+describe('queue first (the Defense tab\'s walls)', () => {
+  it('front puts the new order ahead of the one in production, keeping its progress', () => {
+    let S = idleGame();
+    S = { ...S, techTree: { ...S.techTree, governance_chiefdoms: { ...S.techTree.governance_chiefdoms, researched: true } } };
+    const c = myCity(S);
+    S = gameReducer(S, { type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId: c.id, item: { kind: 'unit', classId: 'infantry' } } });
+    S = { ...S, regions: { ...S.regions, [c.id]: { ...S.regions[c.id], production: { ...S.regions[c.id].production, progress: 7 } } } };
+    S = gameReducer(S, { type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId: c.id, item: { kind: 'building', category: 'defense', tier: 0 }, front: true } });
+    const p = S.regions[c.id].production;
+    expect(p.current).toMatchObject({ kind: 'building', category: 'defense' });
+    expect(p.queue[0]).toMatchObject({ kind: 'unit', classId: 'infantry' });
+    const again = gameReducer(S, { type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId: c.id, item: { kind: 'building', category: 'defense', tier: 0 }, front: true } });
+    expect(again.regions[c.id].production).toEqual(p); // a wall already queued is not queued twice
+  });
+});

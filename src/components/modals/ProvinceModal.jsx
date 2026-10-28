@@ -18,12 +18,14 @@ import { nameNow } from '../../i18n/names';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
+import { ActionTypes } from '../../data/types';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
 import { useInteraction, useDismissOverlays, PRIORITY } from '../../hooks/useExclusivePanel';
 import { useReportInset } from '../../context/MapInsetsContext';
 import { REGIONS_DATA } from '../../data/regions';
 import { loyaltyOf, loyaltyTarget } from '../../engine/loyalty';
+import { cityCharacter } from '../city/cityCharacterModel';
 import CityPanel from '../city/CityPanel';
 import CityBuildings from '../city/CityBuildings';
 import CityPolitics from '../city/CityPolitics';
@@ -35,6 +37,10 @@ import { useT } from '../../i18n/useT';
 
 const CityDefense = ({ model, onOpenTab }) => {
   const { t } = useT();
+  const { dispatch } = useGame();
+  // Walls are queued first and the Build tab opens on them: it used to open the tab only, so the wall
+  // never seemed queued (round 2 civ veteran step 62). A wall already queued is not queued twice.
+  const act = (p) => { if (p.item) dispatch({ type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId: model.cityId, item: p.item, front: true } }); onOpenTab(p.tab); };
   return (
   <div className="space-y-3" data-testid="city-defense">
     <div className="fa-card p-3">
@@ -92,7 +98,7 @@ const CityDefense = ({ model, onOpenTab }) => {
           {model.paths.map((p) => (
             <li key={p.id} className="flex items-center gap-2">
               <span className="flex-1 min-w-0">{p.text}</span>
-              {p.tab && onOpenTab && <Button size="sm" className="min-h-[44px] shrink-0" onClick={() => onOpenTab(p.tab)}>{p.action}</Button>}
+              {p.tab && onOpenTab && <Button size="sm" className="min-h-[44px] shrink-0" onClick={() => act(p)}>{p.action}</Button>}
             </li>
           ))}
         </ul>
@@ -108,6 +114,8 @@ const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
   const isMobile = useIsMobile();
   const [tab, setTab] = useState('overview');
   const sheetRef = useRef(null);
+  // a phone held sideways scrolls the whole sheet: a new tab starts at its top, the city's name in view
+  useEffect(() => { if (sheetRef.current) sheetRef.current.scrollTop = 0; }, [tab, regionId]);
   // Plan §5.1/§5.2: report how much of the screen this panel covers so the map centres the region
   // (and every animation fired from here) in the part still visible, and on a phone shrink to a
   // short "peek" while an animation plays — the recruit/build effect lands just above the sheet.
@@ -148,7 +156,8 @@ const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
   const colour = state.nations[state.playerNationId]?.color || 'var(--fa-you)';
   const loyalty = loyaltyOf(regionState);
   const target = regionState.tile != null ? loyaltyTarget(state, regionState).total : loyalty;
-  const sub = [row?.capital ? t('cy.capital') : null, row?.outpost ? t('cy.outpostSub') : null, row?.growthTurns ? t('cy.growsIn', { count: row.growthTurns }) : row?.starving ? t('cy.starving') : null].filter(Boolean).join(', ');
+  const character = cityCharacter(state, regionId); // what this city is known for (cityCharacterModel.js)
+  const sub = [row?.capital ? t('cy.capital') : null, character?.title, row?.outpost ? t('cy.outpostSub') : null, row?.growthTurns ? t('cy.growsIn', { count: row.growthTurns }) : row?.starving ? t('cy.starving') : null].filter(Boolean).join(', ');
   const tabs = [
     { id: 'overview', label: t('cy.tab.overview'), testId: 'city-tab-overview' },
     { id: 'build', label: t('cy.tab.build'), testId: 'city-tab-build', dot: row?.idle, dotLabel: t('cy.tab.nothingQueued') },
@@ -169,16 +178,17 @@ const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
         data-testid="city-sheet-panel"
         className={isMobile
           ? `absolute inset-x-0 bottom-0 ${peeking ? 'max-h-[22vh]' : 'max-h-[65vh]'} transition-[max-height] duration-300 ease-out rounded-t-2xl fa-sheet border-t shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom)]`
-          : 'absolute start-0 top-0 bottom-0 w-full max-w-md pl:max-w-[min(420px,52vw)] pl:ps-[var(--safe-start)] fa-sheet border-e shadow-2xl flex flex-col'}
+          : 'absolute start-0 top-0 bottom-0 w-full max-w-md pl:max-w-[min(420px,52vw)] pl:ps-[var(--safe-start)] fa-sheet border-e shadow-2xl flex flex-col pl:overflow-y-auto'}
       >
         {/* Header — tapping it while the sheet is peeking brings the full sheet straight back. */}
         <div onClick={peeking ? cancelPeek : undefined} className="px-3 pt-2.5 pb-2 shrink-0 flex items-start gap-3">
           <span className="w-9 h-9 rounded-full fa-num text-[15px] font-semibold text-fa-ink flex items-center justify-center shrink-0 mt-0.5" style={{ background: colour }} aria-label={t('cy.sizeAria', { n: regionState.size || 1 })}>{regionState.size || 1}</span>
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2 min-w-0">
-              <h2 id="city-sheet-title" className="fa-heading text-[19px] leading-tight truncate">{nameNow('city', null, regionData.name)}</h2>
-              {sub && <span className="text-[12px] text-fa-muted truncate">{sub}</span>}
+              <h2 id="city-sheet-title" className="fa-heading text-[19px] leading-tight truncate shrink-0 max-w-[70%]">{nameNow('city', null, regionData.name)}</h2>
+              {sub && <span className="text-[12px] text-fa-muted truncate min-w-0">{sub}</span>}
             </div>
+            {character && <div className="text-[12px] text-fa-brass truncate pl:hidden" data-testid="city-character">{t('cy.char.title', { why: character.why })}</div>}
             <div className="flex items-center gap-2 mt-1" title={t('cy.loyaltyTitle', { n: loyalty, target })}>
               <span className="fa-label">{t('cy.loyalty')}</span>
               <Meter value={loyalty} max={100} color={loyalty <= 25 ? 'var(--fa-danger)' : loyalty < 50 ? 'var(--fa-enemy)' : 'var(--fa-good)'} className="flex-1 max-w-[9rem]" label={t('cy.loyaltyMeter', { n: loyalty })} />
@@ -186,13 +196,16 @@ const ProvinceModal = ({ regionId, open, onClose, tabRequest = null }) => {
               {target !== loyalty && <span className={`fa-num text-[12px] ${target > loyalty ? 'text-fa-good' : 'text-fa-danger-text'}`}>{signed(target - loyalty)}</span>}
             </div>
           </div>
-          <CloseButton onClick={onClose} />
+          {/* the X goes back to the map, not to the city card under the sheet (Sonnet civ veteran steps 16-17, 54-55, 64-65: two closes) */}
+          <CloseButton onClick={() => onClose({ toMap: true })} />
         </div>
 
-        <Tabs tabs={tabs} value={tab} onChange={setTab} label={t('cy.sections')} className="shrink-0" />
+        {/* A phone held sideways scrolls the whole sheet: the name scrolls away, the tabs (45 px) and the
+            Build tab's queue bar stay pinned, so the build list gets the room (round 2 playtests: one row free). */}
+        <Tabs tabs={tabs} value={tab} onChange={setTab} label={t('cy.sections')} className="shrink-0 pl:sticky pl:top-0 pl:z-20 pl:bg-fa-panel" />
 
         {/* Content */}
-        <div className="p-3 overflow-y-auto flex-1 space-y-3 pl:pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+3.5rem)]">
+        <div className="p-3 overflow-y-auto flex-1 pl:flex-none pl:overflow-visible space-y-3 pl:pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+3.5rem)]">
           {tab === 'overview' && defense?.alert && (
             <div className="flex items-center gap-2 rounded-lg border border-fa-danger bg-[rgba(229,96,77,0.12)] ps-3 pe-1.5 py-1.5 text-[13px]" data-testid="city-damage-alert">
               <AlertTriangle className="w-4 h-4 text-fa-danger-text shrink-0" aria-hidden="true" />

@@ -5,6 +5,8 @@ import React from 'react';
 import { openGlossary } from '../ui/uiEvents';
 import { useT } from '../../i18n/useT';
 import { glossaryEntry } from '../../data/glossary';
+import { rich } from '../../i18n/rich';
+import { techUnlockRefs } from '../panels/researchView';
 
 const GlossaryLink = ({ kind, id, children, className = '' }) => {
   const { t } = useT();
@@ -16,6 +18,15 @@ const GlossaryLink = ({ kind, id, children, className = '' }) => {
       {children}
     </button>
   );
+};
+
+/** "Unlocks: Spearmen, Barracks, Mine" with each name a link to its entry; nothing when the tech unlocks nothing. */
+export const UnlocksLine = ({ techId, className, testId = 'tech-unlocks' }) => {
+  const { t } = useT();
+  const refs = techUnlockRefs(techId);
+  if (!refs.length) return null;
+  const list = refs.flatMap((r, i) => [i ? ', ' : null, r.kind ? <GlossaryLink key={r.id} kind={r.kind} id={r.id}>{r.name}</GlossaryLink> : r.name]).filter((x) => x !== null);
+  return <div className={className} data-testid={testId}>{rich(t('p2.tr.unlocks'), { list })}</div>;
 };
 
 export default GlossaryLink;

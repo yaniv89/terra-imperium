@@ -779,7 +779,7 @@ export default {
   'tech.all': 'All techs',
   'tech.showAs': 'Show the techs as',
   'tech.web': 'The research web',
-  'tech.webHint': 'Tap a tech you can start to research it, a locked one to queue it. Brass lines cross between lines.',
+  'tech.webHint': 'Tap a tech to see what it gives, unlocks and needs, then Research or queue it below. Brass lines cross between lines.',
   'dip.accept': 'Accept',
   'dip.reject': 'Reject',
   'dip.ifRefuse': 'If you refuse:',

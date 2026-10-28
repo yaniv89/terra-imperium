@@ -156,7 +156,8 @@ const MarchBar = () => {
 
   if (!shown) return null;
   return (
-    <div data-testid="march-bar" data-map-hud="" className="absolute left-1/2 -translate-x-1/2 top-[calc(var(--header-height,4.5rem)+0.5rem)] z-30 w-[min(560px,calc(100%-1rem))] pl:w-[min(520px,calc(100%-9rem))] rounded-xl border border-emerald-500/50 bg-fa-panel/95 shadow-2xl px-3 py-2 pl:py-1 text-[12px] pl:text-[11px] text-fa-text flex flex-wrap items-center gap-x-2 gap-y-1">
+    // (on a phone held sideways it sits over the End Turn row, off the top of the map where a march north is aimed: playtest run 40651416284 step 60)
+    <div data-testid="march-bar" data-map-hud="" className="absolute left-1/2 -translate-x-1/2 top-[calc(var(--header-height,4.5rem)+0.5rem)] pl:top-auto pl:bottom-[calc(max(env(safe-area-inset-bottom),0.75rem)+3.25rem)] z-30 w-[min(560px,calc(100%-1rem))] pl:w-[min(520px,calc(100%-9rem))] rounded-xl border border-emerald-500/50 bg-fa-panel/95 shadow-2xl px-3 py-2 pl:py-1 text-[12px] pl:text-[11px] text-fa-text flex flex-wrap items-center gap-x-2 gap-y-1">
       <Flag className="w-4 h-4 text-fa-good shrink-0" />
       {/* A phone held sideways: two lines at most, so the bar stays a strip and the route under it shows (I083); the title holds the rest. */}
       <div className="flex-1 min-w-0 leading-snug">

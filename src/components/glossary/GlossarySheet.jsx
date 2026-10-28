@@ -12,11 +12,17 @@ import { useT } from '../../i18n/useT';
 import { ageName } from '../../i18n';
 import { rich } from '../../i18n/rich';
 import { AGES } from '../../data/ages';
+import { TECH_TREE } from '../../data/techTree';
 import { glossaryEntry, glossaryIds, GLOSSARY_TERMS } from '../../data/glossary';
-import GlossaryLink from './GlossaryLink';
+import GlossaryLink, { UnlocksLine } from './GlossaryLink';
+import { describeTech } from '../panels/researchView';
+import { boostLabel, buildingTierName, buildingCategoryLabel, tileResourceName, improvementName } from '../../i18n/gameText';
+import { describeTierEffects } from '../../data/buildings';
 
+// An English tile resource name falls back to its id ("copper"): a title starts with a capital.
+const resName = (id) => { const n = tileResourceName(id); return n.charAt(0).toUpperCase() + n.slice(1); };
 const joined = (nodes) => nodes.flatMap((n, i) => (i ? [', ', n] : [n]));
-const INDEX_TABS = ['term', 'people', 'tech', 'unit'];
+const INDEX_TABS = ['term', 'people', 'tech', 'unit', 'building', 'resource', 'improvement'];
 const SEARCH_LIMIT = 40;
 
 const GlossarySheet = () => {
@@ -44,6 +50,9 @@ const GlossarySheet = () => {
       if (kind === 'people') return nm('people', id, x.name);
       if (kind === 'city') return nm('city', null, id);
       if (kind === 'tech') return dt(`tech.${id}`, x.name);
+      if (kind === 'building') return buildingTierName(x.categoryId, x.tierIndex, x.name);
+      if (kind === 'resource') return resName(id);
+      if (kind === 'improvement') return improvementName(id, x.name);
       return dt(`unit.${x.ageId}.${x.classId}`, x.name);
     };
     return Object.fromEntries([...INDEX_TABS, 'city'].map((kind) => [kind, (kind === 'term' ? GLOSSARY_TERMS : glossaryIds(kind)).map((id) => ({ kind, id, name: label(kind, id) }))]));
@@ -70,6 +79,7 @@ const GlossarySheet = () => {
         <Search className="w-4 h-4 absolute start-2.5 top-1/2 -translate-y-1/2" aria-hidden="true" />
         <input type="search" value={query} onChange={(ev) => setQuery(ev.target.value)} placeholder={t('gloss.search')} aria-label={t('gloss.search')} className="fa-input w-full !ps-8" data-testid="glossary-search" />
       </div>
+      {!q && tab === 'term' && <p className="text-[12px]" data-testid="glossary-hold-hint">{t('gloss.holdHint')}</p>}
       {!q && (
         <div className="flex flex-wrap gap-1" role="tablist" aria-label={t('gloss.wait')}>
           {INDEX_TABS.map((k) => (
@@ -94,6 +104,9 @@ const GlossarySheet = () => {
   const age = (id) => ageName(id, AGES[id]?.name);
   const people = (id, english) => nm('people', id, english);
   const city = (c) => nm('city', null, c);
+  const yieldList = (y) => Object.entries(y || {}).map(([k, v]) => `+${v} ${t(`mx.tile.${k}`)}`).join(', ');
+  const needsLine = (techId) => techId && TECH_TREE[techId] && <p>{rich(t('gloss.needs'), { list: techLink(TECH_TREE[techId]) })}</p>;
+  const techLink = (r) => <GlossaryLink key={r.id} kind="tech" id={r.id}>{dt(`tech.${r.id}`, r.name)}</GlossaryLink>;
   let title = e.name;
   let body;
   if (e.kind === 'people') {
@@ -111,7 +124,35 @@ const GlossarySheet = () => {
     title = dt(`tech.${e.id}`, e.name);
     body = (<>
       <p>{t('gloss.techLine', { age: age(e.ageId) })}</p>
-      {e.prerequisites.length > 0 && <p>{rich(t('gloss.needs'), { list: joined(e.prerequisites.map((r) => <GlossaryLink key={r.id} kind="tech" id={r.id}>{dt(`tech.${r.id}`, r.name)}</GlossaryLink>)) })}</p>}
+      <p className="text-fa-text">{t('gloss.gives', { text: describeTech(e) })}</p>
+      <UnlocksLine techId={e.id} className="text-fa-text" testId="glossary-unlocks" />
+      {e.boost && <p className="text-fa-good">{t('gloss.boost', { label: boostLabel(e.id, e.boost) })}</p>}
+      {e.prerequisites.length > 0 && <p>{rich(t('gloss.needs'), { list: joined(e.prerequisites.map(techLink)) })}</p>}
+      {e.leadsTo.length > 0 && <p>{rich(t('gloss.leadsTo'), { list: joined(e.leadsTo.map(techLink)) })}</p>}
+    </>);
+  } else if (e.kind === 'building') {
+    title = buildingTierName(e.categoryId, e.tierIndex, e.name);
+    body = (<>
+      <p>{t('gloss.buildingLine', { line: buildingCategoryLabel(e.categoryId, e.categoryLabel), age: age(e.ageId) })}</p>
+      {describeTierEffects(e.categoryId, e.tierIndex) && <p className="text-fa-text">{t('gloss.gives', { text: describeTierEffects(e.categoryId, e.tierIndex) })}</p>}
+      {needsLine(e.requiresTech)}
+    </>);
+  } else if (e.kind === 'resource') {
+    title = resName(e.id);
+    body = (<>
+      <p>{t(`gloss.res.${e.type}`)}</p>
+      <p className="text-fa-text">{rich(t('gloss.workedBy'), { yields: yieldList(e.yields), link: <GlossaryLink kind="improvement" id={e.improvement}>{improvementName(e.improvement, glossaryEntry('improvement', e.improvement)?.name)}</GlossaryLink> })}</p>
+      {e.knownTech && TECH_TREE[e.knownTech] && <p>{rich(t('gloss.seenWith'), { tech: techLink(TECH_TREE[e.knownTech]) })}</p>}
+      {e.knownAge && <p>{t('gloss.seenFrom', { age: age(e.knownAge) })}</p>}
+    </>);
+  } else if (e.kind === 'improvement') {
+    title = improvementName(e.id, e.name);
+    body = (<>
+      <p>{t('gloss.improvementLine', { n: e.turns })}</p>
+      <p className="text-fa-text">{t('gloss.gives', { text: yieldList(e.yields) })}</p>
+      {e.resources.length > 0 && <p>{rich(t('gloss.works'), { list: joined(e.resources.map((r) => <GlossaryLink key={r} kind="resource" id={r}>{tileResourceName(r)}</GlossaryLink>)) })}</p>}
+      {needsLine(e.requiresTech)}
+      {e.upgrades.length > 0 && <p>{rich(t('gloss.moreWith'), { list: joined(e.upgrades.filter((u) => TECH_TREE[u]).map((u) => techLink(TECH_TREE[u]))) })}</p>}
     </>);
   } else if (e.kind === 'term') {
     title = t(`gloss.term.${e.id}`);
@@ -122,6 +163,7 @@ const GlossarySheet = () => {
       <p>{t('gloss.unitLine', { class: dt(`uclass.${e.classId}`, e.classId), age: age(e.ageId) })}</p>
       <p>{dt(`uclass.${e.classId}.role`, e.role)}</p>
       <p>{t('gloss.power', { attack: e.attack, defense: e.defense })}</p>
+      {needsLine(e.needsTech)}
     </>);
   }
   return frame(title, t(`gloss.${e.kind}`), (<>

@@ -3,7 +3,7 @@
 // 15 minutes, a landing as a city assault, 30).
 import { describe, it, expect } from 'vitest';
 import { gameReducer } from './gameReducer';
-import { peoplesWorld, rivalOf, cap, cloneWorld, majorIds } from './testWorld';
+import { peoplesWorld, rivalOf, cap, cloneWorld, majorIds, aiVoyage } from './testWorld';
 import { ActionTypes } from '../data/types';
 import { getTiles } from '../data/geo/tiles';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
@@ -69,7 +69,7 @@ describe('a landing is a full base-building battle, on the city assault\'s clock
     const land = (id, owner, regionId) => ({ id, ownerId: owner, regionId, homeRegionId: regionId, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, promotions: [], xp: 0 });
     s.units = { fleet: { id: 'fleet', ownerId: AI, regionId: port, domain: 'naval', classId: 'naval', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, transportCapacity: 2, promotions: [] }, army: land('army', AI, port), army2: land('army2', AI, port), guard: land('guard', ME, target) };
     s.pendingDefenses = [];
-    const q = processAINavalOperations(s);
+    const q = aiVoyage(processAINavalOperations, s);
     const began = gameReducer(q, { type: ActionTypes.BEGIN_DEFENSE_BATTLE, payload: { defenseId: q.pendingDefenses.find((d) => d.kind === 'landing').id } });
     const setup = buildInvasionSetup(began, began.pendingBattle);
     expect(setup.economy).toBeTruthy();
