@@ -35,4 +35,42 @@ Shots (844x390 and 1600x900, en and he) are in plans/lanes/battle-hud-8-shots/. 
 
 ## Results
 
-(filled after the runs)
+Field share left by the HUD (hud-shot.mjs, now with `--lang`, a preset, the slim bar and the Economy sheet):
+
+| State | 844x390 before | 844x390 after (en / he) | 1600x900 after (en / he) |
+|---|---|---|---|
+| Deploy card open | 56.3% | 54.9% / 55.2% (merged card with presets: 48.7% / 49.8%) | 86.2% / 86.2% |
+| Deploy card folded | (none) | 72.1% / 72.5% | 90.8% / 90.9% |
+| Powers sheet | 38.7% | 35.8% / 36.4% (now with one effect line each) | 80.5% / 80.5% |
+| Economy sheet | (none) | 43.9% / 44.1% | 83.5% / 83.5% |
+
+No console errors in any run. Speed and pause never move. Every button is 44 px or more (the Hebrew More button was 36 px; fixed).
+
+Camera probe (`.claude/skills/battle-lab/camera-probe.mjs`, the playtest's own CDP gestures) at 844x390, in play:
+- before: pinch 0.6 -> zoom 1.00 (no change)
+- after: pinch 0.6 -> 0.52
+- drag pans in play both times; in deploy a drag that starts on the card does not pan (fold the card)
+
+Tests:
+- new: deployPresets.test.js (slots inside the zone and on open ground for both sides, shooters behind, Wings flanks, Wide wider)
+- new: battleHud.test.js Economy sheet case and "every ability and power has an effect line in en and he"
+- full `npx vitest run` after merging origin/claude/integration: 507 files passed, 2 skipped; 4747 tests passed, 17 skipped
+- `npm run lint`: clean
+
+Sim: no rule changed. The only file under src/battle/sim/ is economy.js `ecoView`: a view field (`gathering`, laborers per stock) for the screen. It is not hashed and not in the replay, so there is no SETUP_VERSION bump and no parity rerun.
+
+## Merge with battle-screens
+
+battle-screens merged into integration while this lane ran and had already done three of my items: the deploy card (far side, fold to a slim bar with Start, sea words), the pinch with a finger on the HUD (`pinchFrom`), and Idle (stay while one is on screen, else the nearest). The merge keeps their versions and drops my duplicates (keys `goalNaval`, `deploy*Naval`, the slim bar). My formation presets sit inside their card, above its scrolling words.
+
+## Shots
+
+plans/lanes/battle-hud-8-shots/: before-844-deploy, before-844-wand; after-844 deploy-wings, deploy-hidden, wand, economy (en and he); after-1600 deploy-wings, economy, he-wand; merged-844 deploy-wings (en, he) and he-economy.
+
+## Not done, and questions for the lead
+
+1. Naval powers: at sea the wand offers land powers (Forced March, Charge). Hiding them, or a naval set (Broadside, Ramming speed)? A design call; I left it.
+2. Ships hard to tap (Opus 103-106, 255-256): squadPick.js belongs to battle-touch.
+3. Only the camp trains (Opus 55-58): the barracks may not be built yet in those runs; worth a playtest check before a lane.
+4. Camera follow: Follow (F) exists and stays manual. I did not make it automatic: moving the camera under a finger is what I188 removed.
+5. Grades: not given here (a lane's own score is not a grade). A fresh battle playtest should check Deploy (presets used?), Camera (pinch out), Economy HUD (two taps) and Powers (effect lines).

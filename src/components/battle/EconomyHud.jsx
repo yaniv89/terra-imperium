@@ -346,7 +346,7 @@ export const EconomySheet = ({ eco, hq = null, onSteward, onPreset, onRebuild, o
             <button key={id} type="button" onClick={() => onPreset(id)} aria-pressed={eco.preset === id} data-testid={`battle-economy-preset-${id}`}
               className={cx(chip, eco.preset === id ? 'bg-fa-raised border-fa-brass text-fa-text' : 'border-fa-line text-fa-muted')}>
               {RESOURCES.includes(id) ? <ResIcon res={id} size={16} /> : <Users className="w-4 h-4" aria-hidden="true" />}
-              <span>{t(`bt.eco.mix.${id}`)}{n != null && <span className="fa-num"> {n}</span>}</span>
+              <span className="flex gap-1">{t(`bt.eco.mix.${id}`)}{n != null && <span className="fa-num">{n}</span>}</span>
             </button>
           );
         })}

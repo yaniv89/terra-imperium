@@ -61,7 +61,7 @@ describe('BattleHud', () => {
     const sheet = renderToStaticMarkup(React.createElement(EconomySheet, { eco: { ...eco, preset: 'wood', gathering: [1, 4, 0, 0], popSplit: { army: 3, workers: 2, training: 0 } }, hq: { idx: 0, queue: [{ role: 'worker' }] }, onSteward: vi.fn(), onPreset: vi.fn(), onRebuild: vi.fn(), onTrainLaborer: vi.fn(), onIdle: vi.fn(), onClose: vi.fn() }));
     expect(btn(sheet, 'battle-steward')).toContain('aria-pressed="true"');
     expect(btn(sheet, 'battle-economy-preset-wood')).toContain('aria-pressed="true"');
-    expect(sheet).toMatch(/Wood<span[^>]*> 4/); // laborers on wood now
+    expect(sheet).toMatch(/Wood<span[^>]*>4/); // laborers on wood now
     expect(sheet).toContain('+1'); // a laborer queued at the camp
     expect(btn(sheet, 'battle-economy-idle')).toContain('disabled');
     expect(html({ groups: [0, 0, 0, 0], onGroup: vi.fn() })).not.toContain('battle-groups');
