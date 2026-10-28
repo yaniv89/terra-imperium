@@ -59,3 +59,8 @@ export const SWAPPED_MAPS = 3;
 export const SHARED_MAP_FADE_TURNS = 4;
 // The World Congress (worldCongress.js): the target of sanctions thinks this of every signer while they stand.
 export const SANCTIONED_US = -25;
+// A gift (gameReducer GIFT_BRIBE, lane diplomacy-depth): each adds GIFT_OPINION to a warmth that fades
+// 1 a turn and never passes GIFT_OPINION_MAX (EU4's "gift received": bought goodwill that wears off).
+// It used to only lower hostility, which a stranger does not have: 100 gold for nothing.
+export const GIFT_OPINION = 10;
+export const GIFT_OPINION_MAX = 20;

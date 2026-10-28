@@ -4,7 +4,9 @@
 // scouts saw, and the capitals of first contacts); armies are the ones in sight now. With fog off
 // every city and army counts as known. `places` feed the camera (mapCamera.js cameraTarget, best
 // first); `march` is the player's stack nearest the people's nearest known city (or army) for
-// the Peoples card's "March to": { from, unitIds, target } in the shape of startMarch.
+// the Peoples card's "March to": { from, unitIds, target } in the shape of startMarch. `front` is
+// the same places nearest the player's own cities first (an army before a city at the same
+// distance): where a war with them is fought, for the war pill and "Show on map" at war.
 import { fogOn } from '../../engine/fog';
 import { visibleTiles } from '../../engine/sight';
 import { unitTile } from '../../engine/armies';
@@ -45,5 +47,9 @@ export const peopleWhere = (state, nationId) => {
     const km = distanceKm(centres[tile], centres[g.tile]);
     if (!march || km < march.km) march = { km, from: units[0].regionId, unitIds: units.map((u) => u.id).sort(), target: g.city ?? g.tile };
   }));
-  return { cities, armies, places, armyStrength: armies.reduce((s, a) => s + a.strength, 0), march };
+  const myCities = Object.values(state.regions || {}).filter((c) => c.owner === me && c.tile != null);
+  const near = (t) => myCities.reduce((d, c) => Math.min(d, distanceKm(centres[t], centres[c.tile])), Infinity);
+  const front = places.map((p, i) => ({ p, km: near(p.tile), army: p.regionId == null ? 0 : 1, i }))
+    .sort((a, b) => a.km - b.km || a.army - b.army || a.i - b.i).map((x) => x.p);
+  return { cities, armies, places, front, armyStrength: armies.reduce((s, a) => s + a.strength, 0), march };
 };

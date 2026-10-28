@@ -99,7 +99,9 @@ const TileSheet = ({ tile, onClose, onSelectRegion, onAttack, settleUnitId = nul
     ? <Button variant="primary" hero className="w-full" disabled={!site?.ok} why={site?.reason} onClick={() => dispatch({ type: ActionTypes.FOUND_CITY, payload: { unitId: (here.find((u) => u.id === settleUnitId) || here[0]).id } })} data-testid="found-city"><Flag className="w-4 h-4" aria-hidden="true" /> {t(sk('mx.tile.foundHere'))}</Button>
     : !ownerCity && goer
       ? <Button variant="primary" hero className="w-full" onClick={sendGoer} data-testid="send-settler"><Tent className="w-4 h-4" aria-hidden="true" /> {t(sk('mx.tile.goFound'), { turns: turnsText(goer.turns) })}</Button>
-      : null;
+      : landing.length > 0 // a fleet's landing is the tile's main action too (it sat under the site facts at 844x390)
+        ? <Button variant="primary" hero className="w-full" onClick={() => landing.forEach((c) => dispatch({ type: ActionTypes.DISEMBARK_UNIT, payload: { landUnitId: c.id, tile } }))} data-testid="land-here">{t('mx.tile.land', { count: landing.length })}</Button>
+        : null;
 
   const body = (
     <>
@@ -188,7 +190,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion, onAttack, settleUnitId = nul
             );
           })}
           {facts.land && site?.ok && !settlers.length && <div className="text-[12px] text-fa-muted"><div>{t('mx.tile.rating', { rating: t('mx.tile.rating.' + site.rating) })}{site.why ? ' ' + t('mx.tile.why', { why: site.why, total: site.score }) : ''}</div><div>{t('mx.tile.claimHint')}</div></div>}
-          {landing.length > 0 && (
+          {landing.length > 0 && main?.props?.['data-testid'] !== 'land-here' && (
             <Button className="w-full" onClick={() => landing.forEach((c) => dispatch({ type: ActionTypes.DISEMBARK_UNIT, payload: { landUnitId: c.id, tile } }))} data-testid="land-here">
               {t('mx.tile.land', { count: landing.length })}
             </Button>

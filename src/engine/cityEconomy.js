@@ -254,10 +254,10 @@ export const landQuotes = (state, cityId) => {
  * charges are this one number. */
 export const quoteBuyTile = (state, cityId, tile) => {
   const city = state.regions?.[cityId];
-  if (!city || city.owner !== state.playerNationId) return { ok: false, reason: 'Not your city.' };
+  if (!city || city.owner !== state.playerNationId) return { ok: false, ...reasonOf('m.why.notYourCity') };
   const row = landQuotes(state, cityId).find((q) => q.tile === tile);
-  if (!row) return { ok: false, reason: 'That tile cannot be claimed.' };
-  if (!row.affordable) return { ok: false, reason: `Needs ${row.cost} gold.`, cost: row.cost, tile };
+  if (!row) return { ok: false, ...reasonOf('m.why.cantClaim') };
+  if (!row.affordable) return { ok: false, ...reasonOf('m.why.needsGold', { gold: row.cost }), cost: row.cost, tile };
   return { ok: true, cost: row.cost, tile };
 };
 

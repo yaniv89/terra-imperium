@@ -5,7 +5,7 @@
 // provides it; both maps read it to draw the lines. Views outside it (the minimap) get null.
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
-import { planMarch, marchingUnits } from '../../engine/routes';
+import { planMarch, marchingUnits, marchOrigin, accessOf, approachTile } from '../../engine/routes';
 import { getMarchLines } from '../../utils/marchLines';
 import { START_MARCH } from './marchEvents';
 import { useDismissOverlays } from '../../hooks/useExclusivePanel';
@@ -24,7 +24,17 @@ export const MarchProvider = ({ children }) => {
     return () => window.removeEventListener(START_MARCH, onStart);
   }, []);
 
-  const plan = useMemo(() => (march?.from && march.target != null ? planMarch(state, march.from, march.target, march.unitIds || null, { naval: !!march.naval, via: march.via || null }) : null), [state, march]);
+  // A city of a people whose land is shut to the player: the march goes to their border (routes.js
+  // approachTile) and the plan says so (`approachOf`), never a dead end or a war prompt (playtest step-051).
+  const plan = useMemo(() => {
+    if (!march?.from || march.target == null) return null;
+    const opts = { naval: !!march.naval, via: march.via || null };
+    if (!march.naval && typeof march.target !== 'number' && accessOf(state, march.target) === 'closed') {
+      const tile = approachTile(state, marchOrigin(state, march.from, march.unitIds || null), march.target);
+      if (tile != null) return { ...planMarch(state, march.from, tile, march.unitIds || null, opts), approachOf: march.target, approachTile: tile };
+    }
+    return planMarch(state, march.from, march.target, march.unitIds || null, opts);
+  }, [state, march]);
   // The march mode ends by itself when its army is gone (moved, disbanded, beaten).
   // The same units the order would move (routes.js marchingUnits: the picked ids, else the units that stand in the city).
   const hasArmy = useMemo(() => !march || marchingUnits(state, march.from, march.unitIds || null, { naval: !!march.naval }).length > 0, [state, march]);

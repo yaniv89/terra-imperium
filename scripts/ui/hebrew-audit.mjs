@@ -17,11 +17,11 @@ const ONLY = arg('--only', '') ? arg('--only', '').split(',') : null;
 const SHOTS = process.argv.includes('--shots');
 const OUT = path.resolve('plans/ui/hebrew-audit');
 fs.mkdirSync(OUT, { recursive: true });
-const CHROME = ['C:/Program Files/Google/Chrome/Application/chrome.exe', '/usr/bin/google-chrome', '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'].find((p) => fs.existsSync(p));
+const CHROME = ['C:/Program Files/Google/Chrome/Application/chrome.exe', '/usr/bin/google-chrome', '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'].find((p) => fs.existsSync(p) && fs.statSync(p).isFile());
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Text that is deliberately Latin: unit symbols and kept abbreviations. Tokens, compared whole.
-const ALLOW = new Set(['x', 'X', 'km', 'm', 'BCE', 'CE', 'ADM', 'DIP', 'MIL', 'AI', 'HP', 'ms', 'fps', 'FPS']);
+const ALLOW = new Set(['x', 'X', 'km', 'm', 'BCE', 'CE', 'ADM', 'DIP', 'MIL', 'AI', 'HP', 'ms', 'fps', 'FPS', 'Esc']);
 
 const results = [];
 let page;
@@ -147,8 +147,8 @@ await step('start', async () => {
   for (const s of steps) { await click(tid(s)); await record(`start: ${s}`); }
   await click(tid('begin-game'));
   await wait(2000);
-  const nextB = page.getByRole('button', { name: LANG === 'he' ? 'הבא' : 'Next' });
-  const startB = page.getByRole('button', { name: LANG === 'he' ? 'התחילו לשחק' : 'Start playing' });
+  const nextB = page.getByRole('button', { name: LANG === 'he' ? 'הבא' : 'Next', exact: true });
+  const startB = page.getByRole('button', { name: LANG === 'he' ? 'התחילו לשחק' : 'Start playing', exact: true });
   for (let i = 0; i < 8; i += 1) {
     if (await has(startB)) { await record(`onboarding ${i + 1}`); await click(startB); break; }
     if (!(await has(nextB))) break;
@@ -189,6 +189,13 @@ await step('map', async () => {
 
 // ---------- rail tabs ----------
 const railTab = async (ix) => { await click(tid('landscape-rail').locator('nav button').nth(ix)); await wait(600); };
+// a rail tab by its label, so a new tab never shifts the screen visited
+const railBy = async (re) => {
+  const labels = await tid('landscape-rail').locator('nav button').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') || e.innerText));
+  const i = labels.findIndex((l) => re.test(l));
+  if (i < 0) throw new Error(`no rail tab ${re}`);
+  await railTab(i);
+};
 await step('rail', async () => {
   const labels = await tid('landscape-rail').locator('nav button').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') || e.innerText));
   console.log('  rail buttons:', labels.join(' | '));
@@ -247,11 +254,11 @@ await step('researchchoice', async () => {
 });
 
 await step('tech', async () => {
-  await railTab(2);
+  await railBy(/מחקר|Research/);
   await record('tech: lines');
   await click(tid('research-web-toggle'));
   await record('tech: web (tech tree)');
-  await railTab(2);
+  await railBy(/מחקר|Research/);
 });
 
 await step('diplomacy', async () => {
@@ -259,12 +266,12 @@ await step('diplomacy', async () => {
   await markMet(nid);
   await wait(800);
   if (await has(tid('first-contact'))) { await record('first contact'); await esc(); } else skipped('first contact', 'card did not show');
-  await railTab(3);
+  await railBy(/עמים|Peoples/);
   await record('peoples: list');
   const rows = page.locator('[data-testid="peoples-list"] button');
   console.log('  peoples rows:', await rows.count());
   if (await rows.count()) { await click(rows); await record('peoples: nation card'); }
-  await railTab(3);
+  await railBy(/עמים|Peoples/);
   await evalMod('components/map/marchEvents.js', 'selectNation', nid);
   await wait(800);
   await record('nation sheet');
@@ -324,7 +331,7 @@ await step('mapobj', async () => {
     await selTile(tl); await wait(900); await record(`tile sheet: ${k}`);
   }
   await closeAllCards();
-  await patch(`const me = s.playerNationId; const cap = s.regions[s.nations[me].capitalRegionId];
+  await patch(`const me = s.playerNationId; const cap = s.regions[s.nations[me].capitalRegionId] || Object.values(s.regions).find((c) => c.owner === me) || { id: null, tile: Object.values(s.units).find((u) => u.ownerId === me && u.tile != null)?.tile };
     const u = (id) => ({ id, ownerId: me, regionId: cap.id, homeRegionId: cap.id, tile: cap.tile, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null });
     return { ...s, units: { ...s.units, aud_a1: u('aud_a1'), aud_a2: u('aud_a2') } };`);
   await wait(600);
@@ -338,12 +345,12 @@ await step('mapobj', async () => {
 });
 
 async function patchless() {
-  return gs('const me = s.playerNationId; const cap = s.regions[s.nations[me].capitalRegionId]; return { capTile: cap.tile, capId: cap.id, units: Object.values(s.units).filter((u) => u.ownerId === me && u.tile != null).map((u) => ({ id: u.id, tile: u.tile, cls: u.classId, domain: u.domain })) };');
+  return gs('const me = s.playerNationId; const cap = s.regions[s.nations[me].capitalRegionId] || Object.values(s.regions).find((c) => c.owner === me) || { id: null, tile: Object.values(s.units).find((u) => u.ownerId === me && u.tile != null)?.tile }; return { capTile: cap.tile, capId: cap.id, units: Object.values(s.units).filter((u) => u.ownerId === me && u.tile != null).map((u) => ({ id: u.id, tile: u.tile, cls: u.classId, domain: u.domain })) };');
 }
 
 await step('settler', async () => {
   const info = await patchless();
-  await patch(`const me = s.playerNationId; const cap = s.regions[s.nations[me].capitalRegionId]; return { ...s, units: { ...s.units, aud_settler: m.makeSettler('aud_settler', cap, me) } };`, ['engine/settlers.js']);
+  await patch(`const me = s.playerNationId; const cap = s.regions[s.nations[me].capitalRegionId] || Object.values(s.regions).find((c) => c.owner === me) || { id: null, tile: Object.values(s.units).find((u) => u.ownerId === me && u.tile != null)?.tile }; return { ...s, units: { ...s.units, aud_settler: m.makeSettler('aud_settler', cap, me) } };`, ['engine/settlers.js']);
   await wait(600);
   await selTile(info.capTile); await wait(900);
   await record('settler sheet (tile with settlers)');
@@ -390,7 +397,7 @@ await step('battle', async () => {
 });
 
 const CLASH = `
-  const me = s.playerNationId; const cap = s.regions[s.nations[me].capitalRegionId];
+  const me = s.playerNationId; const cap = s.regions[s.nations[me].capitalRegionId] || Object.values(s.regions).find((c) => c.owner === me) || { id: null, tile: Object.values(s.units).find((u) => u.ownerId === me && u.tile != null)?.tile };
   const t = m.getTiles(); const owner = s.world.tileOwner;
   const ind = Object.values(s.nations).find((n) => n.indep && !n.isEliminated && !(n.indep.truceWith || {})[me]);
   let seen = new Set([cap.tile]); let f = [cap.tile]; let pair = null;

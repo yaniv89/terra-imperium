@@ -90,7 +90,9 @@ export const createGestureRecognizer = (el, h, memory = { lastTapAt: -1000, last
       return;
     }
     if (h.isPathMode?.()) { mode = 'path-armed'; trail = [p]; return; }
-    const onSelected = h.isOnSelectedSquad?.(p);
+    // With an order armed (Attack) a press is that order's target, never the radial over it
+    // (playtest 40550100958: the radial kept opening between Attack and the tap on the walls).
+    const onSelected = !h.isArmed?.() && h.isOnSelectedSquad?.(p);
     fromSelectMode = !!h.isSelectMode?.();
     mode = fromSelectMode || (e.timeStamp - memory.lastTapAt < DOUBLE_TAP_MS && memory.lastTapPos && Math.hypot(p.x - memory.lastTapPos.x, p.y - memory.lastTapPos.y) < DOUBLE_TAP_PX) ? 'lasso-armed' : onSelected ? 'press-selected' : 'press';
     longTimer = setTimeout(() => {

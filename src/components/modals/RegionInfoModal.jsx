@@ -71,6 +71,8 @@ import { sideAgeOf } from '../../engine/ageRefs';
 import { shownPeople } from '../../data/ages';
 import { sizeToPeople } from '../../engine/world/cities';
 import { canPay } from '../../utils/costs';
+
+const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
 // a nation's name in the current language (a people's title, or an independent's form)
 const pn = (n, id = n?.id) => (n ? nameNow('people', id, n.name) : undefined);
 const isReachable = (fromRegionId, toRegionId, age) =>
@@ -549,19 +551,19 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             {t('ri.noIntelBody', { owner: pn(ownerNation) || t('ri.itsOwner') })}
           </div>
           {regionState.tile != null && regionState.owner && (isPlayerOwned || revealed) && (() => {
-            const t = loyaltyTarget(state, regionState);
+            const lt = loyaltyTarget(state, regionState);
             const culture = Object.entries(cultureOf(regionState)).sort((a, b) => b[1] - a[1]).slice(0, 3);
             const loyalty = loyaltyOf(regionState);
             return (
               <div className="mb-2" data-testid="loyalty">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-fa-muted">{t('ri.loyalty')}</span>
-                  <span className={`font-mono font-bold ${loyalty <= 25 ? 'text-fa-danger-text' : loyalty < t.total ? 'text-amber-300' : 'text-fa-good'}`}>{loyalty}{loyalty !== t.total ? ` → ${t.total}` : ''}</span>
+                  <span className={`font-mono font-bold ${loyalty <= 25 ? 'text-fa-danger-text' : loyalty < lt.total ? 'text-amber-300' : 'text-fa-good'}`}>{loyalty}{loyalty !== lt.total ? ` → ${lt.total}` : ''}</span>
                 </div>
                 <ProgressBar value={loyalty} color="dynamic" size="small" />
                 <div className="text-[10px] text-fa-muted mt-0.5">
                   {culture.map(([id, v]) => `${pn(state.nations[id], id) || id} ${Math.round(v * 100)}%`).join(' · ')}
-                  {` · people ${t.fromShare}`}{t.garrison ? ` · garrison +${t.garrison}` : ''}{t.amenities ? ` · amenities ${t.amenities > 0 ? '+' : ''}${t.amenities}` : ''}{t.conquered ? ` · conquered ${t.conquered}` : ''}{t.capitalLost ? ` · capital lost ${t.capitalLost}` : ''}{t.governor ? ` · governor ${t.governor > 0 ? '+' : ''}${t.governor}` : ''}{t.law ? ` · laws ${t.law > 0 ? '+' : ''}${t.law}` : ''}{t.wonder ? ` · wonder +${t.wonder}` : ''}
+                  {lt.fromShare != null && t('sw.loy.people', { n: lt.fromShare })}{lt.garrison ? t('sw.loy.garrison', { n: `+${lt.garrison}` }) : ''}{lt.amenities ? t('sw.loy.amenities', { n: signed(lt.amenities) }) : ''}{lt.conquered ? t('sw.loy.conquered', { n: lt.conquered }) : ''}{lt.capitalLost ? t('sw.loy.capitalLost', { n: lt.capitalLost }) : ''}{lt.governor ? t('sw.loy.governor', { n: signed(lt.governor) }) : ''}{lt.law ? t('sw.loy.laws', { n: signed(lt.law) }) : ''}{lt.wonder ? t('sw.loy.wonder', { n: `+${lt.wonder}` }) : ''}
                 </div>
               </div>
             );
