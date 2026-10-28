@@ -1,5 +1,7 @@
 # Lane report: phone pass (branch claude/phone-pass)
 
+ponytail loaded (`.claude/skills/ponytail/SKILL.md`, from claude/integration) and followed for the rest of the lane.
+
 Goal: every campaign and battle screen reads and works on a phone held sideways (844x390, and
 844x340 with Safari's bars), in English and Hebrew, with nothing overlapping, cut off, under the
 notch or End Turn, and every control at least 44 px to tap. CSS, JSX and display text only: no game
