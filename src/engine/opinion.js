@@ -10,7 +10,7 @@
 //   claim          B holds a claim on A: -10
 //   trade          +5 per trade agreement (one today), alliance +25, defensive pact +15,
 //                  royal marriage +15, the same lean on an identity axis +5 each
-//   gifts          +10 a gift (GIFT_BRIBE), at most +20, fading 1 a turn (giftWarmth)
+//   gifts          +10 a gift (GIFT_BRIBE), at most +20, fading 1 a reference turn (giftWarmth)
 //   aggressive expansion  -1 per AE point B has in A's eyes above 20
 //   rival          -30; a broken truce -20 while its floor stands; vassalage -10
 //   diplomacy      B's national.opinion modifier (reforms, techs, wonders, ruler, advisor)
@@ -33,7 +33,7 @@ import {
 import { kinThemeOf } from '../data/peoples';
 import { ageOf } from './nationState';
 import { getModifier } from './modifiers/sheet';
-import { FIRST_AGE_ID } from '../data/ages';
+import { FIRST_AGE_ID, speedTurns } from '../data/ages';
 import { GAVE_US_MAP, SWAPPED_MAPS, SHARED_MAP_FADE_TURNS, SANCTIONED_US, GIFT_OPINION, GIFT_OPINION_MAX } from '../data/opinion';
 import { isSanctionedBy } from '../data/worldCongress';
 
@@ -221,10 +221,11 @@ export const opinionReasons = (state, a, b = state.playerNationId) => {
   return out.map((r) => ({ ...r, value: Math.round(r.value * 10) / 10 }));
 };
 
-/** What the gifts of `b` still add to `a`'s opinion now (A.giftsFrom[b] = { value, turn }, fading 1 a turn). */
+/** What the gifts of `b` still add to `a`'s opinion now (A.giftsFrom[b] = { value, turn }, fading 1 a reference turn). */
 export const giftWarmth = (state, a, b) => {
   const g = state.nations?.[a]?.giftsFrom?.[b];
-  return g ? Math.max(0, g.value - ((state.turnNumber || 0) - g.turn)) : 0;
+  // Fades 1 every reference turn (speedTurns): a gift lasts as long in game time on every speed.
+  return g ? Math.max(0, g.value - Math.floor(((state.turnNumber || 0) - g.turn) / speedTurns(1, state.gameSpeed, ageOf(state, a)))) : 0;
 };
 /** The record a new gift from `b` leaves on `a`: GIFT_OPINION more, capped at GIFT_OPINION_MAX. */
 export const withGift = (state, a, b) => {

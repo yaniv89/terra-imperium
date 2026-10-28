@@ -1,4 +1,6 @@
 // src/engine/peacefulApproach.test.js
+import { speedTurns } from '../data/ages';
+import { ageOf } from './nationState';
 // Lane diplomacy-depth. Playtest 40550097406 step 51: "Toward Mycenae" asked for a war, the player
 // only wanted to meet them. A march toward a people whose land is shut now ends at their border
 // (routes.js approachTile) and the bar offers open borders; a gift now warms opinion (it only
@@ -55,7 +57,7 @@ describe('peaceful approach', () => {
 });
 
 describe('gifts warm opinion', () => {
-  it('a gift to a stranger raises their opinion by GIFT_OPINION, capped, fading 1 a turn', () => {
+  it('a gift to a stranger raises their opinion by GIFT_OPINION, capped, fading 1 a reference turn', () => {
     const s0 = rich(BASE);
     const o0 = opinionOf(s0, THEM);
     const s1 = gameReducer(s0, { type: ActionTypes.GIFT_BRIBE, payload: { nationId: THEM } });
@@ -65,8 +67,9 @@ describe('gifts warm opinion', () => {
     let s2 = s1;
     for (let i = 0; i < 4; i++) s2 = gameReducer(s2, { type: ActionTypes.GIFT_BRIBE, payload: { nationId: THEM } });
     expect(giftWarmth(s2, THEM, ME)).toBe(GIFT_OPINION_MAX);
-    expect(giftWarmth({ ...s2, turnNumber: s2.turnNumber + 5 }, THEM, ME)).toBe(GIFT_OPINION_MAX - 5);
-    expect(giftWarmth({ ...s2, turnNumber: s2.turnNumber + 50 }, THEM, ME)).toBe(0);
+    const ref = speedTurns(1, s2.gameSpeed, ageOf(s2, THEM)); // fades 1 a reference turn on every speed
+    expect(giftWarmth({ ...s2, turnNumber: s2.turnNumber + 5 * ref }, THEM, ME)).toBe(GIFT_OPINION_MAX - 5);
+    expect(giftWarmth({ ...s2, turnNumber: s2.turnNumber + 50 * ref }, THEM, ME)).toBe(0);
   });
 });
 
