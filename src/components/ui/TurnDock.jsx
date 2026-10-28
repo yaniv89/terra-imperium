@@ -26,6 +26,7 @@ import { endTurnButton, endTurnPress } from './endTurnModel';
 import { goToPrompt, goToBlocker, chipLabel } from './promptActions';
 import { prewarmTurnWorker, abandonTurnInWorker } from '../../services/turnClient';
 import IdleChip from './IdleChip';
+import NextArmyButton from './NextArmyButton';
 import { interactions, useOverlayOpen } from '../../hooks/useExclusivePanel';
 import { useT } from '../../i18n/useT';
 
@@ -102,6 +103,8 @@ const TurnDock = () => {
       )}
       <div className="flex items-stretch gap-2 pointer-events-auto">
         {/* "Idle N": the next army or settler that waits, one tap each (IdleChip.jsx). */}
+        {/* the next army, waiting or marching, one tap each (NextArmyButton.jsx) */}
+        {btn.mode !== 'moving' && <NextArmyButton />}
         {btn.mode !== 'moving' && <IdleChip />}
         {blocking && btn.idleCities > 0 && (
           <button type="button" onClick={() => { interactions.dismissOverlays(); dispatch({ type: ActionTypes.ADVISOR_PRODUCTION }); }}
