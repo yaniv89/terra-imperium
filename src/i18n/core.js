@@ -52,7 +52,9 @@ export const setCurrentLanguage = (id) => {
 export const isolateSigned = (text) => String(text).replace(/(^|[\s(:[\u2068])([+\-\u2212]\d[\d.,]*[%KMg]?)/g, '$1\u2066$2\u2069');
 
 // {name} -> value. A name with no value is left as written, so a gap is visible.
-const fill = (text, vars) => (vars ? text.replace(/\{(\w+)\}/g, (m, k) => (vars[k] === undefined || vars[k] === null ? m : String(vars[k]))) : text);
+// A "%" right after a left-to-right isolate ("{v}%" with v = isolateLtr("-3")) goes inside it, or
+// Hebrew shows "%-3" (phone pass).
+const fill = (text, vars) => (vars ? text.replace(/\{(\w+)\}/g, (m, k) => (vars[k] === undefined || vars[k] === null ? m : String(vars[k]))).replace(/\u2069%/g, '%\u2069') : text);
 
 const pluralRules = {};
 export const pluralForm = (n, lang = current) => {

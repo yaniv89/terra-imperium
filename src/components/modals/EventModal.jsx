@@ -13,7 +13,7 @@ import { focusRegion } from '../map/marchEvents';
 import { describeEffects } from './describeEffects';
 import { getOptionShortfall } from '../../engine/applyEventEffects';
 import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
-import { t as tNow, getLanguage } from '../../i18n';
+import { t as tNow, formatYear, getLanguage } from '../../i18n';
 import { refName } from '../../i18n/messageText';
 
 // Plan §M17: describeEffects is the ONE shared effect-description function (src/engine/
@@ -73,7 +73,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
             {event.year != null && (
               <>
                 <Calendar className="w-3 h-3" />
-                <span>{event.year}</span>
+                <span className="[unicode-bidi:isolate]">{formatYear(event.year)}</span>
               </>
             )}
             {placeName && (
@@ -121,7 +121,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
                   {/* Cost (if specified separately) */}
                   {option.cost && (
                     <div className="text-xs text-fa-danger-text mt-1 font-mono">
-                      Cost: {option.cost}
+                      {tNow('evt.cost', { cost: option.cost })}
                     </div>
                   )}
 

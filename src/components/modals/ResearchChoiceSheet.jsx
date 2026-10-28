@@ -70,7 +70,7 @@ const ResearchChoiceSheet = ({ hidden }) => {
             )}
             <div className="text-[12px] text-fa-text mt-1">{t('rc.whatNext', { n: science })}</div>
           </div>
-          <button onClick={() => setLaterTurn(state.turnNumber)} aria-label={t('rc.later')} className="p-1 rounded hover:bg-fa-raised text-fa-muted shrink-0"><X className="w-5 h-5" /></button>
+          <button onClick={() => setLaterTurn(state.turnNumber)} aria-label={t('rc.later')} className="p-2.5 -m-1.5 rounded hover:bg-fa-raised text-fa-muted shrink-0"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="space-y-2">
@@ -89,9 +89,11 @@ const ResearchChoiceSheet = ({ hidden }) => {
           ))}
         </div>
 
-        <div className="flex gap-2">
-          <button onClick={() => { const plan = advisorPlan(state); dispatch({ type: ActionTypes.SET_RESEARCH_AUTO, payload: { auto: true } }); if (plan.techId) choose(plan.techId); }} className="flex-1 min-h-[40px] rounded-lg bg-fa-hover hover:bg-fa-line text-sm font-semibold" data-testid="research-let-advisor">{t('rc.advisor')}</button>
-          <button onClick={() => { setLaterTurn(state.turnNumber); openPanelTab('tech'); }} className="flex-1 min-h-[40px] rounded-lg bg-fa-raised hover:bg-fa-hover text-sm">{t('rc.allTechs')}</button>
+        {/* On a phone held sideways the two actions stay in view at the bottom of the scrolling sheet. Sticky stops at the
+            sheet's bottom padding (kept clear for End Turn, index.css), so the row sits past it and pads that strip itself. */}
+        <div className="flex gap-2 pl:sticky pl:bottom-[calc(-1*(max(env(safe-area-inset-bottom),0.75rem)_+_3.5rem))] pl:-mx-4 pl:px-4 pl:pt-2 pl:pb-[calc(0.5rem_+_max(env(safe-area-inset-bottom),0.75rem)_+_3.5rem)] pl:-mb-[calc(max(env(safe-area-inset-bottom),0.75rem)_+_3.5rem)] pl:bg-fa-panel pl:border-t pl:border-fa-line">
+          <button onClick={() => { const plan = advisorPlan(state); dispatch({ type: ActionTypes.SET_RESEARCH_AUTO, payload: { auto: true } }); if (plan.techId) choose(plan.techId); }} className="flex-1 min-h-[44px] rounded-lg bg-fa-hover hover:bg-fa-line text-sm font-semibold" data-testid="research-let-advisor">{t('rc.advisor')}</button>
+          <button onClick={() => { setLaterTurn(state.turnNumber); openPanelTab('tech'); }} className="flex-1 min-h-[44px] rounded-lg bg-fa-raised hover:bg-fa-hover text-sm">{t('rc.allTechs')}</button>
         </div>
         <div className="text-[10px] text-fa-muted text-center">{t('rc.hint')}</div>
       </div>

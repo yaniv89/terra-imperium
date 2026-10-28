@@ -116,7 +116,7 @@ const RegionChips = ({ value, onChange, bare = false }) => {
   const chips = [{ id: 'all' }, ...PEOPLE_REGION_GROUPS].map((r) => {
     const icon = r.id !== 'all' ? regionIcon(r.id) : null;
     return (
-      <button key={r.id} type="button" onClick={() => onChange(r.id)} aria-pressed={value === r.id} className="fa-chip shrink-0 !min-h-[36px]">
+      <button key={r.id} type="button" onClick={() => onChange(r.id)} aria-pressed={value === r.id} className="fa-chip shrink-0 !min-h-[44px]">
         {icon && <img src={icon} alt="" className="w-3.5 h-3.5" />}{t(`start.region.${r.id}`)}
       </button>
     );

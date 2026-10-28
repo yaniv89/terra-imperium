@@ -19,7 +19,7 @@ import { peaceDealModel, bestDeal } from './peaceDealModel';
 import { useT } from '../../i18n/useT';
 import { isolateLtr } from '../../i18n/core';
 
-const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
+const signed = (v) => isolateLtr(`${v > 0 ? '+' : ''}${v}`); // Hebrew keeps "+5" and "-5" in order
 const toneOf = (v) => (v > 0 ? 'text-fa-good' : v < 0 ? 'text-fa-danger-text' : 'text-fa-muted');
 
 const PeaceDealSheet = ({ warId, onClose }) => {

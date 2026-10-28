@@ -411,6 +411,8 @@ export default {
   'wait.independent': 'עיר עצמאית',
   'wait.tribute': '{name} דורשים מס',
   'wait.join': '{name} מציעים להצטרף אליכם',
+  'wait.march': 'בחרו לאן הצבא צועד',
+  'evt.cost': 'מחיר: {cost}',
   'wait.mapHint': 'מפה: {title}',
   'wait.event': 'אירוע: {title}',
   'event.footer': 'בחרו אפשרות כדי להמשיך: התור מחכה לבחירה. המפה נשארת פעילה מאחור.',

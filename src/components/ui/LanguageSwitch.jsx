@@ -18,7 +18,7 @@ const LanguageSwitch = ({ compact = false, className = '' }) => {
     return (
       <div className={`flex items-center gap-1 ${className}`} data-testid="language-switch">
         <Languages className="w-4 h-4 text-fa-muted shrink-0" aria-hidden="true" />
-        <Segmented label={t('lang.label')} options={OPTIONS} value={lang} onChange={setLanguage} className="!p-0.5 !gap-0.5 [&_button]:!min-h-[36px] [&_button]:!px-2.5" />
+        <Segmented label={t('lang.label')} options={OPTIONS} value={lang} onChange={setLanguage} className="!p-0.5 !gap-0.5 [&_button]:!min-h-[44px] [&_button]:!px-2.5" />
       </div>
     );
   }

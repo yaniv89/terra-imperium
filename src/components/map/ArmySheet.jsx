@@ -47,7 +47,7 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
   const rename = () => { if (renaming?.trim()) dispatch({ type: ActionTypes.RENAME_ARMY, payload: { unitIds: model.unitIds, name: renaming.trim() } }); setRenaming(null); };
   const body = (
     <>
-      <div className="flex justify-between items-start border-b border-fa-line pb-2 mb-2">
+      <div className="flex justify-between items-start border-b border-fa-line pb-2 mb-2 pl:sticky pl:-top-3 pl:z-[1] pl:-mx-3 pl:px-3 pl:pt-3 pl:-mt-3 pl:bg-fa-panel">
         <div className="flex items-center gap-2 min-w-0">
           <Shield className="w-4 h-4 text-fa-good shrink-0" />
           <div className="min-w-0">
@@ -62,7 +62,7 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
             <button type="button" onClick={() => onCycleUnit(1)} aria-label={tOr('mx.army.nextUnit', 'Next unit on this tile')} className="p-1 rounded hover:bg-fa-hover text-fa-muted hover:text-fa-text"><ChevronRight className="w-4 h-4 rtl:rotate-180" /></button>
           </div>
         )}
-        <button onClick={onClose} aria-label={tr('at.close')} className="p-1 hover:bg-fa-hover rounded text-fa-muted hover:text-fa-text shrink-0"><X className="w-4 h-4" /></button>
+        <button onClick={onClose} aria-label={tr('at.close')} className="relative before:content-[''] before:absolute before:-inset-2.5 p-1 hover:bg-fa-hover rounded text-fa-muted hover:text-fa-text shrink-0"><X className="w-4 h-4" /></button>
       </div>
       {model.other && <button type="button" onClick={() => setFleetView(!model.naval)} data-testid="army-switch" className="w-full mb-2 min-h-[40px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold">{model.naval ? tr('mx.army.showTroops') : tr('mx.army.showFleet')}</button>}
       {model.inPort && (model.board.length > 0 || model.cargo.length > 0) && (
@@ -147,12 +147,13 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
         <div className="mb-2" data-testid="army-explore-hint">
           <div className="text-[11px] text-fa-muted mb-1">{tr('mx.army.exploreHint')}</div>
           <div className="flex gap-2">
-            {model.explore.tile != null && <button type="button" onClick={() => { startMarch(model.regionId, { unitIds: marching, target: model.explore.tile }); onClose?.(); }} data-testid="army-to-unknown" className="flex-1 min-h-[40px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5"><Compass className="w-3.5 h-3.5" />{tr('mx.army.toUnknown')}</button>}
-            {model.explore.city && <button type="button" onClick={() => { startMarch(model.regionId, { unitIds: marching, target: model.explore.city.id }); onClose?.(); }} data-testid="army-toward-people" className="flex-1 min-h-[40px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold truncate px-2">{tr('mx.army.toward', { name: model.explore.city.name })}</button>}
+            {model.explore.tile != null && <button type="button" onClick={() => { startMarch(model.regionId, { unitIds: marching, target: model.explore.tile }); onClose?.(); }} data-testid="army-to-unknown" className="flex-1 min-h-[44px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5"><Compass className="w-3.5 h-3.5" />{tr('mx.army.toUnknown')}</button>}
+            {model.explore.city && <button type="button" onClick={() => { startMarch(model.regionId, { unitIds: marching, target: model.explore.city.id }); onClose?.(); }} data-testid="army-toward-people" className="flex-1 min-h-[44px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold truncate px-2">{tr('mx.army.toward', { name: model.explore.city.name })}</button>}
           </div>
         </div>
       )}
-      <div className="flex gap-2 mt-1">
+      {/* On a phone the actions stay in view at the bottom of the scrolling card (phone pass). */}
+      <div className="flex gap-2 mt-1 pl:sticky pl:-bottom-3 pl:z-[1] pl:-mx-3 pl:px-3 pl:py-2 pl:-mb-3 pl:bg-fa-panel pl:border-t pl:border-fa-line">
         {model.route
           ? <button type="button" onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { unitIds: model.unitIds } })} className="flex-1 min-h-[44px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold">{tr('mx.army.halt')}</button>
           : <button type="button" disabled={!model.canMarch || !marching.length} onClick={() => { if (model.naval) sail(); else { startMarch(model.regionId, { unitIds: marching }); onClose?.(); } }} data-testid="army-march" className="flex-1 min-h-[44px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:opacity-40 text-fa-text text-xs font-semibold flex items-center justify-center gap-1.5"><Flag className="w-3.5 h-3.5" /> {model.naval ? tr('mx.army.sail') : tr('mx.army.march')}{picked ? tr('mx.army.marchOf', { n: marching.length, total: model.unitIds.length }) : ''}…</button>}

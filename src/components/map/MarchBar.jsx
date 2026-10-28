@@ -27,6 +27,7 @@ import { costLine } from '../panels/empireText';
 import { describeAttackBlock } from '../../utils/attackAvailability';
 import PreBattleModal from '../battle/PreBattleModal';
 import { useMarch } from './MarchContext';
+import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
 import { useMapToolFlag } from './mapTool';
 import { placeLabel, whereText } from './placeText';
 import { useT } from '../../i18n/useT';
@@ -91,8 +92,12 @@ const MarchBar = () => {
   const ctx = useMarch();
   const [fieldAttack, setFieldAttack] = useState(null); // the tile of an enemy army beside the stack
   const [cityAttack, setCityAttack] = useState(null); // the enemy city the stack borders (ACT-01: its attack card, not the province card)
-  useMapToolFlag('march', !!ctx?.march && !ctx.march.dragging);
-  if (!ctx?.march || ctx.march.dragging) return null;
+  const choosing = !!ctx?.march && !ctx.march.dragging;
+  useMapToolFlag('march', choosing);
+  // A notice in the one-on-screen registry: a rail panel the player opens tucks the bar into a chip
+  // instead of drawing it over the panel's header (phone pass); the chip brings it back.
+  const { shown } = useInteraction('march-bar', choosing && fieldAttack == null && cityAttack == null, { priority: PRIORITY.notice, kind: 'notice', user: true, label: tNow('wait.march'), testId: 'march-chip' });
+  if (!choosing) return null;
   const { march, plan, cancel } = ctx;
   const m = marchBarModel(state, march, plan);
   const { target, isTile, naval } = m;
@@ -149,6 +154,7 @@ const MarchBar = () => {
   if (fieldAttack != null) return <PreBattleModal fromRegionId={march.from} tile={fieldAttack} onClose={() => { setFieldAttack(null); cancel(); }} />;
   if (cityAttack != null) return <PreBattleModal fromRegionId={march.from} targetRegionId={cityAttack} onClose={() => { setCityAttack(null); cancel(); }} />;
 
+  if (!shown) return null;
   return (
     <div data-testid="march-bar" data-map-hud="" className="absolute left-1/2 -translate-x-1/2 top-[calc(var(--header-height,4.5rem)+0.5rem)] z-30 w-[min(560px,calc(100%-1rem))] pl:w-[min(520px,calc(100%-9rem))] rounded-xl border border-emerald-500/50 bg-fa-panel/95 shadow-2xl px-3 py-2 pl:py-1 text-[12px] pl:text-[11px] text-fa-text flex flex-wrap items-center gap-x-2 gap-y-1">
       <Flag className="w-4 h-4 text-fa-good shrink-0" />
@@ -162,22 +168,22 @@ const MarchBar = () => {
         </div>}
         {m.consequences.map((c) => <div key={c.id} className="text-fa-brass pl:line-clamp-1" data-testid={`march-${c.id}`}>{c.text}</div>)}
       </div>
-      {!naval && <button onClick={() => ctx.setPathMode(!march.pathMode)} aria-pressed={!!march.pathMode} data-testid="march-path-mode" className={`shrink-0 min-h-[36px] px-3 rounded-lg font-semibold flex items-center gap-1.5 ${march.pathMode ? 'bg-emerald-600 text-fa-text' : 'bg-fa-hover hover:bg-fa-line'}`}><Spline className="w-3.5 h-3.5" aria-hidden="true" />{t('march.path')}</button>}
-      {m.canAttackNow && <button onClick={attack} disabled={!!m.attackBlocked} title={m.attackBlocked || undefined} data-testid="march-attack-now" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:hover:bg-red-600 font-semibold text-fa-text">{t('march.attack')}</button>}
+      {!naval && <button onClick={() => ctx.setPathMode(!march.pathMode)} aria-pressed={!!march.pathMode} data-testid="march-path-mode" className={`relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg font-semibold flex items-center gap-1.5 ${march.pathMode ? 'bg-emerald-600 text-fa-text' : 'bg-fa-hover hover:bg-fa-line'}`}><Spline className="w-3.5 h-3.5" aria-hidden="true" />{t('march.path')}</button>}
+      {m.canAttackNow && <button onClick={attack} disabled={!!m.attackBlocked} title={m.attackBlocked || undefined} data-testid="march-attack-now" className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:hover:bg-red-600 font-semibold text-fa-text">{t('march.attack')}</button>}
       {m.canMarchAttack && (
-        <button onClick={marchAttack} data-testid="march-attack" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 font-semibold text-fa-text flex items-center gap-1.5">
+        <button onClick={marchAttack} data-testid="march-attack" className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 font-semibold text-fa-text flex items-center gap-1.5">
           <Swords className="w-3.5 h-3.5" aria-hidden="true" />{t('march.marchAttack')}
         </button>
       )}
-      {m.enemyArmy?.adjacent && <button onClick={() => { if (!m.enemyArmy.blocked) setFieldAttack(target); }} disabled={!!m.enemyArmy.blocked} title={m.enemyArmy.blocked || undefined} data-testid="march-attack-army" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 font-semibold text-fa-text">{t('march.attack')}</button>}
-      {m.canMoveNow && <button onClick={moveNow} data-testid="march-move-now" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-fa-hover hover:bg-fa-line font-semibold">{t('march.moveNow')}</button>}
-      {plan?.ok && !m.canAttackNow && !m.canMarchAttack && !m.enemyArmy?.adjacent &&<button onClick={marchNow} data-testid="march-confirm" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-semibold text-fa-text">{naval ? t('march.sail') : t('march.march')}</button>}
-      <button onClick={cancel} aria-label={t('march.cancel')} className="shrink-0 p-2 rounded-lg hover:bg-fa-raised text-fa-muted"><X className="w-4 h-4" /></button>
+      {m.enemyArmy?.adjacent && <button onClick={() => { if (!m.enemyArmy.blocked) setFieldAttack(target); }} disabled={!!m.enemyArmy.blocked} title={m.enemyArmy.blocked || undefined} data-testid="march-attack-army" className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 font-semibold text-fa-text">{t('march.attack')}</button>}
+      {m.canMoveNow && <button onClick={moveNow} data-testid="march-move-now" className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-fa-hover hover:bg-fa-line font-semibold">{t('march.moveNow')}</button>}
+      {plan?.ok && !m.canAttackNow && !m.canMarchAttack && !m.enemyArmy?.adjacent &&<button onClick={marchNow} data-testid="march-confirm" className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-semibold text-fa-text">{naval ? t('march.sail') : t('march.march')}</button>}
+      <button onClick={cancel} aria-label={t('march.cancel')} className="relative before:content-[''] before:absolute before:-inset-1.5 shrink-0 p-2 rounded-lg hover:bg-fa-raised text-fa-muted"><X className="w-4 h-4" /></button>
       {/* Closed land: their answer to open borders and the offer, on a row of their own so a phone's text keeps its width. */}
       {m.approach?.borders && !march.pathMode && (
         <div className="basis-full flex items-center gap-2 ps-6">
           <span className={`flex-1 min-w-0 pl:line-clamp-2 ${m.approach.borders.accepted ? 'text-fa-good' : 'text-fa-brass'}`} data-testid="march-borders-verdict">{t(m.approach.borders.accepted ? 'march.bordersYes' : 'march.bordersNo', { opinion: m.approach.borders.opinion, needed: m.approach.borders.needed })}</span>
-          <button onClick={askBorders} data-testid="march-ask-borders" className={`shrink-0 min-h-[36px] px-3 rounded-lg bg-fa-hover hover:bg-fa-line font-semibold ${m.approach.borders.accepted && canPay(state, ACTION_COSTS.openBorders) ? '' : 'opacity-60'}`}>{t('march.askBorders', { cost: costLine(ACTION_COSTS.openBorders) })}</button>
+          <button onClick={askBorders} data-testid="march-ask-borders" className={`relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-fa-hover hover:bg-fa-line font-semibold ${m.approach.borders.accepted && canPay(state, ACTION_COSTS.openBorders) ? '' : 'opacity-60'}`}>{t('march.askBorders', { cost: costLine(ACTION_COSTS.openBorders) })}</button>
         </div>
       )}
     </div>
