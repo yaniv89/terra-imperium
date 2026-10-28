@@ -43,7 +43,7 @@ export const BATTLE_AREAS = ['battle setup screen (age, armies, terrain, walls)'
 export const AREAS_OF = { campaign: AREAS, battle: BATTLE_AREAS };
 // One setup per battle, in turn, so a run meets walls, the sea and a sack as well as an open field (BattleSandbox.jsx URL options).
 export const BATTLE_SETUPS = [
-  { id: 'field', query: '', what: 'an open field battle, your army against theirs' },
+  { id: 'field', query: '&fort=0', what: 'an open field battle, your army against theirs' }, // the sandbox's own default is fort 2: an assault on a base (battle-engage)
   { id: 'walls', query: '&fort=4&city=medium', what: 'an assault on a walled city (walls, gate, towers)' },
   { id: 'naval', query: '&sea', what: 'a sea battle between two fleets' },
   { id: 'sack', query: '&raid=sack', what: 'you defend a town against raiders come to sack it' }

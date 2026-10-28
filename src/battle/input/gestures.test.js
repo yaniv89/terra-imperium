@@ -66,6 +66,18 @@ describe('battle gestures', () => {
     expect(h.pan).not.toHaveBeenCalled();
   });
 
+  it('a still touch held past a quick tap but short of a long press is still a tap (playtest 40651418969)', () => {
+    down(1, 100, 100); clock += 320; up(1, 101, 100);
+    expect(h.tap).toHaveBeenCalledTimes(1);
+    expect(h.longPress).not.toHaveBeenCalled();
+  });
+
+  it('a press held past LONG_MS whose timer never ran (a busy frame) is still a long press', () => {
+    down(1, 100, 100); clock += LONG_MS + 40; up(1, 100, 100); // fake timers not advanced: the timer is starved
+    expect(h.longPress).toHaveBeenCalledTimes(1);
+    expect(h.tap).not.toHaveBeenCalled();
+  });
+
   it('a drag on empty ground pans, and never becomes a long-press', () => {
     down(1, 100, 100); clock += 50; move(1, 130, 100); vi.advanceTimersByTime(LONG_MS + 50); clock += 400; move(1, 160, 110); up(1, 160, 110);
     expect(h.pan).toHaveBeenCalled();

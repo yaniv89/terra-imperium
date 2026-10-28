@@ -64,6 +64,8 @@ const BattleResultScreen = ({ ended, setup, playerSide, title, getCampaign, rece
               {l.destroyed > 0 && <div className="text-[11px] text-fa-muted">{t(m.naval ? 'bt.result.sunk' : 'bt.result.destroyed', { count: l.destroyed })}{l.runDown > 0 ? t('bt.result.runDown', { men: menText(l.runDown) }) : ''}</div>}
               {l.fled > 0 && <div className="text-[11px] text-fa-muted">{t(m.naval ? 'bt.result.fledSea' : 'bt.result.fled', { men: menText(l.fled) })}</div>}
               {aux && <div className="text-[11px] text-fa-muted leading-snug" data-testid="battle-result-their-aux">{aux}</div>}
+              {/* the rest came through (stood or withdrew in order), so the three lines add up to the start (playtest 40651418969 step 126) */}
+              {l.start - l.lost - (l.fled || 0) > 0 && <div className="text-[11px] text-fa-muted" data-testid="battle-result-kept">{t('bt.result.cameThrough', { men: menText(l.start - l.lost - (l.fled || 0)) })}</div>}
             </div>
           ))}
           <div className="text-[11px] text-fa-muted mt-1.5 leading-snug">{m.state === 'committed' ? t('bt.result.sameCount') : t(m.naval ? 'bt.result.goneForGoodSea' : 'bt.result.goneForGood')}</div>

@@ -31,6 +31,7 @@ export default {
   'bt.result.destroyed.other': '{count} גדודים הושמדו',
   'bt.result.runDown': ', {men} לוחמים נתפסו אחרי הלחימה',
   'bt.result.fled': '{men} לוחמים ברחו מהשדה ונשארו בחיים',
+  'bt.result.cameThrough': '{men} שרדו',
   'bt.result.sameCount': 'אותה ספירה כמו בדוח הקרב וביומן. לוחמים שאבדו אבודים לתמיד.',
   'bt.result.goneForGood': 'לוחמים שאבדו אבודים לתמיד.',
   'bt.result.workersLost': 'פועלים שאבדו',

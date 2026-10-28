@@ -11,6 +11,7 @@ import React from 'react';
 import { X } from 'lucide-react';
 import { t as tNow } from '../../i18n/core';
 import { useWhy } from './WhyTip';
+import { useScrollHint } from '../../hooks/useScrollHint';
 
 const cx = (...parts) => parts.filter(Boolean).join(' ');
 
@@ -63,8 +64,10 @@ export const SheetHeader = ({ title, subtitle, icon: Icon, onClose, children, cl
 );
 
 /** Underlined tabs (role tablist). `tabs` = [{ id, label, dot }]. */
-export const Tabs = ({ tabs, value, onChange, className, label }) => (
-  <div role="tablist" aria-label={label || tNow('at.sections')} className={cx('flex border-b border-fa-line overflow-x-auto scrollbar-none', className)}>
+export const Tabs = ({ tabs, value, onChange, className, label }) => {
+  const row = useScrollHint();
+  return (
+  <div ref={row} role="tablist" aria-label={label || tNow('at.sections')} className={cx('flex border-b border-fa-line overflow-x-auto scrollbar-none', className)}>
     {tabs.map((t) => (
       <button key={t.id} type="button" role="tab" aria-selected={value === t.id} onClick={() => onChange(t.id)} className="fa-tab flex-1 shrink-0" data-testid={t.testId}>
         {t.label}
@@ -72,7 +75,8 @@ export const Tabs = ({ tabs, value, onChange, className, label }) => (
       </button>
     ))}
   </div>
-);
+  );
+};
 
 /** An on/off switch with its label and an optional hint (a real button with role switch). */
 export const Switch = ({ checked, onChange, label, hint, testId, disabled }) => (

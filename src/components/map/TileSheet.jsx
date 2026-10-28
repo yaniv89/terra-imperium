@@ -13,7 +13,7 @@ import { nameNow } from '../../i18n/names';
 import { terrainWord, tileResourceName, improvementName, districtName } from '../../i18n/gameText';
 import React, { useMemo, useRef } from 'react';
 import { useCornerSheet } from '../../hooks/useExclusivePanel';
-import { MapPin, Tent, Flag, Swords, Ban, AlertTriangle } from 'lucide-react';
+import { MapPin, Tent, Flag, Swords, Ban, AlertTriangle, Users } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { ActionTypes } from '../../data/types';
@@ -29,8 +29,10 @@ import { declareWarModel } from '../panels/warActions';
 import { enemyStackAt, validateFieldAttack } from '../../engine/fieldBattle';
 import { Button, CloseButton, Label, Stat } from '../ui/atlas';
 import { settleSiteModel } from './settleSiteModel';
-import { askConfirm } from '../ui/ConfirmActionDialog';
-import { declareWarConfirm } from '../ui/confirmSpecs';
+import { openPeople } from '../panels/panelEvents';
+import { openIndependent } from '../independents/independentEvents';
+import { isIndependentNation } from '../../data/independents';
+import { opinionOf } from '../../engine/opinion';
 import { settlerStatus } from './settleRoutes';
 import { useReportInset } from '../../context/MapInsetsContext';
 import { ageOf, getResearched } from '../../engine/nationState';
@@ -126,7 +128,8 @@ const TileSheet = ({ tile, onClose, onSelectRegion, onAttack, settleUnitId = nul
       {foreignWar && (
         <div className="mb-2 space-y-1.5" data-testid="foreign-army-here">
           <div className="text-[13px] text-fa-enemy font-semibold">{t('mx.tile.foreignArmy', { name: foreignWar.shown, count: foreignHere.length })}</div>
-          <Button variant="danger" className="w-full" disabled={!foreignWar.enabled} why={foreignWar.why} onClick={() => askConfirm(declareWarConfirm(state, foreignWar.nationId), () => dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: foreignWar.nationId } }))} title={foreignWar.note} data-testid="tile-declare-war"><Swords className="w-4 h-4" /> {foreignWar.label}</Button>
+          {/* A tap on a foreign unit shows who it is; war is a choice on their card, never this tap's action (newcomer playtest step 116). */}
+          <Button className="w-full" onClick={() => (isIndependentNation(state.nations[foreignWar.nationId]) ? openIndependent : openPeople)(foreignWar.nationId)} data-testid="tile-see-people"><Users className="w-4 h-4" aria-hidden="true" /> {t('mx.tile.seePeople', { name: foreignWar.shown, opinion: opinionOf(state, foreignWar.nationId) })}</Button>
         </div>
       )}
 

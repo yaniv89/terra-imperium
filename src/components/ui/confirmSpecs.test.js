@@ -6,6 +6,7 @@ import { gameReducer } from '../../engine/gameReducer';
 import { ActionTypes } from '../../data/types';
 import { opinionOf } from '../../engine/opinion';
 import { declareWarConfirm, changeLawConfirm } from './confirmSpecs';
+import { declareWarModel } from '../panels/warActions';
 
 const world = peoplesWorld({ seed: 7 });
 const me = world.playerNationId;
@@ -14,7 +15,12 @@ const foe = rivalOf(world, 0);
 describe('two-step confirms (H-08)', () => {
   it('the war card shows the cost and the opinion hit the reducer really causes', () => {
     const metFoe = world.fog ? { fog: { ...world.fog, met: { ...world.fog.met, [me]: { ...world.fog.met?.[me], [foe]: true } } } } : {};
-    const s = { ...world, ...metFoe, resources: { ...world.resources, gold: 5000, dip: 50, adm: 50, mil: 50 } };
+    const unseen = { ...world, ...metFoe, resources: { ...world.resources, gold: 5000, dip: 50, adm: 50, mil: 50 } };
+    // met but never seen: no war with nobody to fight (warActions.js, warmonger playtest step 31)
+    expect(declareWarModel(unseen, foe).blocked).toMatch(/Find them first/);
+    expect(declareWarConfirm(unseen, foe)).toBeNull();
+    const cap = world.regions[world.nations[foe].capitalRegionId];
+    const s = unseen.fog ? { ...unseen, fog: { ...unseen.fog, seen: { ...unseen.fog.seen, cities: { ...(unseen.fog.seen?.cities || {}), [cap.id]: { id: cap.id, owner: foe, tile: cap.tile, name: cap.name, isCapital: true } } } } } : unseen;
     const card = declareWarConfirm(s, foe);
     expect(card.title).toMatch(/^Declare war on /);
     expect(card.confirmLabel).toBe('Declare war');

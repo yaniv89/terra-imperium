@@ -9,7 +9,8 @@
 //               post, then walks back.
 //   attackMove  the same on the way, without the leash; once the fight is over it walks on.
 //   attack      the target it was given, until that dies or leaves the field; then it becomes idle
-//               where it stands and takes on the threats around it (I191). Sent at a building, it
+//               where it stands and takes on the threats around it (I191), or with none in sight
+//               goes on to the enemy's nearest base building within CONTINUE_NEAR (H-26). Sent at a building, it
 //               turns on a squad that hits it and goes back to the building once that fight is over.
 //   hold        strikes whatever comes within its reach; never steps out, never chases.
 //   move, retreat  the order is obeyed: it walks where it was sent and does not stop to fight
@@ -182,9 +183,11 @@ export const acquireTargets = (w) => {
         q.target = -1; q.targetKind = null;
       }
     }
+    // The squad it was fighting is dead or gone (battle-engage, playtest 40650979770 step 130).
+    const chased = !valid && q.targetKind === 'squad' && q.order.type !== 'hold';
     if (q.order.type === 'attack') {
       if (valid) return;
-      // its building fell: on to the next one (H-26); a squad it was sent after is simply dead
+      // its building fell: on to the next one (H-26); a squad it was sent after is dead or gone
       if ((q.targetKind === 'structure' || q.targetKind === 'eco') && continueAssault(w, q)) return;
       settle(q);
     }
@@ -213,6 +216,8 @@ export const acquireTargets = (w) => {
     q.target = found ? found.index : -1;
     q.targetKind = found ? found.kind : null;
     if (!found && fell && q.order.type === 'idle') continueAssault(w, q, CONTINUE_NEAR, fell.x, fell.y);
+    // Its fight is won with nobody else in sight: in the enemy's base it razes on, as after a building (AoE's attack-move).
+    else if (!found && chased && q.order.type === 'idle') continueAssault(w, q, CONTINUE_NEAR);
   });
 };
 

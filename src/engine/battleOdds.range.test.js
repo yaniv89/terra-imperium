@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { rankReasons, spread, autoParityOf } from './battleOdds';
+import { rankReasons, spread, autoParityOf, withAuxiliaries } from './battleOdds';
 
 describe('Auto prediction data (U20)', () => {
   it('the range holds the estimate, even when the samples miss it', () => {
@@ -15,5 +15,10 @@ describe('Auto prediction data (U20)', () => {
   });
   it('a missing parity row gives null, never a made-up number', () => {
     expect(autoParityOf('no-such-kind')).toBeNull();
+  });
+  it('auxiliaries Auto trains are a factor of their own (playtest 40651416284: 14,900 against 10,000 lost to 21,820 against 31,640 auxiliaries)', () => {
+    const f = withAuxiliaries([], 1000, 1490, { attacker: 3164, defender: 2182 });
+    expect(f).toEqual([{ id: 'aux', label: 'Auxiliaries', value: 1.69, detail: '3164 vs 2182' }]); // (1000 + 3164) / (1490 + 2182) against 1000 / 1490
+    expect(withAuxiliaries([], 1000, 1000, { attacker: 0, defender: 0 })).toEqual([]);
   });
 });

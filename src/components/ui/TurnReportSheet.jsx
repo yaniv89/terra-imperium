@@ -12,7 +12,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MapPin, ScrollText } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { GameStatus } from '../../data/types';
-import { selectRegion, selectNation, focusPlace } from '../map/marchEvents';
+import { selectRegion, selectNation, focusPlace, openFieldAttack, manageCity } from '../map/marchEvents';
 import { openPanelTab } from '../panels/panelEvents';
 import { OPEN_TURN_REPORT, setTurnReportShown } from './uiEvents';
 import { turnReportModel } from './turnReportModel';
@@ -22,13 +22,14 @@ import { useT } from '../../i18n/useT';
 
 const DOT = { good: 'bg-fa-good', danger: 'bg-fa-danger', enemy: 'bg-fa-enemy', you: 'bg-fa-you', science: 'bg-[var(--fa-science)]', muted: 'bg-fa-muted' };
 
-const ReportRow = ({ item, onGo, t }) => (
+const ReportRow = ({ item, onGo, onEngage, t }) => (
   <li className="flex items-center gap-2.5 py-1.5 min-h-[48px]" data-testid="turn-report-item" data-group={item.group}>
     <span className={`w-2.5 h-2.5 rounded-sm shrink-0 ${DOT[item.tone] || DOT.muted}`} aria-hidden="true" />
     <div className="min-w-0 flex-1">
       <div className="text-[13px] font-semibold leading-tight">{item.title}</div>
       {item.sub && <div className="text-[12px] text-fa-muted leading-tight">{item.sub}</div>}
     </div>
+    {item.engage && <Button size="sm" variant="primary" className="shrink-0" onClick={() => onEngage(item.engage)} data-testid="turn-report-engage">{t(item.engage.defend ? 'report.defend' : 'report.engage')}</Button>}
     {item.place && (
       <Button size="sm" className="shrink-0 max-w-[9rem]" onClick={() => onGo(item.place)} aria-label={t('report.goTo', { name: item.place.name })}>
         <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden="true" /><span className="truncate">{item.place.name}</span>
@@ -104,6 +105,7 @@ const TurnReportSheet = () => {
     else if (place.kind === 'nation') selectNation(place.id);
     else if (place.kind === 'tab') openPanelTab(place.id);
   };
+  const engage = ({ cityId, tile }) => { close(); if (tile != null) openFieldAttack(cityId, tile); else manageCity(cityId, 'defense'); };
   const groups = report.groups.filter((g) => filter === 'all' || g.id === filter);
 
   return (
@@ -125,7 +127,7 @@ const TurnReportSheet = () => {
             <section key={g.id} aria-label={g.label} className="pt-1.5">
               <Label>{g.label}</Label>
               <ul className="divide-y divide-fa-line/60">
-                {shown.filter((i) => i.group === g.id).map((i) => <ReportRow key={i.id} item={i} onGo={go} t={t} />)}
+                {shown.filter((i) => i.group === g.id).map((i) => <ReportRow key={i.id} item={i} onGo={go} onEngage={engage} t={t} />)}
               </ul>
             </section>
           ))}
