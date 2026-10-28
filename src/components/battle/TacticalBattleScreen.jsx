@@ -47,6 +47,7 @@ import { buildFlowNext, BUILD_FLOW_CLOSED, closePrecedence } from './buildFlow';
 import { preloadBattleIcons } from './battleIcons';
 import { commandedSetup } from '../../battle/setup/buildBattleSetup';
 import { arrivalNote } from '../../battle/input/orderFeedback';
+import { DEPLOY_PRESETS, deployPreset as presetSlots, presetFits } from '../../battle/input/deployPresets';
 import { t as tNow } from '../../i18n/core';
 import { useT } from '../../i18n/useT';
 import { abilityLabel, powerLabel, ecoLabel } from './battleText';
@@ -197,6 +198,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const [coachStep, setCoachStep] = useState(() => (coachSeen() ? -1 : 0));
   // I199: the camera follows the selection until the player moves it by hand.
   const [follow, setFollowState] = useState(false);
+  const [deployPick, setDeployPick] = useState(null); // the deploy card's preset in use (a hand placement clears it)
   const followRef = useRef(false);
   const setFollow = useCallback((on) => { followRef.current = on; setFollowState(on); }, []);
   // I196: the minimap, off until the player turns it on (remembered on this device).
@@ -255,11 +257,12 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     else r.setInspected(inspect);
   }, [selectedBuilding, inspect]);
 
-  const send = useCallback((orders) => {
+  const send = useCallback((orders, { preset = false } = {}) => {
     audioRef.current?.orderConfirmed(orders);
     const bark = voiceForOrders(orders, frames.current.cur?.squads);
     if (bark) playVoice(bark.classId, bark.kind);
     clientRef.current?.sendOrders(orders.map((o) => ({ side: playerSide, ...o })));
+    if (!startedRef.current && !preset) setDeployPick(null); // a squad placed by hand: no preset is in use
   }, [playerSide]);
   // U24: on a phone or tablet the laborers rebuild a fallen depot by themselves (a button turns it off).
   const rebuildDefault = useRef(false);
@@ -976,9 +979,19 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const triggerSquadAbility = (abilityId) => {
     const cur = frames.current.cur; if (!cur) return;
     const squads = [...selectedRef.current].filter((i) => cur.squads[i]?.abilities?.some((a) => a.id === abilityId && a.readyIn === 0));
-    if (squads.length) send([{ type: 'ability', squads, ability: abilityId }]);
+    if (squads.length) { send([{ type: 'ability', squads, ability: abilityId }]); setOrderNote(tNow('bt.screen.abilityUsed', { label: abilityLabel(abilityId), n: squads.length, what: tNow(`bt.pdesc.${abilityId}`) })); }
     setRadial(null);
   };
+  // The deploy card's one-tap formations: one `deploy` order per squad (deployPresets.js).
+  const deployArmy = (cur) => (cur ? cur.squads.filter((q) => q.side === playerSide && q.alive && q.onField && !q.fled && q.classId !== 'worker' && !(q.inside >= 0)) : []);
+  const applyDeployPreset = (id) => {
+    const squads = deployArmy(frames.current.cur).map((q) => ({ idx: q.idx, classId: q.classId, x: q.x / Q, y: q.y / Q }));
+    const slots = presetSlots(id, { squads, zone: deployZone({ map: setup.map }, playerSide), side: playerSide, map: setup.map });
+    if (!slots.length || startedRef.current) return;
+    send(slots.map((sl) => ({ type: 'deploy', squads: [sl.idx], x: Math.round(sl.x * Q), y: Math.round(sl.y * Q) })), { preset: true });
+    setDeployPick(id);
+  };
+  const fittingPresets = started ? [] : DEPLOY_PRESETS.filter((id) => presetFits(id, deployArmy(hud)));
   const cycleFormation = () => { const next = formationRef.current === 'line' ? 'column' : 'line'; formationRef.current = next; setFormation(next); };
   // Selecting by class leaves the camera where it is (I188: moving it made the next tap land
   // somewhere else); Find brings the army into view without touching the selection. Idle workers
@@ -987,13 +1000,17 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   // Every camera jump from the HUD (Find, Go, the keep, Enemy, Base): a hand on the camera, so a
   // follow ends (I199).
   const lookAt = (x, z) => { rendererRef.current?.centerOn(x, z); setFollow(false); };
-  const lookAtSquads = (list) => { if (list.length) lookAt(list.reduce((s, q) => s + q.x, 0) / list.length / Q, list.reduce((s, q) => s + q.y, 0) / list.length / Q); };
+  // The whole list framed (a spread army zooms the camera out, never in), not only its middle.
+  const lookAtSquads = (list) => { if (list.length) { rendererRef.current?.frameGround(list.map((q) => ({ x: q.x / Q, z: q.y / Q }))); setFollow(false); } };
   const selectClass = (classId) => {
     const cur = frames.current.cur; if (!cur) return;
     const idle = classId === 'idle' ? new Set(cur.eco?.idleWorkers || []) : null;
     const picked = classId === 'all' ? fightersOf(cur) : classId === 'idleSquads' ? fightersOf(cur).filter(isIdleSquad) : cur.squads.filter((q) => q.side === playerSide && q.alive && q.onField && !q.fled && !q.routed && (idle ? idle.has(q.idx) : q.classId === classId));
     updateSelection(picked.map((q) => q.idx));
-    if ((idle || classId === 'idleSquads') && picked.length) lookAtSquads(picked);
+    // Idle: the camera moves only when none of them is on screen (playtest 40651418969 step 230:
+    // it kept throwing the view home, away from the squads idling at the walls).
+    const r = rendererRef.current;
+    if ((idle || classId === 'idleSquads') && picked.length && !picked.some((q) => r?.onScreen(q.x / Q, q.y / Q))) lookAtSquads(picked);
   };
   // Rank 6: four control groups. Hold a slot (or tap an empty one) to save the selection, tap to
   // select it, tap again while it is the selection to bring the camera to it. UI only: no orders.
@@ -1292,6 +1309,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         onSelectClass={selectClass} onFindArmy={findArmy} onCommand={commandSelected}
         onRetreatAll={retreatAll} onFocusKeep={focusKeep} onAbandon={onAbandon ? switchToAuto : null}
         onPower={firePower} onAbility={triggerSquadAbility} abilities={selectedAbilities}
+        deployPresets={fittingPresets} deployPreset={deployPick} onDeployPreset={applyDeployPreset}
         onCancelArmed={() => disarm()}
         onObjective={showObjective}
         follow={follow} onToggleFollow={toggleFollow}
@@ -1300,6 +1318,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         supplyRate={supplyGain}
         perf={showPerf ? <pre ref={perfRef} className="pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre overflow-hidden" data-testid="battle-perf" /> : null}
         onOpenBuild={() => flowTo({ type: 'toggle' })} buildOpen={buildMenu} onSelectHq={selectHq} onSteward={(on) => send([{ type: 'steward', on }])}
+        onWorkerPreset={(preset) => send([{ type: 'workerPreset', preset }])} onAutoRebuild={(on) => send([{ type: 'autoRebuild', on }])} onTrainLaborer={(building) => send([{ type: 'train', building, role: 'worker' }])}
         groups={groupCounts} onGroup={pickGroup}
         soundOn={soundOn} onToggleSound={toggleSound}
         selectMode={selectMode} onToggleSelectMode={() => setSelectModeOn(!selectModeRef.current)}

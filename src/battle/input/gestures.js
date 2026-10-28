@@ -157,6 +157,13 @@ export const createGestureRecognizer = (el, h, memory = { lastTapAt: -1000, last
   const cancel = (e) => { pointers.delete(e.pointerId); clearLong(); if (mode === 'formation' || mode === 'lasso' || mode === 'path') h.cancel?.(); mode = 'idle'; start = null; };
   const wheel = (e) => { e.preventDefault(); const p = pos(e); h.zoom?.(e.deltaY < 0 ? 1.12 : 1 / 1.12, p.x, p.y); };
   const context = (e) => e.preventDefault();
+  // A second finger that lands on the HUD still joins the pinch (playtest 40651418969 steps 24, 181:
+  // a pinch out starts with the fingers apart, one on the bottom bar, and the zoom never moved).
+  const downElsewhere = (e) => {
+    if (e.pointerType !== 'touch' || pointers.size !== 1 || el.contains(e.target)) return;
+    e.preventDefault(); e.stopPropagation();
+    down(e);
+  };
   // Space is a held modifier for panning; a typing field keeps its own Space.
   const typing = (e) => /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || '') || e.target?.isContentEditable;
   const keyDown = (e) => { if (e.code === 'Space' && !typing(e)) { spaceHeld = true; e.preventDefault?.(); } };
@@ -173,7 +180,9 @@ export const createGestureRecognizer = (el, h, memory = { lastTapAt: -1000, last
   win?.addEventListener('keydown', keyDown);
   win?.addEventListener('keyup', keyUp);
   win?.addEventListener('blur', blur);
+  win?.addEventListener('pointerdown', downElsewhere, true);
   return () => {
+    win?.removeEventListener('pointerdown', downElsewhere, true);
     win?.removeEventListener('keydown', keyDown);
     win?.removeEventListener('keyup', keyUp);
     win?.removeEventListener('blur', blur);

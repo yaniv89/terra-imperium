@@ -13,6 +13,7 @@ const makeEl = () => {
     ownerDocument: { defaultView: { addEventListener: (t, fn) => { winHandlers[t] = fn; }, removeEventListener: (t) => { delete winHandlers[t]; } } },
     addEventListener: (t, fn) => { handlers[t] = fn; },
     removeEventListener: (t) => { delete handlers[t]; },
+    contains: (t) => t === 'field',
     getBoundingClientRect: () => ({ left: 0, top: 0 }),
     setPointerCapture: () => {}
   };
@@ -136,6 +137,19 @@ describe('battle gestures', () => {
     down(1, 100, 100); down(2, 200, 100); move(2, 260, 100); up(2, 260, 100); up(1, 100, 100);
     expect(h.zoom).toHaveBeenCalled();
     expect(h.tap).not.toHaveBeenCalled();
+  });
+
+  it('a second finger on the HUD still joins the pinch, and the HUD never sees it (a pinch out starts wide)', () => {
+    const stop = vi.fn();
+    down(1, 420, 61);
+    el.winHandlers.pointerdown(ev(2, 420, 339, { target: 'hud-button', stopPropagation: stop }));
+    move(1, 420, 127); move(2, 420, 273); up(2, 420, 273); up(1, 420, 127);
+    expect(stop).toHaveBeenCalled();
+    expect(h.zoom.mock.calls[h.zoom.mock.calls.length - 1][0]).toBeLessThan(1);
+    // a lone touch on the HUD is the HUD's
+    const stop2 = vi.fn();
+    el.winHandlers.pointerdown(ev(3, 420, 339, { target: 'hud-button', stopPropagation: stop2 }));
+    expect(stop2).not.toHaveBeenCalled();
   });
 
   describe('select mode (the HUD Select button)', () => {
