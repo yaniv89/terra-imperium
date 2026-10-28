@@ -78,7 +78,8 @@ export const PRODUCTION_PER_SIZE = 0.5;
 // A city never makes less production than this times its age's unit cost multiplier (ages.js
 // unitCostMult): unit prices rise 4.6 times over the ages, a new city's land does not, so a size 1
 // city of the Gunpowder Age took 37 to 56 turns for one regiment (lane cities-8, cityBuilds.sim
-// newInf). With 3 a new city raises its age's basic regiment in about 13 turns at Normal. Untaxed,
+// newInf). With 3 it takes 27 at Normal from the Gunpowder Age on (balance-sim compare: no change
+// in AI gold, armies or wars; 5 would give about 16, a lead call). Untaxed,
 // like the citizens' hammers (devProduction).
 export const PRODUCTION_FLOOR = 3;
 export const PALACE_YIELDS = { gold: 4, production: 2, science: 2, culture: 1 };

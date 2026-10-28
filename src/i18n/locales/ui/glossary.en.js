@@ -27,7 +27,7 @@ export default {
   'gloss.term.gold': 'Gold',
   'gloss.term.gold.text': 'Your treasury. Cities and trade earn it each turn; armies and buildings cost upkeep. Spend it on pacts, wars, gifts and on upgrading units on your own land.',
   'gloss.term.production': 'Production',
-  'gloss.term.production.text': 'What a city makes each turn. It fills the city\'s build queue from the top: units, buildings, settlers, farms and wonders. A queued item waits its turn, it is never lost. Even a new city makes at least 3 production a turn, more in later ages, so it can raise its age\'s basic regiment in about 13 turns.',
+  'gloss.term.production.text': 'What a city makes each turn. It fills the city\'s build queue from the top: units, buildings, settlers, farms and wonders. A queued item waits its turn, it is never lost. Even a new city makes at least 3 production a turn, more in later ages, so it can always raise a regiment.',
   'gloss.term.science': 'Science and research',
   'gloss.term.science.text': 'Science a turn goes to the current technology in the Research tab. New technologies unlock units and buildings, and finishing enough of them moves your people into the next age.',
   'gloss.term.settlers': 'Settlers',
