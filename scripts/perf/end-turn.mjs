@@ -12,6 +12,8 @@
 // Builds the mobile bundle with VITE_QA_HOOK=1 (window.__game) unless --no-build.
 import { execSync, spawn } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { launchBrowser } from '../lib/browserLaunch.mjs';
 
 const arg = (name, fallback) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : fallback; };
@@ -106,7 +108,7 @@ for (let i = 0; i < TURNS; i++) {
   const row = { turn: from, ...Object.fromEntries(Object.entries(r).map(([k, v]) => [k, typeof v === 'number' ? Math.round(v) : v])) };
   rows.push(row);
   console.log(JSON.stringify(row));
-  if (r.error) { await page.screenshot({ path: 'end-turn-error.png' }); console.log(await page.evaluate(() => [...document.querySelectorAll('button')].map((b) => b.getAttribute('data-testid') || b.textContent.trim().slice(0, 30)).join(' | '))); break; }
+  if (r.error) { await page.screenshot({ path: join(tmpdir(), 'end-turn-error.png') }); console.log(await page.evaluate(() => [...document.querySelectorAll('button')].map((b) => b.getAttribute('data-testid') || b.textContent.trim().slice(0, 30)).join(' | '))); break; }
 }
 console.log(await page.textContent('[data-testid="turn-debug-log"]').catch(() => ''));
 if (TRACE) await browser.stopTracing();
