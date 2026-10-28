@@ -63,3 +63,55 @@ Units keep their age and upgrade rules (a repeated unit is `classId` only, so it
 - No default standing order for new cities (each city is set once). Easy next step if playtests still show prompts.
 - The playtests' "End Turn hidden under prompts" and "double close" are panel layout (phone-pass lane).
 - Gold glut: reported above, not fixed here.
+
+## Second session (28 Oct, after the lead merged up to dcded896)
+
+### 1. New cities take their home city's standing order (settlers.js foundOutpost)
+Settlers carry their home city's `keep` into the city they found (player only: AI cities never hold an order).
+cityBuilds.sim `KEEP=advisor KEEP_CAPITAL=1` (order set once, on the capital, turn 1), seed 11, 300 turns:
+**1 idle city-turn in 1,050 (0.1%)**, against 8 to 9% with no order. Test in productionKeep.test.js.
+
+### 2. Rush price from the gold table (lead's decision)
+spending.js `rushRate(item)`: a building's missing point costs 4 x (gold-table cost / production cost), so a
+whole building costs `getBuildingTierCost x 4`, exactly what it cost before this lane, at any speed. Units and
+settlers keep 4 a point (their production cost never changed here, so their price did not either; the
+recruit gold cost would have changed it). The player's quote, the AI's `tryRushProduction` (and spendSurplus)
+and the build list's "Buy" hint all read it; the "gold each" text shows the item's rate. Test in spending.test.js.
+
+### 3. Gold check (lead's target: within about 20% of base) — NOT met, stopping as told
+`compare.sh 7d8f635a 250 11-16`, POLICY=scripted. 7d8f635a is integration just before this lane's merge
+(origin/claude/integration already holds the lane, so it is not a base). Starred = 95% interval excludes 0.
+
+| turn 250, 6 seeds | base | lane now | diff |
+|---|---|---|---|
+| aiMajGoldMean | 4,669 | 9,433 | +102% * |
+| aiMajGoldMedian | 1,142 | 7,135 | +5,993 * |
+| playerGold | 15,140 | 27,497 | +82% * |
+| aiCityProdMedian | 12.8 | 19.1 | +6.3 * |
+| cities | 746 | 804 | +58 * |
+| playerCities | 7.0 | 10.0 | +3.0 * |
+| firstSettlerTurn / firstBuildingTurn | 39 / 109 | 27 / 83 | * |
+| aiMajBuildingsMean | 167 | 231 | +64 * |
+| warsTotal / conquests | 11.3 / 0.2 | 12.3 / 1.3 | not starred |
+| playerCitiesLost | 0.3 | 3.3 | +3.0 * |
+| year at turn 250 | 994 | 1211 | * |
+
+The rush fix moved gold little (seeds 11 and 12: AI mean 10.6k to 10.0k). Rushes were not the cause.
+Variant runs (seeds 11 to 13, worldStats at turn 250) split it:
+- old building costs, citizen production kept: AI median 3.0k, 3.1k, 1.6k; player 26k, 30k, 17k
+- new costs, no citizen production: AI median 7.5k, 4.5k, 2.1k; player 13.8k, 15.3k, 14.6k
+- both (the lane): AI median 7.9k, 10.0k, 8.6k; player 34k, 29k, 33k
+So cheaper buildings drive the AI's hoard and citizen production the player's. Both add gold through a bigger
+economy (more cities, more economy-line buildings sooner), not through taxes (citizen hammers stay untaxed).
+Not done here, per the lead: no new sink. One candidate for the gold lane, tested only partly (run stopped):
+AI majors pay the building upkeep the player already pays (economy.js buildingUpkeepOf, one line; its comment
+says the AI pays none because AI treasuries were thin).
+
+**New side effect for the lead:** playerCitiesLost 0.3 to 3.3*. The scripted player never defends; with more
+production the AI takes its outlying new cities. It still ends with more cities (10 against 7). On seed 11 to
+16 every head run lost 1 to 5, base 0 or 1. Worth a look with a defending policy before calling it healthy.
+
+### Tests
+productionKeep.test.js and spending.test.js extended; `npm run test:related` on the rush files: 2,870 passed;
+lint clean. Full `npx vitest run` on 8ec1745b: 4,687 passed, 1 failed (pack-map-models, the known load-only flake: 3 of 3 pass alone).
+Mobile shots: no new UI in this session (the rush text only changes its number); the first session's 844x390 and 1600x900 en/he shots stand.

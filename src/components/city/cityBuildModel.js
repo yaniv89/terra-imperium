@@ -30,7 +30,7 @@ import { wonderOptions, wonderItem } from '../../engine/wonders';
 import { cityLive, queueView, buildQuote, worldOf, isLongBuild, longBuildTurns, focusPreview } from '../../engine/cityEconomy';
 import { buildingEffect, improvementEffect } from '../../engine/cityEffects';
 import { settlingOutlook } from '../../engine/settlers';
-import { rushQuote, rushGold, RUSH_GOLD_PER_HAMMER } from '../../engine/spending';
+import { rushQuote, rushGold, rushRate, RUSH_GOLD_PER_HAMMER } from '../../engine/spending';
 import { FIRST_AGE_ID } from '../../data/ages';
 import { techEta, techEtaText } from '../panels/researchView';
 
@@ -98,7 +98,7 @@ export const rushText = (q) => {
   return {
     button: tNow('cy.rush.button', { gold: r.gold }),
     title: r.ok ? tNow('cy.rush.title', { gold: r.gold, hammers: r.hammers, label: q.label }) : r.reason,
-    text: `${tNow('cy.rush.text', { label: q.label, hammers: r.hammers, gold: r.gold, each: RUSH_GOLD_PER_HAMMER, wait })}${heat}`
+    text: `${tNow('cy.rush.text', { label: q.label, hammers: r.hammers, gold: r.gold, each: Math.round(RUSH_GOLD_PER_HAMMER * rushRate(q.item) * 10) / 10, wait })}${heat}`
   };
 };
 
@@ -216,7 +216,7 @@ export const focusHint = (state, cityId, options, live = cityLive(state, cityId)
   const better = best && !best.current && best.production > production ? { focus: 'production', production: best.production, food: best.food } : null;
   // Gold is the other way out (I027): the cheapest slow build, bought outright once queued.
   const cheapest = options.filter((o) => o.long && o.group !== 'Wonders' && o.ok).sort((a, b) => (a.cost - a.stored) - (b.cost - b.stored))[0];
-  const buy = cheapest ? { label: cheapest.label, gold: rushGold(Math.max(0, cheapest.cost - cheapest.stored), 0, cheapest.item.kind) } : null;
+  const buy = cheapest ? { label: cheapest.label, gold: rushGold(Math.max(0, cheapest.cost - cheapest.stored), 0, cheapest.item) } : null;
   const buyText = buy ? ` ${tNow('cy.hint.buy', { label: buy.label, gold: buy.gold })}` : '';
   const text = better
     ? `${tNow('cy.hint.better', { count: slow, limit, production, better: better.production, starve: better.food < 0 ? ` ${tNow('cy.hint.starve')}` : '' })}${buyText}`
