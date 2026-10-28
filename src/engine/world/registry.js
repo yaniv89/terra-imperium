@@ -15,6 +15,7 @@
 import { getTiles, onWorldChange } from '../../data/geo/tiles';
 import { noteZoneSites, notedZoneSites } from './cultureZones';
 import { sizeToPeople, foundCity, emptyWorld } from './cities';
+import { copyTileMap } from './tileIndex';
 import { buildScenarioStarts, DEFAULT_SCENARIO_ID } from '../../data/scenarios';
 import COUNTRY_ADJACENCY from '../../data/geo/countries-adjacency.json';
 import { distanceKm, EARTH_RADIUS_KM } from '../../data/geo/geodesic';
@@ -341,12 +342,12 @@ export const ensureDefaultWorld = () => {
   seeded = true;
   const tiles = getTiles();
   const { starts } = buildScenarioStarts(tiles, DEFAULT_SCENARIO_ID);
-  let world = emptyWorld();
+  // one map copy for all 240 cities (inPlace), not one 100,000-tile copy per city
+  const world = { ...emptyWorld(), tileOwner: copyTileMap({}, tiles.count) };
   const regions = {};
   Object.keys(starts).sort().forEach((nationId) => {
     starts[nationId].cities.forEach(({ tile, size, name }, i) => {
-      const r = foundCity(world, tiles, { nationId, tile, name, size, turn: 1, isCapital: i === 0 });
-      world = r.world;
+      const r = foundCity(world, tiles, { nationId, tile, name, size, turn: 1, isCapital: i === 0, inPlace: true });
       regions[r.city.id] = { ...r.city, founderId: nationId, owner: nationId };
     });
   });

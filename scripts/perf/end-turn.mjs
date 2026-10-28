@@ -8,7 +8,8 @@
 // Phone profile by default (844x390, CPU slowed 4x), desktop with --profile desktop.
 //
 //   node scripts/perf/end-turn.mjs --state s.json [--turns 5] [--profile phone|desktop] [--no-build]
-//        [--port 4211] [--channel chrome] [--out file.json] [--cpuprofile main.cpuprofile]
+//        [--port 4211] [--channel chrome] [--out file.json] [--cpuprofile main.cpuprofile] [--trace t.json]
+//        [--sheets Empire,Ruler,Cities]  also time opening those rail sheets (tap to the second frame)
 // Builds the mobile bundle with VITE_QA_HOOK=1 (window.__game) unless --no-build.
 import { execSync, spawn } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -111,6 +112,28 @@ for (let i = 0; i < TURNS; i++) {
   if (r.error) { await page.screenshot({ path: join(tmpdir(), 'end-turn-error.png') }); console.log(await page.evaluate(() => [...document.querySelectorAll('button')].map((b) => b.getAttribute('data-testid') || b.textContent.trim().slice(0, 30)).join(' | '))); break; }
 }
 console.log(await page.textContent('[data-testid="turn-debug-log"]').catch(() => ''));
+// --sheets Empire,Cities: open each rail sheet and time the tap to the second frame after it
+// (task = the main-thread work of that tap), then close it with a second tap.
+const sheets = arg('sheets', null);
+for (const name of sheets ? sheets.split(',') : []) {
+  const btn = page.getByRole('button', { name, exact: true }).first();
+  if (!(await btn.count())) { console.log(JSON.stringify({ sheet: name, error: 'no button' })); continue; }
+  await page.waitForTimeout(1500);
+  const r = await btn.evaluate(async (el) => {
+    window.__longTasks = [];
+    const t0 = performance.now();
+    el.click();
+    const raf = () => new Promise((res) => requestAnimationFrame(res));
+    await raf(); await raf();
+    const open = performance.now() - t0;
+    await new Promise((res) => setTimeout(res, 500));
+    const tasks = window.__longTasks.filter(([s]) => s >= t0);
+    return { open, main: tasks.reduce((a, [, d]) => a + d, 0), longest: tasks.reduce((m, [, d]) => Math.max(m, d), 0) };
+  });
+  console.log(JSON.stringify({ sheet: name, ...Object.fromEntries(Object.entries(r).map(([k, v]) => [k, Math.round(v)])) }));
+  await page.waitForTimeout(800);
+  await btn.click().catch(() => {});
+}
 if (TRACE) await browser.stopTracing();
 if (CPUPROFILE) writeFileSync(CPUPROFILE, JSON.stringify((await cdp.send('Profiler.stop')).profile));
 const med = (k) => { const v = rows.filter((r) => !r.error).map((r) => r[k]).sort((a, b) => a - b); return v[Math.floor(v.length / 2)]; };
