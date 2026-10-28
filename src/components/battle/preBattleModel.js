@@ -29,6 +29,7 @@ import { armyView, battleSize, cityWallsView, oddsSource, scoutsRange, siegeAdvi
 import { sideAgeOf } from '../../engine/ageRefs';
 import { canPay } from '../../utils/costs';
 import { consequenceLines } from './consequenceText';
+import { HOPELESS_HOLD } from './defenseSheetModel';
 
 const nationLabel = (state, id) => (id === 'rebels' ? t('bt.pre.rebels') : state.nations?.[id]?.name ? nameNow('people', id, state.nations[id].name) : t('bt.pre.theEnemy'));
 const verb = (name, one, many) => (/[^s]s$/.test(name) ? many : one);
@@ -37,10 +38,10 @@ const shortName = (name) => (name || '').replace(/^The /, '').replace(/^(Kingdom
 
 /** `samples`: auto-resolve runs for the odds (200 in the game, fewer in tests). */
 // The odds factors of battleOdds.js (English labels and details) in the current language.
-const factorText = (f) => {
+export const factorText = (f) => {
   const label = t(`mx.odds.${f.id}`);
   if (f.id === 'terrain') return { ...f, label, detail: terrainWord(f.detail) };
-  const vs = f.id === 'numbers' ? /^(d+) vs (d+)$/.exec(f.detail || '') : null;
+  const vs = f.id === 'numbers' ? /^(\d+) vs (\d+)$/.exec(f.detail || '') : null;
   return { ...f, label, detail: vs ? t('mx.odds.vs', { a: vs[1], b: vs[2] }) : f.detail };
 };
 
@@ -130,8 +131,14 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
     }
   }
 
+  // I011 for attacks (playtest 40650976677: 10k against 41k offered like any fight): a hopeless
+  // attack says so with its main reason and Auto is pre-selected (PreBattleModal.jsx).
+  const worst = chance?.exact ? chance.reasons.find((f) => f.value < 1) : null;
+  const hopeless = !!chance?.exact && chance.win < HOPELESS_HOLD;
+  const hopelessText = hopeless ? t('bt.pre.hopeless', { pct: Math.round(chance.win * 100), why: worst ? t('bt.def.warnWhy', { reason: `${worst.label} x${worst.value.toFixed(2)}` }) : '' }) : null;
+
   return {
-    kind, field, fleet, landing, origin,
+    kind, field, fleet, landing, origin, hopeless, hopelessText,
     name: nameNow('battle', null, battleName(state, { kind, targetRegionId, tile })),
     subtitle: (() => {
       const who = shortName(me); const them = shortName(enemy);

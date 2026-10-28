@@ -15,7 +15,7 @@ import { isNoMansLand } from '../../engine/hostility';
 import { t } from '../../i18n/core';
 import { nameNow } from '../../i18n/names';
 import { agreed, msgRefText } from './battleText';
-import { rangeLine } from './preBattleModel';
+import { rangeLine, factorText } from './preBattleModel';
 import { armyView, battleSize, cityWallsView } from './warModel';
 
 const OURS = { defense: 'garrison', field: 'army', naval: 'fleet', raid: 'troops', sack: 'town', intercept: 'fleet', landing: 'garrison' };
@@ -59,12 +59,17 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
   const pct = Math.round(hold * 100);
   // An empty city on Auto (cityAssault.js): its defences take the attack; it falls only when its HP reaches 0.
   const c = v.odds?.city;
+  // EU4's siege status: holding this turn is not holding out; at this rate, when do its defences fall?
+  const fallsIn = c && c.hpAfter > 0 && c.hpBefore > c.hpAfter ? Math.ceil(c.hpBefore / (c.hpBefore - c.hpAfter)) : null;
   const odds = v.odds?.undefended
-    ? { undefended: true, hold, verdict: hold >= 0.65 ? t('bt.def.vLikelyHold') : hold >= 0.35 ? t('bt.def.vClose') : t('bt.def.vLikelyLost'), text: c ? t('bt.def.noDefendUndefended', { a: c.hpBefore, b: c.hpAfter, max: c.maxHp, likely: hold < 0.5 ? t('bt.def.likelyFalls') : '', pct }) : t('bt.def.noRegiment') }
+    ? { undefended: true, hold, fallsIn, verdict: hold >= 0.65 ? (fallsIn != null && fallsIn <= 5 ? t('bt.def.vThisTurn') : t('bt.def.vLikelyHold')) : hold >= 0.35 ? t('bt.def.vClose') : t('bt.def.vLikelyLost'), text: c ? `${t('bt.def.noDefendUndefended', { a: c.hpBefore, b: c.hpAfter, max: c.maxHp, likely: hold < 0.5 ? t('bt.def.likelyFalls') : '', pct })}${fallsIn != null ? t('bt.def.fallsIn', { n: fallsIn }) : ''}` : t('bt.def.noRegiment') }
     : { undefended: false, hold, text: t(attacking ? 'bt.def.autoWins' : 'bt.def.autoHolds', { pct, avg: city && v.odds?.avgDamage != null ? t('bt.def.avgLost', { n: v.odds.avgDamage }) : '', note: city && !attacking ? t('bt.def.garrisonFirst') : '' }), verdict: attacking ? (hold >= 0.65 ? t('bt.pre.likelyWin') : hold >= 0.35 ? t('bt.def.vClose') : t('bt.pre.likelyLoss')) : (hold >= 0.65 ? t('bt.def.vLikelyHold') : hold >= 0.35 ? t('bt.def.vClose') : t('bt.def.vLikelyLost')) };
   // The same range the attack card shows, seen from the attacker like every odds: flipped to read as yours when you defend.
   const r = v.odds?.range;
   const range = r ? rangeLine({ range: attacking ? r : { win: [1 - r.win[1], 1 - r.win[0]], attackerMen: r.defenderMen, defenderMen: r.attackerMen } }) : null;
+  // What moved the odds (Total War's balance of power, with its why): read as yours, > 1 favours you.
+  const reasons = (v.odds?.reasons || []).map((f) => ({ ...f, value: Math.round((attacking ? f.value : 1 / Math.max(0.01, f.value)) * 100) / 100 }))
+    .filter((f) => Math.abs(f.value - 1) >= 0.02).map(factorText);
   const plural = /[^s]s$/.test(enemyShort);
   const verb = KIND_VERB[kind] ? KIND_VERB[kind][plural ? 0 : 1] : plural ? 'attack' : 'attacks';
   const withdrawTo = city && fallbackId ? nameNow('city', null, state.regions?.[fallbackId]?.name || fallbackId) : null;
@@ -75,7 +80,7 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
   // 40,000 was offered as Command with no warning and lost in seconds).
   const hopeless = !attacking && hold < HOPELESS_HOLD && !(odds.undefended && !militia.length);
   const warning = hopeless
-    ? t('bt.def.warning', { pct, body: city ? t('bt.def.warnCity', { place }) : t('bt.def.warnField'), withdraw: withdrawTo ? t('bt.def.warnWithdraw', { to: withdrawTo }) : '' })
+    ? t('bt.def.warning', { pct, why: reasons[0] && reasons[0].value < 1 ? t('bt.def.warnWhy', { reason: `${reasons[0].label} x${reasons[0].value.toFixed(2)}` }) : '', body: city ? t('bt.def.warnCity', { place }) : t('bt.def.warnField'), withdraw: withdrawTo ? t('bt.def.warnWithdraw', { to: withdrawTo }) : '' })
     : null;
   const setting = state.battleSettings?.defaultMode;
   const preferred = setting === 'auto' || setting === 'command' ? setting : hopeless ? (withdrawTo ? 'withdraw' : 'auto') : 'command';
@@ -97,6 +102,7 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
     walls,
     size,
     odds,
+    reasons,
     hopeless,
     warning,
     suggested,

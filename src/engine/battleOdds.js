@@ -13,7 +13,7 @@ import { validateFleetAttack, getFleetBattleContext, getFleetResolveArgs } from 
 import { resolveSiegeControlDamage, hasMeleeUnitDeployed, isGarrisonBroken } from './siege';
 import { getDefenseArmies, getDefenseBattleContext } from './defense';
 import { cityFell } from './capture';
-import { getCounterMultiplier, getRosterCombatMultiplier } from '../data/unitClasses';
+import { getCounterMultiplier, getRosterCombatMultiplier, unitAgeWeight } from '../data/unitClasses';
 import { getTerrainCombatModifier } from '../data/terrain';
 import { menOf } from './battleLedger';
 import parity from '../data/autoParity.json';
@@ -29,6 +29,13 @@ const matchup = (from, to) => {
   return acc / total;
 };
 
+// How a side's own units weigh at its age, strength-weighted (units keep the age they were built in:
+// a bronze ship in a kingdoms navy fights at a fraction; 1 = all of the side's age).
+const unitsAge = (units, ageId) => {
+  const total = sumStrength(units);
+  return total ? units.reduce((s, u) => s + Math.max(0, u.strength) * unitAgeWeight(u, ageId), 0) / total : 1;
+};
+
 // The multipliers the attacker fights under, as readable lines (value > 1 favours you).
 export const explainInvasion = (v, ctx) => {
   const att = sumStrength(v.attackerUnits); const def = sumStrength(v.defenderUnits);
@@ -37,7 +44,8 @@ export const explainInvasion = (v, ctx) => {
     { id: 'matchup', label: 'Unit matchups', value: matchup(v.attackerUnits, v.defenderUnits) / Math.max(0.01, matchup(v.defenderUnits, v.attackerUnits)) },
     { id: 'terrain', label: 'Terrain', value: getTerrainCombatModifier(ctx.terrain).attackerMult, detail: ctx.terrain },
     { id: 'walls', label: 'Walls & forts', value: ctx.defenderDamageReductionMultiplier ?? 1 },
-    { id: 'age', label: 'Technology', value: getRosterCombatMultiplier(ctx.attackerAgeId, ctx.defenderAgeId) / Math.max(0.01, getRosterCombatMultiplier(ctx.defenderAgeId, ctx.attackerAgeId)) }
+    { id: 'age', label: 'Technology', value: getRosterCombatMultiplier(ctx.attackerAgeId, ctx.defenderAgeId) / Math.max(0.01, getRosterCombatMultiplier(ctx.defenderAgeId, ctx.attackerAgeId)) },
+    { id: 'units', label: "Units' age", value: unitsAge(v.attackerUnits, ctx.attackerAgeId) / Math.max(0.01, unitsAge(v.defenderUnits, ctx.defenderAgeId)) }
   ];
   if (ctx.attackerPenaltyMultiplier && ctx.attackerPenaltyMultiplier !== 1) lines.push({ id: ctx.river ? 'river' : 'landing', label: ctx.river ? 'Crossing a river' : 'Landing from the sea', value: ctx.attackerPenaltyMultiplier });
   return lines.map((l) => ({ ...l, value: Math.round(l.value * 100) / 100 }));
@@ -96,7 +104,7 @@ export const simulate = (state, v, args, ctx, samples, spec) => {
     else if (cityFell(r, { occupier: hasMeleeUnit, fell: siege.captured })) captures += 1;
     controlLeft += siege.nextControl;
   }
-  const factors = explainInvasion(v, ctx);
+  const factors = explainInvasion({ ...v, defenderUnits: inputs.defenderUnits }, ctx);
   return {
     // How Auto treats this city: 'garrison' (it fights the units inside and never takes the city),
     // 'attack' (an empty city: it batters the defences, `city` the HP before and expected after).
@@ -172,7 +180,8 @@ export const estimateDefenseOdds = (state, def, samples = 200) => {
     holdChance: 1 - (empty ? r.capture : r.attacker),
     avgDamage: empty ? null : Math.max(0, Math.round((region.control ?? 0) - r.expectedControl)),
     city: r.city && { hpBefore: r.city.hpBefore, hpAfter: r.city.hpAfter, maxHp: r.city.maxHp },
-    range: r.range
+    range: r.range,
+    reasons: r.reasons
   };
 };
 

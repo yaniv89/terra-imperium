@@ -11,6 +11,7 @@ import { buildInvasionSetup } from '../battle/setup/buildBattleSetup';
 import { runHeadless } from '../battle/sim/headless';
 import { resolveQueuedAuto, queuedBattleView, nextQueuedBattle } from './battleQueue';
 import { isUnitInBattle } from './invasion';
+import { landingArgs, landingArmies } from './aiLanding';
 
 // An island people (AI, at war with the player's coastal people) carries an army to a coastal city of the defender.
 // Two coastal peoples of the small world that reach each other by sea: the attacker 'brigantes', the defender
@@ -53,6 +54,13 @@ describe('an AI landing on the player\'s coast is queued', () => {
     const view = queuedBattleView(q, def, 6);
     expect(view.name).toMatch(/^Landing at /);
     expect(view.attackerUnits).toHaveLength(2);
+  });
+
+  it('the landing fights the player at the player\'s own age (a view of the attacker read it as the first age)', () => {
+    const { s } = fixture();
+    const q = processAINavalOperations({ ...s, techAgeId: 'gunpowder' });
+    const def = q.pendingDefenses[0];
+    expect(landingArgs(q, def, landingArmies(q, def))).toMatchObject({ attackerAgeId: 'modern', defenderAgeId: 'gunpowder' });
   });
 
   it('the player\'s fleets intercept first; a sunk transport takes its army down and the landing never comes', () => {

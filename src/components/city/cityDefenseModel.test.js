@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialState } from '../../engine/gameReducer';
 import { cityManifestOf, cityHousingCap } from '../../engine/cityManifest';
-import { cityDefenseModel } from './cityDefenseModel';
+import { cityDefenseModel, engageTarget } from './cityDefenseModel';
+import { getTiles } from '../../data/geo/tiles';
+import { rivalOf } from '../../engine/testWorld';
 
 const base = createInitialState({ playerNationId: 'akkad', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11 } });
 const cap = base.nations[base.playerNationId].capitalRegionId;
@@ -27,5 +29,21 @@ describe('the city sheet Defense tab (W05)', () => {
     expect(m.alert.text).toBe('2 houses ruined, rebuilt in 7 turns; 1 damaged, repaired in 2 turns');
     const sieged = { ...s, regions: { ...s.regions, [cap]: { ...s.regions[cap], siege: { by: 'elam', hp: 10, maxHp: 20 } } } };
     expect(cityDefenseModel(sieged, cap).alert.text).toMatch(/paused: under siege/);
+  });
+
+  it('Engage: a besieged city with a garrison opens the attack card on the weakest besieging stack; without one it says why', () => {
+    const me = base.playerNationId; const foe = rivalOf(base, 0); const city = base.regions[cap];
+    const tiles = getTiles();
+    const [t1, t2] = tiles.neighbors[city.tile].filter((t) => tiles.land[t] === 1);
+    const u = (id, ownerId, tile, strength) => ({ id, ownerId, regionId: ownerId === me ? cap : null, tile, domain: 'land', classId: 'infantry', strength, maxStrength: 1000, morale: 100, movesLeft: 1, promotions: [] });
+    const s = { ...base,
+      wars: [{ id: 'w', aggressor: foe, enemy: me, active: true, startYear: base.year, battleScore: 0 }],
+      regions: { ...base.regions, [cap]: { ...city, siege: { by: foe, hp: 50, maxHp: 100 } } },
+      units: { g: u('g', me, city.tile, 800), big: u('big', foe, t1, 900), small: u('small', foe, t2, 300) } };
+    expect(engageTarget(s, cap)).toEqual({ tile: t2, men: expect.any(String), ok: true, reason: null });
+    expect(cityDefenseModel(s, cap).engage.tile).toBe(t2);
+    const alone = { ...s, units: { big: s.units.big, small: s.units.small } };
+    expect(engageTarget(alone, cap)).toMatchObject({ ok: false, reason: expect.any(String) });
+    expect(engageTarget(base, cap)).toBeNull(); // no siege
   });
 });

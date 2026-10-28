@@ -134,6 +134,8 @@ export default {
   'cy.def.encircled': 'מכותרת',
   'cy.def.recovering': 'מתאוששת',
   'cy.def.holdsOut': 'מחזיקה מעמד: {hp} מתוך {max}',
+  'cy.def.engage': 'צא לקרב',
+  'cy.def.engageText': '{men} חיילים מצורים על העיר. תקוף את הכוח החלש ביותר עם חיל המצב: הכרטיס מראה קודם את הסיכויים שלך.',
   'cy.def.whatYouCanDo': 'מה אפשר לעשות',
   'cy.un.control': 'שליטה מתחת ל־{n}%',
   'cy.un.order': 'הסדר נשמר',

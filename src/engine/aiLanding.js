@@ -18,7 +18,7 @@ import { REGIONS_DATA } from '../data/regions';
 import { LogTypes } from '../data/types';
 import { msg, sub, people, cityRef } from './messages';
 import { createRng } from '../utils/rng';
-import { getTechAgeId, ageOf } from './nationState';
+import { ageOf, viewAs } from './nationState';
 import { resolveAutoBattle } from './autoBattle';
 import { applyBattleOutcome, makeBattleOutcome } from './battleOutcome';
 import { validateAmphibious, getAmphibiousBattleContext, applyAmphibiousLanding } from './invasion';
@@ -29,7 +29,7 @@ import { commandGenerals } from '../data/generals';
 export const LANDING_KINDS = ['intercept', 'landing'];
 export const isLandingKind = (kind) => LANDING_KINDS.includes(kind);
 
-const viewOf = (state, nationId) => ({ ...state, playerNationId: nationId, techAgeId: getTechAgeId(state, nationId) });
+const viewOf = viewAs;
 const drop = (state, id) => ({ ...state, pendingDefenses: (state.pendingDefenses || []).filter((d) => d.id !== id) });
 
 /** The player's fleets (any fleet not the lander's) in the target city's waters. */

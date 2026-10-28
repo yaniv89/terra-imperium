@@ -134,6 +134,8 @@ export default {
   'cy.def.encircled': 'encircled',
   'cy.def.recovering': 'Recovering',
   'cy.def.holdsOut': 'Holds out {hp} of {max}',
+  'cy.def.engage': 'Engage',
+  'cy.def.engageText': '{men} men besiege the city. Attack the weakest stack with the garrison: the card shows your odds first.',
   'cy.def.whatYouCanDo': 'What you can do',
   'cy.un.control': 'Control under {n}%',
   'cy.un.order': 'Order kept',

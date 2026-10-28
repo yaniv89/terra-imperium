@@ -28,6 +28,7 @@ import { translate, getLanguage, formatYear, ageName, hasKey } from '../../i18n/
 import { nameOf } from '../../i18n/names';
 import { logText } from '../../i18n/messageText';
 import { techName } from '../../i18n/gameText';
+import { engageTarget } from '../city/cityDefenseModel';
 
 export const REPORT_GROUPS = [
   { id: 'battles', label: 'Battles' },
@@ -137,7 +138,10 @@ export const turnReportModel = (before, after, lang = getLanguage()) => {
     if (RAID_WORDS.test(msg) && (l.type === LogTypes.COMBAT || l.type === LogTypes.CRISIS)) {
       add('raids', { tone: 'danger', title: shown, sub: null, place: placeOf(msg) });
     } else if (NEWS_TYPES.has(l.type) && !/^A new era dawns/.test(msg)) {
-      add('news', { tone: l.type === LogTypes.CRISIS ? 'danger' : l.type === LogTypes.COMBAT ? 'enemy' : 'muted', title: shown, sub: null, place: placeOf(msg), mine: aboutPlayer(after, l) });
+      const place = placeOf(msg);
+      // A siege on one of the player's cities: Engage opens the attack card on the besiegers, else the city's Defense tab says why not.
+      const siege = l.msgKey === 'm.battle.underSiege' && place?.mine && after.regions?.[place.id]?.siege?.by ? engageTarget(after, place.id) : null;
+      add('news', { tone: l.type === LogTypes.CRISIS ? 'danger' : l.type === LogTypes.COMBAT ? 'enemy' : 'muted', title: shown, sub: null, place, mine: aboutPlayer(after, l), ...(siege ? { engage: { cityId: place.id, tile: siege.ok ? siege.tile : null } } : {}) });
     }
   });
 

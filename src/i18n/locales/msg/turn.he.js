@@ -107,5 +107,6 @@ export default {
   'report.footer': 'כל שורה נשמרת ביומן. תורות שקטים מדלגים על הדף הזה.',
   'report.play': 'שחקו תור {n}',
   'report.goTo': 'עברו אל {name}',
+  'report.engage': 'צא לקרב',
   'report.battleToast': 'דוח קרב'
 };

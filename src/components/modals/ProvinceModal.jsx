@@ -29,6 +29,7 @@ import CityBuildings from '../city/CityBuildings';
 import CityPolitics from '../city/CityPolitics';
 import { cityRailModel } from '../city/cityRailModel';
 import { cityDefenseModel } from '../city/cityDefenseModel';
+import { openFieldAttack } from '../map/marchEvents';
 import { Button, CloseButton, Label, Meter, Tabs, signed } from '../ui/atlas';
 import { useT } from '../../i18n/useT';
 
@@ -60,6 +61,12 @@ const CityDefense = ({ model, onOpenTab }) => {
       <div className="fa-card px-3 py-2"><div className="text-fa-muted text-[12px]">{t('cy.def.siege')}</div><div className="font-semibold">{model.siege ? (model.siege.by ? t('cy.def.siegeBy', { name: model.siege.by, encircled: model.siege.encircled ? `, ${t('cy.def.encircled')}` : '' }) : t('cy.def.recovering')) : t('cy.def.none')}</div></div>
     </div>
     {model.siege && <Meter value={model.siege.hp} max={Math.max(1, model.siege.maxHp)} color="var(--fa-enemy)" label={t('cy.def.holdsOut', { hp: model.siege.hp, max: model.siege.maxHp })} />}
+    {model.engage && (
+      <div className="fa-card p-3 flex items-center gap-2 text-[13px]" data-testid="city-engage">
+        <span className="flex-1 min-w-0">{model.engage.ok ? t('cy.def.engageText', { men: model.engage.men }) : model.engage.reason}</span>
+        <Button size="sm" variant="primary" className="min-h-[44px] shrink-0" disabled={!model.engage.ok} why={model.engage.reason} onClick={() => openFieldAttack(model.cityId, model.engage.tile)} data-testid="city-engage-button">{t('cy.def.engage')}</Button>
+      </div>
+    )}
     {/* What can be done about it, each with the tab that does it (playtest audits I053). */}
     {model.paths?.length > 0 && (
       <div className="fa-card p-3" data-testid="city-defense-paths">

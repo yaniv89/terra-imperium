@@ -101,6 +101,13 @@ const DefenseSheet = () => {
             <div className="flex-1 min-w-0"><OddsBar compact mine={m.odds.hold} labelLeft={m.attacking ? t('bt.def.theyHold') : t('bt.def.theyTakeIt')} labelRight={m.attacking ? t('bt.def.youWin') : t('bt.def.youHold')} /></div>
           </div>
         )}
+        {m.reasons.length > 0 && (
+          <div className="flex flex-wrap gap-1 px-0.5" data-testid="defense-odds-factors">
+            {m.reasons.map((f) => (
+              <span key={f.id} title={f.detail || ''} className={`fa-chip !min-h-[22px] !px-1.5 !text-[10.5px] ${f.value > 1 ? 'text-fa-good' : 'text-fa-danger-text'}`}>{f.label} x{f.value.toFixed(2)}</span>
+            ))}
+          </div>
+        )}
         {m.warning && <div role="status" className="text-[12px] leading-snug text-fa-danger-text rounded-[8px] border border-fa-danger/60 px-2 py-1" data-testid="defense-hopeless">{m.warning}</div>}
         <ModeCards options={options} value={chosen} onChange={setMode} compact />
         {m.commandBlocked && (

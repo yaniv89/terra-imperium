@@ -108,5 +108,6 @@ export default {
   'report.footer': 'Every line stays in the Log. Quiet turns skip this sheet.',
   'report.play': 'Play turn {n}',
   'report.goTo': 'Go to {name}',
+  'report.engage': 'Engage',
   'report.battleToast': 'Battle Report'
 };

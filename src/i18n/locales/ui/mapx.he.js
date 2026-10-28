@@ -207,6 +207,7 @@ export default {
   'mx.odds.terrain': 'שטח',
   'mx.odds.walls': 'חומות ומבצרים',
   'mx.odds.age': 'תקופה',
+  'mx.odds.units': 'גיל היחידות',
   'mx.odds.river': 'חציית נהר',
   'mx.odds.landing': 'נחיתה מהים',
   'mx.odds.vs': '{a} מול {b}',
