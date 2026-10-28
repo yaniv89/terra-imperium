@@ -80,6 +80,7 @@ export default {
   'bt.hud.deploy': 'Deploy your army',
   'bt.hud.deploySea': 'Deploy your fleet',
   'bt.hud.deploySelected': 'Selected: {name}. Tap inside your zone to place it.',
+  'bt.hud.deploySelectedMouse': 'Selected: {name}. Right click inside your zone to place it.',
   'bt.hud.raidFirst': 'First: the raiders reach your houses seconds after Start. Place your squads between them and the town now.',
   'bt.hud.raidStart': 'The raiders are coming. Tap Enemy to see them, then All and Attack to meet them.',
   'bt.hud.foldDeploy': 'Fold the deploy card',

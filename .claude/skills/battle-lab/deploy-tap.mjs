@@ -22,8 +22,9 @@ for (const age of ages) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   const cdp = await ctx.newCDPSession(page);
-  const touch = (type, touchPoints) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints });
-  const tap = async (x, y) => { await touch('touchStart', [{ x, y, id: 1 }]); await page.waitForTimeout(60); await touch('touchEnd', []); await page.waitForTimeout(400); };
+  // each event carries its own time: CDP answers only after a slow frame, which would stretch a tap into a long press
+  const touch = (type, touchPoints, at) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints, timestamp: at });
+  const tap = async (x, y) => { const t = Date.now() / 1000; const d = touch('touchStart', [{ x, y, id: 1 }], t); await page.waitForTimeout(60); await touch('touchEnd', [], t + 0.06); await d; await page.waitForTimeout(400); };
   const shot = (n) => page.screenshot({ path: path.join(outDir, `${age}-${lang}-${n}.png`) });
   await page.goto(`${base}?battleSandbox&age=${age}${process.env.Q ?? '&fort=0'}`, { timeout: 240000 });
   await page.getByRole('button', { name: /Fight|הילחם|לקרב/ }).first().click();
@@ -35,7 +36,7 @@ for (const age of ages) {
   const info = () => page.evaluate(() => {
     const r = window.__battleRenderer; const v = window.__battleView(); const Q = 256;
     const own = v.squads.filter((q) => q.side === v.playerSide && q.alive && q.onField && q.classId !== 'worker');
-    return { rings: r.rings.count, sel: window.__battleSelected?.() ?? null, squads: own.map((q) => { const s = r.worldToScreen(q.x / Q, q.y / Q); return { idx: q.idx, cls: q.classId, sx: Math.round(s.x), sy: Math.round(s.y), x: q.x, y: q.y }; }) };
+    return { side: v.playerSide, rings: r.rings.count, sel: window.__battleSelected?.() ?? null, squads: own.map((q) => { const s = r.worldToScreen(q.x / Q, q.y / Q); return { idx: q.idx, cls: q.classId, sx: Math.round(s.x), sy: Math.round(s.y), x: q.x, y: q.y }; }) };
   });
   const a = await info();
   const q = a.squads.find((s) => s.sx > 40 && s.sx < 420 && s.sy > 60 && s.sy < 300) || a.squads[0];
@@ -44,7 +45,9 @@ for (const age of ages) {
   const b = await info();
   console.log(`${age} tap on squad middle: rings ${b.rings} sel ${JSON.stringify(b.sel)} panel "${(await page.getByTestId('battle-deploy-selected').textContent().catch(() => ''))}"`);
   await shot('2-tapped');
-  const tx = Math.max(60, q.sx - 90); const ty = Math.min(300, q.sy + 40);
+  // a spot in the zone well clear of the squad (a tap on it would select it again), below the top bar
+  const defender = a.side === 1; // the deploy card sits on the far side from your army: left for a defender
+  const tx = defender ? Math.min(780, q.sx + 150) : q.sx > 300 ? q.sx - 150 : Math.min(480, q.sx + 150); const ty = Math.max(120, Math.min(290, q.sy + 40));
   await tap(tx, ty);
   await page.waitForTimeout(1500);
   const c = await info();

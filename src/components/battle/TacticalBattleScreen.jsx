@@ -48,6 +48,7 @@ import { preloadBattleIcons } from './battleIcons';
 import { commandedSetup } from '../../battle/setup/buildBattleSetup';
 import { arrivalNote } from '../../battle/input/orderFeedback';
 import { SHIP_PICK_TILES } from '../../battle/input/squadPick';
+import { GARRISON_SLOTS } from '../../battle/sim/objectives';
 import { DEPLOY_PRESETS, deployPreset as presetSlots, presetFits } from '../../battle/input/deployPresets';
 import { t as tNow } from '../../i18n/core';
 import { useT } from '../../i18n/useT';
@@ -350,10 +351,11 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           const f = frames.current;
           if (m.sim) f.sim = m.sim;
           if (!f.cur || m.view.tick !== f.cur.tick) { f.prev = f.cur; f.cur = m.view; f.arrival = performance.now(); } else f.cur = m.view;
-          // First frame: look straight at your own army.
+          // First frame: look straight at your own army, all of it between the HUD's bars (r3-battle: the closer phone camera).
           if (!f.centered) {
             const own = m.view.squads.filter((q) => q.side === playerSide && q.alive && q.onField);
-            if (own.length) renderer.centerOn(own.reduce((a, q) => a + q.x, 0) / own.length / Q, own.reduce((a, q) => a + q.y, 0) / own.length / Q);
+            const fighters = own.filter((q) => q.classId !== 'worker');
+            renderer.frameGround((fighters.length ? fighters : own).map((q) => ({ x: q.x / Q, z: q.y / Q })), 0.75);
             f.centered = true;
             renderer.startIntro?.();
             // Resumed: say where it picks up (playtest 4 H2); a rejected checkpoint says so instead.
@@ -756,8 +758,9 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       r.setOrderTarget(sel, { kind: 'squad', index: hit.idx }, 'attack'); // its ring holds while paused (orderTarget.js)
       markPending({ kind: 'attack', squads: sel, x: hit.ground.x, z: hit.ground.z, color: '#ef4444', ringless: true });
       noteFor('attack');
-    } else if (hit.kind === 'structure' && playerSide === 1) {
+    } else if (hit.kind === 'structure' && playerSide === 1 && GARRISON_SLOTS[cur.structures[hit.index]?.kind]) {
       // Defending: tap your keep or a tower to man it (infantry and ranged; fortified buildings only).
+      // A house is ground: placed or moved onto (playtest 40736779836, the sack deploy).
       const eligible = sel.filter((i) => ['infantry', 'ranged'].includes(cur.squads[i]?.classId));
       if (eligible.length) {
         send([{ type: 'garrison', squads: eligible, structure: hit.index }]);
