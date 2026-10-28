@@ -58,7 +58,7 @@ phone rules hold.
   (Sahara desert, Amazon jungle, Atlantic sea, Siberia wind, Paris basin fields).
 - `npx vitest run src/audio src/battle/audio`: 12 files, 102 tests pass. `npm run lint`: clean.
   `npm run build`: passes (286 OGG emitted).
-- Full `npx vitest run` after merging integration: see the last section.
+- Full `npx vitest run` after merging integration: 505 files pass, 2 skipped; 4,729 tests pass, 17 skipped.
 
 ## Load and memory against the base commit (f60660b8)
 
