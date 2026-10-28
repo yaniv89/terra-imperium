@@ -207,6 +207,7 @@ export default {
   'mx.odds.terrain': 'Terrain',
   'mx.odds.walls': 'Walls & forts',
   'mx.odds.age': 'Technology',
+  'mx.odds.aux': 'Auxiliaries',
   'mx.odds.units': 'Units\' age',
   'mx.odds.river': 'Crossing a river',
   'mx.odds.landing': 'Landing from the sea',

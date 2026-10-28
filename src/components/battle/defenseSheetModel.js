@@ -15,7 +15,7 @@ import { isNoMansLand } from '../../engine/hostility';
 import { t } from '../../i18n/core';
 import { nameNow } from '../../i18n/names';
 import { agreed, msgRefText } from './battleText';
-import { rangeLine, factorText } from './preBattleModel';
+import { rangeLine, factorText, auxLine } from './preBattleModel';
 import { armyView, battleSize, cityWallsView } from './warModel';
 
 const OURS = { defense: 'garrison', field: 'army', naval: 'fleet', raid: 'troops', sack: 'town', intercept: 'fleet', landing: 'garrison' };
@@ -104,6 +104,7 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
     size,
     odds,
     reasons,
+    aux: auxLine(v.odds?.auxiliaries, attacking),
     hopeless,
     warning,
     suggested,

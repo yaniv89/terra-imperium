@@ -22,6 +22,7 @@ export default {
   'bt.pre.likelyWin': 'סיכוי טוב לנצח',
   'bt.pre.evenFight': 'קרב שקול',
   'bt.pre.likelyLoss': 'סיכוי טוב להפסיד',
+  'bt.pre.auxLine': 'האוטומטי סופר גם את כוחות העזר שכל צד מאמן במהלך הקרב: כ־{mine} לוחמים שלכם, {theirs} שלהם.',
   'bt.pre.hopeless': 'סיכוי קלוש: האוטומטי מנצח רק ב־{pct}% מהמקרים{why}. בטלו כדי לשמור על הצבא, או הילחמו באוטומטי כדי לסיים מהר.',
   'bt.pre.rangeTo': '{a} עד {b}',
   'bt.card.ground': 'שטח: {terrain}.',

@@ -22,6 +22,7 @@ export default {
   'bt.pre.likelyWin': 'Likely win',
   'bt.pre.evenFight': 'Even fight',
   'bt.pre.likelyLoss': 'Likely loss',
+  'bt.pre.auxLine': 'Auto also counts the auxiliaries each side trains during the battle: about {mine} men yours, {theirs} theirs.',
   'bt.pre.hopeless': 'Hopeless: Auto wins only {pct}% of the time{why}. Call off to keep the army, or fight on Auto to get it over with.',
   'bt.pre.rangeTo': '{a} to {b}',
   'bt.card.ground': 'Ground: {terrain}.',

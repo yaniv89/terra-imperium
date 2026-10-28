@@ -29,6 +29,7 @@ import { armyView, battleSize, cityWallsView, oddsSource, scoutsRange, siegeAdvi
 import { sideAgeOf } from '../../engine/ageRefs';
 import { canPay } from '../../utils/costs';
 import { consequenceLines } from './consequenceText';
+import { menText } from '../../engine/battleLedger';
 import { HOPELESS_HOLD } from './defenseSheetModel';
 
 const nationLabel = (state, id) => (id === 'rebels' ? t('bt.pre.rebels') : state.nations?.[id]?.name ? nameNow('people', id, state.nations[id].name) : t('bt.pre.theEnemy'));
@@ -56,6 +57,10 @@ export const rangeLine = (odds) => {
   const win = span(Math.round(r.win[0] * 100), Math.round(r.win[1] * 100), String);
   return t('bt.pre.autoRange', { win, mine: span(...r.attackerMen, (n) => n.toLocaleString('en')), theirs: span(...r.defenderMen, (n) => n.toLocaleString('en')) });
 };
+
+/** Auto's auxiliaries as a line, `aux` seen from the attacker, `mine` the player's side; null when none train. */
+export const auxLine = (aux, mineIsAttacker = true) => (aux && (aux.attacker || aux.defender)
+  ? t('bt.pre.auxLine', { mine: menText(mineIsAttacker ? aux.attacker : aux.defender), theirs: menText(mineIsAttacker ? aux.defender : aux.attacker) }) : null);
 
 /** How often Auto matched real time for this kind in the committed record, or null (never a made-up number). */
 export const parityLine = (parityKind) => {
@@ -121,6 +126,7 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
         factors: (odds.factors || []).filter((f) => Math.abs(f.value - 1) >= 0.02).map(factorText),
         reasons: (odds.reasons || []).filter((f) => Math.abs(f.value - 1) >= 0.02).map(factorText),
         range: rangeLine(odds),
+        aux: auxLine(odds.auxiliaries),
         parity: parityLine(PARITY_KIND[kind])
       };
     } else {

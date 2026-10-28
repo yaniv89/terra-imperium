@@ -158,6 +158,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
                 <div className="mt-1"><OddsBar mine={c.win} compact /></div>
                 <div className="text-[11px] text-fa-muted leading-snug pl:hidden">{c.losses}{m.v?.ok && !c.take && !field && m.cityRule !== 'garrison' ? t('bt.pre.needInfantry') : ''}</div>
                 {c.range && <div className="text-[11.5px] font-semibold leading-snug mt-1" data-testid="battle-odds-range">{c.range}</div>}
+                {c.aux && <div className="text-[11px] text-fa-muted leading-snug mt-0.5" data-testid="battle-odds-aux">{c.aux}</div>}
                 {c.reasons.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1" data-testid="battle-odds-factors">
                     {c.reasons.map((f) => (

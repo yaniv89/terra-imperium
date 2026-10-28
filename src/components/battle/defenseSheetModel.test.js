@@ -87,6 +87,8 @@ describe('W14 defenseSheetModel', () => {
     const units = m.reasons.find((f) => f.id === 'units');
     expect(units.value).toBeLessThan(1); // read as yours
     expect(units.label).toBe("Units' age");
+    const aux = defenseSheetModel(old, def, { view: { ...queuedBattleView(old, def, 2), odds: { ...odds, auxiliaries: { attacker: 3164, defender: 2182 } } } });
+    expect(aux.aux).toBe('Auto also counts the auxiliaries each side trains during the battle: about 21,820 men yours, 31,640 theirs.');
     const worst = m.reasons.find((f) => f.value < 1);
     expect(m.warning).toContain(`mostly from ${worst.label}`);
   });

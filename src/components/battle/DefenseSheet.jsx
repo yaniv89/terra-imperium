@@ -72,7 +72,7 @@ const DefenseSheet = () => {
 
   return (
     <div role="dialog" aria-labelledby="defense-title" data-testid="defense-sheet"
-      className="fixed z-[60] start-[max(var(--safe-start),0.5rem)] top-[calc(var(--header-height,2.5rem)+0.375rem)] max-h-[calc(100dvh-var(--header-height,2.5rem)-0.375rem-max(env(safe-area-inset-bottom),0.5rem))] w-[min(30rem,calc(100vw-1rem-var(--rail-inset,0px)))] min-w-[min(22rem,calc(100vw-1rem))] lg:w-[32rem] flex flex-col fa-panel !bg-fa-panel shadow-2xl">
+      className="fixed z-[71] start-[max(var(--safe-start),0.5rem)] top-[calc(var(--header-height,2.5rem)+0.375rem)] max-h-[calc(100dvh-var(--header-height,2.5rem)-0.375rem-max(env(safe-area-inset-bottom),0.5rem))] w-[min(30rem,calc(100vw-1rem-var(--rail-inset,0px)))] min-w-[min(22rem,calc(100vw-1rem))] lg:w-[32rem] flex flex-col fa-panel !bg-fa-panel shadow-2xl">
       <div className="flex items-start gap-2 px-3 pt-2 pb-1 border-b border-fa-line">
         <ShieldIcon className="w-5 h-5 mt-1 text-fa-danger-text shrink-0" aria-hidden="true" />
         <div className="min-w-0 flex-1">
@@ -110,6 +110,7 @@ const DefenseSheet = () => {
             ))}
           </div>
         )}
+        {m.aux && <div className="text-[11px] text-fa-muted leading-snug px-0.5" data-testid="defense-odds-aux">{m.aux}</div>}
         {m.warning && <div role="status" className="text-[12px] leading-snug text-fa-danger-text rounded-[8px] border border-fa-danger/60 px-2 py-1" data-testid="defense-hopeless">{m.warning}</div>}
         {m.commandBlocked && (
           <div role="status" className="text-[12px] leading-snug text-fa-muted" data-testid="defense-no-command"><b className="text-fa-text">{t('bt.def.cmdNotPossible')}</b> {m.commandBlocked}</div>
