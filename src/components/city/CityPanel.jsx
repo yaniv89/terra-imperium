@@ -364,6 +364,22 @@ const CityPanel = ({ cityId, view = 'city' }) => {
         </div>
       )}
 
+      {mine && (
+        <div className="flex items-center gap-1.5 text-[12px]" data-testid="city-keep" title={t('cy.keepTip')}>
+          <span className="text-fa-muted shrink-0">{t('cy.keep')}</span>
+          <div className="flex gap-1 overflow-x-auto [scrollbar-width:none]" role="radiogroup" aria-label={t('cy.keep')}>
+            {[[null, 'cy.keepOff'], ['repeat', 'cy.keepRepeat'], ['advisor', 'cy.keepAdvisor']].map(([mode, key]) => {
+              const on = (city.production?.keep || null) === mode;
+              return (
+                <button key={key} type="button" role="radio" aria-checked={on} data-testid={`city-keep-${mode || 'off'}`}
+                  onClick={() => dispatch({ type: ActionTypes.SET_PRODUCTION_KEEP, payload: { cityId, keep: mode } })}
+                  className={`shrink-0 rounded-full border px-2.5 min-h-[36px] whitespace-nowrap ${on ? 'border-fa-brass bg-fa-raised text-fa-text' : 'border-fa-line text-fa-muted'}`}>{t(key)}</button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {mine && hint && (
         <div className="rounded-lg border border-fa-line bg-fa-raised px-2.5 py-1 text-[12px] leading-snug" data-testid="long-build-hint">
           <div className="flex flex-wrap items-center gap-x-2 min-h-[36px]">
