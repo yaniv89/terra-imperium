@@ -238,3 +238,8 @@ matchups, wounded in melee, idle with enemies in sight) and names the first ones
 aiDuel fights each battle three ways (old vs old, new attacker, new defender) with the AI of a git
 ref; `FEAT_OFF` switches off single behaviours (tacticalAI.js AI_FEATURES, economyAI.js ECO_FEATURES).
 Judge on 20+ seeds per row: one mistake decides a mirror battle, so rows swing by 5 of 20.
+Land rows: MATCH=0 mixed mirror, 1 two cavalry vs two archers, 2 with a siege engine each; sea rows
+(SEAMATCH=0,1,2): 4 v 4, a 6 v 6 mirror (the attacker always loses it: it retreats first, so only NO
+moves), 8 v 8 with transports. TRACE lines read `side#idx class strength:order>target!@x,y` (`!` the
+target is in reach, `>s0` a structure). At sea judge on the exchange and 30 seeds (battle-ai-2: target
+choice barely moves it, damage scales with the shooter's strength).
