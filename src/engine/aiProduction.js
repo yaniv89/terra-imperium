@@ -24,6 +24,9 @@
 //             a major with a war plan (warPlans.js, at war or arming) trains up to the plan's `cap`
 //             (a strike stack plus home garrisons, what its budget carries): a siege engine first
 //             when the target has walls and it has none; in peace or war, archers up to RANGED_SHARE, then foot
+//   ship      a sea-coast city of a major keeps the nation's small navy (lane naval-8: the AI owned no
+//             ship in most games, so the player never met a fleet): NAVY_PEACE ships at NAVY_UTILITY,
+//             NAVY_WAR at war at NAVY_WAR_UTILITY; a warship, or the age's first line before warships
 // Nothing scores: nothing is queued (production is banked by the queue's overflow).
 // Ripples: AI expansion fills the map over the ages (C7's 50% of land by 500 CE target), AI
 // buildings feed the same yields the player's do, and AI armies come from the same cities.
@@ -32,7 +35,8 @@ import { RESOURCES_ON_TILES, tileFacts, canImprove } from '../data/tileYields';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 import { getAvailableClasses, getUnlockedClasses, isRobotUnlocked } from '../data/unitClasses';
 import { wantsRobot } from './robots';
-import { canQueue, productionCost } from './world/cities';
+import { canQueue, productionCost, hasSeaCoast } from './world/cities';
+import { navalLinesFor } from '../data/navalLines';
 import { bestSites, outpostsOf, outpostSlots, settlersOf } from './settlers';
 import { wonderOptions, wonderItem } from './wonders';
 import { DOCTRINE_WONDERS, DOCTRINE_BUILDING_PRIORITY } from '../data/nations';
@@ -86,6 +90,10 @@ export const UNWORKED_IMPROVEMENT_MULT = 0.6;
 export const RANGED_SHARE = 0.25; // about a quarter of an army are archers: one per three foot (eight-ages plan U36)
 /** The unit orders to try, best first: each class's robot (when wanted and known), then its human unit. */
 export const unitChoices = (classes, robots, ageId, researched) => classes.flatMap((classId) => [...(robots && isRobotUnlocked(ageId, classId, researched) ? [{ kind: 'unit', classId, robot: true }] : []), { kind: 'unit', classId }]);
+export const NAVY_PEACE = 1;
+export const NAVY_WAR = 2;
+export const NAVY_UTILITY = 0.5;
+export const NAVY_WAR_UTILITY = 1.2;
 export const AIR_SHARE = 0.15; // from Modern, about one aircraft (Information: strike drones) in seven; it stays at its city and flies to battles in range (airPower.js, U57)
 /** The building lines in the order a doctrine builds them, every line once (the template). */
 export const buildingOrder = (doctrine) => { const liked = DOCTRINE_BUILDING_PRIORITY[doctrine] || []; return [...liked.filter((c) => BUILDING_PRIORITY.includes(c)), ...BUILDING_PRIORITY.filter((c) => !liked.includes(c))]; };
@@ -95,10 +103,11 @@ export const BUILDING_PRIORITY = ['food', 'economy', 'culture', 'science', 'indu
  * scans of units and cities were the cost of the phase): { settlers, outposts, landUnits }. */
 export const nationCounts = (state) => {
   const out = {};
-  const of = (id) => (out[id] ||= { settlers: 0, outposts: 0, landUnits: 0, siege: 0, ranged: 0, air: 0, robots: 0, queuedUnits: 0 });
+  const of = (id) => (out[id] ||= { settlers: 0, outposts: 0, landUnits: 0, siege: 0, ranged: 0, air: 0, robots: 0, queuedUnits: 0, ships: 0 });
   Object.values(state.units || {}).forEach((u) => {
     if (!u.ownerId) return;
     if (u.classId === 'settler') { of(u.ownerId).settlers += 1; return; }
+    if (u.domain === 'naval') { of(u.ownerId).ships += 1; return; }
     if (u.domain !== 'land') return;
     const c = of(u.ownerId); c.landUnits += 1;
     if (u.robot) c.robots += 1;
@@ -107,6 +116,7 @@ export const nationCounts = (state) => {
   Object.values(state.regions || {}).forEach((c) => {
     if (!c.owner) return;
     if (c.outpost) of(c.owner).outposts += 1;
+    else if (c.production?.current?.classId === 'naval') of(c.owner).ships += 1; // a ship on the slips counts toward the navy
     else if (c.production?.current?.kind === 'unit') of(c.owner).queuedUnits += 1; // regiments in training (a war plan counts them)
   });
   return out;
@@ -180,7 +190,7 @@ export const chooseProduction = (state, city, ctx) => {
   const world = { cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} };
   const nationId = city.owner;
   const units = ctx.units || state.units || {};
-  const counts = ctx.counts || { settlers: settlersOf(units, nationId).length, outposts: outpostsOf(state.regions, nationId).length, landUnits: Object.values(units).filter((u) => u.ownerId === nationId && u.domain === 'land' && u.classId !== 'settler').length };
+  const counts = ctx.counts || { settlers: settlersOf(units, nationId).length, outposts: outpostsOf(state.regions, nationId).length, landUnits: Object.values(units).filter((u) => u.ownerId === nationId && u.domain === 'land' && u.classId !== 'settler').length, ships: Object.values(units).filter((u) => u.ownerId === nationId && u.domain === 'naval').length };
   const production = Math.max(1, city.lastYields?.production ?? city.dev?.production ?? city.size ?? 1);
   const costOf = (item) => productionCost(item, { ageId: ctx.ageId, citiesOwned: ctx.citiesOwned, speedMult: ctx.speedMult, trainMult: ctx.trainMult, costMult: ctx.costMult });
   const affordable = (item) => costOf(item) / production <= MAX_BUILD_TURNS * (ctx.speedMult || 1);
@@ -275,6 +285,12 @@ export const chooseProduction = (state, city, ctx) => {
         if (canQueue(city, tiles, world, item, ctx).ok && affordable(item)) { offer(item, score); break; }
       }
     }
+  }
+  if (!independent && classes.includes('naval') && (counts.ships ?? 0) < (sit.atWar ? NAVY_WAR : NAVY_PEACE) && hasSeaCoast(tiles, city)) {
+    const lines = navalLinesFor(ctx.ageId);
+    const item = { kind: 'unit', classId: 'naval', navalLine: lines.includes('warship') ? 'warship' : lines[0] };
+    const score = sit.atWar ? NAVY_WAR_UTILITY : NAVY_UTILITY;
+    if (score > bestScore && affordable(item) && canQueue(city, tiles, world, item, ctx).ok) offer(item, score * affordability(costOf(item) / production, ctx.speedMult || 1));
   }
   return best;
 };

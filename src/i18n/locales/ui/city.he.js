@@ -73,6 +73,8 @@ export default {
   'cy.rush.button': 'קנו ב־{gold} זהב',
   'cy.rush.title': 'שלמו {gold} זהב על {hammers} הייצור שעוד חסר ל{label}',
   'cy.rush.text': '{label}: {hammers} ייצור תמורת {gold} זהב ({each} זהב לכל אחד). מוכן בתור הבא, {wait}.',
+  'cy.shipCarries': 'נושאת חיילים: {n} · {tiles} משבצות ים בתור',
+  'cy.shipPace': 'לא נושאת חיילים · {tiles} משבצות ים בתור',
   'cy.settlerNoSite': 'לא ידוע אתר טוב בטווח: למתיישבים האלה אין לאן ללכת. חקרו קודם.',
   'cy.settlerDetail': 'מקימים עיר חדשה. לוקחים אזרח אחד מהעיר הזו.',
   'cy.settlerMin': 'העיר צריכה קודם להגיע לגודל {n}',
