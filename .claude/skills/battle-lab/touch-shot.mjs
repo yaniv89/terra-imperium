@@ -13,6 +13,8 @@ const outDir = process.argv[2] || '.';
 const W = Number(process.env.W || 844); const H = Number(process.env.H || 390);
 const ages = (process.env.AGES || 'stone,bronze,kingdoms,gunpowder,modern,information,future').split(',');
 const base = process.env.URL || 'http://localhost:5199/terra-imperium/';
+// PART=powers: only the powers, at 1x from the start (at 3x the army can be gone before supply allows)
+const part = process.env.PART || 'all';
 const exe = process.env.CHROMIUM || '/opt/pw-browsers/chromium';
 fs.mkdirSync(outDir, { recursive: true });
 const browser = await launchBrowser({ executablePath: exe, headless: true });
@@ -34,10 +36,10 @@ for (const age of ages) {
   await page.getByTestId('battle-pause').waitFor({ timeout: 120000 });
   await page.waitForTimeout(1500);
   await tap(page, 'battle-pause'); // Start
-  if (await page.getByTestId('battle-speed-3').count()) await tap(page, 'battle-speed-3');
+  if (part !== 'powers' && await page.getByTestId('battle-speed-3').count()) await tap(page, 'battle-speed-3');
   await page.waitForTimeout(1500);
   // 1. Enemy: Attack it must wait for the player (it used to go in 7 s)
-  if (await page.getByTestId('battle-objective').count()) {
+  if (part !== 'powers' && await page.getByTestId('battle-objective').count()) {
     await tap(page, 'battle-objective');
     await page.waitForTimeout(10000);
     const still = await visible(page, 'battle-objective-attack');
@@ -48,7 +50,7 @@ for (const age of ages) {
   // 2. Attack armed, then a tap on the ground
   await tap(page, 'battle-select-all');
   await page.waitForTimeout(300);
-  if (await page.getByTestId('battle-attack-move').count()) {
+  if (part !== 'powers' && await page.getByTestId('battle-attack-move').count()) {
     await tap(page, 'battle-attack-move');
     await page.waitForTimeout(300);
     console.log(`${age} attack armed chip: ${await visible(page, 'battle-attack-armed')}`);
@@ -83,9 +85,10 @@ for (const age of ages) {
       }, { id: pw.id });
       await page.touchscreen.tap(at.x, at.y);
     }
-    await page.waitForTimeout(pw.targeted ? 1200 : 300); // a strike lands after its delay
+    await page.waitForTimeout(300);
     console.log(`${age} power ${pw.id}: note "${await text(page, 'battle-order-note')}"`);
     await shot(`4-power-${pw.id}`);
+    if (pw.targeted) { await page.waitForTimeout(1500); await shot(`4-power-${pw.id}-landed`); } // a strike lands after its delay
   }
   // 4. Flags zoomed out over the army
   await page.evaluate(() => { const v = window.__battleView(); const r = window.__battleRenderer; const own = v.squads.filter((q) => q.side === 0 && q.alive && q.onField); r.centerOn(own.reduce((s, q) => s + q.x, 0) / own.length / 256, own.reduce((s, q) => s + q.y, 0) / own.length / 256); r.zoomBy(0.6, innerWidth / 2, innerHeight / 2); r.updateCamera(); });
