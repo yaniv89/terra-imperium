@@ -54,7 +54,7 @@ import { riverStrips, riverBandAt, riverRankCap, RIVER_BANDS } from './riverMode
 import { loadRiverLines } from '../../../data/geo/riverLines';
 import { createAtlas } from './spriteAtlas';
 import { onImageLoad } from './spriteArt';
-import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, carryTransform, isSaneTransform, startZoomFor, wheelZoomDelta, maxZoomFor } from './mapView';
+import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, carryTransform, isSaneTransform, startZoomFor, wheelZoomDelta, maxZoomFor, flingVelocity, FLING_DECAY, FLING_MIN_SPEED } from './mapView';
 import { kmPerRing } from '../../../data/geo/gridScale';
 import { cleanLatLng, latLngOfCity, knownLatLngOfCity, cameraTarget, cameraKey, rememberCamera, recallCamera, createIntentGate, INTENT_SETTLE_MS } from '../mapCamera';
 import {
@@ -75,6 +75,9 @@ import { watchPixelRatio } from '../../../utils/pixelRatio';
 import { noteCrashEvent } from '../../../utils/crashLog';
 import { ageOf } from '../../../engine/nationState';
 
+// the source event of a fling's own steps (a pan let go still gliding: mapView.flingVelocity)
+const FLING_STEP = { type: 'fling' };
+const REDUCED_MOTION = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const OCEAN_COLOR = '#0f172a';
 const ZOOM_CAP = 200; // the closest zoom is also limited to a few hexes across the screen (maxZoomFor)
 const ZOOM_STEP_SCALE = 1.6;
@@ -353,6 +356,7 @@ const GLMapView = ({
   // The screen size the current transform was made for: a resize rescales the world (fitSize), so
   // the view is carried over to keep the same place at the centre (carryTransform).
   const geomRef = useRef(null);
+  const fling = useRef({ raf: 0, samples: [], k: 0 });
   useEffect(() => {
     const el = containerRef.current;
     if (!el || !ready || width <= 0 || height <= 0 || !projection) return undefined;
@@ -372,13 +376,42 @@ const GLMapView = ({
       .wheelDelta(wheelZoomDelta)
       // east and west are free (the world wraps), north and south stop at the poles
       .translateExtent([[-Infinity, 0], [Infinity, height]])
-      .on('zoom', (event) => onZoom(event.transform));
+      .on('start', (event) => {
+        // a finger down, a wheel or a fly-to stops a glide under way (the glide's own steps carry no event)
+        if (fling.current.raf && event.sourceEvent !== FLING_STEP) { cancelAnimationFrame(fling.current.raf); fling.current.raf = 0; }
+        fling.current.samples = []; fling.current.k = event.transform.k;
+      })
+      .on('zoom', (event) => {
+        onZoom(event.transform);
+        const src = event.sourceEvent;
+        // a one-finger (or mouse) drag at one zoom: its last positions, for the fling on release
+        if (src && /move$/.test(src.type) && !(src.touches?.length > 1) && event.transform.k === fling.current.k) {
+          const pt = src.touches?.[0] ?? src;
+          fling.current.samples.push({ t: performance.now(), x: pt.clientX, y: pt.clientY });
+          if (fling.current.samples.length > 12) fling.current.samples.shift();
+        } else if (src) fling.current.samples = [];
+      })
+      .on('end', (event) => {
+        const v = event.sourceEvent && !REDUCED_MOTION() ? flingVelocity(fling.current.samples, performance.now()) : null;
+        fling.current.samples = [];
+        if (!v) return;
+        let { vx, vy } = v; let last = performance.now();
+        const step = (now) => {
+          const dt = Math.min(48, now - last); last = now;
+          const k = transformRef.current.k;
+          selection.call(behavior.translateBy, (vx * dt) / k, (vy * dt) / k, FLING_STEP);
+          const f = FLING_DECAY ** dt; vx *= f; vy *= f;
+          fling.current.raf = Math.hypot(vx, vy) * 4 > FLING_MIN_SPEED ? requestAnimationFrame(step) : 0;
+        };
+        fling.current.raf = requestAnimationFrame(step);
+      });
     zoomBehaviorRef.current = behavior;
     const selection = select(el);
     selection.call(behavior);
     // keep the current view (a resize rebuilds the behaviour)
     selection.call(behavior.transform, transformRef.current.k < minK ? zoomIdentity.scale(minK) : transformRef.current);
-    return () => { selection.on('.zoom', null); };
+    const glide = fling.current;
+    return () => { selection.on('.zoom', null); cancelAnimationFrame(glide.raf); glide.raf = 0; };
   }, [ready, width, height, minK, onZoom, projection, ZOOM_MAX]);
 
   // The free part of the screen is read when the camera moves, through a ref: a sheet that opens or
@@ -598,8 +631,9 @@ const GLMapView = ({
   const towns = useMemo(() => closeTowns(state), [state]);
   // the settled view: the cities' sprites are built round it
   const settledView = useMemo(() => (projection ? viewFor({ transform: { k: settled.k, x: settled.x, y: settled.y }, width, height, dpr, projection, raster }) : null), [projection, raster, settled, width, height, dpr]);
-  const cities = useMemo(() => (projection ? citySprites({ state, projection, k, selectedRegion, dpr, bannerFont: layoutMode === 'phone-landscape' ? 11 : 12, isTown: towns.isTown, near: nearView(settledView) }) : null),
-    [state, projection, k, selectedRegion, dpr, layoutMode, towns, settledView]);
+  const armyTiles = useMemo(() => new Set(markers.armies.filter((m) => m.tile != null).map((m) => m.tile)), [markers]);
+  const cities = useMemo(() => (projection ? citySprites({ state, projection, k, selectedRegion, dpr, bannerFont: layoutMode === 'phone-landscape' ? 11 : 12, isTown: towns.isTown, near: nearView(settledView), armyTiles }) : null),
+    [state, projection, k, selectedRegion, dpr, layoutMode, towns, settledView, armyTiles]);
   const markerOut = useMemo(() => (projection ? markerSprites({ markers, projection, k, atWar, dpr, waterTile: (t) => getTiles().land[t] !== 1 }) : null), [markers, projection, k, atWar, dpr]);
   // the glyph and road window: the settled view plus half a screen round it, in 2 degree steps
   const landWindow = useMemo(() => {
@@ -815,10 +849,10 @@ const GLMapView = ({
   // While a march is aimed, a cluster of banners (the strategic zoom piles them on the cities) and a
   // foreign army on a city's centre are the place under them, as a closer zoom picks it: a tap
   // aims at the city, it does not zoom (playtest audit I074, checked in a late world).
-  const tapAt = (sx, sy, under = false) => {
+  const tapAt = (sx, sy, under = false, skip = null) => {
     const g = gl.current; const v = view();
     if (!g || !v || !projection) return null;
-    const hit = pickHit(v, under ? g.hits.filter((h) => h.kind !== 'marker' && h.kind !== 'cluster') : g.hits, sx, sy);
+    const hit = pickHit(v, under ? g.hits.filter((h) => h.kind !== 'marker' && h.kind !== 'cluster' && h !== skip) : g.hits, sx, sy);
     if (hit?.kind === 'cluster' || hit?.kind === 'marker') {
       const m = hit.marker;
       const onCityCentre = m.tile != null && state.regions[state.world?.tileOwner?.[m.tile]]?.tile === m.tile;
@@ -827,6 +861,8 @@ const GLMapView = ({
     }
     if (hit?.kind === 'indep') return { kind: 'indep', id: hit.id };
     if (hit?.kind === 'settler') return { kind: 'settler', tile: hit.tile };
+    // (an aimed march looks through your own city's name banner, which spills over the next hexes, to the land under it)
+    if (hit?.kind === 'banner' && marchingRef.current && state.regions[hit.id]?.owner === state.playerNationId) return tapAt(sx, sy, true, hit);
     if (hit?.kind === 'city' || hit?.kind === 'banner') return { kind: 'city', id: hit.id, via: hit.kind };
     const ll = projection.invert(screenToWorld(v, sx, sy));
     if (!ll) return null;
@@ -835,8 +871,11 @@ const GLMapView = ({
     // A city's land picks the city while the hexes are too small to tell apart, and its centre
     // tile always does. From the hex zoom a tile of its land is the tile itself (its sheet names
     // the city and opens it): the player can inspect the land inside a border (playtest audit
-    // I077). A march keeps aiming at the city whose land was tapped, and so does settling.
-    const hexPick = (v.k >= HEX_FROM_ZOOM || settleRef.current) && !marchingRef.current;
+    // I077). A march keeps aiming at a foreign city whose land was tapped, and so does settling; on
+    // your own land it aims at the hex (it aimed at your city, and an army inside it was "already
+    // there": playtest run 40651416284 step 58).
+    const ownLand = city && state.regions[city]?.owner === state.playerNationId;
+    const hexPick = (v.k >= HEX_FROM_ZOOM || settleRef.current) && (!marchingRef.current || ownLand);
     if (city && state.regions[city] && (!hexPick || state.regions[city].tile === tile)) return { kind: 'city', id: city, via: 'land', tile };
     return { kind: 'tile', tile, land: tile != null && tile >= 0 && getTiles().land[tile] === 1, explored: tile != null && tile >= 0 && fog.isExplored(tile), cityId: city && state.regions[city] ? city : null };
   };
@@ -862,7 +901,8 @@ const GLMapView = ({
   };
   const tapRef = useRef(null);
   const onPointerDown = useCallback((e) => {
-    tapRef.current = { x: e.clientX, y: e.clientY };
+    // a finger that stops a gliding map only stops it (no tap)
+    tapRef.current = fling.current.raf ? null : { x: e.clientX, y: e.clientY };
     if (pathModeRef.current && e.target === canvasRef.current && containerRef.current) { const rect = containerRef.current.getBoundingClientRect(); trailRef.current = [{ x: e.clientX - rect.left, y: e.clientY - rect.top }]; }
   }, []);
   // U38: the stroke's land tiles, thinned to a few way points; the last one is the march's target.
