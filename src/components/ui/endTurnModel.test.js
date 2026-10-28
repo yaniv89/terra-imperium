@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getNationCapital } from '../../data/regions';
 import { turnBlockers } from '../../engine/turnBlockers';
-import { endTurnButton, endTurnPress } from './endTurnModel';
+import { endTurnButton, endTurnPress, buyHint, BUY_HINT_INCOME_TURNS } from './endTurnModel';
+import { rushQuote } from '../../engine/spending';
+import { calcNationBalance } from '../../engine/economy';
 import { goToBlocker } from './promptActions';
 import { MANAGE_CITY, FOCUS_REGION } from '../map/marchEvents';
 import { OPEN_RESEARCH_CHOICE, SHOW_PEACE_OFFER, SHOW_DEFENSE } from './uiEvents';
@@ -108,5 +110,20 @@ describe('the End Turn call to action', () => {
     expect(endTurnButton(S, { turnPending: true })).toMatchObject({ mode: 'moving', label: 'The world moves…' });
     expect(endTurnPress(S, { turnPending: true })).toEqual({ none: true });
     expect(endTurnPress({ ...S, gameStatus: 'defeat' })).toEqual({ none: true });
+  });
+});
+
+// Lane gold-sinks: the dock's Buy chip.
+describe('buyHint', () => {
+  it('offers the current order while the treasury is above ten turns of net income, and keeps that reserve', () => {
+    const s = settledGame();
+    const id = Object.values(s.regions).find((c) => c.owner === FR && c.production?.current).id;
+    const rich = { ...s, resources: { ...s.resources, gold: 99999 } };
+    const hint = buyHint(rich);
+    expect(hint).toMatchObject({ cityId: id, gold: rushQuote(rich, id, 0).gold });
+    expect(hint.turns).toBeGreaterThan(1);
+    const reserve = BUY_HINT_INCOME_TURNS * Math.max(0, calcNationBalance(rich, FR).net);
+    expect(buyHint({ ...s, resources: { ...s.resources, gold: reserve + hint.gold - 1 } })).toBeNull();
+    expect(buyHint({ ...s, resources: { ...s.resources, gold: 0 } })).toBeNull();
   });
 });

@@ -393,6 +393,8 @@ export default {
   'turn.advisorBuild': 'Advisor builds',
   'turn.advisorBuildMany': 'Advisor builds ({n})',
   'turn.advisorTip': 'Fill every city that has nothing to build with the advisor\'s pick. Change any of them in the city.',
+  'turn.buy': 'Buy {gold}',
+  'turn.buyTip': 'Buy the current order in {city} now: {gold} gold, {turns} turns sooner. Each buy in a city raises its next price.',
   'turn.endAnyway': 'End anyway? {n} waiting',
   'turn.stillWaiting': '{n} still waiting',
   'turn.runHere': 'Run it here',

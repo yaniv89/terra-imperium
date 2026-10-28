@@ -21,7 +21,7 @@ import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { softHints, WARN_ARM_MS } from './nextPromptModel';
-import { endTurnButton, endTurnPress } from './endTurnModel';
+import { endTurnButton, endTurnPress, buyHint } from './endTurnModel';
 import { goToPrompt, goToBlocker, chipLabel } from './promptActions';
 import { prewarmTurnWorker, abandonTurnInWorker } from '../../services/turnClient';
 import IdleChip from './IdleChip';
@@ -49,6 +49,7 @@ const TurnDock = () => {
   // The model reads the current language through t(): recompute when it changes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const btn = useMemo(() => endTurnButton(state, { turnPending, armed }), [state, turnPending, armed, lang]);
+  const buy = useMemo(() => (btn.mode === 'moving' || btn.mode === 'hidden' ? null : buyHint(state)), [state, btn.mode]);
   const [slow, setSlow] = useState(false);
   useEffect(() => {
     if (!turnPending) { setSlow(false); return undefined; }
@@ -99,6 +100,16 @@ const TurnDock = () => {
       <div className="flex items-stretch gap-2 pointer-events-auto">
         {/* "Idle N": the next army or settler that waits, one tap each (IdleChip.jsx). */}
         {btn.mode !== 'moving' && <IdleChip />}
+        {/* "Buy N": the order that saves the most turns for its gold, while the treasury is well above
+            ten turns of income (endTurnModel.js buyHint). */}
+        {buy && (
+          <button type="button" onClick={() => dispatch({ type: ActionTypes.RUSH_PRODUCTION, payload: { cityId: buy.cityId, index: 0 } })}
+            className="fa-btn fa-btn-secondary !min-h-[50px] pl:!min-h-[44px] shadow-xl gap-1.5 !px-3 text-[13px]" data-testid="dock-buy"
+            title={t('turn.buyTip', { city: buy.name, gold: buy.gold, turns: buy.turns })} aria-label={t('turn.buyTip', { city: buy.name, gold: buy.gold, turns: buy.turns })}>
+            <Coins className="w-4 h-4 shrink-0 text-fa-brass" aria-hidden="true" />
+            <span className="whitespace-nowrap fa-num">{t('turn.buy', { gold: buy.gold })}</span>
+          </button>
+        )}
         {blocking && btn.idleCities > 0 && (
           <button type="button" onClick={() => { interactions.dismissOverlays(); dispatch({ type: ActionTypes.ADVISOR_PRODUCTION }); }}
             className="fa-btn fa-btn-secondary !min-h-[50px] pl:!min-h-[44px] shadow-xl gap-1.5 !px-3 text-[13px]" data-testid="advisor-build" title={t('turn.advisorTip')}>

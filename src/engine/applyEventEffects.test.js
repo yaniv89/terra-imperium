@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { applyEventEffects } from './applyEventEffects';
+import { applyEventEffects, scaleEventGold, eventGoldScale, EVENT_GOLD_REF_INCOME } from './applyEventEffects';
+import { calcIncome } from '../utils/helpers';
 import { getNationCapital } from '../data/regions';
-import { neighbourWorld, rivalOf } from './testWorld';
+import { neighbourWorld, rivalOf, addCities } from './testWorld';
 import { speedTurns } from '../data/ages';
 import { ageOf } from './nationState';
 
@@ -240,5 +241,26 @@ describe('controlPenalty (H-09)', () => {
     mine.forEach((r) => expect(next.regions[r.id].control).toBe(Math.max(0, r.control - 20)));
     const other = Object.values(state.regions).find((r) => r.owner !== FR_ID);
     if (other) expect(next.regions[other.id].control).toBe(other.control);
+  });
+});
+
+// Lane gold-sinks: event gold in turns of income (EU4's years of income).
+describe('scaleEventGold', () => {
+  it('leaves a Stone Age realm alone and multiplies every gold amount by income over the reference later', () => {
+    const state = neighbourWorld();
+    const event = { id: 'g', title: 'Gold', options: [{ label: 'pay', effects: { gold: -60, stability: 1 } }, { label: 'sell', effects: { gold: 90 } }, { label: 'none', effects: { prestige: 1 } }] };
+    expect(eventGoldScale(state)).toBe(1);
+    expect(scaleEventGold(state, event)).toBe(event);
+    let rich = addCities(state, FR_ID, 12, { size: 8 }).state;
+    rich = { ...rich, resources: { ...rich.resources, gold: 100000 } };
+    const k = eventGoldScale(rich);
+    expect(k).toBeGreaterThan(1.5);
+    expect(k).toBeCloseTo((calcIncome(rich).gold || 0) / EVENT_GOLD_REF_INCOME, 6);
+    const shown = scaleEventGold(rich, event);
+    expect(shown.options[0].effects.gold).toBe(-Math.round((60 * k) / 5) * 5);
+    expect(shown.options[0].effects.stability).toBe(1);
+    expect(shown.options[2]).toBe(event.options[2]);
+    // The payment is the number the card shows.
+    expect(applyEventEffects(rich, event, 0).resources.gold).toBe(100000 + shown.options[0].effects.gold);
   });
 });

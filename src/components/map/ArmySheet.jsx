@@ -127,6 +127,7 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
                   {u.upgrade && (
                     <div className="mt-1" data-testid="army-upgrade">
                       <button type="button" {...why(!u.upgrade.ok, u.upgrade.why, () => dispatch({ type: ActionTypes.UPGRADE_UNIT, payload: { unitIds: [u.id] } }))} className="px-2 min-h-[32px] rounded text-[11px] font-semibold bg-amber-700/70 hover:bg-amber-600 disabled:opacity-50 aria-disabled:opacity-50 disabled:hover:bg-amber-700/70 text-fa-text">{tr('mx.army.upgrade', { name: u.upgrade.to, gold: u.upgrade.gold })}</button>
+                      {u.upgrade.upkeepTo > u.upgrade.upkeep && <span className="ms-1.5 text-[10px] text-fa-muted" data-testid="army-upgrade-upkeep">{tr('mx.army.upkeepRise', { from: u.upgrade.upkeep, to: u.upgrade.upkeepTo })}</span>}
                       {u.upgrade.why && <span className="ms-1.5 text-[10px] text-fa-muted">{u.upgrade.why}</span>}
                     </div>
                   )}
