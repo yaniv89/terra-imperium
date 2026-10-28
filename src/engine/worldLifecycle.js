@@ -3,6 +3,7 @@ import { keepQueued } from './battleQueue';
 import { getOwnedRegionIds, invalidateRegionsCache } from '../data/regions';
 import { refreshWarFlags } from './diplomacy';
 import { getTotalDev } from './development';
+import { hasBand } from './elimination';
 
 export const canSubjugate = (nations, overlordId, subjectId) => {
   const overlord = nations[overlordId], subject = nations[subjectId];
@@ -25,7 +26,9 @@ export const reconcileTerritory = state => {
     const nation = nations[id];
     const land = getOwnedRegionIds(state.regions, id);
     // A dead nation is nobody's vassal and nobody's overlord (the audit's vassal_link rule).
-    if (!land.length && id!==state.playerNationId && !nation.isEliminated)patch(id,{isEliminated:true,capitalRegionId:null,isAtWar:false,vassalOf:null,vassalizedTurn:null,vassals:[]});
+    // A Stone Age band before its first village holds no land and is alive (elimination.js): a band
+    // start (U23) lost every AI major on RESET_GAME and the first FOUND_CITY (newcomer-flow lane).
+    if (!land.length && id!==state.playerNationId && !nation.isEliminated && !hasBand(state.units, id))patch(id,{isEliminated:true,capitalRegionId:null,isAtWar:false,vassalOf:null,vassalizedTurn:null,vassals:[]});
     if (land.length && (nation.isEliminated || !land.includes(nation.capitalRegionId))) {
       const capital = land.reduce((a, b) => getTotalDev(state.regions[b]) > getTotalDev(state.regions[a]) ? b : a);
       patch(id, { capitalRegionId: capital, isEliminated: false });

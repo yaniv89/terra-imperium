@@ -35,3 +35,7 @@ export const openCityOnMap = (regionId) => { if (!regionId) return; selectRegion
 // selecting the city and centring the map on it.
 export const MANAGE_CITY = 'ti:manage-city';
 export const manageCity = (regionId, tab = 'overview') => window.dispatchEvent(new CustomEvent(MANAGE_CITY, { detail: { regionId, tab } }));
+// The pre-battle card of an attack from a city on the stack on `tile` (Engage the besiegers: the city's
+// Defense tab and the siege line of the turn report). MapContainer.jsx shows it.
+export const OPEN_FIELD_ATTACK = 'ti:open-field-attack';
+export const openFieldAttack = (fromRegionId, tile) => window.dispatchEvent(new CustomEvent(OPEN_FIELD_ATTACK, { detail: { from: fromRegionId, tile } }));

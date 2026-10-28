@@ -19,16 +19,16 @@
 // that war (the outcome service applies nothing for a war that ended). `battleSettings.autoDefend`
 // fights the whole queue on Auto as soon as nothing blocks it (drainAutoBattles). Pure.
 import { createRng } from '../utils/rng';
-import { getTechAgeId, getPool } from './nationState';
+import { viewAs } from './nationState';
 import { resolveDefenseAuto, getDefenseArmies } from './defense';
-import { estimateDefenseOdds, simulate } from './battleOdds';
+import { estimateDefenseOdds, simulate, explainInvasion, rankReasons, withAuxiliaries } from './battleOdds';
 import { battleNameOf } from './battleName';
 import { resolveAutoBattle } from './autoBattle';
 import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs, applyFieldResult } from './fieldBattle';
 import { validateFleetAttack, getFleetBattleContext, getFleetResolveArgs, applyFleetResult } from './navalBattle';
-import { isRaidKind, queuedRaidArmies, raidSpecOf, fightRaidAuto } from './raidBattle';
+import { isRaidKind, queuedRaidArmies, raidSpecOf, fightRaidAuto, raidBattleContext } from './raidBattle';
 import { resolveRaidBattle } from './raids';
-import { isLandingKind, resolveInterceptQueued, resolveLandingQueued, landingHoldChance, interceptArmies, landingArmies } from './aiLanding';
+import { isLandingKind, resolveInterceptQueued, resolveLandingQueued, landingHoldChance, interceptArmies, landingArmies, interceptArgs, landingArgs } from './aiLanding';
 import { cityMilitia } from './battleInputs';
 import { battleRequired } from './battleThreshold';
 import { isNoMansLand } from './hostility';
@@ -52,7 +52,7 @@ export const queuedBattles = (state) => state.pendingDefenses || [];
 export const nextQueuedBattle = (state) => (battleQueueBlocked(state) || state.pendingBattle ? null : queuedBattles(state)[0] || null);
 
 // The aggressor's view of the state, for the gates that are written for "the player" as attacker.
-export const aggressorView = (state, nationId) => ({ ...state, playerNationId: nationId, resources: getPool(state, nationId), techAgeId: getTechAgeId(state, nationId) });
+export const aggressorView = viewAs;
 
 const drop = (state, id) => ({ ...state, pendingDefenses: (state.pendingDefenses || []).filter((d) => d.id !== id) });
 
@@ -149,6 +149,10 @@ export const drainAutoBattles = (state) => {
  * What the queue sheet shows for one battle: { kind, name, attackerUnits, defenderUnits, odds:
  * { holdChance, avgDamage?, undefended? } } (odds from the same honest auto-resolve, `samples` runs).
  */
+// What moved the odds most, seen from the attacker like every odds (battleOdds.js rankReasons).
+const strengthOf = (units) => units.reduce((n, u) => n + Math.max(0, u.strength), 0);
+const reasonsOf = (attackerUnits, defenderUnits, ctx, aux = null) => rankReasons(withAuxiliaries(explainInvasion({ attackerUnits, defenderUnits }, ctx), strengthOf(attackerUnits), strengthOf(defenderUnits), aux));
+
 export const queuedBattleView = (state, def, samples = 30) => {
   const kind = queuedKind(def);
   if (kind === 'defense') {
@@ -156,15 +160,23 @@ export const queuedBattleView = (state, def, samples = 30) => {
     return { kind, name: battleNameOf(state, { kind: 'defense', regionId: def.regionId }), attackerUnits: armies.attackerUnits, defenderUnits: armies.defenderUnits, odds: estimateDefenseOdds(state, def, samples) };
   }
   if (isLandingKind(kind)) {
-    const { armies, holdChance } = landingHoldChance(state, def, samples);
-    return { kind, name: battleNameOf(state, { kind: kind === 'intercept' ? 'lane' : 'landing', regionId: def.regionId }), attackerUnits: armies?.attackerUnits || [], defenderUnits: [...(armies?.defenderUnits || []), ...(kind === 'landing' ? def.militia || [] : [])], odds: { holdChance } };
+    const { armies, holdChance, auxiliaries } = landingHoldChance(state, def, samples);
+    const defenderUnits = [...(armies?.defenderUnits || []), ...(kind === 'landing' ? def.militia || [] : [])];
+    const reasons = armies ? reasonsOf(armies.attackerUnits, defenderUnits, kind === 'intercept' ? interceptArgs(state, def, armies) : landingArgs(state, def, armies), auxiliaries) : [];
+    return { kind, name: battleNameOf(state, { kind: kind === 'intercept' ? 'lane' : 'landing', regionId: def.regionId }), attackerUnits: armies?.attackerUnits || [], defenderUnits, odds: { holdChance, reasons, auxiliaries } };
   }
   if (isRaidKind(kind)) {
     const armies = queuedRaidArmies(state, def);
     const spec = raidSpecOf(state, def, armies);
-    let held = 0;
-    for (let i = 0; i < samples; i++) if (fightRaidAuto(state, spec, createRng((def.seed + i * 0x9e3779b1) >>> 0)).outcome !== 'attacker') held += 1;
-    return { kind, name: battleNameOf(state, { kind, tile: def.tile, regionId: def.regionId }), attackerUnits: armies.attackerUnits, defenderUnits: [...armies.defenderUnits, ...(def.militia || [])], odds: { holdChance: armies.attackerUnits.length ? held / samples : 1 } };
+    let held = 0; let auxA = 0; let auxD = 0;
+    for (let i = 0; i < samples; i++) {
+      const r = fightRaidAuto(state, spec, createRng((def.seed + i * 0x9e3779b1) >>> 0));
+      if (r.outcome !== 'attacker') held += 1;
+      auxA += r.report?.auxiliaries?.[0]?.fielded || 0; auxD += r.report?.auxiliaries?.[1]?.fielded || 0;
+    }
+    const auxiliaries = { attacker: Math.round(auxA / Math.max(1, samples)), defender: Math.round(auxD / Math.max(1, samples)) };
+    const defenderUnits = [...armies.defenderUnits, ...(def.militia || [])];
+    return { kind, name: battleNameOf(state, { kind, tile: def.tile, regionId: def.regionId }), attackerUnits: armies.attackerUnits, defenderUnits, odds: { holdChance: armies.attackerUnits.length ? held / samples : 1, auxiliaries, reasons: reasonsOf(armies.attackerUnits, defenderUnits, raidBattleContext(state, spec), auxiliaries) } };
   }
   const armies = queuedArmies(state, def);
   const name = battleNameOf(state, { kind, tile: def.tile, regionId: def.regionId });
@@ -173,7 +185,7 @@ export const queuedBattleView = (state, def, samples = 30) => {
   const ctx = kind === 'naval' ? getFleetBattleContext(actor, v) : getFieldBattleContext(actor, v);
   const args = kind === 'naval' ? getFleetResolveArgs(v, ctx) : getFieldResolveArgs(v, ctx);
   const r = simulate(actor, { ...v, targetRegion: { control: 100 } }, args, ctx, samples, { kind, fromRegionId: def.fromRegionId });
-  return { kind, name, attackerUnits: v.attackerUnits, defenderUnits: v.defenderUnits, odds: { holdChance: 1 - r.attacker, range: r.range } };
+  return { kind, name, attackerUnits: v.attackerUnits, defenderUnits: v.defenderUnits, odds: { holdChance: 1 - r.attacker, range: r.range, reasons: r.reasons, auxiliaries: r.auxiliaries } };
 };
 
 /** A queued field battle: an AI stack (`v`, validated as its attack) against a player stack. */

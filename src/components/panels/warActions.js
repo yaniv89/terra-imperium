@@ -8,6 +8,7 @@ import { t } from '../../i18n/core';
 import { nameNow } from '../../i18n/names';
 import { canPay } from '../../utils/costs';
 import { payWhy } from './empireText';
+import { peopleWhere } from './peopleWhere';
 
 export const declareWarModel = (state, nationId) => {
   const me = state.playerNationId;
@@ -16,7 +17,10 @@ export const declareWarModel = (state, nationId) => {
   const atWar = isAtWarWithPlayer(state, nationId);
   const justified = hasCasusBelli(state, me, nationId);
   const costs = justified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
-  const blocked = atWar ? t('mx.war.alreadyAtWar') : state.nations[me]?.vassalOf ? t('mx.war.vassal') : nation.vassalOf === me ? t('mx.war.yourVassal') : null;
+  // A people you know of but have never seen (no city known, no army in sight) cannot be fought:
+  // a war with nobody to fight (warmonger playtest step 31). Find them first.
+  const unseen = !atWar && peopleWhere(state, nationId).places.length === 0;
+  const blocked = atWar ? t('mx.war.alreadyAtWar') : state.nations[me]?.vassalOf ? t('mx.war.vassal') : nation.vassalOf === me ? t('mx.war.yourVassal') : unseen ? t('mx.war.unseen') : null;
   const shown = nameNow('people', nationId, nation.name);
   const breaksTruce = !atWar && isInTruce(state, me, nationId);
   const affordable = canPay(state, costs);

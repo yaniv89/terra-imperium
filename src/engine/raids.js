@@ -20,7 +20,7 @@
 //        targets: an improvement (loot RAID_GOLD, pillaged), a tile of the player's trade routes
 //        (ROUTE_LOOT from the victim, the route cut while the party stands on it), a settler
 //        (killed), an outpost (burned: half its progress lost) or a city whose garrison is under half
-//        the party (a SACK); a city sacked or burned lately is spared RAID_SPARE_TURNS. It raids
+//        the party (a SACK); a city sacked or burned lately is spared RAID_SPARE_REF_TURNS. It raids
 //        when the best score clears RAID_THRESHOLD and the seeded roll
 //        passes RAID_CHANCE x (1 + grudge / 100) (x the difficulty against the player). A fortress
 //        raids only in revenge (a grudge of FORTRESS_REVENGE_GRUDGE); a mercantile city never.
@@ -62,7 +62,7 @@ import { msg, carry, sub, people, cityRef, place as placeRef, thing } from './me
 import {
   isIndependentNation, garrisonTarget, THINK_PERIOD, RAID_KM, RAID_COOLDOWN, RAID_CHANCE, FORTRESS_REVENGE_GRUDGE, RAID_THRESHOLD,
   RAID_RING_PENALTY, RAID_RING_PENALTY_KM, RAID_MAX_TURNS, RAID_RECOVER_TURNS, RAID_FIGHT_RATIO, RAID_ERA_FACTOR, ROUTE_LOOT, SETTLER_LOOT,
-  OUTPOST_LOOT, RAID_SPARE_TURNS, OUTPOST_BURN_LOSS, SACK_GARRISON_RATIO, SACK_INCOME_TURNS, SACK_MIN_GOLD, INDEPENDENT_GOLD_CAP, MERCANTILE_GOLD_MULT, GRUDGE_REFUSED,
+  OUTPOST_LOOT, RAID_SPARE_REF_TURNS, OUTPOST_BURN_LOSS, SACK_GARRISON_RATIO, SACK_INCOME_TURNS, SACK_MIN_GOLD, INDEPENDENT_GOLD_CAP, MERCANTILE_GOLD_MULT, GRUDGE_REFUSED,
   TRIBUTE_TURNS, TRIBUTE_DEMAND_GRUDGE, TRIBUTE_STRENGTH_RATIO, TRIBUTE_DEMAND_CHANCE, TRIBUTE_DEMAND_COOLDOWN_REF_TURNS, TRIBUTE_ANSWER_TURNS, RAID_WAVE_MAX
 } from '../data/independents';
 import { createRng } from '../utils/rng';
@@ -170,6 +170,7 @@ export const scanTargets = (w, id, city, partyStrength, { onlyVictim = null } = 
   const tileState = w.view.world?.tileState || {};
   const kmRing = kmPerRing(tiles);
   const era = RAID_ERA_FACTOR[independentAgeOf(w.view, id)] ?? 1;
+  const spare = speedTurns(RAID_SPARE_REF_TURNS, w.view.gameSpeed, independentAgeOf(w.view, id));
   const routes = w.routeTiles();
   let best = null;
   const okCache = new Map(); // one victim check per nation per scan, not per tile
@@ -203,8 +204,8 @@ export const scanTargets = (w, id, city, partyStrength, { onlyVictim = null } = 
     if (owner && owner !== id && !isIndependentNation(w.nations[owner])) nearOwners.add(owner);
     if (!okVictim(owner)) return;
     if (c.tile === t) {
-      // A city sacked, or an outpost burned, lately is left alone (RAID_SPARE_TURNS).
-      if (Math.max(c.sackedTurn ?? -Infinity, c.burnedTurn ?? -Infinity) > w.turn - RAID_SPARE_TURNS) return;
+      // A city sacked, or an outpost burned, lately is left alone (RAID_SPARE_REF_TURNS).
+      if (Math.max(c.sackedTurn ?? -Infinity, c.burnedTurn ?? -Infinity) > w.turn - spare) return;
       if (c.outpost) { offer('outpost', t, d, owner, OUTPOST_LOOT, { cityId }); return; }
       const garrison = defendersNear(owner, t, true);
       if (garrison < partyStrength * SACK_GARRISON_RATIO) offer('sack', t, d, owner, Math.max(SACK_MIN_GOLD, SACK_INCOME_TURNS * (c.lastYields?.gold || 0)), { cityId });

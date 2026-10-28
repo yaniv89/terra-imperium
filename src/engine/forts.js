@@ -24,7 +24,7 @@ import { canAttack } from './hostility';
 import { unitTile } from './armies';
 import { isUnitInBattle } from './invasion';
 import { hashRoll } from './aftermath';
-import { getPool, getTechAgeId } from './nationState';
+import { viewAs } from './nationState';
 import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs, applyFieldResult, FORT_BATTLE_LEVEL } from './fieldBattle';
 import { resolveAutoBattle } from './autoBattle';
 import { fieldDefenseRecord } from './battleQueue';
@@ -90,7 +90,7 @@ export const fortChallenges = (state, startUnits) => {
   return out;
 };
 
-const actorView = (state, nationId) => ({ ...state, playerNationId: nationId, resources: nationId === state.playerNationId ? state.resources : getPool(state, nationId), techAgeId: getTechAgeId(state, nationId) });
+const actorView = viewAs;
 
 /**
  * Every battle a manned fort starts this turn (resolveTurn, after the marches and the AI's moves).
