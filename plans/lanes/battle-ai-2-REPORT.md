@@ -91,7 +91,7 @@ command in battle-lab SKILL.md.
 
 ## Checks
 
-- `npm run lint` clean. `npx vitest run src/battle`: all pass. Full `npx vitest run`: see the last section.
+- `npm run lint` clean. `npx vitest run src/battle`: all pass. Full `npx vitest run` after the merge: 508 files passed, 2 skipped; 4,762 tests passed, 17 skipped.
 - New tests (stances.test.js "the AI in the Gunpowder ages and on"): musket foot focus on the weakest in reach (fails without
   the change: they did not focus); the battle line (one slot each, cavalry on a wing, archers behind melee foot, beside musket
   foot). The march-out test now checks each squad gets its own slot in the same think.
