@@ -36,8 +36,8 @@ const CultureIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="
 const delta = (v) => (v ? <span className={`fa-num text-[11px] ${v < 0 ? 'text-fa-danger-text' : 'text-fa-good'}`}>{signed(v)}</span> : null);
 
 // One item of the bar: a 32 px tall button with an icon, the number and its per-turn change.
-const BarItem = ({ label, onClick, expanded, children, testId }) => (
-  <button type="button" onClick={onClick} aria-label={label} aria-expanded={expanded} title={label} data-testid={testId}
+const BarItem = ({ label, onClick, expanded, children, testId, help }) => (
+  <button type="button" onClick={onClick} aria-label={label} aria-expanded={expanded} title={label} data-testid={testId} data-help={help && `term:${help}`}
     className={`shrink-0 flex items-center gap-1 h-9 px-1.5 -mx-0.5 rounded-md text-fa-text hover:bg-fa-raised ${expanded ? 'bg-fa-raised' : ''}`}>
     {children}
   </button>
@@ -115,20 +115,20 @@ const WorldTopBar = () => {
           <span className={`fa-heading text-[14px] truncate ${portrait ? 'max-w-[5.5rem]' : 'max-w-[9rem]'}`}>{m.nation.name}</span>
         </button>
         <div className="flex-1 min-w-0 flex items-center gap-2.5 sm:gap-3 overflow-x-auto scrollbar-none">
-          <BarItem label={t('topbar.goldAria', { value: m.gold.value, delta: signed(m.gold.perTurn) })} onClick={() => toggle('gold')} expanded={open === 'gold'} testId="top-bar-gold">
+          <BarItem label={t('topbar.goldAria', { value: m.gold.value, delta: signed(m.gold.perTurn) })} onClick={() => toggle('gold')} expanded={open === 'gold'} testId="top-bar-gold" help="gold">
             <GoldIcon /><span className="fa-num text-[12px]">{m.gold.value}</span>{delta(m.gold.perTurn)}
           </BarItem>
-          <BarItem label={t('topbar.foodAria', { value: m.food.value, delta: signed(m.food.perTurn) })} onClick={() => toggle('food')} expanded={open === 'food'} testId="top-bar-food">
+          <BarItem label={t('topbar.foodAria', { value: m.food.value, delta: signed(m.food.perTurn) })} onClick={() => toggle('food')} expanded={open === 'food'} testId="top-bar-food" help="food">
             <FoodIcon /><span className="fa-num text-[12px]">{m.food.value}</span>{delta(m.food.perTurn)}
           </BarItem>
-          <BarItem label={m.science.current ? t('topbar.scienceAria', { n: m.science.perTurn, name: m.science.current.name, turns: Number.isFinite(m.science.current.turns) ? t('research.turnsCount', { count: m.science.current.turns }) : t('research.noTime') }) : t('topbar.scienceNone', { n: m.science.perTurn })} onClick={() => openPanelTab('tech')} testId="research-pill">
+          <BarItem label={m.science.current ? t('topbar.scienceAria', { n: m.science.perTurn, name: m.science.current.name, turns: Number.isFinite(m.science.current.turns) ? t('research.turnsCount', { count: m.science.current.turns }) : t('research.noTime') }) : t('topbar.scienceNone', { n: m.science.perTurn })} onClick={() => openPanelTab('tech')} testId="research-pill" help="science">
             <ScienceIcon /><span className="fa-num text-[12px]">{m.science.perTurn}</span>
             <span className={`[unicode-bidi:isolate] text-[11px] truncate max-w-[10rem] ${m.science.current ? 'text-fa-muted' : 'text-fa-brass font-semibold'}`}>{m.science.label}</span>
           </BarItem>
-          <BarItem label={t('topbar.decreeAria', { value: m.decrees.value, cap: m.decrees.cap })} onClick={() => toggle('decrees')} expanded={open === 'decrees'} testId="top-bar-decrees">
+          <BarItem label={t('topbar.decreeAria', { value: m.decrees.value, cap: m.decrees.cap })} onClick={() => toggle('decrees')} expanded={open === 'decrees'} testId="top-bar-decrees" help="decrees">
             <DecreeIcon /><span className="fa-num text-[12px]">{m.decrees.value}/{m.decrees.cap}</span>
           </BarItem>
-          <BarItem label={t('topbar.cultureAria', { n: m.culture.perTurn })} onClick={() => toggle('culture')} expanded={open === 'culture'} testId="top-bar-culture">
+          <BarItem label={t('topbar.cultureAria', { n: m.culture.perTurn })} onClick={() => toggle('culture')} expanded={open === 'culture'} testId="top-bar-culture" help="culture">
             <CultureIcon /><span className="fa-num text-[12px]">{m.culture.perTurn}</span>
           </BarItem>
         </div>
@@ -137,7 +137,7 @@ const WorldTopBar = () => {
             {m.warLabel}
           </button>
         )}
-        <span className="text-[11px] text-fa-muted shrink-0 max-w-[5.5rem] truncate" title={m.age.nextName ? t('topbar.ageTip', { age: m.age.name, next: m.age.nextName, n: m.age.techsLeft }) : t('topbar.ageLast', { age: m.age.name })} data-testid="top-bar-age">{m.age.name}</span>
+        <span className="text-[11px] text-fa-muted shrink-0 max-w-[5.5rem] truncate" title={m.age.nextName ? t('topbar.ageTip', { age: m.age.name, next: m.age.nextName, n: m.age.techsLeft }) : t('topbar.ageLast', { age: m.age.name })} data-testid="top-bar-age" data-help="term:ages">{m.age.name}</span>
         <span className="fa-num text-[12px] shrink-0 [unicode-bidi:isolate]" title={t('topbar.year')}>{m.year}</span>
         {!portrait && (
           <button type="button" onClick={() => openTurnReport()} className="relative before:content-[''] before:absolute before:-inset-y-1.5 before:-inset-x-1 [unicode-bidi:isolate] fa-label shrink-0 !text-[11px] h-8 px-1 -me-1 rounded-md hover:bg-fa-raised" title={t('topbar.reportTip')} aria-label={t('topbar.turnAria', { turn: m.turn })} data-testid="top-bar-turn">

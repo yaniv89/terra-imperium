@@ -291,6 +291,7 @@ export const BuildingActions = ({ building, ageId, stock, eco = null, onTrain, o
           <Home className="w-3.5 h-3.5" />{t('bt.eco.housingPaused')} <Cost cost={BUILDINGS.house.cost} stock={stock} />
         </button>
       )}
+      {def.hq && <div className="px-1 pb-1 text-fa-muted leading-snug" data-testid="battle-soldiers-where">{t('bt.eco.soldiersWhere')}</div>}
       {said && <div className={cx('px-1 pb-1 font-semibold', said.bad ? 'text-fa-danger-text' : 'text-fa-good')} role="status" data-testid="battle-train-note">{said.text}</div>}
       {roles.length > 0 && (
         <div className="flex gap-1">

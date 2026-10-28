@@ -456,5 +456,6 @@ export const unitsAtTurnStart = (state) => {
 };
 
 // Extra gold upkeep for the land units that marched this turn (`units`: a map or an array).
-export const marchUpkeep = (units, nationId, turnNumber, perUnitUpkeep, ownedUnits = null) => Math.round((ownedUnits || Object.values(units))
-  .filter((u) => u.ownerId === nationId && u.marchedTurn === turnNumber && u.domain !== 'naval').length * perUnitUpkeep * MARCH_UPKEEP_SHARE);
+// `upkeepOf(unit)`: that unit's gold a turn (economy.js unitUpkeepGold x the maintenance slider).
+export const marchUpkeep = (units, nationId, turnNumber, upkeepOf, ownedUnits = null) => Math.round((ownedUnits || Object.values(units))
+  .filter((u) => u.ownerId === nationId && u.marchedTurn === turnNumber && u.domain !== 'naval').reduce((sum, u) => sum + upkeepOf(u), 0) * MARCH_UPKEEP_SHARE);

@@ -56,7 +56,7 @@ export const AUX_EFFECT = 1; // 1.6 before Auto broke units at the RTS loss shar
 // works only as strong as their crew, so the real-time attacker of a city bleeds far less; autoCalib
 // over parityEco assault and town, bronze, classical against kingdoms and bronze against classical,
 // N=16: 13 of 14 in, the bronze 3-against-3 against classical walls reads 0.41).
-export const AUX_TRAINED = { field: [6, 6], assault: [12, 8], town: [2, 2] }; // assault [12, 8] since U19 (autoCalib over parityEco fort, landing, sally, assault, town)
+export const AUX_TRAINED = { field: [6, 6], assault: [22, 5], town: [2, 2] }; // assault [22, 5] with ASSAULT_AUX_HOLD: what the real-time sides train (25.9 and 7.9 companies) at the parity stockpile (x 1.33)
 export const AUX_ROUNDS = 0; // extra auto-resolve rounds per auxiliary unit (the time to fight them)
 export const WALLS_FORT_LEVEL = 2;
 // 0.8 since SETUP_VERSION 13 (W12): with wood everywhere the real-time attacker trains more
@@ -92,7 +92,15 @@ export const WALLS_AGE_RELIEF = 1.2; // 0.7 before U19: the cross-age assault an
 // round-based exchange keeps them whole. On a walled assault the attacker's blows count up to this,
 // scaled by the garrison's robot share; 1 = off. The battle still decides the city: no fall without it.
 export const ASSAULT_ROBOT_MULT = 1.5; // parityEco ROBOT=defender assault, Future and Information, N=32: 9 of 9 in (2: 8, 3: 6)
-export const AUTO_TUNE = { ASSAULT_ROBOT_MULT, AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED, WALLS_NO_SIEGE_MULT, FORT_NO_SIEGE_MULT, AUX_CLOSENESS, WALLS_AGE_RELIEF, RAID_MULT, SACK_MULT, RAID_SLIP_BASE, RAID_SLIP };
+// A walled assault is long (eight to ten minutes in real time): the attacker's army may break while
+// the companies it trained (about 26 against the city's 8) storm on, and a side with bases loses only
+// when its base is gone (the user's rule Q3). So on a walled assault the auxiliaries hold the line in
+// resolveBattle: a side is beaten when its army AND its auxiliaries are broken, and the city still falls
+// only when its defence, its own trained companies among it, is beaten. Off, the even 3-against-3
+// assault went to the attacker 31 of 32 commanded but 13 on Auto (bronze), 29 against 2 (classical
+// against kingdoms walls); on, with AUX_TRAINED.assault [22, 5]: 28 and 27 (parityEco N=32, mixed).
+export const ASSAULT_AUX_HOLD = true;
+export const AUTO_TUNE = { ASSAULT_AUX_HOLD, ASSAULT_ROBOT_MULT, AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED, WALLS_NO_SIEGE_MULT, FORT_NO_SIEGE_MULT, AUX_CLOSENESS, WALLS_AGE_RELIEF, RAID_MULT, SACK_MULT, RAID_SLIP_BASE, RAID_SLIP };
 
 /** The raiders' damage multiplier in an auto-resolved raid or sack (see RAID_MULT). */
 export const raidMult = (kind, ins, tune = AUTO_TUNE) => {
@@ -290,10 +298,12 @@ export const autoFromInputs = (args, ins, kind, rng, tune = AUTO_TUNE) => {
   const garrison = (list) => list.reduce((s, u) => s + (u.militia ? 0 : Math.max(0, u.strength)), 0);
   const robots = cityWalled && contested ? garrison(ins.defenderUnits.filter((u) => u.robot)) / garrison(ins.defenderUnits) : 0;
   const robotMult = 1 + ((tune.ASSAULT_ROBOT_MULT ?? ASSAULT_ROBOT_MULT) - 1) * robots;
+  // Behind walls the auxiliaries hold the line too (ASSAULT_AUX_HOLD): a side is beaten only when they are broken too.
+  const holding = (list) => (cityWalled && (tune.ASSAULT_AUX_HOLD ?? ASSAULT_AUX_HOLD) ? list.map((u) => ({ ...u, holdsLine: true })) : list);
   let battle = resolveBattle({
     ...args,
-    attackerUnits: [...ins.attackerUnits, ...auxA],
-    defenderUnits: [...ins.defenderUnits, ...auxD],
+    attackerUnits: [...ins.attackerUnits, ...holding(auxA)],
+    defenderUnits: [...ins.defenderUnits, ...holding(auxD)],
     attackerPenaltyMultiplier: (args.attackerPenaltyMultiplier ?? 1) * wallsMult * ageRelief * robotMult * raidMult(kind, ins, tune),
     maxRounds: MAX_BATTLE_ROUNDS + Math.max(auxA.length, auxD.length) * (tune.AUX_ROUNDS ?? AUX_ROUNDS),
     defenderDamageReductionMultiplier: batteredReduction(args.defenderDamageReductionMultiplier ?? 1, ins.hpRatio),

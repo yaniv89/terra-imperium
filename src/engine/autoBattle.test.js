@@ -56,6 +56,24 @@ describe('the honest auto-resolve', () => {
     expect(empty.report.auxiliaries[1].fielded).toBe(0);
   });
 
+  it('on a walled assault the auxiliaries hold the line (ASSAULT_AUX_HOLD): the even 3-against-3 is won as in real time', () => {
+    const wins = (tune) => {
+      let n = 0;
+      for (let seed = 1; seed <= 32; seed++) {
+        const housing = manifestHousing(buildTownManifest({ cityId: `p-${seed}`, ageId: 'bronze', tierId: 'medium', style: 'europe', seed, defenseTier: 1 }));
+        const i = ins(mk('a', ['infantry', 'infantry', 'ranged']), [...mk('d', ['infantry', 'infantry', 'ranged']), ...militiaFor({ ownerId: 'd', cityId: `p-${seed}`, housing })], { walled: true, housing });
+        const r = autoFromInputs(args({ isAttackingFortification: true, battleType: 'assault', attackerAgeId: 'bronze', defenderAgeId: 'bronze', defenderDamageReductionMultiplier: getDefenseLevelDamageReductionMultiplier(2) }), i, 'invasion', createRng(seed * 97), tune);
+        expect(r.attackerUnits.concat(r.defenderUnits).some((u) => u.id.startsWith('aux_'))).toBe(false);
+        if (r.outcome === 'attacker') n += 1;
+      }
+      return n;
+    };
+    // Commanded (parityEco N=32): 31 of 32. Auto a little below, never above.
+    expect(wins(AUTO_TUNE)).toBeGreaterThanOrEqual(24);
+    expect(wins(AUTO_TUNE)).toBeLessThanOrEqual(31);
+    expect(wins({ ...AUTO_TUNE, ASSAULT_AUX_HOLD: false })).toBeLessThan(wins(AUTO_TUNE));
+  });
+
   it('robots in a walled garrison: the attacker blows count ASSAULT_ROBOT_MULT by their share, nowhere else', () => {
     const robots = (list) => list.map((u) => ({ ...u, robot: true }));
     const walls = args({ isAttackingFortification: true, battleType: 'assault', attackerAgeId: 'future', defenderAgeId: 'future' });

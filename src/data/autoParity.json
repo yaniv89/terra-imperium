@@ -3,8 +3,8 @@
     "matchups": 6,
     "inside": 6,
     "seeds": 32,
-    "ratioLow": 0.74,
-    "ratioHigh": 2.2
+    "ratioLow": 1.05,
+    "ratioHigh": 2.06
   },
   "field": {
     "matchups": 6,

@@ -100,6 +100,20 @@ export const hitFlash = (hitTick, tick, tickRate = 20) => {
   const age = (tick - hitTick) / tickRate;
   return age < 0 || age >= HIT_FLASH_S ? 0 : HIT_FLASH_MAX * (1 - age / HIT_FLASH_S);
 };
+// Shots (art-2 lane): a shot flies for SHOT_LIFE seconds by its length (the sim's hit is already
+// in, so the flight is art only: short enough to land with it), trails a streak at least
+// SHOT_TRAIL_PX css px thick in its side's colour mixed with white, and kicks up a puff where it lands.
+export const SHOT_TRAIL_PX = 2.2;
+export const shotLife = (len) => Math.min(0.7, 0.24 + len * 0.025);
+/** The trail behind a shot `k` of its way along a flight `len` tiles long: [length, thickness] in tiles. */
+export const shotTrail = (k, len, worldPerPx) => [Math.min(1.8, len * 0.18, len * k), Math.max(0.04, SHOT_TRAIL_PX * worldPerPx)];
+// Into and out of a battle (art-2 lane, the way AoE IV and Total War open a field): the field fades
+// in from black while the camera settles from a wider view; at the end it pulls slowly back.
+export const INTRO_S = 1.6; export const INTRO_FROM = 0.72; export const OUTRO_S = 3; export const OUTRO_TO = 0.8;
+/** The camera's zoom share `t` seconds into a move of `s` seconds from `from` to 1 (ease out). */
+export const easeZoom = (t, s, from) => { const k = Math.min(1, Math.max(0, t / s)); return from + (1 - from) * (1 - (1 - k) ** 3); };
+const X_AXIS = new Vector3(1, 0, 0);
+const tmpDir = new Vector3();
 const tmp = new Object3D();
 const ORDER_DASHES = 48; // dashes per order target line at most
 const tmpColor = new Color();
@@ -883,6 +897,9 @@ export class BattleRenderer {
     });
     instanceColors(this.structBarFill);
     this.tracers = mk(new BoxGeometry(1, 0.05, 0.05).translate(0.5, 0, 0), '#fde68a');
+    // shot trails (SHOT_TRAIL_PX): a unit cone reaching back from the shot's head to a point, coloured per shot
+    this.trails = new InstancedMesh(this.track(new ConeGeometry(0.5, 1, 5).rotateZ(Math.PI / 2).translate(-0.5, 0, 0)), this.track(new MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.75, depthWrite: false, toneMapped: false, fog: false })), 128);
+    Object.assign(this.trails, { count: 0, frustumCulled: false, renderOrder: 3 }); instanceColors(this.trails); this.scene.add(this.trails);
     this.sparks = mk(new DodecahedronGeometry(0.12, 0), '#fbbf24');
     this.sparks.dispose(); this.scene.remove(this.sparks);
     this.sparks = new InstancedMesh(this.track(new DodecahedronGeometry(0.12, 0)), this.track(new MeshBasicMaterial({ color: '#ffffff' })), 128);
@@ -982,6 +999,8 @@ export class BattleRenderer {
     // Phones (short side <= 500 css px) may zoom closer: at 3x a soldier is still only about 29 css
     // px tall on a 390 px tall landscape screen, too small to see the unit art.
     this.maxZoom = Math.min(width, height) <= 500 ? PHONE_MAX_ZOOM : 3;
+    // ...and as far out as a desktop (playtest 40651418969 steps 24, 181: army and objective on one screen).
+    this.minZoom = Math.min(width, height) <= 500 ? 0.45 * (PHONE_VIEW_TILES / VIEW_TILES) : 0.45;
     // The soldiers' share of the triangle budget (RTS plan 13.1: about 0.5 M a frame on a phone
     // with terrain and scenery, 1 to 1.5 M on a desktop).
     this.figureBudget = Math.min(width, height) <= 500 ? BATTLE_GRAPHICS.figureTriangles.phone : BATTLE_GRAPHICS.figureTriangles.desktop;
@@ -1009,9 +1028,10 @@ export class BattleRenderer {
   // after: a trackpad or a pinch sends several zooms (and pans) between two frames, and measuring
   // with the last frame's camera let the anchor drift towards the screen's centre.
   zoomBy(factor, px = this.width / 2, py = this.height / 2) {
+    if (this.camMove) { this.camera.zoom = this.camMove.zoom * this.camMove.to; this.camMove = null; } // the player's zoom wins
     this.updateCamera();
     const before = this.screenToGround(px, py);
-    this.camera.zoom = Math.max(0.45, Math.min(this.maxZoom || 3, this.camera.zoom * factor));
+    this.camera.zoom = Math.max(this.minZoom || 0.45, Math.min(this.maxZoom || 3, this.camera.zoom * factor));
     this.camera.updateProjectionMatrix();
     this.updateCamera();
     const after = this.screenToGround(px, py);
@@ -1032,11 +1052,25 @@ export class BattleRenderer {
     if (k < 1) this.zoomBy(k);
   }
 
-  // Is the ground point (tiles) on screen, inside a margin of `pad` px?
-  onScreen(x, z, pad = 40) {
-    this.updateCamera();
-    const sp = this.worldToScreen(x, z);
-    return sp.x >= pad && sp.y >= pad && sp.x <= this.width - pad && sp.y <= this.height - pad;
+  /** The first frame: the field fades in from black and the camera settles in (INTRO_S). */
+  startIntro() {
+    this.camMove = { t: 0, s: INTRO_S, zoom: this.camera.zoom, from: INTRO_FROM, to: 1 };
+    const el = this.renderer.domElement;
+    if (!el?.style) return;
+    el.style.opacity = '0'; el.style.transition = 'opacity 0.8s ease-out';
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(() => { el.style.opacity = '1'; }));
+    else el.style.opacity = '1';
+  }
+
+  /** The battle ended: the camera pulls slowly back over the field (OUTRO_S), unless the player zooms. */
+  startOutro() { const z = this.camera.zoom; this.camMove = { t: 0, s: OUTRO_S, zoom: z, from: 1, to: OUTRO_TO }; }
+
+  // the intro's or outro's zoom this frame (a long frame counts as a tenth of a second, so it is seen)
+  stepCamMove(dt) {
+    const m = this.camMove; if (!m) return;
+    m.t += Math.min(dt, 0.1);
+    this.camera.zoom = Math.max(0.45, m.zoom * (m.from + (m.to - m.from) * easeZoom(m.t, m.s, 0))); this.camera.updateProjectionMatrix();
+    if (m.t >= m.s) this.camMove = null;
   }
 
   updateCamera() {
@@ -1185,7 +1219,8 @@ export class BattleRenderer {
         // who shot (the projectile art by class and age; a tower shoots with the defender's age)
         const shooter = e.type === 'towerShot' ? { classId: 'tower', ageId: this.setup.sides[1].ageId } : { classId: from?.classId, ageId: from?.ageId };
         const beam = e.type === 'shot' && getBattleStats(shooter.classId, shooter.ageId).beam; // Future plasma and lasers: a line, no projectile (U66)
-        if (from && to) this.fx.push({ kind: beam ? 'beam' : 'tracer', x0: from.x / Q, z0: from.y / Q, x1: to.x / Q, z1: to.y / Q, t: 0, life: beam ? 0.12 : 0.22, shooter });
+        const side = e.type === 'towerShot' ? 1 : from?.side;
+        if (from && to) this.fx.push({ kind: beam ? 'beam' : 'tracer', x0: from.x / Q, z0: from.y / Q, x1: to.x / Q, z1: to.y / Q, t: 0, life: beam ? 0.12 : shotLife(Math.hypot(to.x - from.x, to.y - from.y) / Q), shooter, side });
         if (from && e.type === 'shot' && isAgeAtLeast(shooter.ageId, 'gunpowder') && this.fxSprites.has('muzzle-flash')) this.fx.push({ kind: 'sprite', sheet: 'muzzle-flash', x: from.x / Q, z: from.y / Q, y: 0.5, t: 0, life: 0.15 });
       } else if (e.type === 'shieldHit') {
         // a Future shield takes the hit: its bubble flashes cyan (U66)
@@ -1302,6 +1337,7 @@ export class BattleRenderer {
       this.seenTick = cur.tick; this.seenTickAt = this.time;
     }
     this.adaptResolution(dt);
+    this.stepCamMove(dt);
     this.fitShadows();
     this.updateCamera();
     this.vegetation?.update(this.camera.zoom, { cssPxPerTile: 1 / this.worldPerPixel(), camera: this.camera, budget: this.treeBudget });
@@ -1803,8 +1839,15 @@ export class BattleRenderer {
   }
 
   drawFx(dt) {
-    let tn = 0; let sn = 0; let mn = 0;
-    this.fx = this.fx.filter((f) => (f.t += dt) < f.life);
+    let tn = 0; let sn = 0; let mn = 0; let rn = 0;
+    const landed = [];
+    this.fx = this.fx.filter((f) => { if ((f.t += dt) < f.life) return true; if (f.kind === 'tracer') landed.push(f); return false; });
+    // where a shot lands: a small puff of dust (sparks on stone or without the sheet)
+    landed.forEach((f) => {
+      if (this.fxSprites.has('dust')) this.fx.push({ kind: 'sprite', sheet: 'dust', x: f.x1, z: f.z1, y: 0, t: 0, life: 0.45, size: 0.45 });
+      else this.fx.push({ kind: 'spark', x: f.x1, z: f.z1, t: 0, life: 0.3, seed: 0 });
+    });
+    const wpp = this.worldPerPixel();
     const sprites = this.fxSprites; const shots = this.projectileArt;
     sprites.begin(CAM_BASIS.makeRotationFromQuaternion(this.camera.quaternion).elements);
     shots.begin();
@@ -1820,9 +1863,18 @@ export class BattleRenderer {
         const peak = Math.min(2.5, len * 0.12);
         const arc = Math.sin(k * Math.PI) * peak;
         // the projectile's model when its file has one (projectiles.js), else the tracer streak
+        const slope = (Math.PI * peak * Math.cos(k * Math.PI)) / Math.max(0.1, len);
+        const hy = this.heightAt(hx, hz) + 0.8 + arc;
+        if (rn < 128 && len > 0.5) {
+          const [tl, th] = shotTrail(k, len, wpp * 1.4); // the cone's middle is the streak's width
+          tmp.position.set(hx, hy, hz); tmp.quaternion.setFromUnitVectors(X_AXIS, tmpDir.set(dx / len, slope, dz / len).normalize());
+          tmp.scale.set(tl, th, th); tmp.updateMatrix();
+          this.trails.setMatrixAt(rn, tmp.matrix);
+          this.trails.setColorAt(rn, tmpColor.copy(colorOf(this.setup.sides[f.side]?.color || '#fde68a')).lerp(WHITE, 0.55)); rn += 1;
+        }
         const obj = f.shooter && shots.objectFor(f.shooter.classId, f.shooter.ageId);
-        if (obj) { shots.add(obj, hx, this.heightAt(hx, hz) + 0.8 + arc, hz, dx, dz, (Math.PI * peak * Math.cos(k * Math.PI)) / Math.max(0.1, len)); return; }
-        tmp.position.set(hx, this.heightAt(hx, hz) + 0.8 + arc, hz);
+        if (obj) { shots.add(obj, hx, hy, hz, dx, dz, slope); return; }
+        tmp.position.set(hx, hy, hz);
         tmp.rotation.set(0, -Math.atan2(dz, dx), 0); tmp.scale.set(0.6, 1, 1); tmp.updateMatrix();
         this.tracers.setMatrixAt(tn, tmp.matrix); tn += 1;
       } else if (f.kind === 'beam' && tn < 64) {
@@ -1924,7 +1976,7 @@ export class BattleRenderer {
       tmp.rotation.set(0, 0, 0); tmp.position.set(x, this.heightAt(x, z) + 0.1, z); tmp.scale.set(sc, 1, sc); tmp.updateMatrix();
       this.markerRings.setMatrixAt(mn, tmp.matrix); this.markerRings.setColorAt(mn, colorOf('#ece5d3')); mn += 1;
     }
-    [[this.tracers, tn], [this.sparks, sn], [this.markerRings, mn]].forEach(([m, n]) => { m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; });
+    [[this.tracers, tn], [this.sparks, sn], [this.markerRings, mn], [this.trails, rn]].forEach(([m, n]) => { m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; });
   }
 
   dispose() {

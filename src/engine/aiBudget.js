@@ -14,8 +14,8 @@
 // modifier no longer stacks (it is refreshed) and the turns after one are a recovery window
 // (aiEconomy.js settleAIUpkeep): a further shortfall then costs deserters, not a new bankruptcy.
 // Pure of randomness; ties by unit id.
-import { calcNationBalance } from './economy';
-import { ARMY_MAINTENANCE_MIN, ARMY_MAINTENANCE_DEFAULT, UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
+import { calcNationBalance, unitUpkeepGold } from './economy';
+import { ARMY_MAINTENANCE_MIN, ARMY_MAINTENANCE_DEFAULT } from '../data/actionCosts';
 
 export const AI_BUDGET_RUNWAY_TURNS = 5;
 export const AI_BUDGET_RESTORE_RUNWAY = 10;
@@ -51,7 +51,7 @@ export const aiBudgetStep = (state, nationId, income, ownedUnits, inBattle = () 
     balance = balanceWith(nation);
   }
   let net = balance.net;
-  const perUnit = Math.max(1, Math.round(UNIT_UPKEEP_GOLD_PER_TURN * ARMY_MAINTENANCE_MIN / 100));
+  const perUnit = (u) => Math.max(1, Math.round(unitUpkeepGold(state, u) * ARMY_MAINTENANCE_MIN / 100));
   const fighting = ownedUnits.filter((u) => u.classId !== 'settler' && !u.embarkedOn);
   const candidates = fighting
     .filter((u) => !inBattle(u.id) && !ownedUnits.some((c) => c.embarkedOn === u.id))
@@ -61,7 +61,7 @@ export const aiBudgetStep = (state, nationId, income, ownedUnits, inBattle = () 
     if (net >= 0 || gold + net * AI_BUDGET_RUNWAY_TURNS >= 0 || standing <= AI_MIN_STANDING_UNITS) break;
     disband.push(u.id);
     standing -= 1;
-    net += perUnit;
+    net += perUnit(u);
   }
   return { nation, disband };
 };

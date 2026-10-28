@@ -13,7 +13,6 @@ const makeEl = () => {
     ownerDocument: { defaultView: { addEventListener: (t, fn) => { winHandlers[t] = fn; }, removeEventListener: (t) => { delete winHandlers[t]; } } },
     addEventListener: (t, fn) => { handlers[t] = fn; },
     removeEventListener: (t) => { delete handlers[t]; },
-    contains: (t) => t === 'field',
     getBoundingClientRect: () => ({ left: 0, top: 0 }),
     setPointerCapture: () => {}
   };
@@ -79,6 +78,13 @@ describe('battle gestures', () => {
     expect(h.tap).not.toHaveBeenCalled();
   });
 
+  it('a press on a selected squad held past LONG_MS whose timer never ran still opens the radial', () => {
+    h.isOnSelectedSquad = vi.fn(() => true); h.radialSelect = vi.fn();
+    down(1, 100, 100); clock += LONG_MS + 40; up(1, 100, 100);
+    expect(h.radial).toHaveBeenCalledTimes(1);
+    expect(h.tap).not.toHaveBeenCalled();
+  });
+
   it('a drag on empty ground pans, and never becomes a long-press', () => {
     down(1, 100, 100); clock += 50; move(1, 130, 100); vi.advanceTimersByTime(LONG_MS + 50); clock += 400; move(1, 160, 110); up(1, 160, 110);
     expect(h.pan).toHaveBeenCalled();
@@ -92,14 +98,41 @@ describe('battle gestures', () => {
     expect(h.tap).not.toHaveBeenCalled();
   });
 
-  it('dragging from a selected squad draws a formation line; holding it opens the radial', () => {
+  it('dragging from a selected squad pans; holding it opens the radial, and dragging on draws a formation line', () => {
     h.isOnSelectedSquad.mockReturnValue(true);
+    h.radialCancel = vi.fn();
     down(1, 100, 100); clock += 30; move(1, 200, 140); up(1, 200, 140);
-    expect(h.formationDrag).toHaveBeenCalled();
-    expect(h.formationEnd).toHaveBeenCalledTimes(1);
+    expect(h.pan).toHaveBeenCalled();
+    expect(h.formationDrag).not.toHaveBeenCalled();
     clock += 1000;
     down(2, 100, 100); vi.advanceTimersByTime(LONG_MS + 10);
     expect(h.radial).toHaveBeenCalledTimes(1);
+    move(2, 110, 104); // a wobble keeps the radial
+    expect(h.radialCancel).not.toHaveBeenCalled();
+    move(2, 200, 140); up(2, 200, 140);
+    expect(h.radialCancel).toHaveBeenCalledTimes(1);
+    expect(h.formationEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('a second finger on the HUD around the field joins a pinch', () => {
+    dispose();
+    const wrap = { handlers: {}, addEventListener(t, fn) { this.handlers[t] = fn; }, removeEventListener(t) { delete this.handlers[t]; } };
+    dispose = createGestureRecognizer(el, h, undefined, { pinchFrom: wrap });
+    down(1, 100, 200);
+    wrap.handlers.pointerdown({ ...ev(2, 100, 60), target: {} }); // on a HUD panel
+    move(2, 100, 20); move(1, 100, 240);
+    expect(h.zoom).toHaveBeenCalled();
+    expect(h.zoom.mock.calls.at(-1)[0]).toBeGreaterThan(1);
+    wrap.handlers.pointerdown({ ...ev(3, 300, 60), target: el }); // the field's own finger is the field's
+    expect(h.zoom).toHaveBeenCalledTimes(2);
+    up(2, 100, 20); up(1, 100, 240);
+    // the HUD finger first (a synthesized pinch-out puts the upper finger on the status card)
+    wrap.handlers.pointerdown({ ...ev(4, 100, 60), target: {} });
+    wrap.handlers.pointermove({ ...ev(4, 100, 70), target: {} });
+    down(5, 100, 300);
+    move(4, 100, 150); move(5, 100, 250);
+    expect(h.zoom.mock.calls.at(-1)[0]).toBeLessThan(1);
+    expect(h.tap).not.toHaveBeenCalled();
   });
 
   it('with Attack armed, holding on a selected squad is the order (long-press), never the radial', () => {
@@ -137,29 +170,6 @@ describe('battle gestures', () => {
     down(1, 100, 100); down(2, 200, 100); move(2, 260, 100); up(2, 260, 100); up(1, 100, 100);
     expect(h.zoom).toHaveBeenCalled();
     expect(h.tap).not.toHaveBeenCalled();
-  });
-
-  it('a second finger on the HUD still joins the pinch, and the HUD never sees it (a pinch out starts wide)', () => {
-    const stop = vi.fn();
-    down(1, 420, 61);
-    el.winHandlers.pointerdown(ev(2, 420, 339, { target: 'hud-button', stopPropagation: stop }));
-    move(1, 420, 127); move(2, 420, 273); up(2, 420, 273); up(1, 420, 127);
-    expect(stop).toHaveBeenCalled();
-    expect(h.zoom.mock.calls[h.zoom.mock.calls.length - 1][0]).toBeLessThan(1);
-    // the other way round: the first finger on a HUD button, the second on the field; the button's click is swallowed
-    h.zoom.mockClear();
-    el.winHandlers.pointerdown(ev(4, 420, 61, { target: 'hud-button', stopPropagation: vi.fn() }));
-    down(5, 420, 339);
-    move(4, 420, 127); move(5, 420, 273); up(5, 420, 273); el.winHandlers.pointerup(ev(4, 420, 127)); up(4, 420, 127);
-    expect(h.zoom.mock.calls[h.zoom.mock.calls.length - 1][0]).toBeLessThan(1);
-    const clickStop = vi.fn();
-    el.winHandlers.click({ timeStamp: clock + 100, preventDefault: () => {}, stopPropagation: clickStop });
-    expect(clickStop).toHaveBeenCalled();
-    expect(h.tap).not.toHaveBeenCalled();
-    // a lone touch on the HUD is the HUD's
-    const stop2 = vi.fn();
-    el.winHandlers.pointerdown(ev(3, 420, 339, { target: 'hud-button', stopPropagation: stop2 }));
-    expect(stop2).not.toHaveBeenCalled();
   });
 
   describe('select mode (the HUD Select button)', () => {
