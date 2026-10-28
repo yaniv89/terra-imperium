@@ -331,13 +331,13 @@ const DomesticPanel = () => {
               const cost = getAdvisorHireCost(candidate.level);
               return (
                 <ActionButton
-                  key={candidate.id}
+                  key={index} // ids repeat: a fresh face takes adv_<pool>_0 in any slot (gameReducer HIRE_ADVISOR)
                   icon={Users}
                   label={tNow('p1.dom.hire', { name: nameNow('person', null, candidate.name), level: candidate.level })}
                   description={advisorQuote(candidate.level, pool, current)}
                   costs={{ gold: cost }}
                   onClick={() => handleHireAdvisor(pool, index, cost)}
-                  disabled={current?.id === candidate.id || (state.resources.gold || 0) < cost}
+                  disabled={(state.resources.gold || 0) < cost}
                   resources={state.resources}
                   size="small"
                 />

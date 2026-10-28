@@ -94,7 +94,7 @@ const PeaceDealSheet = ({ warId, onClose }) => {
                   className={`w-full text-start fa-option px-2 py-1 min-h-[44px] flex items-center gap-2 ${r.on ? 'fa-selected' : ''}`}>
                   <span className={`w-5 h-5 rounded border shrink-0 grid place-items-center ${r.on ? 'bg-fa-text border-fa-text' : 'border-fa-line'}`}>{r.on && <Check className="w-3.5 h-3.5 text-fa-ink" aria-hidden="true" />}</span>
                   <span className="min-w-0 flex-1">
-                    <span className="flex justify-between gap-2"><span className="text-[13px] font-semibold truncate">{r.label}</span><span className="fa-num text-[12px] shrink-0">{t('bt.peace.scorePts', { n: r.cost })}</span></span>
+                    <span className="flex justify-between gap-2"><span className="text-[13px] font-semibold truncate">{r.label}</span><span className="text-[12px] shrink-0">{t('bt.peace.scorePts', { n: r.cost })}</span></span>
                     <span className="flex justify-between gap-2 text-[11px]"><span className="text-fa-muted truncate">{r.detail}</span><span className={`shrink-0 ${r.ok ? 'text-fa-good' : 'text-fa-danger-text'}`}>{r.status}</span></span>
                   </span>
                 </button>
@@ -116,7 +116,7 @@ const PeaceDealSheet = ({ warId, onClose }) => {
               <div className="rounded-[10px] border border-fa-enemy px-2.5 py-1.5 bg-fa-ink/50" data-testid="peace-counter">
                 <div className="text-[11px] font-bold tracking-[0.08em] uppercase text-fa-enemy">{t('bt.peace.mostTheyGive')}</div>
                 <div className="text-[12.5px] leading-snug mt-0.5">{m.counter.text}</div>
-                <div className="fa-num text-[11px] text-fa-muted">{t('bt.peace.worth', { a: m.counter.worth, b: m.counter.budget })}</div>
+                <div className="text-[11px] text-fa-muted">{t('bt.peace.worth', { a: m.counter.worth, b: m.counter.budget })}</div>
                 <Button size="sm" className="w-full mt-1.5 !min-h-[40px]" onClick={() => setSelected(new Set(m.counter.keys))}>{t('bt.peace.loadOffer')}</Button>
               </div>
             )}
