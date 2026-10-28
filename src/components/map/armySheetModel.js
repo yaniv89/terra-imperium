@@ -70,7 +70,8 @@ export const stackOn = (state, tile, fleet = false) => {
   const pick = (naval) => Object.values(state.units)
     .filter((u) => u.ownerId === state.playerNationId && (naval ? u.domain === 'naval' : u.domain !== 'naval') && !aboardShip(u) && u.classId !== 'settler' && u.strength > 0 && unitTile(state, u) === tile)
     .sort((a, b) => (a.id < b.id ? -1 : 1));
-  if (sea) return pick(true);
+  // (at sea with no ships: an army crossing on its own boats, armies.js embarkRule)
+  if (sea) { const ships = pick(true); return ships.length ? ships : pick(false); }
   // A city tile holds both kinds: `fleet` asks for the ships in port; a side with nobody falls back to the other.
   const first = pick(fleet);
   return first.length ? first : pick(!fleet);

@@ -6,6 +6,16 @@ import { armySheetModel, stackOn, attackTargets, siegePressed, supplyState } fro
 import { getTiles } from '../../data/geo/tiles';
 
 describe('army sheet model', () => {
+  it('finds an army crossing water on its own boats on its sea tile', () => {
+    const s = peoplesWorld({ seed: 7 });
+    const me = s.playerNationId;
+    const u = Object.values(s.units).find((x) => x.ownerId === me && x.domain === 'land' && x.classId !== 'settler');
+    const sea = getTiles().land.findIndex((v) => v !== 1);
+    const at = { ...s, units: { ...s.units, [u.id]: { ...u, tile: sea, embarkedOn: u.id, route: [sea] } } };
+    expect(stackOn(at, sea).map((x) => x.id)).toEqual([u.id]);
+    expect(armySheetModel(at, sea)).not.toBeNull();
+  });
+
   it('groups the stack on a tile by army, reads supply and route, and renaming tags every unit', () => {
     let s = peoplesWorld({ seed: 7 });
     const me = s.playerNationId;
