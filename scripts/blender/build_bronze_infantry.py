@@ -180,6 +180,12 @@ tube('HairNape', vertical([.868, .888, .920, .950], [.018, .014, .008, .004], [(
 tube('BronzeCap', vertical([.944, .951, .964, 1.000, 1.040, 1.078, 1.106], -.003,
                            [(.070, .065), (.074, .069), (.068, .063), (.056, .052), (.038, .036), (.018, .017), (.003, .003)], 'Head'),
      'Metal', 10, caps=(True, True), attachment=True)
+# a horsehair crest in the squad's colour, front to back over the cap: from the iso camera the head
+# is what shows, so whose spearman it is reads in a melee (art-animation lane, 27 Oct)
+crest = [-50, -25, 0, 25, 50, 75, 95]
+tube('TeamCrest', [((0, -.003 + .118 * math.sin(math.radians(t)), 1.0 + .118 * math.cos(math.radians(t))),
+                    (.030 if -30 < t < 80 else .018, .013), 'Head') for t in crest],
+     'Team', 6, caps=(True, True), attachment=True)
 
 # ---- spear (the right hand's attachment): total length 2.2 m at a 1.75 m body ----------------------
 x, y, base = -.223, -.137, .040
@@ -311,7 +317,8 @@ bpy.ops.export_scene.gltf(filepath=str(OUT / 'bronze-infantry.glb'), export_form
                           export_skins=True, export_animations=True, export_animation_mode='ACTIONS', export_force_sampling=True,
                           export_frame_range=False, export_cameras=False, export_lights=False, export_extras=True,
                           export_materials='EXPORT', export_image_format='NONE', export_optimize_animation_size=False,
-                          export_vertex_color='ACTIVE', export_all_vertex_colors=False, export_active_vertex_color_when_no_material=True)
+                          **({'export_vertex_color': 'ACTIVE', 'export_all_vertex_colors': False, 'export_active_vertex_color_when_no_material': True}
+                             if bpy.app.version >= (4, 2) else {'export_colors': True}))  # 4.0: the apt build on cloud sessions
 tris = u.triangles(meshes)
 (OUT / 'clips.json').write_text(json.dumps({'fps': 20, 'clips': clips}, indent=2))
 (OUT / 'bronze-infantry.json').write_text(C.options_json(clips, order))

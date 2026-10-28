@@ -25,8 +25,8 @@ walled city) and scripts/perf/map-shots.mjs (Akkad, k 1 / 6 / 30, phone and desk
 
 ## Step 2: fixes (code only)
 
-Blender: `bpy` is not installed and could not be fetched (no quick wheel for Python 3.13 here, the
-download stalled), so no asset was changed. All fixes are in the renderer.
+Blender: installed later with `bash scripts/blender/install.sh` (Blender 4.0.2 from the Ubuntu
+mirror, as the lead advised). Fixes 1 to 5 are in the renderer; fix 6 is an asset.
 
 1. **Side-coloured rim on every soldier** (src/battle/render/soldierFactory.js, `rim` option of
    `createSoldierMaterial`; BattleRenderer.js `SIDE_RIM` near 0.55, far 0.9). A fresnel term
@@ -43,6 +43,19 @@ download stalled), so no asset was changed. All fixes are in the renderer.
 5. **Striped sails** (soldierFactory.js `mast`): every sail carries a broad band in the side's
    colour on both faces.
 
+6. **Team crest on the Bronze spearman** (scripts/blender/build_bronze_infantry.py `TeamCrest`,
+   rebuilt and packed into src/assets/units/bronze-infantry.glb). From the iso camera the head is
+   what shows; the kilt is Team-tagged but the loader keeps lower garments undyed
+   (GARMENT_TEAM_SHARE 0) and the chest is a leather corselet. A horsehair crest on the Team
+   material (Head bone, an attachment like the cap) puts the side's colour on top of every
+   spearman, the way crested helmets mark sides in Total War: Rome and AoE IV's player-colour
+   plumes. 2,084 triangles (budget 3,000), file 182 to 187 KB, packed with the project's unit
+   flags (`gltfpack -cc -kn -km -ke -noq -af 0`, scripts/art/glbInfo.mjs packFlags).
+   Shots: after-bronze-crests.jpg (blue crests left, orange right), after-bronze-crest-fight.jpg.
+   Blender 4.0 needed two small guards: ti_units.py `set_sharp_from_angle` (4.1+) falls back to
+   auto smooth, and the bronze-infantry export passes `export_colors` on 4.0 instead of the 4.2
+   vertex colour keys; install.sh now also installs python3-numpy (the glTF exporter needs it).
+
 Tests: src/battle/render/hitFlash.test.js (flash timing, rim in the shader and the program key,
 sail bands). `npm run test:related` on both files: 32 files, 520 tests pass.
 
@@ -51,7 +64,7 @@ sail bands). `npm run test:related` on both files: 32 files, 520 tests pass.
 | Area | Before | After | Evidence |
 |---|---|---|---|
 | Unit size at phone zoom | 4 | 6 | after-z-phone-default.jpg, soldierPx 22.9 |
-| Melee side readability | 3 | 6 | after-crop-bronze-melee.jpg: blue rims on the left block, orange on the right |
+| Melee side readability | 3 | 7 | after-crop-bronze-melee.jpg: blue rims on the left block, orange on the right |
 | Death and corpses | 4 | 6 | after-bronze-24s-fallen.jpg: bodies at varied angles |
 | Hit feedback | 3 | 5 | unit-tested; a still shot cannot catch a 0.18 s flash on SwiftShader (1.5 s frames) |
 | Sea readability | 3 | 7 | after-sea.jpg: blue and orange striped sails |
@@ -79,5 +92,5 @@ finish here (its screenshots time out on software GL). **Open for the lead:** re
 - Arrows and javelins: thicker trails at phone zoom (projectile readability).
 - The Hit clip in melee for a figure or two between strikes (needs a clipPlayer slot check).
 - Building collapse was not seen in the city run (rubble stayed 0): needs a longer assault shot.
-- Blender work on the Bronze kit (team cloth on the tunic instead of only the belt) once a machine
-  with Blender is available.
+- The same crest (or a dyed plume) for the other Bronze and Classical foot units, and the other
+  build scripts' export call need the same 4.0 guard before they can be rebuilt on a cloud machine.
