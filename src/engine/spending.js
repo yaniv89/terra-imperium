@@ -8,7 +8,7 @@
 // 1. RUSH (I019). Pay gold for the production an order still lacks. The order is not conjured: its
 //    progress is filled to its cost and the turn completes it like any other (so a settler still
 //    needs its people, a wonder its race), which is why a rushed order arrives on the next turn.
-//      gold = ceil(missing production x RUSH_GOLD_PER_HAMMER x (1 + RUSH_HEAT_STEP x heat))
+//      gold = ceil(missing production x RUSH_GOLD_PER_HAMMER x rushRate(item) x (1 + RUSH_HEAT_STEP x heat))
 //    `heat` is how many rushes the city has had lately: +1 per rush, capped at RUSH_HEAT_MAX, one
 //    cools every RUSH_COOL_REF_TURNS reference turns (speedTurns). A city buying a whole army in a
 //    turn pays up to double for the last pieces; a city that rushes now and then pays the base.
@@ -29,7 +29,7 @@
 import { getTiles } from '../data/geo/tiles';
 import { AGE_ORDER, speedCostMult, speedTurns, FIRST_AGE_ID } from '../data/ages';
 import { ACTION_COSTS } from '../data/actionCosts';
-import { BUILDING_CATEGORIES } from '../data/buildings';
+import { BUILDING_CATEGORIES, getBuildingTierCost, getBuildingBuildCost } from '../data/buildings';
 import { unitDisplayName } from '../data/unitNames';
 import { ROBOT_VARIANTS } from '../data/unitClasses';
 import { IMPROVEMENTS } from '../data/tileYields';
@@ -62,17 +62,25 @@ export const rushHeat = (city, turnNumber, gameSpeed, ageId = FIRST_AGE_ID) => {
   return Math.max(0, Math.min(RUSH_HEAT_MAX, r.heat) - cooled);
 };
 export const rushPriceMult = (heat) => 1 + RUSH_HEAT_STEP * Math.min(RUSH_HEAT_MAX, Math.max(0, heat));
-export const rushGold = (hammers, heat = 0, kind = null) => (hammers > 0 ? Math.ceil(hammers * RUSH_GOLD_PER_HAMMER * (RUSH_KIND_MULT[kind] || 1) * rushPriceMult(heat) - 1e-9) : 0);
+// Buildings cost less production since lane city-builds but not less gold (lead's call, 28 Oct; Civ VI
+// prices purchases apart from production): a building's missing point is priced at its gold-table
+// cost over its production cost, so buying one costs what it did before.
+/** The gold factor of one missing point of `item` (kind premium and the building ratio), before heat. */
+export const rushRate = (item) => {
+  const built = item?.kind === 'building' && getBuildingBuildCost(item.category, item.tier);
+  return (RUSH_KIND_MULT[item?.kind] || 1) * (built ? getBuildingTierCost(item.category, item.tier) / built : 1);
+};
+export const rushGold = (hammers, heat = 0, item = null) => (hammers > 0 ? Math.ceil(hammers * RUSH_GOLD_PER_HAMMER * rushRate(item) * rushPriceMult(heat) - 1e-9) : 0);
 
 /** The most of `missing` production `budget` gold buys at the rush price: { hammers, gold } (whole
  * points, gold never above the budget) or null when not even one point. The AI buys this way
  * (aiEconomy.js tryRushProduction). */
-export const rushAffordable = (missing, budget, heat = 0, kind = null) => {
+export const rushAffordable = (missing, budget, heat = 0, item = null) => {
   if (!(missing > 0) || !(budget > 0)) return null;
-  const perPoint = RUSH_GOLD_PER_HAMMER * (RUSH_KIND_MULT[kind] || 1) * rushPriceMult(heat);
+  const perPoint = RUSH_GOLD_PER_HAMMER * rushRate(item) * rushPriceMult(heat);
   const hammers = Math.min(Math.ceil(missing - 1e-9), Math.floor(budget / perPoint));
   if (hammers < 1) return null;
-  const gold = rushGold(hammers, heat, kind);
+  const gold = rushGold(hammers, heat, item);
   return gold <= budget ? { hammers: Math.min(hammers, missing), gold } : null;
 };
 
@@ -105,7 +113,7 @@ export const rushQuote = (state, cityId, index = 0, nationId = state.playerNatio
   const hammers = Math.max(0, Math.round((cost - progress) * 10) / 10);
   if (!(hammers > 0)) return { ok: false, ...reasonOf('m.why.rush.paid'), ...base, hammers: 0, gold: 0 };
   const heat = rushHeat(city, state.turnNumber, state.gameSpeed, live.ctx.ageId);
-  const gold = rushGold(hammers, heat, item.kind);
+  const gold = rushGold(hammers, heat, item);
   const quote = { ...base, hammers, gold, heat, mult: rushPriceMult(heat), turns: row.pieceTurns ?? row.turns };
   if ((treasury ?? treasuryOf(state, nationId)) < gold) return { ok: false, ...reasonOf('m.why.needsGold', { gold }), ...quote };
   return { ok: true, ...quote };
