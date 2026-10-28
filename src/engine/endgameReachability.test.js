@@ -59,7 +59,8 @@ describe('endgame reachability: the game always resolves to a definite outcome b
     expect([GameStatus.DEFEAT, GameStatus.COMPLETE]).toContain(state.gameStatus);
     // The ending fires on the first turn it can be checked: an open event or peace offer that turn holds it one more.
     expect(state.turnNumber).toBeLessThanOrEqual(speedTurnLimit(state.gameSpeed) + 3);
-    if (state.gameStatus === GameStatus.COMPLETE) expect(state.ending).toEqual({ reason: 'turnLimit' });
+    // The clock, or an AI's Future goal met on the same last turn (ending.js checks the goal first): never the player's.
+    if (state.gameStatus === GameStatus.COMPLETE && state.ending?.reason !== 'turnLimit') expect(state.ending).toMatchObject({ reason: 'futureGoal', nationId: expect.not.stringMatching(new RegExp(`^${state.playerNationId}$`)) });
     if (state.gameStatus === GameStatus.COMPLETE) {
       expect(state.finalRank, 'a nation that never acted should not rank #1 against the AI economies').toBeGreaterThan(1);
     }

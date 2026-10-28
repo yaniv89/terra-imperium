@@ -95,4 +95,9 @@ under invasion keeps the full floor (only a siege cuts it), left as is.
   expansion balance); a map label for the city character.
 
 ## 5. Full test run
-(filled in below after `npx vitest run` on the merged branch)
+`npx vitest run` on the branch with integration (gold-sinks included) merged: 4,746 passed, 1 failed, 17 skipped. Lint clean.
+The failure was real, not load: endgameReachability "a passive run never wins". Without the floor the passive player is
+conquered at turn 76 (DEFEAT, accepted). With it the one city holds out, the game runs to the turn limit (923), and on that
+same turn the AI Gojoseon also completes the Future goal; ending.js checks the goal before the clock, so the reason read
+`futureGoal` where the test wanted `turnLimit`. The player ranked 24th: the test's intent holds. The one assertion now
+accepts `turnLimit` or an AI's `futureGoal` (never the player's); the file passes alone (4 of 4).
