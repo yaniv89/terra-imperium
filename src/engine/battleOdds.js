@@ -19,6 +19,7 @@ import { menOf } from './battleLedger';
 import { canSeeTile } from './sight';
 import { canSeeRegionDetails } from './intel';
 import { withAirSupport } from './airPower';
+import { unitTile } from './armies';
 import parity from '../data/autoParity.json';
 
 const sumStrength = (units) => units.reduce((s, u) => s + Math.max(0, u.strength), 0);
@@ -177,7 +178,7 @@ export const estimateMarchOdds = (state, attackerUnits, cityId, samples = 100) =
   // pending battle), as far as the player sees them: a 1,600-man garrison with 20,000 beside it is
   // not a weak city (newcomer playtest, round 3).
   const standby = reinforcementSources(state, cityId, city.owner, state.playerNationId)
-    .flatMap((src) => src.unitIds.map((id) => state.units[id])).filter((u) => u && canSeeTile(state, u.tile));
+    .flatMap((src) => src.unitIds.map((id) => state.units[id])).filter((u) => u && canSeeTile(state, unitTile(state, u)));
   return { known: true, capture: r.capture, attacker: r.attacker, autoRule: r.autoRule, city: r.city, standbyStrength: sumStrength(standby), attackerStrength: r.attackerStrength, defenderStrength: r.defenderStrength, range: r.range, reasons: r.reasons };
 };
 
