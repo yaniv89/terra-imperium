@@ -151,7 +151,7 @@ const BattleHud = ({
   context = 'none', panel = null, // the context panel (B10): battleHudModel contextFor, and its content for laborers, buildings and placing
   selectMode = false, onToggleSelectMode, // touch box select (UI-DESIGN B04)
   pathMode = false, onTogglePathMode, // touch: draw a path for the selected squads (U38)
-  coach = null, // RTS-01: { steps: [{ title, text }], step, onNext, onSkip } in the first battle on this device
+  coach = null, // RTS-01: { steps: [{ title, text }], step, onNext, onSkip, holding (the clock waits) } in the first battle on this device
   onFocus, // centre the camera on (x, y) in sim units: the alerts' Go
   onClearSelection, // the selection card's x: let go of every selected squad
   onAlertGo, // an alert's Go: centre on it, select the squad when it is yours (TacticalBattleScreen.jsx)
@@ -635,6 +635,7 @@ const BattleHud = ({
             <span className="fa-num text-[10.5px] text-fa-muted shrink-0">{t('bt.hud.stepOf', { a: coach.step + 1, b: coach.steps.length })}</span>
           </div>
           <div className="mt-0.5" data-testid="battle-coach-text">{coach.steps[coach.step].text}</div>
+          {coach.holding && <div className="mt-1 text-[11px] text-fa-brass" data-testid="battle-coach-hold">{t('bt.coach.holding')}</div>}
           <div className="flex justify-end gap-1 -me-2">
             <button type="button" onClick={coach.onSkip} className="pointer-events-auto min-h-[44px] min-w-[44px] px-2 text-[12px] text-fa-muted" data-testid="battle-coach-skip">{t('bt.skip')}</button>
             <button type="button" onClick={coach.onNext} className="pointer-events-auto min-h-[44px] min-w-[44px] px-2 text-[12px] font-semibold text-fa-text" data-testid="battle-coach-next">{coach.step + 1 < coach.steps.length ? t('bt.hud.next') : t('bt.hud.gotIt')}</button>

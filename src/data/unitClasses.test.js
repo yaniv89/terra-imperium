@@ -209,4 +209,14 @@ describe('tech unlocks (UNIT_UNLOCKS and building tiers)', () => {
     expect(isUnitUnlocked('gunpowder', 'ranged', ['military_standing_armies'])).toBe(true);
     expect(isUnitUnlocked('stone', 'cavalry', Object.keys(TECH_TREE))).toBe(false);
   });
+  it('ships stay open once a ship tech is known (lane naval-campaign); land classes do not carry over', () => {
+    expect(isUnitUnlocked('stone', 'naval', [])).toBe(false);
+    expect(isUnitUnlocked('bronze', 'naval', [])).toBe(false);
+    expect(isUnitUnlocked('bronze', 'naval', ['science_star_lore'])).toBe(true);
+    expect(isUnitUnlocked('classical', 'naval', new Set(['science_star_lore']))).toBe(true);
+    expect(isUnitUnlocked('gunpowder', 'naval', ['science_early_astronomy'])).toBe(true);
+    expect(isUnitUnlocked('stone', 'naval', ['science_early_astronomy'])).toBe(false); // a later age's tech opens nothing earlier
+    expect(isUnitUnlocked('gunpowder', 'naval', [])).toBe(true); // Kingdoms ships need no tech, so the sea stays open after it
+    expect(isUnitUnlocked('classical', 'cavalry', ['infrastructure_the_wheel'])).toBe(false);
+  });
 });

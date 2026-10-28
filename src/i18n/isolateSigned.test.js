@@ -16,6 +16,6 @@ describe('signed numbers in a Hebrew line (playtest issue 17: "11g+")', () => {
     expect(isolateSigned(`${L}+3${P}`, 'he')).toBe(`${L}+3${P}`);
   });
   it('the income line reads right in Hebrew', () => {
-    expect(messageOf('m.turn.income', { gold: 11 }, 'he')).toContain(`${L}+11g${P}`);
+    expect(messageOf('m.turn.income', { gold: 11 }, 'he')).toContain(`${L}+11${P} זהב`); // gold reads as a Hebrew word (lane i18n-sweep)
   });
 });

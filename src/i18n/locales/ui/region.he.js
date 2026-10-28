@@ -157,7 +157,7 @@ export default {
   'ri.tier': 'דרגה {a} מתוך {b}',
   'ri.settlers': 'מתיישבים',
   'ri.settlersLooking': 'מחפשים אדמה כדי להקים עיר',
-  'ri.show': 'הצג',
+  'ri.show': 'הציגו',
   'ri.chooseSite': 'בחרו אתר',
   'ri.embarkedAria': 'על הסיפון',
   'ri.ledBy': 'בפיקוד {name}',

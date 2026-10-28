@@ -13,7 +13,7 @@ export default {
   'theme.westafrica': 'מערב אפריקה',
   'theme.eastafrica': 'מזרח אפריקה',
   'theme.europe': 'אירופה',
-  'theme.steppe': 'הערבה',
+  'theme.steppe': 'הערבות',
   'theme.indic': 'דרום אסיה',
   'theme.sinic': 'מזרח אסיה',
   'theme.korea': 'קוריאה',

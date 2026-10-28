@@ -15,25 +15,29 @@
 // mobile never shows a top-left RegionInfoModal corner card, only a bottom sheet).
 import React from 'react';
 import { ScrollText } from 'lucide-react';
+import { useT } from '../../i18n/useT';
 
 // Hidden on a phone held sideways: the log opens from the tab rail there (PanelDrawer.jsx).
-const LogTrigger = ({ onClick, unreadCount = 0 }) => (
+const LogTrigger = ({ onClick, unreadCount = 0 }) => {
+  const { t } = useT();
+  return (
   <button
     onClick={onClick}
     className="fixed z-20 flex items-center gap-2 px-3 min-h-[40px] rounded-full bg-fa-panel/95
                border border-fa-line shadow-xl text-fa-text hover:bg-fa-raised transition-colors
                end-3 top-[calc(var(--header-height,2.25rem)+8.75rem)]
                lg:hidden pl:hidden"
-    aria-label="Open event log"
+    aria-label={t('sw.log.open')}
   >
     <ScrollText className="w-4 h-4 text-fa-muted shrink-0" />
-    <span className="hidden sm:inline text-xs font-semibold">Event Log</span>
+    <span className="hidden sm:inline text-xs font-semibold">{t('sw.log.title')}</span>
     {unreadCount > 0 && (
       <span className="text-[10px] font-bold text-fa-ink bg-fa-text px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
         {unreadCount > 99 ? '99+' : unreadCount}
       </span>
     )}
   </button>
-);
+  );
+};
 
 export default LogTrigger;

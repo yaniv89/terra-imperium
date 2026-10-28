@@ -10,7 +10,7 @@ import { deployZone } from '../../battle/sim/world';
 import { BattleRenderer } from '../../battle/render/BattleRenderer';
 import { createBattleClient } from '../../battle/worker/battleClient';
 import { createGestureRecognizer, insidePolygon } from '../../battle/input/gestures';
-import { decidePointer, isCycleClick, pickOwnBuilding, selectionAfter, BUILDING_PICK_TILES, BUILDING_PICK_PX } from '../../battle/input/selection';
+import { decidePointer, isCycleClick, pickOwnBuilding, selectionAfter, BUILDING_PICK_TILES, BUILDING_PICK_PX, groundOrderType } from '../../battle/input/selection';
 import { Q, TICK_HZ, battleLimitTicks } from '../../battle/sim/constants';
 import BattleHud, { isIdleSquad } from './BattleHud';
 import { BattleRotateGate } from '../ui/RotateOverlay';
@@ -84,6 +84,7 @@ const radialTop = (y, h, abilities) => {
 // "2:35": a battle tick as minutes and seconds of battle time.
 const battleClock = (tick) => { const sec = Math.max(0, Math.floor((tick || 0) / TICK_HZ)); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
 const ORDER_NOTE_MS = 3500;
+const OBJECTIVE_NOTE_MS = 7000; // the Enemy caption with its Attack it button: time to read and tap
 
 // U03: the battle screen's usable rectangle. The safe-area insets (a notch or Dynamic Island on the
 // left or right in landscape, the home bar below) as --sa-t/r/b/l for the HUD; `&safe=t,r,b,l` (css
@@ -200,6 +201,14 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const hudUp = !!hud;
   const coachOn = coachStep >= 0;
   useEffect(() => { if (coachOn && hudUp) markCoachSeen(); }, [coachOn, hudUp]);
+  // The battle's clock waits while the first-battle tips are open after Start (playtest 40550085702
+  // step 158: a squad was wiped out while tip 1 of 3 was still on screen). Next to the end, Skip,
+  // or the player's own Pause and Resume let it run. The sim only stops ticking: no order or rule changes.
+  const coachHold = started && coachOn && !ended;
+  useEffect(() => {
+    const c = clientRef.current; if (!c || !started) return;
+    if (coachHold) c.pause(); else if (!pausedRef.current) c.resume();
+  }, [coachHold, started]);
   useEffect(() => {
     const el = wrapRef.current; if (!el) return undefined;
     const onDown = (e) => setMouse(e.pointerType !== 'touch');
@@ -516,11 +525,14 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   // squads will arrive first (I192, X13).
   const [orderNote, setOrderNote] = useState(null);
   const [restartNote, setRestartNote] = useState(null); // a checkpoint that could not be resumed: shown until Start
+  // The Enemy button's target while its caption shows: one tap on Attack it sends the army at it
+  // (playtest 40550100958 steps 57 to 63: the caption showed the target but could not order it).
+  const [objTarget, setObjTarget] = useState(null);
   useEffect(() => {
-    if (!orderNote) return undefined;
-    const t = setTimeout(() => setOrderNote(null), ORDER_NOTE_MS);
+    if (!orderNote) { setObjTarget(null); return undefined; }
+    const t = setTimeout(() => setOrderNote(null), objTarget ? OBJECTIVE_NOTE_MS : ORDER_NOTE_MS);
     return () => clearTimeout(t);
-  }, [orderNote]);
+  }, [orderNote, objTarget]);
   // RTS-03: an order given while paused waits in the battle loop until Resume. It shows at once
   // anyway (a steady ring, a footprint), and a note says when it starts. Drawing only.
   const markPending = useCallback((mark) => {
@@ -723,7 +735,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       markPending({ kind: 'attack', x: hit.ground.x, z: hit.ground.z, squads: sel, color: '#ef4444' });
       noteFor('attack');
     } else {
-      const type = !startedRef.current ? 'deploy' : forceAttackMove || armedRef.current === 'attackMove' ? 'attackMove' : 'move'; // before Start the ground order places the squads (plan D5)
+      const type = groundOrderType({ started: startedRef.current, armed: armedRef.current, forceAttackMove, squads: sel.map((i) => cur.squads[i]) }); // before Start the ground order places the squads (plan D5)
       send([{ type, squads: sel, x: Math.round(hit.ground.x * Q), y: Math.round(hit.ground.z * Q), formation: formationRef.current }]);
       r.setOrderTarget(sel, null); // a plain move: the old target ring goes, the move marker shows
       r.addMarker(hit.ground.x, hit.ground.z, type === 'attackMove' ? '#fb923c' : '#a3e635');
@@ -819,6 +831,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       placeDrag: (p) => setGhostAt(p),
       placeEnd: () => {},
       selectModeDone: () => setSelectModeOn(false),
+      isArmed: () => !!armedRef.current,
       isOnSelectedSquad: (p) => { const idx = ownSquadAt(p); return idx !== null && selectedRef.current.has(idx); },
       hasSelection: () => selectedRef.current.size > 0,
       tap: (p) => pointer('tap', p),
@@ -962,11 +975,28 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     const own = fightersOf(cur);
     const from = own.length ? { x: own.reduce((s, q) => s + q.x, 0) / own.length / Q, y: own.reduce((s, q) => s + q.y, 0) / own.length / Q } : null;
     const { targets, note, fallback } = enemyObjectives(cur, setup, playerSide, from);
-    if (!targets.length) { lookAt(fallback.x, fallback.y); setOrderNote(note); return; }
+    if (!targets.length) { lookAt(fallback.x, fallback.y); setOrderNote(note); setObjTarget(null); return; }
     const i = objectiveIdxRef.current % targets.length; objectiveIdxRef.current = i + 1;
     const t = targets[i];
     lookAt(t.x, t.y);
+    setObjTarget(t.target ? { target: t.target, label: t.label, x: t.x, y: t.y } : null);
     setOrderNote(note || (targets.length > 1 ? tNow('bt.screen.objectiveOf', { label: t.label, i: i + 1, n: targets.length }) : tNow('bt.screen.objectiveOne', { label: t.label })));
+  };
+  // Attack it: the selection (else the whole army) at the Enemy button's target, with the same
+  // ring, marker and pending mark as a tap on it.
+  const attackObjective = () => {
+    const r = rendererRef.current; const cur = frames.current.cur; const o = objTarget;
+    if (!r || !cur || !o) return;
+    let sel = [...selectedRef.current].filter((i) => cur.squads[i]?.classId !== 'worker');
+    if (!sel.length) sel = fightersOf(cur).map((q) => q.idx);
+    if (!sel.length) return;
+    send([{ type: 'attack', squads: sel, target: o.target }]);
+    r.setOrderTarget(sel, o.target, 'attack');
+    r.addMarker(o.x, o.y, '#ef4444', 1.6, 1.4);
+    markPending({ kind: 'attack', x: o.x, z: o.y, squads: sel, color: '#ef4444' });
+    if (!selectedRef.current.size) updateSelection(sel);
+    setObjTarget(null);
+    setOrderNote(tNow('bt.screen.attackingIt', { label: o.label }));
   };
   const toggleFollow = () => {
     if (followRef.current) { setFollow(false); return; }
@@ -1227,7 +1257,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         soundOn={soundOn} onToggleSound={toggleSound}
         selectMode={selectMode} onToggleSelectMode={() => setSelectModeOn(!selectModeRef.current)}
         pathMode={pathMode} onTogglePathMode={() => setPathModeOn(!pathModeRef.current)}
-        coach={coachOn && !ended ? { steps: coachSteps(mouse), step: coachStep, onNext: () => setCoachStep((s) => (s + 1 >= coachSteps(mouse).length ? -1 : s + 1)), onSkip: () => setCoachStep(-1) } : null}
+        coach={coachOn && !ended ? { steps: coachSteps(mouse), step: coachStep, onNext: () => setCoachStep((s) => (s + 1 >= coachSteps(mouse).length ? -1 : s + 1)), onSkip: () => setCoachStep(-1), holding: coachHold && !paused } : null}
         onFocus={(x, y) => rendererRef.current?.centerOn(x / Q, y / Q)}
         onClearSelection={closeX} mouse={mouse}
         onAlertGo={alertGo} leftCard={leftCard}
@@ -1241,7 +1271,10 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(26rem,calc(100vw-2rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-danger text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" style={{ top: 56 }} role="status" aria-live="polite" data-testid="battle-resume-rejected">{restartNote}</div>
       )}
       {orderNote && !refused && !ended && (
-        <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(26rem,calc(100vw-2rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-line text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" style={{ bottom: NOTE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-order-note">{orderNote}</div>
+        <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(26rem,calc(100vw-2rem))] flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-line text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" style={{ bottom: NOTE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-order-note">
+          <span>{orderNote}</span>
+          {objTarget && <button type="button" onClick={attackObjective} data-testid="battle-objective-attack" className="pointer-events-auto shrink-0 h-11 px-3 -my-1 rounded-full bg-fa-danger/90 text-white text-sm font-semibold">{tNow('bt.screen.attackIt')}</button>}
+        </div>
       )}
       {ended && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} title={title} getCampaign={getCampaign} receipt={receipt} onContinue={() => onFinish?.(ended)} />}
       {start && !failure && !ended && <BattleLoading stage={start.stage} fraction={start.fraction} seconds={start.seconds} retry={start.retry} onAuto={() => onAbandon?.()} />}

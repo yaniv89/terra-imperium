@@ -120,3 +120,21 @@ export const selectionAfter = (cur, act) => {
     default: return cur;
   }
 };
+
+// How far (tiles) from its attack-move point a squad still counts as on its way there.
+const ATTACK_MOVE_LANDED_TILES = 2;
+
+/**
+ * The order a ground tap gives (playtest 40550100958, battle-stall report): before Start it places the
+ * squads; armed Attack (or a long press) is an attack-move; and while any selected squad is still on
+ * its way to an attack-move point, a follow-up tap keeps it an attack-move (a second tap used to
+ * turn it into a plain move, so the army stopped short and nobody fought). Otherwise a move.
+ * `squads`: the selected squads from the view ({ order, x, y, orderX, orderY } in Q8 units).
+ */
+export const groundOrderType = ({ started, armed, forceAttackMove = false, squads = [] }) => {
+  if (!started) return 'deploy';
+  if (forceAttackMove || armed === 'attackMove') return 'attackMove';
+  const far = ATTACK_MOVE_LANDED_TILES * 256;
+  const enRoute = squads.some((q) => q?.order === 'attackMove' && q.orderX != null && (q.x - q.orderX) ** 2 + (q.y - q.orderY) ** 2 > far * far);
+  return enRoute ? 'attackMove' : 'move';
+};

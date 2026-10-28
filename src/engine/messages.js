@@ -16,7 +16,7 @@
 // {nation:agree=demand} (the English verb that agrees with the nation's name: "demands" or, for
 // "the Elamite tribes", "demand"). A var may itself be a message (`sub(key, vars)`), written in
 // place. A key with `.one` / `.two` / `.other` forms is a plural and takes its form from `count`.
-import { tableOf, pluralForm, isRtl } from '../i18n/core';
+import { tableOf, pluralForm, isRtl, isolateSigned } from '../i18n/core';
 import { agree } from './grammar';
 
 /** A name in a message: kind is 'people', 'city', 'person', 'place', 'tech', 'unit', 'building',
@@ -55,6 +55,12 @@ const shortNumber = (num) => {
   return num.toString();
 };
 
+// Gold in Hebrew is a number and the word: "1,500 זהב", "2.5 מיליון זהב" (never the English "g").
+const heMoney = (v) => {
+  const n = Number(v) || 0;
+  return Math.abs(n) >= 1000000 ? `${(n / 1000000).toFixed(1)} מיליון זהב` : `${groupDigits(Math.round(n))} זהב`;
+};
+
 /**
  * Write a message in `lang`. `nameOfRef(ref, lang)` writes a ref (the UI passes the Hebrew names;
  * the default is the English name). A key the tables lack writes the key, so a gap is visible.
@@ -76,7 +82,7 @@ export const msgText = (key, vars, lang = 'en', nameOfRef = null) => {
     const v = vars ? vars[name] : undefined;
     if (v === undefined) return m;
     if (fmt === 'num') return Number.isFinite(v) ? groupDigits(v) : value(v);
-    if (fmt === 'money') return `${shortNumber(v)}g`;
+    if (fmt === 'money') return lang === 'he' ? heMoney(v) : `${shortNumber(v)}g`;
     if (fmt === 'pct') return `${v}%`;
     if (fmt === 'agree') return agree(isRef(v) ? v.en : String(v), arg || '');
     return value(v);
@@ -84,8 +90,6 @@ export const msgText = (key, vars, lang = 'en', nameOfRef = null) => {
   return isRtl(lang) ? isolateSigned(out) : out;
 };
 
-// A signed number ("+10%", "-3") in right-to-left text, isolated left to right: bidi would put its sign on the wrong side.
-const isolateSigned = (text) => text.replace(/(^|[\s(:[])([+\-\u2212]\d[\d.,]*[%KMg]?)/g, '$1\u2066$2\u2069');
 
 /** The text fields of a log entry (or a card line): spread into the entry. */
 export const msg = (key, vars) => (vars

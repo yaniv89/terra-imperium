@@ -1,4 +1,4 @@
-import { AGES, FIRST_AGE_ID, isAgeAtLeast, ageGapMult } from './ages';
+import { AGES, FIRST_AGE_ID, isAgeAtLeast, isAgeBefore, ageGapMult, AGE_ORDER } from './ages';
 // src/data/unitClasses.js
 // The combat classes and their hard-counter triangle (plan §7): Infantry beats Cavalry, Cavalry
 // beats Ranged, Ranged beats Infantry — a counter system players can't see is just noise, so
@@ -249,11 +249,19 @@ export const UNIT_UNLOCKS = {
 /** The tech that opens the age's `classId` unit, or null when it is open from the start. */
 export const unitUnlockTech = (ageId, classId) => UNIT_UNLOCKS[ageId]?.[classId] || null;
 
+// Ships open once and stay open (Civ VI's Sailing, EU4's naval tech): a nation that knows the ship
+// tech of its age or of any earlier age builds its age's ship. Each age's ship tech was the tech
+// the research advisor took last, the one that ends the age, so no coastal nation could build a
+// ship before the Kingdoms age (lane naval-campaign trace: first ship turn 157 to 194 of 200).
+const CARRIES_OVER = new Set(['naval']);
+
 /** Can a nation at `ageId` that knows `researched` (array or Set of tech ids) build `classId`? */
 export const isUnitUnlocked = (ageId, classId, researched) => {
   if (!UNIT_ROSTER[ageId]?.[classId]) return false;
-  const tech = unitUnlockTech(ageId, classId);
-  return !tech || (researched?.has ? researched.has(tech) : !!researched?.includes?.(tech));
+  const knows = (tech) => !tech || (researched?.has ? researched.has(tech) : !!researched?.includes?.(tech));
+  if (knows(unitUnlockTech(ageId, classId))) return true;
+  if (!CARRIES_OVER.has(classId)) return false;
+  return AGE_ORDER.filter((a) => isAgeBefore(a, ageId)).some((a) => UNIT_ROSTER[a]?.[classId] && knows(unitUnlockTech(a, classId))); // an earlier age open with no tech (Kingdoms) counts too
 };
 
 /** The classes of the age a nation can build now: getAvailableClasses filtered by its techs. */
