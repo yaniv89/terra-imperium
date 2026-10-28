@@ -93,3 +93,9 @@ claude/integration, main gets the push once the quick suite and CI are green.
 
 ### 28 Oct 14:20: the user's go for main
 - User: "u have my go to push when all sessions done and ready for main". Plan: when wars-8, perf-8 and events-8 (held back: passive world reaches the Future goal before the turn limit) are merged, reviewed and tested, and integration CI is green, push integration to main once (deploys the 18-lane wave).
+
+### 28 Oct 16:50: final five lanes merged (integration 0cc85a67)
+- Merged: events-8 (Congress gold fix: compounding +5%/+3% from the Age of Kingdoms made a passive world reach the Future goal early), wars-8 (war roll lowered 1.5 to 1.25x: 1.5x let Gojoseon finish the Future at turn 776 of 923 in the passive run), perf-8 (End Turn page JS -23% at phone speed, boot JS 4.5 to 2.3 s, longest boot task 3.2 to 0.9 s, game results unchanged), battle-ai-2 (gunpowder and sea AI, SETUP_VERSION 30), raids-march (raids weigh the militia, March order odds warning). Full suite 4,787 passed (pack-map-models flake only). Engine review: one break (raid aftermath window not in speedTurns), fixed in 0cc85a67.
+- Lead answers: perf-8 Concede on an empty field already exists (battle-engage "Finish now" and Auto); pausing the clock during timed prompts at 3x is a yes, small follow-up. battle-ai-2 Prince cavalry flanking yes; wind and broadside rules only if sea battles grade under 8; walled mirror assaults 88% attacker is a balance finding. raids-march: an unguarded town stays raidable (the player's choice), the set-out warning may come from the fog (scouts' report).
+- New lane: ai-armies (idle 2-unit war stacks, 228k-342k garrisons, arm before declaring).
+- Process fix after a lost wakeup (90 idle minutes): hourly create_trigger heartbeat plus send_later check-ins, plan in the task list.
