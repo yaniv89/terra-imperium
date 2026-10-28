@@ -21,14 +21,6 @@ export const PING_TIMEOUT_MS = 4000;
 export const MAX_RESPAWNS = 2;
 export const LOG_SIZE = 80;
 
-// The state's size for the log: its JSON length, typed arrays by their byte length (cheap enough
-// once a turn, about 0.5 MB).
-export const stateSize = (state) => {
-  let bytes = 0;
-  try { bytes += JSON.stringify(state, (k, v) => { if (ArrayBuffer.isView(v)) { bytes += v.byteLength; return 0; } return v; }).length; } catch { return -1; }
-  return bytes;
-};
-
 /**
  * The client over any worker factory (tests pass a fake). `makeWorker()` returns a Worker-like
  * object ({ postMessage, terminate, onmessage, onerror, onmessageerror }) or throws.
@@ -44,8 +36,7 @@ export const createTurnClient = ({
   firstTurnTimeoutMs = FIRST_TURN_TIMEOUT_MS,
   pingTimeoutMs = PING_TIMEOUT_MS,
   maxRespawns = MAX_RESPAWNS,
-  now = () => Date.now(), // determinism-ok: diagnostics only, never game state
-  sizeOf = stateSize
+  now = () => Date.now() // determinism-ok: diagnostics only, never game state
 }) => {
   // The last LOG_SIZE events with times (turnLog()): the player can copy them from Settings, or
   // see them live with ?turndebug, so a phone that hangs tells us where.
@@ -62,12 +53,16 @@ export const createTurnClient = ({
   let seq = 0;
   const pending = new Map(); // id -> (state | null) => void
   const pings = new Map(); // id -> (alive: boolean) => void
+  // The last answered state and its save text (a promise: the worker sends it after the answer).
+  let save = null; // { id, state, text: Promise<string | null>, done }
+  const endSave = () => { save?.done(null); save = null; };
 
   const settleAll = () => {
     pending.forEach((done) => done(null)); pending.clear();
     pings.forEach((done) => done(false)); pings.clear();
   };
   const drop = () => {
+    endSave();
     try { worker?.terminate(); } catch { /* already gone */ }
     worker = null;
     answered = false;
@@ -98,6 +93,10 @@ export const createTurnClient = ({
       if (w !== worker) { note('late', { type: data.type || 'turn', id: data.id }); return; } // a dropped worker's late answer
       if (data.type === 'ready') { note('ready', { ms: data.ms }); answered = true; return; }
       if (data.type === 'pong') { const done = pings.get(data.id); pings.delete(data.id); note('pong', { id: data.id }); done?.(true); return; }
+      if (data.type === 'saveText') {
+        if (save?.id === data.id) { note('save-text', { id: data.id, bytes: data.text?.length ?? -1 }); save.done(data.text || null); }
+        return;
+      }
       if (data.type === 'fatal') { note('fatal', { error: String(data.error).slice(0, 300) }); giveUp(`failed (${String(data.error).split('\n')[0]})`); return; }
       const done = pending.get(data.id);
       pending.delete(data.id);
@@ -108,6 +107,8 @@ export const createTurnClient = ({
       let next = null;
       try { next = data.state ? revive(data.state) : null; } catch (err) { note('revive-failed', { id: data.id, error: String(err?.message || err) }); }
       note('answer', { id: data.id, workerMs: data.ms });
+      endSave();
+      if (next) { const entry = { id: data.id, state: next }; entry.text = new Promise((r) => { entry.done = r; }); save = entry; }
       done(next);
     };
     w.onerror = (e) => { if (w === worker) note('worker-error', { error: String(e?.message || 'error') }); if (w === worker) giveUp(`could not start (${e?.message || 'error'})`); };
@@ -155,7 +156,7 @@ export const createTurnClient = ({
       pending.set(id, (next) => { timers.clearTimeout(timer); note('settled', { id, ms: now() - sent, ok: !!next }); resolve(next); });
       try {
         w.postMessage({ id, state, action });
-        note('sent', { id, action: action?.type, turn: state?.turnNumber, bytes: sizeOf(state), postMs: now() - sent });
+        note('sent', { id, action: action?.type, turn: state?.turnNumber, postMs: now() - sent });
       } catch (err) {
         pending.delete(id); timers.clearTimeout(timer);
         note('send-failed', { id, error: String(err?.message || err) });
@@ -183,7 +184,11 @@ export const createTurnClient = ({
   /** Starts the worker and its engine ahead of the first End Turn (the first turn is no slower). */
   const prewarm = () => { if (available() && !worker) spawn(); };
 
-  return { run, prewarm, abandon, turnLog, events: () => log.slice(), available, ping: () => (worker ? ping(worker) : Promise.resolve(false)), get worker() { return worker; } };
+  /** The JSON of `state` as the worker wrote it (a promise of the text, or of null when it never
+   * comes), or null when `state` is not the last state the worker answered. */
+  const saveTextOf = (state) => (save && save.state === state ? save.text : null);
+
+  return { run, prewarm, abandon, turnLog, saveTextOf, events: () => log.slice(), available, ping: () => (worker ? ping(worker) : Promise.resolve(false)), get worker() { return worker; } };
 };
 
 const browserSupported = () => typeof Worker !== 'undefined' && typeof window !== 'undefined';
@@ -203,6 +208,9 @@ export const prewarmTurnWorker = () => client.prewarm();
 
 /** The state after `action` as the worker resolves it, or null (run it here instead). */
 export const runTurnInWorker = (state, action) => client.run(state, action);
+
+/** The worker's JSON of a state it answered (turnClient saveTextOf), for the autosave. */
+export const turnSaveTextOf = (state) => client.saveTextOf(state);
 
 /** "Run it here": stop waiting for the worker; the turn runs on the main thread. */
 export const abandonTurnInWorker = () => client.abandon();

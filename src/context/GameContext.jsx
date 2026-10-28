@@ -15,7 +15,7 @@ import { loadMeta, saveMeta } from '../utils/metaProgression';
 import { createInitialState, gameReducer } from '../engine/gameReducer';
 import { syncWorldRegistry } from '../engine/world/registry';
 import { migrateSave, CURRENT_SAVE_VERSION, saveProblem } from '../engine/saveMigrations';
-import { runTurnInWorker, turnWorkerAvailable } from '../services/turnClient';
+import { runTurnInWorker, turnWorkerAvailable, turnSaveTextOf } from '../services/turnClient';
 import { soundsForTransition } from '../audio/worldSounds';
 import { isCurrentWorld, currentWorldSpec, rememberWorldSpec, PENDING_START_KEY } from '../worldgen/worldLoader';
 import { normalizeSpec, EARTH_SPEC } from '../worldgen/spec';
@@ -231,12 +231,16 @@ export const GameProvider = ({ children }) => {
   // save holding stale copy).
   // Written when the game goes quiet (AUTOSAVE_IDLE_MS after the last change) and when the page is
   // hidden or closed, not after every action: serialising the whole world took tens of ms of the
-  // main thread on each army move.
-  const saveNow = useCallback(() => {
+  // main thread on each army move. `text` is the state's JSON when the turn worker already wrote it
+  // (turnSaveTextOf); the same bytes as JSON.stringify({ version, state, savedAt }).
+  const savedRef = useRef(null); // the state object last written
+  const saveNow = useCallback((text) => {
     if (launchHold) return false;
     try {
       const at = Date.now();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SAVE_VERSION, state: stateRef.current, savedAt: at }));
+      const body = typeof text === 'string' ? text : JSON.stringify(stateRef.current);
+      localStorage.setItem(STORAGE_KEY, `{"version":${SAVE_VERSION},"state":${body},"savedAt":${at}}`);
+      savedRef.current = stateRef.current;
       lastSave = { turn: stateRef.current.turnNumber, at };
       saveListeners.forEach((fn) => fn());
       return true;
@@ -247,19 +251,26 @@ export const GameProvider = ({ children }) => {
     }
   }, []);
   useEffect(() => {
-    const id = setTimeout(saveNow, AUTOSAVE_IDLE_MS);
+    const id = setTimeout(() => { if (stateRef.current !== savedRef.current) saveNow(); }, AUTOSAVE_IDLE_MS);
     return () => clearTimeout(id);
   }, [state, saveNow]);
   // A new turn and a battle about to open are saved at once, not after the idle wait: a phone that
   // runs out of memory is killed without pagehide (the crash hunt), and the heaviest moments come
   // right after them (the turn's report and map, the battlefield loading).
   const pendingBattleId = state.pendingBattle?.id ?? null;
-  useEffect(() => { saveNow(); }, [state.turnNumber, pendingBattleId, saveNow]);
+  // A turn from the worker comes with its JSON a moment later: written then, unless the game moved on.
+  useEffect(() => {
+    const s = stateRef.current;
+    const text = turnSaveTextOf(s);
+    if (!text) { saveNow(); return; }
+    text.then((t) => { if (stateRef.current === s) saveNow(t); });
+  }, [state.turnNumber, pendingBattleId, saveNow]);
   useEffect(() => {
     const onHide = () => { if (document.visibilityState === 'hidden') saveNow(); };
-    window.addEventListener('pagehide', saveNow);
+    const onPageHide = () => saveNow();
+    window.addEventListener('pagehide', onPageHide);
     document.addEventListener('visibilitychange', onHide);
-    return () => { window.removeEventListener('pagehide', saveNow); document.removeEventListener('visibilitychange', onHide); };
+    return () => { window.removeEventListener('pagehide', onPageHide); document.removeEventListener('visibilitychange', onHide); };
   }, [saveNow]);
 
   // Achievement unlocks. checkAchievements is a pure predicate over the CURRENT snapshot (no

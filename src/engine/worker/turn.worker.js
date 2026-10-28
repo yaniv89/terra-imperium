@@ -11,7 +11,9 @@
 //   { type: '__world', spec, grid }  -> { type: 'ready' } once the world and the engine are loaded
 //   { type: 'ping', id }             -> { type: 'pong', id } at once, even while the world loads:
 //                                       the page checks the worker is alive before a turn
-//   { id, state, action }            -> { id, state } or { id, error }
+//   { id, state, action }            -> { id, state } or { id, error }, then { type: 'saveText', id, text }:
+//                                       the new state as JSON for the autosave, written after the
+//                                       answer so the page never stringifies the world itself
 //   the world or the engine fails    -> { type: 'fatal', error }: the page stops using this worker
 //   an uncaught error                -> { type: 'fatal', error }
 import { loadWorldFromMessage, WORLD_MESSAGE } from '../../worldgen/worldLoader';
@@ -53,5 +55,9 @@ self.onmessage = async (e) => {
   } catch (err) {
     // A state that cannot be cloned back: say so, so the page runs the turn itself at once.
     self.postMessage({ id, error: `The turn could not be sent back: ${errorText(err)}` });
+    return;
   }
+  let text = null;
+  try { text = JSON.stringify(next); } catch { /* the page saves it the slow way */ }
+  self.postMessage({ type: 'saveText', id, text });
 };

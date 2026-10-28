@@ -17,6 +17,16 @@ TURNS=120 WARMUP=10 SEEDS=11 PLAYER=akkad npx vitest run -c .claude/skills/vites
 ```
 The budget tests run only with `PERF_CHECKS=1` (e.g. `PERF_CHECKS=1 npx vitest run src/engine/aiQualityBenchmark.test.js`).
 Late turns (turn 300+) are the slow case: use TURNS=300 when a change touches per-tile or per-city loops.
+`LOAD_STATE=s.json` starts from a SAVE_STATE file (late turns without the 300 before them).
+`WORKER=1` runs each turn as the turn worker does (structured clone, then gameReducer): caches keyed
+on object identity miss there, so check a cache change with it too.
+
+## End Turn, sheets and the close view in a real browser
+```bash
+node scripts/perf/end-turn.mjs --state s.json --turns 5 [--sheets Empire,Cities] [--close] [--cpuprofile p.cpuprofile] [--trace t.json]
+```
+This machine has no GPU: WebGL is software, so wall times wait on "Commit". Compare main-thread
+JS (CPU profile minus idle and program) between builds, not the wall wait.
 
 ## Map speed (real browser)
 ```bash
@@ -29,6 +39,7 @@ Report step ms (median, p90), fps, main ms per frame and settle. `--shots dir` f
 battle-load.mjs, battle-start.mjs, battle-soak.mjs (battles), memory-soak.mjs and heap-diff.mjs
 (leaks), save-size.mjs (save bytes), cellScaling.mjs (grid size), river-cost.mjs (river layer).
 Battle sim speed: `node scripts/battle-bench.mjs` (`--eco` for the battle economy).
+The battle worker's world build: `.claude/skills/perf/battleStart.sim.js` (SETUP= a grabbed setup).
 
 ## Report
 Base vs change, same machine, same seeds: the numbers, the delta, and which phase moved.
