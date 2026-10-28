@@ -49,10 +49,10 @@ The lead's own shots in `plans/ui/lead-check/` are the "before"; the "after" sho
      (no 900-turn rebuild); eraSaves.test.mjs asserts no landmark is pending. All 8 tests pass.
 
 ## Evidence
-- `node scripts/ui/panels-shots.mjs`: all checks ok, exit 0.
-- `node scripts/ui/lead-ui-fixes-shots.mjs`: RESULT_PLACEHOLDER
+- `node scripts/ui/panels-shots.mjs`: all checks ok, exit 0. Note: it writes to plans/ui/pa-l4/ whatever `--out` says.
+- `node scripts/ui/lead-ui-fixes-shots.mjs`: all 20 checks passed (why bubble clear of End Turn, Log text above End Turn, legend hidden beside a city sheet: 844x390, 844x340, 1600x900, en and he; deploy objective box clear of the card: 844x390 and 844x340, en and he), 0 page errors.
 - Tests: faNumSentence, independentsView, eraSaves, `npm run test:related` on the touched components (72 passed).
-  Full `npx vitest run`: FULL_PLACEHOLDER
+  Full `npx vitest run`: 512 files passed, 2 skipped (4790 tests passed, 17 skipped), after merging origin/claude/integration.
 - `npm run lint`: clean.
 
 ## Not done / risks
