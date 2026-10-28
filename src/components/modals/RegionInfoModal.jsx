@@ -34,7 +34,9 @@ import { declareWarConfirm } from '../ui/confirmSpecs';
 import { BuildingIcon, ExtractionIcon, ResourceIcon, UnitIcon, WonderIcon } from '../ui/icons';
 import { getTotalDev } from '../../engine/development';
 import { validateInvasion, validateAmphibious } from '../../engine/invasion';
-import { attackReach, planMarchAttack } from '../../engine/marchAttack';
+import { attackReach, planMarchAttack, marchAttackUnits } from '../../engine/marchAttack';
+import { estimateMarchOdds } from '../../engine/battleOdds';
+import { marchOddsText } from '../map/marchOddsText';
 import { describeAttackBlock } from '../../utils/attackAvailability';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
@@ -479,7 +481,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               key={srcId}
               icon={Swords}
               label={t('ri.marchOn', { city: nameNow('city', null, regionState.name), where: where ? t('ri.armyWhere', { where }) : '' })}
-              description={march.ok ? t('ri.marchDesc', { turns: turnsOf(march.turns), stops: march.stopsAt ? t('ri.stopsAt', { city: state.regions[march.stopsAt]?.name ? nameNow('city', null, state.regions[march.stopsAt].name) : t('ri.anEnemyCity') }) : '' }) : reasonText(march)}
+              description={march.ok ? t('ri.marchDesc', { turns: turnsOf(march.turns), stops: march.stopsAt ? t('ri.stopsAt', { city: state.regions[march.stopsAt]?.name ? nameNow('city', null, state.regions[march.stopsAt].name) : t('ri.anEnemyCity') }) : '' }) + ` ${marchOddsText(estimateMarchOdds(state, marchAttackUnits(state, srcId), regionId), nameNow('city', null, regionState.name))?.text || ''}` : reasonText(march)}
               onClick={() => dispatch({ type: ActionTypes.SET_ROUTE, payload: { fromRegionId: srcId, toRegionId: regionId, attack: true } })}
               disabled={!march.ok}
               why={march.ok ? null : reasonText(march)}

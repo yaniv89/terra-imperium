@@ -16,6 +16,9 @@ import { cityFell } from './capture';
 import { getCounterMultiplier, getRosterCombatMultiplier, unitAgeWeight } from '../data/unitClasses';
 import { getTerrainCombatModifier } from '../data/terrain';
 import { menOf } from './battleLedger';
+import { canSeeTile } from './sight';
+import { canSeeRegionDetails } from './intel';
+import { withAirSupport } from './airPower';
 import parity from '../data/autoParity.json';
 
 const sumStrength = (units) => units.reduce((s, u) => s + Math.max(0, u.strength), 0);
@@ -152,6 +155,25 @@ export const estimateInvasionOdds = (state, fromRegionId, targetRegionId, sample
   if (!v.ok) return null;
   const ctx = getInvasionBattleContext(state, { targetRegionId, targetRegion: v.targetRegion, defenderUnits: v.defenderUnits });
   return simulate(state, v, getResolveBattleArgs(v, ctx), ctx, samples, { kind: 'invasion', cityId: targetRegionId, fromRegionId });
+};
+
+/**
+ * The odds of a march to attack before it starts (playtest 40651416284 step 286: "March to Zafar"
+ * walked 10k men into 228k with no warning): the stack's land units against the city's garrison
+ * as the assault would find it today, through the same `simulate`. Only what the player knows: the
+ * city's tile in sight or intel on its owner, else { known: false }. Null when no land unit marches.
+ */
+export const estimateMarchOdds = (state, attackerUnits, cityId, samples = 100) => {
+  const city = state.regions?.[cityId];
+  const land = attackerUnits.filter((u) => u.domain === 'land' && u.strength > 0);
+  if (!city || !land.length) return null;
+  if (!canSeeTile(state, city.tile) && !canSeeRegionDetails(state, cityId)) return { known: false };
+  const defenderUnits = Object.values(state.units).filter((u) => u.regionId === cityId && u.domain === 'land' && u.classId !== 'settler' && u.ownerId !== state.playerNationId);
+  // Aircraft in range join each side, as validateInvasion adds them (airPower.js).
+  const v = { attackerUnits: withAirSupport(state, state.playerNationId, city.tile, land, defenderUnits), defenderUnits: withAirSupport(state, city.owner, city.tile, defenderUnits, land), targetRegion: city };
+  const ctx = getInvasionBattleContext(state, { targetRegionId: cityId, targetRegion: city, defenderUnits: v.defenderUnits });
+  const r = simulate(state, v, getResolveBattleArgs(v, ctx), ctx, samples, { kind: 'invasion', cityId, fromRegionId: land[0].regionId });
+  return { known: true, capture: r.capture, attackerStrength: r.attackerStrength, defenderStrength: r.defenderStrength, range: r.range, reasons: r.reasons };
 };
 
 // The land battle of an amphibious landing (the naval interception, if any, is fought first and

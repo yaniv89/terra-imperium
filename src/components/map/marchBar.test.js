@@ -80,6 +80,23 @@ describe('ACT-01 march bar: an army beside a city', () => {
     expect(m.marchAttackBlocked).toBeNull();
   });
 
+  it('far at war: the bar shows the known garrison and Auto\'s odds before the march (step 286)', () => {
+    s.units.army = army({ tile: s.regions[BASE.home].tile });
+    s.units.garrison = { id: 'garrison', ownerId: DE, regionId: BASE.target, tile: s.regions[BASE.target].tile, domain: 'land', classId: 'infantry', strength: 30000, maxStrength: 30000, morale: 100, movesLeft: 1 };
+    s.intel = { [DE]: 999 }; // spies inside: the garrison is known
+    const m = marchBarModel(s, march(), PLAN);
+    expect(m.canMarchAttack).toBe(true);
+    expect(m.odds.hopeless).toBe(true);
+    expect(m.odds.text).toMatch(/^Hopeless: .* holds 30\d,\d{3} men to your 10,000\. Auto takes it 0%\.$/);
+  });
+
+  it('far at war, the city out of sight: the bar says its garrison is unknown', () => {
+    s.units.army = army({ tile: s.regions[BASE.home].tile });
+    const m = marchBarModel(s, march(), PLAN);
+    expect(m.odds.hopeless).toBe(false);
+    expect(m.odds.text).toMatch(/is out of sight: its garrison is unknown/);
+  });
+
   it('an independent city is attacked without a war', () => {
     s.wars = [];
     s.nations = { ...s.nations, [DE]: { ...s.nations[DE], kind: 'independent', indep: { personality: 'tribal' } } };

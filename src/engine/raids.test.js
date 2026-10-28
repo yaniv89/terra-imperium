@@ -163,6 +163,39 @@ describe('W2 raids on the map', () => {
     expect(auditGameState(sacked).filter((v) => v.code !== 'eliminated_owner')).toEqual([]); // the duel fixture retires the other independents in place
   });
 
+  // Round 2 (Hazor sacked at 10 to 1): the warning names the party and the number that turns it
+  // back, and a garrison sent after it does turn it back.
+  const unguarded = () => {
+    const { s: start, raider } = duel();
+    const me = start.playerNationId;
+    const capital = start.regions[start.nations[me].capitalRegionId];
+    const units = {}; Object.values(start.units).forEach((u) => { if (u.ownerId !== me) units[u.id] = u; });
+    return { s: { ...start, units, regions: { ...start.regions, [capital.id]: { ...capital, size: 4, lastYields: { ...(capital.lastYields || {}), gold: 10 } } } }, raider, me, capital };
+  };
+
+  it('a sack warns the player as it sets out, and a garrison sent then turns the party home', () => {
+    let { s, raider, me, capital } = unguarded();
+    let raid = null;
+    for (let i = 0; i < 40 && !raid; i++) { s = step(s); const r = s.nations[raider.id].indep.raid; if (r?.kind === 'sack' && r.phase === 'out') raid = r; }
+    expect(raid).toBeTruthy();
+    const warning = s.logs.find((l) => l.msgKey === 'm.battle.raidSetsOut');
+    expect(warning.message).toMatch(/sets? out against .* with 30,000 men, about \d+ turns? away\. It holds [\d,]+ men with its militia and walls; they turn back if it reaches 15,000\./);
+    expect(s.nations[raider.id].indep.raid.route.length).toBeGreaterThan(0);
+    // Two regiments reach the city before the party does.
+    s = { ...s, units: { ...s.units, g1: unit('g1', me, capital.id, capital.tile), g2: unit('g2', me, capital.id, capital.tile) } };
+    s = step(s);
+    expect(s.indepStats.sacks).toBe(0);
+    expect(s.nations[raider.id].indep.raid?.phase ?? 'home').toBe('home');
+    expect(s.logs.some((l) => l.msgKey === 'm.battle.raidDeterred')).toBe(true);
+  });
+
+  it('walls and the militia count: a walled city with one regiment is not sacked by a party of three', () => {
+    let { s, raider, me, capital } = unguarded();
+    s = { ...s, units: { ...s.units, g1: unit('g1', me, capital.id, capital.tile) }, regions: { ...s.regions, [capital.id]: { ...s.regions[capital.id], defenseLevel: 10 } } };
+    for (let i = 0; i < 40; i++) { s = step(s); expect(s.nations[raider.id].indep.raid?.kind).not.toBe('sack'); }
+    expect(s.indepStats.sacks).toBe(0);
+  });
+
   const blockedRun = (size) => {
     const { s: start, raider } = duel();
     const me = start.playerNationId;

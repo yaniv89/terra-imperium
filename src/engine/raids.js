@@ -79,6 +79,9 @@ import { withGrudge, grudgeOf, decayGrudges } from './grudges';
 import { isUnitInBattle } from './invasion';
 import { hireMercenary, mercOffer, processMercenaries, goldIn, addGoldIn } from './mercenaries';
 import { subjectVerb } from './grammar';
+import { cityMilitia } from './battleInputs';
+import { getDefenseLevelDamageReductionMultiplier } from './siege';
+import { menText } from './battleLedger';
 
 const KIND_STAT = { pillage: 'pillages', route: 'routesCut', settler: 'settlersKilled', outpost: 'outpostsBurned' };
 
@@ -120,6 +123,20 @@ const indexOf = (w) => {
 };
 const touchUnits = (w) => { w.unitsVersion += 1; };
 const sumStrength = (units) => units.reduce((s, u) => s + Math.max(0, u.strength || 0), 0);
+
+/**
+ * The defence a raider weighs before a sack (Hazor sacked at 10 to 1, playtest round 2): the
+ * garrison on the city's tile and the town's militia, behind its walls, as the sack battle fights
+ * them (raidBattle.js raidBattleContext). A party sacks only a city it outweighs 1 / SACK_GARRISON_RATIO
+ * to 1 by this measure, and turns back on the way when the city has grown past it. `garrison`: known already.
+ */
+const cityHeld = (w, c, garrison = sumStrength((indexOf(w).armed.get(c.tile) || []).filter((u) => u.ownerId === c.owner))) => (garrison + militiaOf(w, c.id)) / getDefenseLevelDamageReductionMultiplier(c.defenseLevel || 0);
+// One militia figure per city per working set (it builds the town's layout; a sack in the turn changes it, so cleared then).
+const militiaOf = (w, cityId) => {
+  if (!w.militia) w.militia = new Map();
+  if (!w.militia.has(cityId)) w.militia.set(cityId, sumStrength(cityMilitia(w.view, cityId)));
+  return w.militia.get(cityId);
+};
 
 /** May independent `id` raid nation `owner`? A living major it may fight (no truce, no tribute). */
 const victimOk = (w, id, owner) => !!owner && owner !== id && owner !== REBEL_OWNER_ID && !!w.nations[owner] && !w.nations[owner].isEliminated
@@ -180,11 +197,11 @@ export const scanTargets = (w, id, city, partyStrength, { onlyVictim = null } = 
     if (!centreOnly) tiles.neighbors[t].forEach((x) => { s += sumStrength((index.armed.get(x) || []).filter((u) => u.ownerId === owner)); });
     return s;
   };
-  const offer = (kind, t, d, victim, loot, extra = {}) => {
+  const offer = (kind, t, d, victim, loot, extra = {}, held = null) => {
     if (onlyVictim && victim !== onlyVictim) return;
     const grudge = grudgeOf(n, victim);
     if (personality === 'fortress' && grudge < FORTRESS_REVENGE_GRUDGE) return;
-    const defence = defendersNear(victim, t, kind === 'sack');
+    const defence = held ?? defendersNear(victim, t, kind === 'sack');
     const score = loot * (1 + grudge / 50) * era / (1 + defence / Math.max(1, partyStrength)) - RAID_RING_PENALTY * d * kmRing / RAID_RING_PENALTY_KM;
     if (!best || score > best.score + 1e-9 || (Math.abs(score - best.score) <= 1e-9 && t < best.tile)) best = { kind, tile: t, victim, loot, score, rings: d, ...extra };
   };
@@ -208,7 +225,9 @@ export const scanTargets = (w, id, city, partyStrength, { onlyVictim = null } = 
       if (Math.max(c.sackedTurn ?? -Infinity, c.burnedTurn ?? -Infinity) > w.turn - spare) return;
       if (c.outpost) { offer('outpost', t, d, owner, OUTPOST_LOOT, { cityId }); return; }
       const garrison = defendersNear(owner, t, true);
-      if (garrison < partyStrength * SACK_GARRISON_RATIO) offer('sack', t, d, owner, Math.max(SACK_MIN_GOLD, SACK_INCOME_TURNS * (c.lastYields?.gold || 0)), { cityId });
+      if (garrison >= partyStrength * SACK_GARRISON_RATIO) return;
+      const held = cityHeld(w, c, garrison);
+      if (held < partyStrength * SACK_GARRISON_RATIO) offer('sack', t, d, owner, Math.max(SACK_MIN_GOLD, SACK_INCOME_TURNS * (c.lastYields?.gold || 0)), { cityId }, held);
       return;
     }
     const ts = tileState[t];
@@ -431,6 +450,7 @@ const takeLoot = (w, id, raid) => {
       ? { city: { ...city, sackedTurn: w.turn }, lostSize: (raid.sizeBefore ?? city.size) - city.size, lostBuilding: null }
       : sackedCity(city, w.turn);
     w.regions[city.id] = s.city; w.regionsChanged = true;
+    w.militia?.delete(city.id);
     w.stats.sacks += 1;
     what = ['Sack', {
       city: cityRef(city.id, city.name), gold,
@@ -525,6 +545,14 @@ const runRaid = (w, id, city) => {
   // Out: abort when beaten down, too long out, or home in danger.
   const strength = sumStrength(party);
   if (strength < raid.startStrength / 2 || w.turn - raid.startedTurn > RAID_MAX_TURNS || homeThreatened(w, id, city)) { sendHome(w, id, party, { ...raid, lost: strength < raid.startStrength / 2 }, 'abort'); return; }
+  // A sack weighs the city again on the way: a garrison sent after the warning turns the party back.
+  const target = raid.kind === 'sack' ? w.regions[raid.targetCityId] : null;
+  if (target?.owner === raid.targetNationId && cityHeld(w, target) >= strength * SACK_GARRISON_RATIO) {
+    if (raid.targetNationId === w.playerId) log(w, msg('m.battle.raidDeterred', { raiders: raiderName(w, id), place: cityRef(target.id, target.name) }));
+    w.stats.raidsDeterred = (w.stats.raidsDeterred || 0) + 1;
+    sendHome(w, id, party, raid, 'deterred');
+    return;
+  }
   // A settler moves: follow it.
   let route = raid.route;
   if (raid.kind === 'settler') {
@@ -704,6 +732,19 @@ const demandTribute = (w, id, city, myStrength, nearArmies, nearOwners) => {
 // ---------------------------------------------------------------------------------------------
 // One independent's turn
 
+// The warning when a party sets out against the player (round 2: raids felt like a tax nobody could
+// answer): its men, the target, when it arrives, and the number that turns it back (a sack: the city's
+// defence, cityHeld; anything else: an army in its path, RAID_FIGHT_RATIO).
+const warnRaidStart = (w, id, best, partyStrength) => {
+  const c = best.kind === 'sack' || best.kind === 'outpost' ? w.regions[best.cityId] : null;
+  const advice = best.kind === 'sack'
+    ? sub('m.battle.raidAdviceSack', { held: menText(cityHeld(w, c)), need: menText(partyStrength * SACK_GARRISON_RATIO) })
+    : sub('m.battle.raidAdviceField', { need: menText(partyStrength / RAID_FIGHT_RATIO) });
+  const nearId = c ? c.id : w.view.world?.tileOwner?.[best.tile];
+  const place = w.regions[nearId]?.name ? cityRef(nearId, w.regions[nearId].name) : placeOf(w, best.tile);
+  log(w, msg('m.battle.raidSetsOut', { raiders: raiderName(w, id), men: menText(partyStrength), place, count: raidEta(w.view, id)?.turns || 1, advice }), LogTypes.CRISIS);
+};
+
 const think = (w, id, city) => {
   const n = w.nations[id];
   const p = n.indep?.personality || 'tribal';
@@ -758,7 +799,7 @@ const think = (w, id, city) => {
         touchUnits(w);
         setIndep(w, id, { mood: 'raiding', lastRaidTurn: w.turn, raid: { kind: best.kind, targetTile: best.tile, targetNationId: best.victim, targetCityId: best.cityId ?? null, targetUnitId: best.unitId ?? null, startedTurn: w.turn, startStrength: partyStrength, phase: 'out', route, warned: false } });
         w.stats.raidsStarted += 1;
-        if (best.victim === w.playerId) w.stats.raidsAtPlayer += 1;
+        if (best.victim === w.playerId) { w.stats.raidsAtPlayer += 1; warnRaidStart(w, id, best, partyStrength); }
         return;
       }
       // No way there by land (a closed border): the scan skips that tile for a while.
