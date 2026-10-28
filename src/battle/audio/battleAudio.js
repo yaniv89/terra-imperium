@@ -22,13 +22,13 @@ import { BATTLE_SOUNDS, AGE_SOUND_FAMILY, FAMILY_VOICE, battleFilesFor, createSo
 import { getAudioSettings, setAudioSettings, subscribeAudioSettings } from '../../audio/audioSettings';
 import { audibility, ambienceTarget, easeLevel } from '../../audio/spatial';
 import { isPageAudible, subscribePageAudio } from '../../audio/pageLifecycle';
-import { getAudioContext, resumeAudio, registerAudioConsumer } from '../../audio/audioContext';
+import { getAudioContext, resumeAudio, registerAudioConsumer, audioOutput } from '../../audio/audioContext';
 import { getAgeIndex, FIRST_AGE_ID } from '../../data/ages';
 import { getSquadDisplayName } from '../data/battleStats';
 
 export const MAX_VOICES = 16;
 export const MAX_NEW_PER_FRAME = 6;
-const MASTER = 0.35; // the effects bus at full volume (keeps a phone speaker sane)
+export const MASTER = 0.6; // the effects bus at full volume, as sfx.js (the shared limiter in audioContext.js keeps a phone speaker sane)
 const VOLLEY_MIN = 6; // arrows loosed in one frame that sound as a volley
 const TICKER_MS = 800; // how often the quiet work sounds (workers, hooves) are considered
 const Q = 256;
@@ -96,7 +96,12 @@ export const soundForEvent = (e, view, ageIds, playerSide, voices = new Map()) =
       else if (e.damage === 0 && familyOf(q?.ageId).block) id = familyOf(q.ageId).block;
       return { id, ...at(target || q) };
     }
-    case 'impact': { const big = e.radius > 6 * Q; return { id: big || ageAt(ageIds[0]) >= GUNPOWDER || ageAt(ageIds[1]) >= GUNPOWDER ? 'explosion' : 'ram-impact', big, x: e.x / Q, z: e.y / Q }; }
+    case 'impact': {
+      // A power's barrage: Arrow Storm rains arrows; the rest are stones before gunpowder, shells after.
+      const big = e.radius > 6 * Q;
+      const id = e.power === 'arrowStorm' ? 'arrow-whoosh' : big || ageAt(ageIds[0]) >= GUNPOWDER || ageAt(ageIds[1]) >= GUNPOWDER ? 'explosion' : 'stone-impact';
+      return { id, big, x: e.x / Q, z: e.y / Q };
+    }
     case 'destroyed': return { id: familyOf(sq(e.id)?.ageId).death || 'death-cry', ...at(sq(e.id)), own: sq(e.id)?.side === playerSide };
     case 'keepBreached': case 'structureDestroyed': case 'collapsed': return { id: 'building-collapse', big: true, ...at(structure(e.structure)) };
     case 'buildingRazed': return { id: 'fire-crackle', ...at(structure(e.structure)) };
@@ -192,7 +197,7 @@ export const createBattleAudio = ({ ageIds = [FIRST_AGE_ID, FIRST_AGE_ID], playe
     if (!ctx) {
       ctx = getAudioContext();
       if (!ctx) return null;
-      master = ctx.createGain(); master.gain.value = busLevel(); master.connect(ctx.destination);
+      master = ctx.createGain(); master.gain.value = busLevel(); master.connect(audioOutput(ctx));
       noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
       const data = noise.getChannelData(0);
       let seed = 12345;
@@ -398,6 +403,8 @@ export const createBattleAudio = ({ ageIds = [FIRST_AGE_ID, FIRST_AGE_ID], playe
     /** The camera's view of the ground ({ cx, cz, ax, az, bx, bz } in tiles, BattleRenderer.audioView). */
     setView(r) { rect = r || null; },
     /** The player sent `orders` (optional): the order's sound and a haptic tick. */
+    /** The battle begins (Start pressed): the horn sounds, as AoE and Total War open a fight. */
+    battleStarted() { play('horn-order'); },
     orderConfirmed(orders) { const id = orderSound(orders); if (!play(id) && id !== 'order-click') play('order-click'); haptic('tick'); },
     // One view frame's events (call it for every frame, with or without events: the ambience
     // follows it). Sounds are gated by the view set with setView.

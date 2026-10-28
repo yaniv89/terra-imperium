@@ -2,7 +2,7 @@
 // back (and retried after an iOS interruption), shared by every player, and no lock screen media
 // session that could restart anything.
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { contextAction, getAudioContext, unlockAudio, resumeAudio, clearMediaSession, setAmbientAudioSession, audioDebugInfo, resetAudioContextForTest } from './audioContext';
+import { contextAction, getAudioContext, unlockAudio, resumeAudio, clearMediaSession, setAmbientAudioSession, audioDebugInfo, resetAudioContextForTest, audioOutput, LIMITER } from './audioContext';
 import { setPageStateForTest, resetPageStateForTest } from './pageLifecycle';
 import { createFakeAudioContext } from './testAudioContext';
 
@@ -78,5 +78,19 @@ describe('the shared context', () => {
     expect(audioSession.type).toBe('ambient');
     expect(ms.playbackState).toBe('none');
     expect(ms.setActionHandler).toHaveBeenCalledWith('play', null);
+  });
+
+  it('every bus plays into one limiter on the destination (no clipping when sounds stack)', () => {
+    const c = createFakeAudioContext();
+    const made = [];
+    c.createDynamicsCompressor = () => { const n = { threshold: { value: 0 }, knee: { value: 0 }, ratio: { value: 0 }, attack: { value: 0 }, release: { value: 0 }, to: null, connect(d) { n.to = d; } }; made.push(n); return n; };
+    const out = audioOutput(c);
+    expect(audioOutput(c)).toBe(out);
+    expect(made).toHaveLength(1);
+    expect(out.to).toBe(c.destination);
+    expect(out.threshold.value).toBe(LIMITER.threshold);
+    expect(out.ratio.value).toBeGreaterThanOrEqual(12);
+    const old = createFakeAudioContext();
+    expect(audioOutput(old)).toBe(old.destination); // no compressor in this browser: straight out
   });
 });
