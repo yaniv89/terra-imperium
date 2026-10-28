@@ -18,6 +18,18 @@ Source: the round 3 Opus playtests (civ-veteran 40736765307, warmonger 407367700
 
 Also: removed an em dash from `nc.notEnough` (en and he).
 
+## The lead's rerun items (newcomer rerun 40746174323, message of 28 Oct 19:45)
+
+| # | Item | Finding (headless on the classical save, turns 116 to 129) | Done |
+|---|---|---|---|
+| 1 | Siege of Shechem said "Auto holds 100%" with 1,500 militia against 20,000 (251) | The number is honest and reads the same forces: no regiment inside, so Auto batters the walls (210 to about 102 of 240 HP) and the city falls only when they break; by turn 128 the walls are at 0 but Akkad's stack is archers only, and nothing takes the city (simulate's `hasMelee`). Shechem stayed Israel's every turn. The reason was only in the Auto box, below the fold on a phone | A line under the odds row says why: "No regiment inside: the attack batters its walls from 210 to about 102 of 240 HP; it falls only when they break", or "Its walls are down (0 of 240 HP), but the attackers bring no foot or horse to take it". estimateDefenseOdds passes through simulate's `hasMelee` (no new math). Shot `7a-siege-card` |
+| 2 | After "Fight on Auto" no result screen (253) | An attack on an empty city's walls has no rounds, so BattleReportsHost had no replay to play and showed nothing | The player's own Auto battle of this turn with nothing to replay opens its battle report (not with "instant battles" on). Shot `7b-after-auto`: "Siege of Shechem, Defeat ... Shechem holds on" |
+| 3 | March-mode tap picked Damascus, map jumped; no city search (245 to 248) | The magnifier button only opened zoom buttons | **Find a city** box in that panel (`citySearch.js`, explored cities, the shown name or the record's own); a pick goes through the map's own select, so in March mode it aims the march (shot `6b-city-found`: "To Shechem"), else it opens the city. **Not taken:** the badge hit test that picked Damascus (GL map hit areas; no shot of the tap, may have been Damascus's own badge) and the camera move when the target is set |
+| 4 | Diplomacy feedback on failure (19, 62 to 64, 102); white peace closed without an answer (224) | Same cause as item 2 above (the notice below the fold) | Already fixed by the tile bubbles; white peace (PeaceDealSheet `onSend`) now goes through the card, so Akkad's answer shows in the bubble. The peace sheet opened from a city card (RegionInfoModal) still closes silently: not taken |
+| 5 | Era tabs did nothing (26, 111 to 112) | Same as item 1 above | Already fixed |
+
+Tests: `citySearch.test.js` (new), two new cases in `defenseSheetModel.test.js`.
+
 ## Evidence
 
 - Shots before and after, 844x390 (touch, CDP taps like the playtester) and 1600x900, en and he: `plans/lanes/r3-campaign-shots/{before,after}/`. Script: `node scripts/ui/r3-campaign-shots.mjs --tag after` (dev server on 5197; loads the classical era save, Israel at war with Akkad). Key pairs: `1b-all-techs`, `1c-age-tab`, `2b-offer-pact`, `3b-city-buy-offer`, `4a-march-odds`, `5a-war-card`.

@@ -87,7 +87,7 @@ const run = async (browser, sizeId, lang) => {
 };
 
 const browser = await chromium.launch();
-for (const sizeId of arg('--sizes', 'phone,desktop').split(',')) for (const lang of ['en', 'he']) {
+for (const sizeId of arg('--sizes', 'phone,desktop').split(',')) for (const lang of arg('--langs', 'en,he').split(',')) {
   try { await run(browser, sizeId, lang); console.log('ok', sizeId, lang); } catch (e) { console.log('fail', sizeId, lang, String(e.message).split('\n')[0]); }
 }
 await browser.close();
