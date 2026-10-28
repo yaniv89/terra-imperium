@@ -1,6 +1,7 @@
 import { gameReducer } from './gameReducer';
-import { getResearched, ageOf } from './nationState';
-import { ActionTypes } from '../data/types';
+import { getResearched, ageOf, viewAs } from './nationState';
+import { ActionTypes, LogTypes } from '../data/types';
+import { menText } from './battleLedger';
 import { msg, people, cityRef, place as placeRef, sub } from './messages';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
 import { coloniesOf, colonySlots, foundColony, foundingCost, validateColony } from './colonies';
@@ -119,7 +120,7 @@ export const aiSally = (state, nationId, rng, byTile = null) => {
     by.forEach((list) => list.forEach((u) => { const t = unitTile(next, u); targets.set(t, (targets.get(t) || 0) + u.strength); }));
     const weakest = [...targets].sort((a, b) => a[1] - b[1] || a[0] - b[0])[0];
     if (!weakest || mine < weakest[1] * PREFILTER) continue;
-    const actor = { ...next, playerNationId: nationId, resources: getPool(next, nationId), techAgeId: getTechAgeId(next, nationId) };
+    const actor = viewAs(next, nationId);
     // `sally`: an independent, which starts no fight of its own, still strikes at its besiegers (I125).
     const v = validateFieldAttack(actor, city.id, weakest[0], { ignoreCost: true, sally: true });
     if (!v.ok) continue;
@@ -183,7 +184,7 @@ const rankTargets = (state, nationId, wars, stack, ids, unitsIn) => {
  * or null when it does not attack. */
 export const attackBlocker = (state, nationId, from, stack, tile, rng) => {
   if (tile == null) return null;
-  const actor = { ...state, playerNationId: nationId, resources: getPool(state, nationId), techAgeId: getTechAgeId(state, nationId) };
+  const actor = viewAs(state, nationId);
   const v = validateFieldAttack(actor, from, tile, { ignoreCost: true });
   if (!v.ok || !v.attackerUnits.some((u) => stack.some((s) => s.id === u.id))) return null;
   const ctx = getFieldBattleContext(actor, v);
@@ -205,7 +206,7 @@ export const seekFieldBattle = (state, nationId, from, stack, at, enemies, rng, 
   const tiles = getTiles();
   const centres = index?.centres || new Set(Object.values(state.regions).map((c) => c.tile));
   const byTile = index?.byTile || landUnitsByTile(state);
-  const actor = { ...state, playerNationId: nationId, resources: getPool(state, nationId), techAgeId: getTechAgeId(state, nationId) };
+  const actor = viewAs(state, nationId);
   let best = null;
   for (const t of tiles.neighbors[at]) {
     if (centres.has(t) || !(byTile.get(t) || []).some((u) => enemies.has(u.ownerId) && !isUnitInBattle(state, u.id))) continue;
@@ -479,7 +480,7 @@ export const processAIOperations = (state, rng) => {
       for (const city of besiegedNear) {
         const weakest = besiegerStacksBeside(next, at, city, byTile)[0];
         if (!weakest || stack.reduce((s, u) => s + u.strength, 0) < weakest.strength * PREFILTER) continue;
-        const actor = { ...next, playerNationId: nationId, resources: pool, techAgeId: getTechAgeId(next, nationId) };
+        const actor = viewAs(next, nationId, pool);
         const v = validateFieldAttack(actor, from, weakest.tile, { ignoreCost: true });
         if (!v.ok) continue;
         const ctx = getFieldBattleContext(actor, v);
@@ -523,7 +524,7 @@ export const processAIOperations = (state, rng) => {
       const candidates = ranked.filter(id => touchesCity(next, tiles, at, id));
       const target = threatened.size && !threatened.has(from) ? null : candidates[0];
       if (target) {
-        const actor = { ...next, playerNationId: nationId, resources: pool, techAgeId: getTechAgeId(next, nationId) };
+        const actor = viewAs(next, nationId, pool);
         const v = validateInvasion(actor, from, target);
         if (!v.ok) continue;
         const city = next.regions[target];
@@ -697,7 +698,33 @@ const marchAiArmies = (next, nationId) => {
   const actor = { ...next, playerNationId: nationId };
   const units = { ...next.units };
   advanceMarches(actor, units, { year: next.year });
-  return { ...next, units };
+  const warnings = warnMarches(next, nationId, units);
+  return { ...next, units, ...(warnings.length ? { logs: [...next.logs, ...warnings] } : {}) };
+};
+
+/** A stack marching on one of the player's cities warns once, this many tiles out (the raid warning's twin, raids.js). */
+export const ARMY_WARN_TILES = 3;
+// Lead, lane city-builds: outlying cities fell to armies nobody announced. `unit.marchWarned` is the
+// city tile the stack already warned of, so a new march on another city warns again.
+export const warnMarches = (state, nationId, units) => {
+  const me = state.playerNationId;
+  const lines = [];
+  const warned = new Set();
+  Object.values(units).forEach((u) => {
+    if (u.ownerId !== nationId || !u.route?.length || u.route.length > ARMY_WARN_TILES) return;
+    const goal = u.route[u.route.length - 1];
+    if (u.marchWarned === goal) return;
+    const cityId = state.world?.tileOwner?.[goal];
+    const city = cityId != null ? state.regions[cityId] : null;
+    if (!city || city.tile !== goal || city.owner !== me) return;
+    units[u.id] = { ...u, marchWarned: goal };
+    if (warned.has(cityId)) return;
+    warned.add(cityId);
+    const at = unitTile(state, u);
+    const men = menText(Object.values(units).filter((x) => x.ownerId === nationId && x.domain === 'land' && unitTile(state, x) === at).reduce((n, x) => n + Math.max(0, x.strength), 0));
+    lines.push({ year: state.year, nationId: me, type: LogTypes.CRISIS, ...msg('m.battle.armyNears', { nation: people(nationId, state.nations[nationId]?.name || nationId), men, count: u.route.length, place: cityRef(cityId, city.name) }) });
+  });
+  return lines;
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -729,7 +756,7 @@ export const aiHuntRaiders = (state, nationId, raidTiles, rng) => {
     tiles.neighbors[t].forEach((n) => (byTile.get(n) || []).forEach((u) => { if (u.ownerId === nationId && (u.movesLeft ?? 1) > 0 && !isUnitInBattle(next, u.id)) bases.add(u.regionId); }));
     for (const from of [...bases].sort()) {
       if (next.regions[from]?.owner !== nationId) continue;
-      const actor = { ...next, playerNationId: nationId, resources: getPool(next, nationId), techAgeId: getTechAgeId(next, nationId) };
+      const actor = viewAs(next, nationId);
       const v = validateFieldAttack(actor, from, t, { ignoreCost: true });
       if (!v.ok) continue;
       const ctx = getFieldBattleContext(actor, v);
@@ -781,7 +808,7 @@ export const processIndependentOps = (state, nationId, rng) => {
       const cur = next.regions[city.id];
       if (cur.owner !== goal.id) break;
       const pool = getPool(next, nationId);
-      const actor = { ...next, playerNationId: nationId, resources: pool, techAgeId: getTechAgeId(next, nationId) };
+      const actor = viewAs(next, nationId, pool);
       const v = validateInvasion(actor, from, city.id);
       if (!v.ok) continue;
       const wallsDown = !!cur.siege && cur.siege.hp < ASSAULT_HP * siegeMaxHp(cur, next.greatProjects);
@@ -820,7 +847,7 @@ export const processAINavalOperations = state => {
     if(id===state.playerNationId || next.nations[id].isEliminated)continue;
     const enemies=new Set(next.wars.filter(w=>w.active&&(w.aggressor===id||w.enemy===id)).map(w=>w.aggressor===id?w.enemy:w.aggressor));
     if(!enemies.size)continue;
-    const actor=()=>({...next,playerNationId:id,resources:getPool(next,id),techAgeId:getTechAgeId(next,id)});
+    const actor=()=>viewAs(next,id);
     const apply=action=>{
       const before=actor(),after=gameReducer(before,action);
       // A refused order (the reducer only logged why) is no order: its "That army has already moved" line
@@ -846,7 +873,7 @@ export const processAINavalOperations = state => {
         if(!foe.length || foe.reduce((s,u)=>s+u.strength,0)*AI_FLEET_ATTACK_RATIO>power)continue;
         // Against the player's fleet: queued for the player's Command or Auto (battleQueue.js).
         if(foe[0].ownerId===state.playerNationId){
-          const v=validateFleetAttack({...next,playerNationId:id,resources:getPool(next,id)},from,n,{ignoreCost:true});
+          const v=validateFleetAttack(viewAs(next,id),from,n,{ignoreCost:true});
           if(!v.ok)continue;
           const before=next;
           next=queueAgainstPlayer(next,v,id,{next:()=>(((next.rngSeed||0)+n*2654435761)>>>0)/4294967296},'naval');

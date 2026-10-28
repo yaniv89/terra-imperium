@@ -26,7 +26,7 @@ import { placeCity, cityKeepInset } from './cityBattle';
 import { cityManifestOf, cityDamageOf } from '../../engine/cityManifest';
 import { buildEconomySetup } from './economySetup';
 import { battleInputs } from '../../engine/battleInputs';
-import { getTechAgeId } from '../../engine/nationState';
+import { viewAs } from '../../engine/nationState';
 import { isRaidKind, queuedRaidArmies, raidSpecOf, raidBattleContext } from '../../engine/raidBattle';
 import { interceptArmies, interceptArgs } from '../../engine/aiLanding';
 import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from '../sim/constants';
@@ -346,9 +346,7 @@ const buildDefenseSetup = (state, pb) => {
 
 // A field or sea battle an AI started against the player (battleQueue.js) is gated as the
 // aggressor's attack: the same gate, from its side.
-const gateOf = (state, pb) => (pb.attackerNationId && pb.attackerNationId !== state.playerNationId
-  ? { ...state, playerNationId: pb.attackerNationId, techAgeId: getTechAgeId(state, pb.attackerNationId) }
-  : state);
+const gateOf = (state, pb) => (pb.attackerNationId ? viewAs(state, pb.attackerNationId) : state);
 
 // A commanded amphibious landing (T9): the invaders come ashore on a beach at the west edge, with
 // their fleet's guns (two Naval Bombardment salvos) covering the shore half of the field. Their
