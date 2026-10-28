@@ -89,12 +89,32 @@ the delta means anything. Step median ms, change / base:
 No direction: the differences go both ways and sit inside the sandbox's 10-20% spread. The change adds
 one array push per pan event and one Set per marker update; the glide itself is an ordinary pan per frame.
 
-## 6. Left open (for the lead)
+## 6. Second pass (the lead's design yes, 28 Oct 12:41)
 
-- Step 60: the march bar sits across the top of the map on a phone, where a march north is aimed. Moving it
-  (to the bottom, or shrinking it while aiming) touches the newcomer-flow lane's prompt layout: not done.
-- Step 70-72: after End Turn the camera does not show where marching armies went. A "next army" tap (Civ VI
-  cycles units needing orders) would help; the Idle chip covers only idle stacks. Needs a design yes.
-- Step 148: a siege that ends should say so in the turn report (log lane).
-- The march ETA label under the arrow can sit under a town model at the hex zoom (after-march-own-phone-he.jpg).
+1. **Next army** (ui/NextArmyButton.jsx beside "Idle N" in TurnDock, mapCamera.js `armyCycle` / `nextTileAfter`):
+   shown while any army marches; each tap selects the next stack, those waiting for orders first, then the
+   marching ones (one crossing water on its own boats too), and flies there through `selectArmy` (the same
+   path as the Idle chip). Footprints icon and the count; the hint says what it cycles (en, he).
+   After: the button shows "1" once a march is ordered; a tap from far away puts the army in the middle of
+   the free map (x 379 of 844, y 235) and opens its card (after2-next-before-*, after2-next-*).
+   Reference: Civ VI's next-unit cycling.
+2. **Army at sea opens its card** (armySheetModel.js `stackOn`): an army crossing water on its own boats
+   stands on a sea tile, where the sheet only looked for ships, so its banner and the new button opened
+   nothing. At sea with no ships it now falls back to the land stack ("Army at sea", Halt the march).
+   Test added (armySheetModel.test.js).
+3. **March bar off the top on a phone** (MarchBar.jsx, `pl:` classes only): it sits over the End Turn row
+   while a march is aimed (after2-march-*-phone-*). Desktop keeps it at the top. Trade-off: it now covers a
+   strip of the map's bottom instead (taps south of the army at the close view land on the bar); north,
+   where step 60 aimed, is free. End Turn stays at `--rail-w`; the bar's useInteraction is unchanged.
+4. **March ETA label over town models** (sceneModel.js `eta` sprites in the top layer, after the close
+   view's models): "this turn" now reads over Jerusalem's walls (after2-eta-close-*), en and he.
+
+Evidence: after2-* shots for every scene, phone and desktop, en and he; mapCamera.test.js (armyCycle,
+nextTileAfter), armySheetModel.test.js; src/components/map and ui 58 files pass.
+
+## 7. Left open (for the lead)
+
+- Steps 60, 70-72 and the ETA label: done in the second pass (section 6).
+- Step 148: a siege that ends should say so in the turn report (wars-8, per the lead).
+- Only one army marched in the test save, so the cycle of several stacks is covered by the unit test, not a shot.
 - No new playtest was run (no API use in this lane): the 8/10 is not graded yet.
