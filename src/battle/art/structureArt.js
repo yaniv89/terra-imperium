@@ -54,6 +54,23 @@ export const dressStructure = (group, ref, { fitTiles, teamColor = '#9ca3af', lo
 };
 
 /** Damage uses the same thresholds as city walls/houses; destroyed never draws intact art. */
+/** How long a falling building takes to sink into its rubble, in seconds (art-2 lane; AoE IV style). */
+export const COLLAPSE_S = 1.3;
+const CM = new Matrix4(); const CR = new Matrix4(); const CAX = new Vector3();
+/**
+ * A falling building's matrix `k` (0..1) of the way through its collapse: `m` (its standing matrix,
+ * translation at its base) sinks `height` into the ground, easing in, and leans up to 0.3 rad towards a
+ * side picked by `seed`. Writes into `out`.
+ */
+export const collapseMatrix = (out, m, k, height, seed = 0) => {
+  const e = m.elements; const x = e[12]; const y = e[13]; const z = e[14];
+  const a = seed * 2.39996;
+  CR.makeRotationAxis(CAX.set(Math.cos(a), 0, Math.sin(a)), 0.3 * k);
+  CM.makeTranslation(-x, -y, -z);
+  out.copy(m).premultiply(CM).premultiply(CR);
+  CM.makeTranslation(x, y - height * k * k, z);
+  return out.premultiply(CM);
+};
 export const structureState = (s) => (!s.alive ? 2 : s.hp < s.maxHp * 0.7 ? 1 : 0);
 export const structurePiece = (kit, name, state) => kitObject(kit,
   state === 2 ? `${name}-ruined` : state === 1 ? [`${name}-damaged`, name] : name);

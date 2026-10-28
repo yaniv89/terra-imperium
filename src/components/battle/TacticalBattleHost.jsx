@@ -134,6 +134,7 @@ const TacticalBattleHost = () => {
         onSwitchAuto={switchAuto}
         onRetry={retry}
         getCampaign={getCampaign}
+        tipsSeen={(state.battleReports || []).length > 0}
         getReceipt={getReceipt}
         onEnded={onEnded}
       />

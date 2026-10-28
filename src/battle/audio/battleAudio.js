@@ -24,6 +24,7 @@ import { audibility, ambienceTarget, easeLevel } from '../../audio/spatial';
 import { isPageAudible, subscribePageAudio } from '../../audio/pageLifecycle';
 import { getAudioContext, resumeAudio, registerAudioConsumer, audioOutput } from '../../audio/audioContext';
 import { getAgeIndex, FIRST_AGE_ID } from '../../data/ages';
+import { setBattleIntensity } from '../../audio/music';
 import { getSquadDisplayName } from '../data/battleStats';
 
 export const MAX_VOICES = 16;
@@ -412,7 +413,8 @@ export const createBattleAudio = ({ ageIds = [FIRST_AGE_ID, FIRST_AGE_ID], playe
       const t0 = now();
       const dt = lastFrameAt ? Math.min(1, (t0 - lastFrameAt) / 1000) : 0;
       lastFrameAt = t0;
-      if (!enabled || docHidden()) { fightGain = 0; ambLevel = 0; setLoop('battle-ambience', 0); setLoop('war-drums', 0); return; }
+      // battle sounds off: the music alone carries the battle, at its full level
+      if (!enabled || docHidden()) { fightGain = 0; ambLevel = 0; setLoop('battle-ambience', 0); setLoop('war-drums', 0); setBattleIntensity(1); return; }
       const best = new Map();
       const cues = new Set(frameAlerts(prevEco, view?.eco));
       prevEco = view?.eco || prevEco;
@@ -455,6 +457,7 @@ export const createBattleAudio = ({ ageIds = [FIRST_AGE_ID, FIRST_AGE_ID], playe
       }
       setLoop('battle-ambience', ambLevel);
       setLoop('war-drums', ambLevel > 0.45 ? ambLevel : 0);
+      setBattleIntensity(ambLevel); // the battle music rises with the fighting and falls after (music.js)
       if (visible) ticker(view);
     },
     /** For tests and the perf overlay: voices in the pool and busy now. */

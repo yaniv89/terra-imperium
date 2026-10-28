@@ -73,7 +73,9 @@ export const nearView = (view, screens = 1.5) => {
  * City badges and names (far and middle zoom) or, from the close zoom, the banners under the towns
  * and an invisible tap disc on each town. `k`: the settled zoom.
  */
-export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerFont = 12, isTown, near = null }) => {
+// `armyTiles`: the tiles of the army banners on the map (fog-filtered markers): a city holding one
+// writes its name under its badge, as the banner stands over it (map-8: "Jer[10k]em" at far zoom).
+export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerFont = 12, isTown, near = null, armyTiles = null }) => {
   const sprites = []; const names = []; const hits = [];
   const close = k >= CLOSE_ZOOM_K;
   const ages = {};
@@ -138,7 +140,8 @@ export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerF
       // a remembered town (fog, W03) says when it was last seen
       const label = labelArt(city.ghost && city.lastSeen ? `${nameNow('city', null, city.name)} · last seen T${city.lastSeen}` : nameNow('city', null, city.name), { size: 11, weight: 700, fill: city.ghost ? '#B9B19F' : isIndependent(state.nations, city.owner) ? '#DCD5F7' : '#fff' }, dpr);
       // the baseline 2 px over the disc, as the SVG's text
-      names.push({ art: label, anchor, offset: [0, -2 - label.css.baseline + label.css.h / 2, 0, -r0], size: [label.css.w, label.css.h], exp: [0, 0.5], color: fade(city.ghost ? 0.6 : 1), prio: cityLabelPrio(city, { selected: city.id === selectedRegion, own: city.owner === state.playerNationId }) });
+      const under = !!armyTiles?.has(city.tile);
+      names.push({ art: label, anchor, offset: under ? [0, 2 + label.css.h / 2, 0, r0] : [0, -2 - label.css.baseline + label.css.h / 2, 0, -r0], size: [label.css.w, label.css.h], exp: [0, 0.5], color: fade(city.ghost ? 0.6 : 1), prio: cityLabelPrio(city, { selected: city.id === selectedRegion, own: city.owner === state.playerNationId }) });
     }
   });
   return { sprites, names, hits };

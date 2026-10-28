@@ -2,7 +2,7 @@
 // iOS keeps playing on the lock screen), the crossfade on the audio clock, the battle stopping
 // and releasing it, the page going away suspending the context, and the memory it takes.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { startMusic, suppressMusic, startBattleMusic, musicMode, playlistLevels, dbToGain, BATTLE_MUSIC_DB, musicStep, musicDecodeRate, decodedBytes, musicDebugState, tickMusicForTest, resetMusicForTest, CROSSFADE_S, PRELOAD_S, PARK_AFTER_MS, PHONE_DECODE_RATE } from './music';
+import { startMusic, suppressMusic, startBattleMusic, musicMode, playlistLevels, dbToGain, BATTLE_MUSIC_DB, BATTLE_CALM_DB, setMusicAge, setMapAmbience, setBattleIntensity, duckMusic, AMBIENCE_RELEASE_MS, MAP_GAP_S, musicStep, musicDecodeRate, decodedBytes, musicDebugState, tickMusicForTest, resetMusicForTest, CROSSFADE_S, PRELOAD_S, PARK_AFTER_MS, PHONE_DECODE_RATE } from './music';
 import { resetAudioContextForTest } from './audioContext';
 import { setSoundFilesForTest } from './soundRegistry';
 import { setPageStateForTest, resetPageStateForTest } from './pageLifecycle';
@@ -64,17 +64,18 @@ describe('music on Web Audio', () => {
     expect(musicDebugState().track).toMatch(/^1\/2 a\.ogg/);
   });
 
-  it('crossfades into the next track on the audio clock and releases the old one', async () => {
+  it('fades out at the end of a track, leaves a quiet spell, then starts the next on the audio clock', async () => {
     startMusic();
     await settle(ctx);
     ctx.advance(25); tickMusicForTest(); await flush(); // 35 s left: b is decoded
     expect(musicDebugState().next).toBe('track 2 ready');
-    ctx.advance(30); tickMusicForTest(); // 5 s left: the crossfade is scheduled
+    ctx.advance(30); tickMusicForTest(); // 5 s left: the next start is scheduled
     const b = ctx.sources.find((s) => s.buffer?.url === 'b.ogg');
-    expect(Math.abs(b.startedAt - (60 - CROSSFADE_S))).toBeLessThan(0.1);
-    ctx.advance(2);
-    expect(ctx.playingUrls().sort()).toEqual(['a.ogg', 'b.ogg', 'wind.ogg']); // both, mid-crossfade
-    ctx.advance(CROSSFADE_S);
+    expect(b.startedAt).toBeGreaterThanOrEqual(60 + MAP_GAP_S[0]);
+    expect(b.startedAt).toBeLessThanOrEqual(60 + MAP_GAP_S[1]);
+    ctx.advance(5);
+    expect(ctx.playingUrls()).toEqual(['wind.ogg']); // a ended, b not yet begun: only the ambience
+    ctx.advance(b.startedAt - ctx.currentTime + 1);
     expect(ctx.playingUrls().sort()).toEqual(['b.ogg', 'wind.ogg']);
     expect(musicDebugState().fadingOut).toBe(0);
     expect(musicDebugState().track).toMatch(/^2\/2/);
@@ -128,11 +129,13 @@ describe('map and battle playlists (pure)', () => {
     expect(musicMode({ battleHolds: 0 })).toBe('map');
     expect(musicMode({ battleHolds: 1 })).toBe('battle');
   });
-  it('only the mode\'s playlist is heard, the battle one BATTLE_MUSIC_DB lower', () => {
+  it('only the mode\'s playlist is heard, the battle one BATTLE_CALM_DB lower in a lull, BATTLE_MUSIC_DB in a fight', () => {
     expect(playlistLevels({ mode: 'map', on: true })).toEqual({ map: 1, battle: 0 });
     const b = playlistLevels({ mode: 'battle', on: true });
     expect(b.map).toBe(0);
-    expect(b.battle).toBeCloseTo(dbToGain(BATTLE_MUSIC_DB), 6);
+    expect(b.battle).toBeCloseTo(dbToGain(BATTLE_CALM_DB), 6);
+    expect(playlistLevels({ mode: 'battle', on: true, intensity: 1 }).battle).toBeCloseTo(dbToGain(BATTLE_MUSIC_DB), 6);
+    expect(playlistLevels({ mode: 'battle', on: true, intensity: 9 }).battle).toBeCloseTo(dbToGain(BATTLE_MUSIC_DB), 6);
     expect(playlistLevels({ mode: 'battle', on: false })).toEqual({ map: 0, battle: 0 });
   });
 });
@@ -163,7 +166,7 @@ describe('map and battle playlists on Web Audio', () => {
     const st = musicDebugState();
     expect(st.mode).toBe('battle');
     expect(Number(st.level)).toBe(0); // the map playlist's level target
-    expect(Number(st.battle.level)).toBeCloseTo(dbToGain(BATTLE_MUSIC_DB), 2);
+    expect(Number(st.battle.level)).toBeCloseTo(dbToGain(BATTLE_CALM_DB), 2); // nobody fights yet
     vi.advanceTimersByTime(PARK_AFTER_MS + 10);
     expect(ctx.playingUrls()).toEqual(['x.ogg']); // map and its ambience released
     ctx.advance(10);
@@ -218,6 +221,58 @@ describe('map and battle playlists on Web Audio', () => {
     setAudioSettings({ musicOn: true });
     await settle(ctx);
     expect(ctx.playingUrls()).toEqual(['x.ogg']);
+  });
+
+  it('the battle music rises with the fighting and falls after', async () => {
+    startMusic();
+    await settle(ctx);
+    const end = startBattleMusic();
+    await settle(ctx);
+    setBattleIntensity(1);
+    expect(Number(musicDebugState().battle.level)).toBeCloseTo(dbToGain(BATTLE_MUSIC_DB), 2);
+    setBattleIntensity(0);
+    expect(Number(musicDebugState().battle.level)).toBeCloseTo(dbToGain(BATTLE_CALM_DB), 2);
+    end();
+    expect(musicDebugState().intensity).toBe('0.00'); // the next battle starts calm
+  });
+
+  it('a new age crossfades the map music to that age\'s tracks', async () => {
+    setSoundFilesForTest({ music: { stone: ['a.ogg'], modern: ['b.ogg'] }, battleMusic: ['x.ogg'], ambience: { 'map-wind': ['wind.ogg'] } });
+    startMusic();
+    await settle(ctx);
+    expect(ctx.playingUrls().sort()).toEqual(['a.ogg', 'wind.ogg']);
+    setMusicAge('modern');
+    await settle(ctx);
+    expect(ctx.playingUrls().sort()).toEqual(['a.ogg', 'b.ogg', 'wind.ogg']); // mid-crossfade
+    ctx.advance(CROSSFADE_S + 0.2);
+    expect(ctx.playingUrls().sort()).toEqual(['b.ogg', 'wind.ogg']);
+    expect(musicDebugState().age).toBe('modern');
+    setMusicAge('modern'); // the same age again: nothing moves
+    await settle(ctx);
+    expect(ctx.playingUrls().sort()).toEqual(['b.ogg', 'wind.ogg']);
+  });
+
+  it('the ambience follows the land in view: the new bed fades in, the old one fades out and is released', async () => {
+    setSoundFilesForTest({ music: ['a.ogg'], battleMusic: [], ambience: { 'map-wind': ['wind.ogg'], 'map-sea': ['sea.ogg'] } });
+    startMusic();
+    await settle(ctx);
+    setMapAmbience({ 'map-sea': 1 });
+    await settle(ctx);
+    expect(ctx.playingUrls().sort()).toEqual(['a.ogg', 'sea.ogg', 'wind.ogg']);
+    expect(musicDebugState().ambience).toEqual(expect.arrayContaining(['map-wind 0.00', 'map-sea 0.30']));
+    vi.advanceTimersByTime(AMBIENCE_RELEASE_MS + 10);
+    expect(ctx.playingUrls().sort()).toEqual(['a.ogg', 'sea.ogg']);
+    setMapAmbience({ 'map-sea': 1 }); // the same mix: nothing new decoded
+    await settle(ctx);
+    expect(ctx.sources.filter((s) => s.buffer?.url === 'sea.ogg').length).toBe(1);
+  });
+
+  it('a fanfare dips the music, then it comes back', async () => {
+    startMusic();
+    await settle(ctx);
+    const { getAudioSettings } = await import('./audioSettings');
+    duckMusic(3);
+    expect(Number(musicDebugState().bus)).toBeCloseTo(getAudioSettings().music, 2); // the fake keeps the last target: the return
   });
 
   it('with no battle tracks a battle is silent, as before', async () => {

@@ -21,7 +21,11 @@ export const ecoLabel = (id, ageId) => dataText(`beco.${ageId}.${id}`, dataText(
 export const workerLabel = (ageId) => ecoLabel('worker', ageId);
 /** A unit role the economy trains: a laborer or a squad class. */
 export const roleLabel = (role, ageId) => (role === 'worker' ? workerLabel(ageId) : squadName(role, ageId));
-export const abilityLabel = (id) => dataText(`babil.${id}`, ABILITIES[id]?.label || id);
+// At sea a general's march is the sails and a charge is a ram (playtest 40651418969 step 83: land words on ships).
+const SEA_ABILITY = { forcedMarch: 'Full Sail', charge: 'Ramming Speed' };
+/** Abilities that mean nothing on water: never offered in a sea battle. */
+export const LAND_ONLY_ABILITIES = new Set(['entrench', 'ambush', 'shieldWall']);
+export const abilityLabel = (id, naval = false) => (naval && SEA_ABILITY[id] ? dataText(`babil.sea.${id}`, SEA_ABILITY[id]) : dataText(`babil.${id}`, ABILITIES[id]?.label || id));
 export const powerLabel = (id, english) => dataText(`bpower.${id}`, english ?? POWERS[id]?.label ?? id);
 
 const TYPE_VARS = {

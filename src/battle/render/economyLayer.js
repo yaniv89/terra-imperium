@@ -36,6 +36,7 @@ import { CITY_TILES_PER_UNIT } from '../setup/cityBattle';
 import { ART } from '../art/artFiles';
 import { loadKit, kitObject, objectSize } from '../art/kitLoader';
 import { KitInstances, kitLodForZoom } from '../art/kitInstances';
+import { COLLAPSE_S, collapseMatrix } from '../art/structureArt';
 
 export { kitLodForZoom };
 import { vegetationKitFor, berryBand, berryNames } from '../art/vegetation';
@@ -107,7 +108,15 @@ export const workerLoadObject = (c) => {
   return barrow ? BARROW_EMPTY : null;
 };
 
-const M = new Matrix4();
+const M = new Matrix4(); const MC = new Matrix4();
+/** A building falls (the sim sends no event for it): debris and a dust cloud the size of its footprint. */
+const collapseDust = (r, x, z, size) => {
+  const fx = r.fxSprites; if (!fx || !r.fx) return;
+  const big = Math.max(1, size / 2);
+  if (fx.has('debris')) r.fx.push({ kind: 'sprite', sheet: 'debris', x, z, y: 0, t: 0, life: 0.9, size: big });
+  if (fx.has('dust')) r.fx.push({ kind: 'sprite', sheet: 'dust', x, z, y: 0, t: 0, life: 1.4, size: big * 1.6 });
+  if (fx.has('smoke')) r.fx.push({ kind: 'sprite', sheet: 'smoke', x, z, y: 0.3, rise: 1.2, t: 0, life: 2.4, size: big });
+};
 const V = new Vector3();
 /** A node's state object by what is left of it. */
 export const nodeStateNames = (frac) => (frac > 0.5 ? ['full', 'half'] : frac > 0.12 ? ['half', 'full'] : ['depleted', 'half', 'full']);
@@ -168,6 +177,7 @@ export class EconomyLayer {
       nodes.forEach((n, i) => (n.trees || []).forEach((t) => { this.woodTile[t] = i; }));
     }
     this.ghost = null;
+    this.fallAt = new Map(); // building idx -> sim tick it fell while the battle was watched (the collapse)
     this.deadSince = new Map(); // building idx -> sim tick it was first seen destroyed (drawing only)
     this.wreckFx = []; // this frame's wreck fire and smoke points (X27), refilled by update()
   }
@@ -340,8 +350,13 @@ export class EconomyLayer {
       if (!from) return false;
       const s = fit(kitObject(from, role));
       const wreck = kitObject(from, name);
+      const ticks = this.tick - (this.deadSince.get(b.idx) ?? this.tick);
       this.kits.add(wreck, lod, M.makeScale(s, s, s).setPosition(x, y, z), tmpColor);
-      this.addWreckFx(wreck, x, y, z, s, b.idx, this.tick - (this.deadSince.get(b.idx) ?? this.tick));
+      this.addWreckFx(wreck, x, y, z, s, b.idx, ticks);
+      // the building it was sinks into its wreck (structureArt.js collapseMatrix)
+      const k = this.fallAt.has(b.idx) ? (this.tick - this.fallAt.get(b.idx)) / (COLLAPSE_S * TICK_HZ) : 1;
+      const standing = k < 1 && (kitObject(from, `${role}-damaged`) || kitObject(from, role));
+      if (standing) this.kits.add(standing, lod, collapseMatrix(MC, M.makeScale(s, s, s).setPosition(x, y, z), k, objectSize(standing).height * s * 1.05, b.idx), tmpColor);
       return true;
     }
     if (!b.built) {
@@ -467,9 +482,14 @@ export class EconomyLayer {
     this.tick = cur.tick ?? this.tick ?? 0;
     cur.eco.buildings.forEach((b) => {
       if (b.proxy) return;
-      if (b.alive) this.deadSince.delete(b.idx);
-      else if (b.built && !this.deadSince.has(b.idx)) this.deadSince.set(b.idx, this.tick);
+      if (b.alive) { this.deadSince.delete(b.idx); this.fallAt.delete(b.idx); }
+      else if (b.built && !this.deadSince.has(b.idx)) {
+        this.deadSince.set(b.idx, this.tick);
+        // not for wrecks already there when the battle opens
+        if (this.seenOnce) { this.fallAt.set(b.idx, this.tick); collapseDust(r, b.x / Q, b.y / Q, b.size); }
+      }
     });
+    this.seenOnce = true;
     this.kits.begin();
     cur.eco.nodes.forEach((n) => {
       const x = n.x / Q; const z = n.y / Q;
