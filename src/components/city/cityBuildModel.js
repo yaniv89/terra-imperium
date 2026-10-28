@@ -21,7 +21,8 @@ import { unitTagText } from '../../i18n/unitTags';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { getAvailableClasses, isUnitUnlocked, isRobotUnlocked, unitUnlockTech, UNIT_CLASSES } from '../../data/unitClasses';
 import { IMPROVEMENTS, tileFacts, canImprove } from '../../data/tileYields';
-import { NAVAL_LINES, navalLinesFor } from '../../data/navalLines';
+import { NAVAL_LINES, navalLinesFor, navalCargo } from '../../data/navalLines';
+import { fleetPace } from '../../engine/fleets';
 import { GREAT_PROJECTS } from '../../data/greatProjects';
 import { distanceKm } from '../../data/geo/geodesic';
 import { canQueue, itemKey, hasSeaCoast } from '../../engine/world/cities';
@@ -150,7 +151,9 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
     if (classId === 'naval') {
       // Ships are listed only where they can be built: an inland city (river, oasis or lake) has
       // no ship rows at all (I039), instead of rows that look available.
-      if (coast) navalLinesFor(ageId).forEach((navalLine) => add({ kind: 'unit', classId, navalLine }, 'Units', { fields: { detail: unitClassRole('naval', UNIT_CLASSES.naval?.role) || null, ...lock } }));
+      // What a ship is for, in numbers (lane naval-8): the troops it carries and its pace a turn.
+      const pace = fleetPace(state, { ownerId: city.owner });
+      if (coast) navalLinesFor(ageId).forEach((navalLine) => add({ kind: 'unit', classId, navalLine }, 'Units', { fields: { detail: navalCargo(navalLine, ageId) > 0 ? tNow('cy.shipCarries', { n: navalCargo(navalLine, ageId), tiles: pace }) : tNow('cy.shipPace', { tiles: pace }), ...lock } }));
       return;
     }
     add({ kind: 'unit', classId }, 'Units', { fields: { detail: unitClassRole(classId, UNIT_CLASSES[classId]?.role) || null, tag: unitTagText(city.owner, ageId, classId), ...lock } }); // the signature tag and the age's matchups (rank 16)

@@ -19,6 +19,7 @@ import { useIsMobile } from '../../hooks/useIsMobile';
 import { ActionTypes } from '../../data/types';
 import { getTiles } from '../../data/geo/tiles';
 import { tileFacts, IMPROVEMENTS, resourceKnown } from '../../data/tileYields';
+import GlossaryLink from '../glossary/GlossaryLink';
 import { DISTRICTS } from '../../engine/districts';
 import { ResourceIcon, ImprovementIcon } from '../ui/icons';
 import { settlerPath, settlersOf, settlersHomeCity, SETTLER_MOVES } from '../../engine/settlers';
@@ -147,8 +148,8 @@ const TileSheet = ({ tile, onClose, onSelectRegion, onAttack, settleUnitId = nul
       ))}
       {(resource || facts.improvement || facts.district) && (
         <div className="flex flex-wrap gap-2 text-[12px] mb-2">
-          {resource && <span className="capitalize inline-flex items-center gap-1"><ResourceIcon resourceId={resource} size={18} />{tileResourceName(resource)}</span>}
-          {facts.improvement && <span className="inline-flex items-center gap-1"><ImprovementIcon improvementId={facts.improvement} size={18} />{improvementName(facts.improvement, IMPROVEMENTS[facts.improvement]?.name || facts.improvement)}{facts.pillaged ? t('mx.tile.pillaged') : ''}</span>}
+          {resource && <span className="capitalize inline-flex items-center gap-1"><ResourceIcon resourceId={resource} size={18} /><GlossaryLink kind="resource" id={resource}>{tileResourceName(resource)}</GlossaryLink></span>}
+          {facts.improvement && <span className="inline-flex items-center gap-1"><ImprovementIcon improvementId={facts.improvement} size={18} /><GlossaryLink kind="improvement" id={facts.improvement}>{improvementName(facts.improvement, IMPROVEMENTS[facts.improvement]?.name || facts.improvement)}</GlossaryLink>{facts.pillaged ? t('mx.tile.pillaged') : ''}</span>}
           {facts.district && <span className="text-fa-indep" data-testid="tile-district">{districtName(facts.district, DISTRICTS[facts.district]?.name || facts.district)}{facts.pillaged ? t('mx.tile.pillaged') : ''}</span>}
         </div>
       )}

@@ -1,6 +1,8 @@
 // src/components/city/CityBuildings.jsx
 // The city sheet's Buildings tab (plans/civ-map-rework.md E4): every line, what stands, the next
 // tier with its production cost, and a one-tap queue. 44 px targets.
+import GlossaryLink from '../glossary/GlossaryLink';
+import { buildingId } from '../../data/glossary';
 import React from 'react';
 import { Plus, Check } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -52,9 +54,9 @@ const CityBuildings = ({ cityId }) => {
           <div className="min-w-0 flex-1">
             <div className="text-fa-text">{r.label}</div>
             {/* Effect lines are measured on this city (cityEffects.js), not read from a table (I043). */}
-            <div className="text-fa-muted leading-snug" data-testid="building-standing">{r.built.length ? <>{r.built[r.built.length - 1]}: <span className="text-fa-text/80">{r.standing}</span></> : t('cy.nothingBuilt')}{r.next ? '' : ` · ${t('cy.complete')}`}</div>
+            <div className="text-fa-muted leading-snug" data-testid="building-standing">{r.built.length ? <><GlossaryLink kind="building" id={buildingId(r.category, r.built.length - 1)}>{r.built[r.built.length - 1]}</GlossaryLink>: <span className="text-fa-text/80">{r.standing}</span></> : t('cy.nothingBuilt')}{r.next ? '' : ` · ${t('cy.complete')}`}</div>
             {r.next && (
-              <div className="text-fa-muted leading-snug" data-testid="building-next">
+              <div className="text-fa-muted leading-snug" data-testid="building-next" data-help={`building:${buildingId(r.category, r.built.length)}`}>
                 {R('cy.next', { effect: <span className="text-fa-text/80">{r.next.effect}</span> }, { name: r.next.name })}
                 <span className="fa-num"> · {r.next.cost}</span> {t('cy.productionLower')}{r.next.turns != null ? `, ${t('cy.turns', { count: r.next.turns })}` : ''}
                 {r.next.needs ? ` · ${t('cy.needsLower', { name: r.next.needs })}` : ''}

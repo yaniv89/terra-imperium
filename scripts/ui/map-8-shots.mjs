@@ -132,9 +132,51 @@ for (const sizeId of ['phone', 'desktop']) {
         }
         await perform(g, { name: 'tap', args: { x: Math.round(p.x + 30), y: Math.round(p.y - 90) } }); await wait(900);
         await shot('march-target');
-        const cancel = page.locator('[data-testid=march-bar] button').last();
-        if (await cancel.isVisible().catch(() => false)) await cancel.dispatchEvent('click');
-        await wait(500);
+        // the ETA label at the close view, beside the town (it was drawn under the town models)
+        const near = async (k) => page.evaluate(async ([tile, kk]) => {
+          const { getTiles } = await import('/terra-imperium/src/data/geo/tiles.js');
+          const T = getTiles(); const s = window.__game.state; const owner = s.world.tileOwner;
+          const ll = (t) => (({ lat, lon }) => [lat, lon])(T.latLonOf(t));
+          if (kk) window.__map2DTest.focus(...ll(tile), kk);
+          // the own hex highest on screen (the march bar sits over the bottom strip on a phone)
+          const own = T.neighbors[tile].filter((t) => T.land[t] && owner[t] && s.regions[owner[t]]?.owner === s.playerNationId).map((t) => window.__map2DTest.project(...ll(t)));
+          return own.sort((a, b) => a.y - b.y)[0] ?? null;
+        }, [army.tile, k]);
+        await near(60); await wait(2500);
+        const close = await near(0);
+        if (close) log('close-view hex', JSON.stringify(close), JSON.stringify(await page.evaluate(([x, y]) => window.__map2DTest.pickAt(x, y), [close.x, close.y])));
+        if (close) { await perform(g, { name: 'tap', args: { x: Math.round(close.x), y: Math.round(close.y) } }); await wait(1500); await shot('eta-close'); }
+        // a march of a few turns north, ordered, then look away and find the army again with the next-army button
+        const far = await page.evaluate(async (tile) => {
+          const { getTiles } = await import('/terra-imperium/src/data/geo/tiles.js');
+          const T = getTiles(); const [lat, lon] = (({ lat: a, lon: b }) => [a, b])(T.latLonOf(tile));
+          window.__map2DTest.focus(lat, lon, 6); return window.__map2DTest.project(lat + 3, lon + 1);
+        }, army.tile);
+        await wait(1500);
+        await perform(g, { name: 'tap', args: { x: Math.round(far.x), y: Math.round(far.y) } }); await wait(1200);
+        log('far march bar:', (await page.locator('[data-testid=march-bar]').textContent().catch(() => '')).slice(0, 100));
+        const go = page.locator('[data-testid=march-bar]').getByRole('button', { name: /^(March|צעידה)$/ });
+        if (await go.isVisible().catch(() => false)) await go.dispatchEvent('click');
+        log('march button', await go.count());
+        await wait(900);
+        log('army route', JSON.stringify(await page.evaluate((id) => { const u = window.__game.state.units[id]; return { tile: u.tile, route: u.route, target: u.target }; }, army.id)));
+        await page.keyboard.press('Escape'); await wait(500);
+        await page.evaluate(() => window.__map2DTest.focus(10, 20, 8)); await wait(1500);
+        log('cycle', JSON.stringify(await page.evaluate(async () => { const m = await import('/terra-imperium/src/components/map/mapCamera.js'); const s = window.__game.state; return { cycle: m.armyCycle(s), status: s.gameStatus, dock: !!document.querySelector('[data-testid=turn-dock]'), idle: !!document.querySelector('[data-testid=idle-chip]') }; })));
+        const nb = page.getByTestId('next-army');
+        log('next army button:', await nb.isVisible().catch(() => false) ? `shown, ${await nb.getAttribute('data-count')} stacks` : 'none');
+        await shot('next-before');
+        if (await nb.isVisible().catch(() => false)) {
+          await nb.dispatchEvent('click'); await wait(2000);
+          const off = await page.evaluate(async (tile) => {
+            const { getTiles } = await import('/terra-imperium/src/data/geo/tiles.js');
+            const p2 = window.__map2DTest.project(...(({ lat, lon }) => [lat, lon])(getTiles().latLonOf(tile)));
+            return { x: Math.round(p2.x), y: Math.round(p2.y), w: innerWidth, h: innerHeight, card: !!document.querySelector('[data-testid=army-where]') };
+          }, army.tile);
+          log('after next army: the army is at', JSON.stringify(off));
+          await shot('next');
+        }
+        await page.keyboard.press('Escape'); await wait(500);
       } else log('no March button');
       // a city sheet opened from the map and closed: the camera must stay where it was
       await page.keyboard.press('Escape'); await wait(500);

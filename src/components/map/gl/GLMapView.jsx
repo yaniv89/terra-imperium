@@ -755,10 +755,10 @@ const GLMapView = ({
       terrain: terrainOut,
       // the lens's own marks (the settle mode's numbered sites) over the tile glyphs
       ground: [...landOut.sprites, ...marks, ...(lensOut?.sprites || [])],
-      upper: [...march.sprites, ...settlers.sprites],
+      upper: [...march.sprites.filter((s) => !s.eta), ...settlers.sprites],
       // names, banners and the raids' labels never stand on each other (declutter.js, I080)
       // and never under the map's own buttons (avoidHud, I081)
-      top: [...cities.sprites, ...declutterLabels(avoidHud([...cities.names, ...raids.sprites.filter((s) => s.label)], k, hudToScreen, hudRects(containerRef.current)), k), ...raids.sprites.filter((s) => !s.label)],
+      top: [...cities.sprites, ...declutterLabels(avoidHud([...cities.names, ...raids.sprites.filter((s) => s.label)], k, hudToScreen, hudRects(containerRef.current)), k), ...raids.sprites.filter((s) => !s.label), ...march.sprites.filter((s) => s.eta)],
       markers: markerOut.sprites
     };
     const resolve = () => {

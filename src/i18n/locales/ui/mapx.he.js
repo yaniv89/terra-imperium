@@ -245,4 +245,5 @@ export default {
   'mx.sb.raiders': 'פושטים',
   'mx.sb.siege': 'מצור',
   'mx.sb.support': 'תמיכה',
+  'mx.nextArmy.hint': 'הצבא הבא ({n}): הממתינים לפקודה, ואחריהם הצועדים',
 };
