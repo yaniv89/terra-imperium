@@ -140,13 +140,27 @@ describe('turnClient', () => {
     expect(client.turnLog()).toMatch(/revive-failed/);
   });
 
-  it('keeps a log of sent, answer and settled with the state size', async () => {
+  it('keeps a log of sent, answer and settled', async () => {
     const { client } = setup([fakeWorker()]);
     await client.run({ turn: 1, big: 'x'.repeat(100) }, { type: 'ADVANCE_TURN' });
     const evs = client.events().map((e) => e.ev);
     expect(evs).toEqual(['spawn', 'sent', 'answer', 'settled']);
-    expect(client.events()[1].bytes).toBeGreaterThan(100);
     expect(client.turnLog()).toMatch(/sent .*ADVANCE_TURN/);
+  });
+
+  it('hands the save text the worker sends after the answer to the answered state only', async () => {
+    const w = fakeWorker();
+    const { client } = setup([w]);
+    const next = await client.run({ turn: 1 }, {});
+    const text = client.saveTextOf(next);
+    expect(client.saveTextOf({ turn: 2 })).toBeNull(); // another object
+    w.onmessage({ data: { type: 'saveText', id: w.sent.at(-1).id, text: '{"turn":2}' } });
+    expect(await text).toBe('{"turn":2}');
+    expect(client.turnLog()).toMatch(/save-text .*"bytes":10/);
+    const next2 = await client.run(next, {});
+    const late = client.saveTextOf(next2);
+    await client.run(next2, {}); // a newer answer: the older text never comes
+    expect(await late).toBeNull();
   });
 
   it('a worker error event settles the waiting turn', async () => {
