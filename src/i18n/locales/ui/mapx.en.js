@@ -131,6 +131,7 @@ export default {
   'mx.army.promote': 'Promote:',
   'mx.army.disbandOne': 'Disband {name}',
   'mx.army.upgrade': 'Upgrade to {name} ({gold}g)',
+  'mx.army.upkeepRise': 'upkeep {from} to {to}g a turn',
   'mx.army.upgradeAll': 'Upgrade all ({count}) for {gold}g',
   'mx.army.halt': 'Halt the march',
   'mx.army.sail': 'Sail',

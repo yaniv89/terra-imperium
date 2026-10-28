@@ -131,6 +131,7 @@ export default {
   'mx.army.promote': 'קדמו:',
   'mx.army.disbandOne': 'פרקו את {name}',
   'mx.army.upgrade': 'שדרגו ל{name} ({gold} זהב)',
+  'mx.army.upkeepRise': 'אחזקה מ־{from} ל־{to} זהב לתור',
   'mx.army.upgradeAll': 'שדרגו הכול ({count}) תמורת {gold} זהב',
   'mx.army.halt': 'עצרו את הצעדה',
   'mx.army.sail': 'הפליגו',
