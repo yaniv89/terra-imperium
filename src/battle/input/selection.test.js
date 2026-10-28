@@ -1,7 +1,7 @@
 // Picking buildings on the battlefield: a generous hit area, your own buildings only, the keep as
 // the town hall, and a second click at the same spot cycles from the units to the building.
 import { describe, it, expect } from 'vitest';
-import { pickOwnBuilding, isCycleClick, decidePointer, selectionAfter, needsWork, SAME_SPOT_PX, CYCLE_MS } from './selection';
+import { pickOwnBuilding, isCycleClick, decidePointer, selectionAfter, needsWork, SAME_SPOT_PX, CYCLE_MS, groundOrderType } from './selection';
 
 const Q = 256;
 const b = (idx, x, y, o = {}) => ({ idx, x: x * Q, y: y * Q, size: 3, side: 0, alive: true, built: true, hp: 100, maxHp: 100, proxy: false, ...o });
@@ -70,5 +70,16 @@ describe('picking a building', () => {
     expect(decidePointer({ input: 'right', armed: { type: 'power' } }).do).toBe('cancelArmed');
     expect(decidePointer({ input: 'left', armed: { type: 'place' } }).do).toBe('armed');
     expect(decidePointer({ input: 'tap', armed: { type: 'power' }, ownSquad: 3 }).do).toBe('armed');
+  });
+});
+
+describe('the order a ground tap gives', () => {
+  const sq = (o) => ({ order: 'attackMove', x: 0, y: 0, orderX: 20 * 256, orderY: 0, ...o });
+  it('a second tap while the army is on its way to an attack-move keeps it an attack-move', () => {
+    expect(groundOrderType({ started: true, armed: null, squads: [sq()] })).toBe('attackMove');
+    expect(groundOrderType({ started: true, armed: null, squads: [sq({ x: 19 * 256 })] })).toBe('move'); // landed
+    expect(groundOrderType({ started: true, armed: null, squads: [sq({ order: 'move' })] })).toBe('move');
+    expect(groundOrderType({ started: true, armed: 'attackMove', squads: [] })).toBe('attackMove');
+    expect(groundOrderType({ started: false, armed: 'attackMove', squads: [sq()] })).toBe('deploy');
   });
 });

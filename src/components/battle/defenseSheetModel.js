@@ -60,7 +60,7 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
   // An empty city on Auto (cityAssault.js): its defences take the attack; it falls only when its HP reaches 0.
   const c = v.odds?.city;
   const odds = v.odds?.undefended
-    ? { undefended: true, hold, text: c ? t('bt.def.noDefendUndefended', { a: c.hpBefore, b: c.hpAfter, max: c.maxHp, likely: hold < 0.5 ? t('bt.def.likelyFalls') : '', pct }) : t('bt.def.noRegiment') }
+    ? { undefended: true, hold, verdict: hold >= 0.65 ? t('bt.def.vLikelyHold') : hold >= 0.35 ? t('bt.def.vClose') : t('bt.def.vLikelyLost'), text: c ? t('bt.def.noDefendUndefended', { a: c.hpBefore, b: c.hpAfter, max: c.maxHp, likely: hold < 0.5 ? t('bt.def.likelyFalls') : '', pct }) : t('bt.def.noRegiment') }
     : { undefended: false, hold, text: t(attacking ? 'bt.def.autoWins' : 'bt.def.autoHolds', { pct, avg: city && v.odds?.avgDamage != null ? t('bt.def.avgLost', { n: v.odds.avgDamage }) : '', note: city && !attacking ? t('bt.def.garrisonFirst') : '' }), verdict: attacking ? (hold >= 0.65 ? t('bt.pre.likelyWin') : hold >= 0.35 ? t('bt.def.vClose') : t('bt.pre.likelyLoss')) : (hold >= 0.65 ? t('bt.def.vLikelyHold') : hold >= 0.35 ? t('bt.def.vClose') : t('bt.def.vLikelyLost')) };
   // The same range the attack card shows, seen from the attacker like every odds: flipped to read as yours when you defend.
   const r = v.odds?.range;
@@ -71,12 +71,14 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
   // I011: a defence Auto almost never holds says so before the choice, with what losing costs, and
   // pre-selects Withdraw when there is somewhere to go. A mode the player set in Settings (Command
   // or Auto) is still the one chosen: an intentional Command stays playable.
-  const hopeless = !attacking && !odds.undefended && hold < HOPELESS_HOLD;
+  // A city held by its militia alone counts too (playtest 40550092795 step 183: 400 militia against
+  // 40,000 was offered as Command with no warning and lost in seconds).
+  const hopeless = !attacking && hold < HOPELESS_HOLD && !(odds.undefended && !militia.length);
   const warning = hopeless
     ? t('bt.def.warning', { pct, body: city ? t('bt.def.warnCity', { place }) : t('bt.def.warnField'), withdraw: withdrawTo ? t('bt.def.warnWithdraw', { to: withdrawTo }) : '' })
     : null;
   const setting = state.battleSettings?.defaultMode;
-  const preferred = setting === 'auto' || setting === 'command' ? setting : hopeless && withdrawTo ? 'withdraw' : 'command';
+  const preferred = setting === 'auto' || setting === 'command' ? setting : hopeless ? (withdrawTo ? 'withdraw' : 'auto') : 'command';
   const suggested = commandBlocked && preferred === 'command' ? 'auto' : preferred;
   const militiaMen = militia.reduce((s, u) => s + u.strength, 0);
   const militiaOnly = city && !attacking && !commandBlocked && !(v.defenderUnits || []).length && militiaMen > 0;

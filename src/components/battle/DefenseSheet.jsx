@@ -95,7 +95,7 @@ const DefenseSheet = () => {
               <span className="pl:hidden"><GeneralsLine generals={m.yours.generals} /></span>
             </>} />
         </div>
-        {!m.odds.undefended && (
+        {(!m.odds.undefended || m.yours.militia > 0) && ( /* militia alone still fights: its odds show (playtest 40550092795) */
           <div className="flex items-center gap-3 px-0.5" data-testid="defense-odds" title={m.auto}>
             <div className="shrink-0 text-[12px] leading-tight"><span className="text-fa-muted">{m.attacking ? t('bt.def.autoWinsLabel') : t('bt.def.autoHoldsLabel')}</span><span className={m.odds.hold >= 0.5 ? 'text-fa-good font-semibold' : 'text-fa-danger-text font-semibold'}><span className="fa-num">{Math.round(m.odds.hold * 100)}%</span> · {m.odds.verdict}</span></div>
             <div className="flex-1 min-w-0"><OddsBar compact mine={m.odds.hold} labelLeft={m.attacking ? t('bt.def.theyHold') : t('bt.def.theyTakeIt')} labelRight={m.attacking ? t('bt.def.youWin') : t('bt.def.youHold')} /></div>
