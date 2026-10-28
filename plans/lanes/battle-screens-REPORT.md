@@ -35,3 +35,9 @@ Layout 4 -> about 7, Deploy 4 -> about 7, Camera 4 -> about 7 to 8, Economy HUD 
 - Sack defenses ending at 0:44, the immune last tank, squads drifting idle, dropped orders: sim and order input (battle-engage, battle-touch), not touched here.
 - Commander powers at sea: naval setups pass no powers today (`powers: [[], []]`), so only the general's abilities show. A real naval power set (broadside, boarding) is a design call for the lead and a sim change.
 - The native selects on the sandbox setup (a dev screen) stay native.
+
+## Lead's additions (campaign playtest 40651416284)
+
+- Battle tips every fight (steps 84, 126, 164, 214): the playtest starts each slice in a fresh browser, so the device flag was always empty. The tips now show once per game too: a save that has any battle report skips them (`tipsSeen` from TacticalBattleHost, `state.battleReports`). No game state added.
+- Nothing teaches recruiting (224, 226): the deploy card of an economy battle says "More troops: select laborers, tap the hammer and build a barracks, range or stable; it trains soldiers." The camp panel says the same (above), and integration's own "regiment destroyed" alert and "Your army is gone" note already cover the silent wipes.
+- No result card after the Zafar siege (229): step 228's tap (the wand, bottom right) landed as the battle ended, where the result's Continue sits. Now the end beat takes the first tap (it opens the card), and Continue ignores taps for 0.7 s after the card opens.

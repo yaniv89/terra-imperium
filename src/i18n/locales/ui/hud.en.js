@@ -75,6 +75,7 @@ export default {
   'bt.hud.foldDeploy': 'Fold the deploy card',
   'bt.hud.everyShip': 'Every ship starts on the water.',
   'bt.hud.goalSea': 'Sink or scatter the enemy fleet before the clock runs out.',
+  'bt.hud.recruitHint': 'More troops: select laborers, tap the hammer and build a barracks, range or stable; it trains soldiers.',
   'bt.hud.lessAbout': 'Less about this battle',
   'bt.hud.moreAbout': 'More about this battle',
   'bt.hud.yourBuildings': 'Your buildings here help you while they stand: ',

@@ -119,7 +119,7 @@ const FOLLOW_RATE = 4;
 // Notes about orders sit just above the bottom bar, inside the safe area.
 const NOTE_BOTTOM = 'calc(max(0.375rem, var(--sa-b, 0px)) + 3.75rem)';
 
-const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onCheckpoint, onFinish, onAbandon, onSwitchAuto = null, onRetry = null, getCampaign = null, getReceipt = null, onEnded = null }) => {
+const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onCheckpoint, onFinish, onAbandon, onSwitchAuto = null, onRetry = null, getCampaign = null, getReceipt = null, onEnded = null, tipsSeen = false }) => {
   useT(); // redraw the screen's own texts when the language changes
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
@@ -195,7 +195,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   // a guess from the device at first, then whatever last touched the battlefield.
   const [mouse, setMouse] = useState(mouseFirst);
   // The first-battle coach (battleCoach.js): the step shown, or -1. A UI hint, never game state.
-  const [coachStep, setCoachStep] = useState(() => (coachSeen() ? -1 : 0));
+  // Once per game too (`tipsSeen`: this save has fought before; lead, campaign playtest 40651416284 steps 84, 126, 164, 214).
+  const [coachStep, setCoachStep] = useState(() => (coachSeen() || tipsSeen ? -1 : 0));
   // I199: the camera follows the selection until the player moves it by hand.
   const [follow, setFollowState] = useState(false);
   const followRef = useRef(false);

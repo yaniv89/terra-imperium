@@ -9,7 +9,7 @@
 // says so and shows no number; if its count differs from what was seen, a plain notice says which
 // one stands. A line compares with Auto (its odds for this same battle). Continue hands the
 // result to the campaign. All numbers from battleHudModel.js battleResultModel.
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Crown, Info } from 'lucide-react';
 import { battleResultModel, endReasonText } from './battleHudModel';
 import { menText } from '../../engine/battleLedger';
@@ -32,6 +32,9 @@ const BattleResultScreen = ({ ended, setup, playerSide, title, getCampaign, rece
   const year = campaign?.year != null ? fmtYear(campaign.year) : null;
   const pending = m.state === 'pending';
   const counted = m.mine && m.theirs;
+  // A tap meant for the battle as it ended must not land on Continue and skip the card (campaign playtest 40651416284 step 228).
+  const [ready, setReady] = useState(false);
+  useEffect(() => { const timer = setTimeout(() => setReady(true), 700); return () => clearTimeout(timer); }, []);
   return (
     <div className="absolute inset-x-0 top-11 bottom-0 z-20 bg-fa-ink/90 overflow-y-auto" data-testid="battle-result" data-result-state={m.state}>
       <div className="min-h-full w-full max-w-[64rem] mx-auto flex flex-col lg:justify-center p-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))]">
@@ -123,7 +126,7 @@ const BattleResultScreen = ({ ended, setup, playerSide, title, getCampaign, rece
 
       <div className="flex items-center gap-2 mt-2">
         <div className="flex-1 min-w-0 text-[12px] text-fa-muted leading-snug" data-testid="battle-result-auto">{pending ? t('bt.result.checking') : m.auto}</div>
-        <button type="button" onClick={onContinue} disabled={pending} className="fa-btn fa-btn-primary fa-btn-hero !min-h-[50px] !px-8 shrink-0 disabled:opacity-50" data-testid="battle-continue">{t('bt.result.continue')}</button>
+        <button type="button" onClick={onContinue} disabled={pending || !ready} className="fa-btn fa-btn-primary fa-btn-hero !min-h-[50px] !px-8 shrink-0 disabled:opacity-50" data-testid="battle-continue">{t('bt.result.continue')}</button>
       </div>
       </div>
     </div>

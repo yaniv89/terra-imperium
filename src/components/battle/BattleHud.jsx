@@ -291,6 +291,7 @@ const BattleHud = ({
                 <div className={cx('min-h-0 overflow-y-auto overscroll-contain', short && 'max-h-[6.75rem]')} data-testid="battle-deploy-details">
                   <div data-testid="battle-deploy-controls">{deployHelp(mouse, naval)}</div>
                   <div className="mt-1 text-fa-brass"><span className="fa-num">{fmtTime(timeLeft)}</span>: {goal}</div>
+                  {setup.economy && <div className="mt-1 text-fa-you" data-testid="battle-recruit-hint">{t('bt.hud.recruitHint')}</div>}
                   {setup.structures.some((st) => st.kind === 'building') && (
                     <div className="mt-1 text-fa-you" data-testid="battle-buildings">
                       {playerSide === 1 ? t('bt.hud.yourBuildings') : t('bt.hud.theirBuildings')}
