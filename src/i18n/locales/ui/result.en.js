@@ -31,6 +31,7 @@ export default {
   'bt.result.destroyed.other': '{count} regiments destroyed',
   'bt.result.runDown': ', {men} men caught after the fighting',
   'bt.result.fled': '{men} men fled the field and live',
+  'bt.result.cameThrough': '{men} came through',
   'bt.result.sameCount': 'The same count as the battle report and the Log. Men lost are gone for good.',
   'bt.result.goneForGood': 'Men lost are gone for good.',
   'bt.result.workersLost': 'Workers lost',

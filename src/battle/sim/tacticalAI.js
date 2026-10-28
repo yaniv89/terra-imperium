@@ -328,7 +328,10 @@ const thinkDefender = (w, side, cfg, mine, enemies, orders) => {
   // beaten one, waited out the clock with nobody fighting): once the march is due (fieldMarchDue)
   // the defenders go out as one army, with all they trained meanwhile, to the nearest enemy still
   // standing, else to the enemy's camp. Earlier only the stronger-enemy sally (below) sends them out.
-  if (!threat && (w.setup.battleType || 'field') === 'field' && fieldMarchDue(w)) {
+  // An assault on a town with no walls standing is a field battle with a keep (battle-engage: the
+  // sandbox's fort-2 base held still for the whole 20-minute clock against an idle attacker).
+  const open = (w.setup.battleType || 'field') === 'field' || (w.setup.battleType === 'assault' && !ring);
+  if (!threat && open && fieldMarchDue(w)) {
     threat = nearest(enemies.filter((q) => !q.retreating), keep.x, keep.y) || basePos(w, nearestBase(w, SIDE_ATTACKER, keep.x, keep.y));
   }
   // The keep being taken beats everything else: everyone back to it.

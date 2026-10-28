@@ -4,7 +4,7 @@
 // the battle's own reading (XP by the campaign's formula, the general's fate by the same roll),
 // with one (src/engine/battleReceipt.js) what the campaign commits.
 import { describe, expect, it } from 'vitest';
-import { contextFor, selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft, battleResultModel, armyTally, armyTallyText, enemyObjectives, supplyView, supplyRate, strengthShare, lootView, objectiveLine, endReasonText } from './battleHudModel';
+import { contextFor, selectionSummary, cityAssaultView, nextAlerts, visibleAlerts, minutesLeft, battleResultModel, armyTally, armyTallyText, enemyObjectives, supplyView, supplyRate, strengthShare, lootView, objectiveLine, endReasonText, armyGone } from './battleHudModel';
 import { battleGoal } from './battleText';
 import { hashRoll, COMMANDER_FALL_CHANCE } from '../../engine/aftermath';
 import { XP_WIN } from '../../engine/battleOutcome';
@@ -38,6 +38,26 @@ describe('battle HUD model', () => {
     expect(c.maxLost).toBeUndefined();
     expect(c.gate.alive).toBe(false);
     expect(cityAssaultView(hud, { ...setup, city: null })).toBeNull();
+  });
+
+  // battle-engage (playtest 40650979770 step 41): the enemy's base count rose 8 to 10 with no word why.
+  it('their laborers finishing a base building is told, with the new count; a house is not', () => {
+    const b = (built, type = 'barracks') => ({ idx: 3, side: 1, type, built, alive: true, x: 5, y: 6 });
+    const prev = { tick: 100, structures: [st('keep')], squads: [], base: [4, 8], eco: { buildings: [b(false)] } };
+    const out = nextAlerts(prev, { ...prev, tick: 101, base: [4, 9], eco: { buildings: [b(true)] } }, 0, {});
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ kind: 'enemyBuilt', detail: 'One more base building to burn: 9 now', x: 5, y: 6, tone: 'danger' });
+    expect(nextAlerts(prev, { ...prev, tick: 101, base: [5, 8] }, 0, {})).toHaveLength(0); // your own: you know
+  });
+
+  // battle-engage (civ-veteran playtest 40650976677 step 129): minutes of clock with "All 0".
+  it('armyGone: no soldier on the field and none on the way, laborers apart', () => {
+    const hud = (squads) => ({ squads });
+    expect(armyGone(hud([sq(0, { classId: 'worker' }), sq(1, { side: 1 })]), 0)).toBe(true);
+    expect(armyGone(hud([sq(0, { alive: false })]), 0)).toBe(true);
+    expect(armyGone(hud([sq(0)]), 0)).toBe(false);
+    expect(armyGone(hud([sq(0, { onField: false, enterTick: 400 })]), 0)).toBe(false); // reinforcements coming
+    expect(armyGone(null, 0)).toBe(false);
   });
 
   it('a power you fire says so, with its price and cooldown (playtest 13)', () => {

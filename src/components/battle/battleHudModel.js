@@ -134,6 +134,13 @@ export const strengthShare = (hud, side) => {
 };
 
 /**
+ * The player's side has no soldier left on the field and none on the way (laborers apart; the HUD's
+ * "All 0"). The battle goes on for the bases (Q3), so the screen offers to finish it at once
+ * (battle-engage, civ-veteran playtest 40650976677 step 129: minutes of clock with nothing to do).
+ */
+export const armyGone = (hud, side) => !!hud && !(hud.squads || []).some((q) => q.side === side && q.classId !== 'worker' && q.alive && !q.fled && (q.onField || q.enterTick >= 0));
+
+/**
  * A raid or a sack's loot (sim/step.js raidEnd): { burned, needed, total, taken, raidersLeft, last }
  * or null. Once `needed` targets burned the raiders win by getting away or by the clock, unless every
  * last one of them (laborers apart, as the sim counts) is caught first. `last`: the target that fell last.
@@ -215,6 +222,14 @@ export const nextAlerts = (prev, cur, playerSide, setup, last = {}) => {
     const mine = cur.squads.find((q) => q.side === playerSide && q.alive && q.onField);
     out.push({ id: `pw${pw.id}${cur.tick}`, kind: 'power', title: t('bt.alert.power', { label: powerLabel(pw.id, pw.label) }), detail: t('bt.alert.powerDetail', { cost: pw.cost, s: Math.ceil(pw.readyIn / TICK_HZ) }), x: mine?.x ?? 0, y: mine?.y ?? 0, tick: cur.tick, tone: 'good' });
   });
+  // Their base grows when their laborers finish a building (playtest 40650979770 step 41: "8 to 10, unexplained").
+  const enemy = 1 - playerSide;
+  if (prev.base && cur.base && cur.base[enemy] > prev.base[enemy]) {
+    const pb = new Map((prev.eco?.buildings || []).map((b) => [b.idx, b]));
+    const b = (cur.eco?.buildings || []).find((e) => e.side === enemy && e.built && e.alive && !e.proxy && isBaseType(e.type) && pb.get(e.idx) && !pb.get(e.idx).built);
+    const at = b || cur.structures[0] || { x: 0, y: 0 };
+    out.push({ id: `nb${cur.tick}`, kind: 'enemyBuilt', title: b ? t('bt.alert.enemyBuilt', { what: ecoLabel(b.type, setup?.sides?.[enemy]?.ageId) }) : t('bt.alert.enemyBuiltSome'), detail: t('bt.alert.enemyBuiltDetail', { n: cur.base[enemy] }), x: at.x, y: at.y, tick: cur.tick, tone: 'danger' });
+  }
   const arriving = cur.squads.filter((q, i) => q.side !== playerSide && q.reinforcement && q.onField && prev.squads[i] && !prev.squads[i].onField && q.visible);
   if (arriving.length) out.push({ id: `e${cur.tick}`, kind: 'reinforcements', title: t('bt.alert.reinforcements'), detail: t('bt.alert.reinfFrom', { count: arriving.length, from: arriving[0].reinforcement.name ? nameNow('place', null, arriving[0].reinforcement.name) : t('bt.alert.theEdge') }), x: arriving[0].x, y: arriving[0].y, tick: cur.tick, tone: 'danger' });
   return out;
