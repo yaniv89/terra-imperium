@@ -478,6 +478,7 @@ export default {
   'bt.alert.enemyBuiltSome': 'Their laborers finished a building',
   'bt.alert.enemyBuiltDetail': 'One more base building to burn: {n} now',
   'bt.status.loot': 'Burned {a} of {b} needed',
+  'bt.status.lootDef': 'They burned {a}: at {b} you lose',
   'bt.status.lootTakenDef': 'Loot taken: catch the last {n} raiders before the clock',
   'bt.status.lootTakenAtk': 'Loot taken: get away or last to the clock ({n} left)',
   'bt.goal.ecoAtk': 'Win: burn their {n} base buildings. Killing their army alone does not end it.',

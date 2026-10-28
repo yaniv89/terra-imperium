@@ -1,0 +1,24 @@
+min 0 {"t":"36","you":8895,"them":7995,"keep":3000,"ended":false} sent: {"type":"orders","orders":[{"side":0,"type":"attackMove","squads":[0,1,2,3,4,5,6,18],"x":23226,"y":8890}]}
+   {"t":"51","you":8753,"them":8026,"keep":3000,"ended":false}
+   {"t":"72","you":7412,"them":7440,"keep":3000,"ended":false}
+   {"t":"87","you":6210,"them":6453,"keep":3000,"ended":false}
+   {"t":"102","you":5134,"them":5976,"keep":3000,"ended":false}
+min 1 {"t":"128","you":3320,"them":4871,"keep":3000,"ended":false} sent: {"type":"orders","orders":[{"side":0,"type":"attackMove","squads":[3,4,5,7,8],"x":24230,"y":7078}]}
+   {"t":"143","you":2839,"them":4588,"keep":3000,"ended":false}
+   {"t":"158","you":2818,"them":3982,"keep":3000,"ended":false}
+   {"t":"173","you":2509,"them":4185,"keep":3000,"ended":false}
+   {"t":"188","you":1689,"them":4252,"keep":3000,"ended":false}
+min 2 {"t":"203","you":1132,"them":4266,"keep":3000,"ended":false} sent: {"type":"orders","orders":[{"side":0,"type":"attackMove","squads":[7,8],"x":24759,"y":10167}]}
+   {"t":"218","you":1011,"them":4133,"keep":3000,"ended":false}
+   {"t":"233","you":889,"them":4025,"keep":3000,"ended":false}
+   {"t":"248","you":767,"them":3974,"keep":3000,"ended":false}
+   {"t":"263","you":629,"them":3943,"keep":3000,"ended":false}
+no attack btn locator.click: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for getByTest
+min 3 {"t":"373","you":845,"them":4723,"keep":3000,"ended":false} sent: 
+   {"t":"388","you":1000,"them":4923,"keep":3000,"ended":false}
+   {"t":"403","you":878,"them":4914,"keep":3000,"ended":false}
+   {"t":"418","you":681,"them":5009,"keep":3000,"ended":false}
+   {"t":"433","you":507,"them":5155,"keep":3000,"ended":false}
+errors []

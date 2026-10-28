@@ -1,0 +1,31 @@
+min 0 {"t":"36","you":8895,"them":7995,"keep":3000,"ended":false} sent: {"type":"orders","orders":[{"side":0,"type":"attackMove","squads":[0,1,2,3,4,5,6,18],"x":23226,"y":8890}]}
+   {"t":"51","you":8747,"them":8024,"keep":3000,"ended":false}
+   {"t":"71","you":7476,"them":7567,"keep":3000,"ended":false}
+   {"t":"86","you":6379,"them":6475,"keep":3000,"ended":false}
+   {"t":"101","you":5278,"them":5613,"keep":3000,"ended":false}
+min 1 {"t":"130","you":4214,"them":4413,"keep":3000,"ended":false} sent: {"type":"orders","orders":[{"side":0,"type":"attackMove","squads":[3,4,5,6,7,8],"x":24230,"y":7078}]}
+   {"t":"145","you":4039,"them":3621,"keep":3000,"ended":false}
+   {"t":"160","you":3658,"them":3422,"keep":3000,"ended":false}
+   {"t":"175","you":3639,"them":3371,"keep":3000,"ended":false}
+   {"t":"190","you":3430,"them":3143,"keep":2284,"ended":false}
+min 2 {"t":"208","you":2827,"them":2860,"keep":1397,"ended":false} sent: {"type":"orders","orders":[{"side":0,"type":"attackMove","squads":[3,4,5,7,8],"x":24230,"y":7078}]}
+   {"t":"223","you":2092,"them":2791,"keep":222,"ended":false}
+   {"t":"238","you":1510,"them":2499,"keep":0,"ended":false}
+   {"t":"253","you":1270,"them":2448,"keep":0,"ended":false}
+   {"t":"268","you":1293,"them":2500,"keep":0,"ended":false}
+min 3 {"t":"297","you":950,"them":2483,"keep":0,"ended":false} sent: {"type":"orders","orders":[{"side":0,"type":"attack","squads":[8],"target":{"kind":"eco","index":2}}]}
+   {"t":"312","you":700,"them":2436,"keep":0,"ended":false}
+   {"t":"327","you":900,"them":2436,"keep":0,"ended":false}
+   {"t":"342","you":1100,"them":2436,"keep":0,"ended":false}
+   {"t":"357","you":1300,"them":2436,"keep":0,"ended":false}
+min 4 {"t":"374","you":1500,"them":2436,"keep":0,"ended":false} sent: {"type":"orders","orders":[{"side":0,"type":"attackMove","squads":[60,61,62,63,64],"x":24230,"y":7078}]}
+   {"t":"389","you":1700,"them":2436,"keep":0,"ended":false}
+   {"t":"404","you":1900,"them":2436,"keep":0,"ended":false}
+   {"t":"419","you":1667,"them":2329,"keep":0,"ended":false}
+   {"t":"434","you":1336,"them":2152,"keep":0,"ended":false}
+min 5 {"t":"452","you":1300,"them":2118,"keep":0,"ended":false} sent: {"type":"orders","orders":[{"side":0,"type":"attackMove","squads":[64,65,66,67,68],"x":24759,"y":10167}]}
+   {"t":"467","you":1500,"them":2118,"keep":0,"ended":false}
+   {"t":"482","you":1300,"them":2071,"keep":0,"ended":false}
+   {"t":"497","you":1056,"them":1948,"keep":0,"ended":false}
+   {"t":"512","you":1100,"them":1934,"keep":0,"ended":false}
+errors []

@@ -10,7 +10,7 @@ import { deployZone } from '../../battle/sim/world';
 import { BattleRenderer } from '../../battle/render/BattleRenderer';
 import { createBattleClient } from '../../battle/worker/battleClient';
 import { createGestureRecognizer, insidePolygon } from '../../battle/input/gestures';
-import { decidePointer, isCycleClick, pickOwnBuilding, selectionAfter, BUILDING_PICK_TILES, BUILDING_PICK_PX, groundOrderType } from '../../battle/input/selection';
+import { decidePointer, isCycleClick, pickOwnBuilding, selectionAfter, BUILDING_PICK_TILES, BUILDING_PICK_PX, groundOrderType, buildingAttackOrders } from '../../battle/input/selection';
 import { Q, TICK_HZ, battleLimitTicks } from '../../battle/sim/constants';
 import BattleHud, { isIdleSquad } from './BattleHud';
 import { BattleRotateGate } from '../ui/RotateOverlay';
@@ -742,7 +742,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       if (workers.length) r.setOrderTarget(workers, { kind: 'eco', index: hit.index }, 'assist');
       if (!onlyWorkers) { r.addMarker(hit.ground.x, hit.ground.z, '#a3e635'); markPending({ kind: 'move', x: hit.ground.x, z: hit.ground.z, squads: fighters, color: '#a3e635' }); }
     } else if (hit.kind === 'eco') {
-      send([{ type: 'attack', squads: sel, target: { kind: 'eco', index: hit.index } }]);
+      send(buildingAttackOrders(sel, { kind: 'eco', index: hit.index }, Math.round(hit.ground.x * Q), Math.round(hit.ground.z * Q)));
       r.setOrderTarget(sel, { kind: 'eco', index: hit.index }, 'attack');
       r.addMarker(hit.ground.x, hit.ground.z, '#ef4444');
       markPending({ kind: 'attack', x: hit.ground.x, z: hit.ground.z, squads: sel, color: '#ef4444' });
@@ -763,7 +763,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         r.setOrderTarget(eligible, { kind: 'structure', index: hit.index }, 'garrison');
       } else setOrderNote(tNow('bt.screen.onlyInfantry'));
     } else if (hit.kind === 'structure' && playerSide === 0) {
-      send([{ type: 'attack', squads: sel, target: { kind: 'structure', index: hit.index } }]);
+      send(buildingAttackOrders(sel, { kind: 'structure', index: hit.index }, Math.round(hit.ground.x * Q), Math.round(hit.ground.z * Q)));
       r.setOrderTarget(sel, { kind: 'structure', index: hit.index }, 'attack');
       r.addMarker(hit.ground.x, hit.ground.z, '#ef4444');
       markPending({ kind: 'attack', x: hit.ground.x, z: hit.ground.z, squads: sel, color: '#ef4444' });
@@ -1076,7 +1076,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     let sel = [...selectedRef.current].filter((i) => cur.squads[i]?.classId !== 'worker');
     if (!sel.length) sel = fightersOf(cur).map((q) => q.idx);
     if (!sel.length) { setOrderNote(tNow('bt.order.noTroops')); return; } // never silent (playtest 40651416284 step 166)
-    send([{ type: 'attack', squads: sel, target: o.target }]);
+    send(o.target.kind === 'squad' ? [{ type: 'attack', squads: sel, target: o.target }] : buildingAttackOrders(sel, o.target, Math.round(o.x * Q), Math.round(o.y * Q)));
     r.setOrderTarget(sel, o.target, 'attack');
     r.addMarker(o.x, o.y, '#ef4444', 1.6, 1.4);
     markPending({ kind: 'attack', x: o.x, z: o.y, squads: sel, color: '#ef4444' });
