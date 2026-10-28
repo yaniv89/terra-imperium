@@ -59,3 +59,10 @@ claude/integration, main gets the push once the quick suite and CI are green.
 - Lead mistake (20:40): cloud lanes had no ponytail plugin and the art lane had no Blender; neither was checked
   before the briefs. Fixed: ponytail vendored in .claude/skills/ponytail, scripts/blender/install.sh (Blender 4.0.2
   headless, tested), all 10 running lanes told to load it; the art lane told to install Blender and fix assets.
+- 28 Oct 05:50: merged battle-feedback, ai-gold-balance, campaign-ai-wars (+ war test fix), diplomacy-depth
+  (+ gift fade by speedTurns), naval-campaign, i18n-sweep, battle-ai-tactics (SETUP_VERSION 28, new AI wins
+  243/520 vs old 161), audio (mix, limiter), art-animation (side rims, sail colours, corpse angles, rank hit flash,
+  Blender crest; scores melee 3->7, sea 3->7, unit size 4->6, deaths 4->6, hit 3->5). Reviews: no findings left.
+  Full vitest (slow files included): 4679 passed. Ponytail: every cloud lane before 27 Oct 20:45 ran without it
+  (plugin missing); now vendored + session start hook; city-builds and phone-pass replaced by fresh sessions
+  (hook and full read confirmed in transcripts).
