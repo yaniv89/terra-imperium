@@ -4,7 +4,8 @@ import { describe, it, expect } from 'vitest';
 import { addCity, neighbourWorld, rivalOf } from './testWorld';
 import { getNeighborIds } from '../data/regions';
 import { updateWarPlan, dropTarget, armedFor, goSize, WAR_PREP_REF_TURNS } from './warPlans';
-import { spreadGarrisons, PEACE_GARRISON_MAX } from './aiOperations';
+import { spreadGarrisons } from './aiOperations';
+import { PEACE_GARRISON_MAX } from './warPlans';
 import { chooseAIRecruitRegion } from '../utils/aiLogic';
 import { speedTurns } from '../data/ages';
 import { waitAgeOf } from './ageRefs';
@@ -49,9 +50,9 @@ describe('AI armies (lane ai-armies)', () => {
     expect(updateWarPlan({ ...prep, turnNumber: s.turnNumber + 2 * speedTurns(WAR_PREP_REF_TURNS, s.gameSpeed, waitAgeOf(s, D, P)) }, D, [], 'bronze')).toBe(null);
   });
 
-  it('recruits join the muster point; at peace they go to the city with the fewest regiments', () => {
+  it('recruits join the muster point; at peace never a city already holding PEACE_GARRISON_MAX', () => {
     const { s, berlin, interior } = world();
-    const units = { a: unit('a', berlin, s.regions[berlin].tile), b: unit('b', berlin, s.regions[berlin].tile) };
+    const units = Object.fromEntries(Array.from({ length: PEACE_GARRISON_MAX }, (_, i) => [`u${i}`, unit(`u${i}`, berlin, s.regions[berlin].tile)]));
     const peace = { ...s, units };
     expect(chooseAIRecruitRegion(peace, peace.regions, D)).not.toBe(berlin);
     const arming = withNation(peace, { warPlan: { staging: berlin, cityId: 'x', enemy: P } });
@@ -59,14 +60,14 @@ describe('AI armies (lane ai-armies)', () => {
     expect(interior).toBeTruthy();
   });
 
-  it('at peace a city keeps PEACE_GARRISON_MAX regiments and the rest march to the emptiest city', () => {
+  it('at peace a city keeps PEACE_GARRISON_MAX regiments and the rest march to the nearest city under it', () => {
     const { s, berlin, interior } = world();
     const tile = s.regions[berlin].tile;
-    const units = Object.fromEntries(Array.from({ length: 6 }, (_, i) => [`u${i}`, unit(`u${i}`, berlin, tile, { strength: 900 + i })]));
+    const units = Object.fromEntries(Array.from({ length: PEACE_GARRISON_MAX + 3 }, (_, i) => [`u${i}`, unit(`u${i}`, berlin, tile, { strength: 900 + i })]));
     const next = spreadGarrisons({ ...s, units }, D, new Set());
     const left = Object.values(next.units).filter((u) => u.tile === tile && !u.route?.length);
     expect(left.length).toBe(PEACE_GARRISON_MAX);
-    expect(left.map((u) => u.id).sort()).toEqual(['u0', 'u1', 'u2']); // the weakest stay
+    expect(left.map((u) => u.id).sort()).toEqual(Array.from({ length: PEACE_GARRISON_MAX }, (_, i) => `u${i}`).sort()); // the weakest stay
     const gone = Object.values(next.units).filter((u) => u.tile !== tile || u.route?.length);
     gone.forEach((u) => expect(u.route?.length ? u.route[u.route.length - 1] : u.tile).toBe(s.regions[interior].tile));
     // A city at or under the cap sends nobody.

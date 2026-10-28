@@ -46,7 +46,7 @@ import { msg, people, sub } from '../engine/messages';
 import { ageOf, getResearched } from '../engine/nationState';
 import { speedTurns } from '../data/ages';
 import { waitAgeOf } from '../engine/ageRefs';
-import { armedFor, prepLive } from '../engine/warPlans';
+import { armedFor, prepLive, PEACE_GARRISON_MAX } from '../engine/warPlans';
 import { exploreOn } from '../engine/hostility';
 
 const DEFAULT_RNG = { next: () => Math.random() };
@@ -229,9 +229,9 @@ export const chooseAIRecruitClass = (state, units, nationId, ageId) => {
 
 // Recruit into controlled provinces. At war or arming, the war plan's muster point (warPlans.js
 // staging) takes every recruit unless a city of ours is besieged or invaded, so the strike stack fills where it gathers. Otherwise threatened war
-// goals and enemy borders first; then the city with the fewest regiments, then population. (Ties
-// went to population alone, so every recruit of a nation at peace stood in its capital: 15 of a
-// 22-unit army in one city, lane ai-armies.)
+// goals and enemy borders first; then a city under PEACE_GARRISON_MAX regiments, then population.
+// (Ties went to population alone, so every recruit of a nation at peace stood in its capital: 15
+// of a 22-unit army in one city, lane ai-armies.)
 export const chooseAIRecruitRegion = (state, regions, nationId) => {
   const staging = regions[state.nations?.[nationId]?.warPlan?.staging];
   const attacked = getOwnedRegionIds(regions, nationId).some((id) => regions[id]?.underInvasion || regions[id]?.siege?.by);
@@ -251,8 +251,8 @@ export const chooseAIRecruitRegion = (state, regions, nationId) => {
     if (r.owner !== nationId || (r.occupiedBy && r.occupiedBy !== nationId)) return;
     const threatened = getNeighborIds(id).some(n => enemies.has(regions[n]?.occupiedBy || regions[n]?.owner));
     const threat = (r.underInvasion ? 4 : 0) + (goals.has(id) ? 2 : 0) + (threatened ? 1 : 0) - (r.outpost ? 10 : 0); // an outpost only when there is no city
-    const held = garrison.get(id) || 0; const bestHeld = garrison.get(best) || 0;
-    if (threat > bestThreat || (threat === bestThreat && (held < bestHeld || (held === bestHeld && (r.currentPopulation || 0) > (regions[best]?.currentPopulation || 0))))) {
+    const full = (garrison.get(id) || 0) >= PEACE_GARRISON_MAX; const bestFull = (garrison.get(best) || 0) >= PEACE_GARRISON_MAX;
+    if (threat > bestThreat || (threat === bestThreat && ((!full && bestFull) || (full === bestFull && (r.currentPopulation || 0) > (regions[best]?.currentPopulation || 0))))) {
       best = id; bestThreat = threat;
     }
   });

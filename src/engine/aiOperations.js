@@ -41,7 +41,7 @@ import { aiScout, marchScouts, scoutsThisTurn } from './aiScouting';
 import { cityAttackStrength, cityAttackDamage, cityDefence } from './cityAssault';
 import { cityMilitia, wallsHpRatio } from './battleInputs';
 import { siegeHpOf } from './sieges';
-import { updateWarPlan, readyToStrike, launched, dropTarget, hostileReach, interiorCitySafe, GATHER_MIN_UNITS } from './warPlans';
+import { updateWarPlan, readyToStrike, launched, dropTarget, PEACE_GARRISON_MAX, hostileReach, interiorCitySafe, GATHER_MIN_UNITS } from './warPlans';
 
 const routeStep = (regions, nationId, from, goals) => {
   const queue = [from], first = new Map([[from, null]]);
@@ -381,9 +381,10 @@ export const gatherForPlan = (state, nationId, plan, committed) => {
 // At peace every recruit used to stay where it was trained or where the last war's muster ended:
 // 13 to 17 regiments (130,000+ men) in one city while the rest of the realm held one each, and a
 // player marching on it met a garrison worth an army. Like Civ VI's and Old World's AIs, which
-// station troops across their borders, a city at peace keeps at most PEACE_GARRISON_MAX land units;
-// the rest march to its own city holding the fewest (ties: the nearest, then by id).
-export const PEACE_GARRISON_MAX = 3;
+// station troops across their realm, a city at peace keeps at most PEACE_GARRISON_MAX land units;
+// the rest march to its nearest own city under that (ties: the fewest, then by id). Nearest, not
+// the emptiest: an army spread to the far end of the realm was no longer within reach of the
+// independents it campaigns against (indepPolicy.js spareArmies; captures of free cities halved at 3).
 export const spreadGarrisons = (state, nationId, committed) => {
   const tiles = getTiles();
   const cities = Object.values(state.regions).filter((c) => c.owner === nationId && c.tile != null && !c.outpost && !(c.occupiedBy && c.occupiedBy !== nationId)).sort((a, b) => (a.id < b.id ? -1 : 1));
@@ -404,7 +405,7 @@ export const spreadGarrisons = (state, nationId, committed) => {
     let extra = Math.min(idle.length, held.get(c.tile)) - PEACE_GARRISON_MAX;
     if (extra <= 0) continue;
     const dest = cities.filter((d) => d.id !== c.id && held.get(d.tile) < PEACE_GARRISON_MAX)
-      .sort((a, b) => held.get(a.tile) - held.get(b.tile) || ringsApart(c.tile, a.tile, tiles) - ringsApart(c.tile, b.tile, tiles) || (a.id < b.id ? -1 : 1))[0];
+      .sort((a, b) => ringsApart(c.tile, a.tile, tiles) - ringsApart(c.tile, b.tile, tiles) || held.get(a.tile) - held.get(b.tile) || (a.id < b.id ? -1 : 1))[0];
     if (!dest) continue;
     const goalKey = `spread:${dest.id}`;
     const failed = idle[idle.length - 1].routeFailed;

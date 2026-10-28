@@ -59,7 +59,8 @@ export const WAVE_SHARE = 0.5;
 export const GATHER_MAX_TURNS = 6;
 export const GATHER_MIN_UNITS = 2;
 export const UNIT_STRENGTH = 1000;
-export const PEACE_UNITS_PER_CITY = 1; // aiProduction.js UNITS_PER_CITY (kept here to avoid an import cycle)
+export const PEACE_UNITS_PER_CITY = 1;
+export const PEACE_GARRISON_MAX = 6; // land units a city keeps at peace (aiOperations.js spreadGarrisons, aiLogic.js recruits) // aiProduction.js UNITS_PER_CITY (kept here to avoid an import cycle)
 
 const isLandArmy = (u) => u.domain === 'land' && u.classId !== 'settler' && !u.embarkedOn && u.strength > 0;
 
