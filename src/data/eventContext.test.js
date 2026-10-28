@@ -44,7 +44,9 @@ describe('procedural events: context and cooldowns', () => {
     const normal = cooldownTurns({ gameSpeed: 'normal', age: 'bronze' }, 'template');
     const marathon = cooldownTurns({ gameSpeed: 'marathon', age: 'bronze' }, 'template');
     expect(marathon).toBeGreaterThan(normal);
-    const later = run({ ...state, turnNumber: 40 + marathon + 1, eventHistory: history }, 60);
+    // Drawn once, a card rests twice its span (eventDeck.js: 1 + the times drawn).
+    expect(history[`n:${first.templateId}`]).toBe(1);
+    const later = run({ ...state, turnNumber: 40 + 2 * cooldownTurns(state, 'template') + 1, eventHistory: history }, 60);
     expect(later.some((e) => e.templateId === first.templateId)).toBe(true);
   });
 

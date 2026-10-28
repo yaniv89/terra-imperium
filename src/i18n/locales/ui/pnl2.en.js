@@ -190,7 +190,7 @@ export default {
   'wc.failed': 'failed {yes} to {no}',
   'wc.noVotes': 'No vote yet.',
   'wc.res.tradeStandard': 'A Trade Standard',
-  'wc.res.tradeStandard.desc': 'Common rules for goods and data: +5% gold for every member.',
+  'wc.res.tradeStandard.desc': 'Common weights, measures and rules for goods: +5% gold for every member.',
   'wc.res.armsLimit': 'An Arms Limit',
   'wc.res.armsLimit.desc': 'Every member caps its forces: -10% manpower, +3% gold.',
   'wc.res.sanctions': 'Sanctions',

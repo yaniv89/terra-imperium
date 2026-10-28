@@ -7,7 +7,8 @@
 // nation's OWN research age advances (research.js, eight-ages plan KTD7), the age it leaves is
 // scored: goals met on that last turn are paid too, and at least ERA_GOALS_FOR_LEGACY met gives
 // the era legacy (renown and a virtue point, renown.js); the record gains `legacy` (true or false),
-// which marks the age as scored. The turn a nation entered its age is `nation.ageSince`. The final
+// which marks the age as scored. `focus`: the goal the player chose on the age's dawn card
+// (eventDeck.js eraDawnCard): its reward is doubled. The turn a nation entered its age is `nation.ageSince`. The final
 // age is scored once when the ending signal fires (resolveTurn). Pure.
 import { AGES } from '../data/ages';
 import { ERA_GOALS_FOR_LEGACY, ERA_LEGACY_TURNS, PLAYSTYLES, goalsForAge } from '../data/eraGoals';
@@ -87,17 +88,20 @@ export const payEraGoals = (state, nation, ageId, turnNumber) => {
   const paid = eraGoalProgress(view, ageId, nation.id).goals.filter((g) => g.done && !had.includes(g.id));
   if (!paid.length) return { nation: start, paid };
   let n = start;
+  const focus = rec?.focus;
   paid.forEach((g) => {
+    // The goal chosen on the age's dawn card (eventDeck.js eraDawnCard) pays its reward twice over.
+    if (g.id === focus) g = { ...g, focus: true, n: g.n * 2, bonus: PLAYSTYLES[g.id].bonusLabel.replace('{n}', g.n * 2), mods: Object.fromEntries(Object.entries(g.mods).map(([k, v]) => [k, v * 2])) };
     // A playstyle's new reward replaces its last one: a fast run through the ages never stacks them (research cost would compound).
     n = { ...n, modifiers: (n.modifiers || []).filter((m) => !(m.sourceType === 'eraGoal' && String(m.sourceId).endsWith(`.${g.id}`))) };
     n = grantRenown(grantDecree(n, 'eraGoal', turnNumber, g.id), 'eraGoal', RENOWN.eraGoal, turnNumber, g.id);
     n = addNationModifier(n, { sourceType: 'eraGoal', sourceId: `${ageId}.${g.id}`, label: `${PLAYSTYLES[g.id].label} goal: ${g.bonus}`, mods: g.mods, duration: ERA_LEGACY_TURNS, turnNumber });
   });
-  return { nation: { ...n, eraGoals: { ...(n.eraGoals || {}), [ageId]: { ...start.eraGoals[ageId], met: [...had, ...paid.map((g) => g.id)] } } }, paid };
+  return { nation: { ...n, eraGoals: { ...(n.eraGoals || {}), [ageId]: { ...start.eraGoals[ageId], met: [...had, ...paid.map((g) => g.id)] } } }, paid: paid.map((g) => (g.id === focus ? { ...g, focus: true, n: g.n * 2 } : g)) };
 };
 
 /** The log line of a goal paid to the player. */
-export const eraGoalLog = (g) => msg('m.world.eraGoalMet', { goal: thing('playstyle', g.id, g.label), bonus: sub(`m.world.goalBonus.${g.id}`, { n: g.n }), turns: ERA_LEGACY_TURNS });
+export const eraGoalLog = (g) => msg(g.focus ? 'm.world.eraFocusMet' : 'm.world.eraGoalMet', { goal: thing('playstyle', g.id, g.label), bonus: sub(`m.world.goalBonus.${g.id}`, { n: g.n }), turns: ERA_LEGACY_TURNS });
 
 /**
  * Scores the ending age for `nation`: pays the goals met on its last turn, then gives the era
@@ -113,4 +117,11 @@ export const awardEraLegacy = (state, nation, endingAgeId, turnNumber) => {
   if (earned) nation = grantEraLegacy(nation, turnNumber, endingAgeId);
   const next = { ...nation, eraGoals: { ...(nation.eraGoals || {}), [endingAgeId]: { ...nation.eraGoals[endingAgeId], met, legacy: earned } } };
   return { nation: next, log: msg(earned ? 'm.world.legacy' : 'm.world.noLegacy', { age: ageThing(endingAgeId), n: met.length }) };
+};
+
+/** The nation with `goalId` chosen as the focus of its current age (the dawn card's answer); the record starts as payEraGoals starts it. */
+export const setEraFocus = (nation, ageId, goalId) => {
+  const rec = nation.eraGoals?.[ageId];
+  if (rec?.focus || (rec && 'legacy' in rec)) return nation;
+  return { ...nation, eraGoals: { ...(nation.eraGoals || {}), [ageId]: { met: [], wonFrom: battlesWon(nation), ...rec, focus: goalId } } };
 };

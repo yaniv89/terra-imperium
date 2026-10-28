@@ -78,6 +78,7 @@ export default {
   'ind.cause.refused': 'סירבתם למס שלהם',
   'ind.cause.missed': 'הפסקתם לשלם להם מס',
   'ind.cause.demand': 'דרשתם מס שהם לא היו משלמים',
+  'ind.cause.answered': 'הגבתם לפשיטה שלהם',
   'ind.merc.youNeed': 'אתם צריכים {gold} זהב (יש לכם {have}).',
   'ind.merc.note': 'להקה משרתת עד סוף החוזה שלה, ועוזבת מיד כשאי אפשר לשלם את אחזקתה.',
   'ind.act.attack': 'תקיפה בלי מלחמה',

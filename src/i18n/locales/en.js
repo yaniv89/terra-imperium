@@ -622,6 +622,7 @@ export default {
   'goals.intro': '{age} goals. Each pays when met: its reward for {turns} turns, a decree and renown. Meet {needed} for the era legacy.',
   'goals.close': 'Close the goals',
   'goals.doneDot': 'Done.',
+  'goals.chosen': 'Your chosen goal: its reward is doubled.',
   'goals.legacy': 'Reward: {bonus}.',
   'age.stone': 'Stone Age',
   'age.bronze': 'Bronze Age',

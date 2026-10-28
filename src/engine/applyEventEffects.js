@@ -21,6 +21,8 @@ import { ageOf } from './nationState';
 import { grantBattleCard } from '../data/battleCards';
 import { waitAgeOf } from './ageRefs';
 import { exploreOn } from './hostility';
+import { setEraFocus } from './eraGoals';
+import { addGrudge } from './grudges';
 
 // The resources an option lacks, as a list of names ("gold, hr").
 const shortfallList = (ids) => ids.map((id) => thing('resource', id, id)).reduce((acc, r) => (acc === '' ? r : sub('m.world.listMore', { a: acc, b: r })), '');
@@ -224,6 +226,22 @@ export const applyEventEffects = (state, event, optionIndex) => {
       nations[nId] = { ...nations[nId], hostility: Math.max(0, Math.min(100, nations[nId].hostility + delta)) };
     });
     next.nations = nations;
+  }
+
+  // A crisis answer (crises.js): the majors it struck (event.nations) remember it, hostility
+  // being the grudge opinion.js reads (aid lowers it, profiting raises it).
+  if (effects.struckHostility && event.nations?.length) {
+    const nations = { ...next.nations };
+    event.nations.forEach((nId) => { if (nations[nId] && nId !== playerNationId) nations[nId] = { ...nations[nId], hostility: Math.max(0, Math.min(100, (nations[nId].hostility || 0) + effects.struckHostility)) }; });
+    next.nations = nations;
+  }
+
+  // A raid's aftermath (eventDeck.js raidAftermathCard): the raiders' grudge against the player.
+  if (effects.indepGrudge && event.indepId) next.nations = addGrudge(next.nations, event.indepId, playerNationId, effects.indepGrudge, { id: 'answered', turn: next.turnNumber });
+
+  // The age's dawn card (eventDeck.js eraDawnCard): the chosen goal pays twice (eraGoals.js).
+  if (effects.eraFocus && next.nations[playerNationId]) {
+    next.nations = { ...next.nations, [playerNationId]: setEraFocus(next.nations[playerNationId], ageOf(next, playerNationId), effects.eraFocus) };
   }
 
   // Links of the event deck (eventDeck.js): schedules a card from eventChains.js delayTurns

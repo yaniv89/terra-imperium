@@ -1020,7 +1020,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   Object.assign(nations, accords.nations);
   accords.logs.forEach((l) => { if (!l.nationId) logs.push({ year: newYear, ...carry(l), type: LogTypes.DIPLOMACY }); });
   const pendingDemand = accords.pendingDemand;
-  // The World Congress (worldCongress.js): members of Global Institutions vote every span.
+  // The World Congress (worldCongress.js): members (CONGRESS_TECH) vote every span.
   const congress = processWorldCongress({ ...state, nations, regions, turnNumber: newTurnNumber });
   if (congress.nations !== nations) Object.assign(nations, congress.nations);
   congress.logs.forEach((l) => logs.push({ year: newYear, ...carry(l), type: LogTypes.DIPLOMACY }));

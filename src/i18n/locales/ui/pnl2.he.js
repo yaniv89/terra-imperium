@@ -191,7 +191,7 @@ export default {
   'wc.failed': 'נדחתה {yes} מול {no}',
   'wc.noVotes': 'עוד לא הייתה הצבעה.',
   'wc.res.tradeStandard': 'תקן סחר',
-  'wc.res.tradeStandard.desc': 'כללים משותפים לסחורות ולמידע: 5%+ זהב לכל חברה.',
+  'wc.res.tradeStandard.desc': 'מידות, משקלות וכללים משותפים לסחורות: 5%+ זהב לכל חברה.',
   'wc.res.armsLimit': 'הגבלת חימוש',
   'wc.res.armsLimit.desc': 'כל חברה מגבילה את כוחותיה: 10%- כוח אדם, 3%+ זהב.',
   'wc.res.sanctions': 'סנקציות',

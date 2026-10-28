@@ -313,7 +313,8 @@ const fight = (w, id, { kind, raidKind = kind, tile, victim, city = null, party,
 };
 const raiderName = (w, id) => people(id, w.nations[id]?.name || 'Raiders');
 /** The outcome of a raid on the player, kept on the raider for the UI (phase W4: the sheet's "last
- * raid on you"): { turn, kind, won, loot, text, textMsg }. A record only: no rule reads it. `line` is a
+ * raid on you"): { turn, kind, won, loot, cityId, text, textMsg }. The event deck's raid aftermath card
+ * reads it (eventDeck.js raidAftermathCard). `line` is a
  * msg() result: `text` keeps its English, `textMsg` (a sub() ref, messages.js) its key and vars. */
 const noteOutcome = (w, id, victim, outcome, line) => {
   if (victim !== w.playerId || !w.nations[id]) return;
@@ -381,7 +382,7 @@ const afterTargetBattle = (w, id, raid, raidersWon) => {
       const line = kind === 'sack'
         ? msg('m.battle.raidBeatenAtCity', { place: city?.name ? cityRef(raid.targetCityId, city.name) : sub('m.battle.theTown'), raiders: raiderName(w, id) })
         : msg('m.battle.raidBeatenInField', { place: placeOf(w, t), raiders: raiderName(w, id) });
-      log(w, line); noteOutcome(w, id, victim, { kind: raid.kind, won: false, loot: 0 }, line);
+      log(w, line); noteOutcome(w, id, victim, { kind: raid.kind, won: false, loot: 0, cityId: raid.targetCityId ?? null }, line);
     }
     if (!survivors.length) { setIndep(w, id, { raid: { ...out, lost: true } }); endRaid(w, id, []); return false; }
     sendHome(w, id, survivors, { ...out, lost: true }, 'beaten');
@@ -446,7 +447,7 @@ const takeLoot = (w, id, raid) => {
     // A pillage that found nothing to take has no line of its own (the old text was "<name> s."): it stays a plain string.
     if (what) log(w, msg(`m.battle.loot${what[0]}`, { raiders: name, ...what[1] }));
     else log(w, `${subjectVerb(name.en, '', '')}.`);
-    noteOutcome(w, id, victim, { kind: raid.kind, won: true, loot }, what ? msg(`m.battle.loot${what[0]}They`, what[1]) : { message: 'They .' });
+    noteOutcome(w, id, victim, { kind: raid.kind, won: true, loot, cityId: raid.targetCityId ?? null }, what ? msg(`m.battle.loot${what[0]}They`, what[1]) : { message: 'They .' });
   }
   const out = { ...raid, phase: 'out', battleId: undefined, sizeBefore: undefined };
   if (raid.kind === 'route') { setIndep(w, id, { raid: { ...out, phase: 'hold', holdUntil: w.turn + 1 } }); return; }

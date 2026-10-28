@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { CARDS, cardOf, drawEvent, cooldownTurns } from './eventDeck';
+import { CARDS, cardOf, drawEvent, cooldownTurns, cardChoice, eraDawnCard, raidAftermathCard, RAID_AFTERMATH_TURNS } from './eventDeck';
+import { applyEventEffects } from './applyEventEffects';
 import { factsUsed, predicateMet, factContext } from './predicates';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
@@ -38,7 +39,7 @@ describe('event deck (U26)', () => {
     expect(noGenerals.some((e) => e.templateId === 'ambitious_general')).toBe(false);
     // The first age's flavour cards stop once the player has left it (the age rule is a predicate).
     const later = play(quiet({ techAgeId: AGE_ORDER[1] }), 120);
-    expect(later.some((e) => CARDS[e.templateId].requires?.max === 0)).toBe(false);
+    expect(later.some((e) => CARDS[e.templateId]?.requires?.max === 0)).toBe(false);
     expect(later.length).toBeGreaterThan(0);
   });
 
@@ -83,8 +84,85 @@ describe('event deck (U26)', () => {
   });
 
   it('no story or chain card uses a city effect (they have no city, so it would do nothing)', () => {
-    const cityFree = [...Object.values(CARDS).filter((c) => c.kind === 'story'), ...Object.values(EVENT_CHAINS)];
+    // A consequence told in {city} is bound to the city of the draw that spawned it.
+    const cityFree = [...Object.values(CARDS).filter((c) => c.kind === 'story'), ...Object.values(EVENT_CHAINS).filter((c) => !c.description.includes('{city}'))];
     cityFree.forEach((c) => (c.options || []).forEach((o) =>
       expect(Object.keys(o.effects || {}).filter((k) => /^city[A-Z]/.test(k)), `${c.id}: ${o.label}`).toEqual([])));
+  });
+
+  it('a consequence opens in the city that spawned it, named, and passes if the city is lost', () => {
+    const base = quiet();
+    const city = Object.values(base.regions).find((c) => c.owner === base.playerNationId);
+    const pending = [{ id: 'hunger_at_doors', dueTurn: 20, cityId: city.id }];
+    const out = drawEvent({ ...base, turnNumber: 20, proceduralEventCooldown: 9, pendingEventChains: pending }, createRng(1));
+    expect(out.activeProceduralEvent).toMatchObject({ id: 'hunger_at_doors', cityId: city.id });
+    expect(out.activeProceduralEvent.description).toContain(city.name);
+    const lost = { ...base, regions: { ...base.regions, [city.id]: { ...city, owner: 'nobody' } } };
+    const gone = drawEvent({ ...lost, turnNumber: 20, proceduralEventCooldown: 9, pendingEventChains: pending }, createRng(1));
+    expect(gone.activeEventId).toBeNull();
+    expect(gone.pendingEventChains).toEqual([]);
+  });
+
+  it('every common draw has an option that leads to a consequence', () => {
+    ['frontier_raiders', 'failed_harvest', 'river_flood', 'traveling_merchants', 'coastal_trade_boom', 'refugee_crisis'].forEach((id) => {
+      const t = PROCEDURAL_TEMPLATES.find((x) => x.id === id);
+      const city = Object.values(quiet().regions).find((c) => c.owner === quiet().playerNationId);
+      const next = t.build(quiet(), createRng(1), city).options.map((o) => o.effects.spawnFollowUp?.id).filter(Boolean);
+      expect(next.length, id).toBeGreaterThan(0);
+      next.forEach((n) => expect(CARDS[n]?.kind, n).toBe('link'));
+    });
+  });
+
+  it('a drawn card rests longer each time it is drawn', () => {
+    const s = quiet();
+    const cd = cooldownTurns(s, 'template');
+    const seen = {};
+    play(s, 300).filter((e) => e.templateId).forEach((e) => {
+      const prev = seen[e.templateId];
+      if (prev) expect(e.turn - prev.turn, e.templateId).toBeGreaterThanOrEqual(cd * (1 + prev.n));
+      seen[e.templateId] = { turn: e.turn, n: (prev?.n || 0) + 1 };
+    });
+    expect(Object.values(seen).some((x) => x.n > 1)).toBe(true);
+  });
+
+  it('no drawn card offers an option that is as good or better than another on every count', () => {
+    const s = quiet();
+    const city = Object.values(s.regions).find((c) => c.owner === s.playerNationId);
+    Object.values(CARDS).filter((c) => c.kind === 'draw' && !c.subjects && c.id.startsWith('ai_')).forEach((c) =>
+      expect(cardChoice(c.build(s, createRng(1), city).options).dominated, c.id).toBe(false));
+    expect(cardChoice([{ effects: { gold: 120 } }, { effects: { gold: 100 } }])).toMatchObject({ dominated: true, goldOnly: true, real: false });
+    expect(cardChoice([{ effects: { gold: -40, stability: 1 } }, { effects: { prestige: -3 } }])).toMatchObject({ dominated: false, real: true });
+  });
+
+  it('the age dawn card asks for a focus once an age, and the chosen goal is kept', () => {
+    const s = quiet({ proceduralEventCooldown: 0 });
+    const card = eraDawnCard(s);
+    expect(card.options.length).toBeGreaterThanOrEqual(2);
+    expect(card.options.every((o) => o.effects.eraFocus)).toBe(true);
+    const out = drawEvent({ ...s, turnNumber: 11 }, createRng(1));
+    expect(out.activeProceduralEvent?.templateId).toBe('era_dawn');
+    expect(eraDawnCard({ ...s, eventHistory: out.eventHistory })).toBeNull();
+    const answered = applyEventEffects({ ...s, ...out, logs: [] }, out.activeProceduralEvent, 0);
+    const age = Object.keys(answered.nations[s.playerNationId].eraGoals)[0];
+    expect(answered.nations[s.playerNationId].eraGoals[age].focus).toBe(card.options[0].effects.eraFocus);
+  });
+
+  it('a raid on a city of the player opens its aftermath once, and the answer moves the raiders\' grudge', () => {
+    const base = quiet({ turnNumber: 40 });
+    const me = base.playerNationId;
+    const city = Object.values(base.regions).find((c) => c.owner === me);
+    const raider = { id: 'raiders_x', name: 'Hill Raiders', kind: 'independent', indep: { personality: 'raiders' } };
+    const raided = { ...base, nations: { ...base.nations, [raider.id]: { ...raider, indep: { ...raider.indep, lastRaidOnPlayer: { turn: 39, kind: 'sack', won: true, loot: 10, cityId: city.id } } } } };
+    const out = drawEvent({ ...raided, proceduralEventCooldown: 9 }, createRng(1));
+    expect(out.activeProceduralEvent).toMatchObject({ templateId: 'raid_suffered', cityId: city.id, indepId: raider.id });
+    expect(out.activeProceduralEvent.description).toContain(city.name);
+    expect(raidAftermathCard({ ...raided, eventHistory: out.eventHistory })).toBeNull(); // once a raid
+    expect(raidAftermathCard({ ...raided, turnNumber: 39 + RAID_AFTERMATH_TURNS + 1 })).toBeNull(); // too late
+    const terms = applyEventEffects({ ...raided, logs: [] }, out.activeProceduralEvent, 1);
+    const revenge = applyEventEffects({ ...raided, logs: [] }, out.activeProceduralEvent, 0);
+    const g = (st) => st.nations[raider.id].indep?.grudges?.[me] || 0;
+    expect(g(revenge)).toBeGreaterThan(g(raided));
+    expect(g(terms)).toBeLessThanOrEqual(g(raided));
+    expect(cardChoice(out.activeProceduralEvent.options).real).toBe(true);
   });
 });

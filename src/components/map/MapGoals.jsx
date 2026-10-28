@@ -32,7 +32,9 @@ const MapGoals = () => {
   const era = useMemo(() => eraGoalProgress(state), [state]);
   // The chip names the goal closest to done (Polytopia keeps its goals on one screen; lane
   // turn-pacing: "Goals 0/2" said nothing about what to do next).
-  const next = nextGoal(era);
+  // The goal chosen on the age's dawn card (eventDeck.js eraDawnCard) leads while it is open.
+  const focus = state.nations?.[state.playerNationId]?.eraGoals?.[era.ageId]?.focus;
+  const next = era.goals.find((g) => g.id === focus && !g.done) || nextGoal(era);
   // The hint is a notice (useExclusivePanel.js): on a phone it waits as a chip while a card or a
   // panel has the screen.
   const { shown: hintShown } = useInteraction('map-hint', !!hint, { priority: PRIORITY.notice, kind: 'notice', label: hint ? tNow('wait.mapHint', { title: hint.title }) : null, testId: 'map-hint-chip' });
@@ -72,6 +74,7 @@ const MapGoals = () => {
               </div>
               <Meter value={g.value} max={g.target} color={g.done ? 'var(--fa-good)' : 'var(--fa-you)'} height={4} />
               <div className="text-[11px] text-fa-muted leading-snug">{g.done ? t('goals.doneDot') : goalNext(g.id, GOAL_NEXT_ACTION[g.id])} {t('goals.legacy', { bonus: goalBonus(g.id, g.bonus, g.n) })}</div>
+              {g.id === focus && <div className="text-[11px] text-fa-good leading-snug" data-testid="goal-chosen">{t('goals.chosen')}</div>}
             </div>
           ))}
         </div>

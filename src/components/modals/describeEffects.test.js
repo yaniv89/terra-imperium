@@ -16,10 +16,18 @@ describe('describeEffects (plan §M17: the one shared effect-description functio
     expect(out.find((e) => e.text.startsWith('Manpower'))).toMatchObject({ text: 'Manpower -30', sign: 'negative' });
   });
 
-  it('silently drops spawnFollowUp (an internal scheduling detail, not a player-facing consequence)', () => {
+  it('shows that a follow-up comes (events-8: the player sees which choice goes on), never which card', () => {
     const out = describeEffects({ gold: 100, spawnFollowUp: { id: 'chain_1', delayTurns: 3 } });
-    expect(out).toHaveLength(1);
-    expect(out[0].text).toContain('Gold');
+    expect(out).toHaveLength(2);
+    expect(out[1]).toMatchObject({ text: 'The story goes on', sign: 'neutral' });
+    expect(out.some((e) => e.text.includes('chain_1'))).toBe(false);
+  });
+
+  it('describes the crisis, raid and dawn keys with the player\'s sign', () => {
+    const out = describeEffects({ struckHostility: -15, indepGrudge: 10, eraFocus: 'expand' });
+    expect(out[0]).toMatchObject({ text: 'Relations with the stricken +15', sign: 'positive' });
+    expect(out[1]).toMatchObject({ text: 'Their grudge +10', sign: 'negative' });
+    expect(out).toHaveLength(2); // the dawn card's label names its reward
   });
 
   it('describes every resource key with the correct sign', () => {

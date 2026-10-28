@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { crisisDue, processCrises, hitNations, crisisComing, famineShare, CHECK_PERIOD, MAX_HIT, FAMINE_SHARE } from './crises';
-import { CRISES, crisisCardId } from '../data/crises';
-import { cardOf } from './eventDeck';
+import { CRISES, crisisCardId, crisisAnswerId } from '../data/crises';
+import { cardOf, cardChoice, drawEvent } from './eventDeck';
 import { peoplesWorld, cloneWorld, majorIds, addCities } from './testWorld';
 import { resolveTurn } from './resolveTurn';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { gameReducer } from './gameReducer';
-import { getOptionShortfall } from './applyEventEffects';
+import { getOptionShortfall, applyEventEffects } from './applyEventEffects';
 import { ActionTypes } from '../data/types';
 import { peopleOf } from './population';
 import { growthThreshold } from './world/cities';
@@ -201,5 +201,32 @@ describe('history crises (U31)', () => {
     expect(processCrises({ ...s, turnNumber: 50 }).pendingEventChains).toContainEqual({ id: crisisCardId('bronze_collapse'), dueTurn: 50 });
     // Nothing coming for the player: no card.
     expect(gameReducer(s0, { type: ActionTypes.ANSWER_CRISIS_EARLY })).toBe(s0);
+  });
+
+  it('a player it spares, inside its age, gets the answer card bound to the struck, and an aid lowers their grudge', () => {
+    const s0 = world('bronze');
+    const me = s0.playerNationId;
+    const others = majorIds(s0).filter((id) => id !== me).slice(0, 3);
+    const t0 = dueTurn(s0);
+    const coming = { id: 'bronze_collapse', turn: t0, nations: others };
+    const struck = processCrises({ ...s0, turnNumber: t0, crises: { coming } });
+    expect(struck.pendingEventChains).toContainEqual({ id: crisisAnswerId('bronze_collapse'), dueTurn: t0, nations: others });
+    const out = drawEvent({ ...s0, turnNumber: t0, pendingEventChains: struck.pendingEventChains, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])) }, { next: () => 0.99 });
+    expect(out.activeProceduralEvent).toMatchObject({ id: crisisAnswerId('bronze_collapse'), nations: others });
+    const before = s0.nations[others[0]].hostility || 0;
+    const after = applyEventEffects({ ...s0, logs: [] }, out.activeProceduralEvent, 0);
+    expect(after.nations[others[0]].hostility).toBe(Math.max(0, before - 15));
+    // Outside its age window the player gets nothing.
+    const later = cloneWorld(s0);
+    later.nations[me].tech.ageId = 'classical';
+    later.techAgeId = 'classical';
+    expect(processCrises({ ...later, turnNumber: t0, crises: { coming } }).pendingEventChains || []).not.toContainEqual(expect.objectContaining({ id: crisisAnswerId('bronze_collapse') }));
+  });
+
+  it('every crisis has an answer card of three options with a real choice', () => {
+    CRISES.forEach((c) => {
+      expect(cardOf(crisisAnswerId(c.id))?.options.length, c.id).toBe(3);
+      expect(cardChoice(c.answer.options).dominated, c.id).toBe(false);
+    });
   });
 });

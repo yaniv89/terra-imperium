@@ -64,6 +64,11 @@ const DESCRIBERS = {
     const [nId, delta] = Object.entries(v)[0] || [];
     return { text: t('relations', { who: nationName(nId), v: signed(delta) }), sign: delta <= 0 ? 'positive' : 'negative' };
   },
+  // events-8: the struck majors of a crisis (their grudge), a raider's grudge, a sequel (the dawn card's
+  // eraFocus is silent: its label already names the doubled reward).
+  struckHostility: (v) => ({ text: t('struck', { v: signed(-v) }), sign: v <= 0 ? 'positive' : 'negative' }),
+  indepGrudge: (v) => ({ text: t('grudge', { v: signed(v) }), sign: v <= 0 ? 'positive' : 'negative', tooltip: t('grudgeTip') }),
+  spawnFollowUp: () => ({ text: t('followUp'), sign: 'neutral', tooltip: t('followUpTip') }),
   stability: (v) => ({ text: t('stability', { v: signed(v) }), sign: sg(v) }),
   legitimacy: (v) => ({ text: t('legitimacy', { v: signed(v) }), sign: sg(v) }),
   prestige: (v) => ({ text: t('prestige', { v: signed(v) }), sign: sg(v) }),
@@ -79,13 +84,13 @@ const DESCRIBERS = {
   }
 };
 
-// Keys with no player-facing preview: internal scheduling (spawnFollowUp) or nothing meaningful
+// Keys with no player-facing preview: nothing meaningful (a follow-up shows "the story goes on", events-8)
 // to show. Listed explicitly so a future key that's forgotten here falls through to the generic
 // String(value) fallback below instead of silently vanishing. ruler (the retired trait effect,
 // differentiation plan U5), estateLoyalty, crownLand and heir
 // belonged to the removed estates and succession (master plan decision 37): an event saved before
 // then may still carry them, and they now do nothing, so they show nothing.
-const SILENT_KEYS = new Set(['spawnFollowUp', 'estateLoyalty', 'crownLand', 'heir', 'ruler']);
+const SILENT_KEYS = new Set(['eraFocus', 'estateLoyalty', 'crownLand', 'heir', 'ruler']);
 
 export const describeEffects = (effects) => {
   if (!effects) return [];

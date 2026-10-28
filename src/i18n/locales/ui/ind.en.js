@@ -78,6 +78,7 @@ export default {
   'ind.cause.refused': 'Refused their tribute',
   'ind.cause.missed': 'Stopped paying their tribute',
   'ind.cause.demand': 'Demanded tribute they would not pay',
+  'ind.cause.answered': 'Answered their raid',
   'ind.merc.youNeed': 'You need {gold} gold (you have {have}).',
   'ind.merc.note': 'A band serves until its contract ends, or leaves at once when you cannot pay its upkeep.',
   'ind.act.attack': 'Attack without war',

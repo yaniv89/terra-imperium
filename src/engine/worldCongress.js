@@ -1,5 +1,5 @@
 // src/engine/worldCongress.js
-// The World Congress (eight-ages plan U54). Every major that has researched Global Institutions
+// The World Congress (eight-ages plan U54). Every major that has researched CONGRESS_TECH (Royal Chancery)
 // sits in it. The host is the first to sit (ties by id); while the host sits, the Congress votes
 // every speedTurns(CONGRESS_SPAN_REF_TURNS, speed, host's age) turns on one resolution, proposed a
 // span ahead so the player can make up its mind (WORLD_CONGRESS_VOTE). Resolutions rotate through
@@ -35,7 +35,7 @@ import { msg, people } from './messages';
 
 const isMajor = (n) => n && !n.isEliminated && !isIndependentNation(n);
 
-/** The members, sorted by id: living majors that have researched Global Institutions. */
+/** The members, sorted by id: living majors that have researched CONGRESS_TECH. */
 export const congressMembers = (state) => Object.keys(state.nations || {}).sort()
   .filter((id) => isMajor(state.nations[id]) && getResearched(state, id).includes(CONGRESS_TECH));
 

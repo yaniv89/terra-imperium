@@ -61,6 +61,7 @@ export default {
   'm.world.noLegacy': 'The {age} ends with {n} of its goals met: no legacy carries over.',
   'm.world.legacy': 'Legacy of the {age}: {n} of its goals met. Your ruler gains renown.',
   'm.world.eraGoalMet': 'Goal met: {goal}. {bonus} for {turns} turns, a decree and renown.',
+  'm.world.eraFocusMet': 'Your chosen goal is met: {goal}. Double reward: {bonus} for {turns} turns, a decree and renown.',
   'm.world.goalBonus.expand': '+{n}% manpower',
   'm.world.goalBonus.wealth': '+{n}% gold',
   'm.world.goalBonus.war': '+{n}% morale recovery',
@@ -86,4 +87,6 @@ export default {
   'm.world.crisis.great_plague': 'A great plague spreads along the trade routes, striking the largest cities first.',
   'm.world.crisis.little_ice_age': 'The cold years begin: harvests fail and hunger empties the towns.',
   'm.world.crisis.world_war': 'The great powers go to war, and their alliances drag the world in.',
+  'm.world.crisis.global_pandemic': 'A new pandemic spreads along the air routes, and the great cities are struck first.',
+  'm.world.crisis.climate_shock': 'The hungry decade begins: droughts and floods break the harvests.',
 };

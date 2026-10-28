@@ -4,8 +4,10 @@
 // climate meter (U52). With Planetary Federation the Congress becomes the Planetary Council (U71)
 // and votes on the Future resolutions too (COUNCIL_ORDER).
 
-/** Members are the majors that have researched it. */
-export const CONGRESS_TECH = 'governance_global_institutions';
+/** Members are the majors that have researched it. Royal Chancery, the Age of Kingdoms (events-8): the
+ * Congress meets in the middle of the game, as Civ VI's does from its Medieval era; it was Global
+ * Institutions (Information Age), which most games never saw. */
+export const CONGRESS_TECH = 'governance_royal_chancery';
 /** Reference turns between votes, through speedTurns at the host's age. */
 export const CONGRESS_SPAN_REF_TURNS = 10;
 /** A passed resolution lasts this many spans. */
@@ -25,7 +27,7 @@ export const AI_LIMITS_CAP = 40;
 
 // `mods`: the timed nation modifier every member gets while the resolution holds.
 export const RESOLUTIONS = {
-  tradeStandard: { id: 'tradeStandard', name: 'A Trade Standard', description: 'Common rules for goods and data: +5% gold for every member.', mods: { 'national.goldMult': 0.05 } },
+  tradeStandard: { id: 'tradeStandard', name: 'A Trade Standard', description: 'Common weights, measures and rules for goods: +5% gold for every member.', mods: { 'national.goldMult': 0.05 } },
   armsLimit: { id: 'armsLimit', name: 'An Arms Limit', description: 'Every member caps its forces: -10% manpower, +3% gold.', mods: { 'national.hrMult': -0.1, 'national.goldMult': 0.03 } },
   sanctions: { id: 'sanctions', name: 'Sanctions', description: 'The signers cut trade with the target: no trade route between them, and the target loses gold.' },
   // The Planetary Council's (U71): `binds` the signers (worldCongress.binds), each until its own turn.

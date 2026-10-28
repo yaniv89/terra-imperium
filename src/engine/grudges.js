@@ -22,7 +22,8 @@ export const GRUDGE_CAUSES = {
   razedKin: 'Burned a city of their kin',
   refused: 'Refused their tribute',
   missed: 'Stopped paying their tribute',
-  demand: 'Demanded tribute they would not pay'
+  demand: 'Demanded tribute they would not pay',
+  answered: 'Answered their raid'
 };
 /** How many causes a grudge log keeps per nation. */
 export const GRUDGE_LOG_MAX = 5;

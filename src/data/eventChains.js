@@ -17,6 +17,14 @@
 //   colonial_venture (3 steps)  <- columbian_exchange's "adopt aggressively" option
 //   tech_gamble (2 steps)       <- digital_revolution's "invest heavily" option
 //   border_dispute (2 steps)    <- frontier_raiders' "punitive expedition" option
+// Consequences of the common draws (events-8, round 2: "a choice had no visible follow-up"): one card a
+// few turns later in the same city ({city}: the city the draw bound, eventDeck.js), each a new choice:
+//   raiders_return    <- frontier_raiders' "reinforce the border"
+//   hunger_at_doors   <- failed_harvest's "ration what remains"
+//   black_silt        <- river_flood's "let the waters recede"
+//   caravan_returns   <- traveling_merchants' "buy up their entire stock"
+//   harbour_grows     <- coastal_trade_boom's "keep tariffs low"
+//   newcomers_settle  <- refugee_crisis' "take them in"
 export const EVENT_CHAINS = {
   // ---- Colonial Venture ----
   colonial_venture_1: {
@@ -75,6 +83,62 @@ export const EVENT_CHAINS = {
     options: [
       { label: 'Accept a compromise line', effects: { controlBonus: 5, gold: 50 } },
       { label: 'Hold firm and let tensions simmer', effects: { militaryStrengthBonus: 20, controlPenalty: 5 } }
+    ]
+  },
+
+  // ---- Consequences of the common draws (events-8) ----
+  raiders_return: {
+    id: 'raiders_return',
+    title: 'The Raiders Return',
+    description: 'The raiders come back to {city}, and this time they find the border manned and waiting.',
+    options: [
+      { label: 'Ride out and break them', effects: { hr: -20, militaryStrengthBonus: 20, prestige: 5 } },
+      { label: 'Stay behind the walls and let them pass', effects: { cityFood: -5, cityLoyalty: -5 } }
+    ]
+  },
+  hunger_at_doors: {
+    id: 'hunger_at_doors',
+    title: 'Hunger at the Doors',
+    description: 'The rationing has left {city} hungry, and a crowd gathers at the doors of the stores.',
+    options: [
+      { label: 'Open the stores to the crowd', effects: { cityFood: -10, cityLoyalty: 5 } },
+      { label: 'Send guards to hold the doors', effects: { cityUnrest: 10, controlBonus: 3 } }
+    ]
+  },
+  black_silt: {
+    id: 'black_silt',
+    title: 'Black Silt',
+    description: 'Where the flood lay, the fields of {city} are black with new silt, and families argue over who may farm the new ground.',
+    options: [
+      { label: 'Share the new ground by lot', effects: { cityFood: 10, cityUnrest: 5 } },
+      { label: 'Give it to the families who lost the most', effects: { cityLoyalty: 8, hr: -10 } }
+    ]
+  },
+  caravan_returns: {
+    id: 'caravan_returns',
+    title: 'The Caravan Returns',
+    description: 'The merchants you bought out come back to {city} with their friends, and ask for a market of their own inside the walls.',
+    options: [
+      { label: 'Grant them a market quarter', effects: { techPoints: 15, prestige: 3, controlPenalty: 2 } },
+      { label: 'Let them trade outside the walls only', effects: { cityLoyalty: 3 } }
+    ]
+  },
+  harbour_grows: {
+    id: 'harbour_grows',
+    title: 'The Harbour Grows',
+    description: 'Low tariffs kept the ships coming. The harbour of {city} is crowded, and the shipwrights want the old fishing quarter for new docks.',
+    options: [
+      { label: 'Clear the fishing quarter for docks', effects: { hr: 20, prestige: 4, cityUnrest: 8 } },
+      { label: 'Keep the fishermen and build along the shore', effects: { cityLoyalty: 5, controlPenalty: 2 } }
+    ]
+  },
+  newcomers_settle: {
+    id: 'newcomers_settle',
+    title: 'The Newcomers Settle',
+    description: 'The refugees taken in at {city} have built a quarter of their own. Some want to stay apart; others ask to join the city\'s crafts.',
+    options: [
+      { label: 'Welcome them into the crafts', effects: { techPoints: 10, cityLoyalty: 5, cityUnrest: 5 } },
+      { label: 'Let them keep their own quarter', effects: { hr: 20, cityLoyalty: -5 } }
     ]
   }
 };

@@ -4,7 +4,7 @@
 // English, or the Hebrew lookup by id (locales/data.he.js) in Hebrew. A missing Hebrew entry shows
 // the English text. Pure: reads only the current language of core.js, so view models may call it
 // (they rebuild when the language changes). Not for the engine's saved text (log lines, reports).
-import { dataText, getLanguage, isolateLtr } from './core';
+import { dataText, getLanguage, isolateLtr, ageName } from './core';
 import { nameNow } from './names';
 
 const D = (key, english, vars) => dataText(key, english, vars);
@@ -84,13 +84,19 @@ const eventKeyBase = (event) => (event?.procedural && event.templateId ? `pevt.$
 export const eventText = (event, field, english, vars) => {
   const base = `${eventKeyBase(event)}.${field}`;
   const variant = event?.procedural && /granar/i.test(english || '') ? `${base}.granary` : base;
-  const v = { ...(vars || {}) };
+  const v = { ...(event?.textVars || {}), ...(vars || {}) };
+  if (v.ageId) v.age = ageName(v.ageId, v.age);
+  if (v.raidersId) v.raiders = nameNow('people', v.raidersId, v.raiders);
   if (event?.procedural && event.templateId === 'ambitious_general' && v.general === undefined) v.general = english ? nameNow('person', null, String(english).split(',')[0]) : '';
   return D(variant, D(base, english, v), v);
 };
 export const eventTitle = (event, vars) => eventText(event, 'title', event?.title, vars);
 export const eventDescription = (event, vars) => eventText(event, 'desc', event?.description, vars);
-export const eventOptionLabel = (event, index, vars) => eventText(event, `opt${index}`, event?.options?.[index]?.label, vars);
+// An option built at run time (the age's dawn card) names its own key and vars.
+export const eventOptionLabel = (event, index, vars) => {
+  const o = event?.options?.[index];
+  return o?.textKey ? D(o.textKey, o.label, { ...(event.textVars || {}), ...(o.textVars || {}), ...(vars || {}) }) : eventText(event, `opt${index}`, o?.label, vars);
+};
 
 /** A ruler's line: the name (one ruler a game, no house). */
 export const rulerLine = (ruler) => nameNow('person', null, ruler.name);

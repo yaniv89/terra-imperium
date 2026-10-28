@@ -54,6 +54,7 @@ export default {
   'm.world.noLegacy': '{age} מסתיים עם {n} מטרות שהושגו: שום מורשת לא עוברת הלאה.',
   'm.world.legacy': 'מורשת {age}: הושגו {n} מיעדיו. השליט שלכם זוכה בתהילה.',
   'm.world.eraGoalMet': 'יעד הושג: {goal}. {bonus} למשך {turns} תורות, צו ותהילה.',
+  'm.world.eraFocusMet': 'היעד שבחרתם הושג: {goal}. פרס כפול: {bonus} למשך {turns} תורות, צו ותהילה.',
   'm.world.goalBonus.expand': '+{n}% כוח אדם',
   'm.world.goalBonus.wealth': '+{n}% זהב',
   'm.world.goalBonus.war': '+{n}% התאוששות מורל',
@@ -77,4 +78,6 @@ export default {
   'm.world.crisis.great_plague': 'מגפה גדולה מתפשטת לאורך דרכי המסחר ופוגעת קודם בערים הגדולות.',
   'm.world.crisis.little_ice_age': 'השנים הקרות מתחילות: היבולים נכשלים והרעב מרוקן את העיירות.',
   'm.world.crisis.world_war': 'המעצמות הגדולות יוצאות למלחמה, ובריתותיהן גוררות אחריהן את העולם.',
+  'm.world.crisis.global_pandemic': 'מגפה חדשה מתפשטת בנתיבי האוויר, והערים הגדולות נפגעות ראשונות.',
+  'm.world.crisis.climate_shock': 'העשור הרעב מתחיל: בצורות ושיטפונות שוברים את היבולים.',
 };

@@ -48,7 +48,7 @@ export const PROCEDURAL_TEMPLATES = [
       description: `The fields and gathering grounds around ${city.name} give more than anyone remembers, and there is food to spare.`,
       options: [
         { label: 'Hold a feast and store the rest', effects: { cityFood: 10, cityLoyalty: 5 } },
-        { label: 'Trade the surplus to travellers', effects: { gold: 50 } }
+        { label: 'Trade the surplus to travellers', effects: { gold: 50, cityLoyalty: -3 } }
       ]
     })
   },
@@ -121,8 +121,8 @@ export const PROCEDURAL_TEMPLATES = [
       title: 'A Coastal Boom',
       description: `${city.name} grows rich on trade, its harbours crowded with foreign ships eager to do business.`,
       options: [
-        { label: 'Tax the merchants heavily', effects: { gold: 120 } },
-        { label: 'Keep tariffs low to keep them coming back', effects: { gold: 100 } }
+        { label: 'Tax the merchants heavily', effects: { gold: 120, cityLoyalty: -8 } },
+        { label: 'Keep tariffs low to keep them coming back', effects: { gold: 100, spawnFollowUp: { id: 'harbour_grows', delayTurns: 8 } } }
       ]
     })
   },
@@ -152,7 +152,7 @@ export const PROCEDURAL_TEMPLATES = [
         // A punitive expedition can cross into disputed ground and escalate — the seed of the
         // border dispute chain (src/data/eventChains.js's border_dispute_1).
         { label: 'Muster a punitive expedition', effects: { gold: -60, militaryStrengthBonus: 40, spawnFollowUp: { id: 'border_dispute_1', delayTurns: 4 } } },
-        { label: 'Reinforce the border after the fact', effects: { gold: -100, defenseBonus: 0.05, cityFood: -10 } }
+        { label: 'Reinforce the border after the fact', effects: { gold: -100, defenseBonus: 0.05, cityFood: -10, spawnFollowUp: { id: 'raiders_return', delayTurns: 6 } } }
       ]
     })
   },
@@ -186,7 +186,7 @@ export const PROCEDURAL_TEMPLATES = [
       description: `Poor weather ruins the harvest around ${city.name}, and ${hasGranary(city) ? 'granaries that should be full stand' : 'the stores that should be full stand'} nearly empty heading into the lean months.`,
       options: [
         { label: 'Import food at whatever price it takes', effects: { gold: -100, cityFood: 10 } },
-        { label: 'Ration what remains', effects: { cityFood: -10, cityUnrest: 5 } }
+        { label: 'Ration what remains', effects: { cityFood: -10, cityUnrest: 5, spawnFollowUp: { id: 'hunger_at_doors', delayTurns: 4 } } }
       ]
     })
   },
@@ -200,7 +200,7 @@ export const PROCEDURAL_TEMPLATES = [
       description: `The river bursts its banks at ${city.name}; the low fields are under water and ${hasGranary(city) ? 'the granary is wet through' : 'the stored grain is spoiling'}.`,
       options: [
         { label: 'Raise levees and drain the fields', effects: { gold: -80, cityFood: -5 } },
-        { label: 'Let the waters recede on their own', effects: { cityFood: -15, cityUnrest: 5 } }
+        { label: 'Let the waters recede on their own', effects: { cityFood: -15, cityUnrest: 5, spawnFollowUp: { id: 'black_silt', delayTurns: 6 } } }
       ]
     })
   },
@@ -227,7 +227,7 @@ export const PROCEDURAL_TEMPLATES = [
       title: 'Traveling Merchants',
       description: `A caravan of traveling merchants passes through ${city.name}, offering rare goods — and rarer opportunities — to whoever can afford them.`,
       options: [
-        { label: 'Buy up their entire stock', effects: { gold: -80, hr: 30 } },
+        { label: 'Buy up their entire stock', effects: { gold: -80, hr: 30, spawnFollowUp: { id: 'caravan_returns', delayTurns: 8 } } },
         { label: 'Trade only what you need', effects: { gold: 40 } }
       ]
     })
@@ -251,7 +251,7 @@ export const PROCEDURAL_TEMPLATES = [
       title: 'Refugees at the Border',
       description: `Waves of refugees, fleeing war and hardship beyond your borders, arrive at ${city.name} seeking shelter.`,
       options: [
-        { label: 'Take them in and put them to work', effects: { hr: 40, citySize: 1, cityUnrest: 10 } },
+        { label: 'Take them in and put them to work', effects: { hr: 40, citySize: 1, cityUnrest: 10, spawnFollowUp: { id: 'newcomers_settle', delayTurns: 8 } } },
         { label: 'Turn them away and seal the border', effects: { gold: -80, controlBonus: 3 } }
       ]
     })

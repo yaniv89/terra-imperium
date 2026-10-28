@@ -6,7 +6,7 @@ import { getNationCapital } from '../data/regions';
 import { TECH_TREE } from '../data/techTree';
 import { AGE_ORDER } from '../data/ages';
 import { addCities } from './testWorld';
-import { eraGoalProgress, playstyleValues, awardEraLegacy, payEraGoals, nextGoal } from './eraGoals';
+import { eraGoalProgress, playstyleValues, awardEraLegacy, payEraGoals, nextGoal, setEraFocus, eraGoalLog } from './eraGoals';
 import { ERA_LEGACY_TURNS, goalsForAge } from '../data/eraGoals';
 import { getModifier } from './modifiers/sheet';
 import { peoplesWorld } from './testWorld';
@@ -118,4 +118,20 @@ describe('nextGoal (the map chip)', () => {
     expect(nextGoal({ goals: [g('expand', 1, 4), g('wealth', 6, 9), g('war', 2, 2, true)] }).id).toBe('wealth');
     expect(nextGoal({ goals: [g('expand', 4, 4, true)] })).toBeNull();
   });
+
+  it('the goal chosen on the dawn card pays twice its reward; another goal pays as before', () => {
+    const s = grown();
+    const plain = payEraGoals(s, s.nations[FR_ID], 'bronze', 5);
+    const chosen = payEraGoals(s, setEraFocus(s.nations[FR_ID], 'bronze', 'expand'), 'bronze', 5);
+    const mod = (n) => n.modifiers.find((m) => m.sourceId === 'bronze.expand').mods['national.hrMult'];
+    expect(mod(chosen.nation)).toBeCloseTo(2 * mod(plain.nation));
+    expect(chosen.paid.find((g) => g.id === 'expand')).toMatchObject({ focus: true, n: 2 * expandTargetReward() });
+    expect(chosen.nation.eraGoals.bronze.focus).toBe('expand');
+    expect(eraGoalLog(chosen.paid.find((g) => g.id === 'expand')).msgKey).toBe('m.world.eraFocusMet');
+    const other = payEraGoals(s, setEraFocus(s.nations[FR_ID], 'bronze', 'wealth'), 'bronze', 5);
+    expect(mod(other.nation)).toBeCloseTo(mod(plain.nation));
+    // Chosen once an age: a second choice does not move it.
+    expect(setEraFocus(chosen.nation, 'bronze', 'wealth').eraGoals.bronze.focus).toBe('expand');
+  });
 });
+const expandTargetReward = () => goalsForAge('bronze').find((g) => g.id === 'expand').n;

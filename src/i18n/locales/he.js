@@ -624,6 +624,7 @@ export default {
   'goals.intro': 'יעדי {age}. כל יעד משתלם כשהוא מושג: הפרס שלו למשך {turns} תורות, צו ותהילה. עמדו ב־{needed} למורשת העידן.',
   'goals.close': 'סגירת היעדים',
   'goals.doneDot': 'הושלם.',
+  'goals.chosen': 'היעד שבחרתם: הפרס שלו כפול.',
   'goals.legacy': 'פרס: {bonus}.',
   'age.stone': 'תקופת האבן',
   'age.bronze': 'תקופת הברונזה',
