@@ -33,6 +33,7 @@ import { isAgeBefore } from '../../data/ages';
 import { tradeRouteStatus } from '../../engine/tradeDisruptions';
 import MapTradeBox from './MapTradeBox';
 import { peopleWhere } from './peopleWhere';
+import { warStatus } from './warStatusModel';
 import { focusPlace, startMarch } from '../map/marchEvents';
 import { closePanels } from './panelEvents';
 import { canAttack } from '../../engine/hostility';
@@ -130,6 +131,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
   // the war record (aggressor/enemy) the player happens to be.
   const activeWar = state.wars.find(w => w.active && isWarBetween(w, state.playerNationId, nation.id));
   const playerWarScore = activeWar ? (activeWar.aggressor === state.playerNationId ? activeWar.score : -activeWar.score) : 0;
+  const war = atWarWithPlayer ? warStatus(state, nation.id) : null; // what the war is for and how it ends
   const justified = hasCasusBelli(state, state.playerNationId, nation.id);
   const declareWarCosts = justified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
   const sueForPeaceCosts = { gold: Math.max(SUE_FOR_PEACE_MIN_GOLD, Math.round(SUE_FOR_PEACE_BASE_GOLD - (nation.warExhaustion || 0) * 2)) };
@@ -288,6 +290,12 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
           {atWarWithPlayer && <span>{t('nc.warExhaustion')} <span className="fa-num text-fa-text">{Math.round(nation.warExhaustion || 0)}</span></span>}
           {atWarWithPlayer && activeWar && <span>{t('nc.warScore')} <span className={`fa-num ${playerWarScore >= 0 ? 'text-fa-good' : 'text-fa-danger-text'}`}>{playerWarScore >= 0 ? '+' : ''}{playerWarScore}</span></span>}
         </div>
+        {war && (
+          <p className="text-[12px] mt-1" data-testid="war-status">
+            {war.goal && <span className="text-fa-text">{t(war.goal.key, { city: nameNow('city', null, war.goal.vars?.city) })}{war.goal.done ? t('ws.goalDone') : ''} </span>}
+            <span className={war.outlook.tone === 'danger' ? 'text-fa-danger-text' : war.outlook.tone === 'good' ? 'text-fa-good' : 'text-fa-muted'}>{t(war.outlook.key, war.outlook.vars)}</span>
+          </p>
+        )}
         {/* Where they are (peopleWhere.js): the cities you know, their armies in sight, and the way there. */}
         <p className="text-[12px] text-fa-muted mt-1.5" data-testid="people-where">
           {where.places.length === 0 ? t('nc.whereNone') : <>

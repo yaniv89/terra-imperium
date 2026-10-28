@@ -21,6 +21,7 @@ export default {
   'm.diplo.offerExhausted': '{nation}, שחוקה מהמלחמה כמוכם, מציעה שלום לבן.',
   'm.diplo.offerStalemate': '{nation} לא רואה מה להרוויח ממלחמה בלי קרבות כבר {turns} תורות, ומציעה שלום לבן.',
   'm.diplo.forcesPeace': '{nation} כופה עליכם שלום: המלחמה אבודה.',
+  'm.diplo.peaceWarn': '{nation} מנצחים במלחמה (ניקוד {score} לטובתם). ב־{at} הם יכתיבו את השלום, מהתור הבא. נצחו בקרב, השיבו עיר או הציעו שלום עכשיו.',
   'm.diplo.offersEnd': '{nation} מציעה לסיים את המלחמה.',
 
   // AI war declarations (utils/aiLogic.js)

@@ -71,6 +71,7 @@ SEEDS.forEach((seed) => {
     const me = s.playerNationId;
     let war = null; const out = { seed, who: WHO, declareAt: DECLARE_AT, contactTurns: -1, firstBattle: -1, citiesLost: 0, warTurns: -1, closestRings: null };
     let ms = 0;
+    const seenLogs = new WeakSet(); const peaceLines = { warn: 0, forced: 0 }; // log lines are capped: count each line once as it appears
     for (let t = 1; t <= TURNS && s.gameStatus === GameStatus.ACTIVE; t++) {
       if (t === DECLARE_AT) {
         const foe = nearestMajor(s);
@@ -91,6 +92,7 @@ SEEDS.forEach((seed) => {
       const a = performance.now();
       s = resolveTurn(s);
       ms += performance.now() - a;
+      for (const l of s.logs || []) if (!seenLogs.has(l)) { seenLogs.add(l); if (l.msgKey === 'm.diplo.peaceWarn') peaceLines.warn += 1; if (l.msgKey === 'm.diplo.forcesPeace') peaceLines.forced += 1; }
       if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null };
       if (s.activeEventId) s = { ...s, activeEventId: null };
       if (!war) continue;
@@ -123,6 +125,8 @@ SEEDS.forEach((seed) => {
         if (out.contactTurns < 0 && (owner === me || d <= 1.01)) out.contactTurns = t - DECLARE_AT + 1;
       }
     }
+    // How the war ended for the player: warned (diplomacy.js PEACE_WARN_SCORE) and forced peaces.
+    out.peaceWarns = peaceLines.warn; out.forcedPeaces = peaceLines.forced;
     out.msPerTurn = +(ms / TURNS).toFixed(1);
     console.log(`PWAR ${JSON.stringify(out)}`);
   });

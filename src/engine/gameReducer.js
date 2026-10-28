@@ -2277,15 +2277,20 @@ const reduceAction = (state, action) => {
         [recipientId]: { ...loser, isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE }
       };
       nextNations = setTruce(nextNations, war.aggressor, war.enemy, state.turnNumber);
+      const wars = endWar(state.wars, war.id);
+      // Another war of the player's goes on: say so (a playtester thought one peace ended them all).
+      const fightingOn = wars.filter((w) => w.active && (w.aggressor === state.playerNationId || w.enemy === state.playerNationId))
+        .map((w) => (w.aggressor === state.playerNationId ? w.enemy : w.aggressor));
       return {
         ...state,
         resources: applied.resources,
         regions: applied.regions,
         // The two sides may still be fighting other wars — isAtWar follows the live wars list.
-        nations: refreshWarFlags(nextNations, endWar(state.wars, war.id), [war.aggressor, war.enemy]),
-        wars: endWar(state.wars, war.id),
+        nations: refreshWarFlags(nextNations, wars, [war.aggressor, war.enemy]),
+        wars,
         pendingPeaceOffer: null,
-        logs: [...state.logs, { year: state.year, ...msg('m.act.peaceAccepted', { nation: people(offer.from, nextNations[offer.from]?.name || offer.from) }), type: LogTypes.DIPLOMACY }, ...applied.logs]
+        logs: [...state.logs, { year: state.year, ...msg('m.act.peaceAccepted', { nation: people(offer.from, nextNations[offer.from]?.name || offer.from) }), type: LogTypes.DIPLOMACY }, ...applied.logs,
+          ...fightingOn.map((id) => ({ year: state.year, ...msg('m.act.stillAtWar', { nation: people(id, nextNations[id]?.name || id) }), type: LogTypes.DIPLOMACY }))]
       };
     }
 

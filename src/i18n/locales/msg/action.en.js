@@ -177,6 +177,7 @@ export default {
   'm.act.peaceRejected': '{nation} rejects your peace terms.',
   'm.act.peaceSigned': 'Peace signed with {nation}.',
   'm.act.peaceAccepted': 'You accept peace with {nation}.',
+  'm.act.stillAtWar': 'You are still at war with {nation}.',
   'm.act.peaceOfferRejected': 'You reject {nation}\'s peace offer — they may ask again later.',
   'm.act.tradeAgreement': 'Signed a trade agreement with {nation}.',
   'm.act.bordersRefused': '{nation} keeps its borders closed to you (opinion {opinion}, needs {needed}{war}).',

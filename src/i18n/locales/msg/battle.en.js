@@ -108,6 +108,8 @@ export default {
   'm.battle.generalFell': '{general} fell in battle with their troops.',
   'm.battle.garrisonAbandons': 'Your garrison abandons {city} to {enemy} and falls back to {to}.',
   'm.battle.underSiege': '{city} is under siege by {by}.',
+  'm.battle.siegeLifted': 'Our siege of {city} is over: no army of ours stands beside it now.',
+  'm.battle.siegeLiftedOurs': 'The siege of {city} is lifted: no enemy army stands beside it now.',
   'm.battle.laySiege': 'Your army lays siege to {city} (walls {walls}, {hp} HP).',
   'm.battle.siegeBrokeWalls': 'The defences of {city} are broken (0 HP). A siege never takes a city: attack it to take it.',
   'm.battle.siegeBrokeOurWalls': 'The defences of {city} are broken by the siege. Drive the besiegers off before they attack.',

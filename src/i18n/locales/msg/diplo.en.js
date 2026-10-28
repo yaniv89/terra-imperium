@@ -20,7 +20,8 @@ export default {
   'm.diplo.independenceWon': '{nation} wins its independence from {overlord}!',
   'm.diplo.offerExhausted': '{nation}, as worn out by the war as you are, offers a white peace.',
   'm.diplo.offerStalemate': '{nation} sees nothing to gain from a war with no fighting for {turns} turns, and offers a white peace.',
-  'm.diplo.forcesPeace': '{nation} forces a peace on you — the war is lost.',
+  'm.diplo.forcesPeace': '{nation} forces a peace on you: the war is lost.',
+  'm.diplo.peaceWarn': '{nation} is winning the war (score {score} for them). At {at} they dictate the peace, from next turn on. Win a battle, take back a city or offer peace now.',
   'm.diplo.offersEnd': '{nation} offers to end the war.',
 
   // AI war declarations (utils/aiLogic.js)

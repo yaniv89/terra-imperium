@@ -73,7 +73,10 @@ describe('a siege', () => {
     expect(siegeMaxHp(walledRegions[PK]) - walledRegions[PK].siege.hp).toBe(SIEGE_STRENGTH_OTHER + SIEGE_STRENGTH_SIEGE - WALL_REGEN * 2);
     // Lifted: it heals a tenth a turn and the record goes once full.
     const lifted = { ...regions, [PK]: { ...regions[PK], siege: { ...regions[PK].siege, hp: Math.round(siegeMaxHp(city) / 2) } } };
-    processSieges({ ...war, units: {} }, lifted, {}, { turn: 3 });
+    const liftLogs = processSieges({ ...war, units: {} }, lifted, {}, { turn: 3 }).logs;
+    // Both sides are told the siege ended (lane wars-8); a later healing turn says nothing more.
+    expect(liftLogs.map((l) => [l.nationId, l.msgKey])).toEqual([[IN_ID, 'm.battle.siegeLifted'], [PK_ID, 'm.battle.siegeLiftedOurs']]);
+    expect(processSieges({ ...war, units: {} }, { ...lifted }, {}, { turn: 4 }).logs).toEqual([]);
     expect(lifted[PK].siege.hp).toBe(Math.round(siegeMaxHp(city) / 2) + Math.round(siegeMaxHp(city) * SIEGE_HEAL));
     expect(lifted[PK].siege.by).toBe(null);
     const full = { ...lifted, [PK]: { ...lifted[PK], siege: { ...lifted[PK].siege, hp: siegeMaxHp(city) - 1 } } };

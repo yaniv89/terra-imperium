@@ -165,7 +165,7 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
 - Tests that create a game must pass a fixed `rngSeed`; a fresh game gets a random one.
 - resolveTurn does nothing while an event, a `pendingPeaceOffer` or a pending defense battle is
   open: long-run loops must answer them.
-- The AI world is quiet by design (only Tier-1 AI nations declare wars).
+- The AI world is quiet by design (only Tier-1 AI nations declare wars), except the weak-neighbour roll: a Tier-1 major that borders the player and fields more rolls 1.25x on the player after 40 reference turns, never without a casus belli (aiLogic.js `weakNeighbourMult`, lane wars-8).
 - Unit models: CC0 packs go in src/assets/raw-models/, then `npm run import:models`.
 
 ## Lead workflow (how the lead session runs lanes)

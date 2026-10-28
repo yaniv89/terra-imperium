@@ -13,6 +13,17 @@ describe('turn report model (W10)', () => {
   const before = peoplesWorld({ seed: 11 });
   const next = (patch) => ({ ...before, turnNumber: before.turnNumber + 1, ...patch });
 
+  it('a siege that ends is news that matters, with the city to show on the map (lane wars-8)', () => {
+    const capId = cap(FR); const c = before.regions[capId];
+    const line = { year: before.year, type: LogTypes.COMBAT, ...msg('m.battle.siegeLiftedOurs', { city: cityRef(capId, c.name) }) };
+    const m = turnReportModel(before, next({ logs: [...before.logs, line] }), 'en');
+    const item = m.items.find((i) => i.group === 'news');
+    expect(item.title).toMatch(/siege of .* is lifted/);
+    expect(item.place).toMatchObject({ kind: 'city', id: capId });
+    expect(item.matters).toBe(true);
+    expect(m.quiet).toBe(false);
+  });
+
   it('is null when no turn passed, quiet when nothing but growth or research happened', () => {
     expect(turnReportModel(before, before)).toBeNull();
     const capId = cap(FR);
