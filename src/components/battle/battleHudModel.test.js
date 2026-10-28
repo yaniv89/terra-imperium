@@ -50,6 +50,14 @@ describe('battle HUD model', () => {
     expect(nextAlerts(prev, { ...prev, tick: 101, base: [5, 8] }, 0, {})).toHaveLength(0); // your own: you know
   });
 
+  it('a regiment of yours destroyed is told, with where it fell; an enemy one or a laborer is not', () => {
+    const prev = { tick: 10, structures: [], squads: [sq(0), sq(1, { side: 1 }), sq(2, { classId: 'worker' })] };
+    const cur = { tick: 11, structures: [], squads: [sq(0, { alive: false }), sq(1, { side: 1, alive: false }), sq(2, { classId: 'worker', alive: false })] };
+    const out = nextAlerts(prev, cur, 0, {});
+    expect(out.map((a) => a.kind)).toEqual(['lost']);
+    expect(out[0]).toMatchObject({ squad: 0, x: 0, tone: 'danger' });
+  });
+
   // battle-engage (civ-veteran playtest 40650976677 step 129): minutes of clock with "All 0".
   it('armyGone: no soldier on the field and none on the way, laborers apart', () => {
     const hud = (squads) => ({ squads });

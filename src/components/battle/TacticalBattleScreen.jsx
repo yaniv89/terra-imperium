@@ -1275,7 +1275,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       )}
       {gone && (
         <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(30rem,calc(100vw-2rem))] flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-danger text-[12.5px] leading-snug text-fa-text shadow-xl" style={{ bottom: NOTE_BOTTOM }} role="status" data-testid="battle-army-gone">
-          <span>{tNow('bt.screen.armyGone')}</span>
+          <span>{tNow('bt.screen.armyGone')}{hud?.eco ? ` ${tNow('bt.screen.armyGoneTrain')}` : ''}</span>
           <button type="button" onClick={() => { if (paused) togglePause(); changeSpeed(FINISH_SPEED); }} data-testid="battle-finish-now" className="shrink-0 h-11 px-3 -my-1 rounded-full bg-fa-danger/90 text-white text-sm font-semibold">{tNow('bt.screen.finishNow')}</button>
           {onAbandon && <button type="button" onClick={switchToAuto} data-testid="battle-gone-auto" className="shrink-0 h-11 px-3 -my-1 rounded-full fa-btn fa-btn-secondary text-sm">{tNow('bt.hud.switchAuto')}</button>}
         </div>

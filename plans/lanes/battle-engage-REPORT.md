@@ -66,3 +66,10 @@ Not changed (design calls for the lead): reinforcements and newly trained squads
 - Open: bronze fort 2 with an idle player still runs to the clock (defender wins) because the defenders chase one leftover attacker squad back and forth before going for the camp (`enemyArmyGone` needs zero squads). It is the field march's existing behaviour; Finish now covers the player's wait.
 
 Skipped: the touch tap misses (report issue 5), powers feedback (issue 6) and the naval wording (issue 8), outside this lane's four items.
+
+## 6. Lead's message of 10:16 (campaign playtest 40651416284)
+
+- *Army drops to 0 with no message (steps 87, 132, 175, 224):* every regiment of yours wiped out now raises an alert, "Swordsmen destroyed", with Go to where it fell. Laborers and enemy squads don't raise it. Once the last one falls, the army-gone bar (item 2) shows at once with Finish now and Switch to Auto. In a battle with an economy, the bar also says "Your laborers can build a barracks to train more" (the HQ trains only laborers, step 224). Test: battleHudModel.test.js.
+- *Goal count 2 to 3 to 5 to 6 (step 171):* the enemy-built alert (item 4) says each rise.
+- *Enemy hut 1% to 82% (step 132):* not traced. Likely the inspect card moving to another building after the hut fell, or laborers repairing it. Left open.
+- Tests: src/components/battle and src/i18n, 262 passed; lint clean.

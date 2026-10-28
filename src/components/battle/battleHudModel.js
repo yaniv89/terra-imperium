@@ -199,6 +199,8 @@ export const nextAlerts = (prev, cur, playerSide, setup, last = {}) => {
     if (!p) return;
     if (q.side === playerSide) {
       if (!p.noPath && q.noPath && q.alive && q.onField) out.push({ id: `np${q.idx}`, kind: 'noPath', squad: q.idx, title: t('bt.alert.noPath', { name: squadName(q.classId, q.ageId) }), detail: t('bt.alert.noPathDetail'), x: q.x, y: q.y, tick: cur.tick, tone: 'danger' });
+      // A regiment of yours wiped out is said, with Go to where it fell (campaign playtest 40651416284 steps 87, 132, 175, 224).
+      if (p.alive && !q.alive && q.classId !== 'worker') out.push({ id: `lost${q.idx}`, kind: 'lost', squad: q.idx, title: t('bt.alert.squadLost', { name: squadName(q.classId, q.ageId) }), detail: t('bt.alert.squadLostDetail'), x: q.x, y: q.y, tick: cur.tick, tone: 'danger' });
       if (!isShakenView(p) && isShakenView(q) && q.onField) out.push({ id: `sh${q.idx}`, kind: 'shaken', squad: q.idx, title: t('bt.alert.squadShaken', { name: squadName(q.classId, q.ageId) }), detail: t('bt.alert.shakenDetail'), x: q.x, y: q.y, tick: cur.tick, tone: 'danger' });
     } else if (!p.routed && q.routed && q.alive && q.visible !== false) broke.push(q);
   });
