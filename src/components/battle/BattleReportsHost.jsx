@@ -29,8 +29,12 @@ const BattleReportsHost = ({ onShowRegion }) => {
     const fresh = news.filter((r) => (!r.commanded || r.switchedAtSec != null) && timelineFor(r).length > 0);
     seenRef.current = top;
     if (fresh.length && !state.battleSettings?.instantBattles && !state.pendingBattle) setReplay([...fresh].reverse());
-    // DEF-01: a Command the screen had to settle on Auto is never silent, even with no rounds to replay.
-    else if (!state.pendingBattle) { const told = news.find((r) => r.autoBecause); if (told) setOpenId(told.id); }
+    // DEF-01: a Command the screen had to settle on Auto is never silent, even with no rounds to replay; nor is
+    // the player's own battle on Auto with no rounds (an attack on a city's walls: newcomer rerun step 253).
+    else if (!state.pendingBattle) {
+      const told = news.find((r) => r.autoBecause) || (!state.battleSettings?.instantBattles && news.find((r) => r.playerSide && !r.commanded && r.turn === state.turnNumber));
+      if (told) setOpenId(told.id);
+    }
   }, [reports, state.turnNumber, state.battleSettings?.instantBattles, state.pendingBattle]);
 
   useEffect(() => {

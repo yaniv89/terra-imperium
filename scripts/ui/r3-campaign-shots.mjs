@@ -56,6 +56,33 @@ const run = async (browser, sizeId, lang) => {
   await ev('ti:manage-city', { regionId: city, tab: 'build' }); await wait(2000); await shot('3a-city-buy');
   if (await tap(page.getByTestId('city-rush-open'))) await shot('3b-city-buy-offer');
   await page.keyboard.press('Escape'); await wait(500);
+  // 6. The lead's rerun items: the city search on the map, then the siege of Shechem on Auto and its result.
+  await page.keyboard.press('Escape'); await page.evaluate(() => window.dispatchEvent(new CustomEvent('ti:close-panels'))); await wait(600); await dismiss();
+  if (await tap(page.getByTestId('map-zoom-controls').locator('button').first())) {
+    const box = page.getByTestId('map-city-search').locator('input');
+    if (await box.count()) { await box.fill(lang === 'he' ? 'שכ' : 'Shech'); await wait(500); await shot('6a-city-search'); if (await tap(page.getByTestId('map-city-found'))) { await wait(1500); await shot('6b-city-found'); } }
+  }
+  await page.keyboard.press('Escape'); await wait(400);
+  // Ten turns headless in the page (events answered, peace refused) until Akkad's siege of Shechem waits.
+  await page.evaluate(async () => {
+    const { resolveTurn } = await import('/terra-imperium/src/engine/resolveTurn.js');
+    const { gameReducer } = await import('/terra-imperium/src/engine/gameReducer.js');
+    let s = window.__game.state;
+    for (let i = 0; i < 14 && !(s.pendingDefenses || []).some((d) => s.regions[d.regionId]?.name === 'Shechem'); i++) {
+      if (s.activeEventId || s.activeProceduralEvent) s = gameReducer(s, { type: 'RESOLVE_EVENT', payload: { optionIndex: 0 } });
+      if (s.pendingPeaceOffer) s = gameReducer(s, { type: 'REJECT_PENDING_PEACE' });
+      if ((s.pendingDefenses || []).length) s = { ...s, pendingDefenses: s.pendingDefenses.filter((d) => s.regions[d.regionId]?.name === 'Shechem') };
+      const n = resolveTurn(s); if (n === s) break; s = n;
+    }
+    window.__game.dispatch({ type: 'LOAD_GAME', payload: s });
+  });
+  await wait(4000); await dismiss();
+  const sheet = page.getByTestId('defense-sheet');
+  if (await sheet.count()) {
+    await shot('7a-siege-card');
+    await sheet.locator('[role="radio"]', { hasText: /^Auto|אוטומטי/ }).first().dispatchEvent('click'); await wait(400);
+    await page.getByTestId('defense-go').dispatchEvent('click'); await wait(3500); await shot('7b-after-auto');
+  }
   await g.page.context().close();
 };
 

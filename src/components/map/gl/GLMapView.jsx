@@ -68,7 +68,8 @@ import { raidMapModel } from '../../independents/raidMapModel';
 import { openIndependent } from '../../independents/independentEvents';
 import { planGlides, glideAt, afterTurnReport } from '../marchGlide';
 import { TURN_REPORT_SHOWN, isTurnReportShown } from '../../ui/uiEvents';
-import { POINT_TILE } from '../marchEvents';
+import { POINT_TILE, focusPlace } from '../marchEvents';
+import { findCities } from '../citySearch';
 import { releaseWhenDetached } from '../../../utils/glContext';
 import { forgetReleasedGltf } from '../../../battle/render/gltfUnitLoader';
 import { watchPixelRatio } from '../../../utils/pixelRatio';
@@ -1051,6 +1052,7 @@ const GLMapView = ({
         onZoomOut={() => zoomBy(1 / ZOOM_STEP_SCALE)} canZoomOut={kNow > minK}
         onReset={resetZoom} canReset={kNow > minK}
         onHome={homeTarget ? goHome : null} onArmy={armyTarget?.from === 'army' ? goArmy : null}
+        findCities={(q) => findCities(gameState, q)} onFindCity={(id) => { onSelectRegion?.(id); focusPlace([{ regionId: id }]); }} // marching: the march aims at it
       />
     </div>
   );

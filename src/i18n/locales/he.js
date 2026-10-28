@@ -619,6 +619,7 @@ export default {
   'zoom.controls': 'פקדי זום במפה',
   'zoom.hide': 'הסתרת כפתורי הזום',
   'zoom.show': 'כפתורי זום',
+  'zoom.findCity': 'חיפוש עיר',
   'zoom.in': 'התקרבות',
   'zoom.out': 'התרחקות',
   'zoom.fit': 'התאמה לעולם',

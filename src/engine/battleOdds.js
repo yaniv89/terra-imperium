@@ -220,6 +220,7 @@ export const estimateDefenseOdds = (state, def, samples = 200) => {
     holdChance: 1 - (empty ? r.capture : r.attacker),
     avgDamage: empty ? null : Math.max(0, Math.round((region.control ?? 0) - r.expectedControl)),
     city: r.city && { hpBefore: r.city.hpBefore, hpAfter: r.city.hpAfter, maxHp: r.city.maxHp },
+    hasMelee: r.hasMelee, // the attackers bring foot or horse to take the city (simulate's own reading)
     range: r.range,
     reasons: r.reasons,
     auxiliaries: r.auxiliaries

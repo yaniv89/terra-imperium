@@ -617,6 +617,7 @@ export default {
   'zoom.controls': 'Map zoom controls',
   'zoom.hide': 'Hide zoom buttons',
   'zoom.show': 'Zoom buttons',
+  'zoom.findCity': 'Find a city',
   'zoom.in': 'Zoom in',
   'zoom.out': 'Zoom out',
   'zoom.fit': 'Fit world',

@@ -101,6 +101,15 @@ describe('W14 defenseSheetModel', () => {
     expect(m.odds.text).toMatch(/fall in about 4 turns\.$/);
   });
 
+  it('an empty city says why it holds on the odds row: its walls, or no foot soldiers to take it (newcomer rerun step 251)', () => {
+    const { st, def } = withAttack();
+    const real = queuedBattleView(st, def, 2);
+    const m = defenseSheetModel(st, def, { view: { ...real, odds: { undefended: true, holdChance: 1, city: { hpBefore: 210, hpAfter: 102, maxHp: 240 } } } });
+    expect(m.odds.walls).toBe('No regiment inside: the attack batters its walls from 210 to about 102 of 240 HP; it falls only when they break.');
+    const down = defenseSheetModel(st, def, { view: { ...real, odds: { undefended: true, holdChance: 1, hasMelee: false, city: { hpBefore: 0, hpAfter: 0, maxHp: 240 } } } });
+    expect(down.odds.walls).toBe('Its walls are down (0 of 240 HP), but the attackers bring no foot or horse to take it.');
+  });
+
   it('offers Withdraw only with somewhere to fall back to', () => {
     const { st, def } = withAttack();
     const m = defenseSheetModel(st, def, { samples: 2 });
