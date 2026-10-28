@@ -602,7 +602,11 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
     // it simply happens; the player is never signed up to a peace behind their back, so the
     // exhausted AI side OFFERS the white peace instead and the player decides (the turn waits).
     if (bothExhausted && !involvesPlayer) return concludeWar(currentWar, currentWar.aggressor, [], snapshotState);
-    if (bothExhausted) {
+    // ...unless the AI side already stands at the dictate line: then the war ends below like any
+    // lost war (a white offer every few turns let a player who refuses all offers fight on for ever).
+    const aiSideNow = currentWar.aggressor === state.playerNationId ? currentWar.enemy : currentWar.aggressor;
+    const dictates = (aiSideNow === currentWar.aggressor ? currentWar.score : -currentWar.score) >= PEACE_SCORE_ENFORCE_THRESHOLD;
+    if (bothExhausted && !dictates) {
       if (nextPendingPeaceOffer || state.turnNumber < (currentWar.peaceOfferCooldownTurn || 0)) return currentWar;
       const aiSide = currentWar.aggressor === state.playerNationId ? currentWar.enemy : currentWar.aggressor;
       nextPendingPeaceOffer = { warId: currentWar.id, from: aiSide, terms: [], reason: 'exhaustion' };

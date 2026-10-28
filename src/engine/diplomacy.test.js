@@ -556,6 +556,18 @@ describe('resolveWarProgress (Task 32 + plan §M13: occupation, war score, and t
       expect(result.logs.some((l) => l.msgKey === 'm.diplo.peaceWarn')).toBe(false);
     });
 
+    it('a warned, overwhelming AI dictates the peace even when both sides are exhausted', () => {
+      const state = usState();
+      const war = {
+        id: 'war_1', aggressor: CA_ID, enemy: US_ID, active: true, goalAchieved: true, startYear: state.year, startTurn: state.turnNumber,
+        cb: 'none', battleScore: 95, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, peaceWarnedTurn: state.turnNumber - 6, goal: { type: 'destroy_military', threshold: 1 }
+      };
+      const worn = { ...state, wars: [war], nations: { ...state.nations, [CA_ID]: { ...state.nations[CA_ID], warExhaustion: 90 }, [US_ID]: { ...state.nations[US_ID], warExhaustion: 90 } } };
+      const result = resolveWarProgress(worn, worn.regions, worn.nations, worn.wars, neverRolls);
+      expect(result.wars[0].active).toBe(false);
+      expect(result.logs.some((l) => l.msgKey === 'm.diplo.forcesPeace')).toBe(true);
+    });
+
     it('accepting one peace says which war goes on (lane wars-8)', async () => {
       const { gameReducer } = await import('./gameReducer');
       const { ActionTypes } = await import('../data/types');
