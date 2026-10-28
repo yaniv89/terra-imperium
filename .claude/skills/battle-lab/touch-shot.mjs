@@ -44,18 +44,8 @@ for (const age of ages) {
   await page.getByTestId('battle-pause').waitFor({ timeout: 120000 });
   await page.waitForTimeout(1500);
   await tap(page, 'battle-pause'); // Start
-  if (part !== 'powers' && await page.getByTestId('battle-speed-3').count()) await tap(page, 'battle-speed-3');
   await page.waitForTimeout(1500);
-  // 1. Enemy: Attack it must wait for the player (it used to go in 7 s)
-  if (part !== 'powers' && await page.getByTestId('battle-objective').count()) {
-    await tap(page, 'battle-objective');
-    await page.waitForTimeout(10000);
-    const still = await visible(page, 'battle-objective-attack');
-    console.log(`${age} objective: Attack it after 10 s: ${still ? 'shown' : 'GONE'} | "${await text(page, 'battle-objective-note')}"`);
-    await shot('1-objective');
-    if (still) { await tap(page, 'battle-objective-attack'); await page.waitForTimeout(300); console.log(`${age} objective: after Attack it: "${await text(page, 'battle-order-note')}"`); }
-  }
-  // 2. Attack armed, then a tap on the ground
+  // 1. At 1x: Attack armed, then a tap on the ground, a slow tap, the minimap, the radial
   await tap(page, 'battle-select-all');
   await page.waitForTimeout(300);
   if (part !== 'powers' && await page.getByTestId('battle-attack-move').count()) {
@@ -96,6 +86,17 @@ for (const age of ages) {
       await page.touchscreen.tap(W * 0.7, H * 0.4); await page.waitForTimeout(250);
       console.log(`${age} radial Attack: armed ${armedNow}, after ground tap ${await visible(page, 'battle-attack-armed') ? 'STILL ARMED' : 'gone (order given)'}`);
     } else console.log(`${age} radial: did not open`);
+  }
+  // 2. Enemy at 3x with nothing selected: Attack it must wait for the player (it used to go in 7 s) and send the army
+  if (part !== 'powers' && await page.getByTestId('battle-objective').count()) {
+    await tap(page, 'battle-speed-3');
+    if (await page.getByTestId('battle-clear-selection').count()) await tap(page, 'battle-clear-selection');
+    await tap(page, 'battle-objective');
+    await page.waitForTimeout(10000);
+    const still = await visible(page, 'battle-objective-attack');
+    console.log(`${age} objective: Attack it after 10 s: ${still ? 'shown' : 'GONE'} | "${await text(page, 'battle-objective-note')}"`);
+    await shot('1-objective');
+    if (still) { await tap(page, 'battle-objective-attack'); await page.waitForTimeout(300); console.log(`${age} objective: after Attack it: "${await text(page, 'battle-order-note')}"`); await page.waitForTimeout(1000); console.log(`${age} objective: squads with an attack order: ${await page.evaluate(() => window.__battleView().squads.filter((q) => q.side === 0 && q.alive && q.onField && q.order === 'attack').length)} of ${await page.evaluate(() => window.__battleView().squads.filter((q) => q.side === 0 && q.alive && q.onField && q.classId !== 'worker').length)}`); }
   }
   // 3. Powers: each one as soon as it can be paid for
   const powers = await page.evaluate(() => (window.__battleView?.()?.powers || []).map((p) => ({ id: p.id, cost: p.cost, targeted: p.targeted })));
