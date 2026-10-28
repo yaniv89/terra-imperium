@@ -27,6 +27,7 @@ for (const age of ages) {
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   const shot = (name) => page.screenshot({ path: path.join(outDir, `${age}-${name}.png`) });
+  try {
   await page.goto(`${base}?battleSandbox&autostart&age=${age}`, { timeout: 240000, waitUntil: 'domcontentloaded' });
   await page.getByTestId('battle-pause').waitFor({ timeout: 120000 });
   await page.waitForTimeout(1500);
@@ -65,7 +66,8 @@ for (const age of ages) {
     await page.waitForTimeout(250);
     const btn = page.getByTestId(`battle-power-${pw.id}`);
     if (!(await btn.count()) || await btn.isDisabled()) { console.log(`${age} power ${pw.id}: not ready`); await page.keyboard.press('Escape'); continue; }
-    await btn.tap();
+    // a raw tap: the sheet re-renders with every HUD frame, which stalls locator.tap's stability wait
+    const bb = await btn.boundingBox(); await page.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2);
     if (pw.targeted) {
       await page.waitForTimeout(200);
       const at = await page.evaluate(({ id }) => {
@@ -79,7 +81,7 @@ for (const age of ages) {
       }, { id: pw.id });
       await page.touchscreen.tap(at.x, at.y);
     }
-    await page.waitForTimeout(pw.targeted ? 400 : 250);
+    await page.waitForTimeout(pw.targeted ? 1200 : 300); // a strike lands after its delay
     console.log(`${age} power ${pw.id}: note "${await text(page, 'battle-order-note')}"`);
     await shot(`4-power-${pw.id}`);
   }
@@ -87,6 +89,7 @@ for (const age of ages) {
   await page.evaluate(() => { const v = window.__battleView(); const r = window.__battleRenderer; const own = v.squads.filter((q) => q.side === 0 && q.alive && q.onField); r.centerOn(own.reduce((s, q) => s + q.x, 0) / own.length / 256, own.reduce((s, q) => s + q.y, 0) / own.length / 256); r.zoomBy(0.6, innerWidth / 2, innerHeight / 2); r.updateCamera(); });
   await page.waitForTimeout(500);
   await shot('5-flags');
+  } catch (err) { console.log(`${age}: SCRIPT STOPPED: ${err.message.split('\n')[0]}`); }
   console.log(`${age}: ${errors.length ? `errors: ${errors.slice(0, 5).join(' | ')}` : 'no console errors'}`);
   await ctx.close();
 }

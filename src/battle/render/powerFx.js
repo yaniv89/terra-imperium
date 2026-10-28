@@ -16,7 +16,7 @@ const ringRound = (list, color) => {
   if (!list.length) return null;
   const c = centreOf(list);
   const r = Math.max(...list.map((q) => Math.hypot(q.x / Q - c.x, q.y / Q - c.z))) + 2;
-  return { x: c.x, z: c.z, r: Math.min(r, 40), color };
+  return { x: c.x, z: c.z, r: Math.min(r, 14), color }; // past 14 tiles the ring leaves a phone's view
 };
 const burstsOf = (list) => list.slice(0, MAX_BURSTS).map((q) => ({ x: q.x / Q, z: q.y / Q }));
 

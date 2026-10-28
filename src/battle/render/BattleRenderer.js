@@ -1191,7 +1191,10 @@ export class BattleRenderer {
         // two seconds, and a burst on each squad it touched.
         const fx = powerFx(e, view, this.map);
         if (fx?.ring) this.addMarker(fx.ring.x, fx.ring.z, fx.ring.color, fx.ring.r / MARKER_RING_R, 2, 'area');
-        fx?.bursts.forEach((b) => this.addMarker(b.x, b.z, fx.color, 1.2, 0.9, 'burst'));
+        fx?.bursts.forEach((b, i) => {
+          this.addMarker(b.x, b.z, fx.color, 1.6, 1.1, 'burst');
+          for (let k = 0; k < 3; k++) this.fx.push({ kind: 'spark', big: true, tint: fx.color, x: b.x + (hash01(e.t * 7 + i * 3 + k) - 0.5) * 1.2, z: b.z + (hash01(e.t * 13 + i * 3 + k) - 0.5) * 1.2, t: 0, life: 1.1, seed: k });
+        });
       } else if (e.type === 'hijacked') {
         const q = view.squads[e.id];
         if (q) this.addMarker(q.x / Q, q.y / Q, POWER_FX_COLOR.hijack, 1.4, 1.2, 'burst');
@@ -1813,7 +1816,7 @@ export class BattleRenderer {
         tmp.position.set(f.x, this.heightAt(f.x, f.z) + 0.4 + rise, f.z);
         tmp.rotation.set(k * 4, k * 5, 0); const sc = (f.big ? 2.2 : 1) * (1 - k); tmp.scale.set(sc, sc, sc); tmp.updateMatrix();
         this.sparks.setMatrixAt(sn, tmp.matrix);
-        this.sparks.setColorAt(sn, colorOf(f.shield ? '#67e8f9' : f.fire ? (k < 0.4 ? '#fb923c' : '#57534e') : f.big ? '#a8a29e' : '#fbbf24'));
+        this.sparks.setColorAt(sn, colorOf(f.tint || (f.shield ? '#67e8f9' : f.fire ? (k < 0.4 ? '#fb923c' : '#57534e') : f.big ? '#a8a29e' : '#fbbf24')));
         sn += 1;
       }
     });
