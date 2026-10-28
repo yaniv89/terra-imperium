@@ -32,7 +32,7 @@ export const useWhy = () => {
     return () => clearTimeout(id);
   }, [tip]);
   const why = (blocked, reason, onClick) => (blocked && reason
-    ? { 'aria-disabled': true, title: reason, onClick: (e) => { e.stopPropagation(); setTip({ rect: e.currentTarget.getBoundingClientRect(), text: reason }); } }
+    ? { 'aria-disabled': true, title: reason, onClick: (e) => { e.stopPropagation(); e.currentTarget.scrollIntoView?.({ block: 'nearest' }); setTip({ rect: e.currentTarget.getBoundingClientRect(), text: reason }); } }
     : { disabled: !!blocked, onClick });
   return [why, tip ? <Bubble rect={tip.rect} text={tip.text} /> : null];
 };

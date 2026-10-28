@@ -37,7 +37,8 @@ export const ERA_ENGINE = [
   "export { getResearchCost } from '../src/engine/research.js';",
   "export { rushQuote } from '../src/engine/spending.js';",
   "export { navalLinesFor } from '../src/data/navalLines.js';",
-  "export { unitUnlockTech, isUnitUnlocked } from '../src/data/unitClasses.js';"
+  "export { unitUnlockTech, isUnitUnlocked } from '../src/data/unitClasses.js';",
+  "export { pendingLandmarkAge, aiLandmark } from '../src/engine/ageLandmarks.js';"
 ];
 
 export const loadEngine = async () => {
@@ -173,6 +174,12 @@ export const buildEraSaves = async ({ ages = DEFAULT_AGES, player = ERA_PLAYER, 
   for (let i = 0; i < turns && s.gameStatus === 'ACTIVE' && ages.some((a) => !saves[a]); i++) {
     if (s.activeEventId) s = e.gameReducer(s, { type: e.ActionTypes.RESOLVE_EVENT, payload: { optionIndex: 0 } });
     s = scripted.answer(s).state;
+    // a player picks each age's landmark as it comes (else every save from gunpowder on still asks for the bronze one)
+    for (let lm = e.pendingLandmarkAge(s), next; lm; lm = e.pendingLandmarkAge(s)) {
+      next = e.gameReducer(s, { type: e.ActionTypes.CHOOSE_AGE_LANDMARK, payload: { ageId: lm, landmarkId: e.aiLandmark(player, lm) } });
+      if (next === s) break; // refused: leave it
+      s = next;
+    }
     const prev = s;
     s = advanceCampaign(e, s);
     const a = e.getTechAgeId(s, player);

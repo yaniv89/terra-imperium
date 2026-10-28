@@ -65,7 +65,8 @@ const TileSheet = ({ tile, onClose, onSelectRegion, onAttack, settleUnitId = nul
   const idle = settlers.filter((u) => u.target == null && u.tile !== tile);
   const ownerCity = state.world?.tileOwner?.[tile] ? state.regions[state.world.tileOwner[tile]] : null;
   const ownerNation = ownerCity ? state.nations[ownerCity.owner] : null;
-  const name = tiles.names[tile] ? nameNow('place', null, tiles.names[tile]) : facts.river ? (tiles.riverNames[tile] ? t('mx.tile.onRiver', { name: nameNow('place', null, tiles.riverNames[tile]) }) : t('mx.tile.onRiverPlain')) : facts.land ? t('mx.tile.wild') : t('mx.tile.openWater');
+  // A city's own tile is the city, not the modern place name under it (lead check 28 Oct: Mycenae read "Tripoli"); as placeLabel does.
+  const name = ownerCity?.tile === tile ? nameNow('city', null, ownerCity.name) : tiles.names[tile] ? nameNow('place', null, tiles.names[tile]) : facts.river ? (tiles.riverNames[tile] ? t('mx.tile.onRiver', { name: nameNow('place', null, tiles.riverNames[tile]) }) : t('mx.tile.onRiverPlain')) : facts.land ? t('mx.tile.wild') : t('mx.tile.openWater');
   const parts = [terrainWord(facts.terrain), facts.relief !== 'flat' ? terrainWord(facts.relief) : null, facts.feature !== 'none' ? terrainWord(facts.feature) : null, facts.river ? terrainWord('river') : null, facts.coastal && facts.land ? terrainWord('coast') : null].filter(Boolean);
   const country = tiles.countryOf(tile);
   const turnsFor = (u) => { const p = settlerPath(state, u.tile, tile, me); return p ? Math.ceil(p.length / SETTLER_MOVES) : null; };

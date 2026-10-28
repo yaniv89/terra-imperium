@@ -87,7 +87,7 @@ export const IndependentSheetBody = ({ model: m, onRun, note, onClose }) => {
         {m.deals.demand && (
           <section className="rounded-lg border border-fa-enemy/70 bg-fa-ink/60 p-2.5 space-y-2" data-testid="indep-demand">
             <CardLabel>{t('ind.sheet.theyDemand')}</CardLabel>
-            <div className="fa-num">{t('ind.sheet.demandBody', { gold: t('ind.sheet.goldWord', { n: m.deals.demand.gold }), turns: m.deals.demand.turns, a: m.grudge.value, b: m.deals.demand.afterRefuse, left: turns(m.deals.demand.turnsLeft) })}</div>
+            <div>{t('ind.sheet.demandBody', { gold: t('ind.sheet.goldWord', { n: m.deals.demand.gold }), turns: m.deals.demand.turns, a: m.grudge.value, b: m.deals.demand.afterRefuse, left: turns(m.deals.demand.turnsLeft) })}</div>
             <button type="button" onClick={() => openTributeDemand(m.deals.demand.id)} className="fa-btn fa-btn-secondary w-full" data-testid="indep-demand-open">{t('ind.sheet.answer')}</button>
           </section>
         )}
