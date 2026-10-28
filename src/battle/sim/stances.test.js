@@ -9,6 +9,7 @@ import { createWorld } from './world';
 import { step } from './step';
 import { thinkAI, AI_DIFFICULTY } from './tacticalAI';
 import { updateFog } from './fog';
+import { buildTownManifest } from '../../data/townLayout';
 import { Q, secondsToTicks } from './constants';
 
 const mk = (p, cls) => cls.map((classId, i) => ({ id: `${p}${i}`, classId, strength: 1000, maxStrength: 1000, morale: 100, promotions: [], commanderId: null, domain: 'land' }));
@@ -237,5 +238,35 @@ describe('a field battle never runs to the clock with nobody fighting (playtest 
     expect(w.ended.reason).not.toBe('timeLimit');
     expect(w.ended.tick).toBeLessThan(setup.limitTicks);
     expect(hit).toBe(true);
+  });
+});
+
+describe('the AI fights like a player would (battle-ai-tactics)', () => {
+  const thinkAt = (w, side) => { w.tick = AI_DIFFICULTY.prince.thinkEvery * 10; updateFog(w); w.tick += side; const orders = []; thinkAI(w, side, orders); return orders; };
+  const aiWorld = (att, def, opts = {}) => createWorld(buildSetupFromArmies({
+    regionId: 'tactics-test', terrain: 'plains', seed: 42, attackerUnits: mk('a', att), defenderUnits: mk('d', def),
+    controllers: ['player', 'ai'], difficultyId: 'prince', ...opts
+  }));
+  it('behind standing walls it does not march out to an army still outside them', () => {
+    const cityManifest = buildTownManifest({ cityId: 'tactics-test', ageId: 'bronze', tierId: 'medium', style: 'europe', seed: 1, defenseTier: 1 });
+    const w = aiWorld(['infantry', 'infantry'], ['infantry', 'infantry'], { fortLevel: 2, city: true, cityManifest, attackerAgeId: 'bronze', defenderAgeId: 'bronze' });
+    const keep = w.structures[0];
+    w.squads.filter((q) => q.side === 0 && q.onField && !q.isGeneral).forEach((q, i) => place(q, keep.x - 20 * Q, keep.y + i * 2 * Q));
+    w.revealUntil = [-1, 1e9];
+    expect(w.structures.some((s) => s.kind === 'gate')).toBe(true);
+    expect(thinkAt(w, 1).filter((o) => o.type === 'attackMove' || o.type === 'attack')).toEqual([]);
+  });
+  it('its archers in reach of the same enemies shoot the same one, the weakest', () => {
+    const w = aiWorld(['infantry', 'infantry'], ['ranged', 'ranged'], { fortLevel: 0 });
+    const [a, b] = w.squads.filter((q) => q.side === 0 && q.onField && !q.isGeneral);
+    const [r1, r2] = w.squads.filter((q) => q.side === 1 && q.onField && !q.isGeneral);
+    park(w, [a, b, r1, r2]);
+    place(r1, 50 * Q, 30 * Q); place(r2, 50 * Q, 32 * Q);
+    place(a, 46 * Q, 30 * Q); place(b, 46 * Q, 32 * Q);
+    b.strength = 400;
+    w.revealUntil = [1e9, 1e9];
+    const shots = thinkAt(w, 1).filter((o) => o.type === 'attack');
+    expect(shots.map((o) => o.squads[0]).sort()).toEqual([r1.idx, r2.idx].sort());
+    shots.forEach((o) => expect(o.target).toEqual({ kind: 'squad', index: b.idx }));
   });
 });
