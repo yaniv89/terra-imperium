@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { getNeighborIds } from '../data/regions';
 import { neighbourWorld, rivalOf, majorIds } from './testWorld';
-import { buildingOrder, BUILDING_PRIORITY, chooseProduction, garrisonOf } from './aiProduction';
+import { buildingOrder, BUILDING_PRIORITY, chooseProduction, garrisonOf, nationCounts } from './aiProduction';
 import { DOCTRINE_BUILDING_PRIORITY, DOCTRINE_IDS } from '../data/nations';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 import { TECH_TREE } from '../data/techTree';
@@ -145,5 +145,12 @@ describe('a restless city wants Culture & Order (lane W6)', () => {
     expect(lineNeed('culture', { unrest: 0 }, sit)).toBe(1);
     expect(lineNeed('culture', { unrest: UNREST_NEED_AT / 2 }, sit)).toBeCloseTo(1 + (UNREST_NEED - 1) / 2, 6);
     expect(lineNeed('culture', { unrest: 90 }, sit)).toBe(UNREST_NEED);
+  });
+});
+
+describe('nationCounts', () => {
+  it('gives every city owner counts, so a nation with no units still has a ship tally', () => {
+    const counts = nationCounts({ units: {}, regions: { a: { id: 'a', owner: 'x', production: {} } } });
+    expect(counts.x).toMatchObject({ ships: 0, landUnits: 0, outposts: 0 });
   });
 });

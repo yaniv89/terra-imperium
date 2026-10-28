@@ -115,9 +115,10 @@ export const nationCounts = (state) => {
   });
   Object.values(state.regions || {}).forEach((c) => {
     if (!c.owner) return;
-    if (c.outpost) of(c.owner).outposts += 1;
-    else if (c.production?.current?.classId === 'naval') of(c.owner).ships += 1; // a ship on the slips counts toward the navy
-    else if (c.production?.current?.kind === 'unit') of(c.owner).queuedUnits += 1; // regiments in training (a war plan counts them)
+    const n = of(c.owner); // every city owner gets counts, so a unitless nation's new ship is counted too (resolveTurn)
+    if (c.outpost) n.outposts += 1;
+    else if (c.production?.current?.classId === 'naval') n.ships += 1; // a ship on the slips counts toward the navy
+    else if (c.production?.current?.kind === 'unit') n.queuedUnits += 1; // regiments in training (a war plan counts them)
   });
   return out;
 };
