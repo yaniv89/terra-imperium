@@ -7,6 +7,8 @@ export default {
   'babil.entrench': 'התבצרות',
   'babil.ambush': 'מארב',
   'babil.charge': 'הסתערות',
+  'babil.sea.forcedMarch': 'מפרשים מלאים',
+  'babil.sea.charge': 'מהירות ניגוח',
   'babil.bombard': 'הפגזה',
   'babil.fieldHospital': 'בית חולים שדה',
   'babil.shieldWall': 'חומת מגנים',

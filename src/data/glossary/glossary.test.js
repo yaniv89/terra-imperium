@@ -30,3 +30,13 @@ describe('glossary', () => {
     expect(glossaryEntry('term', 'nope')).toBeNull();
   });
 });
+
+describe('glossary tech and unit entries', () => {
+  it('a tech names what it leads to and its boost; a tech-locked unit names its tech', () => {
+    const e = glossaryEntry('tech', 'military_hunting_bands');
+    expect(e.leadsTo.map((x) => x.id)).toContain('military_copper_working');
+    expect(e.boost).toBeTruthy();
+    const locked = glossaryIds('unit').map((id) => glossaryEntry('unit', id)).find((u) => u.needsTech);
+    expect(locked && glossaryEntry('tech', locked.needsTech)).toBeTruthy();
+  });
+});

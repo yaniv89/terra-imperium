@@ -23,6 +23,7 @@ import { waitAgeOf } from './ageRefs';
 import { exploreOn } from './hostility';
 import { setEraFocus } from './eraGoals';
 import { addGrudge } from './grudges';
+import { calcIncome } from '../utils/helpers';
 
 // The resources an option lacks, as a list of names ("gold, hr").
 const shortfallList = (ids) => ids.map((id) => thing('resource', id, id)).reduce((acc, r) => (acc === '' ? r : sub('m.world.listMore', { a: acc, b: r })), '');
@@ -41,7 +42,23 @@ const PAYABLE_KEYS = [...RESOURCE_IDS, 'techPoints'];
 export const getOptionShortfall = (resources, effects = {}) =>
   PAYABLE_KEYS.filter((id) => (effects[id] || 0) < 0 && (resources?.[id] || 0) < -effects[id]);
 
-export const applyEventEffects = (state, event, optionIndex) => {
+// Event gold in turns of income (EU4 prices its events in years of income; lane gold-sinks). The cards'
+// gold was written for a Stone Age realm of about EVENT_GOLD_REF_INCOME gold a turn, so -60 was a turn
+// and a half of income then and a rounding error at 350 a turn: every gold amount, cost or gain, is
+// multiplied by the player's gross gold income over that reference (never below 1) and rounded to 5.
+// The card (App.jsx), the payment here and the crisis check (resolveTurn.js) all read scaleEventGold.
+export const EVENT_GOLD_REF_INCOME = 40;
+export const eventGoldScale = (state) => Math.max(1, (calcIncome(state).gold || 0) / EVENT_GOLD_REF_INCOME);
+const round5 = (v) => Math.sign(v) * Math.max(5, Math.round(Math.abs(v) / 5) * 5);
+/** `event` with every option's gold scaled for `state`'s player (the same event when the scale is 1). */
+export const scaleEventGold = (state, event) => {
+  const k = event?.options ? eventGoldScale(state) : 1;
+  if (k === 1) return event;
+  return { ...event, options: event.options.map((o) => (o.effects?.gold ? { ...o, effects: { ...o.effects, gold: round5(o.effects.gold * k) } } : o)) };
+};
+
+export const applyEventEffects = (state, unscaled, optionIndex) => {
+  const event = scaleEventGold(state, unscaled);
   const option = event.options[optionIndex];
   if (!option) return state;
   // Events can't be skipped, so an unaffordable choice used to go through anyway and push the

@@ -6,14 +6,17 @@
 //
 //   battle effects   src/assets/audio/battle/<id>/*.ogg|mp3      (BATTLE_SOUNDS)
 //   map ambience     src/assets/audio/music/ambience/<id>/*.ogg|mp3  (AMBIENCE_SOUNDS, looped)
-//   music            src/assets/audio/music/*.ogg|mp3            (the map's playlist, crossfaded)
-//   battle music     src/assets/audio/music/battle/*.ogg|mp3     (the RTS battle's playlist)
+//   music            src/assets/audio/music/ages/<age>/*.ogg|mp3 (the map's playlist for the player's age)
+//   battle music     src/assets/audio/music/battle/*.ogg|mp3     (the RTS battle's playlist; battle/<age>/
+//                    from that age on)
 //   interface        src/assets/audio/ui/<id>/*.ogg              (UI_SOUNDS, sfx.js)
 //   world map        src/assets/audio/world/<id>/*.ogg           (WORLD_SOUNDS, sfx.js)
 //   unit voices      src/assets/audio/voice/<class>/<select|order|attack>/*.ogg (sfx.js playVoice)
 // src/audio/ACTIONS.md says when each interface, world, battle and voice sound plays.
 // Each folder's README.md gives the format: OGG or MP3, 44.1 kHz, loudness about -16 LUFS for music
 // and -14 to -20 LUFS for effects, and a LICENSE file per pack.
+
+import { AGE_ORDER, FIRST_AGE_ID } from '../data/ages';
 
 // gain: the id's level in the mix, set from the recordings' measured loudness so each id lands in its
 // tier (src/audio/mixLevels.test.js; re-measure with scripts/audio/mix-levels.mjs after new files);
@@ -81,8 +84,8 @@ export const BATTLE_SOUNDS = {
   // The interface: heard wherever the camera is.
   'order-click': { label: 'Order confirmed', gain: 1.5, cooldownMs: 30, synth: 'click', positional: false },
   bell: { label: 'Point captured', gain: 0.41, cooldownMs: 600, synth: 'bell', positional: false },
-  victory: { label: 'Victory', gain: 0.47, cooldownMs: 2000, synth: 'victory', positional: false },
-  defeat: { label: 'Defeat', gain: 0.47, cooldownMs: 2000, synth: 'defeat', positional: false }
+  victory: { label: 'Victory', gain: 0.66, cooldownMs: 2000, synth: 'victory', positional: false },
+  defeat: { label: 'Defeat', gain: 0.72, cooldownMs: 2000, synth: 'defeat', positional: false }
 };
 // Which weapon sound family each age plays (every id in AGE_ORDER has one; soundRegistry.test.js).
 export const AGE_SOUND_FAMILY = {
@@ -98,10 +101,14 @@ export const FAMILY_VOICE = {
 };
 export const BATTLE_SOUND_IDS =Object.keys(BATTLE_SOUNDS);
 
-// The map's background beds, looped under the music.
+// The map's background beds, looped under the music: the one for the land at the centre of the view
+// (mapAmbience.js picks it), crossfaded as the camera moves.
 export const AMBIENCE_SOUNDS = {
-  'map-wind': { label: 'Wind over the land', gain: 0.35 },
-  'map-sea': { label: 'Sea and coast', gain: 0.3 }
+  'map-wind': { label: 'Wind (cold lands, mountains, the whole world)', gain: 0.35 },
+  'map-fields': { label: 'Birds and countryside (grass, plains, forest)', gain: 0.35 },
+  'map-sea': { label: 'Sea and coast', gain: 0.3 },
+  'map-desert': { label: 'Desert wind and sand', gain: 0.3 },
+  'map-jungle': { label: 'Jungle insects and birds', gain: 0.3 }
 };
 
 // The interface and the world map (src/audio/sfx.js plays them; src/audio/ACTIONS.md says when).
@@ -170,9 +177,9 @@ const UI_FILES = import.meta.glob('../assets/audio/ui/*/*.{ogg,mp3}', { query: '
 const WORLD_FILES = import.meta.glob('../assets/audio/world/*/*.{ogg,mp3}', { query: '?url', import: 'default', eager: true });
 const VOICE_FILES = import.meta.glob('../assets/audio/voice/*/*/*.{ogg,mp3}', { query: '?url', import: 'default', eager: true });
 const AMBIENCE_FILES = import.meta.glob('../assets/audio/music/ambience/*/*.{ogg,mp3}', { query: '?url', import: 'default', eager: true });
-// Only files directly in music/: the battle/ and ambience/ subfolders are not map tracks.
-const MUSIC_FILES = import.meta.glob('../assets/audio/music/*.{ogg,mp3}', { query: '?url', import: 'default', eager: true });
-const BATTLE_MUSIC_FILES = import.meta.glob('../assets/audio/music/battle/*.{ogg,mp3}', { query: '?url', import: 'default', eager: true });
+const MUSIC_FILES = import.meta.glob('../assets/audio/music/ages/*/*.{ogg,mp3}', { query: '?url', import: 'default', eager: true });
+// music/battle/*.ogg serve the first age; music/battle/<age>/ take over from that age.
+const BATTLE_MUSIC_FILES = import.meta.glob(['../assets/audio/music/battle/*.{ogg,mp3}', '../assets/audio/music/battle/*/*.{ogg,mp3}'], { query: '?url', import: 'default', eager: true });
 
 /** Group a glob map { '<path>/<id>/<file>': url } by its folder name: { id: [url, ...] } (sorted by file). */
 export const groupByFolder = (files) => {
@@ -233,10 +240,31 @@ export const voiceFilesFor = (classId, kind) => {
 /** Which registry an id belongs to: 'ui', 'world', 'battle' or null. */
 export const soundCategory = (id) => (UI_SOUNDS[id] ? 'ui' : WORLD_SOUNDS[id] ? 'world' : BATTLE_SOUNDS[id] ? 'battle' : null);
 
-/** The music playlist, in file name order (prefix names with 01-, 02- to set it). */
-export const musicTracks = () => fileOverride?.music || Object.keys(MUSIC_FILES).sort().map((k) => MUSIC_FILES[k]);
-/** The battle playlist (music/battle/), in file name order. */
-export const battleMusicTracks = () => fileOverride?.battleMusic || Object.keys(BATTLE_MUSIC_FILES).sort().map((k) => BATTLE_MUSIC_FILES[k]);
+/**
+ * An age's tracks from { ageId: [url] } (pure): its own folder, else the nearest earlier age that has
+ * one, else the nearest later one; [] when there are none.
+ */
+export const tracksForAge = (byAge, age) => {
+  const i = Math.max(0, AGE_ORDER.indexOf(age));
+  const order = [...AGE_ORDER.slice(0, i + 1).reverse(), ...AGE_ORDER.slice(i + 1)];
+  return byAge[order.find((a) => byAge[a]?.length)] || [];
+};
+let musicIndex = null; let battleMusicIndex = null;
+const byAgeFolder = (files, root) => {
+  const out = {};
+  Object.keys(files).sort().forEach((p) => {
+    const folder = p.split('/').slice(-2, -1)[0];
+    (out[folder === root ? FIRST_AGE_ID : folder] ||= []).push(files[p]);
+  });
+  return out;
+};
+const overrideFor = (list, age) => (Array.isArray(list) ? list : tracksForAge(list, age));
+/** The map playlist for an age (music/ages/<age>/), in file name order. */
+export const musicTracks = (age = FIRST_AGE_ID) => (fileOverride?.music ? overrideFor(fileOverride.music, age)
+  : tracksForAge(musicIndex = musicIndex || byAgeFolder(MUSIC_FILES), age));
+/** The battle playlist for an age (music/battle/, or music/battle/<age>/ from that age on). */
+export const battleMusicTracks = (age = FIRST_AGE_ID) => (fileOverride?.battleMusic ? overrideFor(fileOverride.battleMusic, age)
+  : tracksForAge(battleMusicIndex = battleMusicIndex || byAgeFolder(BATTLE_MUSIC_FILES, 'battle'), age));
 
 /** Tests only: pretend these files exist ({ battle: { id: [url] }, ui, world, voice: { 'class/kind': [url] },
  *  ambience, music: [url], battleMusic: [url] }); null resets. */

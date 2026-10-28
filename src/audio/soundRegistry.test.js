@@ -1,7 +1,8 @@
 // The sound registry: every battle sound the game names, files grouped by folder, variants picked
 // without repeating, and the music decision.
 import { describe, it, expect } from 'vitest';
-import { BATTLE_SOUNDS, BATTLE_SOUND_IDS, groupByFolder, pickVariant, createSoundRng, battleFilesFor, musicTracks, battleMusicTracks, ambienceFilesFor } from './soundRegistry';
+import { BATTLE_SOUNDS, BATTLE_SOUND_IDS, AMBIENCE_SOUNDS, groupByFolder, pickVariant, createSoundRng, battleFilesFor, musicTracks, battleMusicTracks, ambienceFilesFor, tracksForAge } from './soundRegistry';
+import { AGE_ORDER } from '../data/ages';
 import { musicWanted, nextTrack } from './music';
 
 describe('sound registry', () => {
@@ -25,8 +26,31 @@ describe('sound registry', () => {
   it('finds the shipped CC0 recordings: battle variants per id and the map playlist', () => {
     expect(battleFilesFor('sword-clash').length).toBeGreaterThanOrEqual(2);
     expect(battleFilesFor('cavalry-hooves').length).toBeGreaterThanOrEqual(2);
-    expect(musicTracks().length).toBeGreaterThanOrEqual(6);
-    expect(ambienceFilesFor('map-wind').length).toBeGreaterThanOrEqual(1);
+    Object.keys(AMBIENCE_SOUNDS).forEach((id) => expect(ambienceFilesFor(id).length, id).toBeGreaterThanOrEqual(1));
+  });
+
+  it('every age has its own map music, at least two tracks, none shared with another age', () => {
+    const seen = new Set();
+    AGE_ORDER.forEach((age) => {
+      const list = musicTracks(age);
+      expect(list.length, age).toBeGreaterThanOrEqual(2);
+      expect(list.every((u) => u.includes(`/music/ages/${age}/`)), age).toBe(true);
+      list.forEach((u) => { expect(seen.has(u)).toBe(false); seen.add(u); });
+    });
+  });
+
+  it('an age without its own folder takes the nearest earlier one, else the nearest later one', () => {
+    const byAge = { bronze: ['b'], modern: ['m'] };
+    expect(tracksForAge(byAge, 'stone')).toEqual(['b']);
+    expect(tracksForAge(byAge, 'kingdoms')).toEqual(['b']);
+    expect(tracksForAge(byAge, 'future')).toEqual(['m']);
+    expect(tracksForAge({}, 'future')).toEqual([]);
+  });
+
+  it('battle music: the ancient playlist until gunpowder, then the later ages\' own', () => {
+    expect(battleMusicTracks('kingdoms').every((u) => /music\/battle\/[^/]+\.ogg$/.test(u))).toBe(true);
+    expect(battleMusicTracks('modern').every((u) => u.includes('/music/battle/gunpowder/'))).toBe(true);
+    expect(battleMusicTracks('future').every((u) => u.includes('/music/battle/information/'))).toBe(true);
   });
 
   it('the battle playlist is its own folder, never part of the map playlist', () => {
@@ -37,7 +61,7 @@ describe('sound registry', () => {
   });
 
   it('an id with no files falls back to the synthesized sound (empty list)', () => {
-    expect(battleFilesFor('victory')).toEqual([]);
+    expect(battleFilesFor('laser-fire')).toEqual([]);
   });
 
   it('picks variants at random, never the same twice in a row', () => {

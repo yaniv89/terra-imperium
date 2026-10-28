@@ -167,7 +167,11 @@ export const objectiveLine = (hud, setup, playerSide, goalOf) => {
 // Every end cause the sim gives (sim/step.js), told from the player's side (playtest issue 8).
 const END_REASONS = new Set(['keepTaken', 'baseDestroyed', 'campDestroyed', 'defenderRetreated', 'attackerRetreated', 'defendersBroken', 'attackersBroken', 'lossesDecisive', 'timeLimit', 'mutualDestruction', 'fieldHeld', 'farBankHeld', 'beachheadHeld', 'ambushed', 'campBurned', 'escaped', 'looted', 'raidersDriven']);
 /** Why the battle ended in one plain line: you won or lost, and what did it. */
-export const endReasonText = (reason, won, draw = false) => (!END_REASONS.has(reason) ? '' : reason === 'mutualDestruction' || draw ? t('bt.end.mutualDestruction') : t(`bt.end.${reason}.${won ? 'win' : 'loss'}`));
+/** The verdict word for an outcome from `side`'s view (0 attacks): Victory, Held, Defeat, Stalemate. */
+export const endVerdict = (outcome, side) => t(outcome === 'stalemate' ? 'bt.result.stalemate' : outcome === (side === 0 ? 'attacker' : 'defender') ? (side === 1 ? 'bt.result.held' : 'bt.result.victory') : 'bt.result.defeat');
+const SEA_ENDS = new Set(['lossesDecisive', 'defendersBroken', 'attackersBroken']); // a fleet is sunk or scattered, never an army
+export const endReasonText = (reason, won, draw = false, naval = false) => (!END_REASONS.has(reason) ? '' : reason === 'mutualDestruction' || draw ? t('bt.end.mutualDestruction')
+  : t(`bt.end.${naval && SEA_ENDS.has(reason) ? 'sea' : reason}.${won ? 'win' : 'loss'}`));
 
 export const ALERT_SHOW_TICKS = 8 * TICK_HZ; // an alert shows 8 s, then lives on in the history (I203)
 const WORKER_ALERT_GAP = 30 * TICK_HZ;
@@ -242,9 +246,9 @@ export const nextAlerts = (prev, cur, playerSide, setup, last = {}) => {
  * never pile up over the field), how many others there are, and the whole list newest first (the
  * history the player can open).
  */
-export const visibleAlerts = (alerts, tick) => {
+export const visibleAlerts = (alerts, tick, max = 2) => {
   const fresh = alerts.filter((a) => tick - a.tick < ALERT_SHOW_TICKS);
-  const shown = fresh.slice(-2).reverse();
+  const shown = fresh.slice(-max).reverse();
   return { shown, older: Math.max(0, alerts.length - shown.length), history: [...alerts].reverse() };
 };
 
@@ -342,7 +346,12 @@ export const battleResultModel = (ended, setup, playerSide, campaign = {}, recei
   const eco = tac.economy?.[playerSide] || null;
   const ageId = campaign.ageId || setup.sides[playerSide].ageId;
   const autoWin = campaign.auto?.win;
+  const theirEco = tac.economy?.[1 - playerSide] || null;
+  const theirTrained = Object.entries(theirEco?.trained || {}).reduce((n, [k, c]) => n + (k === 'worker' ? 0 : c), 0);
   const common = {
+    naval: setup.battleType === 'naval',
+    // The other side's auxiliaries are not campaign men either: said apart, so "0 of theirs lost" after a fight reads right.
+    theirAux: theirTrained > 0 ? auxiliaryText({ squads: theirTrained, standing: Object.values(theirEco.auxiliariesStanding || {}).reduce((n, c) => n + c, 0) }, { yours: false }) : null,
     reason: tac.reason || null,
     duration: tac.durationSec || 0,
     workersLost: eco?.workersLost ?? null,
@@ -350,7 +359,7 @@ export const battleResultModel = (ended, setup, playerSide, campaign = {}, recei
       ? t('bt.result.autoWins', { pct: Math.round(autoWin * 100) })
       : t('bt.result.autoTuned')
   };
-  const empty = { mine: null, theirs: null, xp: [], xpRule: null, generals: [], city: null, loot: null, aux: null, notice: null, headline: null };
+  const empty = { mine: null, theirs: null, xp: [], xpRule: null, generals: [], city: null, loot: null, aux: null, theirAux: null, notice: null, headline: null };
 
   // The campaign is still counting the battle: no number is shown before it is the final one.
   if (receipt?.pending) return { ...common, ...empty, state: 'pending', won: false, draw: true, verdict: t('bt.result.over'), line: t('bt.result.counting') };

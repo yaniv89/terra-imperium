@@ -24,6 +24,7 @@ import { getOverextension } from '../../../src/engine/nationalPower';
 import { metNations } from '../../../src/engine/fog';
 import { opinionOf } from '../../../src/engine/opinion';
 import { decreeCap } from '../../../src/engine/decrees';
+import { calcNationBalance } from '../../../src/engine/economy';
 import { isIndependentNation } from '../../../src/data/independents';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -180,7 +181,7 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
     topMilitaryToMedian: +(mil[0] / Math.max(1, mil[Math.floor(mil.length / 2)])).toFixed(1),
     avgWarExhaustion: +(we.reduce((a, b) => a + b, 0) / we.length).toFixed(1),
     avgUnrest: +(unrest.reduce((a, b) => a + b, 0) / unrest.length).toFixed(1),
-    playerProvinces: counts[s.playerNationId] || 0, playerGold: Math.round(s.resources.gold || 0), playerSupplies: Math.round(s.resources.supplies || 0),
+    playerProvinces: counts[s.playerNationId] || 0, playerGold: Math.round(s.resources.gold || 0), ...(() => { const b = calcNationBalance(s, s.playerNationId); return { playerGoldIncome: Math.round(b.income.gold || 0), playerGoldExpenses: Math.round((b.income.gold || 0) - b.net), playerArmyUpkeep: b.expenses.armyUpkeep + b.expenses.navyUpkeep }; })(), playerSupplies: Math.round(s.resources.supplies || 0),
     playerUnits: Object.values(s.units).filter((u) => u.ownerId === s.playerNationId).length,
     // Research (src/engine/research.js): the player's advisor picks; the median AI nation.
     playerTechs: Object.values(s.techTree).filter((t) => t.researched).length, playerTechAge: s.techAgeId,

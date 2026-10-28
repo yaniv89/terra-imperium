@@ -200,6 +200,15 @@ describe('history crises (U31)', () => {
       expect(done.activeEventId).not.toBe(card);
       expect(done.crises.coming?.choice).toBeUndefined();
     }
+    // Payable when the turn starts, not after its upkeep (lane gold-sinks): checked again at the payment, the card reopens.
+    const me = answered.playerNationId; const capId = answered.nations[me].capitalRegionId;
+    const soldier = (i) => [`gs${i}`, { id: `gs${i}`, ownerId: me, regionId: capId, tile: answered.regions[capId].tile, domain: 'land', classId: 'infantry', strength: 100, maxStrength: 100, morale: 100, ageId: 'bronze', promotions: [] }];
+    const at40 = (army, choice) => resolveTurn({ ...answered, ...quiet, crises: { coming: { ...answered.crises.coming, choice } }, units: { ...answered.units, ...army }, resources: { ...answered.resources, gold: 40 } });
+    let army = {};
+    for (let i = 0; i < 40 && at40(army, undefined).resources.gold >= 40; i++) army = { ...army, ...Object.fromEntries([soldier(i)]) };
+    expect(at40(army, undefined).resources.gold).toBeLessThan(40);
+    const drained = at40(army, 0);
+    expect(drained.activeEventId === card || (drained.pendingEventChains || []).some((l) => l.id === card)).toBe(true);
     // A crisis dropped before it strikes (crises switched off) pays nothing.
     const off = { ...answered, settings: { ...answered.settings, crises: 'off' } };
     expect(processCrises({ ...off, turnNumber: 50 }).choice).toBeUndefined();

@@ -20,6 +20,8 @@ import { soundsForTransition } from '../audio/worldSounds';
 import { isCurrentWorld, currentWorldSpec, rememberWorldSpec, PENDING_START_KEY } from '../worldgen/worldLoader';
 import { normalizeSpec, EARTH_SPEC } from '../worldgen/spec';
 import { playSounds } from '../audio/sfx';
+import { setMusicAge } from '../audio/music';
+import { ageOf } from '../engine/nationState';
 import { noteCrashEvent } from '../utils/crashLog';
 import { startLog, logAction } from '../engine/actionLog';
 import { challengeScore, turnsIn } from '../engine/challenges';
@@ -200,6 +202,7 @@ export const GameProvider = ({ children }) => {
   useEffect(() => {
     const prev = soundPrevRef.current; soundPrevRef.current = state;
     const action = lastActionRef.current; lastActionRef.current = null;
+    try { setMusicAge(ageOf(state, state.playerNationId)); } catch (e) { /* sound never breaks the game */ } // each age has its own music
     if (prev === state || !action) return;
     try { playSounds(soundsForTransition(prev, state, action)); } catch (e) { /* sound never breaks the game */ }
   }, [state]);
