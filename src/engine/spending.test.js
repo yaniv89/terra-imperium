@@ -7,6 +7,7 @@ import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { speedCostMult, speedTrainMult, TRAIN_SPEED_SHARE } from '../data/ages';
 import { productionCost, queueItem, dequeueItem, itemProgress } from './world/cities';
+import { getBuildingTierCost, getBuildingBuildCost } from '../data/buildings';
 import { queueView, investInGrowth, growthView, GROWTH_BUY_SHARE } from './cityEconomy';
 import {
   rushQuote, applyRush, rushGold, rushAffordable, rushHeat, rushPriceMult, RUSH_GOLD_PER_HAMMER, RUSH_KIND_MULT, RUSH_HEAT_MAX, RUSH_COOL_REF_TURNS,
@@ -99,7 +100,7 @@ describe('rush (I019)', () => {
     expect(rushPriceMult(0)).toBe(1);
     expect(rushPriceMult(99)).toBe(rushPriceMult(RUSH_HEAT_MAX));
     expect(rushGold(10, 2)).toBe(Math.ceil(10 * RUSH_GOLD_PER_HAMMER * 1.4));
-    expect(rushGold(10, 0, 'settler')).toBe(Math.ceil(10 * RUSH_GOLD_PER_HAMMER * RUSH_KIND_MULT.settler));
+    expect(rushGold(10, 0, { kind: 'settler' })).toBe(Math.ceil(10 * RUSH_GOLD_PER_HAMMER * RUSH_KIND_MULT.settler));
     const cool = speedTurns(RUSH_COOL_REF_TURNS, 'normal', 'bronze');
     const city = { rush: { heat: 3, turn: 10 } };
     expect(rushHeat(city, 10, 'normal')).toBe(3);
@@ -108,11 +109,18 @@ describe('rush (I019)', () => {
     expect(applyRush({ production: empty, rush: { heat: RUSH_HEAT_MAX, turn: 1 } }, 0, { cost: 5, heat: RUSH_HEAT_MAX }, 2).rush.heat).toBe(RUSH_HEAT_MAX);
   });
 
+  it('a whole building costs the gold it did before cheaper production (gold table x 4)', () => {
+    [['economy', 0], ['industry', 2], ['science', 4]].forEach(([category, tier]) => {
+      const item = { kind: 'building', category, tier };
+      expect(rushGold(getBuildingBuildCost(category, tier), 0, item)).toBe(Math.ceil(getBuildingTierCost(category, tier) * RUSH_GOLD_PER_HAMMER));
+    });
+  });
+
   it('a budget buys whole points at the same price, never more than it holds', () => {
     expect(rushAffordable(50, 3)).toBeNull();
     expect(rushAffordable(50, 41)).toEqual({ hammers: 10, gold: 40 });
     expect(rushAffordable(5, 1000)).toEqual({ hammers: 5, gold: 20 });
-    expect(rushAffordable(10, 1000, 0, 'settler').gold).toBe(rushGold(10, 0, 'settler'));
+    expect(rushAffordable(10, 1000, 0, { kind: 'settler' }).gold).toBe(rushGold(10, 0, { kind: 'settler' }));
   });
 
   it('an AI nation rushes through the same quote instead of writing buildings in', () => {
