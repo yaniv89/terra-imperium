@@ -95,9 +95,9 @@ const run = async () => {
         // The "Free law change" chip's go (promptActions.js): the Empire tab, then its Laws section.
         await patch(page, `const me = s.playerNationId; return { ...s, nations: { ...s.nations, [me]: { ...s.nations[me], freeLawChange: true } } };`);
         await wait(600);
-        const law = page.locator('[data-testid="next-prompt"] button', { hasText: /law|חוק/i }).first();
-        if (!(await law.count())) { const more = page.locator('[data-testid="next-prompt"] button', { hasText: /^\+/ }).first(); if (await more.count()) await click(more); await wait(300); }
-        await click(page.locator('[data-testid="next-prompt"] button', { hasText: /law|חוק/i }).first());
+        const lawChip = () => page.locator('[data-testid="next-prompt"] button', { hasText: /law|\u05d7\u05d5\u05e7/i }).first();
+        for (let i = 0; i < 4 && !(await lawChip().count()); i++) { await click(page.locator('[data-testid="next-prompt"] > button').last()); await wait(300); } // the "+N" chip pages on
+        await click(lawChip());
         await wait(1500);
         await shot('law');
         await closeAll(page);
@@ -108,7 +108,7 @@ const run = async () => {
         await patch(page, `
           const me = s.playerNationId; const capId = s.nations[me].capitalRegionId; const cap = s.regions[capId];
           const tiles = m.getTiles(); const tile = tiles.neighbors[cap.tile].find((t) => tiles.land[t] === 1);
-          const foe = s.nations[Object.values(s.regions).find((c) => c.owner && c.owner !== me && s.nations[c.owner] && s.nations[c.owner].kind !== 'independent').owner];
+          const foe = Object.values(s.nations).find((n) => n.id !== me && n.kind !== 'independent' && !n.isEliminated);
           window.__nc = { tile };
           const u = { id: 'nc_foreign', ownerId: foe.id, regionId: null, homeRegionId: null, tile, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null, embarkedOn: null, target: null };
           const fog = s.fog ? { ...s.fog, met: { ...s.fog.met, [me]: { ...(s.fog.met?.[me] || {}), [foe.id]: 1 } } } : s.fog;

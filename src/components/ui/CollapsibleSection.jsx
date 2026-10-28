@@ -17,18 +17,19 @@ const CollapsibleSection = ({ title, icon: Icon, summary, defaultOpen = false, i
   // scrolls to it and rings it for a moment; an ask made while the panel was still opening is taken on mount.
   useEffect(() => {
     if (!id) return undefined;
-    let timers = [];
     const mine = (ask) => typeof ask === 'string' && (ask === id || ask.startsWith(`${id}.`));
     const show = (ask) => {
       setOpen(true); setFlash(true);
       const part = ask.split('.')[1];
-      timers = [setTimeout(() => (ref.current?.querySelector(`[data-testid="${part}"]`) || ref.current)?.scrollIntoView?.({ block: 'start', behavior: 'smooth' }), 60), setTimeout(() => setFlash(false), 2000)];
+      // not cleared on cleanup: a dev StrictMode remount would drop the scroll after the ask was taken
+      setTimeout(() => (ref.current?.querySelector(`[data-testid="${part}"]`) || ref.current)?.scrollIntoView?.({ block: 'start', behavior: 'smooth' }), 60);
+      setTimeout(() => setFlash(false), 2000);
     };
     const asked = takePending(OPEN_SECTION, mine);
     if (asked) show(asked);
     const onOpen = (e) => { if (!mine(e.detail)) return; takePending(OPEN_SECTION, mine); show(e.detail); };
     window.addEventListener(OPEN_SECTION, onOpen);
-    return () => { window.removeEventListener(OPEN_SECTION, onOpen); timers.forEach(clearTimeout); };
+    return () => window.removeEventListener(OPEN_SECTION, onOpen);
   }, [id]);
 
   return (

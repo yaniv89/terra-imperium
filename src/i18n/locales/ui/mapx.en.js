@@ -15,7 +15,7 @@ export default {
   'mx.tile.attackUnits.two': ' ({count} units)',
   'mx.tile.attackUnits.other': ' ({count} units)',
   'mx.tile.attackMoved': ' (already moved)',
-  'mx.tile.seePeople': 'About {name} (their opinion {opinion})',
+  'mx.tile.seePeople': 'About them (opinion {opinion})',
   'mx.tile.foreignArmy.one': '{name}\'s army here: {count} unit (at peace)',
   'mx.tile.foreignArmy.two': '{name}\'s army here: {count} units (at peace)',
   'mx.tile.foreignArmy.other': '{name}\'s army here: {count} units (at peace)',

@@ -21,3 +21,14 @@ describe('band start keeps the AI peoples', () => {
     expect(majors.filter((n) => founded.nations[n.id].isEliminated)).toEqual([]);
   }, 60000);
 });
+
+describe('war while still a band', () => {
+  it('an unjustified war before the first village does not crash', () => {
+    const payload = { playerNationId: 'kemet', scenario: { mode: 'peoples', size: 'small', cityStates: 'normal', seed: 5, band: true }, rngSeed: 5 };
+    const s0 = startState(payload);
+    const foe = Object.values(s0.nations).find((n) => n.kind !== 'independent' && n.id !== s0.playerNationId);
+    const s = { ...s0, resources: { ...s0.resources, gold: 5000 }, fog: s0.fog && { ...s0.fog, met: { ...s0.fog.met, kemet: { ...(s0.fog.met?.kemet || {}), [foe.id]: 1 } } } };
+    const next = gameReducer(s, { type: ActionTypes.DECLARE_WAR, payload: { nationId: foe.id } });
+    expect(next.wars.some((w) => w.active && w.enemy === foe.id && w.aggressor === 'kemet')).toBe(true);
+  }, 60000);
+});

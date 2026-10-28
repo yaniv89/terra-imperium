@@ -13,12 +13,11 @@ export const OPEN_PEOPLE = 'ti:open-people';
 // panel takes it when it mounts (newcomer playtest: the governor prompt lost its section). UI time only.
 const pending = {};
 const ask = (event, id) => { pending[event] = { id, at: Date.now() }; window.dispatchEvent(new CustomEvent(event, { detail: id })); };
-/** The id asked for `event` in the last two seconds (and, with `match`, only one it accepts), consumed; else null. */
+/** The id asked for `event` in the last two seconds (and, with `match`, only one it accepts), else
+ *  null. Not consumed: a dev StrictMode remount reads it twice; it lapses on its own. */
 export const takePending = (event, match) => {
   const p = pending[event];
-  if (!p || Date.now() - p.at > 2000 || (match && !match(p.id))) return null;
-  delete pending[event];
-  return p.id;
+  return !p || Date.now() - p.at > 2000 || (match && !match(p.id)) ? null : p.id;
 };
 /** Open and scroll to a CollapsibleSection by its id; 'court.governors' scrolls to its data-testid="governors" block. */
 export const openSection = (id) => ask(OPEN_SECTION, id);
