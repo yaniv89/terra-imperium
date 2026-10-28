@@ -1281,7 +1281,15 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     logs: capLogs([...state.logs, ...logs])
   };
   // A crisis answered early pays its option now it struck (applyEventEffects clears the open card: keep this turn's).
-  if (crisisChoice) next = { ...applyEventEffects(next, cardOf(crisisCardId(crisisChoice.id)), crisisChoice.option), activeEventId: next.activeEventId, activeProceduralEvent: next.activeProceduralEvent };
+  // Checked again on the state it is paid from: this turn's income and upkeep move the treasury and the
+  // card's gold scale (scaleEventGold), so a choice that can no longer be paid reopens the card next turn.
+  if (crisisChoice) {
+    const card = cardOf(crisisCardId(crisisChoice.id));
+    const scaled = scaleEventGold(next, card);
+    const short = (o) => getOptionShortfall(next.resources, o?.effects).length > 0;
+    if (short(scaled.options[crisisChoice.option]) && scaled.options.some((o) => !short(o))) next = { ...next, pendingEventChains: [...(next.pendingEventChains || []), { id: card.id, dueTurn: newTurnNumber + 1 }] };
+    else next = { ...applyEventEffects(next, card, crisisChoice.option), activeEventId: next.activeEventId, activeProceduralEvent: next.activeProceduralEvent };
+  }
   // Players who opted to auto-resolve enemy assaults are never interrupted: fought right away.
   // The battle queue (battleQueue.js): with autoDefend the battles are fought on Auto now, unless an
   // event or a peace offer opened this turn (then they wait for the answer, gameReducer's drain).
