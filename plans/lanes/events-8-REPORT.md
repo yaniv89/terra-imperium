@@ -2,7 +2,7 @@
 
 Ponytail read in full at 10:49 UTC, 28 Oct 2026 (`cat .claude/skills/ponytail/SKILL.md`; the session start hook also printed PONYTAIL MODE ACTIVE).
 
-Branch `claude/events-8`, merged with `origin/claude/integration` (cece290d). Target: "Crises, events, era goals, independents, raids, World Congress" from 5 to 7 (round 2) to 8. No API use.
+Branch `claude/events-8`, merged with `origin/claude/integration` (54627085, which includes gold-sinks). The evidence runs below were made on cece290d, before gold-sinks. Target: "Crises, events, era goals, independents, raids, World Congress" from 5 to 7 (round 2) to 8. No API use.
 
 ## What round 2 said, and what I found in code
 
@@ -40,7 +40,7 @@ Branch `claude/events-8`, merged with `origin/claude/integration` (cece290d). Ta
    - "Their grudge +10", with a tooltip saying what grudge does
    - "The story goes on"
 
-I did not change any existing event gold value; that is the gold-sinks lane's. The new cards' gold amounts are in the same range as the old ones.
+I did not change any existing event gold value; that is the gold-sinks lane's. The new cards' gold amounts are in the same range as the old ones, and since gold-sinks merged they are scaled by the player's income on the same path (`scaleEventGold`). The only merge conflict was in the imports of applyEventEffects.js.
 
 ## Evidence
 
@@ -82,7 +82,7 @@ Turns per event card, by the player's age:
   - Rest growth and its cap.
   - No dominated drafted card.
   - `cardChoice` itself, and the new badges.
-- Full `npx vitest run` on the merged tree: 504 files and 4,730 tests passed, 0 failed. `npm run lint` is clean.
+- Full `npx vitest run` after the final merge (gold-sinks included): 506 files and 4,754 tests passed, 0 failed. `npm run lint` is clean.
 
 ### Shots
 
