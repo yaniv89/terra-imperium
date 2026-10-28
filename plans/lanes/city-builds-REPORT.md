@@ -1,5 +1,7 @@
 # Lane city-builds: report
 
+ponytail loaded
+
 Ponytail read in full at 04:26 UTC on 28 Oct (the skill was missing from this machine before; the first read was at about 20:35 UTC on 27 Oct).
 
 ## Problem (playtests 40550085702 and 40550092795)
