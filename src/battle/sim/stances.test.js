@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { buildSetupFromArmies } from '../setup/buildBattleSetup';
 import { createWorld } from './world';
 import { step } from './step';
-import { thinkAI, AI_DIFFICULTY } from './tacticalAI';
+import { thinkAI, AI_DIFFICULTY, armySlots } from './tacticalAI';
 import { updateFog } from './fog';
 import { buildTownManifest } from '../../data/townLayout';
 import { Q, secondsToTicks } from './constants';
@@ -161,9 +161,11 @@ describe('the AI defender counter-attacks (I125, CB10)', () => {
     const mine = w.squads.filter((q) => q.side === 1 && !q.isGeneral);
     mine.forEach((q, i) => place(q, keep.x + 2 * Q, keep.y + (i - 1) * 2 * Q));
     w.revealUntil = [-1, 1e9];
+    // All of them in the same think, each to its own slot of one line on the threat (battle-ai-2).
     const moves = thinkAt(w, 1).filter((o) => o.type === 'attackMove');
-    expect(moves.length).toBe(1);
-    expect(moves[0].squads.length).toBe(mine.length);
+    expect(moves.flatMap((o) => o.squads).sort()).toEqual(mine.map((q) => q.idx).sort());
+    expect(new Set(moves.map((o) => `${o.x},${o.y}`)).size).toBe(mine.length);
+    moves.forEach((o) => expect(Math.abs(o.x - foe.x) + Math.abs(o.y - foe.y)).toBeLessThan(8 * Q));
   });
 
   it('sends its nearest cavalry at a siege engine it can see near its walls', () => {
@@ -279,5 +281,44 @@ describe('the AI fights like a player would (battle-ai-tactics)', () => {
     const shots = thinkAt(w, 1).filter((o) => o.type === 'attack');
     expect(shots.map((o) => o.squads[0]).sort()).toEqual([r1.idx, r2.idx].sort());
     shots.forEach((o) => expect(o.target).toEqual({ kind: 'squad', index: b.idx }));
+  });
+});
+
+describe('the AI in the Gunpowder ages and on (battle-ai-2)', () => {
+  const thinkAt = (w, side) => { w.tick = AI_DIFFICULTY.prince.thinkEvery * 10; updateFog(w); w.tick += side; const orders = []; thinkAI(w, side, orders); return orders; };
+  const aiWorld = (att, def, ageId) => createWorld(buildSetupFromArmies({
+    regionId: 'gunpowder-test', terrain: 'plains', seed: 42, attackerUnits: mk('a', att), defenderUnits: mk('d', def),
+    attackerAgeId: ageId, defenderAgeId: ageId, controllers: ['player', 'ai'], difficultyId: 'prince', fortLevel: 0
+  }));
+  it('its musket foot focus their fire like archers: both on the weakest in reach', () => {
+    const w = aiWorld(['infantry', 'infantry'], ['infantry', 'infantry'], 'gunpowder');
+    const [a, b] = w.squads.filter((q) => q.side === 0 && q.onField && !q.isGeneral);
+    const [m1, m2] = w.squads.filter((q) => q.side === 1 && q.onField && !q.isGeneral);
+    expect(m1.stats.melee).toBe(false);
+    park(w, [a, b, m1, m2]);
+    place(m1, 50 * Q, 30 * Q); place(m2, 50 * Q, 32 * Q);
+    place(a, 47 * Q, 30 * Q); place(b, 47 * Q, 32 * Q);
+    b.strength = 400;
+    w.revealUntil = [1e9, 1e9];
+    const shots = thinkAt(w, 1).filter((o) => o.type === 'attack');
+    expect(shots.map((o) => o.squads[0]).sort()).toEqual([m1.idx, m2.idx].sort());
+    shots.forEach((o) => expect(o.target).toEqual({ kind: 'squad', index: b.idx }));
+  });
+  it('the battle line: one slot each, cavalry on a wing, archers behind melee foot but beside musket foot', () => {
+    const line = (ageId) => {
+      const w = aiWorld(['infantry', 'infantry', 'cavalry', 'ranged', 'ranged'], ['infantry'], ageId);
+      const mine = w.squads.filter((q) => q.side === 0 && q.onField && !q.isGeneral);
+      mine.forEach((q, i) => place(q, 20 * Q, (30 + i * 2) * Q));
+      const slots = armySlots(w, mine, 60 * Q, 34 * Q); // heading east: rows are x, the line runs along y
+      const of = (cls) => mine.filter((q) => q.classId === cls).map((q) => slots.get(q.idx));
+      return { slots, mine, foot: of('infantry'), cav: of('cavalry'), arch: of('ranged') };
+    };
+    const bronze = line('bronze');
+    expect(new Set([...bronze.slots.values()].map((s) => `${s.x},${s.y}`)).size).toBe(bronze.mine.length);
+    bronze.arch.forEach((s) => expect(s.x).toBeLessThan(bronze.foot[0].x));
+    const ys = [...bronze.foot, ...bronze.cav].map((s) => s.y);
+    expect([Math.min(...ys), Math.max(...ys)]).toContain(bronze.cav[0].y);
+    const gun = line('gunpowder');
+    gun.arch.forEach((s) => expect(s.x).toBe(gun.foot[0].x));
   });
 });

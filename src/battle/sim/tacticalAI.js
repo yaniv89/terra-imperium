@@ -7,7 +7,7 @@
 // on archers once the lines meet, spears onto riders near its archers) and focuses its archers' fire;
 // king adds cavalry flanking, raids on laborers and pulling wounded squads out; emperor thinks
 // fastest. (Archers stepping back from melee was tried and lost battles: they stop shooting.)
-import { distSq, isqrt } from './fixed';
+import { distSq, isqrt, angleBetween, polarX, polarY } from './fixed';
 import { isFighting, inRangeOfSquad } from './combat';
 import { getCounterMultiplier } from '../../data/unitClasses';
 import { canSeeSquad, isTileVisibleTo } from './fog';
@@ -30,7 +30,7 @@ export const AI_DIFFICULTY = {
 };
 // Each of the lane's behaviours on its own (battle-lab aiDuel.sim.js FEAT_OFF switches them off to
 // measure one at a time); all on in play.
-export const AI_FEATURES = { hold: true, walls: true, guard: true, cavalry: true, focus: true, pullBack: true };
+export const AI_FEATURES = { hold: true, walls: true, guard: true, cavalry: true, focus: true, pullBack: true, shooters: true, cavFlank: true };
 const DEFENSE_RADIUS = 24 * Q;
 const RAID_GUARD_RADIUS = 14 * Q;
 
@@ -145,7 +145,10 @@ const decideAbilities = (w, side, mine, enemies, orders) => {
 // fights whatever reaches it) and is sent on once the others have caught up.
 const HIT_RECENT = secondsToTicks(2);
 const hitRecently = (w, q) => q.lastHitTick >= 0 && w.tick - q.lastHitTick < HIT_RECENT;
-const COHESION = 6 * Q;
+// Within a musket's reach of each other (6 tiles let the lead squad of a gunpowder line walk in alone
+// and take every volley: trace); a fleet keeps the old 6.
+const COHESION = 3 * Q;
+const SEA_COHESION = 6 * Q;
 const STRAGGLER = 16 * Q;
 const keepTogether = (w, side, group, advancing, tx, ty, orders) => {
   const all = [...group, ...advancing];
@@ -156,13 +159,58 @@ const keepTogether = (w, side, group, advancing, tx, ty, orders) => {
   const median = sorted[sorted.length >> 1];
   const trail = Math.max(...sorted.filter((v) => v <= median + STRAGGLER));
   // A squad under fire is not held standing in it (gunpowder trace: held riders shot to pieces).
-  const ahead = (i) => d.get(i) < trail - COHESION && !hitRecently(w, w.squads[i]);
+  const gap = w.setup.battleType === 'naval' ? SEA_COHESION : COHESION;
+  const ahead = (i) => d.get(i) < trail - gap && !hitRecently(w, w.squads[i]);
   const wait = advancing.filter(ahead);
   // Hold, not Stop: an idle squad picks up and chases anything in sight, so a fast one that was
   // stopped ahead of the line charged alone (battle-ai-tactics trace: cavalry 9 tiles ahead of its
   // infantry, routed before the lines met). Held, it only fights what reaches it.
   if (wait.length) orders.push({ side, type: AI_FEATURES.hold ? 'hold' : 'stop', squads: wait });
   return group.filter((i) => !ahead(i));
+};
+
+// The army's battle line toward (x, y), one slot per squad (Total War's AI deployment): foot in the
+// front row with the cavalry on its wings, shooters a row behind, engines and support behind them.
+// Each squad is ordered to its own slot: one sent on alone to the army's point walked onto the same
+// spot as the rest. (A fleet keeps its old line order: sea rows of aiDuel did no better with slots.)
+const SLOT = Math.round(2.5 * Q);
+const PER_ROW = 8;
+// Shooters stand a row behind melee foot, but in the front row beside foot that shoots too (Gunpowder
+// on): a row back, their longer reach was spent on the gap to their own line.
+const lineRank = (q, meleeFoot) => (q.classId === 'ranged' ? (meleeFoot ? 1 : 0) : q.classId === 'siege' || q.classId === 'support' ? 2 : 0);
+export const armySlots = (w, squads, x, y) => {
+  const n = squads.length;
+  const cx = Math.trunc(squads.reduce((s, q) => s + q.x, 0) / n);
+  const cy = Math.trunc(squads.reduce((s, q) => s + q.y, 0) / n);
+  const heading = cx === x && cy === y ? (squads[0].side === SIDE_ATTACKER ? 0 : 128) : angleBetween(cx, cy, x, y);
+  const lateral = (heading + 64) & 255;
+  const across = (q) => polarX(lateral, 1000) * (q.x - cx) + polarY(lateral, 1000) * (q.y - cy);
+  const meleeFoot = squads.some((q) => q.classId === 'infantry' && q.stats.melee);
+  const slots = new Map();
+  let row = 0;
+  [0, 1, 2].forEach((rank) => {
+    let list = squads.filter((q) => lineRank(q, meleeFoot) === rank).sort((a, b) => across(a) - across(b) || a.idx - b.idx);
+    if (rank === 0) {
+      // Cavalry on the wings: half of it at each end of the front row, keeping its own side.
+      const cav = list.filter((q) => q.classId === 'cavalry'); const foot = list.filter((q) => q.classId !== 'cavalry');
+      const left = cav.slice(0, cav.length >> 1);
+      list = [...left, ...foot, ...cav.slice(cav.length >> 1)];
+    }
+    for (let k = 0; k < list.length; k += PER_ROW, row++) {
+      const part = list.slice(k, k + PER_ROW);
+      part.forEach((q, i) => {
+        const along = -row * SLOT; const off = Math.round((i - (part.length - 1) / 2) * SLOT);
+        const sx = x + polarX(heading, along) + polarX(lateral, off); const sy = y + polarY(heading, along) + polarY(lateral, off);
+        slots.set(q.idx, { x: Math.min(Math.max(sx, Q), (w.map.w - 1) * Q), y: Math.min(Math.max(sy, Q), (w.map.h - 1) * Q) });
+      });
+    }
+  });
+  return slots;
+};
+const lineOrders = (w, side, army, go, x, y, orders) => {
+  if (w.setup.battleType === 'naval') { orders.push({ side, type: 'attackMove', squads: go, x, y, formation: 'line' }); return; }
+  const slots = armySlots(w, army.map((i) => w.squads[i]), x, y);
+  go.forEach((i) => { const s = slots.get(i); orders.push({ side, type: 'attackMove', squads: [i], x: s.x, y: s.y }); });
 };
 
 // The attacker advances as ONE army in formation (arriving piecemeal just gets squads beaten one
@@ -195,7 +243,7 @@ const thinkAttacker = (w, side, cfg, mine, enemies, orders) => {
     const goal = hasBase(w) && !keep.alive ? nearestBase(w, SIDE_DEFENDER, cx, cy) : null;
     if (goal) { if (group.length) orders.push({ side, type: 'attack', squads: group, target: goal }); return; }
     const go = keepTogether(w, side, group, advancing, keep.x - 2 * Q, keep.y, orders);
-    if (go.length) orders.push({ side, type: 'attackMove', squads: go, x: keep.x - 2 * Q, y: keep.y, formation: 'line' });
+    if (go.length) lineOrders(w, side, [...group, ...advancing], go, keep.x - 2 * Q, keep.y, orders);
     return;
   }
   const foe = nearest(enemies, cx, cy);
@@ -204,7 +252,7 @@ const thinkAttacker = (w, side, cfg, mine, enemies, orders) => {
   const dx = tx - cx; const dy = ty - cy; const d = isqrt(dx * dx + dy * dy) || 1;
   const hop = Math.min(d, 14 * Q);
   const go = keepTogether(w, side, group, advancing, tx, ty, orders);
-  if (go.length) orders.push({ side, type: 'attackMove', squads: go, x: cx + Math.trunc((dx * hop) / d), y: cy + Math.trunc((dy * hop) / d), formation: 'line' });
+  if (go.length) lineOrders(w, side, [...group, ...advancing], go, cx + Math.trunc((dx * hop) / d), cy + Math.trunc((dy * hop) / d), orders);
 };
 
 // Prince+: man the keep and towers — ranged first — while keeping at least half the army outside.
@@ -355,7 +403,7 @@ const thinkDefender = (w, side, cfg, mine, enemies, orders) => {
   if (!threat || !group.length) return;
   const advancing = mine.filter((q) => q.order.type === 'attackMove' && q.target < 0).map((q) => q.idx);
   const go = keepTogether(w, side, group, advancing, threat.x, threat.y, orders);
-  if (go.length) orders.push({ side, type: 'attackMove', squads: go, x: threat.x, y: threat.y });
+  if (go.length) lineOrders(w, side, [...group, ...advancing], go, threat.x, threat.y, orders);
 };
 
 // Raiders (battleType.js raid and sack): burn the loot and run. Squads with an enemy close by
@@ -439,7 +487,7 @@ const micro = (w, side, cfg, mine, enemies, orders) => {
     if (now && (soft(now) || now.classId === 'cavalry')) return; // already on a good target
     const fresh = q.strength * 5 >= q.startStrength * 2; // spent riders do not charge
     // An escorted one only once the lines have met and only round the flank (king+); else alone ones.
-    const prey = fresh ? nearest(targets.filter((t) => (met && cfg.flank) || !escorted(t)), q.x, q.y, RIDE_REACH) : null;
+    const prey = fresh ? nearest(targets.filter((t) => (met && (cfg.flank || AI_FEATURES.cavFlank)) || !escorted(t)), q.x, q.y, RIDE_REACH) : null;
     const raid = !prey && fresh && !met ? nearest(laborers, q.x, q.y, RIDE_REACH) : null;
     if (raid) { attackSquad(q, raid); return; }
     if (!prey) {
@@ -451,7 +499,7 @@ const micro = (w, side, cfg, mine, enemies, orders) => {
       else used.add(q.idx);
       return;
     }
-    if (cfg.flank && !now) {
+    if ((cfg.flank || AI_FEATURES.cavFlank) && !now) {
       // Enemy foot between us and the prey: ride to its flank first.
       const mx = (q.x + prey.x) >> 1; const my = (q.y + prey.y) >> 1;
       const blocked = foes.some((o) => o.classId === 'infantry' && !o.routed && distSq(o.x, o.y, mx, my) <= ESCORT * ESCORT);
@@ -463,7 +511,8 @@ const micro = (w, side, cfg, mine, enemies, orders) => {
 
   // Focus fire: each archer takes, of the targets in its reach, the one most of our archers reach,
   // that it counters and that has the fewest men left; enemy foot on top of our archers first.
-  const shooters = mine.filter((q) => !used.has(q.idx) && q.classId === 'ranged');
+  // Every shooter: archers, and from Gunpowder on the foot too (muskets, rifles).
+  const shooters = mine.filter((q) => !used.has(q.idx) && (q.classId === 'ranged' || (AI_FEATURES.shooters && q.classId === 'infantry' && !q.stats.melee)));
   if (AI_FEATURES.focus && shooters.length) {
     const live = foes.filter((t) => !t.routed && !t.worker);
     const pool = live.length ? live : foes.filter((t) => !t.worker);
@@ -472,14 +521,19 @@ const micro = (w, side, cfg, mine, enemies, orders) => {
     inReach.forEach((list) => list.forEach((t) => reach.set(t.idx, (reach.get(t.idx) || 0) + 1)));
     shooters.forEach((q, k) => {
       let best = null; let bestScore = 0;
-      inReach[k].forEach((t) => {
+      // Enemy foot on top of our archers first. One score for the pick and for the target it has (the
+      // target it had was scored without that threat, so archers left a rider on them for another).
+      const scoreOf = (t) => {
         const threat = t.stats.melee && softOnes.some((o) => distSq(o.x, o.y, t.x, t.y) <= GUARD_RADIUS * GUARD_RADIUS) ? 2 : 1;
-        const score = (getCounterMultiplier(q.classId, t.classId, q.ageId) * reach.get(t.idx) * threat) / (t.strength + 250);
+        return (getCounterMultiplier(q.classId, t.classId, q.ageId) * reach.get(t.idx) * threat) / (t.strength + 250);
+      };
+      inReach[k].forEach((t) => {
+        const score = scoreOf(t);
         if (score > bestScore) { bestScore = score; best = t; }
       });
       // Switch only for a clearly better target: a squad that keeps changing aim chases (ships did).
       const cur = q.targetKind === 'squad' && q.target >= 0 ? w.squads[q.target] : null;
-      const curScore = cur && inReach[k].includes(cur) ? (getCounterMultiplier(q.classId, cur.classId, q.ageId) * reach.get(cur.idx)) / (cur.strength + 250) : 0;
+      const curScore = cur && inReach[k].includes(cur) ? scoreOf(cur) : 0;
       if (best && best !== cur && bestScore > curScore * FOCUS_SWITCH) attackSquad(q, best);
     });
   }
