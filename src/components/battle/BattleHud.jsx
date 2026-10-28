@@ -32,7 +32,7 @@
 // Every control is at least 44 px.
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, Crosshair, Hand, Rows, Columns, Flag, Castle, X, Zap, Hammer, Tent, BoxSelect, AlertTriangle, Undo2, Volume2, VolumeX, Home, ChevronUp, ChevronDown, Swords, Wand2, Target, Map as MapIcon, Navigation, Spline, Bell, Users, LocateFixed, Package, Compass, UserCog } from 'lucide-react';
-import { ResIcon, resName, HammerButton } from './EconomyHud';
+import { ResIcon, resName, HammerButton, EconomySheet } from './EconomyHud';
 import GameIcon from '../ui/GameIcon';
 import { RESOURCES } from '../../battle/data/economy';
 import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
@@ -148,6 +148,7 @@ const BattleHud = ({
   onTogglePause, onSpeed, onArm, onFormation, onSelectClass, onFindArmy, onCommand, onRetreatAll, onFocusKeep, onAbandon,
   onPower, onAbility, abilities = [], soundOn = true, onToggleSound,
   onOpenBuild, buildOpen = false, onSelectHq, onSteward, // the battle economy (EconomyHud.jsx)
+  onWorkerPreset, onAutoRebuild, onTrainLaborer, // the Economy sheet (EconomySheet)
   context = 'none', panel = null, // the context panel (B10): battleHudModel contextFor, and its content for laborers, buildings and placing
   selectMode = false, onToggleSelectMode, // touch box select (UI-DESIGN B04)
   pathMode = false, onTogglePathMode, // touch: draw a path for the selected squads (U38)
@@ -162,6 +163,7 @@ const BattleHud = ({
   supplyRate = null, // U12: Battle Supply gained a second
   perf = null, // I205: the performance readout, given a slot of its own
   leftCard = null, // the info card / building panel, under the alerts in the top row
+  deployPresets = [], deployPreset = null, onDeployPreset, // the deploy card's one-tap formations (deployPresets.js)
   groups = null, onGroup, // rank 6: the control groups' live squad counts; onGroup(i, save)
   mouse = false, // a mouse is the main pointer: the hints speak of clicks
   narrow: narrowProp, // tests: force the narrow phone layout (else the screen's width decides)
@@ -177,11 +179,14 @@ const BattleHud = ({
   const [wandOpen, setWandOpen] = useState(false);
   const [supplyOpen, setSupplyOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [deployMore, setDeployMore] = useState(false);
+  const [deployFolded, setDeployFolded] = useState(false);
+  const [attrOpen, setAttrOpen] = useState(false); // the attrition chip's why, on a tap (a phone has no hover title)
+  const [ecoOpen, setEcoOpen] = useState(false);
   const [stocksOpen, setStocksOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   // On a phone one battle overlay shows at a time (the radial too, TacticalBattleScreen): the one opened last.
   useCornerSheet('battle-wand', wandOpen, () => setWandOpen(false));
+  useCornerSheet('battle-economy', ecoOpen, () => setEcoOpen(false));
   useCornerSheet('battle-supply', supplyOpen, () => setSupplyOpen(false));
   useCornerSheet('battle-history', historyOpen, () => setHistoryOpen(false));
   useCornerSheet('battle-stocks', stocksOpen, () => setStocksOpen(false));
@@ -217,6 +222,7 @@ const BattleHud = ({
   const mine = hud.squads.filter((q) => q.side === playerSide && q.alive && !q.fled);
   const onField = mine.filter((q) => q.onField);
   const eco = hud.eco || null;
+  const ecoHq = eco ? eco.buildings.find((b) => b.side === playerSide && (b.type === 'camp' || b.type === 'hall') && b.alive && b.built) || null : null;
   // Base buildings standing (sim/base.js): [yours, theirs], null in a battle without bases.
   const base = hud.base ? [hud.base[playerSide], hud.base[1 - playerSide]] : null;
   if (base) baseMaxRef.current = [Math.max(1, baseMaxRef.current[0], base[0]), Math.max(1, baseMaxRef.current[1], base[1])];
@@ -231,7 +237,7 @@ const BattleHud = ({
   const target = selectedSquads.find((q) => q.targetKind === 'structure' && q.target >= 0);
   const targetSt = target ? hud.structures[target.target] : null;
   const city = cityAssaultView(hud, setup);
-  const { shown: shownAlerts, history } = visibleAlerts(alerts, hud.tick);
+  const { shown: shownAlerts, history } = visibleAlerts(alerts, hud.tick, short ? 1 : 2); // a phone keeps one on the field at a time
   const pauseOpen = started && paused && !sheetHidden;
   const bt = BATTLE_TYPES[hud.battleType || 'field'];
   const youPct = Math.round(strengthShare(hud, playerSide) * 100);
@@ -262,7 +268,8 @@ const BattleHud = ({
     eco && { icon: Tent, label: t('bt.hud.baseBtn'), onClick: onSelectHq, testId: 'battle-hq', ariaLabel: t('bt.hud.yourCamp') },
     onToggleMinimap && { icon: MapIcon, label: t('bt.hud.map'), onClick: () => (minimapOn && !showMinimap && wandOpen ? setWandOpen(false) : onToggleMinimap()), active: showMinimap, testId: 'battle-minimap-toggle', ariaLabel: t('bt.hud.minimap') }
   ].filter(Boolean);
-  const goal = setup.battleType === 'raid' || setup.battleType === 'sack'
+  const naval = setup.battleType === 'naval';
+  const goal = naval ? t('bt.hud.goalSea') : setup.battleType === 'raid' || setup.battleType === 'sack'
     ? `${battleGoal(setup.battleType, playerSide)}.`
     : setup.economy
       ? (playerSide === 1 ? t('bt.hud.goalEcoDef') : t('bt.hud.goalEcoAtk'))
@@ -271,15 +278,59 @@ const BattleHud = ({
   const supplyPays = `${sup.costs.length ? t('bt.hud.paysFor', { list: sup.costs.map((c) => `${powerLabel(c.id, c.label)} ${c.cost}`).join(', ') }) : t('bt.hud.noPowers')} ${t('bt.hud.risesOn')}`;
   const supplyOf = sup.cap ? t('bt.hud.supplyOf', { now: sup.now, cap: sup.cap }) : String(sup.now);
 
+  // The deploy card sits on the far side from your army, above the bottom row, in either language (playtest 40651418969
+  // steps 3, 103, 255: in the centre it covered the fleet). The field never mirrors, so the side is physical.
+  const deployCard = !started && (
+            // The deploy card (playtest 40651418969 step 3): Start never scrolls or folds away; the chevron folds the words to a slim bar.
+            <div className="absolute pointer-events-auto w-[min(20rem,calc(100vw-1rem))] px-3 py-2 fa-panel !bg-fa-panel/95 text-[12px] leading-snug shadow-xl flex flex-col" style={{ bottom: ABOVE_BOTTOM, ...(playerSide === 1 ? { left: 'max(0.5rem, var(--sa-l, 0px))' } : { right: 'max(0.5rem, var(--sa-r, 0px))' }), maxHeight: `calc(var(--app-height, 100vh) - ${short ? '9.5rem' : '11rem'} - var(--sa-t, 0px) - var(--sa-b, 0px))` }} data-testid="battle-deploy-help">
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="min-w-0 flex-1">
+                  {title && <div className="fa-label truncate lg:hidden" data-testid="battle-deploy-title">{title}</div>}
+                  <div className="fa-heading text-[15px] truncate">{t(naval ? 'bt.hud.deploySea' : 'bt.hud.deploy')}</div>
+                </div>
+                {deployFolded && <button type="button" onClick={onTogglePause} className="fa-btn fa-btn-primary !min-h-[44px] !px-3 shrink-0" data-testid="battle-start">{t('bt.hud.start')}</button>}
+                <button type="button" onClick={() => setDeployFolded((v) => !v)} aria-expanded={!deployFolded} aria-label={deployFolded ? t('bt.hud.moreAbout') : t('bt.hud.foldDeploy')} data-testid="battle-deploy-more"
+                  className="w-11 h-11 -my-2 -me-2 shrink-0 flex items-center justify-center text-fa-muted">{deployFolded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}</button>
+              </div>
+              {!deployFolded && <>
+                {deployPresets.length > 1 && (
+                  <div className="mb-1 shrink-0" data-testid="battle-deploy-presets">
+                    <div className="flex items-center gap-1" role="group" aria-label={t('bt.hud.formationPick')}>
+                      <span className="text-fa-muted shrink-0 me-0.5">{t('bt.hud.formationPick')}</span>
+                      {deployPresets.map((id) => (
+                        <button key={id} type="button" onClick={() => onDeployPreset(id)} aria-pressed={deployPreset === id} title={t(`bt.hud.preset.${id}.title`)} data-testid={`battle-deploy-preset-${id}`}
+                          className={cx('flex-1 min-h-[44px] px-1.5 rounded-[8px] border text-[12px] font-semibold', deployPreset === id ? 'bg-fa-raised border-fa-brass text-fa-text' : 'border-fa-line text-fa-muted')}>{t(`bt.hud.preset.${id}`)}</button>
+                      ))}
+                    </div>
+                    {deployPreset && <div className="mt-0.5 text-fa-brass" data-testid="battle-deploy-preset-note">{t(`bt.hud.preset.${deployPreset}.title`)}</div>}
+                  </div>
+                )}
+                <div className={cx('min-h-0 overflow-y-auto overscroll-contain', short && 'max-h-[6.75rem]')} data-testid="battle-deploy-details">
+                  <div data-testid="battle-deploy-controls">{deployHelp(mouse, naval)}</div>
+                  <div className="mt-1 text-fa-brass"><span className="fa-num">{fmtTime(timeLeft)}</span>: {goal}</div>
+                  {setup.economy && <div className="mt-1 text-fa-you" data-testid="battle-recruit-hint">{t('bt.hud.recruitHint')}</div>}
+                  {setup.structures.some((st) => st.kind === 'building') && (
+                    <div className="mt-1 text-fa-you" data-testid="battle-buildings">
+                      {playerSide === 1 ? t('bt.hud.yourBuildings') : t('bt.hud.theirBuildings')}
+                      {setup.structures.filter((st) => st.kind === 'building').map((st) => `${structureName(st)} (${buildingEffect(st.category, t('bt.hud.landmark'))})`).join(', ')}
+                    </div>
+                  )}
+                  {setup.economy && <div className="mt-1 text-fa-muted">{t('bt.hud.baseNote', { what: playerSide === 1 ? t('bt.hud.keepWord') : t('bt.hud.campWord') })}</div>}
+                  <div className="mt-1 text-fa-muted">{cameraHelp(mouse)} {t(naval ? 'bt.hud.everyShip' : 'bt.hud.everyRegiment')}</div>
+                </div>
+                <button type="button" onClick={onTogglePause} className="fa-btn fa-btn-primary w-full !min-h-[44px] mt-1.5 shrink-0" data-testid="battle-start">{t('bt.hud.start')}</button>
+              </>}
+            </div>
+  );
   return (
     <>
       {/* Top bar (B01): name and clock, resources, speed and pause (I206: fixed slots on the right) */}
       <div className="absolute top-0 inset-x-0 flex items-center gap-2 bg-fa-ink/90 border-b border-fa-line text-fa-text pointer-events-auto" style={{ height: TOP_BAR, paddingTop: 'var(--sa-t, 0px)', paddingLeft: SAFE_L, paddingRight: SAFE_R }} data-testid="battle-top-bar">
-        <span className="fa-heading text-[15px] truncate min-w-0 hidden min-[600px]:inline" style={{ flex: '0 1000 auto' }} data-testid="battle-title">{title || t('bt.hud.battle')}</span>
-        <span data-testid="battle-clock" title={`${battleTypeText(hud.battleType || 'field', 'label')}: ${battleGoal(hud.battleType || 'field', playerSide)}`}
+        <span className="fa-heading text-[15px] truncate min-w-[8rem] hidden lg:inline" style={{ flex: '0 1000 auto' }} data-testid="battle-title">{title || t('bt.hud.battle')}</span>
+        {!ended && <><span data-testid="battle-clock" title={`${battleTypeText(hud.battleType || 'field', 'label')}: ${battleGoal(hud.battleType || 'field', playerSide)}`}
           className={cx('fa-num text-[15px] font-semibold shrink-0', timeLeft <= 30 ? 'text-fa-danger-text animate-pulse' : timeLeft <= 60 ? 'text-fa-brass' : '')}>{fmtTime(timeLeft)}</span>
-        <span className="w-px h-5 bg-fa-line shrink-0" aria-hidden="true" />
-        <div className="min-w-0 flex items-center gap-2.5 lg:gap-3 overflow-x-auto scrollbar-none" style={{ flex: '1 1 auto' }} data-testid="battle-resources">
+        <span className="w-px h-5 bg-fa-line shrink-0" aria-hidden="true" /></>}
+        {!ended && <div className="min-w-0 flex items-center gap-2.5 lg:gap-3 overflow-x-auto scrollbar-none" style={{ flex: '1 1 auto' }} data-testid="battle-resources">
           {narrow ? (
             // RTS-02: on a narrow phone the stocks, supply and housing are one button and a card.
             <button type="button" onClick={() => { setStocksOpen((v) => !v); setSupplyOpen(false); }} aria-expanded={stocksOpen} data-testid="battle-logistics"
@@ -302,7 +353,7 @@ const BattleHud = ({
           {eco && <Res icon={<ResIcon res="population" size={18} />} label={t('bt.hud.popHousing')} value={`${eco.pop}/${eco.cap}`} warn={eco.pop >= eco.cap} />}
           </>}
           <Res icon={<Swords className="w-4 h-4 text-fa-enemy" aria-hidden="true" />} label={t('bt.hud.enemyLeft', { tally: armyTallyText(armyTally(hud, 1 - playerSide)) })} value={enemyLeft} />
-        </div>
+        </div>}
         {history.length > 0 && !ended && (
           <button type="button" onClick={() => setHistoryOpen((v) => !v)} aria-label={t('bt.hud.alertsCount', { n: history.length })} aria-expanded={historyOpen} data-testid="battle-alert-history"
             className={cx('fa-icon-btn !w-11 !h-11 shrink-0 relative', historyOpen && '!bg-fa-raised')}>
@@ -310,7 +361,7 @@ const BattleHud = ({
             <span className="absolute top-0.5 end-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-fa-raised border border-fa-line text-[9.5px] leading-[14px] fa-num" aria-hidden="true">{history.length}</span>
           </button>
         )}
-        {narrow ? (
+        {ended ? null : narrow ? (
           <button type="button" onClick={() => onSpeed(speed === 1 ? 2 : speed === 2 ? 3 : 1)} aria-label={t('bt.hud.speedFaster', { n: speed })} data-testid="battle-speed" className="fa-icon-btn !w-11 !h-11 shrink-0 fa-num text-[13px] font-semibold">{speed}×</button>
         ) : (
           // Playtest 15: one cycling button overshot the speed you wanted; three buttons say it outright.
@@ -320,10 +371,10 @@ const BattleHud = ({
           </div>
         )}
         {/* a clear gap: a tap aimed at 3x must never open the pause sheet (playtest 40650979770 step 12) */}
-        <button type="button" onClick={onTogglePause} aria-label={!started ? t('bt.hud.start') : paused ? t('bt.hud.resume') : t('bt.hud.pause')} data-testid="battle-pause"
+        {!ended && <button type="button" onClick={onTogglePause} aria-label={!started ? t('bt.hud.start') : paused ? t('bt.hud.resume') : t('bt.hud.pause')} data-testid="battle-pause"
           className={cx('fa-icon-btn !w-11 !h-11 shrink-0 ms-3', !started && '!bg-fa-brass !text-fa-ink !border-transparent')}>
           {!started || paused ? <Play className="w-4 h-4" aria-hidden="true" /> : <Pause className="w-4 h-4" aria-hidden="true" />}
-        </button>
+        </button>}
       </div>
 
       {stocksOpen && narrow && !ended && (
@@ -381,11 +432,12 @@ const BattleHud = ({
           {shownAlerts.length > 0 && !pauseOpen && !historyOpen && (
             <div className="space-y-1" data-testid="battle-alerts">
               {shownAlerts.map((a) => (
-                <div key={a.id} className={cx('pointer-events-auto flex items-center gap-1.5 ps-2 rounded-[10px] bg-fa-panel/95 border shadow-xl', a.tone === 'good' ? 'border-fa-good/70' : 'border-fa-danger/80')} role="status">
+                // The whole alert is its Go (playtest 40651418969 step 232: a tap beside the small Go missed it).
+                <div key={a.id} onClick={() => (onAlertGo ? onAlertGo(a) : onFocus?.(a.x, a.y))} className={cx('pointer-events-auto flex items-center gap-1.5 ps-2 rounded-[10px] bg-fa-panel/95 border shadow-xl cursor-pointer', a.tone === 'good' ? 'border-fa-good/70' : 'border-fa-danger/80')} role="status">
                   {a.tone === 'good' ? <Flag className="w-4 h-4 shrink-0 text-fa-good" aria-hidden="true" /> : <AlertTriangle className="w-4 h-4 shrink-0 text-fa-danger-text" aria-hidden="true" />}
                   <span className="min-w-0 flex-1 text-[12px] font-semibold leading-tight truncate" title={a.detail}>{a.title}</span>
-                  {a.kind === 'shaken' && rallyCry && <button type="button" onClick={() => onPower(rallyCry)} disabled={!rallyReady} className="fa-btn fa-btn-secondary !min-h-[44px] !px-2 shrink-0 text-[11px]" data-testid="battle-alert-rally">{t('bt.hud.rally')}</button>}
-                  {(onAlertGo || onFocus) && <button type="button" onClick={() => (onAlertGo ? onAlertGo(a) : onFocus(a.x, a.y))} className="shrink-0 min-w-[44px] h-11 px-2 text-[12px] font-semibold text-fa-text" data-testid="battle-alert-go">{t('bt.go')}</button>}
+                  {a.kind === 'shaken' && rallyCry && <button type="button" onClick={(e) => { e.stopPropagation(); onPower(rallyCry); }} disabled={!rallyReady} className="fa-btn fa-btn-secondary !min-h-[44px] !px-2 shrink-0 text-[11px]" data-testid="battle-alert-rally">{t('bt.hud.rally')}</button>}
+                  {(onAlertGo || onFocus) && <button type="button" onClick={(e) => { e.stopPropagation(); if (onAlertGo) onAlertGo(a); else onFocus(a.x, a.y); }} className="shrink-0 min-w-[44px] h-11 px-2 text-[12px] font-semibold text-fa-text" data-testid="battle-alert-go">{t('bt.go')}</button>}
                 </div>
               ))}
             </div>
@@ -443,39 +495,15 @@ const BattleHud = ({
             )}
           </div>
           </div>
-          {!started && (
-            <div className="pointer-events-auto w-[min(22rem,100%)] px-3 py-2 fa-panel !bg-fa-panel/95 text-[12px] leading-snug shadow-xl overflow-y-auto" style={{ maxHeight: `calc(var(--app-height, 100vh) - ${short ? '9.5rem' : '11rem'} - var(--sa-t, 0px) - var(--sa-b, 0px))` }} data-testid="battle-deploy-help">
-              <div className="flex items-center gap-2">
-                <div className="fa-heading text-[15px] flex-1">{t('bt.hud.deploy')}</div>
-                <button type="button" onClick={() => setDeployMore((v) => !v)} aria-expanded={deployMore} aria-label={deployMore ? t('bt.hud.lessAbout') : t('bt.hud.moreAbout')} data-testid="battle-deploy-more"
-                  className="w-11 h-11 -my-2 -me-2 shrink-0 flex items-center justify-center text-fa-muted">{deployMore ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}</button>
-              </div>
-              <div data-testid="battle-deploy-controls">{deployHelp(mouse)}</div>
-              <div className="mt-1 text-fa-brass"><span className="fa-num">{fmtTime(timeLeft)}</span>: {goal}</div>
-              {deployMore && (
-                <div className="mt-1 space-y-1" data-testid="battle-deploy-details">
-                  {setup.structures.some((st) => st.kind === 'building') && (
-                    <div className="text-fa-you" data-testid="battle-buildings">
-                      {playerSide === 1 ? t('bt.hud.yourBuildings') : t('bt.hud.theirBuildings')}
-                      {setup.structures.filter((st) => st.kind === 'building').map((st) => `${structureName(st)} (${buildingEffect(st.category, t('bt.hud.landmark'))})`).join(', ')}
-                    </div>
-                  )}
-                  {setup.economy && <div className="text-fa-muted">{t('bt.hud.baseNote', { what: playerSide === 1 ? t('bt.hud.keepWord') : t('bt.hud.campWord') })}</div>}
-                  <div className="text-fa-muted">{cameraHelp(mouse)} {t('bt.hud.everyRegiment')}</div>
-                </div>
-              )}
-              <button type="button" onClick={onTogglePause} className="fa-btn fa-btn-primary w-full !min-h-[44px] mt-1.5" data-testid="battle-start">{t('bt.hud.start')}</button>
-            </div>
-          )}
           {/* The selection and its target (B01); Shaken with Rally Cry (B09) */}
           {sel && !pauseOpen && started && (
             <div className={cx('max-w-full ps-3 py-1 rounded-full bg-fa-panel/95 border border-fa-line text-[12px] shadow-xl pointer-events-auto flex items-center gap-2', onClearSelection ? 'pe-0' : 'pe-3')} data-testid="battle-selection">
               <span className="font-semibold truncate min-w-[3rem] max-w-[9rem] lg:max-w-none">{sel.name}</span>
-              <span className="text-fa-muted whitespace-nowrap hidden lg:inline fa-num">{t('bt.hud.squadsMen', { count: sel.squads, men: menText(sel.men) })}</span>
+              <span className="text-fa-muted whitespace-nowrap hidden lg:inline fa-num">{t(naval ? 'bt.hud.shipsCrew' : 'bt.hud.squadsMen', { count: sel.squads, men: menText(sel.men) })}</span>
               <span className={cx('fa-num', sel.share < 0.35 ? 'text-fa-danger-text' : 'text-fa-good')}>{Math.round(sel.share * 100)}%</span>
               {sel.shaken > 0 && <span className="px-1.5 rounded-md bg-fa-brass/20 text-fa-brass text-[11px] font-bold whitespace-nowrap" title={t('bt.hud.shakenTitle')} data-testid="battle-selection-shaken">{sel.squads > 1 ? t('bt.hud.shakenN', { n: sel.shaken }) : t('bt.hud.shaken')}</span>}
               {sel.noPath > 0 && <span className="px-1.5 rounded-md bg-fa-danger/20 text-fa-danger-text text-[11px] font-bold whitespace-nowrap" title={t('bt.hud.noPathTitle')} data-testid="battle-selection-nopath">{t('bt.hud.noPath')}</span>}
-              {sel.attrition > 0 && <span className="text-fa-muted text-[11px] whitespace-nowrap fa-num" title={t('bt.hud.attritionTitle')} data-testid="battle-selection-attrition">{t('bt.hud.attrition', { men: menText(sel.attrition) })}</span>}
+              {sel.attrition > 0 && <button type="button" onClick={() => setAttrOpen((v) => !v)} aria-expanded={attrOpen} className="min-h-[44px] -my-2.5 text-fa-muted text-[11px] whitespace-nowrap fa-num underline decoration-dotted" title={t('bt.hud.attritionTitle')} data-testid="battle-selection-attrition">{t('bt.hud.attrition', { men: menText(sel.attrition) })}</button>}
               {sel.routed && <span className="text-fa-danger-text font-semibold">{t('bt.hud.routed')}</span>}
               {targetSt && <span className="text-fa-enemy whitespace-nowrap hidden lg:inline">{t('bt.hud.target', { word: structureLabel(targetSt.kind, STRUCTURE_WORD[targetSt.kind] || targetSt.kind), hp: `${Math.round(targetSt.hp)}/${targetSt.maxHp}` })}</span>}
               {sel.shaken > 0 && rallyCry && <button type="button" onClick={() => onPower(rallyCry)} disabled={!rallyReady} className="fa-btn fa-btn-secondary !min-h-[44px] !px-2.5 -my-2 shrink-0 text-[11px]" data-testid="battle-selection-rally" title={rallyReady ? t('bt.hud.rallyReadyTitle') : t('bt.hud.rallyNotReady')}>{t('bt.hud.rallyCry')}</button>}
@@ -486,6 +514,9 @@ const BattleHud = ({
                 </button>
               )}
             </div>
+          )}
+          {sel && attrOpen && sel.attrition > 0 && !pauseOpen && started && (
+            <div className="pointer-events-auto max-w-[min(20rem,100%)] px-2.5 py-1 rounded-[10px] bg-fa-panel/95 border border-fa-line text-[11.5px] leading-snug shadow-xl" data-testid="battle-attrition-why">{t('bt.hud.attritionTitle')}</div>
           )}
         </div>
 
@@ -555,7 +586,7 @@ const BattleHud = ({
             </div>
           )}
           <div className="pointer-events-auto flex gap-1 shrink-0" data-testid="battle-quick">
-            <Cmd glyph={<GameIcon group="battle" id="select-all" size={18} halo={false} fallback={<Users className="w-4 h-4" aria-hidden="true" />} />} label={t('bt.hud.all', { n: allCount })} onClick={() => onSelectClass('all')} disabled={!allCount} testId="battle-select-all" ariaLabel={t('bt.hud.selectAll', { n: allCount })} />
+            <Cmd glyph={<GameIcon group="battle" id="select-all" size={18} halo={false} fallback={<Users className="w-4 h-4" aria-hidden="true" />} />} label={t('bt.hud.all', { n: allCount })} onClick={() => onSelectClass('all')} disabled={!allCount} testId="battle-select-all" ariaLabel={t(naval ? 'bt.hud.selectAllShips' : 'bt.hud.selectAll', { n: allCount })} />
             {narrow ? (
               // RTS-02: a narrow phone folds the camera buttons behind View (they open upwards).
               <div className="relative shrink-0">
@@ -569,7 +600,7 @@ const BattleHud = ({
             ) : viewButtons.map((b) => <Cmd key={b.testId} {...b} />)}
             {eco && eco.idleWorkers.length > 0 && <Cmd icon={Hammer} label={t('bt.hud.idle', { n: eco.idleWorkers.length })} onClick={() => onSelectClass('idle')} testId="battle-idle-workers" />}
             {idleSquads > 0 && <Cmd icon={Swords} label={t('bt.hud.idleSquads', { n: idleSquads })} onClick={() => onSelectClass('idleSquads')} testId="battle-idle-squads" ariaLabel={t('bt.hud.idleSquadsAria', { n: idleSquads })} />}
-            {eco && onSteward && <Cmd icon={UserCog} label={t('bt.hud.steward')} onClick={() => onSteward(!eco.steward)} active={!!eco.steward} testId="battle-steward" ariaLabel={t('bt.hud.stewardAria')} />}
+            {eco && onSteward && <Cmd icon={UserCog} label={t('bt.hud.economy')} onClick={() => setEcoOpen((v) => !v)} active={ecoOpen} testId="battle-economy" ariaLabel={t('bt.hud.economyAria')} />}
           </div>
           </div>
           <div className="flex-1 min-w-0 max-h-full overflow-y-auto [&>*]:pointer-events-auto overscroll-contain scrollbar-none flex flex-col items-end gap-1" data-testid="battle-context" data-context={context}>
@@ -583,8 +614,9 @@ const BattleHud = ({
                   <button key={a.id} type="button" disabled={a.readyIn > 0} onClick={() => { setWandOpen(false); onAbility?.(a.id); }} data-testid={`battle-ability-${a.id}`}
                     className="w-full min-h-[44px] px-2 flex items-center gap-2 rounded-[8px] text-start hover:bg-fa-raised disabled:opacity-50">
                     <Wand2 className="w-4 h-4 shrink-0 text-fa-indep" aria-hidden="true" />
-                    <span className="flex-1 min-w-0 text-[12px] font-semibold truncate">{abilityLabel(a.id)}</span>
-                    <span className={cx('text-[11px] fa-num shrink-0', a.readyIn > 0 ? 'text-fa-muted' : 'text-fa-good')}>{a.readyIn > 0 ? t('bt.hud.readyIn', { s: Math.ceil(a.readyIn / TICK_HZ) }) : t('bt.hud.readyCap')}</span>
+                    <span className="flex-1 min-w-0 py-1"><span className="block text-[12px] font-semibold leading-tight">{abilityLabel(a.id, naval)}</span>
+                      <span className="block text-[10.5px] text-fa-muted leading-snug" data-testid="battle-power-desc">{t(`bt.pdesc.${a.id}`)}</span></span>
+                    <span className={cx('text-[11px] fa-num shrink-0', a.readyIn > 0 ? 'text-fa-muted' : 'text-fa-good')}>{a.readyIn > 0 ? t('bt.hud.secShort', { s: Math.ceil(a.readyIn / TICK_HZ) }) : t('bt.hud.readyCap')}</span>
                   </button>
                 ))}
                 {powerCards.map((pw) => {
@@ -593,14 +625,19 @@ const BattleHud = ({
                     <button key={pw.id} type="button" disabled={!!block} onClick={() => firePower(pw)} aria-pressed={(armed?.type === 'power' && armed.id === pw.id) || undefined} data-testid={`battle-power-${pw.id}`}
                       className={cx('w-full min-h-[44px] px-2 flex items-center gap-2 rounded-[8px] text-start hover:bg-fa-raised disabled:opacity-60')}>
                       <Zap className="w-4 h-4 shrink-0 text-fa-brass" aria-hidden="true" />
-                      <span className="flex-1 min-w-0"><span className="block text-[12px] font-semibold truncate">{powerLabel(pw.id, pw.label)}</span>
-                        <span className="block text-[10.5px] text-fa-muted fa-num">{pw.cost ? t('bt.hud.costSupply', { cost: pw.cost }) : t('bt.hud.free')}{Number.isFinite(pw.usesLeft) ? t('bt.hud.usesLeft', { n: pw.usesLeft }) : ''}{pw.targeted ? t('bt.hud.aimIt') : ''}</span></span>
-                      <span className={cx('text-[11px] shrink-0 text-end max-w-[8rem]', block ? 'text-fa-danger-text' : 'text-fa-good')}>{block || t('bt.hud.readyCap')}</span>
+                      <span className="flex-1 min-w-0 py-1"><span className="block text-[12px] font-semibold leading-tight">{powerLabel(pw.id, pw.label)}</span>
+                        <span className="block text-[10.5px] text-fa-muted leading-snug" data-testid="battle-power-desc">{t(`bt.pdesc.${pw.id}`)}</span>
+                        <span className={cx('block text-[10.5px] fa-num', block ? 'text-fa-danger-text' : 'text-fa-brass')}>{block || <>{pw.cost ? t('bt.hud.costSupply', { cost: pw.cost }) : t('bt.hud.free')}{Number.isFinite(pw.usesLeft) ? t('bt.hud.usesLeft', { n: pw.usesLeft }) : ''}{pw.targeted ? t('bt.hud.aimIt') : ''}</>}</span></span>
+                      {!block && <span className="text-[11px] shrink-0 text-fa-good">{t('bt.hud.readyCap')}</span>}
                     </button>
                   );
                 })}
                 </div>
               </div>
+            )}
+            {ecoOpen && eco && onSteward && (
+              <EconomySheet eco={eco} hq={ecoHq} onSteward={onSteward} onPreset={onWorkerPreset} onRebuild={onAutoRebuild}
+                onTrainLaborer={() => ecoHq && onTrainLaborer?.(ecoHq.idx)} onIdle={() => { setEcoOpen(false); onSelectClass('idle'); }} onClose={() => setEcoOpen(false)} />
             )}
             {panel}
             {(armyCtx || idleCtx) && (
@@ -627,6 +664,8 @@ const BattleHud = ({
         </div>
       )}
 
+      {deployCard}
+
       {selectMode && !pauseOpen && (
         <div className="absolute max-w-[250px] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-good text-xs font-semibold shadow-xl pointer-events-none" style={{ insetInlineStart: SAFE_L, bottom: ABOVE_BOTTOM }} data-testid="battle-select-mode-banner">
           {t('bt.hud.selectBanner')}
@@ -637,7 +676,7 @@ const BattleHud = ({
           {t('bt.hud.pathBanner')}
         </div>
       )}
-      {coach && !selectMode && !pathMode && !pauseOpen && !viewOpen && !(started && paused && sheetHidden) && coach.steps[coach.step] && (
+      {coach && started && !selectMode && !pathMode && !pauseOpen && !viewOpen && !(started && paused && sheetHidden) && coach.steps[coach.step] && (
         // RTS-01: the first-battle coach. It never blocks the field or the clock: only its buttons take taps.
         <div className="absolute w-[min(16rem,calc(50vw-1rem))] px-3 pt-2 pb-1 rounded-[10px] bg-fa-panel/95 border border-fa-brass/70 text-[12px] leading-snug shadow-xl pointer-events-none" style={{ insetInlineStart: SAFE_L, bottom: ABOVE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-coach">
           <div className="flex items-baseline gap-2">

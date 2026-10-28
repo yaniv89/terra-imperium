@@ -1,6 +1,7 @@
 import { advanceMarches, marchUpkeep } from './routes';
 import { getOwnedRegionIds } from '../data/regions';
-import { getPool, getResearched } from './nationState';
+import { getPool, getResearched, ageOf } from './nationState';
+import { AGES } from '../data/ages';
 // src/engine/economy.js
 // Plan §M11: expenses ledger, loans, bankruptcy, and the strategic-resource recruit cost. Mirrors
 // nationalPower.js's shape — pure functions read from `state`, resolveTurn.js writes the
@@ -35,6 +36,14 @@ export const buildingUpkeepOf = (state, regions, nationId) => {
   }
   return Math.floor(sum);
 };
+
+// Gold a turn one unit costs at full pay: UNIT_UPKEEP_GOLD_PER_TURN x its own age's unitCostMult (the
+// curve its production cost follows), as Civilization VI ties maintenance to a unit's cost and EU4's
+// regiments cost more with each tech. A unit keeps its age until upgraded, so an old army stays cheap
+// and an upgrade costs upkeep as well as its price (lane gold-sinks).
+export const unitUpkeepGold = (state, unit) => UNIT_UPKEEP_GOLD_PER_TURN * ((AGES[unit?.ageId] || AGES[ageOf(state, unit?.ownerId)])?.unitCostMult ?? 1);
+/** Full-pay upkeep of `units` (an array), before the maintenance slider. */
+export const unitsUpkeepGold = (state, units) => units.reduce((sum, u) => sum + unitUpkeepGold(state, u), 0);
 
 export const clampMaintenance = (value) => Math.max(ARMY_MAINTENANCE_MIN, Math.min(ARMY_MAINTENANCE_MAX, value));
 
@@ -93,8 +102,8 @@ export const calcNationBalance =(state, nationId, knownIncome, ownedUnits = null
   // Laws and reforms move the army's upkeep (lawRules.js unitUpkeepMult: Feudal Levy -20%, Professional Army +30%...).
   const armyMaintenanceMult = clampMaintenance(nation.armyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100 * Math.max(0, 1 + (lawRulesOf(nation).unitUpkeepMult || 0));
   const navyMaintenanceMult = clampMaintenance(nation.navyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100;
-  const armyUpkeep = Math.round(units.filter((u) => u.domain !== 'naval').length * UNIT_UPKEEP_GOLD_PER_TURN * armyMaintenanceMult);
-  const navyUpkeep = Math.round(units.filter((u) => u.domain === 'naval').length * UNIT_UPKEEP_GOLD_PER_TURN * navyMaintenanceMult);
+  const armyUpkeep = Math.round(unitsUpkeepGold(state, units.filter((u) => u.domain !== 'naval')) * armyMaintenanceMult);
+  const navyUpkeep = Math.round(unitsUpkeepGold(state, units.filter((u) => u.domain === 'naval')) * navyMaintenanceMult);
   const fortLevels = getOwnedRegionIds(state.regions, nationId).map(id => state.regions[id])
     .reduce((sum, r) => {
       const tier = r.buildings?.categories?.defense;
@@ -110,7 +119,7 @@ export const calcNationBalance =(state, nationId, knownIncome, ownedUnits = null
   // Armies that marched this turn (routes.js) cost MARCH_UPKEEP_SHARE more.
   // The forecast looks one turn ahead: armies with a route walk during the coming End Turn
   // (routes.js advanceMarches, the walk resolveTurn runs first), so they are charged too (ECON-01).
-  const marchingUpkeep = marchUpkeep(null, nationId, state.turnNumber, UNIT_UPKEEP_GOLD_PER_TURN * armyMaintenanceMult, unitsAfterMarch(state, nationId, units));
+  const marchingUpkeep = marchUpkeep(null, nationId, state.turnNumber, (u) => unitUpkeepGold(state, u) * armyMaintenanceMult, unitsAfterMarch(state, nationId, units));
   const expenses = { armyUpkeep, marchingUpkeep, navyUpkeep, fortUpkeep, buildingUpkeep, advisorSalaries, loanInterest };
   const totalExpenses = Object.values(expenses).reduce((sum, v) => sum + v, 0);
   return { income, expenses, net: (income.gold || 0) - totalExpenses };

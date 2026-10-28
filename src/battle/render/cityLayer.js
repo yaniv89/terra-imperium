@@ -27,8 +27,8 @@
 import { InstancedMesh, MeshLambertMaterial, BoxGeometry, Object3D, Color, Group, Matrix4, Vector3 } from 'three';
 import { Q } from '../sim/constants';
 import { ART } from '../art/artFiles';
-import { loadKit, kitObject } from '../art/kitLoader';
-import { structureState, structurePiece, palaceName, structureMatrix } from '../art/structureArt';
+import { loadKit, kitObject, objectSize } from '../art/kitLoader';
+import { structureState, structurePiece, palaceName, structureMatrix, COLLAPSE_S, collapseMatrix } from '../art/structureArt';
 import { KitInstances, kitLodForZoom } from '../art/kitInstances';
 import { houseTypes, pickHouse, pickRubble, wallPiece, pieceLength, wonderPiece } from '../art/cityArt';
 import { wonderAssetUrl } from '../../components/map/closeView/wonderAssets';
@@ -41,7 +41,7 @@ export const CITY_KINDS = new Set([...PASSIVE_KINDS, 'wall', 'gate']);
 const STONE = { bronze: '#b39a72', classical: '#cfc6b0', kingdoms: '#9b968c', gunpowder: '#958b80', modern: '#8f9194', information: '#8f9194', future: '#d5dbe2' };
 const tmp = new Object3D();
 const tint = new Color();
-const M = new Matrix4(); const V = new Vector3();
+const M = new Matrix4(); const V = new Vector3(); const MC = new Matrix4();
 
 export class CityLayer {
   /** `art`, `load`: the art index and kit loader (tests pass their own). */
@@ -54,6 +54,7 @@ export class CityLayer {
     this.city = r.setup.city;
     this.items = []; // [{ index, s }] the city structures by sim index
     this.last = new Map();
+    this.fell = new Map(); // structure index -> renderer time it was seen to fall (the collapse, COLLAPSE_S)
   }
 
   build() {
@@ -144,8 +145,14 @@ export class CityLayer {
       const seen = this.r.structureSeen ? this.r.structureSeen(index) : true;
       if (seen) anySeen = true;
       const key = structureState(v) + (seen ? 0 : 100);
-      if (this.last.get(index) !== key) { this.last.set(index, key); changed = true; }
+      const was = this.last.get(index);
+      if (was !== key) {
+        if (key === 2 && (was === 0 || was === 1)) this.fell.set(index, this.r.time ?? 0); // fell in sight
+        this.last.set(index, key); changed = true;
+      }
     });
+    // a collapse in progress redraws every frame until it is done
+    this.fell.forEach((t, index) => { if ((this.r.time ?? 0) - t >= COLLAPSE_S) this.fell.delete(index); else changed = true; });
     if (!changed) return;
     if (this.root) this.root.visible = anySeen;
     let nw = 0; let nb = 0; let nr = 0;
@@ -156,14 +163,23 @@ export class CityLayer {
     const team = tint.set(this.r.setup.sides[1].color).clone();
     this.pieces.begin(); this.housePieces.begin();
     const at = (s) => { const x = s.x / Q; const z = s.y / Q; return [x, this.r.heightAt(x, z), z]; };
+    // a structure that fell moments ago: its standing piece sinks into the ruin drawn under it
+    const falling = (index, piece, m, kits = this.pieces) => {
+      const t = this.fell.get(index); const k = t == null ? 1 : ((this.r.time ?? 0) - t) / COLLAPSE_S;
+      if (k < 1 && piece) kits.add(piece, lod, collapseMatrix(MC, m, k, objectSize(piece).height * m.elements[5] * 1.05, index), team);
+    };
     // a house's kit piece in the town's model space (this.root), the house cut out of the town file
-    const housePiece = (s, state) => {
+    const housePiece = (s, state, index) => {
       if (!houseKit || s.kind !== 'house' || !s.model) return false;
       const [mx, mz, w, d] = s.model;
       const p = pickHouse(houseKit, w, d, state, this.houseTypes);
       if (!p) return false;
       this.housePieces.add(p.obj, lod, M.makeRotationY(p.yaw).scale(V.set(p.lx, 1, p.lz)).setPosition(mx, 0, mz), team);
       ruined.push(s.model);
+      if (state === 'ruined') {
+        const up = pickHouse(houseKit, w, d, 'damaged', this.houseTypes);
+        if (up) falling(index, up.obj, M.makeRotationY(up.yaw).scale(V.set(up.lx, 1, up.lz)).setPosition(mx, 0, mz), this.housePieces);
+      }
       return true;
     };
     // A capital places its palace on the objective: one central building serves both footprints.
@@ -199,6 +215,7 @@ export class CityLayer {
           const m = structureMatrix(intact, fit, x, y, z);
           if (s.kind === 'keep' && s.hallLift > 1) m.multiply(M.makeScale(1, s.hallLift, 1));
           this.pieces.add(piece, lod, m, team);
+          if (state === 2) falling(index, s.kind === 'keep' ? structurePiece(this.kits.civic, name, 1) : structurePiece(this.kits.palaceDamage, name, 1) || intact, m);
           return;
         }
         // Missing art preserves the keep's own model, or the palace box/mound below.
@@ -220,6 +237,7 @@ export class CityLayer {
         const g = this.r.structureMeshes?.get(s.id);
         if (g) g.visible = !piece;
         if (piece) this.pieces.add(piece, lod, M.makeRotationY(Math.PI / 2 - yaw).scale(V.setScalar(S)).setPosition(x, y, z), team);
+        if (piece && state === 2) falling(index, wallPiece(wallKit, 'tower', 1), M);
         return;
       }
       if (piece) {
@@ -229,7 +247,7 @@ export class CityLayer {
         return;
       }
       if (state === 2) {
-        if (housePiece(s, 'ruined')) return;
+        if (housePiece(s, 'ruined', index)) return;
         const rubble = pickRubble(ruinKit, Math.max(s.w, s.d) / S);
         if (rubble) {
           this.pieces.add(rubble.obj, lod, M.makeRotationY((index * 2.39996) % 6.283).scale(V.setScalar(S * rubble.scale)).setPosition(x, y, z));
@@ -242,7 +260,7 @@ export class CityLayer {
         if (s.model) ruined.push(s.model);
         return;
       }
-      if (state === 1 && housePiece(s, 'damaged')) return;
+      if (state === 1 && housePiece(s, 'damaged', index)) return;
       if (state === 1 && s.model) damaged.push(s.model);
       if (s.kind === 'wall' || s.kind === 'gate') {
         const len = Math.max(s.w, s.d); const thick = Math.max(0.5, Math.min(s.w, s.d));

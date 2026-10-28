@@ -39,7 +39,7 @@ import { ringsForKm } from '../data/geo/gridScale';
 import { msg, sub, cityRef, place as placeRef, reasonOf } from './messages';
 import { MARCH_SUPPLY_PER_UNIT } from './supplies';
 import { getResearched } from './nationState';
-import { enemyFleetAt, findSeaPath, fleetPace, isFleet, portsBeside, portWaters } from './fleets';
+import { enemyFleetAt, findSeaPath, fleetPace, isFleet, portsBeside, portWaters, touchesCoastOf } from './fleets';
 import {
   BANK_CAP, DEFAULT_MOVE_POINTS, ENEMY_TILE_COST, MARCH_ATTRITION, MAX_ROUTE_STEPS, MOVE_POINTS,
   aboardShip, armiesByTile, enemyArmyAt, findTilePath, inEnemyZoc, isHarsh, movePoints, regionAccess, regionForTile, stackPace, tileAccess, tileStepCost, unitTile
@@ -304,7 +304,9 @@ const sailFleet = (state, units, u, { reached, halted, mark = {} }) => {
   if (here >= 0) route = route.slice(here + 1);
   // The first step leaves a port by any of its waters, or follows on from the fleet's tile.
   const inPort = at != null && tiles.land[at] === 1;
-  const startsRight = at != null && route.length && (inPort ? portWaters(state, tiles, u.regionId).includes(route[0]) : tiles.neighbors[at].includes(route[0]));
+  // (A port's waters touch any of its land, not only its centre: a fleet there puts in at once.)
+  const startsRight = at != null && route.length && (inPort ? portWaters(state, tiles, u.regionId).includes(route[0])
+    : tiles.neighbors[at].includes(route[0]) || (tiles.land[route[0]] === 1 && touchesCoastOf(state, tiles, at, state.world?.tileOwner?.[route[0]])));
   if (!startsRight) { units[u.id] = clearRoute(u); return; }
   const pace = u.routePace || fleetPace(state, u);
   let left = pace; let moved = false; let halt = null; let regionId = u.regionId;
@@ -456,5 +458,6 @@ export const unitsAtTurnStart = (state) => {
 };
 
 // Extra gold upkeep for the land units that marched this turn (`units`: a map or an array).
-export const marchUpkeep = (units, nationId, turnNumber, perUnitUpkeep, ownedUnits = null) => Math.round((ownedUnits || Object.values(units))
-  .filter((u) => u.ownerId === nationId && u.marchedTurn === turnNumber && u.domain !== 'naval').length * perUnitUpkeep * MARCH_UPKEEP_SHARE);
+// `upkeepOf(unit)`: that unit's gold a turn (economy.js unitUpkeepGold x the maintenance slider).
+export const marchUpkeep = (units, nationId, turnNumber, upkeepOf, ownedUnits = null) => Math.round((ownedUnits || Object.values(units))
+  .filter((u) => u.ownerId === nationId && u.marchedTurn === turnNumber && u.domain !== 'naval').reduce((sum, u) => sum + upkeepOf(u), 0) * MARCH_UPKEEP_SHARE);

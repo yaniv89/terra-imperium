@@ -22,6 +22,7 @@ import { computeSupplyFlow } from '../../engine/supplies';
 import { getResearched, ageOf } from '../../engine/nationState';
 import { mapEffectsFor } from '../../engine/techMapEffects';
 import { upgradeQuote, unitAgeOf } from '../../engine/unitUpgrades';
+import { unitUpkeepGold } from '../../engine/economy';
 import { reasonText } from '../../i18n/messageText';
 import { reasonOf } from '../../engine/messages';
 import { fogOn, isExplored } from '../../engine/fog';
@@ -263,7 +264,9 @@ export const armySheetModel = (state, tile, fleet = false) => {
 const upgradeRow = (state, u, ageId, naval, nameAt) => {
   const q = upgradeQuote(state, u.id);
   if (!q.older) return null;
-  return { ok: q.ok, gold: q.gold, to: naval ? navalShipName(navalLineOf(u), ageId, nameAt(ageId, u)) : unitRosterName(ageId, u.classId, nameAt(ageId, u)), why: q.ok ? null : reasonText(q) };
+  // Upkeep follows the unit's age (economy.js unitUpkeepGold): the upgrade raises it from `upkeep` to `upkeepTo`.
+  return { ok: q.ok, gold: q.gold, to: naval ? navalShipName(navalLineOf(u), ageId, nameAt(ageId, u)) : unitRosterName(ageId, u.classId, nameAt(ageId, u)), why: q.ok ? null : reasonText(q),
+    upkeep: Math.round(unitUpkeepGold(state, u)), upkeepTo: Math.round(unitUpkeepGold(state, { ...u, ageId })) };
 };
 
 /** The whole stack's Upgrade button: every older unit that can be upgraded now, priced together

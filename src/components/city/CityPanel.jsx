@@ -13,6 +13,7 @@
 import { isolateLtr } from '../../i18n';
 import { nameNow } from '../../i18n/names';
 import GlossaryLink from '../glossary/GlossaryLink';
+import { buildingId } from '../../data/glossary';
 import { unitName as unitDisplayName, unitClassName } from '../../i18n/gameText';
 import { unitClassLabel as unitClassLabelEn } from '../../data/unitNames';
 import { buildingTierName, wonderName, improvementName, districtName, tileResourceName } from '../../i18n/gameText';
@@ -24,6 +25,9 @@ import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { getTiles } from '../../data/geo/tiles';
 import { advisorPick } from '../../engine/productionAdvisor';
+import { advisorWhy } from './cityCharacterModel';
+import { nextCitizenEffect } from '../../engine/cityEffects';
+import { itemKey } from '../../engine/world/cities';
 import { shortItemLabel } from './cityRailModel';
 import { getResearched, ageOf } from '../../engine/nationState';
 import { stonePhaseOf } from '../../engine/stonePhase';
@@ -112,6 +116,10 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   const keepRow = useScrollHint();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const advisorItem = useMemo(() => (city && !city.production?.current && city.owner === state.playerNationId ? advisorPick(state, cityId) : null), [state, cityId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const advisorReason = useMemo(() => (advisorItem ? advisorWhy(state, cityId, advisorItem) : null), [advisorItem]);
+  const advisorKey = advisorItem ? itemKey(advisorItem) : null;
+  const nextCitizen = useMemo(() => (live && showOverview && growth?.state === 'growing' ? nextCitizenEffect(state, cityId) : null), [state, cityId, live, showOverview, growth]);
   const groupRow = useScrollHint();
   const [openRow, setOpenRow] = useState(null);
   const [tap, setTap] = useState(null);
@@ -258,6 +266,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
           <div className="fa-num text-[15px] font-semibold">{city.size}</div>
           <div className="text-fa-muted text-[11px] leading-tight">{growthLine}</div>
           {growth.threshold > 0 && <div className="text-fa-muted text-[11px] leading-tight fa-num" title={t('cy.foodBanked')}>{t('cy.foodBank', { bank: Math.floor(growth.bank), threshold: growth.threshold })}</div>}
+          {nextCitizen && <div className="text-fa-good text-[11px] leading-tight mt-0.5" data-testid="city-next-citizen">{t('cy.nextCitizen', { effect: nextCitizen.text })}</div>}
         </div>
         <div className="fa-card px-2 py-1.5">
           <div className="text-fa-muted flex items-center gap-1"><Home className="w-3 h-3" aria-hidden="true" />{t('cy.housing')}</div>
@@ -293,11 +302,28 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   );
 
   const shownGroups = group === 'All' ? GROUPS : [group];
+  // The standing order is set once: above the list while nothing is in production, else below it, so a
+  // phone held sideways shows build rows under the queue bar (round 2 warmonger step 67: one row free).
+  const keepControl = mine && (
+    <div className="flex items-center gap-1.5 text-[12px]" data-testid="city-keep" title={t('cy.keepTip')}>
+      <span className="text-fa-muted shrink-0">{t('cy.keep')}</span>
+      <div ref={keepRow} className="flex gap-1 overflow-x-auto [scrollbar-width:none]" role="radiogroup" aria-label={t('cy.keep')}>
+        {[[null, 'cy.keepOff'], ['repeat', 'cy.keepRepeat'], ['advisor', 'cy.keepAdvisor']].map(([mode, key]) => {
+          const on = (city.production?.keep || null) === mode;
+          return (
+            <button key={key} type="button" role="radio" aria-checked={on} data-testid={`city-keep-${mode || 'off'}`}
+              onClick={() => dispatch({ type: ActionTypes.SET_PRODUCTION_KEEP, payload: { cityId, keep: mode } })}
+              className={`shrink-0 rounded-full border px-2.5 min-h-[36px] whitespace-nowrap ${on ? 'border-fa-brass bg-fa-raised text-fa-text' : 'border-fa-line text-fa-muted'}`}>{t(key)}</button>
+          );
+        })}
+      </div>
+    </div>
+  );
   const build = (
     <>
       {whyBubble}
       {/* The queue bar: pinned, always the same height, so adding to the queue moves nothing below it. */}
-      <div className={`sticky -top-3 z-10 -mx-3 ${showOverview ? '' : '-mt-3'} px-3 pt-2 pb-1.5 bg-fa-panel border-b border-fa-line`} data-testid="city-queue-bar">
+      <div className={`sticky -top-3 pl:top-[45px] z-10 -mx-3 ${showOverview ? '' : '-mt-3'} px-3 pt-2 pb-1.5 bg-fa-panel border-b border-fa-line`} data-testid="city-queue-bar">
         <div className="flex items-center gap-2 min-h-[44px]">
           {current ? <ItemIcon item={current.item} ageId={ageId} /> : null}
           <div className="min-w-0 flex-1">
@@ -305,7 +331,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
             <div className={`truncate text-[12px] h-[18px] ${flash ? (flash.ok ? 'text-fa-good' : 'text-fa-danger-text') : 'text-fa-muted'}`} aria-live="polite" data-testid="city-queue-status">
               {flash ? <>{flash.ok && <Check className="inline w-3.5 h-3.5 me-0.5 -mt-0.5" aria-hidden="true" />}{flash.text}</>
                 : current ? <><span className="fa-num">{Math.round(current.progress)}/{current.cost}</span> · {currentStatus}{queue.length > 1 ? ` · ${t('cy.moreQueued', { n: queue.length - 1 })}` : ''}</>
-                  : t('cy.pickBelow')}
+                  : advisorReason || t('cy.pickBelow')}
             </div>
           </div>
           {/* Nothing in production: the advisor names one buildable thing, one tap queues it (warmonger
@@ -382,21 +408,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
         </div>
       )}
 
-      {mine && (
-        <div className="flex items-center gap-1.5 text-[12px]" data-testid="city-keep" title={t('cy.keepTip')}>
-          <span className="text-fa-muted shrink-0">{t('cy.keep')}</span>
-          <div ref={keepRow} className="flex gap-1 overflow-x-auto [scrollbar-width:none]" role="radiogroup" aria-label={t('cy.keep')}>
-            {[[null, 'cy.keepOff'], ['repeat', 'cy.keepRepeat'], ['advisor', 'cy.keepAdvisor']].map(([mode, key]) => {
-              const on = (city.production?.keep || null) === mode;
-              return (
-                <button key={key} type="button" role="radio" aria-checked={on} data-testid={`city-keep-${mode || 'off'}`}
-                  onClick={() => dispatch({ type: ActionTypes.SET_PRODUCTION_KEEP, payload: { cityId, keep: mode } })}
-                  className={`shrink-0 rounded-full border px-2.5 min-h-[36px] whitespace-nowrap ${on ? 'border-fa-brass bg-fa-raised text-fa-text' : 'border-fa-line text-fa-muted'}`}>{t(key)}</button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {!current && keepControl}
 
       {mine && hint && (
         <div className="rounded-lg border border-fa-line bg-fa-raised px-2.5 py-1 text-[12px] leading-snug" data-testid="long-build-hint">
@@ -436,7 +448,10 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                     <div className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0} aria-expanded={open} onClick={() => toggleRow(o)} onKeyDown={(e) => { if (e.key === 'Enter') toggleRow(o); }} title={o.tile != null ? t('cy.showTileDetails') : t('cy.showDetails')}>
                       <ItemIcon item={o.item} ageId={ageId} />
                       <div className="min-w-0 flex-1">
-                        <div className={clip}>{o.tile != null && <MapPin className="inline w-3 h-3 me-0.5 -mt-0.5 text-fa-muted" aria-hidden="true" />}{o.item.kind === 'unit' && o.item.classId !== 'naval' && !o.item.explorer ? <GlossaryLink kind="unit" id={`${ageId}_${o.item.classId}`}>{o.label}</GlossaryLink> : o.label}</div>
+                        {advisorKey === itemKey(o.item) && <div className="text-[11px] leading-snug text-fa-brass" data-testid="build-advisor-tag"><span className="font-semibold">{t('cy.advisorTag')}</span>{advisorReason ? ` · ${advisorReason}` : ''}</div>}
+                        <div className={clip}>{o.tile != null && <MapPin className="inline w-3 h-3 me-0.5 -mt-0.5 text-fa-muted" aria-hidden="true" />}{o.item.kind === 'unit' && o.item.classId !== 'naval' && !o.item.explorer ? <GlossaryLink kind="unit" id={`${ageId}_${o.item.classId}`}>{o.label}</GlossaryLink>
+                          : o.item.kind === 'building' ? <GlossaryLink kind="building" id={buildingId(o.item.category, o.item.tier)}>{o.label}</GlossaryLink>
+                            : o.item.kind === 'improvement' ? <GlossaryLink kind="improvement" id={o.item.improvement}>{o.label}</GlossaryLink> : o.label}</div>
                         {o.detail && <div className={`text-[12px] leading-snug text-fa-text/80 ${clip}`} data-testid="build-effect">{o.detail}</div>}
                         {o.tag && <div className={`text-[12px] leading-snug text-fa-brass ${clip}`} data-testid="build-tag">{o.tag}</div>}
                         {open && o.note && <div className="text-[12px] leading-snug text-fa-muted">{o.note}.</div>}
@@ -444,7 +459,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                           {o.queued > 0 && <span className="text-fa-good me-1">{o.queued > 1 ? t('cy.nInQueue', { n: o.queued }) : t('cy.inQueue')}{o.ok ? ' ·' : ''}</span>}
                           {o.ok ? <>{R('cy.prodCost', { cost: <span className="fa-num">{o.cost}</span> })} · {turnsText(o.turns)}{o.stored > 0 ? ` · ${t('cy.alreadyDone', { n: Math.round(o.stored) })}` : ''}{o.long && <span className="text-fa-brass" data-testid="build-slow"> · {t('cy.slowWhy', { production: o.production, gold: o.buyGold })}</span>}</>
                             : o.queued ? null
-                              : o.needsName ? <>{t('cy.needs', { name: o.needsName })}{o.needsEta && <span data-testid="build-needs-eta">, {o.needsEta}</span>} {!o.needsPlanned && <button type="button" onClick={(e) => { e.stopPropagation(); dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } }); }} className="underline text-fa-you min-h-[24px]" data-testid="research-for-item">{t('cy.researchIt')}</button>}</>
+                              : o.needsName ? <><span data-help={`tech:${o.needsTech}`}>{t('cy.needs', { name: o.needsName })}</span>{o.needsEta && <span data-testid="build-needs-eta">, {o.needsEta}</span>} {!o.needsPlanned && <button type="button" onClick={(e) => { e.stopPropagation(); dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } }); }} className="underline text-fa-you min-h-[24px]" data-testid="research-for-item">{t('cy.researchIt')}</button>}</>
                                 : o.note || o.reason}
                           {/* a locked row shows no turn count: it read as buildable (Opus playtest step 185) */}
                           {!o.ok && o.cost > 0 && !o.needsName && <span className="text-fa-muted"> · {R('cy.prodCost', { cost: <span className="fa-num">{o.cost}</span> })}</span>}
@@ -462,6 +477,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
           </div>
         );
       })}
+      {current && keepControl}
       {mine && <ArmyTemplateEditor state={state} dispatch={dispatch} ageId={ageId} />}
     </>
   );

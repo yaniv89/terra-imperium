@@ -140,12 +140,25 @@ selected again is not answered.
 ## Mix
 
 Every recorded id has a loudness tier (`src/audio/mixLevels.test.js`): music is a bed (map tracks
-about -24 LUFS heard at the default volume, battle tracks 6 dB lower), combat hits sit just above the
+about -24 LUFS heard at the default volume, battle tracks 12 dB lower in a lull and 6 dB lower in a
+heavy fight), combat hits sit just above the
 battle music, siege, volleys and alerts above them, big moments (collapse, breach, war, a new era)
 on top; interface taps stay under the music. Unit barks sit with a single sword hit. The levels are
 measured from the files (`node scripts/audio/mix-levels.mjs` writes `mixLevels.json`) and the gains in
 soundRegistry.js are set from them. All buses (music, interface and world, battle) play into one
-limiter (`audioOutput` in audioContext.js), so stacked sounds never clip.
+limiter (`audioOutput` in audioContext.js), so stacked sounds never clip. A fanfare (a `big` world sound: war, a new
+age, a wonder, victory or defeat) dips the music to DUCK_GAIN while it plays (music.js duckMusic).
+
+## Music and ambience
+
+- Map music: the player's age's tracks (`music/ages/<age>/`); reaching a new age crossfades to them
+  under the era fanfare (GameContext calls `setMusicAge(ageOf(...))` after every dispatch).
+- Battle music: its own playlist for the age (`music/battle/`, `music/battle/<age>/`); it rises with
+  the fighting on screen and falls after (`setBattleIntensity`, from battleAudio.js's ambience level),
+  with the recorded war drums joining in heavy fighting.
+- Map ambience: the bed of the land at the centre of the view, once the camera settles (GLMapView
+  calls `setMapAmbience(ambienceMix(...))`, mapAmbience.js): sea, fields, desert, jungle, cold wind,
+  only wind when zoomed out to the world; a coast adds surf.
 
 ## Adding a sound
 

@@ -39,6 +39,7 @@ import { getTotalDev } from './development';
 import { getUnlockedClasses } from '../data/unitClasses';
 import { getResearched } from './nationState';
 import { UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
+import { unitUpkeepGold } from './economy';
 import { claimsInProgressOf } from './claims';
 
 export const STRIKE_PER_GARRISON = 2;
@@ -79,17 +80,18 @@ export const strikeSize = (state, city, ageId) => {
 export const landUnitsOf = (state, nationId) => Object.values(state.units || {}).filter((u) => u.ownerId === nationId && u.domain === 'land' && u.classId !== 'settler').length;
 
 /** How many land units the nation's income and treasury carry (see the header). */
-export const payableUnits = (nation, landUnits) => {
+// `upkeep`: a new unit's gold a turn at the nation's age (economy.js unitUpkeepGold).
+export const payableUnits = (nation, landUnits, upkeep = UNIT_UPKEEP_GOLD_PER_TURN) => {
   const net = nation?.lastNetIncome ?? 0;
   const gold = nation?.economy?.gold ?? 0;
-  return landUnits + Math.floor(Math.max(0, net) / (UNIT_UPKEEP_GOLD_PER_TURN * UPKEEP_MARGIN) + Math.max(0, gold) / (UNIT_UPKEEP_GOLD_PER_TURN * WAR_CHEST_TURNS));
+  return landUnits + Math.floor(Math.max(0, net) / (upkeep * UPKEEP_MARGIN) + Math.max(0, gold) / (upkeep * WAR_CHEST_TURNS));
 };
 
 /** The army a plan trains toward (see the header). */
-export const armyCap = (nation, cities, strike, landUnits) => {
+export const armyCap = (nation, cities, strike, landUnits, upkeep = UNIT_UPKEEP_GOLD_PER_TURN) => {
   const peace = cities * PEACE_UNITS_PER_CITY;
   const want = Math.min(Math.ceil(HOME_PER_CITY * cities) + strike, Math.floor(WAR_UNITS_PER_CITY * cities));
-  return Math.max(peace, Math.min(want, payableUnits(nation, landUnits)));
+  return Math.max(peace, Math.min(want, payableUnits(nation, landUnits, upkeep)));
 };
 
 const ownCities = (state, nationId) => Object.values(state.regions).filter((c) => c.owner === nationId && c.tile != null && !(c.occupiedBy && c.occupiedBy !== nationId));
@@ -151,7 +153,7 @@ export const updateWarPlan = (state, nationId, wars, ageId, { maxRings = Infinit
   if (!staging) return null;
   const strike = strikeSize(state, city, ageId);
   const land = landUnitsOf(state, nationId);
-  const cap = armyCap(nation, mine.filter((c) => !c.outpost).length || 1, strike, land);
+  const cap = armyCap(nation, mine.filter((c) => !c.outpost).length || 1, strike, land, unitUpkeepGold(state, { ageId, ownerId: nationId }));
   const siege = wallsOf(city) > 0 && getUnlockedClasses(ageId, getResearched(state, nationId)).includes('siege');
   const since = keep ? old.since : state.turnNumber;
   const plan = { enemy: city.owner, cityId, staging, strike, cap, siege, since, waves: keep ? (old.waves || 0) : 0 };
