@@ -216,6 +216,8 @@ export const InfoCard = ({ info, onClose, children, testId = 'battle-info-card' 
 const TRAIN_WAIT_MS = 1200;
 const unitName = roleLabel;
 const paidText = (cost) => RESOURCES.filter((r) => cost?.[r]).map((r) => `${cost[r]} ${resourceWord(r)}`).join(', ');
+/** The note when a laborer is queued: what was paid, and that a steward spends from the same stock (playtest 40736779836 step 35). */
+export const laborerNote = (ageId, steward) => `${tCore('bt.eco.queuedOne', { unit: unitName('worker', ageId), paid: paidText(UNITS.worker.cost) })}${steward ? ` ${tCore('bt.eco.stewardSpends')}` : ''}`;
 /** Why `role` cannot be queued now, or null (whole units; the same checks as the sim's order). */
 export const trainBlock = (role, stock, queueLength) => {
   if (queueLength >= QUEUE_MAX) return tCore('bt.eco.queueFull', { n: QUEUE_MAX });

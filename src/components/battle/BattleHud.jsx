@@ -305,6 +305,8 @@ const BattleHud = ({
                     {deployPreset && <div className="mt-0.5 text-fa-brass" data-testid="battle-deploy-preset-note">{t(`bt.hud.preset.${deployPreset}.title`)}</div>}
                   </div>
                 )}
+                {sel && <div className="mb-1 shrink-0 font-semibold text-fa-you" data-testid="battle-deploy-selected">{t('bt.hud.deploySelected', { name: sel.name })}</div>}
+                {!sel && playerSide === 1 && (setup.battleType === 'raid' || setup.battleType === 'sack') && <div className="mb-1 shrink-0 font-semibold text-fa-brass" data-testid="battle-raid-first">{t('bt.hud.raidFirst')}</div>}
                 <div className={cx('min-h-0 overflow-y-auto overscroll-contain', short && 'max-h-[6.75rem]')} data-testid="battle-deploy-details">
                   <div data-testid="battle-deploy-controls">{deployHelp(mouse, naval)}</div>
                   <div className="mt-1 text-fa-brass"><span className="fa-num">{fmtTime(timeLeft)}</span>: {goal}</div>

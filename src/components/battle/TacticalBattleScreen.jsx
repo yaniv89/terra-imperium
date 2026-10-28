@@ -33,7 +33,7 @@ import { Check, X as XIcon, Ban, Hammer, Wrench } from 'lucide-react';
 import GameIcon from '../ui/GameIcon';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useCornerSheet } from '../../hooks/useExclusivePanel';
-import { BuildMenu, BuildingActions, InfoCard, HammerButton, WorkerAutoButtons } from './EconomyHud';
+import { BuildMenu, BuildingActions, InfoCard, HammerButton, WorkerAutoButtons, laborerNote } from './EconomyHud';
 import { inspectInfo } from './inspectModel';
 import { contextFor, refusedText, enemyObjectives, supplyRate, armyGone, endVerdict } from './battleHudModel';
 import BattleMinimap from './BattleMinimap';
@@ -47,6 +47,7 @@ import { buildFlowNext, BUILD_FLOW_CLOSED, closePrecedence } from './buildFlow';
 import { preloadBattleIcons } from './battleIcons';
 import { commandedSetup } from '../../battle/setup/buildBattleSetup';
 import { arrivalNote } from '../../battle/input/orderFeedback';
+import { SHIP_PICK_TILES } from '../../battle/input/squadPick';
 import { DEPLOY_PRESETS, deployPreset as presetSlots, presetFits } from '../../battle/input/deployPresets';
 import { t as tNow } from '../../i18n/core';
 import { useT } from '../../i18n/useT';
@@ -397,7 +398,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       }
     });
     clientRef.current = client;
-    if (import.meta.env.DEV) window.__battleOrders = (orders) => client.sendOrders(orders); // console / visual-test driving
+    if (import.meta.env.DEV) { window.__battleOrders = (orders) => client.sendOrders(orders); window.__battleSelected = () => [...selectedRef.current]; } // console / visual-test driving
 
     let raf; let lastT = performance.now(); let lastHud = 0; let lastPerf = 0;
     let renderErrors = 0;
@@ -921,9 +922,11 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         const r = rendererRef.current; const cur = frames.current.cur;
         if (!r || !cur) return;
         const x0 = Math.min(s.x, p.x); const x1 = Math.max(s.x, p.x); const y0 = Math.min(s.y, p.y); const y1 = Math.max(s.y, p.y);
+        const hullPx = SHIP_PICK_TILES / r.worldPerPixel(); // a box that reaches a ship's long hull takes it (playtest 40736779836 step 47)
         const ids = cur.squads.filter((q) => q.side === playerSide && q.alive && q.onField && !q.fled).filter((q) => {
           const sp = r.worldToScreen(q.x / Q, q.y / Q);
-          return mods?.polygon ? insidePolygon(sp, mods.polygon) : sp.x >= x0 && sp.x <= x1 && sp.y >= y0 && sp.y <= y1;
+          const m = q.classId === 'naval' ? hullPx : 0;
+          return mods?.polygon ? insidePolygon(sp, mods.polygon) : sp.x >= x0 - m && sp.x <= x1 + m && sp.y >= y0 - m && sp.y <= y1 + m;
         }).map((q) => q.idx);
         updateSelection(mods?.shift ? [...new Set([...selectedRef.current, ...ids])] : ids);
       },
@@ -977,9 +980,11 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   });
 
   // --- HUD actions -----------------------------------------------------------------------------
+  // Defending a raid or sack: the raiders reach the houses in seconds, so the first move is said (playtest 40736779836).
+  const raidDefence = playerSide === 1 && (setup.battleType === 'raid' || setup.battleType === 'sack');
   const togglePause = () => {
     const c = clientRef.current; if (!c) return;
-    if (!started) { startedRef.current = true; setStarted(true); setPaused(false); rendererRef.current?.setDeployZone(null); audioRef.current?.battleStarted(); c.resume(); return; } // deployment ג†’ battle
+    if (!started) { startedRef.current = true; setStarted(true); setPaused(false); rendererRef.current?.setDeployZone(null); audioRef.current?.battleStarted(); c.resume(); if (raidDefence) setOrderNote(tNow('bt.hud.raidStart')); return; } // deployment ג†’ battle
     setPaused((p) => { if (p) c.resume(); else c.pause(); return !p; });
   };
   const toggleSound = () => setAudioSettings({ sound: !soundOn });
@@ -1343,7 +1348,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         supplyRate={supplyGain}
         perf={showPerf ? <pre ref={perfRef} className="pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre overflow-hidden" data-testid="battle-perf" /> : null}
         onOpenBuild={() => flowTo({ type: 'toggle' })} buildOpen={buildMenu} onSelectHq={selectHq} onSteward={(on) => { send([{ type: 'steward', on }]); setOrderNote(tNow(on ? 'bt.hud.stewardOn' : 'bt.hud.stewardOff')); }}
-        onWorkerPreset={(preset) => send([{ type: 'workerPreset', preset }])} onAutoRebuild={(on) => send([{ type: 'autoRebuild', on }])} onTrainLaborer={(building) => send([{ type: 'train', building, role: 'worker' }])}
+        onWorkerPreset={(preset) => send([{ type: 'workerPreset', preset }])} onAutoRebuild={(on) => send([{ type: 'autoRebuild', on }])} onTrainLaborer={(building) => { send([{ type: 'train', building, role: 'worker' }]); setOrderNote(laborerNote(ageId, !!hud?.eco?.steward)); }}
         groups={groupCounts} onGroup={pickGroup}
         soundOn={soundOn} onToggleSound={toggleSound}
         selectMode={selectMode} onToggleSelectMode={() => setSelectModeOn(!selectModeRef.current)}

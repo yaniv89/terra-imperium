@@ -104,7 +104,7 @@ export const createGestureRecognizer = (el, h, memory = { lastTapAt: -1000, last
     longTimer = setTimeout(() => {
       longTimer = null;
       if (mode === 'press-selected') { mode = 'radial'; h.radial?.(start); }
-      else if (mode === 'press') { mode = 'done'; h.longPress?.(start); }
+      else if (mode === 'press' && h.hasSelection?.()) { mode = 'done'; h.longPress?.(start); } // nothing selected: the lift is a tap
     }, LONG_MS);
   };
 
@@ -148,7 +148,9 @@ export const createGestureRecognizer = (el, h, memory = { lastTapAt: -1000, last
     // A still press is a tap until the long press takes it (playtest 40651418969 step 29: a press of
     // 260 to 380 ms used to be neither, and an armed Attack seemed to ignore the tap). A busy frame
     // can starve the long-press timer: a press held past LONG_MS on the ground is still a long press.
-    else if (mode === 'press' && e.timeStamp - start.t >= LONG_MS) { mode = 'done'; h.longPress?.(start); }
+    // With nothing selected a long press has nothing to order, so it selects like a tap (playtest
+    // 40736779836: slow taps on a squad in deploy did nothing).
+    else if (mode === 'press' && e.timeStamp - start.t >= LONG_MS && h.hasSelection?.()) { mode = 'done'; h.longPress?.(start); }
     else if (mode === 'press-selected' && e.timeStamp - start.t >= LONG_MS) { h.radial?.(start); h.radialSelect?.(p); }
     else if (mode === 'press' || mode === 'press-selected' || mode === 'lasso-armed' || mode === 'path-armed') { h.tap?.(p); memory.lastTapAt = e.timeStamp; memory.lastTapPos = p; }
     else if (mode === 'mouse-left') (h.click || h.tap)?.(p, { shift: start.shift });

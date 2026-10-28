@@ -11,6 +11,7 @@ import { toStrategicResult } from './result';
 import { runHeadless } from './headless';
 import { sanitizeOrderLog } from './replay';
 import { admitOrder } from './orderSchema';
+import { UNITS, RESOURCES } from '../data/economy';
 import { destroyEcoBuilding, housingCap, placementBlock, START_WORKERS, repairPerHp, ecoView, workCodes, workJobOf, workNodeOf, WORK_JOB } from './economy';
 import { BUILDINGS, MILLI, RES_INDEX, POP_LIMIT, CAMP_HOUSING, CAMP_HOUSING_PER_REGIMENT, START_STOCK, stockMult, TREE_WOOD, woodSlots } from '../data/economy';
 import { TILE } from '../setup/mapgen';
@@ -106,6 +107,18 @@ describe('battle economy', () => {
     expect(hq.queue[0].blocked).toBe('housing');
     expect(w.eco.stats[0].trained.worker || 0).toBe(0);
     expect(w.squads.filter((q) => q.side === 0 && !q.worker && q.alive).length).toBe(army);
+  });
+
+  // r3-battle (playtest 40736779836 step 34): the HUD's price (UNITS) is what the order charges; the
+  // 30 extra food the player saw was the phone's steward spending in the same seconds.
+  it('a laborer costs exactly the price the HUD shows', () => {
+    const w = createWorld(ecoSetup());
+    const hq = w.eco.buildings.find((b) => b.side === 0 && b.type === 'camp');
+    const spent = () => [...w.eco.stats[0].spent];
+    const before = spent();
+    run(w, 1, [{ side: 0, type: 'train', building: hq.idx, role: 'worker' }]);
+    const after = spent();
+    expect(RESOURCES.map((r, i) => (after[i] - before[i]) / 1000)).toEqual(RESOURCES.map((r) => UNITS.worker.cost[r] || 0));
   });
 
   // battle-engage (playtest 40651418969 step 181): trained squads sat idle at camp or walked past fights.

@@ -252,8 +252,11 @@ export const battleCheck = async ({ page }, seen) => {
 
 /** Runs one gesture in the page. Touch through CDP on a phone, the mouse on desktop. */
 export const perform = async ({ page, cdp, mobile }, { name, args: a }) => {
-  const touch = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts });
-  const tap = async (x, y, hold = 60) => { await touch('touchStart', [{ x, y, id: 1 }]); await wait(hold); await touch('touchEnd', []); };
+  // Each event carries its own time: CDP answers only once a slow frame has handled the event, so a
+  // 60 ms tap used to reach the page as a press of seconds, a long press (r3-battle, playtest 40736779836).
+  const t0 = Date.now() / 1000;
+  const touch = (type, pts, at = 0) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts, timestamp: t0 + at / 1000 });
+  const tap = async (x, y, hold = 60) => { const down = touch('touchStart', [{ x, y, id: 1 }]); await wait(hold); await touch('touchEnd', [], hold); await down; };
   const m = page.mouse;
   switch (name) {
     case 'tap': return mobile ? tap(a.x, a.y) : m.click(a.x, a.y);
@@ -261,7 +264,7 @@ export const perform = async ({ page, cdp, mobile }, { name, args: a }) => {
     case 'long_press': return mobile ? tap(a.x, a.y, 900) : m.move(a.x, a.y).then(() => m.down()).then(() => wait(900)).then(() => m.up());
     case 'drag': {
       const at = (k) => [a.x1 + ((a.x2 - a.x1) * k) / 12, a.y1 + ((a.y2 - a.y1) * k) / 12];
-      if (mobile) { await touch('touchStart', [{ x: a.x1, y: a.y1, id: 1 }]); for (let k = 1; k <= 12; k++) { const [x, y] = at(k); await touch('touchMove', [{ x, y, id: 1 }]); await wait(16); } return touch('touchEnd', []); }
+      if (mobile) { const sent = [touch('touchStart', [{ x: a.x1, y: a.y1, id: 1 }])]; for (let k = 1; k <= 12; k++) { const [x, y] = at(k); sent.push(touch('touchMove', [{ x, y, id: 1 }], k * 16)); await wait(16); } sent.push(touch('touchEnd', [], 13 * 16)); return Promise.all(sent); }
       await m.move(a.x1, a.y1); await m.down(); await m.move(a.x2, a.y2, { steps: 12 }); return m.up();
     }
     case 'pinch': return mobile
