@@ -56,3 +56,6 @@ claude/integration, main gets the push once the quick suite and CI are green.
 - send_message allowed in .claude/settings.json (user, 27 Oct) so lanes report without a prompt.
 - Sub sessions started 20:09: city-builds session_01S3hKeFjWbrkqj8haEnXNUz (builds 18-51 turns, Cities 3-6);
   battle-ai-tactics session_01S3hKeHk2QRgBieK44CSY78 (counters, focus fire, flanks; mirror match vs old AI).
+- Lead mistake (20:40): cloud lanes had no ponytail plugin and the art lane had no Blender; neither was checked
+  before the briefs. Fixed: ponytail vendored in .claude/skills/ponytail, scripts/blender/install.sh (Blender 4.0.2
+  headless, tested), all 10 running lanes told to load it; the art lane told to install Blender and fix assets.
