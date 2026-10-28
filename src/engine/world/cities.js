@@ -75,6 +75,12 @@ export const SCIENCE_PER_SIZE = 0.5;
 export const PRODUCTION_PER_SIZE = 0.5;
 // The capital's palace (C2): a flat income every nation starts with, so a one-city Dawn nation
 // can pay for its first army and still save a little.
+// A city never makes less production than this times its age's unit cost multiplier (ages.js
+// unitCostMult): unit prices rise 4.6 times over the ages, a new city's land does not, so a size 1
+// city of the Gunpowder Age took 37 to 56 turns for one regiment (lane cities-8, cityBuilds.sim
+// newInf). With 3 a new city raises its age's basic regiment in about 13 turns at Normal. Untaxed,
+// like the citizens' hammers (devProduction).
+export const PRODUCTION_FLOOR = 3;
 export const PALACE_YIELDS = { gold: 4, production: 2, science: 2, culture: 1 };
 // A city's border reaches about 200 km in every age (the user's call: a five-ring city on the
 // 150 km grid was half the size of France); the two border techs add about 100 km each
@@ -378,7 +384,8 @@ export const cityYields = (city, tiles, world, worked, researched = [], ctx = {}
   // gold that production feeds (development.js devFromYields) reads `devProduction`, the land's part.
   const prodMult = (1 + tierEffect(city, 'industry', 'local.productionIncome') + tierEffect(city, 'energy', 'local.productionIncome') + (ctx.productionMult || 0)) * dm.production;
   const devProduction = Math.round((sum.production + palace.production) * prodMult * 10) / 10;
-  const production = Math.round((sum.production + palace.production + PRODUCTION_PER_SIZE * city.size + tierEffect(city, 'industry', 'local.flatProduction')) * prodMult * 10) / 10;
+  const floor = PRODUCTION_FLOOR * (AGES[ctx.ageId]?.unitCostMult ?? 1) * (besieged ? SIEGE_YIELD_MULT : 1);
+  const production = Math.round(Math.max(floor, (sum.production + palace.production + PRODUCTION_PER_SIZE * city.size + tierEffect(city, 'industry', 'local.flatProduction')) * prodMult) * 10) / 10;
   const gold = Math.round(((sum.gold + palace.gold) * (1 + tierEffect(city, 'economy', 'local.taxIncome') + (ctx.goldMult || 0)) + tierEffect(city, 'economy', 'local.flatGold') + tierEffect(city, 'industry', 'local.flatGold') + tierEffect(city, 'naval', 'local.tradeIncome')) * 10) / 10;
   // The ruler (lawRules.js rulerCityCtx): Learning and the Sage virtues.
   const science = Math.round(((SCIENCE_PER_SIZE * city.size + palace.science + tierEffect(city, 'science', 'local.techPoints') + districts.science) * (1 + (ctx.scienceMult || 0)) + (city.isCapital ? ctx.capitalScience || 0 : 0)) * 10) / 10;
