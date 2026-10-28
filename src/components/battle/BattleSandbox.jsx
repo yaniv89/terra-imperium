@@ -16,6 +16,8 @@ import { makeBenchSetup } from '../../battle/bench/benchScenario';
 import { sandboxTileOptions } from './sandboxTile';
 import { VEGETATION_KITS } from '../../battle/art/artIndex';
 import { useT } from '../../i18n/useT';
+import { endVerdict, endReasonText } from './battleHudModel';
+import { menText } from '../../engine/battleLedger';
 import { ageName } from '../../i18n/core';
 import { terrainWord } from '../../i18n/gameText';
 
@@ -97,6 +99,8 @@ const BattleSandbox = () => {
   const playerSide = raiding ? 1 : 0;
   const [running, setRunning] = useState(params.has('autostart'));
   const [lastResult, setLastResult] = useState(null);
+  const [lastSide, setLastSide] = useState(0);
+  const [lastSea, setLastSea] = useState(false);
   const [runId, setRunId] = useState(0);
 
   // The sandbox fights on a real tile of the world (a river mouth on a coast), so the battlefield
@@ -156,7 +160,7 @@ const BattleSandbox = () => {
         setup={shown}
         playerSide={playerSide}
         title={t('mx.sb.title', { what: config.sea ? t('mx.sb.sea') : raiding ? t('mx.sb.defend', { raid: t(config.raid === 'sack' ? 'mx.sb.sack' : 'mx.sb.raidKind') }) : terrainWord(config.terrain) })}
-        onFinish={(ended) => { setLastResult(ended.result); setRunning(false); }}
+        onFinish={(ended) => { setLastResult(ended.result); setLastSide(playerSide); setLastSea(config.sea); setRunning(false); }}
         onAbandon={() => setRunning(false)}
       />
     );
@@ -186,12 +190,13 @@ const BattleSandbox = () => {
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.fog} onChange={(e) => setConfig((c) => ({ ...c, fog: e.target.checked }))} /> {t('mx.sb.fog')}</label>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.economy} onChange={(e) => setConfig((c) => ({ ...c, economy: e.target.checked }))} /> {t('mx.sb.economy')}</label>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.merc} onChange={(e) => setConfig((c) => ({ ...c, merc: e.target.checked }))} /> {t('mx.sb.merc')}</label>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.sea} onChange={(e) => setConfig((c) => ({ ...c, sea: e.target.checked }))} data-testid="sandbox-sea" /> {t('mx.sb.seaBattle')}</label>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.spectate} onChange={(e) => setConfig((c) => ({ ...c, spectate: e.target.checked }))} /> {t('mx.sb.spectate')}</label>
-        <button type="button" onClick={() => { setRunId((r) => r + 1); setRunning(true); }} className="w-full h-12 rounded-xl bg-blue-600 font-semibold">{t('mx.sb.fight')}</button>
+        <div className="sticky bottom-0 -mx-1 px-1 py-2 bg-slate-950"><button type="button" onClick={() => { setRunId((r) => r + 1); setRunning(true); }} className="w-full h-12 rounded-xl bg-blue-600 font-semibold" data-testid="sandbox-fight">{t('mx.sb.fight')}</button></div>
         {lastResult && (
           <div className="rounded-xl bg-slate-900 border border-slate-700 p-3 text-xs space-y-1">
-            <div className="font-semibold">{t('mx.sb.last', { outcome: lastResult.outcome, reason: lastResult.report.tactical?.reason })}</div>
-            <div>{t('mx.sb.left', { mine: lastResult.attackerUnits.reduce((s, u) => s + u.strength, 0), theirs: lastResult.defenderUnits.reduce((s, u) => s + u.strength, 0) })}</div>
+            <div className="font-semibold" data-testid="sandbox-last">{t('mx.sb.last', { outcome: endVerdict(lastResult.outcome, lastSide), reason: endReasonText(lastResult.report.tactical?.reason, lastResult.outcome === (lastSide === 0 ? 'attacker' : 'defender'), lastResult.outcome === 'stalemate', lastSea) })}</div>
+            <div>{t('mx.sb.left', { mine: menText((lastSide === 0 ? lastResult.attackerUnits : lastResult.defenderUnits).reduce((s, u) => s + u.strength, 0)), theirs: menText((lastSide === 0 ? lastResult.defenderUnits : lastResult.attackerUnits).reduce((s, u) => s + u.strength, 0)) })}</div>
           </div>
         )}
         <a href={window.location.pathname} className="block text-center text-xs text-slate-400 underline">{t('mx.sb.back')}</a>
