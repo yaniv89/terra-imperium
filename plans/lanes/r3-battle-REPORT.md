@@ -28,7 +28,15 @@ from earlier battle playtests on touch input (deploy, selection, box select) wer
 - Evidence, `.claude/skills/battle-lab/deploy-tap.mjs` (stone open field, 844x390 touch, Line then a tap on a squad, then a tap in the zone):
   - before: `tap on squad middle: rings 0 sel []`, `tap in zone: squad now at 391,183 (was 391,183)`
   - after: `rings 1 sel [2] panel "Selected: Hunters. Tap inside your zone to place it."`, `squad now at 301,223 (was 391,183)`
-  - shots: r3-battle-shots/deploy-before.png, deploy-after-selected.png, deploy-after-placed.png, deploy-he.png
+  - base build with real-length taps (stamped events): the tap selects (ring only, nothing in the card), so the
+    playtest's dead taps came from the stretched gestures plus the silent long press.
+  - he: `panel "בחירה: צוותי סולמות. הקישו בתוך האזור שלכם כדי להציב."`, placed. Desktop 1600x900 says "Right click inside your zone".
+  - shots: r3-battle-shots/deploy-before-playtest.jpg (the playtest's step 5), deploy-before-base-tapped.jpg,
+    deploy-after-selected.jpg, deploy-after-placed.jpg, deploy-after-he.jpg, deploy-desktop.jpg
+- Found on the way, fixed: a defender's tap on a town house during deploy was sent as "garrison" and dropped by the
+  sim (a house has no garrison slots), so in a sack the squad did not move. Now only a structure with garrison slots
+  (keep, tower: objectives.js GARRISON_SLOTS) takes a garrison; a house is ground (place in deploy, move in battle).
+  Kingdoms sack: `squad now at 483,115 (was 350,63)`, shot sack-deploy-after-placed.jpg.
 
 ## 2. Laborer cost: the HUD said 50, 80 was spent (explained, one source already; note added)
 
@@ -69,7 +77,7 @@ Measured at deploy, 844x390 touch (soldier height on screen, own squads on scree
 - PHONE_VIEW_TILES 15 -> 13 (BattleRenderer.js; the farthest zoom is unchanged, minZoom scales with it).
 - The first frame now frames the army (`frameGround`, zooms out only, middle 75%) instead of only centring on it, so
   a long line is never cut by the HUD. Models untouched.
-- Shots: r3-battle-shots/zoom-*.png.
+- Shots: r3-battle-shots/zoom-stone-before.jpg / -after.jpg, zoom-modern-before.jpg / -after.jpg.
 
 ## 5. Sack defence: the opening (end rule left to lead-battle-fixes)
 
@@ -83,13 +91,23 @@ Measured at deploy, 844x390 touch (soldier height on screen, own squads on scree
   tacticalAI.js thinkRaider: SETUP_VERSION bump and parityEco rerun). I did not do it because the untimed deploy
   already gives the time, and the battle's length is the end rule's question.
 
+Shots: sack-first-he.jpg (the Hebrew "first" line in the future sack deploy card).
+Seen, not mine (playtest issue 7): in the sack, Line moves the squads to the north wall, near the top bar.
+
 ## Tests
 
 - New: gestures.test.js (a held press with nothing selected is a tap), economy.test.js (laborer price).
 - Targeted: src/components/battle, src/battle/input, src/battle/sim/economy.test.js, src/i18n: all green.
-- Full `npx vitest run`: see the last section.
+- Full `npx vitest run` after merging origin/claude/integration: 512 files passed, 2 skipped; 4,792 tests passed, 17 skipped. `npm run lint` clean.
 
 ## Not checked / risks
 
 - The closer phone camera is tuned on the sandbox armies; a campaign army much wider than these frames out to fit.
 - The deploy card still covers the right third of the screen (playtest issue 6, not in this brief).
+
+## For the lead
+
+- Decide: hold sack and raid raiders at their edge for a beat after Start? (a sim change, SETUP_VERSION 31 and a
+  parityEco rerun). This lane only made the paused, untimed deploy say what to do first.
+- Re-grade battle touch input only from a playtest run after this branch: the harness fix changes every canvas tap.
+- No file under src/engine/ or src/battle/sim/ (except a test) changed, so the engine-rules-reviewer was not needed.
