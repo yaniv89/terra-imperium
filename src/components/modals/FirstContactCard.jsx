@@ -7,7 +7,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { metNations } from '../../engine/fog';
-import { openPanelTab } from '../panels/panelEvents';
+import { openPeople } from '../panels/panelEvents';
+import { openIndependent } from '../independents/independentEvents';
+import { isIndependentNation } from '../../data/independents';
 import { Button, Chip, Label, Shield } from '../ui/atlas';
 import { contactCard, newContacts, contactQueue } from './firstContactModel';
 import { useInteraction, PRIORITY } from '../../hooks/useExclusivePanel';
@@ -60,7 +62,7 @@ const FirstContactCard = () => {
         {card.border > 0 && <Chip>{rich(tNow('p2.fc.border'), { n: <span className="fa-num">{card.border}</span> })}</Chip>}
       </div>
       <div className="grid grid-cols-[1fr_auto] gap-2 mt-3">
-        <Button variant="primary" onClick={() => { openPanelTab('diplomacy'); close(); }}>{tNow('p2.fc.open')}</Button>
+        <Button variant="primary" onClick={() => { (isIndependentNation(state.nations[id]) ? openIndependent : openPeople)(id); close(); }}>{tNow('p2.fc.open')}</Button>
         <Button onClick={close}>{tNow('p2.fc.later')}</Button>
       </div>
       {queue.length > 1 && <div className="text-[11px] text-fa-muted mt-1.5">{tNow('p2.fc.more', { count: queue.length - 1, n: queue.length - 1 })}</div>}

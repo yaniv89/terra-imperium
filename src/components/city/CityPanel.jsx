@@ -17,6 +17,7 @@ import { unitName as unitDisplayName, unitClassName } from '../../i18n/gameText'
 import { unitClassLabel as unitClassLabelEn } from '../../data/unitNames';
 import { buildingTierName, wonderName, improvementName, districtName, tileResourceName } from '../../i18n/gameText';
 const unitClassLabel = (c) => unitClassName(c, unitClassLabelEn(c));
+import { useScrollHint } from '../../hooks/useScrollHint';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Lock, Unlock, X, Plus, Coins, Wheat, Hammer, Home, Smile, ArrowUp, ArrowUpToLine, ChevronDown, ChevronUp, MapPin, AlertTriangle, Check } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -106,6 +107,8 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   const [queueOpen, setQueueOpen] = useState(false);
   const [hintOpen, setHintOpen] = useState(false); // the long-build advice: one line, the rest on a tap
   const [group, setGroup] = useState('All');
+  const keepRow = useScrollHint();
+  const groupRow = useScrollHint();
   const [openRow, setOpenRow] = useState(null);
   const [tap, setTap] = useState(null);
   // The order whose rush offer is open (I019): a tap on Buy shows the quote, a second pays.
@@ -368,7 +371,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
       {mine && (
         <div className="flex items-center gap-1.5 text-[12px]" data-testid="city-keep" title={t('cy.keepTip')}>
           <span className="text-fa-muted shrink-0">{t('cy.keep')}</span>
-          <div className="flex gap-1 overflow-x-auto [scrollbar-width:none]" role="radiogroup" aria-label={t('cy.keep')}>
+          <div ref={keepRow} className="flex gap-1 overflow-x-auto [scrollbar-width:none]" role="radiogroup" aria-label={t('cy.keep')}>
             {[[null, 'cy.keepOff'], ['repeat', 'cy.keepRepeat'], ['advisor', 'cy.keepAdvisor']].map(([mode, key]) => {
               const on = (city.production?.keep || null) === mode;
               return (
@@ -395,7 +398,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
       )}
 
       {mine && options.length > 0 && (
-        <div className="flex gap-1 overflow-x-auto -mx-1 px-1 [scrollbar-width:none]" role="tablist" aria-label={t('cy.buildLists')}>
+        <div ref={groupRow} className="flex gap-1 overflow-x-auto -mx-1 px-1 [scrollbar-width:none]" role="tablist" aria-label={t('cy.buildLists')}>
           {GROUP_FILTERS.filter((g) => g === 'All' || options.some((o) => o.group === g)).map((g) => (
             <button key={g} type="button" role="tab" aria-selected={group === g} onClick={() => setGroup(g)} data-testid={`build-group-${g.toLowerCase()}`}
               className={`shrink-0 rounded-full border px-3 min-h-[44px] text-[12px] ${group === g ? 'border-fa-brass bg-fa-raised text-fa-text' : 'border-fa-line text-fa-muted'}`}>{groupLabel(g)}</button>

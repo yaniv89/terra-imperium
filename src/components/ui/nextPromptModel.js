@@ -85,7 +85,7 @@ export const nextPrompts = (state) => {
   const nation = state.nations?.[me];
   if (nation?.ruler && (ATTRIBUTES.some((a) => !raiseBlock(state, me, a)) || Object.keys(VIRTUES).some((v) => !virtueBlock(state, me, v)))) out.push({ id: 'ruler', kind: 'ruler', label: tNow('prompt.ruler'), tab: 'ruler' });
   const emptySeats = nation && cities.length ? cityGroups(state, me).filter((g) => !nation.governors?.[g.seat]).length : 0;
-  if (emptySeats && governorChoices(nation).length) out.push({ id: 'governor', kind: 'governor', label: tNow('prompt.governor', { count: emptySeats }), tab: 'domestic', section: 'court', count: emptySeats });
+  if (emptySeats && governorChoices(nation).length) out.push({ id: 'governor', kind: 'governor', label: tNow('prompt.governor', { count: emptySeats }), tab: 'domestic', section: 'court.governors', count: emptySeats });
   if (nation?.freeLawChange) out.push({ id: 'freeLaw', kind: 'law', label: tNow('prompt.freeLaw'), tab: 'domestic', section: 'laws' });
   if (nation?.ruler && decreesOf(nation) >= decreeCap(nation)) out.push({ id: 'decrees', kind: 'decrees', label: tNow('prompt.decrees'), tab: 'ruler' });
   const units = Object.values(state.units || {}).filter((u) => u.ownerId === me && u.strength > 0).sort((a, b) => (a.id < b.id ? -1 : 1));

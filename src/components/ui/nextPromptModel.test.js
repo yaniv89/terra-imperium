@@ -63,7 +63,7 @@ describe('next prompt', () => {
     expect(kinds({ ...none, ruler: { ...none.ruler, renown: 10000 } })).toContain('ruler'); // levels bring attribute points
     const candidate = { id: 'gov_x', name: 'Ur-Nammu', skill: 2 };
     const seat = nextPrompts({ ...S, nations: { ...S.nations, [FR]: { ...none, governorCandidates: [candidate] } } }).find((p) => p.kind === 'governor');
-    expect(seat).toMatchObject({ tab: 'domestic', section: 'court', count: 1 });
+    expect(seat).toMatchObject({ tab: 'domestic', section: 'court.governors', count: 1 });
     expect(chipLabel(S, seat)).toBe('Appoint a governor');
     expect(kinds({ ...none, governorCandidates: [candidate], governors: { [cap]: { ...candidate, ready: 1 } } })).not.toContain('governor');
     expect(kinds({ ...none, ruler: { ...none.ruler, decrees: 99 } })).toContain('decrees');

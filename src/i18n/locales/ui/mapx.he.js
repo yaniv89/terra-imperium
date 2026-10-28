@@ -15,6 +15,7 @@ export default {
   'mx.tile.attackUnits.two': ' (שתי יחידות)',
   'mx.tile.attackUnits.other': ' ({count} יחידות)',
   'mx.tile.attackMoved': ' (כבר זזו)',
+  'mx.tile.seePeople': 'על {name} (דעתם עליך {opinion})',
   'mx.tile.foreignArmy.one': 'צבא {name} כאן: יחידה אחת (בשלום)',
   'mx.tile.foreignArmy.two': 'צבא {name} כאן: שתי יחידות (בשלום)',
   'mx.tile.foreignArmy.other': 'צבא {name} כאן: {count} יחידות (בשלום)',

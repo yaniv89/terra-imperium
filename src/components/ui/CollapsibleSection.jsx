@@ -6,22 +6,33 @@
 // collapsing a section never hides the one fact someone might be scanning for (current government
 // type, techs researched, etc).
 import React, { useEffect, useRef, useState } from 'react';
-import { OPEN_SECTION } from '../panels/panelEvents';
+import { OPEN_SECTION, takePending } from '../panels/panelEvents';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
 const CollapsibleSection = ({ title, icon: Icon, summary, defaultOpen = false, id = null, children }) => {
   const [open, setOpen] = useState(defaultOpen);
+  const [flash, setFlash] = useState(false);
   const ref = useRef(null);
-  // `id`: an ask from elsewhere (panelEvents openPanelTab('diplomacy')) opens this section and scrolls to it.
+  // `id`: an ask from elsewhere (panelEvents openSection, a "needs you" prompt) opens this section,
+  // scrolls to it and rings it for a moment; an ask made while the panel was still opening is taken on mount.
   useEffect(() => {
     if (!id) return undefined;
-    const onOpen = (e) => { if (e.detail !== id) return; setOpen(true); setTimeout(() => ref.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' }), 0); };
+    let timers = [];
+    const mine = (ask) => typeof ask === 'string' && (ask === id || ask.startsWith(`${id}.`));
+    const show = (ask) => {
+      setOpen(true); setFlash(true);
+      const part = ask.split('.')[1];
+      timers = [setTimeout(() => (ref.current?.querySelector(`[data-testid="${part}"]`) || ref.current)?.scrollIntoView?.({ block: 'start', behavior: 'smooth' }), 60), setTimeout(() => setFlash(false), 2000)];
+    };
+    const asked = takePending(OPEN_SECTION, mine);
+    if (asked) show(asked);
+    const onOpen = (e) => { if (!mine(e.detail)) return; takePending(OPEN_SECTION, mine); show(e.detail); };
     window.addEventListener(OPEN_SECTION, onOpen);
-    return () => window.removeEventListener(OPEN_SECTION, onOpen);
+    return () => { window.removeEventListener(OPEN_SECTION, onOpen); timers.forEach(clearTimeout); };
   }, [id]);
 
   return (
-    <div ref={ref} data-section={id || undefined}>
+    <div ref={ref} data-section={id || undefined} className={`rounded-lg transition-shadow ${flash ? 'ring-2 ring-fa-brass' : ''}`}>
       <button
         onClick={() => setOpen((o) => !o)}
         type="button"
