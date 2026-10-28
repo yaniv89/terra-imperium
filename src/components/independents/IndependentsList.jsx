@@ -9,6 +9,7 @@ import { independentsListModel, LIST_SORTS, LIST_FILTERS, kmLabel } from './inde
 import { openIndependent } from './independentEvents';
 import { ShieldMark, TONE_TEXT } from './IndependentBits';
 import GameIcon from '../ui/GameIcon';
+import { useT } from '../../i18n/useT';
 
 const Chip = ({ on, onClick, children, testId }) => (
   <button type="button" onClick={onClick} aria-pressed={on} data-testid={testId}
@@ -19,6 +20,7 @@ const Chip = ({ on, onClick, children, testId }) => (
 
 const IndependentsList = () => {
   const { state } = useGame();
+  const { t } = useT();
   const [sort, setSort] = useState('distance');
   const [filter, setFilter] = useState('all');
   const [more, setMore] = useState(false);
@@ -28,18 +30,18 @@ const IndependentsList = () => {
   return (
     <div className="space-y-2" data-testid="independents-list">
       <div className="flex items-center justify-between">
-        <h3 className="fa-heading text-[16px]">Independents <span className="fa-num text-[12px] text-fa-indep">{m.total}</span></h3>
+        <h3 className="fa-heading text-[16px]">{t('sw.ind.heading')} <span className="fa-num text-[12px] text-fa-indep">{m.total}</span></h3>
       </div>
-      <div className="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Filter">
+      <div className="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label={t('sw.ind.filterAria')}>
         {LIST_FILTERS.filter((f) => f.id === 'all' || m.counts[f.id] > 0).map((f) => (
           <Chip key={f.id} on={filter === f.id} onClick={() => setFilter(f.id)} testId={`indep-filter-${f.id}`}>{f.label} {m.counts[f.id]}</Chip>
         ))}
       </div>
-      <div className="flex gap-1.5 items-center overflow-x-auto pb-1" role="group" aria-label="Sort">
-        <span className="text-[11px] text-fa-muted shrink-0">Sort</span>
+      <div className="flex gap-1.5 items-center overflow-x-auto pb-1" role="group" aria-label={t('sw.ind.sortAria')}>
+        <span className="text-[11px] text-fa-muted shrink-0">{t('sw.ind.sortAria')}</span>
         {LIST_SORTS.map((s) => <Chip key={s.id} on={sort === s.id} onClick={() => setSort(s.id)} testId={`indep-sort-${s.id}`}>{s.label}</Chip>)}
       </div>
-      {!m.rows.length && <div className="text-[11px] text-fa-muted">None here.</div>}
+      {!m.rows.length && <div className="text-[11px] text-fa-muted">{t('sw.ind.none')}</div>}
       <ul className="space-y-1">
         {shown.map((r) => (
           <li key={r.id}>
@@ -47,17 +49,17 @@ const IndependentsList = () => {
               <ShieldMark personality={r.personality} size={24} />
               <span className="min-w-0 flex-1">
                 <span className="block text-[13px] font-semibold text-fa-text truncate">{r.name}</span>
-                <span className="block text-[11px] text-fa-muted truncate">{r.cityState?.iconUrl && <GameIcon url={r.cityState.iconUrl} size={14} halo={false} className="me-1 -mt-0.5" />}{r.cityState?.patronUrl && <GameIcon url={r.cityState.patronUrl} size={14} halo={false} title="They favour you" className="me-1 -mt-0.5" />}{r.cityState ? `${r.cityState.name}${r.cityState.patron === 'you' ? ' (yours)' : ''} · ` : ''}{r.personalityName} · {r.cityName} {r.size} · {kmLabel(r.km)}</span>
+                <span className="block text-[11px] text-fa-muted truncate">{r.cityState?.iconUrl && <GameIcon url={r.cityState.iconUrl} size={14} halo={false} className="me-1 -mt-0.5" />}{r.cityState?.patronUrl && <GameIcon url={r.cityState.patronUrl} size={14} halo={false} title={t('sw.ind.favoursYou')} className="me-1 -mt-0.5" />}{r.cityState ? `${r.cityState.name}${r.cityState.patron === 'you' ? t('sw.ind.yours') : ''} · ` : ''}{r.personalityName} · {r.cityName} {r.size} · {kmLabel(r.km)}</span>
               </span>
               <span className="text-end shrink-0">
-                <span className={`block text-[11px] ${TONE_TEXT[r.attitudeTone]}`}>{r.attitudeWord} {r.attitude > 0 ? '+' : ''}{r.attitude}</span>
-                <span className={`block text-[10px] ${r.deal ? TONE_TEXT[r.deal.tone] : r.grudge ? TONE_TEXT[r.grudgeTone] : 'text-fa-muted'}`}>{r.deal ? r.deal.label : r.grudge ? `grudge ${r.grudge}` : 'no deal'}</span>
+                <span className={`block text-[11px] ${TONE_TEXT[r.attitudeTone]}`}>{r.attitudeWord} <bdi>{r.attitude > 0 ? '+' : ''}{r.attitude}</bdi></span>
+                <span className={`block text-[10px] ${r.deal ? TONE_TEXT[r.deal.tone] : r.grudge ? TONE_TEXT[r.grudgeTone] : 'text-fa-muted'}`}>{r.deal ? r.deal.label : r.grudge ? t('sw.ind.grudge', { n: r.grudge }) : t('sw.ind.noDeal')}</span>
               </span>
             </button>
           </li>
         ))}
       </ul>
-      {m.rows.length > shown.length && <button type="button" onClick={() => setMore(true)} className="fa-btn fa-btn-secondary w-full" data-testid="indep-more">Show all {m.rows.length}</button>}
+      {m.rows.length > shown.length && <button type="button" onClick={() => setMore(true)} className="fa-btn fa-btn-secondary w-full" data-testid="indep-more">{t('sw.ind.showAll', { n: m.rows.length })}</button>}
     </div>
   );
 };

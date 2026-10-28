@@ -12,19 +12,21 @@ import { getAtWarNationIds } from '../../utils/mapRegionStyle';
 import { openBattleReport } from '../battle/battleReportEvents';
 import { armyBannerOffset, hexPxOf } from './closeView/scale';
 import { clusterBannerHtml, clusterScreenMarkers, MARKER_OFFSET, markerHtml, markerItems } from './mapBanners';
+import { t } from '../../i18n/core';
+import { nameNow } from '../../i18n/names';
 
 export const FOREIGN_MIN_ZOOM = 2;
 const CLUSTER_RADIUS_PX = 22;
 const EDGE_PX = 30;
 
 const describe = (m) => {
-  const where = REGIONS_DATA[m.regionId]?.name || m.regionId;
-  if (m.kind === 'battle') return `Battle at ${where}: open the report`;
-  if (m.kind === 'colony') return `${m.own ? 'Your' : 'A foreign'} colony in ${where}, ${Math.round(m.progress || 0)}% grown`;
-  if (m.kind === 'wonder') return `${m.name} (tier ${m.tier}) at ${where}${m.own ? ', yours' : ''}`;
-  if (m.kind === 'event') return `${m.title}: at ${where}`;
-  if (!m.own) return `${m.kind === 'fleet' ? 'Foreign fleet' : 'Foreign army'} in ${where}`;
-  return m.kind === 'fleet' ? `Your fleet in ${where}` : `Your army in ${where}, ${m.men} soldiers${m.supply != null && m.supply < 30 ? `, supply ${m.supply}` : ''}`;
+  const where = nameNow('city', null, REGIONS_DATA[m.regionId]?.name || m.regionId);
+  if (m.kind === 'battle') return t('sw.mk.battle', { where });
+  if (m.kind === 'colony') return t(m.own ? 'sw.mk.colonyOwn' : 'sw.mk.colonyForeign', { where, pct: Math.round(m.progress || 0) });
+  if (m.kind === 'wonder') return t(m.own ? 'sw.mk.wonderOwn' : 'sw.mk.wonder', { name: m.name, tier: m.tier, where });
+  if (m.kind === 'event') return t('sw.mk.event', { title: m.title, where });
+  if (!m.own) return t(m.kind === 'fleet' ? 'sw.mk.foreignFleet' : 'sw.mk.foreignArmy', { where });
+  return m.kind === 'fleet' ? t('sw.mk.fleet', { where }) : t('sw.mk.army', { where, men: m.men, supply: m.supply != null && m.supply < 30 ? t('sw.mk.supply', { n: m.supply }) : '' });
 };
 
 // `close`: the close view is on (Map2DView CLOSE_ZOOM_K). Armies are drawn as soldiers there, so
@@ -79,8 +81,8 @@ const Map2DMarkersOverlay = ({ projection, transform, width, height, onSelectReg
             style={{ transform: `translate(${Math.round(c.x)}px, ${Math.round(c.y)}px) translate(-50%, -50%)${close && single && c.kind === 'army' ? ' scale(0.72)' : ''}` }}
             data-marker={single ? c.kind : 'cluster'}
             data-region-id={c.regionId}
-            aria-label={single ? describe(c) : `${c.members.length} markers: zoom in`}
-            title={single ? describe(c) : `${c.members.length} markers: zoom in`}
+            aria-label={single ? describe(c) : t('sw.mk.cluster', { n: c.members.length })}
+            title={single ? describe(c) : t('sw.mk.cluster', { n: c.members.length })}
             onClick={onClick}
             // Built from numbers and fixed ids only (mapBanners.js), never from player text.
             dangerouslySetInnerHTML={{ __html: html }}

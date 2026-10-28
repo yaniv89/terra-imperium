@@ -23,7 +23,7 @@ import { getResearched } from './nationState';
 import { isUnitInBattle } from './invasion';
 import { scoutPath, AI_SCOUT_RINGS } from './aiScouting';
 import { isExplorer } from './settlers';
-import { msg } from './messages';
+import { msg, reasonOf } from './messages';
 
 export const EXPLORER_STRENGTH = 300;
 export { EXPLORER_MOVE_KM };
@@ -39,16 +39,16 @@ export const scoutMayEnter = (state, tile, nationId) => SCOUT_ACCESS.has(tileAcc
  * { path } or { reason }. */
 export const explorePath = (state, unit, toTile = null) => {
   const me = unit.ownerId;
-  if (!fogOn(state)) return { reason: 'There is no fog on this map: nothing is left to find.' };
+  if (!fogOn(state)) return reasonOf('m.why.scout.noFog');
   const from = unitTile(state, unit);
-  if (from == null) return { reason: 'The scouts are lost.' };
+  if (from == null) return reasonOf('m.why.scout.lost');
   if (toTile != null) {
-    if (toTile === from) return { reason: 'The scouts are already there.' };
+    if (toTile === from) return reasonOf('m.why.scout.there');
     const path = scoutPath(state, me, from, (t) => t === toTile, EXPLORE_REACH);
-    return path ? { path } : { reason: 'The scouts cannot walk there at peace: scouts keep to free land and the land of friends.' };
+    return path ? { path } : reasonOf('m.why.scout.peace');
   }
   const path = scoutPath(state, me, from, (t) => !isExplored(state, t, me), EXPLORE_REACH);
-  return path ? { path } : { reason: 'Nothing unexplored lies within the scouts\' reach by land.' };
+  return path ? { path } : reasonOf('m.why.scout.reach');
 };
 
 const routed = (u, path, pace, auto) => ({ ...u, hold: false, siegeOf: null, route: path.slice(1), routeBank: 0, routePace: pace, routeHalt: null, explore: { auto } });
@@ -57,17 +57,17 @@ const routed = (u, path, pace, auto) => ({ ...u, hold: false, siegeOf: null, rou
  * unexplored land, and on from there). Returns { units, count } or { reason }. */
 export const orderExplore = (state, unitIds, toTile = null) => {
   const mine = (unitIds || []).map((id) => state.units[id]).filter((u) => isExplorer(u) && u.ownerId === state.playerNationId && u.strength > 0 && !aboardShip(u) && !isUnitInBattle(state, u.id));
-  if (!mine.length) return { reason: 'Only scouts can explore.' };
+  if (!mine.length) return reasonOf('m.why.scout.only');
   const researched = getResearched(state, state.playerNationId);
   const units = { ...state.units };
-  let reason = null;
+  let why = null;
   mine.forEach((u) => {
     const found = explorePath(state, u, toTile);
     if (found.path) units[u.id] = routed(u, found.path, movePoints(u, researched), toTile == null);
-    else reason = reason || found.reason;
+    else why = why || found;
   });
   const count = mine.filter((u) => units[u.id] !== state.units[u.id]).length;
-  return count ? { units, count } : { reason };
+  return count ? { units, count } : { reason: why?.reason, reasonMsg: why?.reasonMsg };
 };
 
 /** EXPLORE_ORDER with stop: the scouts stop where they stand and stop exploring. */

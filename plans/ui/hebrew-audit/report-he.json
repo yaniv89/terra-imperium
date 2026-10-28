@@ -56,6 +56,11 @@
    "items": []
   },
   {
+   "screen": "onboarding 7",
+   "note": "",
+   "items": []
+  },
+  {
    "screen": "map: political",
    "note": "",
    "items": []
@@ -107,6 +112,22 @@
   },
   {
    "screen": "rail: האימפריה: tabs",
+   "skipped": "no tabs visible",
+   "items": []
+  },
+  {
+   "screen": "rail: שליט",
+   "note": "",
+   "items": [
+    {
+     "kind": "text",
+     "text": "A",
+     "where": "ruler-sheet"
+    }
+   ]
+  },
+  {
+   "screen": "rail: שליט: tabs",
    "skipped": "no tabs visible",
    "items": []
   },
@@ -171,45 +192,14 @@
    "items": []
   },
   {
-   "screen": "city > סקירה",
-   "note": "",
-   "items": []
-  },
-  {
-   "screen": "city > בנייה",
-   "note": "",
-   "items": []
-  },
-  {
-   "screen": "city > אזרחים",
-   "note": "",
-   "items": []
-  },
-  {
-   "screen": "city > מבנים",
-   "note": "",
-   "items": []
-  },
-  {
-   "screen": "city > פוליטיקה",
-   "note": "",
-   "items": []
-  },
-  {
-   "screen": "city > הגנה",
-   "note": "",
+   "screen": "city: tabs",
+   "skipped": "no tabs visible",
    "items": []
   },
   {
    "screen": "research choice",
    "note": "",
-   "items": [
-    {
-     "kind": "text",
-     "text": "Mycenae",
-     "where": "div"
-    }
-   ]
+   "items": []
   },
   {
    "screen": "tech: lines",
@@ -247,17 +237,17 @@
    "items": []
   },
   {
-   "screen": "event: great_flood_myth",
+   "screen": "event: great_migrations",
    "note": "",
    "items": []
   },
   {
-   "screen": "event: bronze_trade_networks",
+   "screen": "event: the_horse",
    "note": "",
    "items": []
   },
   {
-   "screen": "event: rise_of_writing",
+   "screen": "event: the_wheel",
    "note": "",
    "items": []
   },
@@ -273,7 +263,7 @@
   },
   {
    "screen": "tile sheet: own",
-   "note": "",
+   "skipped": "no such tile found",
    "items": []
   },
   {
@@ -302,11 +292,6 @@
    "items": []
   },
   {
-   "screen": "march bar: target own",
-   "note": "",
-   "items": []
-  },
-  {
    "screen": "march bar: target water",
    "note": "",
    "items": []
@@ -322,8 +307,8 @@
    "items": []
   },
   {
-   "screen": "settle mode",
-   "skipped": "no choose-a-site button",
+   "screen": "settle mode (site card)",
+   "note": "",
    "items": []
   },
   {
@@ -344,57 +329,27 @@
   {
    "screen": "battle: camp (HQ card)",
    "note": "",
-   "items": [
-    {
-     "kind": "title",
-     "text": "ניקוי הבחירה (Esc)",
-     "where": "battle-building-close"
-    }
-   ]
+   "items": []
   },
   {
    "screen": "battle: all selected",
    "note": "",
-   "items": [
-    {
-     "kind": "title",
-     "text": "ניקוי הבחירה (Esc)",
-     "where": "battle-clear-selection"
-    }
-   ]
+   "items": []
   },
   {
    "screen": "battle: wand",
    "note": "",
-   "items": [
-    {
-     "kind": "title",
-     "text": "ניקוי הבחירה (Esc)",
-     "where": "battle-clear-selection"
-    }
-   ]
+   "items": []
   },
   {
    "screen": "battle: laborers selected",
    "note": "",
-   "items": [
-    {
-     "kind": "title",
-     "text": "ניקוי הבחירה (Esc)",
-     "where": "battle-clear-selection"
-    }
-   ]
+   "items": []
   },
   {
    "screen": "battle: build sheet (laborers selected)",
    "note": "",
-   "items": [
-    {
-     "kind": "title",
-     "text": "ניקוי הבחירה (Esc)",
-     "where": "battle-clear-selection"
-    }
-   ]
+   "items": []
   },
   {
    "screen": "battle: pause",
@@ -467,8 +422,8 @@
    "items": []
   },
   {
-   "screen": "city buildings: with buildings built",
-   "note": "",
+   "screen": "city-buildings",
+   "skipped": "error: Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'buildings')",
    "items": []
   },
   {
@@ -492,13 +447,8 @@
    "items": []
   },
   {
-   "screen": "mapx: fleet army sheet",
-   "note": "",
-   "items": []
-  },
-  {
    "screen": "mapx-fleet",
-   "skipped": "error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.",
+   "skipped": "error: Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'forEach')",
    "items": []
   },
   {
@@ -512,73 +462,28 @@
    "items": []
   },
   {
-   "screen": "mapx: army sheet with a merge button",
-   "note": "",
+   "screen": "mapx-route",
+   "skipped": "error: Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'forEach')",
    "items": []
   },
   {
-   "screen": "mapx: army sheet, marching (route, halt the march)",
-   "note": "",
-   "items": []
-  },
-  {
-   "screen": "mapx: tile sheet, foreign army at peace (declare war card)",
-   "note": "",
-   "items": []
-  },
-  {
-   "screen": "mapx: army sheet beside a city at peace (declare war button)",
-   "note": "",
+   "screen": "mapx-peace",
+   "skipped": "error: Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'forEach')",
    "items": []
   },
   {
    "screen": "mapx-marchbar",
-   "skipped": "error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.",
+   "skipped": "error: Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'forEach')",
    "items": []
   },
   {
-   "screen": "mapx: settle mode, settler tile sheet",
-   "note": "",
-   "items": []
-  },
-  {
-   "screen": "mapx: settle mode, next good site",
-   "skipped": "no next-site button (no known site in reach)",
-   "items": []
-  },
-  {
-   "screen": "mapx: settle lens legend",
-   "note": "",
-   "items": []
-  },
-  {
-   "screen": "mapx: settle mode, blocked site (too close)",
-   "note": "",
-   "items": []
-  },
-  {
-   "screen": "mapx: settle mode, foreign land (no city here)",
-   "note": "",
-   "items": []
-  },
-  {
-   "screen": "mapx: tile sheet, settlers on their way (arrive, Cancel)",
-   "note": "",
-   "items": []
-  },
-  {
-   "screen": "mapx: tile sheet, settler status line (heading for)",
-   "note": "",
+   "screen": "mapx-settle",
+   "skipped": "error: Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'forEach')",
    "items": []
   },
   {
    "screen": "pnl1-empire",
    "skipped": "error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.",
-   "items": []
-  },
-  {
-   "screen": "pnl1-space",
-   "skipped": "error: Error: no Space button on the rail",
    "items": []
   },
   {
@@ -623,62 +528,62 @@
   },
   {
    "screen": "turn 1: report",
-   "note": "turn 2",
+   "note": "turn 3",
    "items": []
   },
   {
    "screen": "turn 2: report",
-   "note": "turn 2",
+   "note": "turn 3",
    "items": []
   },
   {
    "screen": "turn 3: report",
-   "note": "turn 2",
+   "note": "turn 3",
    "items": []
   },
   {
    "screen": "turn 4: report",
-   "note": "turn 2",
+   "note": "turn 3",
    "items": []
   },
   {
    "screen": "turn 5: report",
-   "note": "turn 2",
+   "note": "turn 3",
    "items": []
   },
   {
    "screen": "turn 6: report",
-   "note": "turn 2",
+   "note": "turn 3",
    "items": []
   },
   {
    "screen": "turn 7: report",
-   "note": "turn 2",
+   "note": "turn 3",
    "items": []
   },
   {
    "screen": "turn 8: report",
-   "note": "turn 2",
+   "note": "turn 3",
    "items": []
   },
   {
    "screen": "turn 9: report",
-   "note": "turn 2",
+   "note": "turn 3",
    "items": []
   },
   {
    "screen": "turn 10: report",
-   "note": "turn 2",
+   "note": "turn 3",
    "items": []
   },
   {
    "screen": "turn 11: report",
-   "note": "turn 2",
+   "note": "turn 3",
    "items": []
   },
   {
    "screen": "turn 12: report",
-   "note": "turn 2",
+   "note": "turn 3",
    "items": []
   },
   {
