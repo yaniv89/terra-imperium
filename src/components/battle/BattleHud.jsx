@@ -270,10 +270,11 @@ const BattleHud = ({
   const supplyPays = `${sup.costs.length ? t('bt.hud.paysFor', { list: sup.costs.map((c) => `${powerLabel(c.id, c.label)} ${c.cost}`).join(', ') }) : t('bt.hud.noPowers')} ${t('bt.hud.risesOn')}`;
   const supplyOf = sup.cap ? t('bt.hud.supplyOf', { now: sup.now, cap: sup.cap }) : String(sup.now);
 
-  // The deploy card sits at the end side above the commands (playtest 40651418969 steps 3, 103, 255: in the centre it covered the fleet).
+  // The deploy card sits on the far side from your army, above the bottom row, in either language (playtest 40651418969
+  // steps 3, 103, 255: in the centre it covered the fleet). The field never mirrors, so the side is physical.
   const deployCard = !started && (
             // The deploy card (playtest 40651418969 step 3): Start never scrolls or folds away; the chevron folds the words to a slim bar.
-            <div className="pointer-events-auto shrink-0 w-[min(20rem,100%)] px-3 py-2 fa-panel !bg-fa-panel/95 text-[12px] leading-snug shadow-xl flex flex-col" style={{ maxHeight: `calc(var(--app-height, 100vh) - ${short ? '9.5rem' : '11rem'} - var(--sa-t, 0px) - var(--sa-b, 0px))` }} data-testid="battle-deploy-help">
+            <div className="absolute pointer-events-auto w-[min(20rem,calc(100vw-1rem))] px-3 py-2 fa-panel !bg-fa-panel/95 text-[12px] leading-snug shadow-xl flex flex-col" style={{ bottom: ABOVE_BOTTOM, ...(playerSide === 1 ? { left: 'max(0.5rem, var(--sa-l, 0px))' } : { right: 'max(0.5rem, var(--sa-r, 0px))' }), maxHeight: `calc(var(--app-height, 100vh) - ${short ? '9.5rem' : '11rem'} - var(--sa-t, 0px) - var(--sa-b, 0px))` }} data-testid="battle-deploy-help">
               <div className="flex items-center gap-2 shrink-0">
                 <div className="min-w-0 flex-1">
                   {title && <div className="fa-label truncate lg:hidden" data-testid="battle-deploy-title">{title}</div>}
@@ -605,7 +606,6 @@ const BattleHud = ({
                 </div>
               </div>
             )}
-            {deployCard}
             {panel}
             {(armyCtx || idleCtx) && (
               <div className="flex gap-1 max-w-full shrink-0" data-testid="battle-commands">
@@ -630,6 +630,8 @@ const BattleHud = ({
           </div>
         </div>
       )}
+
+      {deployCard}
 
       {selectMode && !pauseOpen && (
         <div className="absolute max-w-[250px] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-good text-xs font-semibold shadow-xl pointer-events-none" style={{ insetInlineStart: SAFE_L, bottom: ABOVE_BOTTOM }} data-testid="battle-select-mode-banner">
