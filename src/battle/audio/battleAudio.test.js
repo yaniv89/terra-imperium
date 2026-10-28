@@ -64,6 +64,14 @@ describe('battle audio', () => {
     expect(id({ type: 'destroyed', id: 0 })).toBe('death-cry');
   });
 
+  it('a barrage sounds like what falls: arrows for Arrow Storm, stones before gunpowder, shells after', () => {
+    const id = (e, ages = ['bronze', 'bronze']) => soundForEvent({ type: 'impact', x: 0, y: 0, radius: 300, ...e }, { squads: [] }, ages, 0).id;
+    expect(id({ power: 'arrowStorm' })).toBe('arrow-whoosh');
+    expect(id({ power: 'arrowStorm' }, ['gunpowder', 'gunpowder'])).toBe('arrow-whoosh');
+    expect(id({ power: 'navalBombardment' })).toBe('stone-impact');
+    expect(id({ power: 'artilleryBarrage' }, ['gunpowder', 'bronze'])).toBe('explosion');
+  });
+
   it('every age has a weapon family, and each family sounds like itself (U95)', () => {
     AGE_ORDER.forEach((a) => expect(AGE_SOUND_FAMILY[a], a).toBeTruthy());
     Object.values(FAMILY_VOICE).flatMap(Object.values).forEach((id) => expect(BATTLE_SOUNDS[id]?.synth, id).toBeTruthy());
@@ -91,7 +99,8 @@ describe('battle audio', () => {
     expect(FakeAudioContext.sources).toBeGreaterThan(0);
     const edgeGain = FakeAudioContext.gains.find((g) => g.gain.setValueAtTime.mock.calls.length)?.gain.value;
     expect(edgeGain).toBeGreaterThan(0);
-    expect(edgeGain).toBeLessThan(0.8); // sword-clash's level 0.8 at full
+    const full = BATTLE_SOUNDS[soundForEvent({ type: 'melee', from: 3, to: 3, damage: 3 }, view, ['bronze', 'bronze'], 0).id].gain;
+    expect(edgeGain).toBeLessThan(full); // the weapon's own level at full
   });
 
   it('silent while the tab is hidden; the result screen stops the field but not the victory sting', () => {

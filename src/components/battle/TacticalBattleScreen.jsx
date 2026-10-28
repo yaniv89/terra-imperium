@@ -915,7 +915,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   // --- HUD actions -----------------------------------------------------------------------------
   const togglePause = () => {
     const c = clientRef.current; if (!c) return;
-    if (!started) { startedRef.current = true; setStarted(true); setPaused(false); rendererRef.current?.setDeployZone(null); c.resume(); return; } // deployment ג†’ battle
+    if (!started) { startedRef.current = true; setStarted(true); setPaused(false); rendererRef.current?.setDeployZone(null); audioRef.current?.battleStarted(); c.resume(); return; } // deployment ג†’ battle
     setPaused((p) => { if (p) c.resume(); else c.pause(); return !p; });
   };
   const toggleSound = () => setAudioSettings({ sound: !soundOn });

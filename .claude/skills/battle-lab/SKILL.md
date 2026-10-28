@@ -224,3 +224,17 @@ building's fire) and Auto's verdict on the same armies. sortieTrace is the playe
 city: every squad attacks the first enemy at the gate, and a STUCK line names any that did not move.
 pocketScan lists walkable town ground the defender cannot walk out of (cityBattle.js sealPockets
 closes them; a squad there never sortied).
+
+## The battle AI (battle-ai-tactics)
+```bash
+N=4 TYPES=field,assault,naval AGES=bronze,classical,gunpowder [DIFF=king] \
+  npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/battle-lab/aiTrace
+node .claude/skills/battle-lab/aiDuel-prep.mjs origin/claude/integration <scratch>/oldai
+OLD=<scratch>/oldai N=20 TYPES=field,assault,naval AGES=bronze,kingdoms,gunpowder [DIFF=king MATCH=0 FEAT_OFF=focus,cavalry TRACE=200] \
+  npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/battle-lab/aiDuel
+```
+aiTrace counts the AI's mistakes per side in squad-seconds (lone fights, archers in melee, bad
+matchups, wounded in melee, idle with enemies in sight) and names the first ones by tick and squad.
+aiDuel fights each battle three ways (old vs old, new attacker, new defender) with the AI of a git
+ref; `FEAT_OFF` switches off single behaviours (tacticalAI.js AI_FEATURES, economyAI.js ECO_FEATURES).
+Judge on 20+ seeds per row: one mistake decides a mirror battle, so rows swing by 5 of 20.

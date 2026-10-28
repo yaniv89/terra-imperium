@@ -6,7 +6,8 @@ https://creativecommons.org/publicdomain/zero/1.0/
 
 The license was checked on each source page on 2026-10-07 before downloading. No file here comes from a
 CC-BY, CC-BY-SA, GPL, Pixabay or account-only source. Files were converted to OGG Vorbis (44.1 kHz),
-trimmed and loudness-normalised; several effects are new mixes of two or more CC0 recordings (all of
+trimmed and loudness-normalised (on 2026-10-28 sixteen variants were brought within 3 dB of their
+folder by `scripts/audio/mix-levels.mjs --even-variants`: a volume change only, same sources); several effects are new mixes of two or more CC0 recordings (all of
 them listed), which is allowed under CC0. The raw downloads are kept outside the repository.
 
 | Short name | Source | Author |

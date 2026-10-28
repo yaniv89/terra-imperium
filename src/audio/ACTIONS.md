@@ -91,6 +91,7 @@ battleAudio.js `orderSound`, `cueForEvent` and `frameAlerts`:
 
 | Id | When it plays |
 | --- | --- |
+| horn-order | The player presses Start after deployment (`battleStarted`): the horn opens the fight. |
 | order-move | The player sends a move, deploy or formation-line order. |
 | order-attack | An attack, attack-move or charge order. |
 | worker-task | Workers sent to gather, help build or repair. |
@@ -107,6 +108,9 @@ battleAudio.js `orderSound`, `cueForEvent` and `frameAlerts`:
 | rally-cry | The Rally Cry power is used (either side). |
 | power-used | Any other commander power (arrow storm, bombardment...). |
 | general-killed | A general's guard is destroyed. |
+
+Barrages from commander powers (sim event `impact`, positional): Arrow Storm plays `arrow-whoosh`;
+any other barrage plays `stone-impact` before gunpowder and `explosion` from gunpowder on.
 
 Existing battle sounds that serve as player cues: `order-click` (any other order: stop, hold,
 garrison, rally point; also the fallback when an order's own sound is cooling down), `bell` (a
@@ -133,10 +137,22 @@ infantry voice. Rate limit (`sfx.createBarkLimiter`): one bark at a time, at lea
 two, a select bark at most every 2.6 s, an order every 1.4 s, an attack every 1.6 s; the same group
 selected again is not answered.
 
+## Mix
+
+Every recorded id has a loudness tier (`src/audio/mixLevels.test.js`): music is a bed (map tracks
+about -24 LUFS heard at the default volume, battle tracks 6 dB lower), combat hits sit just above the
+battle music, siege, volleys and alerts above them, big moments (collapse, breach, war, a new era)
+on top; interface taps stay under the music. Unit barks sit with a single sword hit. The levels are
+measured from the files (`node scripts/audio/mix-levels.mjs` writes `mixLevels.json`) and the gains in
+soundRegistry.js are set from them. All buses (music, interface and world, battle) play into one
+limiter (`audioOutput` in audioContext.js), so stacked sounds never clip.
+
 ## Adding a sound
 
 1. Pick or add the id in soundRegistry.js (UI_SOUNDS, WORLD_SOUNDS or BATTLE_SOUNDS) and the
    trigger here (ACTION_SOUNDS or LOG_RULES in worldSounds.js, cueForEvent in battleAudio.js).
 2. Drop CC0 OGG files into `src/assets/audio/<category>/<id>/` and list them in LICENSES.md.
+   Run `node scripts/audio/mix-levels.mjs --even-variants` (needs ffmpeg), give the id a tier in
+   mixLevels.test.js and set its gain until that test passes.
    The raw downloads and the build scripts (actions.mjs, licenses_actions.mjs) live outside the
    repository in `C:\GitWotkspace\audio-sources\`.

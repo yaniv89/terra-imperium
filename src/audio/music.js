@@ -21,13 +21,13 @@
 import { musicTracks, battleMusicTracks, AMBIENCE_SOUNDS, ambienceFilesFor, createSoundRng } from './soundRegistry';
 import { getAudioSettings, subscribeAudioSettings } from './audioSettings';
 import { isPageAudible, subscribePageAudio, pageAudioState } from './pageLifecycle';
-import { getAudioContext, unlockAudio, registerAudioConsumer, audioLog } from './audioContext';
+import { getAudioContext, unlockAudio, registerAudioConsumer, audioLog, audioOutput } from './audioContext';
 
 export const CROSSFADE_S = 4;
 export const PRELOAD_S = 40; // decode the next track this long before the current one ends
 export const PARK_AFTER_MS = 5000; // a playlist silent this long (after its fade): stop and release
 export const PHONE_DECODE_RATE = 24000;
-export const BATTLE_MUSIC_DB = -4; // the battle playlist under the map's level
+export const BATTLE_MUSIC_DB = -6; // the battle playlist under the map's level: a bed under the fighting (mixLevels.test.js)
 const TICK_MS = 500;
 const SCHEDULE_AHEAD_S = 1.5; // schedule the crossfade this long before it starts (two ticks)
 const SWITCH_TC = CROSSFADE_S / 4; // map <-> battle: a gain glide that is done in about CROSSFADE_S
@@ -107,7 +107,7 @@ const ensureBus = (c) => {
   if (bus && busCtx === c) return bus;
   bus = c.createGain(); busCtx = c;
   bus.gain.value = 0;
-  bus.connect(c.destination);
+  bus.connect(audioOutput(c));
   playlists.map.bus = null; playlists.battle.bus = null;
   return bus;
 };

@@ -13,13 +13,13 @@
 import { UI_SOUNDS, WORLD_SOUNDS, uiFilesFor, worldFilesFor, voiceFilesFor, createSoundRng, pickVariant } from './soundRegistry';
 import { getAudioSettings } from './audioSettings';
 import { isPageAudible } from './pageLifecycle';
-import { audioAvailable, getAudioContext, unlockAudio, resumeAudio, registerAudioConsumer } from './audioContext';
+import { audioAvailable, getAudioContext, unlockAudio, resumeAudio, registerAudioConsumer, audioOutput } from './audioContext';
 
 export const MASTER = 0.6; // the bus at full Effects volume (a phone speaker stays sane)
 export const MAX_CONCURRENT = 6;
 export const SEQUENCE_GAP_MS = 420; // between two sounds of one moment
 export const MAX_SEQUENCE = 3; // sounds of one moment (the rest is news for the log, not the ear)
-export const VOICE_GAIN = 0.7;
+export const VOICE_GAIN = 0.41; // barks about as loud as one sword hit, under the combat accents (mixLevels.test.js)
 
 /** Is a sound of this category ('ui', 'world', 'voice') wanted with these settings? (pure) */
 export const sfxWanted = (category, s) => {
@@ -83,7 +83,7 @@ const ensure = () => {
   if (!c) return null;
   if (c !== ctx) {
     ctx = c; buffers.clear();
-    bus = ctx.createGain(); bus.connect(ctx.destination);
+    bus = ctx.createGain(); bus.connect(audioOutput(ctx));
     registerAudioConsumer('sfx', () => ({ ringing: active, decoded: buffers.size }));
   }
   if (ctx.state !== 'running') resumeAudio('sound');
