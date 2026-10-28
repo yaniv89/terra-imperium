@@ -71,3 +71,9 @@ claude/integration, main gets the push once the quick suite and CI are green.
 - Target (user, 28 Oct): every area at 8/10 or more; each area below 8 after round 2 gets its own lane.
 - Round 2 adds two Opus playtests with full coverage (user: "cover it all"): civ-veteran campaign over all 8 ages
   (400 steps, cap $11) and battle-commander over every age (320 steps, cap $9). Spend with caps $69.03 of $90.
+- Round 2 results (3 of 6, 08:40): grades barely moved (newcomer: Units 3, Wars 2, Fun 3, Glossary 3; civ veteran:
+  Gold 3, Naval 3, Fun 3; battles 4-7, gunpowder field 1). Critical: gunpowder field battles never engage, lost
+  battles cannot be ended. Lesson: lanes fixed what earlier playtests named, but the next playtest finds the next
+  layer; only a retest proves a grade. Five lanes started 08:42: battle-engage session_01S3hKeHj5rji3KbwDmD1SZs,
+  battle-touch session_01S3hKeGMJPicF3ohf5ZWqnJ, gold-sinks session_01S3hKeJ4vxmpksQdZvP4Hsg, newcomer-flow
+  session_01S3hKeGsvQ56fHfNHdvLCTM, battle-odds session_01S3hKeJH1jTbRuQwHYLS21e. Real costs 1.85, 2.21, 1.88.
