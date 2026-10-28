@@ -4,13 +4,13 @@
 // the opinion of you with its reasons on tap and a bar centred on zero, the treaties as chips, the
 // main actions as tiles that say before you try whether they would accept or refuse (and why, in
 // one line under them), and the long tail of secondary actions behind "More actions".
-import React, { useEffect, useState } from 'react';
-import { Target, Gift, Eye, Heart, Users, Crown, Ban, AlertTriangle, ChevronDown, ChevronUp, DoorOpen, Scale, Milestone, MapPin, Flag } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Target, Gift, Eye, Heart, Users, Crown, Ban, AlertTriangle, ChevronDown, ChevronUp, DoorOpen, Scale, Milestone, MapPin } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { Chip } from '../ui/atlas';
 import { askConfirm } from '../ui/ConfirmActionDialog';
 import { declareWarModel } from './warActions';
-import { useWhy } from '../ui/WhyTip';
+import { useWhy, Bubble } from '../ui/WhyTip';
 import { declareWarConfirm } from '../ui/confirmSpecs';
 import TopLayer from '../ui/TopLayer';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
@@ -40,7 +40,7 @@ import { canAttack } from '../../engine/hostility';
 import { hasKey } from '../../i18n/core';
 import { useT } from '../../i18n/useT';
 import { nameNow } from '../../i18n/names';
-import { reasonText } from '../../i18n/messageText';
+import { reasonText, logText } from '../../i18n/messageText';
 import { msgRefText } from '../battle/battleText';
 import { opinionLabel, opinionDetail } from './opinionText';
 import { ageOf } from '../../engine/nationState';
@@ -50,6 +50,7 @@ import { shortAge } from './researchSheetModel';
 import { canPay, walletOf } from '../../utils/costs';
 import { costLine, shortfallLine } from './empireText';
 import { GIFT_OPINION, GIFT_OPINION_MAX } from '../../data/opinion';
+import { menText } from '../../engine/battleLedger';
 
 // Diplomacy actions that travel visibly between the player's capital and the target nation's.
 const DIPLOMACY_EFFECT_BY_ACTION = {
@@ -106,14 +107,26 @@ const Tile = ({ label, sub, onClick, refuse, looksDisabled, blocked, testId }) =
 // behind a "More" toggle (plan feedback) — 1-2 primary actions (whichever is relevant to the
 // current relationship) always stay visible.
 export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels }) => {
-  const { state, dispatch, addLog } = useGame();
+  const { state, dispatch: send, addLog } = useGame();
   const { t } = useT();
   const { triggerEffect } = useEffects();
   const [expanded, setExpanded] = useState(false);
   const [peaceOpen, setPeaceOpen] = useState(false);
   // A blocked tap says why on the card itself (and in the log): phones have no hover, and the log is out of sight.
+  // Every answer, a refusal or the reducer's own log line after an action, also shows in a bubble on the
+  // tapped tile: the notice under the tiles was below the fold on a phone ("Offer pact did nothing", newcomer playtest).
   const [notice, setNotice] = useState(null);
-  const say = (text) => { setNotice(text); addLog(text, 'action'); };
+  const tapRect = useRef(null);
+  const awaiting = useRef(null); // the log length when an action was sent: its answer is the next line
+  const show = (text) => setNotice({ text, rect: tapRect.current });
+  const say = (text) => { show(text); addLog(text, 'action'); };
+  const dispatch = (action) => { awaiting.current = { from: state, logs: state.logs.length }; send(action); };
+  useEffect(() => {
+    const w = awaiting.current;
+    if (!w || state === w.from) return; // an action that changed nothing leaves no answer to show
+    awaiting.current = null;
+    if (state.logs.length > w.logs && state.turnNumber === w.from.turnNumber) show(logText(state.logs[state.logs.length - 1]));
+  }, [state]);
   useEffect(() => { if (!notice) return undefined; const id = setTimeout(() => setNotice(null), 6000); return () => clearTimeout(id); }, [notice]);
 
   const dispatchIfAffordable = (type, costs, extra = {}) => {
@@ -127,6 +140,14 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
   const where = peopleWhere(state, nation.id);
   const warBlock = declareWarModel(state, nation.id)?.blocked || null; // e.g. never seen: no war with nobody to fight
   const marchCity = where.cities.find((c) => c.id === where.march?.target) || (!where.march ? where.cities[0] : null);
+  const marchLabel = marchCity ? t('nc.marchTo', { name: nameNow('city', null, marchCity.name) }) : t('nc.marchToArmy');
+  const marchOn = () => {
+    if (!where.march) return say(t('nc.noArmyToMarch'));
+    onLeave();
+    startMarch(where.march.from, { unitIds: where.march.unitIds, target: where.march.target });
+    focusPlace([typeof where.march.target === 'number' ? { tile: where.march.target } : { regionId: where.march.target }]);
+    return undefined;
+  };
   // War score (plan §M13), shown from the player's own perspective regardless of which side of
   // the war record (aggressor/enemy) the player happens to be.
   const activeWar = state.wars.find(w => w.active && isWarBetween(w, state.playerNationId, nation.id));
@@ -190,7 +211,8 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
         : null;
 
   return (
-    <div className="space-y-2.5" data-testid="nation-card" data-nation={nation.id}>
+    <div className="space-y-2.5" data-testid="nation-card" data-nation={nation.id} onClickCapture={(e) => { tapRect.current = e.target.closest?.('button')?.getBoundingClientRect() || null; }}>
+      {notice?.rect && <Bubble rect={notice.rect} text={notice.text} />}
       {!hideTitle && <div className="flex items-start gap-2">
         <span className="w-3 h-3 rounded-sm mt-1.5 shrink-0" style={{ backgroundColor: nation.color }} aria-hidden="true" />
         <div className="min-w-0 flex-1">
@@ -220,17 +242,22 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
           </>
         ) : atWarWithPlayer ? (
           <>
+            {/* The war's first step, first: the war pill opens this card (newcomer playtest 31 to 59: the army and how to fight were never found). */}
+            {canAttack(state, state.playerNationId, nation.id) && where.places.length > 0 && (
+              <Tile label={marchLabel} testId="war-march" onClick={marchOn} looksDisabled={!where.march}
+                sub={where.march ? t('nc.marchSub', { men: menText(where.march.unitIds.reduce((n, id) => n + Math.max(0, state.units[id]?.strength || 0), 0)) }) : t('nc.noArmyToMarch')} />
+            )}
             <Tile label={t('nc.peaceDeal')} sub={t('nc.peaceDealSub')} onClick={() => setPeaceOpen(true)} />
             <Tile label={t('nc.sue', { n: sueForPeaceCosts.gold })} sub={t('nc.sueSub')} looksDisabled={!canPay(state, sueForPeaceCosts)}
               onClick={() => dispatchIfAffordable(ActionTypes.SUE_FOR_PEACE, sueForPeaceCosts)} />
-            <TopLayer>{peaceOpen && activeWar && <PeaceDealSheet warId={activeWar.id} onClose={() => setPeaceOpen(false)} />}</TopLayer>
+            <TopLayer>{peaceOpen && activeWar && <PeaceDealSheet warId={activeWar.id} onClose={() => setPeaceOpen(false)} onSend={dispatch} />}</TopLayer>
           </>
         ) : (
           <>
             {nation.hasMilitaryPact ? (
               <Tile label={t('nc.breakPact')} sub={t('nc.breakPactSub')} onClick={() => dispatchIfAffordable(ActionTypes.BREAK_ALLIANCE, {})} />
             ) : (
-              <Tile label={t('nc.offerPact')} sub={allianceAnswer ? t('nc.wouldAcceptCost', { cost: costLine(ACTION_COSTS.militaryAlliance) }) : t('nc.wouldRefuse')} refuse={!allianceAnswer} looksDisabled={!canPay(state, ACTION_COSTS.militaryAlliance)}
+              <Tile label={t('nc.offerPact')} sub={allianceAnswer ? (canPay(state, ACTION_COSTS.militaryAlliance) ? t('nc.wouldAcceptCost', { cost: costLine(ACTION_COSTS.militaryAlliance) }) : t('nc.notEnough', { list: shortfallLine(walletOf(state), ACTION_COSTS.militaryAlliance) })) : t('nc.wouldRefuse')} refuse={!allianceAnswer} looksDisabled={!canPay(state, ACTION_COSTS.militaryAlliance)}
                 onClick={() => {
                   if (!allianceAnswer) return say(t('nc.noAlliance', { name: nameNow('people', nation.id, nation.name) }));
                   dispatchIfAffordable(ActionTypes.MILITARY_ALLIANCE, ACTION_COSTS.militaryAlliance);
@@ -259,7 +286,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
         )}
       </div>
 
-      {notice && <div role="status" className="flex items-start gap-2 rounded-lg border border-fa-danger/60 bg-fa-ink/40 px-2.5 py-2 text-[12px]" data-testid="action-blocked-reason"><Ban className="w-3.5 h-3.5 mt-0.5 text-fa-danger-text shrink-0" aria-hidden="true" /><span>{notice}</span></div>}
+      {notice && <div role="status" className="flex items-start gap-2 rounded-lg border border-fa-danger/60 bg-fa-ink/40 px-2.5 py-2 text-[12px]" data-testid="action-blocked-reason"><Ban className="w-3.5 h-3.5 mt-0.5 text-fa-danger-text shrink-0" aria-hidden="true" /><span>{notice.text}</span></div>}
       {refusal && <div className="flex items-start gap-2 rounded-lg border border-fa-line bg-fa-ink/40 px-2.5 py-2 text-[12px]" data-testid="refusal-reason"><Ban className="w-3.5 h-3.5 mt-0.5 text-fa-danger-text shrink-0" aria-hidden="true" /><span>{refusal}</span></div>}
 
       <div className="fa-card px-3 py-2">
@@ -306,16 +333,6 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
         {where.places.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-1.5">
             <IconButton icon={MapPin} label={t('nc.showOnMap')} onClick={() => { onLeave(); focusPlace(atWarWithPlayer ? where.front : where.places); }} />
-            {atWarWithPlayer && canAttack(state, state.playerNationId, nation.id) && (
-              <IconButton icon={Flag} label={marchCity ? t('nc.marchTo', { name: nameNow('city', null, marchCity.name) }) : t('nc.marchToArmy')} disabled={!where.march}
-                onClick={() => {
-                  if (!where.march) return addLog(t('nc.noArmyToMarch'), 'action');
-                  onLeave();
-                  startMarch(where.march.from, { unitIds: where.march.unitIds, target: where.march.target });
-                  focusPlace([typeof where.march.target === 'number' ? { tile: where.march.target } : { regionId: where.march.target }]);
-                  return undefined;
-                }} />
-            )}
           </div>
         )}
       </div>

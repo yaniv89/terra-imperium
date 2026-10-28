@@ -7,7 +7,7 @@ import { getTiles } from '../../data/geo/tiles';
 import { getNationCapital } from '../../data/regions';
 import { NEEDS_SEA_COAST } from '../../engine/world/cities';
 import { buildingEffect } from '../../engine/cityEffects';
-import { buildOptions, buildQueue, focusHint, tileBearing, itemLabel, rushText } from './cityBuildModel';
+import { buildOptions, buildQueue, focusHint, tileBearing, itemLabel, rushText, goldWait } from './cityBuildModel';
 import { cityBuildingsModel, crownActions, cityDevelopmentModel, populationPolicyPreview } from './cityPoliticsModel';
 import { cityDefenseModel } from './cityDefenseModel';
 import { peoplesWorld, rivalOf } from '../../engine/testWorld';
@@ -182,5 +182,20 @@ describe('rush offer on the queue (CB04 I019, I027)', () => {
     s = gameReducer(s, { type: ActionTypes.RUSH_PRODUCTION, payload: { cityId: paris, index: 0 } });
     expect(s.resources.gold).toBe(99999 - row.rush.gold);
     expect(buildQueue(s, paris)[0].rush.ok).toBe(false);
+  });
+});
+
+// An out-of-reach price says how many turns of income it takes (civ-veteran playtest step 28: 634 gold to buy, 99 in hand, +73 a turn).
+describe('goldWait', () => {
+  const needs = { ok: false, gold: 634, reasonMsg: { key: 'm.why.needsGold' } };
+  it('turns of income to save the price', () => {
+    expect(goldWait({ resources: { gold: 99 } }, needs, () => 73)).toEqual({ have: 99, saveTurns: 8 });
+  });
+  it('no income: no turn count', () => {
+    expect(goldWait({ resources: { gold: 99 } }, needs, () => -5)).toEqual({ have: 99, saveTurns: null });
+  });
+  it('an affordable price or another refusal adds nothing', () => {
+    expect(goldWait({ resources: { gold: 900 } }, { ...needs, ok: true }, () => 73)).toEqual({});
+    expect(goldWait({ resources: { gold: 9 } }, { ok: false, gold: 634, reasonMsg: { key: 'm.why.rush.enemy' } }, () => 73)).toEqual({});
   });
 });

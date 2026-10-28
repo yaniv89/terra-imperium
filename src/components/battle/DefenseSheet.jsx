@@ -101,6 +101,7 @@ const DefenseSheet = () => {
             <div className="flex-1 min-w-0"><OddsBar compact mine={m.odds.hold} labelLeft={m.attacking ? t('bt.def.theyHold') : t('bt.def.theyTakeIt')} labelRight={m.attacking ? t('bt.def.youWin') : t('bt.def.youHold')} /></div>
           </div>
         )}
+        {m.odds.walls && <div className="text-[11px] leading-snug text-fa-muted px-0.5" data-testid="defense-walls">{m.odds.walls}</div>}
         {/* the choice right under the odds: a long warning pushed it off a phone's sheet (playtest 40650973042 step 129) */}
         <ModeCards options={options} value={chosen} onChange={setMode} compact />
         {m.reasons.length > 0 && (

@@ -32,6 +32,7 @@ import { cityLive, queueView, buildQuote, worldOf, isLongBuild, longBuildTurns, 
 import { buildingEffect, improvementEffect } from '../../engine/cityEffects';
 import { settlingOutlook } from '../../engine/settlers';
 import { rushQuote, rushGold, rushRate, RUSH_GOLD_PER_HAMMER } from '../../engine/spending';
+import { calcNationBalance } from '../../engine/economy';
 import { FIRST_AGE_ID } from '../../data/ages';
 import { techEta, techEtaText } from '../panels/researchView';
 
@@ -84,10 +85,22 @@ export const turnsText = (turns) => (turns == null ? tNow('cy.noProduction') : t
 export const buildQueue = (state, cityId, live = cityLive(state, cityId)) => {
   if (!live) return [];
   const tiles = getTiles();
-  return queueView(state, cityId, live).map((q) => ({
-    ...q, label: itemLabel(q.item, tiles, live.ctx.ageId, live.city.tile), waitText: q.wait ? reasonText(q.wait) : null, tile: q.item.kind === 'improvement' || q.item.kind === 'wonder' ? q.item.tile ?? null : null,
-    rush: live.city.owner === state.playerNationId ? rushQuote(state, cityId, q.index) : null
-  }));
+  let net; // the gold a turn, read only when a price is out of reach
+  return queueView(state, cityId, live).map((q) => {
+    const rush = live.city.owner === state.playerNationId ? rushQuote(state, cityId, q.index) : null;
+    return {
+      ...q, label: itemLabel(q.item, tiles, live.ctx.ageId, live.city.tile), waitText: q.wait ? reasonText(q.wait) : null, tile: q.item.kind === 'improvement' || q.item.kind === 'wonder' ? q.item.tile ?? null : null,
+      rush: rush ? { ...rush, ...goldWait(state, rush, () => (net ??= calcNationBalance(state, state.playerNationId).net)) } : null
+    };
+  });
+};
+
+/** A price the treasury cannot pay: { have, saveTurns } (turns of the current gold income to save it; null with no income). */
+export const goldWait = (state, rush, netOf) => {
+  const have = Math.floor(state.resources?.gold || 0);
+  if (rush.ok || !(rush.gold > have) || rush.reasonMsg?.key !== 'm.why.needsGold') return {};
+  const net = netOf();
+  return { have, saveTurns: net > 0 ? Math.ceil((rush.gold - have) / net) : null };
 };
 
 /** The words of a rush offer: { button, title, text } ("Buy 312g"; what it buys and the wait it replaces). */
@@ -96,9 +109,11 @@ export const rushText = (q) => {
   if (!r || r.gold == null) return null;
   const wait = r.turns == null ? tNow('cy.rush.noProd') : tNow('cy.rush.instead', { turns: turnsText(r.turns) });
   const heat = r.heat > 0 ? ` ${tNow('cy.rush.heat', { pct: Math.round((r.mult - 1) * 100) })}` : '';
+  const save = r.have == null ? null : r.saveTurns == null ? tNow('cy.rush.noIncome', { have: r.have }) : tNow('cy.rush.save', { have: r.have, turns: turnsText(r.saveTurns) });
   return {
     button: tNow('cy.rush.button', { gold: r.gold }),
-    title: r.ok ? tNow('cy.rush.title', { gold: r.gold, hammers: r.hammers, label: q.label }) : r.reason,
+    title: r.ok ? tNow('cy.rush.title', { gold: r.gold, hammers: r.hammers, label: q.label }) : r.have != null ? save : r.reason,
+    save: r.have != null ? save : null,
     text: `${tNow('cy.rush.text', { label: q.label, hammers: r.hammers, gold: r.gold, each: Math.round(RUSH_GOLD_PER_HAMMER * rushRate(q.item) * 10) / 10, wait })}${heat}`
   };
 };

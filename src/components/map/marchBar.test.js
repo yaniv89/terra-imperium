@@ -87,7 +87,7 @@ describe('ACT-01 march bar: an army beside a city', () => {
     const m = marchBarModel(s, march(), PLAN);
     expect(m.canMarchAttack).toBe(true);
     expect(m.odds.hopeless).toBe(true);
-    expect(m.odds.text).toMatch(/^Hopeless: .* holds 30\d,\d{3} men to your 10,000\. Auto takes it 0%\.$/);
+    expect(m.odds.text).toMatch(/^Hopeless: .* holds 30\d,\d{3} men to your 10,000\. Auto wins the battle 0%\.$/); // a garrison: Auto's battle, not a capture (r3 newcomer)
   });
 
   it('far at war, the city out of sight: the bar says its garrison is unknown', () => {

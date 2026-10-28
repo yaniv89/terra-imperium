@@ -2,7 +2,7 @@
 // UI text: nation (phase H5). Plural forms use .one / .two / .other with { count }.
 export default {
   'nc.shortfallItem': '{cost} (have {have})',
-  'nc.notEnough': 'Not enough resources — need {list}',
+  'nc.notEnough': 'Not enough resources: need {list}',
   'nc.notEnoughNeed': 'Not enough resources: need {list}',
   'nc.cantAnnex': 'Can\'t annex yet: available turn {n}',
   'nc.vassalNoWar': 'Can\'t declare war while you\'re a vassal',
@@ -43,6 +43,7 @@ export default {
   'nc.showOnMap': 'Show on map',
   'nc.marchTo': 'March to {name}',
   'nc.marchToArmy': 'March to their army',
+  'nc.marchSub': 'Your {men} men set out: tap March to attack, then End Turn until they arrive.',
   'nc.noArmyToMarch': 'You have no army in the field to march.',
   'nc.warExhaustion': 'War exhaustion',
   'nc.warScore': 'War score',
