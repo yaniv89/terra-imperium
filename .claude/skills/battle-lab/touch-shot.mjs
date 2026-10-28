@@ -20,7 +20,15 @@ fs.mkdirSync(outDir, { recursive: true });
 const browser = await launchBrowser({ executablePath: exe, headless: true });
 const visible = (page, id) => page.getByTestId(id).isVisible().catch(() => false);
 // a raw tap at the element's centre: the HUD re-renders every frame, which stalls locator.tap's stability wait
-const tap = async (page, id) => { const bb = await page.getByTestId(id).boundingBox(); if (bb) await page.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2); };
+const tap = async (page, id) => { const el = await page.$(`[data-testid="${id}"]`); const bb = el && await el.boundingBox(); if (bb) await page.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2); return !!bb; };
+// a touch held `ms` (CDP touch events: Playwright's tap is instant)
+const hold = async (page, x, y, ms) => {
+  const c = await page.context().newCDPSession(page);
+  await c.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+  await page.waitForTimeout(ms);
+  await c.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await c.detach();
+};
 const text = (page, id) => page.getByTestId(id).textContent().catch(() => null);
 
 for (const age of ages) {
@@ -57,8 +65,37 @@ for (const age of ages) {
     await shot('2-armed');
     await page.touchscreen.tap(W * 0.55, H * 0.5);
     await page.waitForTimeout(250);
-    console.log(`${age} after ground tap: chip ${await visible(page, 'battle-attack-armed') ? 'STILL ARMED' : 'gone (order given)'}`);
+    console.log(`${age} after ground tap: chip ${await visible(page, 'battle-attack-armed') ? 'STILL ARMED' : 'gone (order given)'} | "${await text(page, 'battle-order-note')}"`);
     await shot('3-order');
+    // a slow tap (320 ms, between a quick tap and a long press) must land too
+    await tap(page, 'battle-attack-move'); await page.waitForTimeout(200);
+    await hold(page, W * 0.5, H * 0.45, 320);
+    await page.waitForTimeout(250);
+    console.log(`${age} slow tap (320 ms): chip ${await visible(page, 'battle-attack-armed') ? 'STILL ARMED' : 'gone (order given)'}`);
+    // the minimap with Attack armed: the order lands there
+    if (await page.getByTestId('battle-view-more').count()) { await tap(page, 'battle-view-more'); await page.waitForTimeout(200); }
+    if (await page.getByTestId('battle-minimap-toggle').count()) {
+      await tap(page, 'battle-minimap-toggle'); await page.waitForTimeout(400);
+      await tap(page, 'battle-attack-move'); await page.waitForTimeout(200);
+      const mm = await page.getByTestId('battle-minimap').boundingBox();
+      if (mm) await page.touchscreen.tap(mm.x + mm.width * 0.7, mm.y + mm.height * 0.5);
+      await page.waitForTimeout(250);
+      console.log(`${age} minimap tap with Attack armed: chip ${await visible(page, 'battle-attack-armed') ? 'STILL ARMED' : 'gone (order given)'} | "${await text(page, 'battle-order-note')}"`);
+      await shot('3b-minimap-order');
+      if (await page.getByTestId('battle-view-more').count()) { await tap(page, 'battle-view-more'); await page.waitForTimeout(200); }
+      await tap(page, 'battle-minimap-toggle');
+    }
+    // the radial's Attack (a long press on a selected squad), then a tap on the ground
+    const sq = await page.evaluate(() => { const v = window.__battleView(); const r = window.__battleRenderer; const q = v.squads.find((s) => s.side === 0 && s.alive && s.onField && s.classId !== 'worker'); r.centerOn(q.x / 256, q.y / 256); r.updateCamera(); return r.worldToScreen(q.x / 256, q.y / 256, 0.4); });
+    await page.waitForTimeout(150);
+    await hold(page, sq.x, sq.y, 600);
+    await page.waitForTimeout(500);
+    if (await page.getByTestId('battle-radial-attackMove').count()) {
+      await tap(page, 'battle-radial-attackMove'); await page.waitForTimeout(250);
+      const armedNow = await visible(page, 'battle-attack-armed');
+      await page.touchscreen.tap(W * 0.7, H * 0.4); await page.waitForTimeout(250);
+      console.log(`${age} radial Attack: armed ${armedNow}, after ground tap ${await visible(page, 'battle-attack-armed') ? 'STILL ARMED' : 'gone (order given)'}`);
+    } else console.log(`${age} radial: did not open`);
   }
   // 3. Powers: each one as soon as it can be paid for
   const powers = await page.evaluate(() => (window.__battleView?.()?.powers || []).map((p) => ({ id: p.id, cost: p.cost, targeted: p.targeted })));
@@ -68,10 +105,9 @@ for (const age of ages) {
     if (!(await page.getByTestId('battle-wand').count())) break;
     await tap(page, 'battle-wand');
     await page.waitForTimeout(250);
-    const btn = page.getByTestId(`battle-power-${pw.id}`);
-    if (!(await btn.count()) || await btn.isDisabled()) { console.log(`${age} power ${pw.id}: not ready`); await page.keyboard.press('Escape'); continue; }
-    // a raw tap: the sheet re-renders with every HUD frame, which stalls locator.tap's stability wait
-    const bb = await btn.boundingBox(); await page.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2);
+    const off = await page.evaluate((id) => { const b = document.querySelector(`[data-testid="battle-power-${id}"]`); return !b || b.disabled; }, pw.id);
+    if (off) { console.log(`${age} power ${pw.id}: not ready`); await page.keyboard.press('Escape'); continue; }
+    await tap(page, `battle-power-${pw.id}`);
     if (pw.targeted) {
       await page.waitForTimeout(200);
       const at = await page.evaluate(({ id }) => {

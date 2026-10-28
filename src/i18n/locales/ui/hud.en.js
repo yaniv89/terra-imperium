@@ -302,6 +302,7 @@ export default {
   'bt.host.crashTitle': 'The game closed during this battle',
   'bt.host.crashMessage': 'The phone closed the game while this battle was open. Resume it where it was last saved, or let Auto fight it.',
   'bt.host.resume': 'Resume',
+  'bt.order.attackSent': 'Attack-move: {n} squads on their way.',
   'bt.order.noGround': 'No order: tap the battlefield itself.',
   'bt.order.whoCavalry': 'Cavalry',
   'bt.order.whoAircraft': 'Aircraft',

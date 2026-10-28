@@ -85,6 +85,8 @@ const radialTop = (y, h, abilities) => {
 // "2:35": a battle tick as minutes and seconds of battle time.
 const battleClock = (tick) => { const sec = Math.max(0, Math.floor((tick || 0) / TICK_HZ)); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
 const ORDER_NOTE_MS = 3500;
+// What an armed Attack says when it lands; while paused the "starts when you resume" note leads.
+const attackSentText = (n, paused) => { const t = tNow('bt.order.attackSent', { n }); return paused ? `${pausedOrderText()} ${t}` : t; };
 // The short label of a fired power (powerFx.js): what it did, or that the enemy called it.
 const powerNote = (e, view, playerSide, map) => {
   const fx = powerFx(e, view, map);
@@ -702,6 +704,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     // the ground under them.
     const hit = r.pick(p.x, p.y, cur, 1.1, { enemyFirst: true, ignoreOwn: true });
     if (!hit) { setOrderNote(tNow('bt.order.noGround')); return true; } // said why, the selection stays
+    // An armed Attack that lands says so (playtest 40651418969: "no feedback"); arrival notes follow it.
+    if (armedRef.current === 'attackMove' && startedRef.current) setOrderNote(attackSentText(sel.length, pausedRef.current));
     const workers = sel.filter((i) => cur.squads[i]?.classId === 'worker');
     const onlyWorkers = workers.length === sel.length;
     const fighters = sel.filter((i) => !workers.includes(i));
@@ -813,6 +817,32 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       default:
     }
   }, [ownSquadAt, ownBuildingAt, inspectAt, inspectThing, updateSelection, selectBuilding, clearSelection, issueAt, send, disarm, markPending]);
+
+  // The minimap with an order armed (Attack, a strike, a rally point): the order lands where it is
+  // tapped instead of moving the camera (playtest 40651418969). Returns true when it took the tap.
+  const orderAtGround = useCallback((g) => {
+    const a = armedRef.current; const r = rendererRef.current; const cur = frames.current.cur;
+    if (!a || !r || !cur || a.type === 'place') return false;
+    const x = Math.round(g.x * Q); const y = Math.round(g.z * Q);
+    const sel = [...selectedRef.current];
+    if (a.type === 'power') {
+      send([{ type: 'power', power: a.id, x, y }]);
+      r.addMarker(g.x, g.z, '#f97316');
+      markPending({ kind: 'power', x: g.x, z: g.z, color: '#f97316' });
+    } else if (a.type === 'rally') {
+      send([{ type: 'rally', building: a.building, x, y }]);
+      r.addMarker(g.x, g.z, '#facc15');
+      r.ecoLayer.setGhost(null);
+    } else if (a === 'attackMove' && sel.length) {
+      const type = groundOrderType({ started: startedRef.current, armed: a, squads: sel.map((i) => cur.squads[i]) });
+      send([{ type, squads: sel, x, y, formation: formationRef.current }]);
+      r.setOrderTarget(sel, null);
+      r.addMarker(g.x, g.z, '#fb923c', 1.6, 1.4);
+      if (type !== 'deploy') { markPending({ kind: type, x: g.x, z: g.z, squads: sel, color: '#fb923c' }); setOrderNote(attackSentText(sel.length, pausedRef.current)); }
+    } else return false;
+    armedRef.current = null; setArmed(null);
+    return true;
+  }, [send, markPending]);
 
   const tapMemory = useRef({ lastTapAt: -1000, lastTapPos: null });
   useEffect(() => {
@@ -1234,7 +1264,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           onClickCapture={(e) => { if (performance.now() - radial.at < 400) { e.stopPropagation(); e.preventDefault(); } }}
           style={{ left: Math.min(Math.max(radial.x, 160), (wrapRef.current?.clientWidth || 400) - 160), top: radialTop(radial.y, wrapRef.current?.clientHeight || 400, selectedAbilities.length) }}>
           <div className="flex flex-wrap justify-center gap-2">
-            {[['attackMove', 'bt.hud.attack', () => { arm('attackMove'); setRadial(null); }], ['hold', 'bt.hud.hold'], ['stop', 'bt.hud.stop'],
+            {[['attackMove', 'bt.hud.attack', () => { armedRef.current = 'attackMove'; setArmed('attackMove'); setRadial(null); }], ['hold', 'bt.hud.hold'], ['stop', 'bt.hud.stop'],
               [formation, formation === 'line' ? 'bt.hud.line' : 'bt.hud.column', () => { cycleFormation(); setRadial(null); }], ['retreat', 'bt.hud.retreat']].map(([t, label, act]) => (
               <button key={t} type="button" onClick={act || (() => commandSelected(t))} data-testid={`battle-radial-${t}`} className="min-w-[64px] h-11 px-3 rounded-full bg-fa-panel/95 border border-fa-line text-fa-text text-sm font-semibold shadow-xl">{tNow(label)}</button>
             ))}
@@ -1263,7 +1293,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         onObjective={showObjective}
         follow={follow} onToggleFollow={toggleFollow}
         minimapOn={minimapOn} onToggleMinimap={toggleMinimap}
-        minimap={hud ? <BattleMinimap setup={setup} hud={hud} playerSide={playerSide} getRenderer={getRenderer} onMoved={() => setFollow(false)} {...(compactScreen ? { maxW: 150, maxH: 92 } : { maxW: 220, maxH: 136 })} /> : null}
+        minimap={hud ? <BattleMinimap setup={setup} hud={hud} playerSide={playerSide} getRenderer={getRenderer} onMoved={() => setFollow(false)} onOrderAt={orderAtGround} {...(compactScreen ? { maxW: 150, maxH: 92 } : { maxW: 220, maxH: 136 })} /> : null}
         supplyRate={supplyGain}
         perf={showPerf ? <pre ref={perfRef} className="pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre overflow-hidden" data-testid="battle-perf" /> : null}
         onOpenBuild={() => flowTo({ type: 'toggle' })} buildOpen={buildMenu} onSelectHq={selectHq} onSteward={(on) => send([{ type: 'steward', on }])}
