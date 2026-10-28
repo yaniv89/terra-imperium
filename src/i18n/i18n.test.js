@@ -13,6 +13,12 @@ describe('t()', () => {
     expect(translate('menu.turnLine', { turn: 4, nation: 'Akkad' }, 'en')).toBe('Turn 4, Akkad');
     expect(translate('menu.turnLine', { turn: 4 }, 'en')).toBe('Turn 4, {nation}');
   });
+  it('keeps a signed number and its % together left to right in Hebrew only', () => {
+    expect(translate('de.control', { v: '-3' }, 'he')).toBe('שליטה ⁦-3%⁩');
+    expect(translate('empire.perTurn', { n: -15 }, 'he')).toContain('⁦-15⁩');
+    expect(translate('empire.perTurn', { n: 15 }, 'he')).not.toContain('⁦');
+    expect(translate('de.control', { v: '-3' }, 'en')).toBe('Control -3%');
+  });
   it('shows the key when nobody has it, and each language its own text', () => {
     expect(translate('no.such.key', null, 'he')).toBe('no.such.key');
     expect(translate('menu.title', null, 'en')).toBe(tableOf('en')['menu.title']);
