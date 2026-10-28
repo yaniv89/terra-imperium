@@ -23,7 +23,7 @@ for (const [w, h] of sizes) for (const lang of langs) {
   page.on('pageerror', (e) => errors.push(e.message));
   const tag = `${w}x${h}-${lang}`;
   const shot = (name) => page.screenshot({ path: path.join(outDir, `${tag}-${name}.png`) });
-  const tap = async (id) => { const loc = page.getByTestId(id).first(); await loc.scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {}); const bb = await loc.boundingBox(); if (!bb) return false; if (phone) await page.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2); else await page.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2); return true; };
+  const tap = async (id) => { const loc = page.getByTestId(id).first(); await loc.scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {}); const bb = await loc.boundingBox({ timeout: 5000 }).catch(() => null); if (!bb || bb.y + bb.height > h) { await loc.dispatchEvent('click').catch(() => {}); return !!bb; } if (phone) await page.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2); else await page.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2); return true; };
   try {
     await page.goto(`${base}?battleSandbox&autostart&age=bronze`, { timeout: 240000, waitUntil: 'domcontentloaded' });
     await page.getByTestId('battle-start').first().waitFor({ timeout: 120000 });

@@ -192,7 +192,7 @@ const BattleSandbox = () => {
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.merc} onChange={(e) => setConfig((c) => ({ ...c, merc: e.target.checked }))} /> {t('mx.sb.merc')}</label>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.sea} onChange={(e) => setConfig((c) => ({ ...c, sea: e.target.checked }))} data-testid="sandbox-sea" /> {t('mx.sb.seaBattle')}</label>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.spectate} onChange={(e) => setConfig((c) => ({ ...c, spectate: e.target.checked }))} /> {t('mx.sb.spectate')}</label>
-        <button type="button" onClick={() => { setRunId((r) => r + 1); setRunning(true); }} className="sticky bottom-0 w-full h-12 rounded-xl bg-blue-600 font-semibold shadow-xl" data-testid="sandbox-fight">{t('mx.sb.fight')}</button>
+        <div className="sticky bottom-0 -mx-1 px-1 py-2 bg-slate-950"><button type="button" onClick={() => { setRunId((r) => r + 1); setRunning(true); }} className="w-full h-12 rounded-xl bg-blue-600 font-semibold" data-testid="sandbox-fight">{t('mx.sb.fight')}</button></div>
         {lastResult && (
           <div className="rounded-xl bg-slate-900 border border-slate-700 p-3 text-xs space-y-1">
             <div className="font-semibold" data-testid="sandbox-last">{t('mx.sb.last', { outcome: endVerdict(lastResult.outcome, lastSide), reason: endReasonText(lastResult.report.tactical?.reason, lastResult.outcome === (lastSide === 0 ? 'attacker' : 'defender'), lastResult.outcome === 'stalemate', lastSea) })}</div>
