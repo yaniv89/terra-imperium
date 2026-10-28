@@ -126,7 +126,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
     if (!w || state === w.from) return; // an action that changed nothing leaves no answer to show
     awaiting.current = null;
     if (state.logs.length > w.logs && state.turnNumber === w.from.turnNumber) show(logText(state.logs[state.logs.length - 1]));
-  }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state]);
   useEffect(() => { if (!notice) return undefined; const id = setTimeout(() => setNotice(null), 6000); return () => clearTimeout(id); }, [notice]);
 
   const dispatchIfAffordable = (type, costs, extra = {}) => {
