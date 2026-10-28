@@ -1,7 +1,7 @@
 // src/components/map/SettleBar.jsx
 // The bar at the top of the map while a settler's site is being chosen (settleMode.js): whose
 // settlers they are, what the colours mean, "Next good site" (the engine's ranked sites, one tap
-// each, the map centred on it) and Cancel. It stays while sites are tapped and their sheet is
+// each, the map centred on it), "Send them home" when no site is known in reach, and Cancel. It stays while sites are tapped and their sheet is
 // closed; a phone held sideways gets a two-line strip so the land under it stays in view.
 import React from 'react';
 import { Tent, Compass, X } from 'lucide-react';
@@ -10,7 +10,7 @@ import { useT } from '../../i18n/useT';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useMapToolFlag } from './mapTool';
 
-const SettleBar = ({ model, onNext, onCancel }) => {
+const SettleBar = ({ model, onNext, onCancel, onSendHome }) => {
   // On a phone held sideways the site sheet stands on the left and the tab rail on the right: the
   // bar takes the room between them (it used to lie over the sheet's close button).
   const insets = useMapInsets();
@@ -31,6 +31,10 @@ const SettleBar = ({ model, onNext, onCancel }) => {
           className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-amber-600 hover:bg-amber-500 font-semibold text-fa-text flex items-center gap-1.5">
           <Compass className="w-3.5 h-3.5" aria-hidden="true" />{model.nextLabel}
         </button>
+      )}
+      {model.sendHome && onSendHome && (
+        <button type="button" onClick={() => onSendHome(model.unitId)} data-testid="settle-send-home"
+          className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-fa-raised hover:bg-fa-hover font-semibold text-fa-text">{t('mx.tile.sendHome')}</button>
       )}
       <button type="button" onClick={onCancel} aria-label={t('settle.stop')} title={t('settle.stop')} data-testid="settle-cancel"
         className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-fa-raised text-fa-muted"><X className="w-4 h-4" /></button>

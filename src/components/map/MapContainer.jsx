@@ -54,9 +54,10 @@ import LensStrip from './LensStrip';
 import { LENSES } from './lenses';
 import SettleBar from './SettleBar';
 import { settleModeFor, settleModeOver, settleSites, settleUnit, nextSite, settleBarModel, idleSettlerOn, firstIdleSettler } from './settleMode';
-import { SELECT_ARMY, SELECT_TILE, SELECT_NATION, FOCUS_REGION, MANAGE_CITY, FOCUS_PLACE, pointAtTile } from './marchEvents';
+import { SELECT_ARMY, SELECT_TILE, SELECT_NATION, FOCUS_REGION, MANAGE_CITY, FOCUS_PLACE, OPEN_FIELD_ATTACK, pointAtTile } from './marchEvents';
 import { SET_MAP_LENS } from '../ui/uiEvents';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { ActionTypes } from '../../data/types';
 import { useGame } from '../../context/GameContext';
 import { getNationCapital } from '../../data/regions';
 import { useMapPrefs } from './mapPrefs';
@@ -84,7 +85,7 @@ const MapContainer = (props) => (
 );
 
 const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => {
-  const { state } = useGame();
+  const { state, dispatch } = useGame();
   const { t } = useT();
   const marchCtx = useMarch();
   const marching = !!marchCtx?.march && !marchCtx.march.dragging;
@@ -168,8 +169,9 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
     const onFocus = (e) => setEventFocus(e.detail || null);
     // End Turn's "Choose production: <city>" (turnBlockers.js): the city's sheet on its Build tab, the map centred on it.
     const onManage = (e) => { const { regionId, tab } = e.detail || {}; if (!regionId) return; setSelectedTile(null); setSelectedArmy(null); setSelectedNation(null); selectRegion(regionId); setTabRequest({ regionId, tab: tab || 'overview' }); setManageOpen(true); };
-    window.addEventListener(SELECT_ARMY, onArmy); window.addEventListener(SELECT_TILE, onTile); window.addEventListener(SELECT_NATION, onNation); window.addEventListener(FOCUS_REGION, onFocus); window.addEventListener(MANAGE_CITY, onManage); window.addEventListener(FOCUS_PLACE, onPlace);
-    return () => { window.removeEventListener(SELECT_ARMY, onArmy); window.removeEventListener(SELECT_TILE, onTile); window.removeEventListener(SELECT_NATION, onNation); window.removeEventListener(FOCUS_REGION, onFocus); window.removeEventListener(MANAGE_CITY, onManage); window.removeEventListener(FOCUS_PLACE, onPlace); };
+    const onEngage = (e) => { if (e.detail?.tile == null) return; setManageOpen(false); setFieldAttack(e.detail); };
+    window.addEventListener(SELECT_ARMY, onArmy); window.addEventListener(SELECT_TILE, onTile); window.addEventListener(SELECT_NATION, onNation); window.addEventListener(FOCUS_REGION, onFocus); window.addEventListener(MANAGE_CITY, onManage); window.addEventListener(FOCUS_PLACE, onPlace); window.addEventListener(OPEN_FIELD_ATTACK, onEngage);
+    return () => { window.removeEventListener(SELECT_ARMY, onArmy); window.removeEventListener(SELECT_TILE, onTile); window.removeEventListener(SELECT_NATION, onNation); window.removeEventListener(FOCUS_REGION, onFocus); window.removeEventListener(MANAGE_CITY, onManage); window.removeEventListener(FOCUS_PLACE, onPlace); window.removeEventListener(OPEN_FIELD_ATTACK, onEngage); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // the tile of one of your armies: its sheet (ArmySheet.jsx)
   // On a tablet the city card stays open under a tile or army sheet (E2: two sheets stacked).
@@ -302,7 +304,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
       </div>
       {globeAllowed && <MapModeToggle mode={mode} onChange={handleModeChange} />}
       <MarchBar />
-      {settleView && !marching && <SettleBar model={settleBarModel(state, settle, sites, selectedTile)} onNext={goNextSite} onCancel={() => setSettle(null)} />}
+      {settleView && !marching && <SettleBar model={settleBarModel(state, settle, sites, selectedTile)} onNext={goNextSite} onCancel={() => setSettle(null)} onSendHome={(unitId) => { dispatch({ type: ActionTypes.DISBAND_SETTLERS, payload: { unitId } }); setSettle(null); }} />}
       <MarchAttackPrompt />
       {fieldAttack && <PreBattleModal fromRegionId={fieldAttack.from} tile={fieldAttack.tile} onClose={() => setFieldAttack(null)} />}
       <RegionChooser choice={tapChoice} onPick={(id) => { setTapChoice(null); onSelectRegion(id); }} onClose={() => setTapChoice(null)} />

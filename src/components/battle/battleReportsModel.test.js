@@ -40,7 +40,7 @@ describe('W16 battle reports model', () => {
     const d = reportDetail(state, base);
     expect(d.yours).toEqual({ name: 'Akkad', in: 340, lost: 96 });
     expect(d.theirs).toEqual({ name: 'Elam', in: 280, lost: 231 });
-    expect(d.summary).toMatch(/1 of their regiments destroyed; none of yours lost\./);
+    expect(d.summary).toMatch(/1 of their regiments destroyed; none of your regiments lost\./);
     expect(d.canReplay).toBe(true);
   });
 });
