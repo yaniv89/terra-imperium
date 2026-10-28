@@ -4,12 +4,16 @@
 // laborers to work, sends builders to unattended sites, raises a village house before the housing
 // cap is reached, trains laborers up to its difficulty's target, raises production buildings (and
 // towers, defending, at king and up) and keeps them training. Trained squads then join the army AI's
-// plans by themselves (they are ordinary squads to it).
+// plans by themselves (they are ordinary squads to it). Prince and up train counters (Age of Empires'
+// counter-unit AI): its production buildings are raised and fed in the order of how well their class
+// beats the enemy soldiers it can see (fog) and how little it loses to them; siege stays last.
 // W12 (every tree is wood, more nodes over the field): a laborer goes to the nearest node of its
 // resource with a free place (a crowded one counts as four times as far), keeps to its own half
 // unless nothing is left there, and once three or more laborers walk far (DROP_FAR tiles) from a
 // node to the nearest drop-off, a wood and stone yard (or a food depot) goes up beside that node.
 import { distSq } from './fixed';
+import { canSeeSquad } from './fog';
+import { getCounterMultiplier } from '../../data/unitClasses';
 import { Q, SIDE_ATTACKER } from './constants';
 import { placementBlock, population, housingCap, ecoAlive, applyEcoOrder } from './economy';
 import { BUILDINGS, UNITS, RESOURCES, MILLI, costMilli, buildableFor, trainableRoles, POP_LIMIT, WORKER_MIX } from '../data/economy';
@@ -19,10 +23,12 @@ import { BUILDINGS, UNITS, RESOURCES, MILLI, costMilli, buildableFor, trainableR
 export const AI_ECONOMY = {
   settler: { every: 60, workers: 6, prod: 1, towers: 0, queue: 1 },
   chieftain: { every: 50, workers: 8, prod: 1, towers: 0, queue: 1 },
-  prince: { every: 40, workers: 14, prod: 2, towers: 0, queue: 2 },
-  king: { every: 30, workers: 20, prod: 3, towers: 1, queue: 2 },
-  emperor: { every: 24, workers: 26, prod: 4, towers: 2, queue: 3 }
+  prince: { every: 40, workers: 14, prod: 2, towers: 0, queue: 2, counter: true },
+  king: { every: 30, workers: 20, prod: 3, towers: 1, queue: 2, counter: true },
+  emperor: { every: 24, workers: 26, prod: 4, towers: 2, queue: 3, counter: true }
 };
+/** Counter training on its own (battle-lab aiDuel.sim.js FEAT_OFF=counter measures it); on in play. */
+export const ECO_FEATURES = { counter: true };
 /** The level the player's economy steward plays at (the `steward` order, run by step.js). */
 export const STEWARD_LEVEL = 'king';
 const MIX = WORKER_MIX;
@@ -83,6 +89,19 @@ export const autoRebuild = (w) => {
   });
 };
 
+// Production types by how well their class does against the enemy soldiers `side` can see: for each,
+// the visible enemy strength times (what it deals / what it takes). Siege stays last (it is for walls).
+const counterOrder = (w, side, ageId) => {
+  const seen = w.squads.filter((q) => q.side !== side && !q.worker && !q.isGeneral && q.alive && q.onField && !q.fled && canSeeSquad(w, side, q));
+  const value = (type) => {
+    const cls = BUILDINGS[type].trains[0];
+    if (cls === 'siege') return -Infinity;
+    return seen.reduce((v, t) => v + t.strength * (getCounterMultiplier(cls, t.classId, ageId) - getCounterMultiplier(t.classId, cls, t.ageId)), 0);
+  };
+  const v = Object.fromEntries(PRODUCTION.map((t) => [t, value(t)]));
+  return PRODUCTION.slice().sort((a, b) => v[b] - v[a] || PRODUCTION.indexOf(a) - PRODUCTION.indexOf(b));
+};
+
 /** One economic think for `side` (tacticalAI.js calls it on the AI's own ticks). */
 export const thinkEconomy = (w, side, difficultyId, orders) => {
   if (!w.eco) return;
@@ -94,7 +113,9 @@ export const thinkEconomy = (w, side, difficultyId, orders) => {
   const hq = mine.find((b) => BUILDINGS[b.type].hq && b.built);
   const workers = w.squads.filter((q) => q.worker && q.side === side && q.alive && !q.fled && q.onField);
   const roles = trainableRoles(ageId);
-  const prod = mine.filter((b) => PRODUCTION.includes(b.type));
+  // The production types in the order to raise and feed them: by counter value (prince+), else as listed.
+  const ranked = cfg.counter && ECO_FEATURES.counter ? counterOrder(w, side, ageId) : PRODUCTION;
+  const prod = mine.filter((b) => PRODUCTION.includes(b.type)).sort((a, b) => ranked.indexOf(a.type) - ranked.indexOf(b.type) || a.idx - b.idx);
   // Keep the production buildings training (a little food kept back for laborers). With bases the
   // keep or the camp may fall while the barracks stand (base.js, Q4): they train on regardless.
   const keepTraining = () => prod.filter((b) => b.built).forEach((b) => {
@@ -163,9 +184,9 @@ export const thinkEconomy = (w, side, difficultyId, orders) => {
   // 5. Production, then (defending) towers: one new site a think.
   let raised = false;
   if (!sites.some((b) => b.type !== 'house') && workers.length >= Math.min(6, cfg.workers)) {
-    const want = PRODUCTION.filter((t) => buildableFor(ageId).includes(t) && roles.includes(BUILDINGS[t].trains[0])).slice(0, cfg.prod);
+    const want = ranked.filter((t) => buildableFor(ageId).includes(t) && roles.includes(BUILDINGS[t].trains[0])).slice(0, cfg.prod);
     const next = want.find((t) => !prod.some((b) => b.type === t));
-    if (next) raised = build(next);
+    if (next && prod.length < cfg.prod) raised = build(next);
     else if (side !== SIDE_ATTACKER && cfg.towers && mine.filter((b) => b.type === 'tower').length < cfg.towers) raised = build('tower');
   }
 
