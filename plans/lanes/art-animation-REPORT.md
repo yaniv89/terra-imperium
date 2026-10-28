@@ -1,6 +1,6 @@
 # Lane art-animation: report
 
-ponytail loaded (.claude/skills/ponytail/SKILL.md, followed for the rest of the lane).
+ponytail read in full at 2026-10-28T04:26Z (.claude/skills/ponytail/SKILL.md; also read in full when first checked out, 27 Oct), followed for the rest of the lane.
 
 Branch `claude/art-animation`, from `claude/integration` 8ac856c7. Shots in
 `plans/lanes/art-animation-shots/` (before-* and after-*, 844x390 at DPR 2 unless noted).
