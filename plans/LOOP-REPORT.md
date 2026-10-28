@@ -69,3 +69,5 @@ claude/integration, main gets the push once the quick suite and CI are green.
 - Round 2 (28 Oct 07:35): retest dispatched on integration, same 4 personas as round 1 for a fair compare,
   with the era saves; caps $15 (spend with caps $49.03 of $90). Plan: new grades, then a lane per area below 8.
 - Target (user, 28 Oct): every area at 8/10 or more; each area below 8 after round 2 gets its own lane.
+- Round 2 adds two Opus playtests with full coverage (user: "cover it all"): civ-veteran campaign over all 8 ages
+  (400 steps, cap $11) and battle-commander over every age (320 steps, cap $9). Spend with caps $69.03 of $90.
