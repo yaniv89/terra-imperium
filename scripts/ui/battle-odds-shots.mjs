@@ -27,7 +27,7 @@ const SIEGE = `
   const units = { ...Object.fromEntries(Object.entries(s.units).filter(([, x]) => x.regionId !== capId && !ring.includes(x.tile))),
     g1: u('g1', me, capId, cap.tile, 'infantry', 600, { ageId: 'stone' }), g2: u('g2', me, capId, cap.tile, 'ranged', 400, { ageId: 'bronze' }),
     e1: u('e1', foe, null, ring[0], 'infantry', 1000, { route: [cap.tile] }), e2: u('e2', foe, null, ring[0], 'infantry', 1000), e3: u('e3', foe, null, ring[0], 'ranged', 900), e4: u('e4', foe, null, ring[0], 'cavalry', 800) };
-  s = { ...s, units, regions: { ...s.regions, [capId]: { ...cap, siege: { by: foe, hp: 300, maxHp: 640 } } } };
+  s = { ...s, units, regions: { ...s.regions, [capId]: { ...cap, siege: { by: foe, hp: 300, maxHp: 640, startedTurn: s.turnNumber } } } };
   if (QUEUE) s = { ...s, battleSettings: { defaultMode: 'ask', autoDefend: false }, pendingDefenses: [m.createDefenseRecord(s, { war: { ...war, aggressor: foe }, regionId: capId, aggressorShare: 0.8, seed: 7, index: 1 })] };
   window.__bo = { capId };
   return s;
