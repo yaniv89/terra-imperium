@@ -6,6 +6,7 @@ import { keepBuilding, setKeep } from './productionAdvisor';
 import { processCity, emptyWorld } from './world/cities';
 import { getTiles } from '../data/geo/tiles';
 import { peoplesWorld } from './testWorld';
+import { resolveTurn } from './resolveTurn';
 
 const EMPTY = { current: null, queue: [], progress: 0 };
 const idleGame = () => {
@@ -51,6 +52,28 @@ describe('keep building (standing orders)', () => {
     expect(r.city.production.keep).toBe('repeat');
     const once = processCity(world, getTiles(), { ...c, production: { ...c.production, keep: undefined, progress: 50 } }, { ageId: 'stone' });
     expect(once.city.production.current).toBeNull();
+  });
+
+  it('repeat stops when the unit can no longer be queued (a ship far from the coast)', () => {
+    const S = idleGame();
+    const city = myCity(S);
+    const ship = { kind: 'unit', classId: 'naval' };
+    const c = { ...city, tile: city.tile, production: { current: ship, queue: [], progress: 9999, keep: 'repeat' } };
+    const world = { ...emptyWorld(), cities: { [c.id]: c }, tileOwner: S.world.tileOwner, tileState: S.world.tileState };
+    const tiles = getTiles();
+    const inland = { ...c, tile: c.tiles.find((t) => tiles.coastal[t] !== 1) ?? c.tile };
+    if (tiles.coastal[inland.tile] === 1) return; // no inland tile in this start
+    const r = processCity(world, tiles, inland, { ageId: 'stone', techFree: true });
+    expect(r.city.production.current).toBeNull();
+  });
+
+  it('a city that leaves the player drops its standing order on the next turn', () => {
+    const S = idleGame();
+    const city = myCity(S);
+    const other = Object.values(S.nations).find((n) => n.id !== S.playerNationId && !n.isEliminated && n.kind !== 'independent');
+    const lost = { ...S, regions: { ...S.regions, [city.id]: { ...city, owner: other.id, production: { current: { kind: 'unit', classId: 'infantry' }, queue: [], progress: 0, keep: 'repeat' } } } };
+    const next = resolveTurn(lost);
+    expect(next.regions[city.id].production?.keep).toBeUndefined();
   });
 
   it('refuses a city that is not the player\'s', () => {

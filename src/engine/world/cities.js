@@ -723,7 +723,7 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
     }
     // Repeat (Civ IV's "repeat" order): a city set to keep building trains the same unit again
     // when its queue runs dry, so a standing order never leaves it idle (productionAdvisor.js keepBuilding).
-    const again = !production.queue.length && production.keep === 'repeat' && item.kind === 'unit' ? item : null;
+    const again = !production.queue.length && production.keep === 'repeat' && item.kind === 'unit' && canQueue(next, tiles, w, item, ctx).ok ? item : null; // a lost coast, a ban or a retired class ends it
     const [following, ...rest] = again ? [again] : production.queue;
     // The next order takes the overflow, plus whatever it had stored from an earlier turn at the front.
     production = promote({ current: null, queue: rest, progress: 0, ...(production.stored ? { stored: production.stored } : {}), ...(production.keep ? { keep: production.keep } : {}) }, following || null, rest, production.progress);
