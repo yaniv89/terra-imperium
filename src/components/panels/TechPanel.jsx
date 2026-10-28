@@ -37,7 +37,7 @@ import { setMapLens, showMapHint } from '../ui/uiEvents';
 import { focusPlace } from '../map/marchEvents';
 import { openPanelTab, closePanels } from './panelEvents';
 import { advisorPlan, scholarsPreview } from '../../engine/researchStatus';
-import { describeTech, formatTurns, formatEta, techInfo, techGraph, recommendedTechs, GRAPH_NODE_W, GRAPH_NODE_H } from './researchView';
+import { describeTech, techUnlocks, formatTurns, formatEta, techInfo, techGraph, recommendedTechs, GRAPH_NODE_W, GRAPH_NODE_H } from './researchView';
 import { researchSheetModel } from './researchSheetModel';
 import { techName, boostLabel, playstyleName, goalUnit, goalBonus } from '../../i18n/gameText';
 import { dataText, ageName } from '../../i18n/core';
@@ -106,6 +106,7 @@ const CurrentCard = ({ m }) => {
         <div className="min-w-0 flex-1">
           <div className="fa-heading text-[17px] leading-tight truncate">{techName(c.tech.id, c.tech.name)}</div>
           <div className="text-[12px] text-fa-muted leading-snug">{describeTech(c.tech)}</div>
+          {techUnlocks(c.tech.id).length > 0 && <div className="text-[12px] text-fa-text leading-snug" data-testid="research-current-unlocks">{tNow('p2.tr.unlocks', { list: techUnlocks(c.tech.id).join(', ') })}</div>}
         </div>
       </div>
       <Meter value={c.progress} max={c.cost} extra={c.pendingBoost} color={SCIENCE} extraColor="var(--fa-good)" height={8} label={tNow('p2.cc.meter', { name: techName(c.tech.id, c.tech.name), a: Math.floor(c.progress), b: c.cost })} />
@@ -149,7 +150,7 @@ const BoostRow = ({ b }) => {
 // The age landmark fork (src/engine/ageLandmarks.js): two landmarks of the oldest age without a pick.
 const LandmarkCard = ({ ageId, onPick }) => (
   <section className="fa-card fa-selected p-3 space-y-2" data-testid="landmark-pick" aria-labelledby="landmark-title">
-    <div id="landmark-title" className="fa-heading text-[16px] leading-tight">{tNow('tech.landmark.title', { age: ageName(ageId) })}</div>
+    <div id="landmark-title" className="fa-heading text-[16px] leading-tight"><GlossaryLink kind="term" id="landmarks">{tNow('tech.landmark.title', { age: ageName(ageId) })}</GlossaryLink></div>
     <div className="text-[12px] text-fa-muted">{tNow('tech.landmark.hint')}</div>
     <div className="grid gap-2 grid-cols-2">
       {AGE_LANDMARKS[ageId].map((l) => (
@@ -222,6 +223,7 @@ const TechPanel = () => {
   // The web's jump strip: a fully known past age is one thin column until its strip cell is tapped.
   const [opened, setOpened] = useState([]);
   const [jump, setJump] = useState(null);
+  const [picked, setPicked] = useState(null); // the web node tapped: its row shows under the web
   const webRef = useRef(null);
   const collapsed = m.ages.filter((a) => a.known === a.total && !a.current && !opened.includes(a.ageId)).map((a) => a.ageId);
   useEffect(() => { if (jump) webRef.current?.querySelector(`[data-age-head="${jump.ageId}"]`)?.scrollIntoView?.({ inline: 'start', block: 'center' }); }, [jump]);
@@ -269,7 +271,7 @@ const TechPanel = () => {
 
           {m.boosts.length > 0 && (
             <section className="space-y-1.5" aria-labelledby="research-boosts">
-              <Label id="research-boosts">{tNow('tech.boosts')}</Label>
+              <Label id="research-boosts"><GlossaryLink kind="term" id="boosts">{tNow('tech.boosts')}</GlossaryLink></Label>
               {m.boosts.slice(0, 4).map((b) => <BoostRow key={b.techId} b={b} />)}
               {m.boosts.length > 4 && <div className="text-[11px] text-fa-muted">{tNow('p2.bo.more', { n: m.boosts.length - 4 })}</div>}
             </section>
@@ -277,7 +279,7 @@ const TechPanel = () => {
 
           <section className="space-y-1.5" aria-labelledby="research-next">
             <div className="flex items-center gap-2 flex-wrap" data-testid="research-queue">
-              <Label id="research-next">{tNow('tech.next')}</Label>
+              <Label id="research-next"><GlossaryLink kind="term" id="queue">{tNow('tech.next')}</GlossaryLink></Label>
               {m.queue.length === 0 && <span className="text-[12px] text-fa-muted">{tNow('tech.noQueue')}</span>}
               {m.queue.map((q, i) => (
                 <span key={q.tech.id} className="fa-chip !pe-1 gap-1">
@@ -307,7 +309,7 @@ const TechPanel = () => {
 
       {catchingUp && (
         <div className="mt-3 text-[12px] text-fa-muted rounded-lg border border-fa-line p-2" data-testid="research-catchup">
-          {tNow('p2.catchup', { pct: Math.round(CATCHUP_MAX * 100) })}
+          <GlossaryLink kind="term" id="catchup">{tNow('p2.catchup', { pct: Math.round(CATCHUP_MAX * 100) })}</GlossaryLink>
         </div>
       )}
 
@@ -315,7 +317,7 @@ const TechPanel = () => {
         <ActionCard icon={GraduationCap} label={tNow('tech.scholars')} description={tNow('p2.sch.desc')} cost={costLine(ACTION_COSTS.fundScholars)}
           effect={scholarsPreview(state, FUND_SCHOLARS_TECHPOINTS).note} onClick={handleFundScholars} disabled={!canPay(state, ACTION_COSTS.fundScholars)} why={payWhy(state, ACTION_COSTS.fundScholars)} />
         <div className="space-y-1.5">
-          <Label>{tNow('p2.fo.label')} <span className="normal-case tracking-normal font-normal">{tNow('p2.fo.hint', { pct: Math.round(FOCUS_SCIENCE_BONUS * 100), cost: focusCost ? tNow('p2.fo.cost', { list: costLine(focusCost) }) : '' })}</span></Label>
+          <Label><GlossaryLink kind="term" id="focus">{tNow('p2.fo.label')}</GlossaryLink> <span className="normal-case tracking-normal font-normal">{tNow('p2.fo.hint', { pct: Math.round(FOCUS_SCIENCE_BONUS * 100), cost: focusCost ? tNow('p2.fo.cost', { list: costLine(focusCost) }) : '' })}</span></Label>
           <div className="flex flex-wrap gap-1.5">
             {Object.values(TechCategories).map((categoryId) => (
               <Chip key={categoryId} pressed={state.researchFocus === categoryId}
@@ -336,9 +338,11 @@ const TechPanel = () => {
 
       {web && (() => {
         const g = techGraph(state, collapsed);
-        const act = (n) => { if (n.status === 'available') research(n.id); else if (n.status === 'locked') queue(n.id); else if (n.status === 'queued') unqueue(n.id); };
+        const act = (n) => setPicked(n.id);
         return (
-          <div ref={webRef} className="mt-2 overflow-x-auto rounded-lg border border-fa-line bg-fa-ink/60" data-testid="research-web">
+          <>
+          {/* the web is a timeline, Stone Age at the left in Hebrew too (it opened at the Future and node names ran out of their boxes) */}
+          <div ref={webRef} dir="ltr" className="mt-2 overflow-x-auto rounded-lg border border-fa-line bg-fa-ink/60" data-testid="research-web">
             <svg width={g.width + 16} height={g.height + 36} viewBox={`-8 -28 ${g.width + 16} ${g.height + 36}`} role="img" aria-label={tNow('tech.web')}>
               {g.ages.map((a) => <text key={a.ageId} x={a.x + a.width / 2} y={-12} textAnchor="middle" fontSize={a.collapsed ? 9 : 11} fill="#B9B19F" fontFamily="var(--fa-font-display)">{a.collapsed ? a.name.slice(0, 3) : a.name}</text>)}
               {g.ages.map((a) => ageIconUrl(a.ageId) && <image key={`i${a.ageId}`} href={ageIconUrl(a.ageId)} x={a.x} y={-27} width={20} height={20} data-testid={`web-age-${a.ageId}`} />)}
@@ -347,14 +351,16 @@ const TechPanel = () => {
               {g.edges.map((e) => <path key={`${e.from}-${e.to}`} d={`M ${e.x1} ${e.y1} C ${e.x1 + 24} ${e.y1}, ${e.x2 - 24} ${e.y2}, ${e.x2} ${e.y2}`} fill="none" stroke={e.cross ? '#D8A444' : '#4A5868'} strokeWidth={e.cross ? 1.5 : 1} opacity={0.9} />)}
               {g.nodes.map((n) => (
                 <g key={n.id} transform={`translate(${n.x} ${n.y})`} onClick={() => act(n)} style={{ cursor: 'pointer' }} data-testid={`web-${n.id}`} data-status={n.status}>
-                  <rect width={GRAPH_NODE_W} height={GRAPH_NODE_H} rx="8" fill={WEB_FILL[n.status]} stroke={WEB_STROKE[n.status]} strokeWidth={n.status === 'current' ? 2 : 1} />
+                  <rect width={GRAPH_NODE_W} height={GRAPH_NODE_H} rx="8" fill={WEB_FILL[n.status]} stroke={n.id === picked ? '#D8A444' : WEB_STROKE[n.status]} strokeWidth={n.status === 'current' || n.id === picked ? 2 : 1} />
                   <text x={8} y={18} fontSize="11" fontWeight="700" fill="#ECE5D3">{n.name.length > 20 ? `${n.name.slice(0, 19)}…` : n.name}</text>
                   <text x={8} y={34} fontSize="10" fill="#B9B19F">{n.status === 'researched' ? tNow('p2.web.known') : n.status === 'current' ? tNow('p2.web.researching', { turns: formatTurns(n.turns) }) : n.status === 'queued' ? tNow('p2.web.queued') : n.status === 'available' ? tNow('p2.tr.costTurns', { cost: n.cost, turns: formatTurns(n.turns) }) : tNow('p2.web.locked')}</text>
                 </g>
               ))}
             </svg>
-            <div className="px-2 py-1 text-[11px] text-fa-muted">{tNow('tech.webHint')}</div>
           </div>
+          <div className="px-2 py-1 text-[11px] text-fa-muted">{tNow('tech.webHint')}</div>
+          {picked && TECH_TREE[picked] && <div className="mt-1" data-testid="research-web-picked"><TechRow info={techInfo(state, picked, science)} onResearch={research} onQueue={queue} recommended={top?.techId === picked ? top.text : null} /></div>}
+          </>
         );
       })()}
 

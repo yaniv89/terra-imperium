@@ -12,8 +12,11 @@ import { useT } from '../../i18n/useT';
 import { ageName } from '../../i18n';
 import { rich } from '../../i18n/rich';
 import { AGES } from '../../data/ages';
+import { TECH_TREE } from '../../data/techTree';
 import { glossaryEntry, glossaryIds, GLOSSARY_TERMS } from '../../data/glossary';
 import GlossaryLink from './GlossaryLink';
+import { describeTech, techUnlocks } from '../panels/researchView';
+import { boostLabel } from '../../i18n/gameText';
 
 const joined = (nodes) => nodes.flatMap((n, i) => (i ? [', ', n] : [n]));
 const INDEX_TABS = ['term', 'people', 'tech', 'unit'];
@@ -70,6 +73,7 @@ const GlossarySheet = () => {
         <Search className="w-4 h-4 absolute start-2.5 top-1/2 -translate-y-1/2" aria-hidden="true" />
         <input type="search" value={query} onChange={(ev) => setQuery(ev.target.value)} placeholder={t('gloss.search')} aria-label={t('gloss.search')} className="fa-input w-full !ps-8" data-testid="glossary-search" />
       </div>
+      {!q && tab === 'term' && <p className="text-[12px]" data-testid="glossary-hold-hint">{t('gloss.holdHint')}</p>}
       {!q && (
         <div className="flex flex-wrap gap-1" role="tablist" aria-label={t('gloss.wait')}>
           {INDEX_TABS.map((k) => (
@@ -94,6 +98,7 @@ const GlossarySheet = () => {
   const age = (id) => ageName(id, AGES[id]?.name);
   const people = (id, english) => nm('people', id, english);
   const city = (c) => nm('city', null, c);
+  const techLink = (r) => <GlossaryLink key={r.id} kind="tech" id={r.id}>{dt(`tech.${r.id}`, r.name)}</GlossaryLink>;
   let title = e.name;
   let body;
   if (e.kind === 'people') {
@@ -111,7 +116,11 @@ const GlossarySheet = () => {
     title = dt(`tech.${e.id}`, e.name);
     body = (<>
       <p>{t('gloss.techLine', { age: age(e.ageId) })}</p>
-      {e.prerequisites.length > 0 && <p>{rich(t('gloss.needs'), { list: joined(e.prerequisites.map((r) => <GlossaryLink key={r.id} kind="tech" id={r.id}>{dt(`tech.${r.id}`, r.name)}</GlossaryLink>)) })}</p>}
+      <p className="text-fa-text">{t('gloss.gives', { text: describeTech(e) })}</p>
+      {techUnlocks(e.id).length > 0 && <p className="text-fa-text" data-testid="glossary-unlocks">{t('p2.tr.unlocks', { list: techUnlocks(e.id).join(', ') })}</p>}
+      {e.boost && <p className="text-fa-good">{t('gloss.boost', { label: boostLabel(e.id, e.boost) })}</p>}
+      {e.prerequisites.length > 0 && <p>{rich(t('gloss.needs'), { list: joined(e.prerequisites.map(techLink)) })}</p>}
+      {e.leadsTo.length > 0 && <p>{rich(t('gloss.leadsTo'), { list: joined(e.leadsTo.map(techLink)) })}</p>}
     </>);
   } else if (e.kind === 'term') {
     title = t(`gloss.term.${e.id}`);
@@ -122,6 +131,7 @@ const GlossarySheet = () => {
       <p>{t('gloss.unitLine', { class: dt(`uclass.${e.classId}`, e.classId), age: age(e.ageId) })}</p>
       <p>{dt(`uclass.${e.classId}.role`, e.role)}</p>
       <p>{t('gloss.power', { attack: e.attack, defense: e.defense })}</p>
+      {e.needsTech && TECH_TREE[e.needsTech] && <p>{rich(t('gloss.needs'), { list: techLink(TECH_TREE[e.needsTech]) })}</p>}
     </>);
   }
   return frame(title, t(`gloss.${e.kind}`), (<>
