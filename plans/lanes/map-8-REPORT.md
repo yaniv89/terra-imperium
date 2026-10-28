@@ -72,6 +72,7 @@ Base commit findings (same in all four runs):
 - The fling was checked with touches fired inside the page: in this sandbox the software GL takes about
   1.7 s a frame, so CDP touches arrive seconds apart and no real flick speed is possible; the swipe's clock
   was held at 16 ms a move (map-8-shots.mjs says so).
+- Full `npx vitest run` after merging origin/claude/integration (cece290d): 504 files passed, 2 skipped; 4,720 tests passed. Lint clean.
 - Perf: see section 5.
 
 ## 5. Perf
