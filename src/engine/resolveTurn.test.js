@@ -772,22 +772,28 @@ describe('resolveTurn AI war declarations', () => {
     // zealot + hostility 100 gives R1 the highest available per-turn roll chance; run enough
     // turns that failing to ever roll it is astronomically unlikely (this is an integration test
     // of the real wiring, not a probability estimate — aiLogic.test.js covers the exact odds).
-    // A large reserve (militaryStrength) makes a war on its neighbour worth it (warOdds.js
+    // A large reserve (militaryStrength) makes a war on its neighbour clearly worth it (warOdds.js
     // warValue > 0): without it the war's value decides, and research pace alone moved R1 from
-    // one war at turn 147 to none in 300 turns (U47).
+    // one war at turn 147 to none in 300 turns (U47). At 5000 its odds sat at 0.2 to 0.4 and the
+    // war's value under 0 all game once the AI armies defended better (lane campaign-ai-wars);
+    // at 20000 it is worth it from the start (R1 declares on its neighbour at turn 49).
     // Waits for a war R1 itself declared: with multi-front wars another nation may declare on R1
     // first, which makes it isAtWar without it having declared anything. Fixed seed: reproducible.
     const base = world(2024);
+    // Every other people keeps a truce with the player for the whole run (the AI never breaks one):
+    // the test is about R1's own declaration, not whether the passive player survives other wars.
+    const FOREVER = 1e9;
+    const nations = Object.fromEntries(Object.entries(base.nations).map(([id, n]) => [id, id === R1 || id === P ? n : { ...n, truces: { ...(n.truces || {}), [P]: FOREVER } }]));
+    nations[P] = { ...nations[P], truces: { ...(nations[P].truces || {}), ...Object.fromEntries(Object.keys(base.nations).filter((id) => id !== R1 && id !== P).map((id) => [id, FOREVER])) } };
     let state = withAllEventsFired({
       ...base,
       // The floor keeps hostility at 100 (it would otherwise decay a point a turn and take the
       // roll chance with it), so the premise above holds for the whole run.
-      nations: { ...base.nations, [R1]: { ...base.nations[R1], doctrine: 'zealot', hostility: 100, hostilityFloor: 100, militaryStrength: 5000 } }
+      nations: { ...nations, [R1]: { ...base.nations[R1], doctrine: 'zealot', hostility: 100, hostilityFloor: 100, militaryStrength: 20000 } }
     });
     let warDeclared = false;
     for (let i = 0; i < 300 && !warDeclared; i++) {
-      // A peace offer to the player stops the turn (CLAUDE.md): take it. Refusing every offer let
-      // another neighbour conquer the passive player at turn 82 (DEFEAT stops the game) before R1 declared.
+      // A peace offer to the player stops the turn (CLAUDE.md): take it.
       if (state.pendingPeaceOffer) state = gameReducer(state, { type: ActionTypes.ACCEPT_PENDING_PEACE });
       state = resolveTurn(state);
       if (state.wars.some(w => w.aggressor === R1)) warDeclared = true;
