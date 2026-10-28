@@ -3,10 +3,14 @@
 // played through the game's one Web Audio context (audioContext.js), never as media elements: iOS
 // keeps a playing <audio> / new Audio() going in the background and on the lock screen, while it
 // pauses a Web Audio context there itself (see audioContext.js).
-//   map     the files in src/assets/audio/music/ (soundRegistry.js musicTracks, file name order);
-//           the ambience beds (src/assets/audio/music/ambience/<id>/) loop under them.
-//   battle  the files in src/assets/audio/music/battle/ (battleMusicTracks), steady and moderate,
-//           BATTLE_MUSIC_DB under the map's level so the battle's own sounds stay clear.
+//   map     the player's age's tracks, src/assets/audio/music/ages/<age>/ (soundRegistry.js
+//           musicTracks); a new age crossfades to its own music (setMusicAge, as Civ VI's eras and
+//           AoE IV's ages change the score). The ambience bed of the land in view loops under them
+//           (setMapAmbience, mapAmbience.js; src/assets/audio/music/ambience/<id>/).
+//   battle  src/assets/audio/music/battle/ (battleMusicTracks, by age too), from BATTLE_CALM_DB under the
+//           map's level while nobody fights up to BATTLE_MUSIC_DB in a heavy fight and back down after
+//           (setBattleIntensity, from battleAudio.js: Total War raises its battle score with the
+//           fighting), so the battle's own sounds stay clear.
 // Each playlist plays its tracks one after another with a CROSSFADE_S crossfade, looping. A battle
 // screen calls startBattleMusic() while it is open: the map music fades out while the battle
 // playlist fades in, and when the battle ends it goes the other way. A playlist that is not heard
@@ -18,7 +22,8 @@
 // The page being away mutes the music at once (and audioContext.js suspends the whole context).
 // The Music volume and switch and the Sound switch come from audioSettings.js. Browsers only start
 // audio after a user gesture: App calls startMusic() on the first one. With no files nothing plays.
-import { musicTracks, battleMusicTracks, AMBIENCE_SOUNDS, ambienceFilesFor, createSoundRng } from './soundRegistry';
+import { musicTracks, battleMusicTracks, AMBIENCE_SOUNDS, ambienceFilesFor, createSoundRng, pickVariant } from './soundRegistry';
+import { FIRST_AGE_ID } from '../data/ages';
 import { getAudioSettings, subscribeAudioSettings } from './audioSettings';
 import { isPageAudible, subscribePageAudio, pageAudioState } from './pageLifecycle';
 import { getAudioContext, unlockAudio, registerAudioConsumer, audioLog, audioOutput } from './audioContext';
@@ -27,7 +32,11 @@ export const CROSSFADE_S = 4;
 export const PRELOAD_S = 40; // decode the next track this long before the current one ends
 export const PARK_AFTER_MS = 5000; // a playlist silent this long (after its fade): stop and release
 export const PHONE_DECODE_RATE = 24000;
-export const BATTLE_MUSIC_DB = -6; // the battle playlist under the map's level: a bed under the fighting (mixLevels.test.js)
+export const BATTLE_MUSIC_DB = -6; // the battle playlist under the map's level in a heavy fight: a bed under it (mixLevels.test.js)
+export const BATTLE_CALM_DB = -12; // ... and while nobody fights (deployment, a lull)
+export const AMBIENCE_RELEASE_MS = 20000; // a bed silent this long is stopped and its buffer released
+export const MAP_GAP_S = [8, 25]; // map tracks: a quiet spell between two, only the ambience (Civ VI, AoE IV)
+export const DUCK_GAIN = 0.35; // the music under a fanfare (war, a new age, a wonder)
 const TICK_MS = 500;
 const SCHEDULE_AHEAD_S = 1.5; // schedule the crossfade this long before it starts (two ticks)
 const SWITCH_TC = CROSSFADE_S / 4; // map <-> battle: a gain glide that is done in about CROSSFADE_S
@@ -46,10 +55,12 @@ export const dbToGain = (db) => 10 ** (db / 20);
 
 /** Which playlist is wanted (pure): 'battle' while a battle screen holds it, else 'map'. */
 export const musicMode = ({ battleHolds = 0 }) => (battleHolds > 0 ? 'battle' : 'map');
+/** The battle playlist's level in dB for a fight intensity 0..1 (pure). */
+export const battleMusicDb = (intensity = 0) => BATTLE_CALM_DB + (BATTLE_MUSIC_DB - BATTLE_CALM_DB) * Math.max(0, Math.min(1, intensity));
 /** Each playlist's level, 0..1 of the music volume (pure): only the mode's playlist is heard. */
-export const playlistLevels = ({ mode, on }) => ({
+export const playlistLevels = ({ mode, on, intensity = 0 }) => ({
   map: on && mode === 'map' ? 1 : 0,
-  battle: on && mode === 'battle' ? dbToGain(BATTLE_MUSIC_DB) : 0
+  battle: on && mode === 'battle' ? dbToGain(battleMusicDb(intensity)) : 0
 });
 
 /**
@@ -80,15 +91,19 @@ const makePlaylist = (id, tracks) => ({
   token: 0, // bumped on every stop: late decodes are dropped
   parkTimer: null
 });
-const playlists = { map: makePlaylist('map', musicTracks), battle: makePlaylist('battle', battleMusicTracks) };
+let musicAge = FIRST_AGE_ID;
+const playlists = { map: makePlaylist('map', () => musicTracks(musicAge)), battle: makePlaylist('battle', () => battleMusicTracks(musicAge)) };
 
 let started = false;
 const suppressors = new Set();
 let battleHolds = 0;
 let bus = null; // all music -> destination (the Music volume)
 let busCtx = null;
-let ambience = null; // [{ id, src, gain, buffer }] (map only) or [] while loading
+let ambience = null; // map only: { id: { src, gain, buffer, releaseTimer } | { loading: true } }, null when the map is parked
 let ambienceToken = 0;
+let ambienceTarget = { 'map-wind': 1 }; // { id: weight } (mapAmbience.js)
+const lastBed = {}; // the variant each bed played last: never the same one twice running
+let battleIntensity = 0;
 let tickTimer = null;
 let lastOn = false;
 let unsubscribe = null;
@@ -188,14 +203,16 @@ const startFrom = (pl) => {
   });
 };
 
-// The crossfade: the current track fades out to its end while the next fades in.
+// The crossfade: the current track fades out to its end while the next fades in (at `at`, which
+// may be after the end: a gap).
 const crossfade = (c, pl, at) => {
   const old = pl.current;
   const next = pl.nextLoad;
   pl.nextLoad = null;
-  old.gain.gain.setValueAtTime(1, at);
-  old.gain.gain.linearRampToValueAtTime(0, at + CROSSFADE_S);
-  try { old.src.stop(at + CROSSFADE_S + 0.05); } catch { /* already stopping */ }
+  const fadeAt = Math.max(c.currentTime, Math.min(at, old.startAt + old.duration - CROSSFADE_S));
+  old.gain.gain.setValueAtTime(1, fadeAt);
+  old.gain.gain.linearRampToValueAtTime(0, fadeAt + CROSSFADE_S);
+  try { old.src.stop(fadeAt + CROSSFADE_S + 0.05); } catch { /* already stopping */ }
   pl.outgoing.add(old);
   pl.current = playBuffer(c, pl, next.buffer, next.idx, at, 0);
   next.buffer = null;
@@ -215,7 +232,7 @@ const tickPlaylist = (c, pl) => {
       if (got) { entry.idx = got.idx; entry.buffer = got.buffer; } else pl.nextLoad = null;
     });
   }
-  if (step.schedule) crossfade(c, pl, step.at);
+  if (step.schedule) crossfade(c, pl, step.at + (pl.id === 'map' ? CROSSFADE_S + MAP_GAP_S[0] + rng() * (MAP_GAP_S[1] - MAP_GAP_S[0]) : 0));
 };
 
 const tick = () => {
@@ -226,26 +243,39 @@ const tick = () => {
 };
 const ensureTick = () => { if (!tickTimer) tickTimer = setInterval(tick, TICK_MS); };
 
-const ensureAmbience = (c) => {
-  if (ambience) return;
-  ambience = [];
+// The map's beds follow ambienceTarget: each wanted bed is decoded and looped (fading in over
+// CROSSFADE_S), each unwanted one fades out and is released after AMBIENCE_RELEASE_MS of silence.
+const applyAmbience = (c) => {
+  ambience = ambience || {};
   const my = ambienceToken;
+  const t = c.currentTime;
   Object.entries(AMBIENCE_SOUNDS).forEach(([id, def]) => {
+    const level = def.gain * (ambienceTarget[id] || 0);
+    const cur = ambience[id];
+    if (cur?.gain) {
+      glide(cur.gain.gain, level, t, CROSSFADE_S / 3);
+      clearTimeout(cur.releaseTimer); cur.releaseTimer = null;
+      if (!level) cur.releaseTimer = setTimeout(() => { if (ambience?.[id] === cur) { release(cur); delete ambience[id]; } }, AMBIENCE_RELEASE_MS);
+      return;
+    }
     const files = ambienceFilesFor(id);
-    if (!files.length) return;
-    decode(files[Math.floor(rng() * files.length)]).then((buffer) => {
-      if (!buffer || my !== ambienceToken || !ambience) return;
+    if (cur || !level || !files.length) return;
+    ambience[id] = { loading: true };
+    const i = pickVariant(files, rng, lastBed[id] ?? -1); lastBed[id] = i;
+    decode(files[i]).then((buffer) => {
+      if (my !== ambienceToken || !ambience) return;
+      if (!buffer) { delete ambience[id]; return; }
       const src = c.createBufferSource(); src.buffer = buffer; src.loop = true;
       const gain = c.createGain();
-      const t = c.currentTime;
-      gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(def.gain, t + CROSSFADE_S);
+      gain.gain.value = 0;
       src.connect(gain); gain.connect(plBus(c, playlists.map));
-      src.start(t);
-      ambience.push({ id, src, gain, buffer });
+      src.start(c.currentTime, rng() * buffer.duration); // a random point: two visits never start alike
+      ambience[id] = { id, src, gain, buffer, releaseTimer: null };
+      applyAmbience(c);
     });
   });
 };
+const ambienceEntries = () => Object.values(ambience || {}).filter((a) => a.src);
 
 // Stop a playlist and release its buffers, remembering where it was (the map's ambience goes too).
 const park = (pl) => {
@@ -260,7 +290,7 @@ const park = (pl) => {
   release(pl.current); pl.current = null;
   pl.outgoing.forEach(release); pl.outgoing.clear();
   pl.nextLoad = null;
-  if (pl.id === 'map') { ambienceToken += 1; (ambience || []).forEach(release); ambience = null; }
+  if (pl.id === 'map') { ambienceToken += 1; ambienceEntries().forEach((a) => { clearTimeout(a.releaseTimer); release(a); }); ambience = null; }
   if (!playlists.map.current && !playlists.battle.current && tickTimer) { clearInterval(tickTimer); tickTimer = null; }
 };
 const busy = (pl) => !!(pl.current || pl.starting || pl.outgoing.size || (pl.id === 'map' && ambience));
@@ -278,14 +308,14 @@ export const refreshMusic = () => {
     try { b.gain.cancelScheduledValues?.(t); b.gain.setValueAtTime(0, t); } catch { b.gain.value = 0; } // silent now (the context is suspended too)
   } else glide(b.gain, on ? getAudioSettings().music : 0, t, on && lastOn ? 0.08 : 0.5);
   lastOn = on;
-  const levels = playlistLevels({ mode: m, on });
+  const levels = playlistLevels({ mode: m, on, intensity: battleIntensity });
   Object.values(playlists).forEach((pl) => {
     const level = levels[pl.id];
     if (level > 0) {
       if (pl.parkTimer) { clearTimeout(pl.parkTimer); pl.parkTimer = null; }
       glide(plBus(c, pl).gain, level, t, SWITCH_TC);
       if (!pl.current) startFrom(pl);
-      if (pl.id === 'map') ensureAmbience(c);
+      if (pl.id === 'map' && !ambience) applyAmbience(c);
       ensureTick();
     } else {
       if (pl.bus && !away) glide(pl.bus.gain, 0, t, SWITCH_TC);
@@ -308,7 +338,7 @@ const describePlaylist = (pl) => {
 const bytesOf = (e) => (e?.buffer ? decodedBytes(e.buffer.duration, e.buffer.sampleRate, e.buffer.numberOfChannels || 2) : 0);
 const describe = () => {
   const map = describePlaylist(playlists.map);
-  const all = [...Object.values(playlists).flatMap((pl) => [pl.current, ...pl.outgoing, pl.nextLoad]), ...(ambience || [])];
+  const all = [...Object.values(playlists).flatMap((pl) => [pl.current, ...pl.outgoing, pl.nextLoad]), ...ambienceEntries()];
   return {
     started,
     wanted: wanted(),
@@ -316,7 +346,9 @@ const describe = () => {
     suppressed: [...suppressors],
     ...map, // the map playlist's fields at the top level (track, position, next, fadingOut)
     battle: describePlaylist(playlists.battle),
-    ambience: (ambience || []).map((a) => a.id),
+    age: musicAge,
+    intensity: battleIntensity.toFixed(2),
+    ambience: ambienceEntries().map((a) => `${a.id} ${Number(a.gain.gain.value).toFixed(2)}`),
     bus: bus ? Number(bus.gain.value).toFixed(2) : '-',
     decodedMB: Math.round(all.reduce((s, e) => s + bytesOf(e), 0) / 1e6)
   };
@@ -349,9 +381,60 @@ export const startBattleMusic = () => {
   battleHolds += 1;
   refreshMusic();
   let done = false;
-  return () => { if (done) return; done = true; battleHolds = Math.max(0, battleHolds - 1); refreshMusic(); };
+  return () => { if (done) return; done = true; battleHolds = Math.max(0, battleHolds - 1); battleIntensity = 0; refreshMusic(); };
 };
 export const currentMusicMode = mode;
+
+/**
+ * The player's age (ageOf): each playlist moves to that age's tracks. One that is playing
+ * crossfades to a new age's track at once; one that is parked starts there next time.
+ */
+export const setMusicAge = (age) => {
+  if (!age || age === musicAge) return;
+  musicAge = age;
+  Object.values(playlists).forEach((pl) => {
+    pl.parked = { idx: Math.floor(rng() * Math.max(1, pl.tracks().length)), offset: 0 };
+    if (!pl.current) return;
+    pl.token += 1; pl.nextLoad = null; // decodes on their way are the old age's
+    const my = pl.token;
+    loadTrack(pl, pl.parked.idx).then((got) => {
+      const c = ctxNow();
+      if (!got || !c || my !== pl.token || !pl.current) return;
+      pl.nextLoad = { idx: got.idx, buffer: got.buffer, done: true };
+      crossfade(c, pl, c.currentTime + 0.05);
+    });
+  });
+};
+
+/** The map's ambience mix, { bedId: weight } (mapAmbience.js ambienceMix). */
+export const setMapAmbience = (mix) => {
+  const key = (m) => JSON.stringify(Object.entries(m || {}).sort());
+  if (!mix || key(mix) === key(ambienceTarget)) return;
+  ambienceTarget = mix;
+  const c = ctxNow();
+  if (c && ambience) applyAmbience(c);
+};
+
+/** How much fighting a battle has on screen, 0..1 (battleAudio.js): the battle music rises and falls with it. */
+export const setBattleIntensity = (level) => {
+  const l = Math.max(0, Math.min(1, Number(level) || 0));
+  if (Math.abs(l - battleIntensity) < 0.05 && (l > 0 || battleIntensity === 0)) return;
+  battleIntensity = l;
+  const c = ctxNow(); const pl = playlists.battle;
+  if (c && pl.bus && mode() === 'battle' && lastOn && !hidden()) glide(pl.bus.gain, playlistLevels({ mode: 'battle', on: true, intensity: l }).battle, c.currentTime, 1.2);
+};
+
+/** A fanfare (sfx.js, a big world sound): the music dips to DUCK_GAIN for `seconds`, then comes back. */
+export const duckMusic = (seconds = 3) => {
+  const c = ctxNow();
+  if (!c || !bus || !lastOn || hidden()) return;
+  const v = getAudioSettings().music; const t = c.currentTime;
+  try {
+    bus.gain.cancelScheduledValues?.(t);
+    bus.gain.setTargetAtTime(v * DUCK_GAIN, t, 0.08);
+    bus.gain.setTargetAtTime(v, t + seconds, 0.6);
+  } catch { /* an old browser: no dip */ }
+};
 
 /** Tests and the debug readout: what is playing. */
 export const musicDebugState = describe;
@@ -362,5 +445,6 @@ export const resetMusicForTest = () => {
   Object.values(playlists).forEach((pl) => { park(pl); pl.parked = { idx: 0, offset: 0 }; pl.bus = null; });
   if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
   started = false; suppressors.clear(); battleHolds = 0; bus = null; busCtx = null; lastOn = false;
+  musicAge = FIRST_AGE_ID; ambienceTarget = { 'map-wind': 1 }; battleIntensity = 0;
   unsubscribe?.(); unsubscribe = null; unsubscribePage?.(); unsubscribePage = null;
 };

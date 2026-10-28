@@ -1,19 +1,22 @@
 # Music
 
-Tracks for the map (a battle has its own playlist in battle/). Every OGG or MP3 file directly in this folder is a track of
-the playlist (`src/audio/soundRegistry.js` `musicTracks`, played by `src/audio/music.js`). They play
-in file name order, so prefix them `01-`, `02-` to set the order; the list loops, with a 4 second
-crossfade between tracks. The player sets the level with Settings > Sound > Music volume. Drop
-files in and the next build uses them; no code change.
+The map's music, one folder per age: `ages/<age>/` (`stone` to `future`, the ids of
+`src/data/ages.js`). Every OGG or MP3 file in the player's age's folder is a track of the map
+playlist (`src/audio/soundRegistry.js` `musicTracks`, played by `src/audio/music.js`); when the
+player reaches a new age the music crossfades to that age's tracks. An age with no folder plays the
+nearest earlier age's. Tracks play in file name order from a random first one, loop, with a 4 second
+crossfade. Keep two or more tracks per age so one never loops alone. The player sets the level with
+Settings > Sound > Music volume. Drop files in and the next build uses them; no code change.
 
-Map ambience beds (wind, sea), looped under the music, go in `ambience/<id>/` (see the README there).
+Battle music is in `battle/` (see its README). Map ambience beds go in `ambience/<id>/`.
+
+`scripts/audio/compose-music.py` rebuilds the project's own tracks (`<age>-1.ogg`, `<age>-2.ogg`).
 
 ## Format
-- OGG (Vorbis) or MP3, 44.1 kHz, stereo, 128 to 192 kbps.
-- Loudness: about -16 LUFS integrated for every track, so the playlist is even.
-- 2 to 5 minutes a track; a soft start and end help the crossfade.
+- OGG (Vorbis) or MP3, 44.1 kHz, stereo, 64 to 192 kbps.
+- Loudness: -18 LUFS integrated for every track, so the playlist is even.
+- 1 to 5 minutes a track; a soft start and end help the crossfade.
 
 ## Licence
-Every pack needs a licence file next to its files (`LICENSE.txt` or `LICENSE.md`, with the source
-URL and author). CC0 or a licence that allows use in a commercial game is preferred; CC-BY also
-works (credit in the licence file and the credits).
+Every file is listed in `src/assets/audio/LICENSES.md` with its source and author. CC0 or a licence
+that allows use in a commercial game is required.

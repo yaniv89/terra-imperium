@@ -26,6 +26,8 @@ import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { loadLandFeatures } from '../../../data/geo/loadWorldFeatures';
 import { getCityFeatures, tileAtLatLon } from '../../../data/geo/cityFeatures';
 import { getTiles } from '../../../data/geo/tiles';
+import { setMapAmbience } from '../../../audio/music';
+import { ambienceMix, tileAmbienceFacts } from '../../../audio/mapAmbience';
 import { worldRasterUrl, worldRasterSizeFor } from '../../../data/geo/worldRaster';
 import { baseRasterZoom } from '../../../data/geo/rasterTiles';
 import { proceduralRaster, worldPicture } from '../../../data/geo/worldPictures';
@@ -608,6 +610,16 @@ const GLMapView = ({
     const q = (x) => Math.round(x / 2) * 2;
     return { west: q(a[0]), east: q(b[0]), north: q(Math.min(90, a[1])), south: q(Math.max(-90, b[1])) };
   }, [projection, raster, settled, k, width, height, dpr]);
+  // The ambience bed of the land at the centre of the view (src/audio/mapAmbience.js): once the view settles.
+  useEffect(() => {
+    if (!projection) return;
+    try {
+      const v = viewFor({ transform: { k: settled.k, x: settled.x, y: settled.y }, width, height, dpr, projection, raster });
+      const ll = projection.invert(screenToWorld(v, width / 2, height / 2));
+      const tiles = getTiles();
+      setMapAmbience(ambienceMix(ll ? tileAmbienceFacts(tiles, tiles.nearest(ll[1], ll[0])) : null, { zoomedOut: settled.k < HEX_FROM_ZOOM }));
+    } catch { /* sound never breaks the map */ }
+  }, [projection, raster, settled, width, height, dpr]);
   const landKey = landWindow ? `${landWindow.west},${landWindow.east},${landWindow.south},${landWindow.north}` : '';
   const landOut = useMemo(() => (projection ? landSprites({ state, projection, k, window: landWindow, isExplored: fog.isExplored, lens, closeGround, dpr }) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
