@@ -92,6 +92,26 @@ export const wheelZoomDelta = (event, maxStep = WHEEL_MAX_STEP) => {
 };
 
 /**
+ * A pan flung on release keeps gliding, as a phone's own lists and Polytopia's and Civ VI's mobile
+ * maps do (map-8 lane: the map stopped dead the moment the finger lifted). `samples` are the drag's
+ * last screen positions { t, x, y } (ms, px); the speed is over its last FLING_WINDOW_MS. Returns
+ * { vx, vy } in px per ms, or null when the finger rested before lifting or moved too slowly.
+ * The glide then slows by FLING_DECAY each ms (about 0.3 s to a third of its speed).
+ */
+export const FLING_WINDOW_MS = 80;
+export const FLING_MIN_SPEED = 0.25;
+export const FLING_DECAY = 0.996;
+export const flingVelocity = (samples, now) => {
+  const last = samples[samples.length - 1];
+  if (!last || now - last.t > 40) return null;
+  const first = samples.find((s) => last.t - s.t <= FLING_WINDOW_MS);
+  const dt = last.t - first.t;
+  if (dt < 8) return null;
+  const vx = (last.x - first.x) / dt; const vy = (last.y - first.y) / dt;
+  return Math.hypot(vx, vy) >= FLING_MIN_SPEED ? { vx, vy } : null;
+};
+
+/**
  * The view after the screen changed size. d3's `fitSize` rescales the world to the new screen, so
  * the old { x, y, k } would point at another place, far away at a close zoom (an iPhone's Safari
  * toolbar showing or hiding moved the camera to the fog or the open sea). This keeps the place at
