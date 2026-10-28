@@ -1,5 +1,7 @@
 # Lane art-animation: report
 
+ponytail loaded (.claude/skills/ponytail/SKILL.md, followed for the rest of the lane).
+
 Branch `claude/art-animation`, from `claude/integration` 8ac856c7. Shots in
 `plans/lanes/art-animation-shots/` (before-* and after-*, 844x390 at DPR 2 unless noted).
 This machine has no GPU: every shot ran on SwiftShader (`SWGL=1`), Chromium from /opt/pw-browsers.
