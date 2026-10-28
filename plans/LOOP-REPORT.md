@@ -66,3 +66,5 @@ claude/integration, main gets the push once the quick suite and CI are green.
   Full vitest (slow files included): 4679 passed. Ponytail: every cloud lane before 27 Oct 20:45 ran without it
   (plugin missing); now vendored + session start hook; city-builds and phone-pass replaced by fresh sessions
   (hook and full read confirmed in transcripts).
+- Round 2 (28 Oct 07:35): retest dispatched on integration, same 4 personas as round 1 for a fair compare,
+  with the era saves; caps $15 (spend with caps $49.03 of $90). Plan: new grades, then a lane per area below 7.
