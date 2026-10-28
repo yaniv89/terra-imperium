@@ -1040,6 +1040,18 @@ export class BattleRenderer {
 
   centerOn(x, z) { this.target.set(x, 0, z); this.clampTarget(); }
 
+  // Centre on ground points (tiles) and zoom out until they all fit in the middle `share` of the
+  // screen; never zooms in (Find and Idle frame a spread army instead of its empty middle).
+  frameGround(pts, share = 0.7) {
+    if (!pts.length) return;
+    this.centerOn(pts.reduce((a, p) => a + p.x, 0) / pts.length, pts.reduce((a, p) => a + p.z, 0) / pts.length);
+    this.updateCamera();
+    let dx = 1; let dy = 1;
+    pts.forEach((p) => { const sp = this.worldToScreen(p.x, p.z); dx = Math.max(dx, Math.abs(sp.x - this.width / 2)); dy = Math.max(dy, Math.abs(sp.y - this.height / 2)); });
+    const k = Math.min(1, (this.width * share) / 2 / dx, (this.height * share) / 2 / dy);
+    if (k < 1) this.zoomBy(k);
+  }
+
   /** The first frame: the field fades in from black and the camera settles in (INTRO_S). */
   startIntro() {
     this.camMove = { t: 0, s: INTRO_S, zoom: this.camera.zoom, from: INTRO_FROM, to: 1 };

@@ -218,3 +218,12 @@ export const knowUnlocks = (state, nationId = state.playerNationId, maxAge = age
   const n = state.nations[nationId];
   return { ...state, nations: { ...state.nations, [nationId]: { ...n, tech: { ...n.tech, researched: [...new Set([...(n.tech?.researched || []), ...ids])] } } } };
 };
+
+/** An AI fleet's voyage (aiOperations.js processAINavalOperations, lane naval-8): `step` (the naval
+ * phase) run a turn at a time, moves refreshed as resolveTurn would, until `done` (by default: a
+ * battle waits in the player's queue) or `turns` turns. */
+export const aiVoyage = (step, s0, done = (s) => (s.pendingDefenses || []).length > 0, turns = 8) => {
+  let s = s0;
+  for (let i = 0; i < turns && !done(s); i++) s = step({ ...s, turnNumber: s.turnNumber + 1, units: Object.fromEntries(Object.entries(s.units).map(([k, u]) => [k, { ...u, movesLeft: 1 }])) });
+  return s;
+};

@@ -1,7 +1,7 @@
 // scripts/ui/naval-shots.mjs
 // Lane naval-campaign: the sea chain in a real browser at 844x390 (and 1600x900): a coastal city's
 // build list offering a ship once Star Lore is known, an army boarding the ship in port, and the
-// fleet beside free land with "Land here". Needs a dev server (`npx vite --port 5197`).
+// fleet beside free land with "Land here"; lane naval-8: an enemy fleet with troops standing off the coast. Needs a dev server (`npx vite --port 5197`).
 //   node scripts/ui/naval-shots.mjs [--url http://localhost:5197/terra-imperium/] [--chrome <path>] [--he]
 import { launchBrowser } from '../lib/browserLaunch.mjs';
 import fs from 'node:fs';
@@ -131,6 +131,42 @@ const run = async (vp, lang) => {
   const landed = await page.evaluate(() => Object.values(window.__game.state.units).some((u) => u.tile === window.__naval.land && !u.embarkedOn && u.domain === 'land'));
   check(landed, `${vp.id} ${lang}: the army landed`);
   await shot(page, `4-landed-${lang}`, vp);
+  // 5. (lane naval-8) an enemy fleet with troops sails up to the player's port: after End Turn it
+  // stands off the coast in sight, and the turn report says it can land next turn.
+  await patch(page, `
+    const me = s.playerNationId; const tiles = m.getTiles(); const { tile } = window.__naval;
+    const homeOf = (id) => Object.values(s.regions).find((c) => c.owner === id && !c.outpost && m.isCoastal(c.id));
+    // A rival with a city: a major if one lives, else (a fresh browser world at turn 1) the nearest independent.
+    const rivals = Object.keys(s.nations).sort().filter((id) => id !== me && !s.nations[id].isEliminated && !id.startsWith('free_') && id !== 'rebels' && homeOf(id));
+    const km = (id) => Math.hypot(...[0, 1, 2].map((k) => tiles.centres[homeOf(id).tile][k] - tiles.centres[tile][k]));
+    const ai = rivals.find((id) => s.nations[id].kind !== 'independent') || rivals.sort((a, b) => km(a) - km(b))[0];
+    const seen = new Map([[tile, 0]]); const q = [tile]; let from = null;
+    while (q.length && from == null) { const at = q.shift(); for (const n of tiles.neighbors[at]) { if (seen.has(n) || m.seaDepth(tiles, n) !== 'coast') continue; seen.set(n, seen.get(at) + 1); q.push(n); if (seen.get(n) >= 4 && !m.touchesCoastOf(s, tiles, n, window.__naval.port)) { from = n; break; } } }
+    const view = { ...s, playerNationId: ai, wars: [...s.wars, { id: 'w-sea-shot', aggressor: ai, enemy: me, active: true, startTurn: s.turnNumber, battleScore: 0 }] };
+    const found = m.findSeaPath(view, from, s.regions[window.__naval.port].tile, ai);
+    const home = homeOf(ai).id;
+    const base = { ownerId: ai, regionId: home, homeRegionId: home, tile: from, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, promotions: [] };
+    // The player's warship (step 3) goes home first: at sea it would stand in the enemy's way (a fleet halts before one).
+    const own = { ...s.units, [window.__naval.ship]: { ...s.units[window.__naval.ship], tile, regionId: window.__naval.port } };
+    const units = { ...own, aiFleet: { ...base, id: 'aiFleet', domain: 'naval', classId: 'naval', navalLine: 'warship', transportCapacity: 1, route: (found.path || []).slice(1), routePace: 50 }, aiArmy: { ...base, id: 'aiArmy', domain: 'land', classId: 'infantry', embarkedOn: 'aiFleet' } };
+    window.__naval.ai = ai;
+    return { ...view, playerNationId: me, units, nations: { ...s.nations, [ai]: { ...s.nations[ai], isAtWar: true }, [me]: { ...s.nations[me], isAtWar: true } } };`, ['data/geo/tiles.js', 'engine/fleets.js', 'data/navalReach.js']);
+  // End Turn as a player would: answer the research and event prompts that hold it.
+  const before = await page.evaluate(() => window.__game.state.turnNumber);
+  for (let i = 0; i < 8 && !(await page.evaluate((b) => window.__game.state.turnNumber > b, before)); i++) {
+    for (const id of ['research-let-advisor', 'event-option-0']) { const b = page.getByTestId(id); if (await b.isVisible().catch(() => false)) { await click(b); await wait(800); } }
+    const builds = page.getByRole('button', { name: /Advisor builds|בונה היועץ|היועץ בונה/ }).first();
+    if (await builds.isVisible().catch(() => false)) { await click(builds); await wait(800); }
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('ti:close-panels')));
+    await click(page.getByTestId('end-turn'));
+    await wait(2500);
+  }
+  if (!(await page.getByTestId('turn-report').count()) && await page.getByTestId('turn-report-chip').count()) { await click(page.getByTestId('turn-report-chip')); await wait(800); }
+  const warned = await page.evaluate(() => window.__game.state.logs.some((l) => l.msgKey === 'm.battle.fleetOffCoast'));
+  check(warned, `${vp.id} ${lang}: the enemy fleet off the coast is reported`);
+  const line = page.getByText(lang === 'en' ? /Enemy fleet off/ : /צי אויב מול/).first();
+  check(await onScreen(page, line), `${vp.id} ${lang}: the warning is on screen`);
+  await shot(page, `5-enemy-fleet-off-coast-${lang}`, vp);
   check(!errors.length, `${vp.id} ${lang}: no page errors ${errors.slice(0, 2).join(' | ')}`);
   await browser.close();
 };

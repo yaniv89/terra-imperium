@@ -20,6 +20,7 @@ import { techName, unitName, buildingTierName, improvementName, lawName } from '
 import { UNIT_UNLOCKS } from '../../data/unitClasses';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { IMPROVEMENTS } from '../../data/tileYields';
+import { buildingId } from '../../data/glossary';
 
 // Isolated so Hebrew keeps "+10%" in order (it showed "10%+").
 const pct = (v) => isolateLtr(`${v > 0 ? '+' : ''}${Math.round(v * 100)}%`);
@@ -47,13 +48,16 @@ export const describeTech = (tech) => {
   return parts.join(', ');
 };
 
-/** The units, buildings, tile improvements and laws a tech unlocks, as names in the current language ([] when none). */
-export const techUnlocks = (techId) => [
-  ...Object.entries(UNIT_UNLOCKS).flatMap(([ageId, row]) => Object.keys(row).filter((c) => row[c] === techId).map((c) => unitName(ageId, c))),
-  ...Object.entries(BUILDING_CATEGORIES).flatMap(([cat, def]) => def.tiers.map((tier, i) => (tier.requiresTech === techId ? buildingTierName(cat, i, tier.name) : null)).filter(Boolean)),
-  ...Object.entries(IMPROVEMENTS).filter(([, imp]) => imp.requiresTech === techId).map(([id, imp]) => improvementName(id, imp.name)),
-  ...Object.values(LAW_CATEGORIES).flat().filter((law) => law.requiresTech === techId).map((law) => tNow('p2.tr.law', { name: lawName(law.id, law.name) }))
+/** The units, buildings, tile improvements and laws a tech unlocks: { kind, id, name } with the name in the
+ *  current language; kind and id are the glossary's (a law has no entry: kind null). */
+export const techUnlockRefs = (techId) => [
+  ...Object.entries(UNIT_UNLOCKS).flatMap(([ageId, row]) => Object.keys(row).filter((c) => row[c] === techId).map((c) => ({ kind: 'unit', id: `${ageId}_${c}`, name: unitName(ageId, c) }))),
+  ...Object.entries(BUILDING_CATEGORIES).flatMap(([cat, def]) => def.tiers.map((tier, i) => (tier.requiresTech === techId ? { kind: 'building', id: buildingId(cat, i), name: buildingTierName(cat, i, tier.name) } : null)).filter(Boolean)),
+  ...Object.entries(IMPROVEMENTS).filter(([, imp]) => imp.requiresTech === techId).map(([id, imp]) => ({ kind: 'improvement', id, name: improvementName(id, imp.name) })),
+  ...Object.values(LAW_CATEGORIES).flat().filter((law) => law.requiresTech === techId).map((law) => ({ kind: null, id: law.id, name: tNow('p2.tr.law', { name: lawName(law.id, law.name) }) }))
 ];
+/** The same as names only ([] when none). */
+export const techUnlocks = (techId) => techUnlockRefs(techId).map((r) => r.name);
 
 // How far a tech is, for a locked unit or building ("Needs Copper Working, researching, 3 turns
 // left"; playtest 40550092795 step 51): under way or queued, the turn it lands; otherwise the

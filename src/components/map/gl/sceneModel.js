@@ -382,7 +382,8 @@ export const marchShapes = ({ marchLines, projection, k, selectedArmy, dpr }) =>
       const text = l.halted ? 'halted' : turns != null ? (turns <= 0 ? tNow('march.thisTurn') : tNow('march.turns', { count: turns })) : '';
       if (text) {
         const art = labelArt(text, { size: 10, weight: 700, fill: l.halted ? '#fecaca' : '#fff', stroke: 'rgba(15,23,42,0.85)', strokeW: 2.2 }, dpr);
-        sprites.push({ art, anchor: end, offset: [0, -12 - art.css.baseline + art.css.h / 2, 0, 0], size: [art.css.w, art.css.h], exp: [0, 0], color: WHITE });
+        // `eta`: drawn over the close view's town models, which hid it (map-8)
+        sprites.push({ art, anchor: end, offset: [0, -12 - art.css.baseline + art.css.h / 2, 0, 0], size: [art.css.w, art.css.h], exp: [0, 0], color: WHITE, eta: true });
       }
     }
   });

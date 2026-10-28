@@ -245,4 +245,5 @@ export default {
   'mx.sb.raiders': 'raiders',
   'mx.sb.siege': 'siege',
   'mx.sb.support': 'support',
+  'mx.nextArmy.hint': 'Next army ({n}): those waiting for orders, then those marching',
 };

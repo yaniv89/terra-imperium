@@ -83,6 +83,9 @@ describe('a voyage', () => {
     expect(s.units.a.tile).toBe(target); // cargo rides along
     expect(s.units.a.regionId).toBe(s.units.f.regionId);
     assertGameState(s);
+    // A fleet out at sea still names its port: an army in that port cannot board it from there.
+    const ashore = withUnits(s, [army('b', port.id, { tile: S.regions[port.id].tile })]);
+    expect(gameReducer(ashore, { type: ActionTypes.EMBARK_UNIT, payload: { landUnitId: 'b', navalUnitId: 'f' } }).units.b.embarkedOn).toBeNull();
     // A free shore beside the fleet takes the landing; the city tile of a foreign port does not.
     const shore = tiles.neighbors[target].find((t) => tiles.land[t] === 1 && !s.world.tileOwner[t]);
     if (shore != null) {
@@ -93,6 +96,17 @@ describe('a voyage', () => {
     }
     const refused = gameReducer(s, { type: ActionTypes.DISEMBARK_UNIT, payload: { landUnitId: 'a', tile: target } });
     expect(refused.units.a.embarkedOn).toBe('f');
+  });
+
+  it('puts in at its own port from any of the port\'s waters, even one not beside the city centre', () => {
+    const centre = S.regions[port.id].tile;
+    const far = portWaters(S, tiles, port.id).find((t) => !tiles.neighbors[t].includes(centre));
+    if (far == null) return; // this port's waters all touch its centre
+    const s = withUnits(S, [fleet('f', port.id, { tile: far })]);
+    const units = { ...s.units, f: { ...s.units.f, route: [centre], routePace: 5 } };
+    advanceMarches(s, units, {});
+    expect(units.f.tile).toBe(centre);
+    expect(atSea(s, units.f)).toBe(false);
   });
 
   it('halts outside an enemy port and lands by assault from beside its coast', () => {

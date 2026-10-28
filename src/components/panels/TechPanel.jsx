@@ -37,13 +37,13 @@ import { setMapLens, showMapHint } from '../ui/uiEvents';
 import { focusPlace } from '../map/marchEvents';
 import { openPanelTab, closePanels } from './panelEvents';
 import { advisorPlan, scholarsPreview } from '../../engine/researchStatus';
-import { describeTech, techUnlocks, formatTurns, formatEta, techInfo, techGraph, recommendedTechs, GRAPH_NODE_W, GRAPH_NODE_H } from './researchView';
+import { describeTech, formatTurns, formatEta, techInfo, techGraph, recommendedTechs, GRAPH_NODE_W, GRAPH_NODE_H } from './researchView';
 import { researchSheetModel } from './researchSheetModel';
 import { techName, boostLabel, playstyleName, goalUnit, goalBonus } from '../../i18n/gameText';
 import { dataText, ageName } from '../../i18n/core';
 import { AGE_LANDMARKS } from '../../data/ageLandmarks';
 import { pendingLandmarkAge } from '../../engine/ageLandmarks';
-import GlossaryLink from '../glossary/GlossaryLink';
+import GlossaryLink, { UnlocksLine } from '../glossary/GlossaryLink';
 import { canPay } from '../../utils/costs';
 
 // The labels are read when asked, so they follow the language (keys tc.<category>).
@@ -78,7 +78,7 @@ const TechRow = ({ info, onResearch, onQueue, recommended }) => {
       </div>
       <div className="text-[11px] text-fa-muted">{describeTech(tech)}</div>
       {info.repeats > 0 && <div className="text-[11px] text-fa-good" data-testid="tech-repeats">{tNow('p2.tr.repeats', { count: info.repeats })}</div>}
-      {unlocks?.length > 0 && <div className="text-[11px] text-fa-text" data-testid="tech-unlocks">{tNow('p2.tr.unlocks', { list: unlocks.join(', ') })}</div>}
+      {unlocks?.length > 0 && <UnlocksLine techId={tech.id} className="text-[11px] text-fa-text" />}
       {mapEffect && <div className="text-[11px] text-fa-you" data-testid="tech-map-effect">{tNow('p2.tr.map', { text: dataText(`mapfx.${tech.id}`, mapEffect) })}</div>}
       {boost && <div className={`text-[11px] ${boost.taken ? 'text-fa-good' : boost.met ? 'text-fa-good' : 'text-fa-muted'}`} data-testid="tech-boost">{tNow('p2.tr.boost', { label: boostLabel(tech.id, boost.label), tail: boost.taken ? tNow('p2.tr.taken') : boost.met ? tNow('p2.tr.met') : '' })}</div>}
       {recommended && <div className="text-[11px] text-fa-brass" data-testid="tech-recommended">{recommended}</div>}
@@ -106,7 +106,7 @@ const CurrentCard = ({ m }) => {
         <div className="min-w-0 flex-1">
           <div className="fa-heading text-[17px] leading-tight truncate">{techName(c.tech.id, c.tech.name)}</div>
           <div className="text-[12px] text-fa-muted leading-snug">{describeTech(c.tech)}</div>
-          {techUnlocks(c.tech.id).length > 0 && <div className="text-[12px] text-fa-text leading-snug" data-testid="research-current-unlocks">{tNow('p2.tr.unlocks', { list: techUnlocks(c.tech.id).join(', ') })}</div>}
+          <UnlocksLine techId={c.tech.id} className="text-[12px] text-fa-text leading-snug" testId="research-current-unlocks" />
         </div>
       </div>
       <Meter value={c.progress} max={c.cost} extra={c.pendingBoost} color={SCIENCE} extraColor="var(--fa-good)" height={8} label={tNow('p2.cc.meter', { name: techName(c.tech.id, c.tech.name), a: Math.floor(c.progress), b: c.cost })} />
@@ -191,7 +191,8 @@ const EraCard = ({ era }) => {
 // The age strip: each age's techs known of its total, the age you are in outlined.
 // In the web view it is the jump strip: tap an age to scroll to its columns (a collapsed past age opens).
 const AgeStrip = ({ ages, onJump }) => (
-  <div className="sticky bottom-0 z-[1] -mx-3 sm:-mx-4 mt-3 px-3 sm:px-4 py-2 bg-fa-panel border-t border-fa-line flex gap-1.5 overflow-x-auto" data-testid="research-age-strip">
+  // Under the web it runs the web's way, Stone Age at the left, in Hebrew too.
+  <div dir={onJump ? 'ltr' : undefined} className="sticky bottom-0 z-[1] -mx-3 sm:-mx-4 mt-3 px-3 sm:px-4 py-2 bg-fa-panel border-t border-fa-line flex gap-1.5 overflow-x-auto" data-testid="research-age-strip">
     {ages.map((a) => {
       const Cell = onJump ? 'button' : 'div';
       return (

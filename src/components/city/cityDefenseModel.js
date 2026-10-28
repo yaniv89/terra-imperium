@@ -119,7 +119,7 @@ export const cityDefenseModel = (state, cityId) => {
   const nextWall = BUILDING_CATEGORIES.defense.tiers[defenseTier + 1] || null;
   const garrison = Object.values(state.units || {}).filter((u) => u.ownerId === city.owner && u.domain === 'land' && u.classId !== 'settler' && u.strength > 0 && (u.tile != null ? u.tile === city.tile : u.regionId === cityId)).length;
   const paths = !mine ? [] : [
-    { id: 'walls', tab: nextWall ? 'build' : null, action: nextWall ? tNow('cy.def.buildWall', { name: wallName(defenseTier + 1, nextWall) }) : null, text: nextWall ? tNow('cy.def.wallsNext', { name: wallName(defenseTier + 1, nextWall) }) : tNow('cy.def.lineDone') },
+    { id: 'walls', tab: nextWall ? 'build' : null, item: nextWall && (!nextWall.requiresTech || state.techTree?.[nextWall.requiresTech]?.researched) ? { kind: 'building', category: 'defense', tier: defenseTier + 1 } : null, action: nextWall ? tNow('cy.def.buildWall', { name: wallName(defenseTier + 1, nextWall) }) : null, text: nextWall ? tNow('cy.def.wallsNext', { name: wallName(defenseTier + 1, nextWall) }) : tNow('cy.def.lineDone') },
     { id: 'garrison', tab: 'build', action: tNow('cy.def.train'), text: garrison ? tNow('cy.def.garrison', { count: garrison }) : tNow('cy.def.noGarrison') },
     { id: 'works', tab: 'buildings', action: tNow('cy.def.openBuildings'), text: tNow('cy.def.level', { n: city.defenseLevel || 0 }) }
   ];

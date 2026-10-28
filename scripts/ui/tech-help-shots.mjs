@@ -1,7 +1,7 @@
 // scripts/ui/tech-help-shots.mjs
 // Screens of lane tech-help-8: the Research tab (lines and the web with a tapped tech), the glossary
-// index with its hold hint, a tech entry (gives, unlocks, boost, leads to) and a tech-locked unit's
-// entry. 844x390 and 1600x900, en and he, into plans/ui/tech-help/<tag>/. Needs `npx vite --port 5197`.
+// index with its hold hint, a tech entry (gives, unlocks, boost, leads to), a tech-locked unit's
+// entry, a building, a resource and an improvement entry, and the city Build tab. 844x390 and 1600x900, en and he, into plans/ui/tech-help/<tag>/. Needs `npx vite --port 5197`.
 //   node scripts/ui/tech-help-shots.mjs [--tag after] [--url http://localhost:5197/terra-imperium/]
 import { launchBrowser } from '../lib/browserLaunch.mjs';
 import fs from 'node:fs';
@@ -78,6 +78,16 @@ const run = async () => {
         await closeAll(page);
         await glossary(page, 'term', 'boosts');
         await shot('glossary-term');
+        await closeAll(page);
+        for (const [kind, id] of [['building', 'food.1'], ['resource', 'copper'], ['improvement', 'mine']]) {
+          await glossary(page, kind, id);
+          await shot(`glossary-${kind}`);
+          await closeAll(page);
+        }
+        await page.evaluate(() => window.dispatchEvent(new CustomEvent('ti:manage-city', { detail: { regionId: window.__game.state.nations[window.__game.state.playerNationId].capitalRegionId, tab: 'build' } })));
+        await shot('build');
+        await page.evaluate(() => document.querySelector('[data-help^="building:"]')?.scrollIntoView({ block: 'center' }));
+        await shot('build-buildings');
         await closeAll(page);
       } catch (e) {
         console.log('FAIL', vp.id, lang, e.message.split('\n')[0]);

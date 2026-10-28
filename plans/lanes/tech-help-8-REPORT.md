@@ -40,8 +40,29 @@ No engine or rule change (research.js, boosts.js and the tech data are untouched
 - Tech: 8 is in reach when a playtest opens the tree: every tech now answers "what does it give, unlock, need, lead to" in one tap on a phone. The playtests never opened the tree, so the next playtest should be told to browse it (web view, tap three techs, open one tech's glossary entry).
 - Glossary and help: 7 to 8; the index, the hold tip and the research terms now exist. Grade from a fresh playtest, steps: Menu, Glossary, Game terms, Research boosts; hold the gold number on the top bar; Research tab, tap the dotted "Map boosts".
 
+## Second pass (lead's yes, 28 Oct)
+
+1. **Three new glossary kinds** with index tabs, English and Hebrew:
+   - **Building** (`<line>.<tier>`, such as `food.1` Granary): its line and age, how it is built, what it gives, the tech it needs.
+   - **Tile resource**: bonus, strategic or luxury; its yields and the improvement that works it; the tech or age that shows it on the map.
+   - **Improvement**: build turns, yields, the resources it works, the tech it needs, and the techs that raise its yield.
+2. **Dotted links** where those names show:
+   - every tech's unlock list (Research rows, the current card, the tech entry), through `techUnlockRefs`;
+   - the city Build list's buildings and improvements, and the Buildings tab's standing tier (a hold on the next tier opens it too);
+   - the tile card's resource and improvement.
+3. **The age strip under the research web** runs left to right like the web, in Hebrew too. The strip under the lines view keeps the page direction.
+
+Evidence:
+- **Shots** in `plans/ui/tech-help/after2/`, 844x390 and 1600x900, en and he: glossary-building, glossary-resource, glossary-improvement, build, build-buildings, research-web-tap (the age strip).
+- **Before shots:** `before2/research-web-tap-*` shows the strip before the fix. The other before2 shots repeated `before/` and are removed.
+- **Script run:** no failed step, no page errors.
+- **Tests:** a new glossary test covers a building's tech, a resource's improvement, an improvement's resources and an unknown id. Full `npx vitest run` after merging integration: 506 files, 4744 tests passed, 17 skipped; `npm run lint` clean.
+
+Notes:
+- The Food line's buildings show no "Gives" line: their growth bonus is not a modifier entry (population.js), so only the city's own Build row states it.
+- English tile resource names have no translation key and fall back to the id. The glossary capitalizes the first letter; the tile card already does.
+
 ## Not done, for the lead
 
-- Buildings, resources and improvements have no glossary kind yet (their names are not dotted links). Next step if the grade stays under 8.
-- The web's age strip under it is still right to left in Hebrew while the web is left to right; both readable, worth a look.
-- Hold for help works on touch only by design; desktop uses the dotted links.
+- Hold for help works on touch only, by design; desktop uses the dotted links.
+- Laws in a tech's unlock list stay plain text: laws have no glossary kind.

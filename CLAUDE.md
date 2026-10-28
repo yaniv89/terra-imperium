@@ -197,7 +197,7 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   `human-playtest` (`scripts/ai/human-playtest.mjs`), inputs persona, scene (`campaign` or `battle`), limit,
   max_usd, slices, size, lang; dispatch on ref claude/integration; results on branch `ai/human-playtest-<run_id>`
   (report.md, diary.jsonl, shots/). About $0.01 a step. One queue per job, persona and scene.
-- API budget (the user's rule, 27 Oct): **$90 in total, never beyond.** Before any dispatch, add the job's
+- API budget (the user's rule, 27 Oct): **$90 a calendar month, never beyond** (the account gets $100 of API credit on the 1st of each month; October spent $59.23 by 28 Oct, November starts a fresh $90 on 1 Nov). Before any dispatch, add the job's
   `max_usd` cap to the spend so far in the dashboard's spend data; if the sum would pass $90, do not
   dispatch and tell the user. Record each run's real cost there when it finishes.
 
@@ -217,3 +217,5 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
 - A lane that skips or fakes the ponytail read after being told (city-builds and phone-pass, 28 Oct) is replaced: it pushes its work, a fresh session continues its branch (the session start hook loads ponytail on every new session).
 - A lane's own report and scores are not a grade: round 2 (28 Oct) found the same areas at 3-5 after 20 merged lanes. Grade only from a fresh playtest, and give each lane a target grade and the playtest's steps and shots.
 - CI runners vary about 1.5x in speed: a browser test that ends by its time limit on one run (e2e battle spec, 28 Oct) is a budget problem, not a game bug. Compare step times with the last green run before changing game code, and keep about 4x headroom over a local run.
+- Every push to claude/integration cancels the CI run in progress (about 25 min each): on 28 Oct five runs in a row were cancelled by merges and doc commits, so nothing reached green for two hours. Batch merges and doc edits, and push again only after the running CI ends.
+- Never say "nothing left" from memory: on 28 Oct the dashboard still had 15 open and 21 in-progress findings, most fixed but never updated, and 5 really open. After every merge, update each finding's status with its evidence, and check the findings list before telling the user what remains.

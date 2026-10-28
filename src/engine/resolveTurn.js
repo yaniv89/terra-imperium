@@ -210,6 +210,7 @@ const runCitiesPhase = (state, newTurnNumber) => {
     const ctx = ctxFor(city);
     const item = chooseProduction(state, city, { ...ctx, units: state.units, counts: counts[city.owner] });
     if (!item) return; // nothing worth building: asked again next turn
+    if (item.classId === 'naval' && counts[city.owner]) counts[city.owner].ships += 1; // one navy, not a ship per coastal city this turn
     if (cities === state.regions) cities = { ...cities };
     cities[city.id] = { ...city, production: { ...city.production, current: item } };
   });

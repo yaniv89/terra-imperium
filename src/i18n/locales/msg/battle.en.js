@@ -115,6 +115,7 @@ export default {
   'm.battle.siegeBrokeOurWalls': 'The defences of {city} are broken by the siege. Drive the besiegers off before they attack.',
   'm.battle.fortStopsYou': 'The fort near {place} stops your army: it must fight its way past.',
   'm.battle.fortStopsThem': "Your fort near {place} stops {nation}'s army.",
+  'm.battle.fleetOffCoast': 'Enemy fleet off {city} ({nation}), troops aboard (regiments: {n}): it can land next turn. Garrison the city or meet the fleet at sea.',
   'm.battle.invasionFleetSunk': "Your fleet sank {nation}'s invasion fleet off {city}.",
   'm.battle.aiAttacksFrom': '{nation} attacks from {from} toward {to}.',
   'm.battle.aiPillages': '{nation} pillages the land of {city} ({place}).',
