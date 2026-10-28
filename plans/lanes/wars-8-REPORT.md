@@ -42,7 +42,21 @@ Tests: diplomacy.test.js (warning then enforcement, warning cleared, still-at-wa
 
 Real browser (scripts/ui/wars8-shots.mjs, dev server 5197, 844x390 and 1600x900, en and he, no page errors): plans/lanes/wars-8-shots/. The text on all four: "Their aim: take Kish. Close to defeat: at 90 they dictate the peace. Win a battle, retake a city or offer peace now." (he mirrored and in order).
 
-BALANCE_PLACEHOLDER
+World balance (compare.sh origin/claude/integration, 150 turns, seeds 11-16, PLAYER=akkad): all 255 metrics identical on every seed (no player war reached 70 in these games); msPerTurn +20 ms of 1,209 under parallel load (timing, not starred).
+
+Player at war (playerWar.sim.js, WHO=ai, PEACE=refuse: a warmonger refusing every offer, war at turn 40, 90 turns traced, seeds 11-18, base cece290d vs head):
+
+| | base | head |
+|---|---|---|
+| wars ended within 90 turns | 4 / 8 | 7 / 8 |
+| dictated peaces | 4 | 7 |
+| dictated peaces warned a turn or more ahead | 0 | 7 |
+| turns to the end where both ended (14, 15, 17, 18) | 26, 34, 25, 34 | 32, 40, 31, 40 |
+| player cities lost (all seeds) | 7 | 5 |
+
+The first head run found a second bug the warning exposed: once both sides were exhausted, the engine only offered a white peace every 5 turns, so a player who refused everything fought on for ever (base seeds 11, 12, 16 never ended either; head seeds 14 and 18 lost 3 cities each before the fix). The exhaustion offer now yields when the AI side already stands at the dictate line (test: "a warned, overwhelming AI dictates the peace even when both sides are exhausted").
+
+Full suite before the merge: 505 files passed, 2 skipped (4,725 tests). After merging integration 54627085: lint clean, related tests (diplomacy, sieges, panels, turn report, i18n) 241 passed.
 
 ## For the lead: is the AI world too quiet?
 
@@ -57,7 +71,7 @@ Base telemetry (worldStats, POLICY=scripted, Normal, 200 turns, seeds 11-14, Akk
 
 AI wars are not empty: 4 to 11 battles each, 25-31 sieges and 9-16 captures per game. But a player who does not start wars meets a major's war in 1 of 4 games in 200 turns, and something hostile (raid, demand, war) about every 20 turns. Two of four round 2 players called the early game "End Turn plus cards" and found no fight. I did not change it (CLAUDE.md: quiet by design). Proposal if the lead agrees: let a Tier-1 neighbour that borders the player and outnumbers it use the war roll on the player at 1.5x after turn 40 (Civ VI and Old World AIs pick the weak neighbour), checked with balance-sim warsOnPlayer and playerWar.sim.
 
-Also measured, not changed: aggressor stacks of 2+ units stand idle at home in 61% of their war turns (warstacks.jsonl). Instrumented: almost all are 2-unit stacks in a "threatened" border city that hold as their own muster point and never reach the strike size. Wars still produce battles and captures, so I left it; a fix belongs with arming before the declaration (Civ VI war preparation), a bigger change for a later lane.
+Also measured, not changed (the lead's call): aggressor stacks of 2+ units stand idle at home in 61% of their war turns (warstacks.jsonl). Instrumented: almost all are 2-unit stacks in a "threatened" border city that hold as their own muster point and never reach the strike size. Wars still produce battles and captures, so I left it; a fix belongs with arming before the declaration (Civ VI war preparation), a bigger change for a later lane.
 
 ## Not done
 
