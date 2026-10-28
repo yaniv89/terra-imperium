@@ -430,6 +430,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
               {rows.map((o) => {
                 const open = openRow === o.id;
                 const clip = open ? '' : 'truncate';
+                const RowIcon = o.queued && !o.ok ? Check : o.ok ? Plus : Lock; // a locked row shows a lock, never a + (Opus playtest step 185)
                 return (
                   <li key={o.id} className={`flex items-center gap-2 rounded-lg ps-2 pe-1 py-1 min-h-[44px] text-[13px] border ${o.ok ? 'bg-fa-raised border-fa-line' : 'bg-transparent border-dashed border-fa-line/60 opacity-75'}`} data-testid="build-row">
                     <div className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0} aria-expanded={open} onClick={() => toggleRow(o)} onKeyDown={(e) => { if (e.key === 'Enter') toggleRow(o); }} title={o.tile != null ? t('cy.showTileDetails') : t('cy.showDetails')}>
@@ -452,7 +453,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                       </div>
                     </div>
                     <button type="button" {...why(!o.ok, o.queued ? t('cy.alreadyInQueue') : o.needsName ? `${t('cy.needsLower', { name: o.needsName })}${o.needsEta ? `, ${o.needsEta}` : ''}` : o.reason, () => (o.replaces ? askConfirm(replaceImprovementConfirm(o.label, o.replaces), () => queueNow(o)) : queueNow(o)))} className="fa-icon-btn min-w-[44px] min-h-[44px] shrink-0 disabled:opacity-40 aria-disabled:opacity-40" aria-label={o.ok ? t('cy.buildAria', { label: o.label }) : `${o.label}: ${o.queued ? t('cy.alreadyInQueue') : o.needsName ? t('cy.needsLower', { name: o.needsName }) : o.reason}`} data-testid="queue-item">
-                      {o.queued && !o.ok ? <Check className="w-4 h-4" /> : o.ok ? <Plus className="w-4 h-4" /> : <Lock className="w-4 h-4" data-testid="build-locked" />}
+                      <RowIcon className="w-4 h-4" data-testid={RowIcon === Lock ? 'build-locked' : undefined} />
                     </button>
                   </li>
                 );
