@@ -240,7 +240,10 @@ const hull = (length, beam, color = C.wood) => [
 ];
 const mast = (height, z = 0, sail = true) => [
   part(cyl(0.025, 0.035, height, 6), C.darkWood, { at: [0, height / 2 + 0.3, z] }),
-  ...(sail ? [part(box(0.9, height * 0.55, 0.02), C.cloth, { at: [0, height * 0.62, z] })] : []),
+  // the sail carries a broad band of the side's colour on both faces (striped sails; whose fleet
+  // is whose reads from above, as with Age of Empires' dyed sails)
+  ...(sail ? [part(box(0.9, height * 0.55, 0.02), C.cloth, { at: [0, height * 0.62, z] }),
+    part(box(0.92, height * 0.2, 0.03), '#ffffff', { at: [0, height * 0.62, z], team: 1 })] : []),
   part(box(0.02, 0.12, 0.22), '#ffffff', { at: [0, height + 0.3, z + 0.11], team: 1 })
 ];
 const oars = (length) => [-1, 1].flatMap((s) => [-0.3, -0.1, 0.1, 0.3].map((f) => part(box(0.5, 0.02, 0.03), C.wood, { at: [s * 0.55, 0.22, f * length], rot: [0, 0, s * 0.35] })));
@@ -485,11 +488,13 @@ varying vec2 vSurface;
 attribute vec4 aVariant; // x: skin tone (fractional: blends the two either side), y: emblem cell, z: cloth jitter
 uniform vec3 uSkin[${SKIN_N}];
 varying vec3 vEmblem;    // xy: atlas uv, z: 1 on emblem parts
+varying vec3 vSide;      // the side's colour (instanceColor) for the rim
 `;
 const VARIANT_FRAG = /* glsl */`
 uniform sampler2D uEmblems;
 varying vec3 vEmblem;
 varying vec2 vSurface;
+varying vec3 vSide;
 `;
 
 // USE_CLIPS (I219, plans/art/clip-animation-pipeline.md): an artist's clips instead of the rigid
@@ -577,8 +582,10 @@ const patchRig = (shader, withColor, clips = null) => {
       base = mix(base * (1.0 + aVariant.z * 0.09 * (1.0 - aTeam)), skinTone * bakedShade, isSkin);
       #ifdef USE_INSTANCING_COLOR
         vColor.rgb = mix(base * mix(vec3(1.0), instanceColor.rgb, ${f(withColor.teamTint ?? 0.12)} * (1.0 - isSkin)), instanceColor.rgb * bakedShade, aTeam);
+        vSide = instanceColor.rgb * (1.0 - isSkin); // skin keeps its tone (no lilac faces)
       #else
         vColor.rgb = base;
+        vSide = vec3(0.0);
       #endif
       float cell = clamp(floor(aVariant.y + 0.5), 0.0, ${f(EMBLEM_GRID * EMBLEM_GRID - 1)});
       vec2 cellXY = vec2(mod(cell, ${f(EMBLEM_GRID)}), floor(cell / ${f(EMBLEM_GRID)}));
@@ -588,7 +595,13 @@ const patchRig = (shader, withColor, clips = null) => {
       if (vEmblem.z > 0.5) {
         vec4 device = texture2D(uEmblems, vEmblem.xy);
         diffuseColor.rgb = mix(diffuseColor.rgb, device.rgb, device.a);
-      }`);
+      }`)
+    // The side's colour as a rim on the silhouette (art-animation lane): two armies in the same
+    // baked kit read apart in a melee, and a hit flash (the colour pushed to white) lights the rim.
+    .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+      vec3 rimView = isOrthographic ? vec3(0.0, 0.0, 1.0) : normalize(vViewPosition);
+      float rimK = 1.0 - clamp(dot(normal, rimView), 0.0, 1.0);
+      totalEmissiveRadiance += vSide * (rimK * rimK * ${f(withColor.rim ?? 0)});`);
   // PBR: every vertex carries its own metalness and roughness (armour shines, cloth stays matte).
   // The rig already rotates objectNormal in beginnormal_vertex, so the lit normal (vNormal) follows
   // every swinging arm and leg; there are no normal maps, so no tangents are needed.
@@ -629,14 +642,15 @@ export const RIG_TIME = { value: 0 };
 // share). `emblems` is the heraldry atlas texture (defaults to the shared procedural one).
 // `teamTint`: how much of the side's colour every cloth and metal part takes (the team parts take
 // all of it); the far detail level raises it so a figure a few pixels tall still reads as its army.
+// `rim`: how bright the side-coloured rim on the silhouette is (0 = none).
 // `clips` (clipUniforms): the USE_CLIPS variant for one unit's bone texture. Every clip unit shares
 // one program (the cache key), each with its own uniforms.
-export const createSoldierMaterial = ({ standard = false, emblems = getEmblemAtlas(), teamTint = 0.12, clips = null } = {}) => {
+export const createSoldierMaterial = ({ standard = false, emblems = getEmblemAtlas(), teamTint = 0.12, rim = 0, clips = null } = {}) => {
   const mat = standard
     ? new MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0.05 })
     : new MeshLambertMaterial({ vertexColors: true });
-  mat.onBeforeCompile = (shader) => patchRig(shader, { emblems, standard, teamTint }, clips);
-  mat.customProgramCacheKey = () => `${standard ? 'soldier-rig-std' : 'soldier-rig'}-${teamTint}${clips ? '-clips' : ''}`;
+  mat.onBeforeCompile = (shader) => patchRig(shader, { emblems, standard, teamTint, rim }, clips);
+  mat.customProgramCacheKey = () => `${standard ? 'soldier-rig-std' : 'soldier-rig'}-${teamTint}-${rim}${clips ? '-clips' : ''}`;
   // the vertex normals are lit (no flatShading from screen derivatives): the baked soup carries face
   // normals for gear and cloth and the glTF's own smooth normals for coat, skin, mane and hair
   // (gltfUnitLoader.js SMOOTH_MATERIALS); the clip shader turns them with the bones (clipDir)

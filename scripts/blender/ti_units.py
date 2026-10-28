@@ -27,7 +27,9 @@ def smooth_organic(objs=None, angle=50):
   me=o.data;names=[m.name if m else '' for m in me.materials];hit=False
   for f in me.polygons:
    if f.material_index<len(names) and rx.search(names[f.material_index]):f.use_smooth=True;hit=True
-  if hit:me.set_sharp_from_angle(angle=math.radians(angle))
+  if not hit:continue
+  if hasattr(me,'set_sharp_from_angle'):me.set_sharp_from_angle(angle=math.radians(angle))
+  else:me.use_auto_smooth=True;me.auto_smooth_angle=math.radians(angle) # Blender 4.0 (the apt build on cloud sessions)
 
 def out_dir(uid):
  """Where a unit's build writes: $TI_UNITS_OUT/<id> or art-build/units/<id> in the repository."""
