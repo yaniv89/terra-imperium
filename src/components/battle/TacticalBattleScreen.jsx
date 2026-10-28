@@ -1292,7 +1292,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         </div>
       )}
       {orderNote && !refused && !ended && (
-        <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(26rem,calc(100vw-2rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-line text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" style={{ bottom: objTarget ? `calc(${NOTE_BOTTOM} + 3.25rem)` : NOTE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-order-note">
+        <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(26rem,calc(100vw-2rem))] px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-line text-[12.5px] leading-snug text-fa-text shadow-xl pointer-events-none" style={{ bottom: objTarget || armed === 'attackMove' || armed?.type === 'power' ? `calc(${NOTE_BOTTOM} + 3.25rem)` : NOTE_BOTTOM }} role="status" aria-live="polite" data-testid="battle-order-note">
           <span>{orderNote}</span>
         </div>
       )}
