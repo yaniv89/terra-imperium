@@ -10,6 +10,7 @@ import { getTiles } from '../../../data/geo/tiles';
 import { labelArt, discArt, iconArt } from './spriteArt';
 import { cssColor } from './cssColor';
 import { actionIconUrl } from '../../independents/independentArt';
+import { t } from '../../../i18n/core';
 
 const WHITE = [1, 1, 1, 1];
 /** Below this zoom only the parties carry a label (the rings stay): the far map stays readable. */
@@ -77,7 +78,7 @@ export const raidShapes = ({ model, projection, k, dpr }) => {
     const party = model.parties.find((p) => p.id === w.id);
     const pp = party ? pointOf(projection, party.tile) : null;
     if (k < RAID_LABEL_ZOOM || (pp && Math.hypot(pp[0] - at[0], pp[1] - at[1]) * k < 60)) return;
-    label(`Raid target: ${w.target}${w.eta != null ? ` · ${w.eta}t` : ''}`, '#fecaca', at, -r * k - 8, w.id, 300);
+    label(t('sw.raid.target', { target: w.target, eta: w.eta != null ? t('sw.raid.in', { count: w.eta }) : '' }), '#fecaca', at, -r * k - 8, w.id, 300);
   });
   // Parties: an icon (or disc) and a label.
   const torch = actionIconUrl('raid');
@@ -87,7 +88,7 @@ export const raidShapes = ({ model, projection, k, dpr }) => {
     const c = cssColor(p.againstYou ? RED : VIOLET);
     const icon = torch ? iconArt(torch, 16, dpr) : discArt(32);
     sprites.push({ art: icon, anchor: at, offset: [0, -18, 0, 0], size: torch ? [icon.css.w, icon.css.h] : [10, 10], exp: [0, 0], color: torch ? WHITE : [c[0], c[1], c[2], 1] });
-    label(`Raid party${p.phase === 'home' ? ', going home' : p.eta != null ? ` · ${p.eta}t` : ''}`, p.againstYou ? '#fecaca' : '#e9e5fb', at, -30, p.id, p.againstYou ? 300 : 50);
+    label(t('sw.raid.party', { tail: p.phase === 'home' ? t('sw.raid.home') : p.eta != null ? t('sw.raid.in', { count: p.eta }) : '' }), p.againstYou ? '#fecaca' : '#e9e5fb', at, -30, p.id, p.againstYou ? 300 : 50);
   });
   // Sieges of independents by others, and burning cities.
   model.sieges.forEach((s) => {
@@ -95,11 +96,11 @@ export const raidShapes = ({ model, projection, k, dpr }) => {
     if (!at) return;
     const c = cssColor(ORANGE);
     lines.push(...ring(at, Math.max(tileRadius(projection, s.tile) * 1.2, 14 / k), { half: 1.4, dash: 3, gap: 3, exp: 0, color: [c[0], c[1], c[2], 0.9] }));
-    if (k >= RAID_LABEL_ZOOM) label(`${s.byName} besiege · ${Math.round(s.hp * 100)}%`, '#fed7aa', at, -30, s.owner);
+    if (k >= RAID_LABEL_ZOOM) label(t('sw.raid.besiege', { who: s.byName, pct: Math.round(s.hp * 100) }), '#fed7aa', at, -30, s.owner);
   });
   model.burning.forEach((b) => {
     const at = pointOf(projection, b.tile);
-    if (at && k >= RAID_LABEL_ZOOM) label(`Burning · ${b.size} turn${b.size === 1 ? '' : 's'} left`, '#fecaca', at, 34, null);
+    if (at && k >= RAID_LABEL_ZOOM) label(t('sw.raid.burning', { count: b.size }), '#fecaca', at, 34, null);
   });
   return { lines, sprites, hits };
 };

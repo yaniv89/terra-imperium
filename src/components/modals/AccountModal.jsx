@@ -15,22 +15,16 @@ import {
 } from '../../services/auth';
 import { listSaves, writeSlot, readSlot, deleteSlot, SAVE_SLOTS } from '../../services/cloudSaves';
 import { migrateSave } from '../../engine/saveMigrations';
+import { t, agoText } from '../../i18n';
+import { useLanguage } from '../../i18n/useT';
 
-const SLOT_LABELS = { autosave: 'Autosave', slot1: 'Slot 1', slot2: 'Slot 2', slot3: 'Slot 3' };
+const slotLabel = (slot) => t(`sw.acct.slot.${slot}`);
 
-const formatWhen = (iso) => {
-  if (!iso) return null;
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const mins = Math.round(diffMs / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return new Date(iso).toLocaleDateString();
-};
+const formatWhen = (iso) => (iso ? agoText(new Date(iso).getTime()) : null);
 
 const AccountModal = ({ open, onClose, onOpenAdmin }) => {
   const { state, dispatch } = useGame();
+  useLanguage();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [authView, setAuthView] = useState('signIn'); // 'signIn' | 'signUp' | 'recovery'
@@ -90,7 +84,7 @@ const AccountModal = ({ open, onClose, onOpenAdmin }) => {
     runAction(async () => {
       if (authView === 'signUp') {
         await signUp(client, email, password, displayName);
-        setMessage('Account created — check your inbox to confirm your email, then sign in.');
+        setMessage(t('sw.acct.created'));
       } else {
         await signIn(client, email, password);
       }
@@ -99,12 +93,12 @@ const AccountModal = ({ open, onClose, onOpenAdmin }) => {
 
   const handleForgotPassword = () => runAction(async () => {
     await sendPasswordReset(client, email, window.location.href);
-    setMessage('Password reset email sent — check your inbox.');
+    setMessage(t('sw.acct.resetSent'));
   });
 
   const handleResendConfirmation = () => runAction(async () => {
     await resendConfirmation(client, email);
-    setMessage('Confirmation email resent.');
+    setMessage(t('sw.acct.confirmResent'));
   });
 
   const handleSetNewPassword = (e) => {
@@ -112,7 +106,7 @@ const AccountModal = ({ open, onClose, onOpenAdmin }) => {
     runAction(async () => {
       await updatePassword(client, password);
       setAuthView('signIn');
-      setMessage('Password updated — you\'re signed in.');
+      setMessage(t('sw.acct.passwordUpdated'));
     });
   };
 
@@ -121,7 +115,7 @@ const AccountModal = ({ open, onClose, onOpenAdmin }) => {
   const handleUpdateDisplayName = () => runAction(async () => {
     const updated = await updateDisplayName(client, newDisplayName);
     setProfile(updated);
-    setMessage('Display name updated.');
+    setMessage(t('sw.acct.nameUpdated'));
   });
 
   const handleDeleteAccount = () => runAction(async () => {
@@ -133,20 +127,20 @@ const AccountModal = ({ open, onClose, onOpenAdmin }) => {
     const payload = { version: 1, state };
     const existing = slots?.[slot];
     await writeSlot(client, user.id, slot, payload, { expectedRevision: existing?.revision });
-    setMessage(`Saved to ${SLOT_LABELS[slot]}.`);
+    setMessage(t('sw.acct.savedTo', { slot: slotLabel(slot) }));
     refreshSlots();
   });
 
   const handleLoadFromSlot = (slot) => runAction(async () => {
     const migrated = await readSlot(client, user.id, slot, migrateSave);
-    if (!migrated) { setError('That save could not be loaded — it may be from a newer or incompatible version.'); return; }
+    if (!migrated) { setError(t('sw.acct.loadFailed')); return; }
     dispatch({ type: ActionTypes.LOAD_GAME, payload: migrated.state });
-    setMessage(`Loaded ${SLOT_LABELS[slot]}.`);
+    setMessage(t('sw.acct.loaded', { slot: slotLabel(slot) }));
   });
 
   const handleDeleteSlot = (slot) => runAction(async () => {
     await deleteSlot(client, user.id, slot);
-    setMessage(`${SLOT_LABELS[slot]} deleted.`);
+    setMessage(t('sw.acct.deleted', { slot: slotLabel(slot) }));
     refreshSlots();
   });
 
@@ -156,7 +150,7 @@ const AccountModal = ({ open, onClose, onOpenAdmin }) => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 text-fa-text font-bold text-lg">
             {isCloudSaveConfigured ? <Cloud className="w-5 h-5 text-fa-you" /> : <CloudOff className="w-5 h-5 text-fa-muted" />}
-            Account & Cloud Saves
+            {t('sw.acct.title')}
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg bg-fa-raised text-fa-muted hover:bg-fa-hover hover:text-fa-text transition-colors">
             <X className="w-4 h-4" />
@@ -165,62 +159,61 @@ const AccountModal = ({ open, onClose, onOpenAdmin }) => {
 
         {!isCloudSaveConfigured ? (
           <p className="text-fa-muted text-sm">
-            Cloud saves aren&apos;t set up for this build. Local export/import (the header&apos;s download/upload
-            buttons) still work as always.
+            {t('sw.acct.notSetUp')}
           </p>
         ) : authView === 'recovery' ? (
           <form onSubmit={handleSetNewPassword} className="space-y-3">
-            <p className="text-fa-muted text-sm">Choose a new password.</p>
+            <p className="text-fa-muted text-sm">{t('sw.acct.chooseNew')}</p>
             <input
-              type="password" required minLength={8} placeholder="New password"
+              type="password" required minLength={8} placeholder={t('sw.acct.newPassword')}
               value={password} onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-fa-raised border border-fa-line rounded-lg p-2 text-sm text-fa-text placeholder-fa-muted"
             />
             <button type="submit" disabled={busy} className="w-full px-4 py-2.5 rounded-lg font-bold text-sm bg-gradient-to-r from-blue-600 to-blue-500 text-fa-text shadow-lg disabled:opacity-50">
-              Set New Password
+              {t('sw.acct.setPassword')}
             </button>
           </form>
         ) : user ? (
           <div className="space-y-4">
             <div className="space-y-2">
-              <p className="text-fa-muted text-xs uppercase tracking-wide font-semibold">Profile</p>
+              <p className="text-fa-muted text-xs uppercase tracking-wide font-semibold">{t('sw.acct.profile')}</p>
               <div className="flex items-center gap-2">
                 <input
                   value={newDisplayName} onChange={(e) => setNewDisplayName(e.target.value)}
                   className="flex-1 bg-fa-raised border border-fa-line rounded-lg p-2 text-sm text-fa-text"
                 />
                 <button onClick={handleUpdateDisplayName} disabled={busy || newDisplayName === profile?.display_name} className="px-3 py-2 rounded-lg text-xs font-semibold bg-fa-hover text-fa-text hover:bg-fa-line disabled:opacity-40">
-                  Save
+                  {t('sw.acct.save')}
                 </button>
               </div>
               <p className="text-fa-muted text-xs">{user.email}</p>
               {profile?.role === 'admin' && (
                 <button onClick={onOpenAdmin} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold bg-purple-500/20 text-purple-300 hover:bg-purple-500/30">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Open Admin Page
+                  <ShieldCheck className="w-3.5 h-3.5" /> {t('sw.acct.admin')}
                 </button>
               )}
             </div>
 
             <div className="space-y-2">
-              <p className="text-fa-muted text-xs uppercase tracking-wide font-semibold">Saves</p>
+              <p className="text-fa-muted text-xs uppercase tracking-wide font-semibold">{t('sw.acct.saves')}</p>
               {SAVE_SLOTS.map((slot) => {
                 const row = slots?.[slot];
                 return (
                   <div key={slot} className="flex items-center justify-between gap-2 bg-fa-raised/60 border border-fa-line rounded-lg p-2">
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-fa-text">{SLOT_LABELS[slot]}</p>
+                      <p className="text-xs font-semibold text-fa-text">{slotLabel(slot)}</p>
                       <p className="text-[11px] text-fa-muted truncate">
-                        {row ? `${row.nation_name || row.nation_id} · Turn ${row.turn_number} · ${formatWhen(row.saved_at)}` : 'Empty'}
+                        {row ? `${row.nation_name || row.nation_id} · ${t('sw.conflict.turn', { n: row.turn_number })} · ${formatWhen(row.saved_at)}` : t('sw.acct.empty')}
                       </p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <button onClick={() => handleSaveToSlot(slot)} disabled={busy} title="Save here" className="p-1.5 rounded-lg bg-blue-600/80 hover:bg-blue-500 text-fa-text disabled:opacity-40">
+                      <button onClick={() => handleSaveToSlot(slot)} disabled={busy} title={t('sw.acct.saveHere')} className="p-1.5 rounded-lg bg-blue-600/80 hover:bg-blue-500 text-fa-text disabled:opacity-40">
                         <UploadCloud className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => handleLoadFromSlot(slot)} disabled={busy || !row} title="Load" className="p-1.5 rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text disabled:opacity-40">
+                      <button onClick={() => handleLoadFromSlot(slot)} disabled={busy || !row} title={t('sw.acct.load')} className="p-1.5 rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text disabled:opacity-40">
                         <DownloadCloud className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => handleDeleteSlot(slot)} disabled={busy || !row} title="Delete" className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-fa-danger-text disabled:opacity-40">
+                      <button onClick={() => handleDeleteSlot(slot)} disabled={busy || !row} title={t('sw.acct.delete')} className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-fa-danger-text disabled:opacity-40">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -230,18 +223,18 @@ const AccountModal = ({ open, onClose, onOpenAdmin }) => {
             </div>
 
             <button onClick={handleSignOut} disabled={busy} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs bg-fa-raised text-fa-text hover:bg-fa-hover disabled:opacity-50">
-              <LogOut className="rtl:-scale-x-100 w-3.5 h-3.5" /> Sign Out
+              <LogOut className="rtl:-scale-x-100 w-3.5 h-3.5" /> {t('sw.acct.signOut')}
             </button>
 
             <div className="pt-2 border-t border-fa-line space-y-2">
               {confirmDelete !== 'DELETE' ? (
                 <button onClick={() => setConfirmDelete('confirming')} className="w-full text-xs text-red-500/80 hover:text-fa-danger-text underline">
-                  Delete account
+                  {t('sw.acct.deleteAccount')}
                 </button>
               ) : null}
               {confirmDelete === 'confirming' && (
                 <div className="space-y-2">
-                  <p className="text-xs text-fa-danger-text">This permanently deletes your account and every save. Type DELETE to confirm.</p>
+                  <p className="text-xs text-fa-danger-text">{t('sw.acct.deleteWarn')}</p>
                   <input
                     onChange={(e) => setConfirmDelete(e.target.value)}
                     className="w-full bg-fa-raised border border-red-500/50 rounded-lg p-2 text-sm text-fa-text"
@@ -250,7 +243,7 @@ const AccountModal = ({ open, onClose, onOpenAdmin }) => {
               )}
               {confirmDelete === 'DELETE' && (
                 <button onClick={handleDeleteAccount} disabled={busy} className="w-full px-3 py-2 rounded-lg text-xs font-bold bg-red-600 hover:bg-red-500 text-fa-text disabled:opacity-50">
-                  Permanently Delete Account
+                  {t('sw.acct.deleteForever')}
                 </button>
               )}
             </div>
@@ -259,18 +252,18 @@ const AccountModal = ({ open, onClose, onOpenAdmin }) => {
           <form onSubmit={handleAuthSubmit} className="space-y-3">
             {authView === 'signUp' && (
               <input
-                type="text" required minLength={3} maxLength={24} placeholder="Display name"
+                type="text" required minLength={3} maxLength={24} placeholder={t('sw.acct.displayName')}
                 value={displayName} onChange={(e) => setDisplayName(e.target.value)}
                 className="w-full bg-fa-raised border border-fa-line rounded-lg p-2 text-sm text-fa-text placeholder-fa-muted"
               />
             )}
             <input
-              type="email" required placeholder="Email"
+              type="email" required placeholder={t('sw.acct.email')}
               value={email} onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-fa-raised border border-fa-line rounded-lg p-2 text-sm text-fa-text placeholder-fa-muted"
             />
             <input
-              type="password" required minLength={8} placeholder="Password (min. 8 characters)"
+              type="password" required minLength={8} placeholder={t('sw.acct.password')}
               value={password} onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-fa-raised border border-fa-line rounded-lg p-2 text-sm text-fa-text placeholder-fa-muted"
             />
@@ -279,18 +272,18 @@ const AccountModal = ({ open, onClose, onOpenAdmin }) => {
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-bold text-sm bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-fa-text shadow-lg transition-all active:scale-95 disabled:opacity-50"
             >
               <LogIn className="rtl:-scale-x-100 w-4 h-4" />
-              {authView === 'signUp' ? 'Create Account' : 'Sign In'}
+              {authView === 'signUp' ? t('sw.acct.create') : t('sw.acct.signIn')}
             </button>
             <button type="button" onClick={() => setAuthView(authView === 'signUp' ? 'signIn' : 'signUp')} className="w-full text-xs text-fa-muted hover:text-fa-text underline">
-              {authView === 'signUp' ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+              {authView === 'signUp' ? t('sw.acct.haveAccount') : t('sw.acct.noAccount')}
             </button>
             {authView === 'signIn' && (
               <div className="flex justify-between text-[11px]">
                 <button type="button" onClick={handleForgotPassword} disabled={busy || !email} className="text-fa-muted hover:text-fa-text underline disabled:opacity-40">
-                  Forgot password?
+                  {t('sw.acct.forgot')}
                 </button>
                 <button type="button" onClick={handleResendConfirmation} disabled={busy || !email} className="text-fa-muted hover:text-fa-text underline disabled:opacity-40">
-                  Resend confirmation
+                  {t('sw.acct.resend')}
                 </button>
               </div>
             )}

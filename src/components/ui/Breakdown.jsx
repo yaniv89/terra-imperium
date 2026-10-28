@@ -6,6 +6,7 @@
 // several modifier keys plus non-modifier lines into one row list, so asking
 // this component to re-derive that from a single modKey would be less capable, not more generic.
 import React from 'react';
+import { t } from '../../i18n/core';
 
 const formatSigned = (value) => {
   const rounded = Math.round(value * 10) / 10;
@@ -26,7 +27,7 @@ const Breakdown = ({ rows, total = null, unit = '' }) => {
         </div>
       ))}
       <div className="flex justify-between gap-3 mt-1 pt-1 border-t border-fa-line font-bold">
-        <span>Total</span>
+        <span>{t('sw.total')}</span>
         <span>{formatSigned(computedTotal)}{unit}</span>
       </div>
     </div>

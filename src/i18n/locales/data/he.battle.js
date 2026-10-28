@@ -13,7 +13,7 @@ export default {
   'babil.volley': 'מטח',
 
   // commander powers (battle/sim/effects.js POWERS)
-  'bpower.rallyCry': 'קריאת גיוס',
+  'bpower.rallyCry': 'קריאת קרב',
   'bpower.ambush': 'מארב',
   'bpower.arrowStorm': 'סופת חיצים',
   'bpower.artilleryBarrage': 'הפגזת ארטילריה',
@@ -39,7 +39,7 @@ export default {
   'btype.assault.label': 'הסתערות מצור',
   'btype.assault.attacker': 'פרצו אל המצודה והחזיקו בה 30 שניות',
   'btype.assault.defender': 'החזיקו מעמד עד תום השעון',
-  'btype.sally.label': 'יציאה לפריצה',
+  'btype.sally.label': 'גיחה',
   'btype.sally.attacker': 'שרפו {n} מכונות מצור או את המחנה',
   'btype.sally.defender': 'החזיקו את המחנה',
   'btype.landing.label': 'נחיתה',

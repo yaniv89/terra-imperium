@@ -6,6 +6,7 @@
 // the SVG badges carry the cities (Map2DView).
 import { nameNow } from '../../i18n/names';
 import { independentKindName } from '../../i18n/gameText';
+import { t as tNow } from '../../i18n/core';
 import React, { useMemo, useCallback } from 'react';
 import { useFogView } from './useFogView';
 import { cityLatLon } from '../../data/geo/cityFeatures';
@@ -69,7 +70,7 @@ const CityBanners = ({ projection, transform, width, height, onSelect, selectedR
         style={{ transform: `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, 0)`, '--banner-colour': colour }}
         onClick={(e) => { e.stopPropagation(); onSelect?.(city.id, e); }}
         data-city-banner={city.id}
-        aria-label={`${nameNow('city', null, city.name)}${city.isCapital ? ', capital' : ''}, size ${city.size || 1}`}
+        aria-label={tNow(city.isCapital ? 'sw.banner.capitalAria' : 'sw.banner.aria', { name: nameNow('city', null, city.name), size: city.size || 1 })}
       >
         <span className="city-banner-size">{outpost != null ? '⛺' : city.size || 1}</span>
         <span className="city-banner-name">
@@ -78,8 +79,8 @@ const CityBanners = ({ projection, transform, width, height, onSelect, selectedR
             ? <img src={shieldUrl(indep)} alt="" className="city-banner-icon" width={14} height={14} draggable={false} title={`Independent city (${independentKindName(indep, PERSONALITIES[indep]?.name)})`} data-independent={indep} />
             : <span className="city-banner-indep" style={{ background: PERSONALITIES[indep]?.badge }} title={`Independent city (${independentKindName(indep, PERSONALITIES[indep]?.name)})`} data-independent={indep} />)}
           {nameNow('city', null, city.name)}
-          {disloyal && <span className="city-banner-warn" title="Loyalty is low" data-loyalty-warning={city.id}>!</span>}
-          {city.siege && <span className="city-banner-siege" title="Under siege" data-siege-badge={city.id}>{markerIconUrl('battle') ? <img src={markerIconUrl('battle')} alt="" className="city-banner-icon" width={14} height={14} draggable={false} /> : '⚔'}</span>}
+          {disloyal && <span className="city-banner-warn" title={tNow('sw.banner.lowLoyalty')} data-loyalty-warning={city.id}>!</span>}
+          {city.siege && <span className="city-banner-siege" title={tNow('sw.banner.siege')} data-siege-badge={city.id}>{markerIconUrl('battle') ? <img src={markerIconUrl('battle')} alt="" className="city-banner-icon" width={14} height={14} draggable={false} /> : '⚔'}</span>}
         </span>
         {(siege != null || outpost != null || build != null) && (
           <span className="city-banner-bar" aria-hidden="true">

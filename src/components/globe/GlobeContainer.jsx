@@ -4,6 +4,7 @@
 // it in sync with its flex-layout container. The three.js-based renderer (~1MB+) is fetched once
 // this mounts.
 import React, { Suspense, useEffect, useRef, useState } from 'react';
+import { t } from '../../i18n/core';
 import { lazyWithReload } from '../../utils/lazyWithReload';
 
 const GlobeView = lazyWithReload(() => import('./GlobeView'));
@@ -29,7 +30,7 @@ const GlobeContainer = ({
     <div ref={containerRef} className="relative w-full h-full bg-slate-900">
       <Suspense fallback={
         <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
-          Loading globe renderer…
+          {t('sw.globe.loading')}
         </div>
       }>
         {size.width > 0 && size.height > 0 && (

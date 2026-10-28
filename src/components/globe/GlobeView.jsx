@@ -7,6 +7,7 @@
 // contract the rest of the game expects. No polygon layer: the old 4,482 province meshes were the
 // dominant cost of every frame.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { t } from '../../i18n/core';
 import Globe from 'react-globe.gl';
 import { CanvasTexture, MeshPhongMaterial, Raycaster, Sphere, SRGBColorSpace, Vector2, Vector3 } from 'three';
 import { useGame } from '../../context/GameContext';
@@ -338,7 +339,7 @@ const GlobeView = ({ onAmbiguousTap = null,
   if (!geo) {
     return (
       <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
-        Loading world map…
+        {t('sw.globe.loadingMap')}
       </div>
     );
   }

@@ -33,9 +33,9 @@ export const templateProgress = (item) => ({ done: templateSize(item.built), tot
 export const validateTemplate = (template, ageId, researched) => {
   const comp = template?.composition || {};
   const size = templateSize(comp);
-  if (!template?.name?.trim()) return { ok: false, reason: 'An army needs a name.' };
-  if (size < 1) return { ok: false, reason: 'An army needs at least one unit.' };
-  if (size > TEMPLATE_MAX_UNITS) return { ok: false, reason: `At most ${TEMPLATE_MAX_UNITS} units.` };
+  if (!template?.name?.trim()) return { ok: false, ...reasonOf('m.why.tpl.name') };
+  if (size < 1) return { ok: false, ...reasonOf('m.why.tpl.empty') };
+  if (size > TEMPLATE_MAX_UNITS) return { ok: false, ...reasonOf('m.why.tpl.max', { n: TEMPLATE_MAX_UNITS }) };
   const available = new Set(getUnlockedClasses(ageId, researched));
   const missing = Object.keys(comp).filter((c) => (comp[c] | 0) > 0 && !available.has(c));
   if (!missing.length) return { ok: true };

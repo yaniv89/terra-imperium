@@ -40,7 +40,7 @@ export default {
   'tech.infrastructure_aqueducts': 'אמות מים',
   'tech.infrastructure_stone_bridges': 'גשרי אבן',
   'tech.infrastructure_postal_relay': 'תחנות דואר',
-  'tech.infrastructure_canal_locks': 'שערי שיט',
+  'tech.infrastructure_canal_locks': 'תאי שיט',
   'tech.infrastructure_turnpike_roads': 'כבישי אגרה',
   'tech.infrastructure_rail_networks': 'רשתות רכבת',
   'tech.infrastructure_highway_systems': 'מערכות כבישים מהירים',

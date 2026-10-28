@@ -1811,9 +1811,12 @@ describe('Diplomacy tab actions', () => {
       expect(next.resources.gold).toBeLessThan(state.resources.gold);
     });
 
-    it('is a no-op while at war with the target', () => {
+    it('is refused while at war with the target, and says why', () => {
       const state = gameReducer(richState(), { type: ActionTypes.DECLARE_WAR, payload: { nationId: DE } });
-      expect(gameReducer(state, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: DE } })).toBe(state);
+      const next = gameReducer(state, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: DE } });
+      expect(next.nations).toBe(state.nations);
+      expect(next.resources).toBe(state.resources);
+      expect(next.logs.at(-1).msgKey).toBe('m.act.no.tradeWar');
     });
 
     it('is a no-op if a trade agreement already exists', () => {
@@ -1834,10 +1837,13 @@ describe('Diplomacy tab actions', () => {
       expect(next.nations[DE].hasMilitaryPact).toBe(true);
     });
 
-    it('is a no-op when hostility is too high and there is no trade agreement', () => {
+    it('is refused when hostility is too high and there is no trade agreement, and says why', () => {
       const state = richState();
       const hostile = { ...state, nations: { ...state.nations, [DE]: { ...state.nations[DE], hostility: 90 } } };
-      expect(gameReducer(hostile, { type: ActionTypes.MILITARY_ALLIANCE, payload: { nationId: DE } })).toBe(hostile);
+      const next = gameReducer(hostile, { type: ActionTypes.MILITARY_ALLIANCE, payload: { nationId: DE } });
+      expect(next.nations).toBe(hostile.nations);
+      expect(next.resources).toBe(hostile.resources);
+      expect(next.logs.at(-1).msgKey).toBe('m.act.no.allianceRefused');
     });
 
     it('succeeds despite high hostility once a trade agreement exists', () => {
@@ -2329,11 +2335,13 @@ describe('Diplomacy tab actions', () => {
   });
 
   describe('TRADE_AGREEMENT capacity (plan §M8.3/§M12)', () => {
-    it('is a no-op once trade pact capacity is exhausted', () => {
+    it('is refused once trade pact capacity is exhausted, and says why', () => {
       const state = richState(); // base capacity 1 with neutral identity
       const first = gameReducer(state, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: DE } });
       const otherId = Object.keys(first.nations).find((id) => id !== FR && id !== DE && !first.nations[id].isAtWar && hasMet(first, FR, id));
-      expect(gameReducer(first, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: otherId } })).toBe(first);
+      const next = gameReducer(first, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: otherId } });
+      expect(next.nations).toBe(first.nations);
+      expect(next.logs.at(-1).msgKey).toBe('m.act.no.tradeFull');
     });
   });
 

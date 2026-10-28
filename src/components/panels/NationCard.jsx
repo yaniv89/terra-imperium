@@ -23,7 +23,7 @@ import { hasCasusBelli, isAtWarWithPlayer, isInTruce, isWarBetween, getTradePact
 import { getNationCapital, getBorderingNationIds } from '../../data/regions';
 import { formatNumber, getFieldedStrength } from '../../utils/helpers';
 import { hasIntel } from '../../engine/intel';
-import { opinionOf, opinionBreakdown } from '../../engine/opinion';
+import { opinionOf, opinionBreakdown, giftWarmth } from '../../engine/opinion';
 import { getEffectiveMilitaryPower } from '../../engine/aiEconomy';
 import { claimsAgainst, claimableCities, CLAIM_FABRICATE_TURNS, CLAIM_RANGE_RINGS } from '../../engine/claims';
 import { hasOpenBorders, openBordersAcceptance, demandAcceptance, DEMANDS, hasStele, steleAcceptance } from '../../engine/accords';
@@ -47,6 +47,7 @@ import GlossaryLink from '../glossary/GlossaryLink';
 import { shortAge } from './researchSheetModel';
 import { canPay, walletOf } from '../../utils/costs';
 import { costLine, shortfallLine } from './empireText';
+import { GIFT_OPINION, GIFT_OPINION_MAX } from '../../data/opinion';
 
 // Diplomacy actions that travel visibly between the player's capital and the target nation's.
 const DIPLOMACY_EFFECT_BY_ACTION = {
@@ -237,7 +238,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
         </p>
         {where.places.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-1.5">
-            <IconButton icon={MapPin} label={t('nc.showOnMap')} onClick={() => { onLeave(); focusPlace(where.places); }} />
+            <IconButton icon={MapPin} label={t('nc.showOnMap')} onClick={() => { onLeave(); focusPlace(atWarWithPlayer ? where.front : where.places); }} />
             {atWarWithPlayer && canAttack(state, state.playerNationId, nation.id) && (
               <IconButton icon={Flag} label={marchCity ? t('nc.marchTo', { name: nameNow('city', null, marchCity.name) }) : t('nc.marchToArmy')} disabled={!where.march}
                 onClick={() => {
@@ -372,7 +373,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
                 onClick={() => (answer.reason ? say(reasonText(answer)) : dispatchIfAffordable(ActionTypes.DEMAND, ACTION_COSTS.demand, { kind, cityId: claimed?.id || null }))} />
             );
           })}
-          <IconButton icon={Gift} label={t('nc.gift', { cost: costLine(ACTION_COSTS.giftBribe) })} title={t('nc.giftTitle')} blocked={canPay(state, ACTION_COSTS.giftBribe) ? null : t('nc.notEnough', { list: shortfallLine(walletOf(state), ACTION_COSTS.giftBribe) })} onClick={() => dispatchIfAffordable(ActionTypes.GIFT_BRIBE, ACTION_COSTS.giftBribe)} />
+          <IconButton icon={Gift} label={t('nc.gift', { cost: costLine(ACTION_COSTS.giftBribe), n: Math.min(GIFT_OPINION, GIFT_OPINION_MAX - giftWarmth(state, nation.id, player.id)) })} title={t('nc.giftTitle', { n: GIFT_OPINION, max: GIFT_OPINION_MAX })} blocked={canPay(state, ACTION_COSTS.giftBribe) ? null : t('nc.notEnough', { list: shortfallLine(walletOf(state), ACTION_COSTS.giftBribe) })} onClick={() => dispatchIfAffordable(ActionTypes.GIFT_BRIBE, ACTION_COSTS.giftBribe)} />
           <IconButton icon={Eye} label={t('nc.espionage', { cost: costLine(ACTION_COSTS.espionage) })}
             title={t('nc.espionageTitle', { n: ESPIONAGE_TECH_POINTS_STOLEN, p: Math.round(ESPIONAGE_SUCCESS_CHANCE * 100), t: INTEL_DURATION_TURNS })}
             disabled={!canPay(state, ACTION_COSTS.espionage)} onClick={() => dispatchIfAffordable(ActionTypes.ESPIONAGE, ACTION_COSTS.espionage)} />

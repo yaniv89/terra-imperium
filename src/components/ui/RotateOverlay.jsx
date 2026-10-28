@@ -5,11 +5,13 @@
 import React from 'react';
 import { RotateCw, Smartphone } from 'lucide-react';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { useT } from '../../i18n/useT';
 
 /** A phone held upright, on the map and every other screen: the game plays in landscape only. */
-const RotateOverlay = () => <RotateGate testId="rotate-gate" title="Rotate your phone to play" text="Terra Imperium plays sideways: the whole map, your cities and the turn buttons." />;
+const RotateOverlay = () => <RotateGate testId="rotate-gate" titleKey="sw.rotate.title" textKey="sw.rotate.text" />;
 
-const RotateGate = ({ testId, title, text }) => {
+const RotateGate = ({ testId, titleKey, textKey }) => {
+  const { t } = useT();
   if (useLayoutMode() !== 'phone-portrait') return null;
   return (
     <div data-testid={testId} className="fixed inset-0 z-[210] bg-fa-ink/95 text-fa-text flex flex-col items-center justify-center gap-5 p-8 text-center">
@@ -18,14 +20,14 @@ const RotateGate = ({ testId, title, text }) => {
         <RotateCw className="absolute -top-1 -end-1 w-8 h-8 text-fa-muted" />
       </div>
       <div className="space-y-2">
-        <h2 className="text-xl font-bold">{title}</h2>
-        <p className="text-sm text-fa-muted max-w-xs">{text}</p>
+        <h2 className="text-xl font-bold">{t(titleKey)}</h2>
+        <p className="text-sm text-fa-muted max-w-xs">{t(textKey)}</p>
       </div>
     </div>
   );
 };
 
 /** Over a tactical battle on a phone held upright: the one place the game insists on landscape. */
-export const BattleRotateGate = () => <RotateGate testId="battle-rotate-gate" title="Rotate your phone to fight" text="The battlefield needs the wide view: the whole field, your squads and the orders wheel." />;
+export const BattleRotateGate = () => <RotateGate testId="battle-rotate-gate" titleKey="sw.rotate.battleTitle" textKey="sw.rotate.battleText" />;
 
 export default RotateOverlay;

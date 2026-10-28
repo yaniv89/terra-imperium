@@ -125,6 +125,19 @@ describe('battle HUD model', () => {
     expect(m.loot).toEqual({ gold: 40, banked: false });
     expect(m.auto).toMatch(/62%/);
   });
+
+  it('a joined reinforcement counts in the start, so a destroyed regiment is never "0 lost" (playtest 40550100958 #102)', () => {
+    const setup = { battleType: 'sack', sides: [{ ageId: 'bronze', units: [{ id: 'a', strength: 100 }] }, { ageId: 'bronze', units: [{ id: 'd', strength: 90 }, { id: 'e', strength: 30 }], reinforcements: [{ units: [{ id: 's', strength: 70 }] }] }], structures: [] };
+    const ended = { result: {
+      outcome: 'defender',
+      attackerUnits: [{ id: 'a', classId: 'infantry', strength: 40, routed: true }],
+      defenderUnits: [{ id: 'd', classId: 'infantry', strength: 90 }, { id: 'e', classId: 'ranged', strength: 0 }, { id: 's', classId: 'infantry', strength: 70 }],
+      report: { tactical: { reason: 'raidersGone', durationSec: 74 } }
+    } };
+    const m = battleResultModel(ended, setup, 1, {});
+    expect(m.mine).toMatchObject({ start: 190, lost: 30, destroyed: 1 });
+    expect(m.theirs).toMatchObject({ start: 100, lost: 60, fled: 40, destroyed: 0 });
+  });
 });
 
 describe('I195: the army tally', () => {

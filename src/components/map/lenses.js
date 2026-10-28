@@ -27,6 +27,8 @@ import { REBEL_OWNER_ID } from '../../data/rebellion';
 import { getTradeRoute } from '../../engine/tradeRoutes';
 import { plunderedRoutes } from '../../engine/plunder';
 import { ringsForKm, ringsFromF75 } from '../../data/geo/gridScale';
+import { reasonOf } from '../../engine/messages';
+import { reasonText } from '../../i18n/messageText';
 
 export const LENSES = [
   { id: 'political', label: 'Political', key: '1', hint: 'Borders and cities' },
@@ -154,9 +156,9 @@ export const settleTints = (state, from = null, { km = SETTLE_LENS_KM, limit = 3
       if (seen.has(t) || tiles.land[t] !== 1 || out.length >= limit) continue;
       seen.add(t);
       const owner = tileOwner[t] != null ? state.regions?.[tileOwner[t]]?.owner : null;
-      let res = owner && owner !== me ? { ok: false, reason: `Belongs to ${state.nations?.[owner]?.name || owner}.` } : canFoundCity(world, tiles, t, me);
-      if (res.ok && settlingBarred(state, me, t)) res = { ok: false, reason: 'You promised not to settle this close to their cities.' };
-      out.push({ tile: t, ok: res.ok, reason: res.ok ? null : res.reason, colour: res.ok ? SETTLE_COLOUR.ok : SETTLE_COLOUR.no });
+      let res = owner && owner !== me ? { ok: false, ...reasonOf('m.world.reasonBelongs') } : canFoundCity(world, tiles, t, me);
+      if (res.ok && settlingBarred(state, me, t)) res = { ok: false, ...reasonOf('m.world.reasonPromised') };
+      out.push({ tile: t, ok: res.ok, reason: res.ok ? null : reasonText(res), colour: res.ok ? SETTLE_COLOUR.ok : SETTLE_COLOUR.no });
     }
   });
   return out.sort((a, b) => a.tile - b.tile);

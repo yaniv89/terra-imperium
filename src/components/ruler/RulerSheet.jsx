@@ -52,7 +52,7 @@ const RulerSheet = () => {
   return (
     <div className="p-3 space-y-3 text-fa-text" data-testid="ruler-sheet">
       <div className="flex gap-3 items-center">
-        <Portrait nationId={m.nationId} name={m.ruler.name} color={nation.color} />
+        <Portrait nationId={m.nationId} name={nameNow('person', null, m.ruler.name)} color={nation.color} />
         <div className="min-w-0 flex-1">
           <h2 className="fa-heading text-[19px] leading-tight truncate">{t('ruler.title', { name: nameNow('person', null, m.ruler.name), people: getLanguage() === 'he' ? nameNow('people', m.nationId, nation.name) : PEOPLES[m.nationId]?.name || nation.name })}</h2>
           <div className="flex items-baseline gap-2 text-[12px]">

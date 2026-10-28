@@ -69,7 +69,7 @@ describe('W14 defenseSheetModel', () => {
     expect(m.hopeless).toBe(true);
     expect(m.warning).toMatch(/^Badly outnumbered: Auto holds only 5% of the time\./);
     expect(m.warning).not.toMatch(/—/);
-    expect(m.suggested).toBe(m.withdraw?.ok ? 'withdraw' : 'command');
+    expect(m.suggested).toBe(m.withdraw?.ok ? 'withdraw' : 'auto');
     const chosen = defenseSheetModel({ ...st, battleSettings: { defaultMode: 'command' } }, def, { view });
     expect(chosen.suggested).toBe('command'); // an intentional Command stays the choice
     const even = defenseSheetModel(st, def, { view: { ...view, odds: { ...view.odds, holdChance: 0.5 } } });
@@ -94,6 +94,11 @@ describe('W14 defenseSheetModel', () => {
     expect(m.commandBlocked).toBeNull();
     expect(m.yours.title).toBe('Militia only');
     expect(m.command).toMatch(/^No regiment stands in .*: you command its militia alone\./);
+    // Playtest 40550092795 #183: militia alone against a host is called hopeless before the choice.
+    const lost = defenseSheetModel(bare, def, { view: { ...queuedBattleView(bare, def, 2), odds: { undefended: true, holdChance: 0.02 } } });
+    expect(lost.hopeless).toBe(true);
+    expect(lost.warning).toMatch(/2% of the time/);
+    expect(lost.suggested).toBe(lost.withdraw?.ok ? 'withdraw' : 'auto');
     const manifest = cityManifestOf(bare, WORLD.city);
     const ruined = Object.fromEntries(manifest.structures.map((x) => [x.id, true]));
     const empty = { ...bare, regions: { ...bare.regions, [WORLD.city]: { ...bare.regions[WORLD.city], cityDamage: { ruined, damaged: {} } } } };

@@ -18,10 +18,10 @@ export default {
   'm.city.newLand': 'אדמה חדשה',
 
   'm.city.loyaltyLow': 'הנאמנות של {city} נשחקת ({loyalty}): הציבו בה חיל מצב או שפרו את הנוחות בה.',
-  'm.city.flipLost': '{city} עברה לצד {nation}: אנשיה כבר לא מרגישים שייכים לך.',
-  'm.city.flipGained': '{city} מצטרפת אליך: אנשיה בחרו בשלטונך.',
-  'm.city.flipIndependent': '{city} השליכה את שלטונך ועומדת כעת כ{nation}, עיר עצמאית.',
-  'm.city.flipFree': '{city} השליכה את שלטונך ועומדת כעת כעיר חופשית.',
+  'm.city.flipLost': '{city} עברה לצד {nation}: אנשיה כבר לא מרגישים שייכים לכם.',
+  'm.city.flipGained': '{city} מצטרפת אליכם: אנשיה בחרו בשלטונכם.',
+  'm.city.flipIndependent': '{city} השליכה את שלטונכם ועומדת כעת כ{nation}, עיר עצמאית.',
+  'm.city.flipFree': '{city} השליכה את שלטונכם ועומדת כעת כעיר חופשית.',
 
   'm.city.plagueOutbreak': 'מגפה פורצת ב{city}.',
   'm.city.plagueOver': 'המגפה ב{city} דעכה{left}.',

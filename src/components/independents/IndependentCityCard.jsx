@@ -6,8 +6,10 @@ import React, { useMemo } from 'react';
 import { independentSummary } from './independentSheetModel';
 import { openIndependent } from './independentEvents';
 import { ShieldMark, TONE_TEXT } from './IndependentBits';
+import { useT } from '../../i18n/useT';
 
 const IndependentCityCard = ({ state, nationId }) => {
+  const { t } = useT();
   const s = useMemo(() => independentSummary(state, nationId), [state, nationId]);
   if (!s) return null;
   return (
@@ -15,16 +17,16 @@ const IndependentCityCard = ({ state, nationId }) => {
       <div className="flex items-center gap-2">
         <ShieldMark personality={s.personality.id} size={28} />
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] uppercase tracking-[0.08em] font-semibold text-fa-indep">Independent · {s.personality.name}</div>
+          <div className="text-[10px] uppercase tracking-[0.08em] font-semibold text-fa-indep">{t('ind.sheet.independent')} · {s.personality.name}</div>
           <div className="flex gap-3">
-            <span data-testid="independent-attitude">Attitude <span className={TONE_TEXT[s.attitude.tone]}>{s.attitude.word} {s.attitude.value > 0 ? '+' : ''}{s.attitude.value}</span></span>
-            <span>Grudge <span className={TONE_TEXT[s.grudge.tone]}>{s.grudge.value}</span></span>
+            <span data-testid="independent-attitude">{t('sw.ind.sort.attitude')} <span className={TONE_TEXT[s.attitude.tone]}>{s.attitude.word} <bdi>{s.attitude.value > 0 ? '+' : ''}{s.attitude.value}</bdi></span></span>
+            <span>{t('ind.sheet.grudge')} <span className={TONE_TEXT[s.grudge.tone]}>{s.grudge.value}</span></span>
           </div>
         </div>
       </div>
       {s.lines.map((l, i) => <div key={i} className={TONE_TEXT[l.tone]}>{l.text}</div>)}
       <button type="button" onClick={() => openIndependent(s.id)} className="w-full min-h-[44px] rounded-lg bg-fa-hover hover:bg-fa-line border border-fa-line text-[12px] font-semibold text-fa-text" data-testid="open-independent-sheet">
-        Open their sheet: deals, mercenaries, actions
+        {t('sw.ind.openSheet')}
       </button>
     </div>
   );

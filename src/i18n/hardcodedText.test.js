@@ -3,8 +3,8 @@
 // CONVERTED when you convert it. A line that must keep a literal (a data id, an icon name) ends
 // with `// i18n-ok`. Checks JSX text between tags and the text attributes below.
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync, readdirSync } from 'node:fs';
+import { resolve, join } from 'node:path';
 
 const CONVERTED = [
   'src/components/panels/DomesticPanel.jsx',
@@ -81,8 +81,16 @@ const findHardcoded = (source) => {
   const found = [];
   const lines = source.replace(/\r\n/g, '\n').split('\n');
   let inBlockComment = false;
+  let prevCode = '';
   lines.forEach((raw, i) => {
+    const before = prevCode;
+    if (raw.trim()) prevCode = raw.trim();
     if (raw.includes('i18n-ok')) return;
+    // a line of bare text inside JSX, under a tag that ends on the line before: <p>\n  Some words\n</p>
+    if (/[^=]>$/.test(before) && /^[A-Z][^<>{}=;`'"]*[a-z]{2,}[^<>{}=;`'"]*$/.test(raw.trim()) && !/^(?:import|export|const|let|return)\b/.test(raw.trim())) {
+      found.push({ line: i + 1, text: raw.trim() });
+      return;
+    }
     let line = raw;
     if (inBlockComment) {
       if (line.includes('*/')) { inBlockComment = false; line = line.slice(line.indexOf('*/') + 2); } else return;
@@ -95,7 +103,7 @@ const findHardcoded = (source) => {
     const jsx = /(?<![=\s-])>([^<>{}=]*[A-Za-z]{2,}[^<>{}=]*)(?=<|\{)/g;
     let m;
     while ((m = jsx.exec(line))) {
-      if (/^\s*$/.test(m[1])) continue;
+      if (/^\s*$/.test(m[1]) || /&&|\|\|/.test(m[1])) continue; // code between two tags, not text
       found.push({ line: i + 1, text: m[1].trim() });
     }
     const attr = new RegExp(`\\b(?:${TEXT_ATTRS})="([^"]*[A-Za-z]{2,}[^"]*)"`, 'g');
@@ -104,6 +112,20 @@ const findHardcoded = (source) => {
   return found;
 };
 
+// Every other .jsx under src/components is checked too (the i18n sweep, 27 Oct), except these
+// developer screens that players never see, and the colony block of the retired emergent world.
+const DEV_ONLY = new Set([
+  'src/components/admin/AdminPage.jsx',
+  'src/components/map/TileViewer.jsx',
+  'src/components/map/WorldLab.jsx',
+  'src/components/modals/ColonyBlock.jsx'
+]);
+const allJsx = (dir) => readdirSync(resolve(process.cwd(), dir), { withFileTypes: true }).flatMap((d) => {
+  const p = join(dir, d.name).replace(/\\/g, '/');
+  if (d.isDirectory()) return allJsx(p);
+  return p.endsWith('.jsx') && !p.includes('.test.') ? [p] : [];
+});
+
 describe('no hard-coded English in converted files', () => {
   it('the finder flags JSX text and text attributes, and skips t() and i18n-ok', () => {
     expect(findHardcoded('<div>Hello there</div>')).toHaveLength(1);
@@ -111,6 +133,8 @@ describe('no hard-coded English in converted files', () => {
     expect(findHardcoded("<div>{t('a.b')}</div>")).toHaveLength(0);
     expect(findHardcoded('<div className="text-fa-muted">{x}</div>')).toHaveLength(0);
     expect(findHardcoded('<b>Raw</b> // i18n-ok')).toHaveLength(0);
+    expect(findHardcoded('<p className="x">\n  Some words on their own line.\n</p>')).toHaveLength(1);
+    expect(findHardcoded('const f = (x) =>\n  Math.max(x, 1);')).toHaveLength(0);
   });
   for (const file of CONVERTED) {
     it(`${file} has none`, () => {
@@ -118,4 +142,13 @@ describe('no hard-coded English in converted files', () => {
       expect(findHardcoded(src)).toEqual([]);
     });
   }
+});
+
+describe('no hard-coded English in any player-facing component', () => {
+  const files = allJsx('src/components').filter((f) => !DEV_ONLY.has(f) && !CONVERTED.includes(f));
+  it('finds the component files', () => expect(files.length).toBeGreaterThan(50));
+  it('none has JSX text or a text attribute in English', () => {
+    const found = files.flatMap((f) => findHardcoded(readFileSync(resolve(process.cwd(), f), 'utf8')).map((h) => `${f}:${h.line} ${h.text}`));
+    expect(found).toEqual([]);
+  });
 });

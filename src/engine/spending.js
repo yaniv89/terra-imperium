@@ -37,6 +37,7 @@ import { ageOf } from './nationState';
 import { nextTemplateUnit } from './armyTemplates';
 import { canQueue, itemKey } from './world/cities';
 import { cityLive, queueView, worldOf } from './cityEconomy';
+import { reasonOf } from './messages';
 
 // --- Rush ---------------------------------------------------------------------------------------
 /** Gold per missing point of production (provisional). A city earns about 3 gold for every point
@@ -86,27 +87,27 @@ const treasuryOf =(state, nationId) => (nationId === state.playerNationId ? stat
  */
 export const rushQuote = (state, cityId, index = 0, nationId = state.playerNationId, treasury = null) => {
   const city = state.regions?.[cityId];
-  if (!city || city.owner !== nationId) return { ok: false, reason: 'Not your city.' };
-  if (city.outpost || city.razing || city.tile == null || !city.production) return { ok: false, reason: 'Nothing is built here yet.' };
+  if (!city || city.owner !== nationId) return { ok: false, ...reasonOf('m.why.notYourCity') };
+  if (city.outpost || city.razing || city.tile == null || !city.production) return { ok: false, ...reasonOf('m.why.rush.nothingBuilt') };
   const live = cityLive(state, cityId);
   const row = queueView(state, cityId, live)[index];
-  if (!row) return { ok: false, reason: 'Nothing to rush.' };
+  if (!row) return { ok: false, ...reasonOf('m.why.rush.nothing') };
   const { item, cost, progress, key } = row;
   const base = { item, key, cost, progress, ageId: live.ctx.ageId };
   if (RUSH_BLOCKED_KINDS[item.kind]) return { ok: false, reason: RUSH_BLOCKED_KINDS[item.kind], ...base };
-  if (city.occupiedBy || city.underInvasion || city.siege) return { ok: false, reason: 'Not while the enemy is at the gates.', ...base };
-  if (!(cost > 0) || cost >= 9999) return { ok: false, reason: 'This cannot be bought.', ...base };
+  if (city.occupiedBy || city.underInvasion || city.siege) return { ok: false, ...reasonOf('m.why.rush.enemy'), ...base };
+  if (!(cost > 0) || cost >= 9999) return { ok: false, ...reasonOf('m.why.rush.cannot'), ...base };
   const list = [city.production.current, ...(city.production.queue || [])].filter(Boolean);
-  if (index > 0 && list.findIndex((it) => itemKey(it) === key) !== index) return { ok: false, reason: 'Rush the first order of this kind first.', ...base };
+  if (index > 0 && list.findIndex((it) => itemKey(it) === key) !== index) return { ok: false, ...reasonOf('m.why.rush.firstKind'), ...base };
   const can = canQueue(city, getTiles(), worldOf(state), item, { researched: live.ctx.researched, ageId: live.ctx.ageId, techFree: item.kind === 'unit' }); // a queued unit was allowed when queued (old saves): rushing does not re-gate it
   // A later building tier waits for the tier queued before it.
   if (!can.ok) return { ok: false, reason: item.kind === 'building' && index > 0 && can.reason === 'Tiers are built in order.' ? 'Rush the tier before it first.' : can.reason, ...base };
   const hammers = Math.max(0, Math.round((cost - progress) * 10) / 10);
-  if (!(hammers > 0)) return { ok: false, reason: 'Already paid for: it is done next turn.', ...base, hammers: 0, gold: 0 };
+  if (!(hammers > 0)) return { ok: false, ...reasonOf('m.why.rush.paid'), ...base, hammers: 0, gold: 0 };
   const heat = rushHeat(city, state.turnNumber, state.gameSpeed, live.ctx.ageId);
   const gold = rushGold(hammers, heat, item.kind);
   const quote = { ...base, hammers, gold, heat, mult: rushPriceMult(heat), turns: row.pieceTurns ?? row.turns };
-  if ((treasury ?? treasuryOf(state, nationId)) < gold) return { ok: false, reason: `Needs ${gold} gold.`, ...quote };
+  if ((treasury ?? treasuryOf(state, nationId)) < gold) return { ok: false, ...reasonOf('m.why.needsGold', { gold }), ...quote };
   return { ok: true, ...quote };
 };
 
