@@ -237,7 +237,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
         </p>
         {where.places.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-1.5">
-            <IconButton icon={MapPin} label={t('nc.showOnMap')} onClick={() => { onLeave(); focusPlace(where.places); }} />
+            <IconButton icon={MapPin} label={t('nc.showOnMap')} onClick={() => { onLeave(); focusPlace(atWarWithPlayer ? where.front : where.places); }} />
             {atWarWithPlayer && canAttack(state, state.playerNationId, nation.id) && (
               <IconButton icon={Flag} label={marchCity ? t('nc.marchTo', { name: nameNow('city', null, marchCity.name) }) : t('nc.marchToArmy')} disabled={!where.march}
                 onClick={() => {
