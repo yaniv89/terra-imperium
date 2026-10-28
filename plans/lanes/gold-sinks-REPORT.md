@@ -125,3 +125,16 @@ buildingUpkeep.test.js reads the constant. Engine-rules-reviewer: one finding (i
    already, aiEconomy.js spendSurplus). Leave as is?
 2. The Buy chip's reserve is 10 turns of net income (`BUY_HINT_INCOME_TURNS`). A newcomer playtest would
    show whether it should be 5 or 20.
+
+## 7. Addendum (lead answers, 28 Oct 12:32)
+- Lead: building upkeep stays player only; the Buy reserve stays at 10 turns until the round 3 newcomer
+  playtest. Lane closed.
+- Partial measurement of AI majors paying building upkeep at the player's rate (seeds 11 to 13, 250 turns,
+  against this branch, stopped when the lane closed): AI gold mean fell about 40% more (6.8k to 3.9k and
+  4.3k on seeds 11 and 12), but AI majors also ended with fewer cities (777 to 757, 801 to 787 major cities),
+  fewer buildings (233 to 219, 229 to 221) and fewer wars. Not worth it without its own calibration.
+- The late ages run (500 turns) was stopped unfinished when the lane closed. Upkeep by age and event gold by
+  income both scale with the age and the income by construction (Future units cost 23 a turn; a card's gold is
+  a share of income), but there are no late-age curves in this report.
+- Opus playtest 40651416284 bug B1 (the rush button "did nothing" at step 244) is already fixed on integration
+  by another lane: the buy offer now opens in the pinned queue bar (CityPanel.jsx).
