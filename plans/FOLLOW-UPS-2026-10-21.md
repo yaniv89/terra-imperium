@@ -124,3 +124,5 @@ Checked against claude/integration c16d20ae plus this lane. "Done" rows rest on 
 | 40 | Battle runs after an army is dead | done | 0b514191, 7e3fe8b3 | |
 | 41 | Units tiny and hidden | done (mostly) | dc70b464, b370ba40, fc63d272 | Melee blob not changed (a look decision) |
 | 42 | Phone battle HUD | done | e1601603, 37c2a4ba, 977d1d3a | Plus this lane: Hebrew ability names in the radial, overlays take turns |
+
+- 28 Oct (city-builds review): bump `ENGINE_BUILD` in src/data/challenges.js ('e1' -> 'e2') before U36 goes live; the 27-28 Oct rule changes (production, AI wars, battle AI) alter replays. Challenges are off (CHALLENGES_ON false), so nothing breaks today.
