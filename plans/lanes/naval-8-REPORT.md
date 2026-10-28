@@ -48,11 +48,46 @@ wording (battle-screens lane), the AI's amphibious odds (battle-odds lane; LANDI
 
 ### Headless trace (balance-sim navalTrace.sim.js, 150 turns, NAVAL=1 player, seeds 11 and 12)
 
-TRACE_TABLE
+Fixed seeds, the same harness before (origin/claude/integration f60660b8) and after (final merged head).
+The naval-minded player (NAVAL=1: queues a ship, boards, sails, lands) is unchanged, as intended:
+
+| start, seed | could build | ship | army aboard | at sea | landed | first sea battle, before / after |
+|---|---|---|---|---|---|---|
+| Ahhiyawa 11 | 8 | 19 | 20 | 21 | 22 | none / 121 |
+| Ahhiyawa 12 | 8 | 19 | 20 | 21 | 22 | 131 / none |
+| Tartessos 11 | 8 | 19 | 20 | 21 | 22 | none / none |
+| Tartessos 12 | 8 | 19 | 20 | 21 | 22 | none / none |
+
+AI coastal majors (12 a world):
+
+| start, seed | own a ship, before | after (median turn) | fleet at sea, before | after (median turn) |
+|---|---|---|---|---|
+| Ahhiyawa 11 | 0/12 | 9/12 (104) | 0/12 | 0/12 |
+| Ahhiyawa 12 | 0/12 | 9/12 (106) | 0/12 | 2/12 (141) |
+| Tartessos 11 | 0/12 | 9/12 (107) | 0/12 | 1/12 (85) |
+| Tartessos 12 | 1/12 (132) | 10/12 (104) | 0/12 | 0/12 |
+
+Sea battles (naval, landing, intercept) per game stay rare (0 to 4 before, 0 to 1 after): the AI
+world is quiet by design, and an AI fleet goes to sea only at war. The player's first sea battle
+moves with the seed (one game gains one, one loses one). The real change is that a coastal player
+now meets AI ships and sees invasions coming, rather than more battles.
 
 ### Balance (compare.sh origin/claude/integration 150 11-14, PLAYER=tartessos, paired)
 
-COMPARE_TABLE
+4 paired seeds (11 to 14), final turn. No health or runaway change: nonFinite and auditViolations
+identical (0); 96 metrics identical on every seed; warsTotal, conquests, capturesTotal,
+nationsAlive, topLandShare and effectiveNations not starred. Starred rows:
+
+| metric | base | head | diff [95%] | seeds up/down |
+|---|---|---|---|---|
+| sacks | 15.8 | 18.0 | +2.25 [0.25, 4.25] | 4/0 |
+| warStackMean | 1.83 | 2.08 | +0.25 [0.04, 0.46] | 4/0 |
+| branchShare_sage | 0.20 | 0.19 | -0.0025 [-0.0046, -0.0004] | 0/4 |
+
+Reading: AI coastal cities now spend some production on one ship (NAVY_UTILITY 0.5 in peace), a
+little less on garrison and walls, so independents sack about 2 more AI cities a game over 150
+turns; war stacks are slightly bigger. For the lead: if the sacks matter, lower NAVY_UTILITY or
+start the peacetime navy from the Classical age. msPerTurn not starred (parallel runs).
 
 ### Real browser (scripts/ui/naval-shots.mjs --he, dev server 5197)
 
@@ -69,7 +104,9 @@ lost goes to another own port and unloads; an empty transport does not park off 
 AI writes nothing to the player's log), fleets.test.js (no boarding a fleet at sea; putting in from a
 port water not beside the centre), aiOperations.test.js and sallyLanding.test.js (landings now come after
 the voyage: testWorld.js `aiVoyage`). Each new assertion was checked to fail without its fix.
-FULL_SUITE
+Full `npx vitest run` on the merged head: 4,721 passed, 17 skipped, 1 failed: ruleYearPurity.test.js
+caught my `{year:next.year}` (no space) as a year read. It was only a label copy; it is now written as
+`year: next.year` and that test passes. `npm run lint` clean.
 
 engine-rules-reviewer: three real findings, all fixed (a fleet could move twice the turn it reached
 port; a fleet whose home port fell was stranded at sea; an empty transport parked off an enemy coast)
