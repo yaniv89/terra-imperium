@@ -104,7 +104,7 @@ const CurrentCard = ({ m }) => {
       <div className="flex items-start gap-2.5">
         <FlaskConical className="w-5 h-5 mt-0.5 shrink-0" style={{ color: SCIENCE }} aria-hidden="true" />
         <div className="min-w-0 flex-1">
-          <div className="fa-heading text-[17px] leading-tight truncate">{techName(c.tech.id, c.tech.name)}</div>
+          <div className="fa-heading text-[17px] leading-tight truncate"><GlossaryLink kind="tech" id={c.tech.id}>{techName(c.tech.id, c.tech.name)}</GlossaryLink></div>
           <div className="text-[12px] text-fa-muted leading-snug">{describeTech(c.tech)}</div>
           <UnlocksLine techId={c.tech.id} className="text-[12px] text-fa-text leading-snug" testId="research-current-unlocks" />
         </div>
@@ -288,7 +288,7 @@ const TechPanel = () => {
               {m.queue.length === 0 && <span className="text-[12px] text-fa-muted">{tNow('tech.noQueue')}</span>}
               {m.queue.map((q, i) => (
                 <span key={q.tech.id} className="fa-chip !pe-1 gap-1">
-                  <span className="fa-num text-fa-muted">{i + 1}</span> {techName(q.tech.id, q.tech.name)} <span className="fa-num text-fa-muted">{q.gate ? tNow('p2.q.waits', { label: q.gate.label }) : tNow('p2.q.turns', { n: q.finishesIn })}</span>
+                  <span className="fa-num text-fa-muted">{i + 1}</span> <GlossaryLink kind="tech" id={q.tech.id}>{techName(q.tech.id, q.tech.name)}</GlossaryLink> <span className="fa-num text-fa-muted">{q.gate ? tNow('p2.q.waits', { label: q.gate.label }) : tNow('p2.q.turns', { n: q.finishesIn })}</span>
                   <button type="button" onClick={() => unqueue(q.tech.id)} aria-label={tNow('p2.q.remove', { name: techName(q.tech.id, q.tech.name) })} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-fa-hover text-fa-muted"><X className="w-3 h-3" aria-hidden="true" /></button>
                 </span>
               ))}
@@ -297,7 +297,7 @@ const TechPanel = () => {
               <div className="fa-card flex items-center gap-2 ps-3 pe-1.5 py-1.5 min-h-[48px]" data-testid="research-recommend">
                 <Sparkles className="w-4 h-4 shrink-0 text-fa-brass" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
-                  <div className="text-[13px] font-semibold leading-tight truncate">{techName(top.techId, TECH_TREE[top.techId]?.name)} <span className="fa-num text-[11px] text-fa-muted font-normal">{formatTurns(techInfo(state, top.techId, science).turns)}</span></div>
+                  <div className="text-[13px] font-semibold leading-tight truncate"><GlossaryLink kind="tech" id={top.techId}>{techName(top.techId, TECH_TREE[top.techId]?.name)}</GlossaryLink> <span className="fa-num text-[11px] text-fa-muted font-normal">{formatTurns(techInfo(state, top.techId, science).turns)}</span></div>
                   <div className="text-[11px] leading-snug text-fa-brass">{top.text}</div>
                 </div>
                 {state.research?.current
@@ -322,7 +322,7 @@ const TechPanel = () => {
         <ActionCard icon={GraduationCap} label={tNow('tech.scholars')} description={tNow('p2.sch.desc')} cost={costLine(ACTION_COSTS.fundScholars)}
           effect={scholarsPreview(state, FUND_SCHOLARS_TECHPOINTS).note} onClick={handleFundScholars} disabled={!canPay(state, ACTION_COSTS.fundScholars)} why={payWhy(state, ACTION_COSTS.fundScholars)} />
         <div className="space-y-1.5">
-          <Label><GlossaryLink kind="term" id="focus">{tNow('p2.fo.label')}</GlossaryLink> <span className="normal-case tracking-normal font-normal">{tNow('p2.fo.hint', { pct: Math.round(FOCUS_SCIENCE_BONUS * 100), cost: focusCost ? tNow('p2.fo.cost', { list: costLine(focusCost) }) : '' })}</span></Label>
+          <Label><GlossaryLink kind="term" id="focus">{tNow('p2.fo.label')}</GlossaryLink> <span className="normal-case tracking-normal font-normal">{tNow('p2.fo.hint', { pct: Math.round(FOCUS_SCIENCE_BONUS * 100), cost: costLine(focusCost) ? tNow('p2.fo.cost', { list: costLine(focusCost) }) : '' })}</span></Label>
           <div className="flex flex-wrap gap-1.5">
             {Object.values(TechCategories).map((categoryId) => (
               <Chip key={categoryId} pressed={state.researchFocus === categoryId}
@@ -355,7 +355,7 @@ const TechPanel = () => {
               {g.ages.map((a, i) => i > 0 && <line key={`v${a.ageId}`} x1={a.x - 9} y1={-24} x2={a.x - 9} y2={g.height} stroke="#33404F" strokeDasharray="3 3" />)}
               {g.edges.map((e) => <path key={`${e.from}-${e.to}`} d={`M ${e.x1} ${e.y1} C ${e.x1 + 24} ${e.y1}, ${e.x2 - 24} ${e.y2}, ${e.x2} ${e.y2}`} fill="none" stroke={e.cross ? '#D8A444' : '#4A5868'} strokeWidth={e.cross ? 1.5 : 1} opacity={0.9} />)}
               {g.nodes.map((n) => (
-                <g key={n.id} transform={`translate(${n.x} ${n.y})`} onClick={() => act(n)} style={{ cursor: 'pointer' }} data-testid={`web-${n.id}`} data-status={n.status}>
+                <g key={n.id} transform={`translate(${n.x} ${n.y})`} onClick={() => act(n)} style={{ cursor: 'pointer' }} data-testid={`web-${n.id}`} data-status={n.status} data-help={`tech:${n.id}`}>
                   <rect width={GRAPH_NODE_W} height={GRAPH_NODE_H} rx="8" fill={WEB_FILL[n.status]} stroke={n.id === picked ? '#D8A444' : WEB_STROKE[n.status]} strokeWidth={n.status === 'current' || n.id === picked ? 2 : 1} />
                   <text x={8} y={18} fontSize="11" fontWeight="700" fill="#ECE5D3">{n.name.length > 20 ? `${n.name.slice(0, 19)}…` : n.name}</text>
                   <text x={8} y={34} fontSize="10" fill="#B9B19F">{n.status === 'researched' ? tNow('p2.web.known') : n.status === 'current' ? tNow('p2.web.researching', { turns: formatTurns(n.turns) }) : n.status === 'queued' ? tNow('p2.web.queued') : n.status === 'available' ? tNow('p2.tr.costTurns', { cost: n.cost, turns: formatTurns(n.turns) }) : tNow('p2.web.locked')}</text>

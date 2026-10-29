@@ -719,6 +719,12 @@ html[data-turn-report] [data-testid="turn-dock"] { display: none; }
   display: none;
 }
 
+/* The install hint (InstallHint.jsx) sits where those bars do, top centre: it waits while one is up
+   (lead's manual playtest, 29 Oct: it lay under the settle bar). */
+[data-map-tool] .install-hint {
+  display: none;
+}
+
 /* Phone held upright (E2): the map on top, a half sheet below, so the globe stays in view while a
    city, tile or army sheet is open. */
 [data-layout="phone-portrait"] .sheet-panel {

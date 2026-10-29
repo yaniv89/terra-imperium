@@ -33,10 +33,11 @@ const WIDE_TABS = new Set(['tech', 'diplomacy', 'ruler']);
 
 // One rail button: icon over a tiny label; a dot when something there waits for you. The open
 // tab is a raised fill with a light outline (selection is never brass).
-const RailButton = ({ icon: Icon, label, active, badge, onClick, ariaLabel }) => (
+const RailButton = ({ icon: Icon, label, active, badge, onClick, ariaLabel, help }) => (
   <button
     type="button"
     onClick={onClick}
+    data-help={help && `term:${help}`}
     aria-label={ariaLabel || label}
     aria-pressed={active}
     className={`relative w-full flex-1 min-h-[44px] max-h-[64px] flex flex-col items-center justify-center gap-0.5 border-b border-fa-line transition-colors
@@ -47,6 +48,22 @@ const RailButton = ({ icon: Icon, label, active, badge, onClick, ariaLabel }) =>
     {badge > 0 && <span className="absolute top-1.5 end-2 w-2 h-2 rounded-full bg-fa-danger" aria-hidden="true" />}
   </button>
 );
+
+// The first panel a touch player opens says once that a hold explains things (round 3b: no player
+// found hold-for-help on their own). Remembered per browser only: a convenience, not game state.
+const HOLD_HINT_KEY = 'terra-imperium.holdHintSeen';
+const HoldHint = () => {
+  const { t } = useT();
+  const [show, setShow] = useState(() => { try { return window.matchMedia('(pointer: coarse)').matches && !localStorage.getItem(HOLD_HINT_KEY); } catch { return false; } });
+  useEffect(() => { if (show) try { localStorage.setItem(HOLD_HINT_KEY, '1'); } catch { /* storage blocked */ } }, [show]);
+  if (!show) return null;
+  return (
+    <div data-testid="hold-hint" className="flex items-center gap-2 ps-3 pe-1 py-1 text-[12px] text-fa-text bg-fa-raised border-b border-fa-line shrink-0">
+      <span className="flex-1 min-w-0">{t('rail.holdHint')}</span>
+      <button type="button" onClick={() => setShow(false)} aria-label={t('p1.dismiss')} className="w-9 h-9 flex items-center justify-center rounded text-fa-muted hover:text-fa-text"><X className="w-4 h-4" aria-hidden="true" /></button>
+    </div>
+  );
+};
 
 const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
   const { state } = useGame();
@@ -149,6 +166,7 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
       >
         {dockShown && (
           <div data-testid="landscape-dock" data-tab={activeTab} className={`${WIDE_TABS.has(activeTab) ? 'w-[min(600px,calc(100vw-52px-12rem))] lg:w-[640px]' : 'w-[clamp(300px,40vw,380px)] tb:w-[420px] lg:w-[420px]'} flex flex-col border-e border-fa-line shadow-2xl bg-fa-panel pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+58px)] pl:pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+50px)]`}>
+            <HoldHint />
             <ActionPanel activeTab={activeTab} />
           </div>
         )}
@@ -161,10 +179,11 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
               active={dockShown && activeTab === tab.id}
               badge={getTabBadge(state, tab.id)}
               onClick={() => handleRailTab(tab.id)}
+              help={tab.help}
             />
           ))}
-          <RailButton icon={ScrollText} label={t('rail.log')} ariaLabel={t('rail.openLog')} badge={unreadLogs > 0 ? 1 : 0} onClick={onOpenLog} />
-          <RailButton icon={Menu} label={t('rail.menu')} ariaLabel={t('rail.openMenu')} onClick={() => openMenu()} />
+          <RailButton icon={ScrollText} label={t('rail.log')} ariaLabel={t('rail.openLog')} help="log" badge={unreadLogs > 0 ? 1 : 0} onClick={onOpenLog} />
+          <RailButton icon={Menu} label={t('rail.menu')} ariaLabel={t('rail.openMenu')} help="help" onClick={() => openMenu()} />
         </nav>
       </div>
     );
@@ -188,6 +207,7 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
               <X className="w-4 h-4" />
             </button>
           </div>
+          <HoldHint />
           <ActionPanel activeTab={activeTab} />
         </div>
       )}

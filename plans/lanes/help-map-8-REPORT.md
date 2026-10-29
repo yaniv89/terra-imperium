@@ -1,0 +1,58 @@
+ponytail loaded in full at the session start (Skill `ponytail:ponytail` printed the whole SKILL.md; the session start hook also printed PONYTAIL MODE ACTIVE).
+
+# Lane help-map-8: report
+
+Branch `claude/help-map-8`, from `claude/integration` 039d3c18. UI only: no engine, rule or battle sim change. No API use.
+Source: round 3b Opus playtests civ-veteran 40746164607 and warmonger 40746170250 (diary lines and shots read from their branches).
+
+## For the lead
+
+No design call is open. Two notes:
+1. Desktop 1600x900: the army sheet opens under the Cities dock, so a mouse click on its March button lands on the map behind it (`after/3a-march-why-desktop-he.png`; same layer clash as r3-campaign open item 1). Phones are fine. Not fixed here (lead-ui area): say if this lane should take it.
+2. A peace offer sent from a city card (RegionInfoModal) still closes without showing the answer; the one from a people's card (civ-veteran 288) shows it since r3-campaign. Not taken.
+
+## Findings
+
+| # | Finding | Root cause | Fix | Before | After |
+|---|---|---|---|---|---|
+| 1a | Holding Research only opened the panel (warmonger 42) | Rail buttons had no `data-help`, so useHoldHelp ignored them | Every rail and bottom-bar tab names a glossary term (`TABS[].help` in ActionPanelTabs.jsx; PanelDrawer RailButton passes it; Log and Menu too). Four new terms with en and he text: `empire`, `cities`, `peoples`, `log` (Research opens `science`, Ruler `ruler`, Legacy `goals`, Menu `help`) | Code: no `data-help` on any rail button at 039d3c18 | `ok phone-en/he hold Research tab opens the glossary`, `the held tab did not open the panel` (shot `1a-hold-research-tab`) |
+| 1b | Tech names in Research did not link to the glossary (civ-veteran 156-158) | Only the tech list cards linked; the current tech's title, the queue chips, the suggestion card and the Web view's nodes did not | Those names are now GlossaryLinks (tap or hold), Web nodes carry `data-help` (TechPanel.jsx) | Code: plain text at 039d3c18 | `ok phone-en/he hold the current tech name opens its entry` (`1c-hold-tech-name`) |
+| 1c | Hold-for-help was undiscoverable | Only the glossary sheet's own tip mentioned it | A one-line tip at the top of the first panel a touch player opens: "Tip: hold a finger on any tab, name or number to read what it is.", with an X; once per browser (localStorage, wrapped in try) and never on a mouse screen. The glossary help texts now name tab buttons too | none | `ok hold hint on first open (touch only)` on all four, `ok hold hint shows only once` (`1b-research-first-open`) |
+| 2 | Camera jumped away after a march (civ-veteran 198, warmonger 159); target labels behind the march bar (warmonger 157, 276-277) | The war card's March flies to the target while the card's sheet still sets the map insets, so the target lands off centre, at the bottom edge under the HUD. The I083 nudge only handled a target right under the bar, not one below it or off screen | GLMapView.jsx: once the march bar shows, a target that is under the bar or outside the free map is centred in the room above the bar (zoom of the fly-to kept, and the late inset re-fly cancelled); a target already in view stays put | `node scripts/ui/help-map-8-probe.mjs --tag before`: Sippar at 372,369 with the bar at 186-317 and the bottom HUD below: OFF THE FREE MAP, also after March to attack | Sippar at 372,112 (he 472,112; desktop 773,450 under a top bar at 45-212): `ok march target in the free map`, `ok the camera stays after March to attack` (`2a-march-target`, `2b-march-confirmed`) |
+| 3 | March greyed after a landing, no reason (warmonger 127) | ArmySheet's March used the native `disabled` with no reason; MarchBar's two Attack buttons had only a `title` (no hover on a phone) | March goes through `useWhy`: "No moves left this turn (a landing or a march used them). It can march again next turn." or "Pick at least one regiment to march."; MarchBar's Attack now and Attack army show their block reason on tap. Every other army button already used `why` | Code: `disabled` without a reason | `ok a greyed March says why` on all four (`3a-march-why`) |
+| 4 | Double tap only zoomed; the close view was not discoverable (civ-veteran 39-40) | The close view is just the map zoomed past CLOSE_ZOOM_K; nothing says so | A **Close view** chip beside the map's search button whenever the map is zoomed out of it; one tap flies the middle of the screen to the close view's zoom (the same zoom Home uses), and the chip hides there | none | `ok Close view chip when zoomed out`, `ok the chip zooms into the close view: k 7.7 to 30.8` (`4a-close-view-chip`, `4b-close-view`) |
+| 5a | A full-screen banner X needed a second tap (civ-veteran 141-143) | Not reproduced. The slice started on a full-screen card at build a0312e08; the era saves then asked for a pending landmark, which lead-ui-fixes removed (the saves now pick it). Loading the classical save now shows no banner: a screenshot after load and `elementFromPoint(587,72)` is the map canvas. The r3-battle harness fix (event timestamps) also stops slow taps arriving as holds | none needed | finding in 3b | load shot: no banner, nothing at the X spot |
+| 5b | The autosave toast covered the prompts (warmonger 108) | Fixed by lead-ui-fixes (toast at top centre, MenuSheet.jsx), after the 3b build | none | | Code: toast at `left-1/2 top-[header+0.5rem]`, the prompts are top-start |
+| 6a | Declare war text "Already fighting The Akkadian Empire" looked stale after peace (civ-veteran 357) | Not stale: in the information save the Pontic Empire is at war with Akkad (`Akkad vs Pontus` in `state.wars`). The line did not say whose war it was, and the player read it as their own | Reworded: ". They are at war with {list} (their war, not yours)" (en and he) | text | text |
+| 6b | Silent Offer pact (civ-veteran 23, 63), silent Declare war without gold (65), white peace closing without an answer (288) | | Covered by r3-campaign: every people's card action answers in a bubble on the tapped tile, the short-of-gold refusal says what is missing, and the peace sheet from the card sends through the card | | r3-campaign shots `2b-offer-pact`; see "For the lead" 2 for the city-card path |
+
+## Evidence
+
+- `node scripts/ui/help-map-8-shots.mjs` (dev server on 5231; classical save; 844x390 touch with CDP taps and 900 ms holds like the playtester, and 1600x900, en and he): every check ok (log above in the table). Shots: `plans/lanes/help-map-8-shots/after/`.
+- `node scripts/ui/help-map-8-probe.mjs --tag before|after`: the march target's screen point (before 372,369 off the free map; after 372,112).
+- Tests: `npm run test:related` on the touched files (381 files, the locale files reach most of the app): 374 passed, 2 skipped, 5 failed under load (six lanes on this PC): build-edge-engine, buildingAttack, battleLoop, sight, stoneAI, all engine or battle files this lane does not touch; the 5 rerun alone: 5 passed (22 tests). Glossary, i18n, panels, marchBar and armySheetModel tests: 22 files, 177 passed.
+- Lint: `npx eslint --no-ignore` on every touched file: clean (the repo lint skips .claude/**, so it must be run that way in a worktree).
+
+## Not done / risks
+
+- The Close view chip and the march re-centre are not unit tested (DOM and camera code in GLMapView; covered by the browser checks).
+- The hold hint uses `(pointer: coarse)`: a touch laptop with a mouse attached may not see it.
+
+## Round 2: the lead's manual playtest (plans/playtests/manual-2026-10-29.md, section help-map-8)
+
+Checked on current code first with `node scripts/ui/help-map-8-camera.mjs [--size desktop]` (classical save):
+
+| # | Finding | On current code | Fix | After |
+|---|---|---|---|---|
+| M1 | Camera does not move on the city list | Works: a Cities row centres its city on the phone and desktop (`city list -> Megiddo ... centred`; both lists call openCityOnMap, which flies through cameraTarget). Not reproduced; maybe the city was already in view | none | as before |
+| M2 | Camera does not move to settlers | Works: the Idle chip's tile event starts the settle mode and flies there (`settler -> 522,214 centred`) | none | as before |
+| M3 | Camera does not move after a load | Reproduced: loading a save of the same game kept the old camera (`after a second load: capital 1937,-613 NOT CENTRED`). The remembered camera is keyed by people, seed and mode, so it survived, and a mounted map never redid its first view | GameContext's dispatch calls `noteGameLoaded()` (mapCamera.js) on LOAD_GAME: the remembered camera is dropped and GLMapView redoes its first view (the capital, close) | `after a second load: capital ... centred`, phone and desktop |
+| M4 | New units join the garrison silently; "Next army" showed 1 while 4 units sat in Mycenae | Reproduced: `next army cycle 0 of 2 land stacks` (idleArmyTiles skips city tiles on purpose: a garrison is no turn blocker) | armyCycle (mapCamera.js, UI only; the engine rule is unchanged) ends with the garrisons in the player's cities, and the button shows whenever a stack is not just waiting. The turn report says "2 new units are ready in Mycenae. They wait in its garrison. Tap to give them orders." and its button selects that stack (turnReportModel.js, TurnReportSheet.jsx) | `next army cycle 2 of 2`; tests in mapCamera.test.js and turnReportModel.test.js |
+| M5 | Phone: chips overlap panels | Reproduced three: the iPhone install hint lay under the settle bar (top centre); the World button slid under End Turn when the settle legend widened the bottom-left row; with a wide dock open the map's search button lay over the prompt chips (`after/1b-research-first-open-phone-en`) | The install hint joins the interaction registry as a notice without a chip (on a phone it waits for an open panel or card; it lay over the dock too) and waits while a map tool bar is up (index.css, as `.map-goals` already does); World hides in the settle view (its legend has the row); the map's corner buttons (search, Close view) hide when an open dock leaves under 320 px of map | elementsFromPoint at the old World spot: only the chips and End Turn; `after/1b-research-first-open-phone-en` has no search button or install hint over the dock and chips; help-map-8-shots all checks ok again |
+| M6 | "Go and found village: 1 turn" clipped, with a scrollbar | Not reproduced on the bronze save: "Go and found city: 2 turns" fits its button (scrollWidth 272 = clientWidth 272); the site sheet scrolls because its list is taller than a 390 px screen | none | |
+| M7 | Battle tips say "right click" | By design: the words follow `mouseFirst` (battleCoach.js: a fine pointer and no touch screen). A desktop browser at 844x390 has a mouse, so it says click; a phone or touch emulation gets the tap words | none | |
+| M8 | Focus cost blank ("costs )") | `ACTION_COSTS.setResearchFocus` is `{}`, truthy, so the line got ", costs " with nothing | Only a non-empty cost line is added (TechPanel.jsx): "(+N% science for one line)" | |
+| M9 | Sandbox Fight button covers a checkbox; a glossary popover clipped behind a panel; tech panel 70 px above the age strip | Not taken: the sandbox is a dev page; the popover was not reproduced; the 70 px is the strip the dock keeps for End Turn (PanelDrawer `pb-[...+50px]`) | none | |
+| M10 | Map black 5 to 10 s after load and after a scroll zoom | Perf item, not quick: the raster and close-view models stream in after a load. For the perf lane | none | |
+
+Tests for round 2: mapCamera, turnReportModel, InstallHint, glossary, i18n, panels, ui and context: 41 files, 521 passed. Lint `--no-ignore` clean on every touched file.

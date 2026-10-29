@@ -1,6 +1,6 @@
 // src/components/ui/NextArmyButton.jsx
-// "Next army" (map-8, Civ VI's unit cycling): beside "Idle N", shown while any army marches; each
-// tap selects the next stack, the ones waiting for orders first and then the marching ones, and
+// "Next army" (map-8, Civ VI's unit cycling): beside "Idle N", shown while any army marches or
+// stands in a city; each tap selects the next stack (waiting, marching, then the garrisons), and
 // flies the map to it (mapCamera.js armyCycle). After End Turn it finds where the armies went
 // (playtest run 40651416284 steps 70-72: the player panned to find a marching army).
 import React, { useMemo, useRef } from 'react';
@@ -16,9 +16,9 @@ const NextArmyButton = () => {
   const { state } = useGame();
   const { t } = useT();
   const tiles = useMemo(() => (state.gameStatus === GameStatus.ACTIVE ? armyCycle(state) : []), [state]);
-  const marching = useMemo(() => tiles.length - idleArmyTiles(state).length, [state, tiles]);
+  const others = useMemo(() => tiles.length - idleArmyTiles(state).length, [state, tiles]);
   const last = useRef(null);
-  if (marching <= 0) return null;
+  if (others <= 0) return null; // the waiting ones alone have the Idle chip
   const go = () => { const tile = nextTileAfter(tiles, last.current); last.current = tile; if (tile != null) selectArmy(tile); };
   const hint = t('mx.nextArmy.hint', { n: tiles.length });
   return (
