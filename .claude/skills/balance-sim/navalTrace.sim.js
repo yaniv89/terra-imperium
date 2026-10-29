@@ -127,7 +127,7 @@ else PLAYERS.forEach((PLAYER) => SEEDS.forEach((seed) => {
     }
     const sea = BATTLES.filter((b) => SEA_KINDS.has(b.kind));
     const firstSea = (id) => sea.find((b) => b.a === id || b.d === id)?.turn ?? null;
-    const p = { ...ms[PLAYER], seaBattle: firstSea(PLAYER), coastalStart: coastalMajors.includes(PLAYER), age: getTechAgeId(s, PLAYER) };
+    const p = { ...ms[PLAYER], seaBattle: firstSea(PLAYER), playerSeaBattles: sea.filter((b) => b.a === PLAYER || b.d === PLAYER).length, coastalStart: coastalMajors.includes(PLAYER), age: getTechAgeId(s, PLAYER) };
     const ai = coastalMajors.filter((id) => id !== PLAYER);
     const share = (k) => `${ai.filter((id) => ms[id][k] != null).length}/${ai.length}`;
     const median = (k) => { const v = ai.map((id) => ms[id][k]).filter((x) => x != null).sort((a, b) => a - b); return v.length ? v[Math.floor(v.length / 2)] : null; };

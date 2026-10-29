@@ -9,9 +9,12 @@
 //   army      no land army and none queued: queue the age's infantry
 //   ship      a coastal city, no ship and none queued: queue the age's first ship
 //   talk      a major met in the last TALK_TURNS turns with no pact or war: its card on Peoples
+//   sail      a ship in its port and no ship of the player's at sea, sailing or carrying troops:
+//             open its sail order (naval-9: a bought Frigate never left port)
 //   take      an army and a known independent city within TAKE_KM of the capital: open that city
 // Each step names what the go does: `queue` (city and item: the reducer's QUEUE_PRODUCTION, then
-// the city's Build tab shows it), `explore` (unit ids and tile), `people` or `regionId`. Pure.
+// the city's Build tab shows it), `explore` (unit ids and tile), `sail` (port and fleet ids: the
+// sail order), `people` or `regionId`. Pure.
 import { getTiles } from '../../data/geo/tiles';
 import { canQueue } from '../../engine/world/cities';
 import { getResearched, ageOf } from '../../engine/nationState';
@@ -22,6 +25,7 @@ import { hasMet, isExplored } from '../../engine/fog';
 import { isIndependentNation } from '../../data/independents';
 import { canAttack, exploreOn } from '../../engine/hostility';
 import { tileKm } from '../../engine/tradeValue';
+import { atSea } from '../../engine/fleets';
 import { navalLinesFor } from '../../data/navalLines';
 import { shortItemLabel } from '../city/cityRailModel';
 import { t as tNow } from '../../i18n';
@@ -82,6 +86,14 @@ export const nextStep = (state) => {
     .filter((x) => turn - x.at <= TALK_TURNS)
     .sort((a, b) => b.at - a.at || (a.n.id < b.n.id ? -1 : 1))[0];
   if (fresh) return { id: 'talk', label: tNow('step.talk', { name: nameNow('people', fresh.n.id, fresh.n.name) }), people: fresh.n.id };
+
+  const fleets = units.filter((u) => u.domain === 'naval');
+  const ship = fleets.find((u) => u.regionId && !atSea(state, u) && !u.route?.length);
+  if (ship && state.regions[ship.regionId]?.owner === me && !fleets.some((u) => atSea(state, u) || u.route?.length) && !units.some((u) => u.embarkedOn && u.embarkedOn !== u.id)) {
+    const port = state.regions[ship.regionId];
+    const what = shortItemLabel({ kind: 'unit', classId: 'naval', navalLine: ship.navalLine }, tiles, ctx.ageId);
+    return { id: 'sail', label: tNow('step.sail', { what, city: nameNow('city', null, port.name) }), hint: tNow('step.sailHint'), sail: { regionId: port.id, unitIds: [ship.id] } };
+  }
 
   const cap = state.regions?.[nation.capitalRegionId];
   if (cap && !exploreOn(state) && units.some((u) => u.domain === 'land' && !isSettler(u) && !isExplorer(u))) {

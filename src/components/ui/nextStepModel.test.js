@@ -39,4 +39,20 @@ describe('next step (newcomer flow)', () => {
     expect(nextStep(sent)?.id).not.toBe('explore');
     expect(nextStep({ ...s, tutorial: { startTurn: s.turnNumber, done: {} } })).toBeNull();
   }, 60000);
+
+  it('asks to sail a ship that has never left port, until one is at sea or carries troops', () => {
+    let s = peoplesWorld({ seed: 7 });
+    const me = s.playerNationId;
+    const cap = s.regions[s.nations[me].capitalRegionId];
+    const unit = (id, extra) => ({ id, ownerId: me, regionId: cap.id, homeRegionId: cap.id, tile: cap.tile, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null, ...extra });
+    const mine = Object.fromEntries(Object.entries(s.units).filter(([, u]) => u.ownerId !== me));
+    // a settler out (no settle step), a scout on hold (no scouts step), an army, a ship in the capital's port
+    s = { ...s, units: { ...mine, st: unit('st', { classId: 'settler' }), sc: unit('sc', { classId: 'support', explorer: true, hold: true }), inf: unit('inf'), sh: unit('sh', { domain: 'naval', classId: 'naval', navalLine: 'warship' }) }, fog: { ...s.fog, met: {} } };
+    expect(nextStep(s)).toMatchObject({ id: 'sail', sail: { regionId: cap.id, unitIds: ['sh'] } });
+    expect(nextStep(s).label).toMatch(/\w/);
+    // troops aboard: the player knows what the ship is for
+    expect(nextStep({ ...s, units: { ...s.units, inf: { ...s.units.inf, embarkedOn: 'sh' } } })?.id).not.toBe('sail');
+    // sailing
+    expect(nextStep({ ...s, units: { ...s.units, sh: { ...s.units.sh, route: [cap.tile] } } })?.id).not.toBe('sail');
+  }, 60000);
 });

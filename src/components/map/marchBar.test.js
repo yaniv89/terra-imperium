@@ -115,6 +115,15 @@ describe('ACT-01 march bar: an army beside a city', () => {
     expect(m.enemyArmy?.adjacent).toBe(true);
     expect(m.enemyArmy.blocked).toMatch(/End the turn before attacking again\./);
   });
+  it('a land march over water counts its sea tiles (the army embarks by itself); a dry one none', () => {
+    const tiles = getTiles();
+    const sea = tiles.land.findIndex((x) => x !== 1);
+    const land = tiles.land.findIndex((x) => x === 1);
+    const tile = gateTile(BASE.state, BASE.home, BASE.target);
+    expect(marchBarModel(s, march(tile), { ...PLAN, steps: [land, sea, sea, land], stepTurns: [0, 0, 1, 1] }).seaSteps).toBe(2);
+    expect(marchBarModel(s, march(tile), { ...PLAN, steps: [land], stepTurns: [0] }).seaSteps).toBe(0);
+    expect(marchBarModel(s, { ...march(tile), naval: true }, { ...PLAN, steps: [sea] }).seaSteps).toBe(0);
+  });
 });
 
 describe('ACT-01 province card: the army beside it is a source', () => {

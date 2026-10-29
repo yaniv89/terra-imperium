@@ -84,6 +84,9 @@ export const marchBarModel = (state, march, plan) => {
     // The target's known strength and Auto's odds before the march starts (playtest 40651416284 step 286).
     odds: enemyCity && reach === 'far' && !!plan?.ok && !marchAttackBlocked ? marchOddsText(estimateMarchOdds(state, units, target), name(target)) : null,
     stopsAt: plan?.ok && plan.haltAt && plan.haltAt !== target ? plan.haltAt : null,
+    // An army whose route crosses water embarks by itself (armies.js self-embark): say so, it read as
+    // "does it board the ship?" (warmonger playtest 198 to 201).
+    seaSteps: !naval && plan?.ok ? (plan.steps || []).filter((t) => getTiles().land[t] !== 1).length : 0,
     // Leaving supply (supplyMeter.js): the meter over the whole march, turn by turn, then how long
     // it lasts where the march ends; `starvesAt` when it empties on the way (playtest issue 6).
     supplyOut: !naval && plan?.ok && plan.steps?.length ? supplyAlongMarch(state, units, plan.steps, plan.stepTurns) : null
@@ -143,7 +146,7 @@ const MarchBar = () => {
   else if (m.canMarchAttack) {
     line = (
       <span data-testid="march-attack-plan">
-        {R('march.attackPlan', { target: <b>{targetName}</b> }, { turns: turnsText(plan.turns), supplies: suppliesText(plan.supplies) })}{m.stopsAt && danger(t('march.stopsFirst', { place: name(m.stopsAt) }))}
+        {R('march.attackPlan', { target: <b>{targetName}</b> }, { turns: turnsText(plan.turns), supplies: suppliesText(plan.supplies) })}{m.seaSteps > 0 && t('march.selfEmbark', { count: m.seaSteps })}{m.stopsAt && danger(t('march.stopsFirst', { place: name(m.stopsAt) }))}
       </span>
     );
   } else if (m.enemyArmy) {
@@ -151,7 +154,7 @@ const MarchBar = () => {
   } else {
     line = (
       <span data-testid="march-plan">
-        {R('march.toTurns', { target: <b>{targetName}</b> }, { turns: `${turnsText(plan.turns)}${leaves}` })}{naval ? '.' : t('march.supplies', { supplies: suppliesText(plan.supplies) })}{m.canMoveNow ? t('march.moveNowNote') : ''}
+        {R('march.toTurns', { target: <b>{targetName}</b> }, { turns: `${turnsText(plan.turns)}${leaves}` })}{naval ? '.' : t('march.supplies', { supplies: suppliesText(plan.supplies) })}{m.seaSteps > 0 && <span data-testid="march-self-embark">{t('march.selfEmbark', { count: m.seaSteps })}</span>}{m.canMoveNow ? t('march.moveNowNote') : ''}
         {plan.haltAt && danger(t('march.halts', { place: name(plan.haltAt) }))}
       </span>
     );
