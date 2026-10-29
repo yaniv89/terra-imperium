@@ -36,4 +36,4 @@ describe('late peoples keep their clock (follow-up 18)', () => {
     expect(arrived).toEqual(EXPECTED);
   }, 300000);
 });
-const EXPECTED = ['lapita@75']; // measured with this loop (old label: lapita@54; rank 4's dearer Bronze moved it to 71, no Stone central-place bonus to 75)
+const EXPECTED = ['lapita@74']; // measured with this loop (old label: lapita@54; rank 4's dearer Bronze moved it to 71, no Stone central-place bonus to 75, early-pace-8 benchmark prices to 74)

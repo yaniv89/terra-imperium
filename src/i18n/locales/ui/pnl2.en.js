@@ -48,6 +48,7 @@ export default {
   'p2.cc.pick': 'Pick a tech below, or let your advisor choose.',
   'p2.cc.meter': '{name}: {a} of {b}',
   'p2.cc.perTurn': '+{n} a turn',
+  'p2.cc.fund': 'Fund research: {gold} gold for {n} science',
   'p2.cc.boostWaiting': 'boost +{pct}% waiting',
   'p2.cc.banks': '{reason}: science banks until then.',
   'p2.bo.more': '{n} more in the lines below.',

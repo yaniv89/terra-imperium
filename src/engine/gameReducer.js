@@ -147,7 +147,7 @@ import { cityGroups, governorChoices, assignGovernor, dismissGovernor, GOVERNOR_
 import { validateTemplate, saveTemplate, deleteTemplate, templatesOf, armyOrder } from './armyTemplates';
 import { NAVAL_LINES, navalCargo, navalAir } from '../data/navalLines';
 import { canQueueWonder, wonderItem } from './wonders';
-import { rushQuote, applyRush, paidHead, PAID_LOCK, rushItemName, infrastructureCosts, defensesCosts, growthCosts } from './spending';
+import { rushQuote, fundQuote, applyRush, paidHead, PAID_LOCK, rushItemName, infrastructureCosts, defensesCosts, growthCosts } from './spending';
 import { tradeMaps, answerMapOffer } from './mapTrade';
 import { opinionOf, withGift } from './opinion';
 
@@ -1932,6 +1932,19 @@ const reduceAction = (state, action) => {
       const research = chooseResearch(state.research || emptyResearch(), techId, researched);
       if (research === state.research) return state;
       return { ...state, research, logs: [...state.logs, { year: state.year, ...msg('m.act.nowResearching', { tech: thing('tech', research.current, TECH_TREE[research.current]?.name), then: research.queue.length ? sub('m.act.researchThen', { list: techList(research.queue) }) : '' }), type: LogTypes.TECH }] };
+    }
+
+    case ActionTypes.FUND_RESEARCH: {
+      // Gold for science (spending.js fundQuote): the quote the research card shows is the one paid.
+      const q = fundQuote(state);
+      if (!q.ok) return reject(state, whyOf(q));
+      const progress = { ...state.research.progress, [q.techId]: (state.research.progress?.[q.techId] || 0) + q.points };
+      return {
+        ...state,
+        resources: { ...state.resources, gold: state.resources.gold - q.gold },
+        research: { ...state.research, progress, fundedTurn: state.turnNumber },
+        logs: [...state.logs, { year: state.year, ...msg('m.act.funded', { gold: q.gold, n: q.points, tech: thing('tech', q.techId, TECH_TREE[q.techId]?.name) }), type: LogTypes.TECH }]
+      };
     }
 
     case ActionTypes.QUEUE_RESEARCH: {

@@ -38,6 +38,7 @@ import { nextTemplateUnit } from './armyTemplates';
 import { canQueue, itemKey } from './world/cities';
 import { cityLive, queueView, worldOf } from './cityEconomy';
 import { reasonOf } from './messages';
+import { getResearchCost } from './research';
 
 // --- Rush ---------------------------------------------------------------------------------------
 /** Gold per missing point of production (provisional). A city earns about 3 gold for every point
@@ -128,6 +129,23 @@ export const paidHead = (state, cityId) => {
   return !!row && row.progress >= row.cost;
 };
 export const PAID_LOCK = 'm.why.rush.locked';
+
+// --- Fund research (lane early-pace-8, math report 29 Oct section 3) ------------------------------------
+/** A late gold sink with diminishing returns, b(x) = b_max x / (x + k): FUND_SHARE of the treasury buys
+ * science toward the current tech, b_max is what the tech still lacks and k = FUND_GOLD_PER_POINT x b_max, so
+ * the first gold buys about a point for 4 gold and more gold buys less, never the whole tech. Once a turn. */
+export const FUND_SHARE = 0.25;
+export const FUND_GOLD_PER_POINT = 4;
+export const fundQuote = (state) => {
+  const id = state.research?.current;
+  if (!id) return { ok: false, ...reasonOf('m.why.fund.nothing') };
+  if (state.research.fundedTurn === state.turnNumber) return { ok: false, ...reasonOf('m.why.fund.done') };
+  const left = Math.max(0, getResearchCost(state, state.playerNationId, id) - (state.research.progress?.[id] || 0));
+  const gold = Math.floor(FUND_SHARE * Math.max(0, state.resources?.gold || 0));
+  const points = Math.floor(left * gold / (gold + FUND_GOLD_PER_POINT * left));
+  if (!(points >= 1)) return { ok: false, gold, points: 0, ...reasonOf('m.why.fund.tooPoor') };
+  return { ok: true, techId: id, gold, points };
+};
 
 /** A short name of an order for the log ("Granary", "Spearmen", "settlers"). */
 export const rushItemName = (item, ageId = FIRST_AGE_ID) => {

@@ -4,13 +4,15 @@ import { gameReducer } from './gameReducer';
 import { peoplesWorld, rivalOf, cap, addCities } from './testWorld';
 import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
+import { TECH_TREE } from '../data/techTree';
+import { getResearchCost } from './research';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { speedCostMult, speedTrainMult, TRAIN_SPEED_SHARE } from '../data/ages';
 import { productionCost, queueItem, dequeueItem, itemProgress } from './world/cities';
 import { getBuildingTierCost, getBuildingBuildCost } from '../data/buildings';
 import { queueView, investInGrowth, growthView, GROWTH_BUY_SHARE } from './cityEconomy';
 import {
-  rushQuote, applyRush, rushGold, rushAffordable, rushHeat, rushPriceMult, rushRate, RUSH_GOLD_PER_HAMMER, RUSH_KIND_MULT, RUSH_HEAT_MAX, RUSH_COOL_REF_TURNS,
+  rushQuote, fundQuote, FUND_SHARE, applyRush, rushGold, rushAffordable, rushHeat, rushPriceMult, rushRate, RUSH_GOLD_PER_HAMMER, RUSH_KIND_MULT, RUSH_HEAT_MAX, RUSH_COOL_REF_TURNS,
   scaledGold, eraGoldFactor, infrastructureCosts, defensesCosts, growthCosts
 } from './spending';
 import { speedTurns } from '../data/ages';
@@ -88,12 +90,30 @@ describe('rush (I019)', () => {
     const base = fresh();
     let s = withGold(patch(base, id, { production: { current: SPEAR, queue: [GRANARY], progress: 0 } }), 99999);
     s = gameReducer(s, { type: ActionTypes.RUSH_PRODUCTION, payload: { cityId: id, index: 1 } });
-    const paidFor = queueView(s, id)[1].cost;
-    expect(itemProgress(s.regions[id], 1)).toBe(paidFor);
+    const paidFor = queueView(s, id)[0].cost; // a bought later order moves to the front (early-pace-8)
+    expect(itemProgress(s.regions[id], 0)).toBe(paidFor);
     const gold = s.resources.gold;
-    const cancelled = { ...s.regions[id], ...dequeueItem(s.regions[id], 1) };
+    const cancelled = { ...s.regions[id], ...dequeueItem(s.regions[id], 0) }; // the reducer refuses this turn (paidHead); the rule underneath keeps it
     expect(cancelled.production.stored?.['building:food:0']).toBe(paidFor); // kept for the granary, no gold back
     expect(gold).toBe(s.resources.gold);
+  });
+
+  it('fund research: a share of the treasury buys less science per gold the more it pays, once a turn', () => {
+    const base = fresh();
+    const tech = Object.keys(TECH_TREE).find((id) => gameReducer(base, { type: ActionTypes.RESEARCH_TECH, payload: { techId: id } }).research?.current === id);
+    const s = withGold(gameReducer(base, { type: ActionTypes.RESEARCH_TECH, payload: { techId: tech } }), 4000);
+    const small = fundQuote(withGold(s, 400));
+    const big = fundQuote(s);
+    expect(big.ok).toBe(true);
+    expect(big.gold).toBe(Math.floor(4000 * FUND_SHARE));
+    expect(big.gold / big.points).toBeGreaterThan(small.gold / small.points); // diminishing returns
+    const left = getResearchCost(s, s.playerNationId, tech) - (s.research.progress?.[tech] || 0);
+    expect(big.points).toBeLessThan(left); // never the whole tech
+    const paid = gameReducer(s, { type: ActionTypes.FUND_RESEARCH });
+    expect(paid.resources.gold).toBe(4000 - big.gold);
+    expect(paid.research.progress[tech]).toBe((s.research.progress?.[tech] || 0) + big.points);
+    expect(fundQuote(paid).ok).toBe(false); // once a turn
+    expect(gameReducer(paid, { type: ActionTypes.FUND_RESEARCH }).resources.gold).toBe(paid.resources.gold);
   });
 
   it('heats up with use, capped, and cools over speed-scaled turns', () => {

@@ -48,6 +48,7 @@ export default {
   'p2.cc.pick': 'בחרו טכנולוגיה למטה, או תנו ליועץ לבחור.',
   'p2.cc.meter': '{name}: {a} מתוך {b}',
   'p2.cc.perTurn': '⁦+{n}⁩ בתור',
+  'p2.cc.fund': 'מימון מחקר: {gold} זהב תמורת {n} מדע',
   'p2.cc.boostWaiting': 'דחיפה של ⁦+{pct}%⁩ ממתינה',
   'p2.cc.banks': '{reason}: המדע נצבר עד אז.',
   'p2.bo.more': 'עוד {n} בקווים שלמטה.',
