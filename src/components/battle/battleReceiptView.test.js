@@ -43,7 +43,7 @@ describe('headlines say what happened (I006)', () => {
     expect(describeOutcome({ ...entry, kind: 'field', captured: false, outcome: 'defender' }).text).toMatch(/^Defeat in the field near/);
     expect(describeOutcome({ ...entry, captured: false }).text).toMatch(/but the city is not yours yet$/);
     const pressed = describeOutcome({ ...entry, playerSide: 'defender', captured: false });
-    expect(pressed.text).toMatch(/holds on, but the enemy gained ground$/);
+    expect(pressed.text).toMatch(/is still yours, but you lost the battle and the enemy gained ground$/);
     expect(pressed.text).not.toMatch(/walls/);
   });
 });
@@ -95,7 +95,7 @@ describe('the result screen', () => {
   it('counts men as the report does, never mentions the 50% rule, and calls battle loot what it is', () => {
     const h = html();
     expect(h).toContain('data-result-state="preview"');
-    expect(h).toContain('3,000 of 10,000'); // 300 strength lost of 1,000: men, as in the report and the Log
+    expect(h).toContain('3,000 lost of 10,000'); // 300 strength lost of 1,000: men, as in the report and the Log
     expect(h).not.toContain('50%');
     expect(h).not.toMatch(/at most \d+ can be lost/i);
     expect(h).toContain('Houses ruined 1 of 2. Repairs are free over a few turns.');
@@ -130,7 +130,7 @@ describe('the result screen', () => {
     expect(h).toContain('data-result-state="committed"');
     expect(h).toMatch(/data-testid="battle-verdict">Repelled</);
     expect(h).toContain('Your invasion on Kerma was repelled.');
-    expect(h).toContain('4,000 of 10,000');
+    expect(h).toContain('4,000 lost of 10,000');
     expect(h).toContain('6,000 men fled the field and live');
     expect(h).toContain('Sargon fell with the regiment.');
     expect(h).toContain('This result is the one that counts');

@@ -50,6 +50,15 @@ describe('battle HUD model', () => {
     expect(nextAlerts(prev, { ...prev, tick: 101, base: [5, 8] }, 0, {})).toHaveLength(0); // your own: you know
   });
 
+  it('your soldiers struck are told, the first clash marked for the camera, then once per 20 s; laborers and the enemy apart', () => {
+    const prev = { tick: 10, structures: [], squads: [sq(0, { lastHitTick: -1 }), sq(1, { side: 1, lastHitTick: -1 }), sq(2, { classId: 'worker', lastHitTick: -1 })] };
+    const cur = { tick: 11, structures: [], squads: [sq(0, { lastHitTick: 11 }), sq(1, { side: 1, lastHitTick: 11 }), sq(2, { classId: 'worker', lastHitTick: -1 })] };
+    const [a] = nextAlerts(prev, cur, 0, {});
+    expect(a).toMatchObject({ kind: 'troopsHit', first: true, squad: 0, title: 'Your Spearmen are under attack' });
+    expect(nextAlerts(prev, cur, 0, {}, { troops: -1000 })[0]).toMatchObject({ kind: 'troopsHit', first: false });
+    expect(nextAlerts(prev, cur, 0, {}, { troops: 5 })).toHaveLength(0);
+  });
+
   it('a regiment of yours destroyed is told, with where it fell; an enemy one or a laborer is not', () => {
     const prev = { tick: 10, structures: [], squads: [sq(0), sq(1, { side: 1 }), sq(2, { classId: 'worker' })] };
     const cur = { tick: 11, structures: [], squads: [sq(0, { alive: false }), sq(1, { side: 1, alive: false }), sq(2, { classId: 'worker', alive: false })] };
@@ -125,6 +134,13 @@ describe('battle HUD model', () => {
     // +2 a second, a spend of 120 left out
     expect(supplyRate([{ tick: 0, v: 100 }, { tick: 20, v: 102 }, { tick: 40, v: -16 }, { tick: 60, v: -14 }])).toBe(1.3);
     expect(supplyRate([{ tick: 0, v: 1 }])).toBeNull();
+  });
+
+  it('the Auto line names the relief that joined: Auto fights without it (civ-veteran 316)', () => {
+    const setup = { battleType: 'assault', sides: [{ ageId: 'modern', units: [{ id: 'a', strength: 1000 }] }, { ageId: 'modern', units: [{ id: 'd', strength: 500 }], reinforcements: [{ units: [{ id: 'r1', strength: 3000 }, { id: 'r2', strength: 500 }] }] }] };
+    const ended = (joined) => ({ result: { outcome: 'defender', attackerUnits: [{ id: 'a', classId: 'infantry', strength: 0 }], defenderUnits: [{ id: 'd', classId: 'infantry', strength: 450 }], report: { tactical: { joinedReinforcements: joined } } } });
+    expect(battleResultModel(ended(['r1']), setup, 0, { auto: { win: 1 } }).auto).toBe('Auto wins this battle 100% of the time, but Auto does not fight the 30,000 men who came to their aid here.');
+    expect(battleResultModel(ended([]), setup, 0, { auto: { win: 1 } }).auto).toBe('Auto wins this battle 100% of the time; it counts the same either way.');
   });
 
   it('the result without a campaign: XP by the formula, the general by the same roll, the houses ruined', () => {

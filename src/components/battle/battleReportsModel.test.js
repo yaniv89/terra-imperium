@@ -34,6 +34,11 @@ describe('W16 battle reports model', () => {
     expect(filterReports(all, 'siege').map((e) => e.id)).toEqual(['b1']);
   });
 
+  it('a city\'s militia wiped out is not "a regiment lost" (manual playtest 29 Oct)', () => {
+    const d = reportDetail(state, { ...base, playerSide: 'defender', sides: { attacker: [{ id: 'a', classId: 'infantry', before: 34, after: 24 }], defender: [{ id: 'm', classId: 'infantry', temp: 'militia', before: 10, after: 0 }] } });
+    expect(d.summary).toMatch(/none of your regiments lost/);
+  });
+
   it('a row and the detail: the losses on both sides, in and lost', () => {
     const row = reportRow(state, base);
     expect(row).toMatchObject({ mode: 'Command', losses: '-96 / -231', when: 'T29 · 1948 BCE' });
