@@ -13,7 +13,9 @@ import { ageName } from '../../i18n';
 import { rich } from '../../i18n/rich';
 import { AGES } from '../../data/ages';
 import { TECH_TREE } from '../../data/techTree';
-import { glossaryEntry, glossaryIds, GLOSSARY_TERMS } from '../../data/glossary';
+import { glossaryEntry, glossaryIds, GLOSSARY_TERMS, GLOSSARY_TOPICS } from '../../data/glossary';
+import { ACTION_COSTS } from '../../data/actionCosts';
+import { costLine } from '../panels/empireText';
 import GlossaryLink, { UnlocksLine } from './GlossaryLink';
 import { describeTech } from '../panels/researchView';
 import { boostLabel, buildingTierName, buildingCategoryLabel, tileResourceName, improvementName } from '../../i18n/gameText';
@@ -22,6 +24,8 @@ import { describeTierEffects } from '../../data/buildings';
 // An English tile resource name falls back to its id ("copper"): a title starts with a capital.
 const resName = (id) => { const n = tileResourceName(id); return n.charAt(0).toUpperCase() + n.slice(1); };
 const joined = (nodes) => nodes.flatMap((n, i) => (i ? [', ', n] : [n]));
+// The prices the diplomacy topic names, read from the cost table so the card never drifts from it.
+const termVars = () => ({ trade: costLine(ACTION_COSTS.tradeAgreement), borders: costLine(ACTION_COSTS.openBorders), gift: costLine(ACTION_COSTS.giftBribe), pact: costLine(ACTION_COSTS.militaryAlliance), demand: costLine(ACTION_COSTS.demand), warCause: costLine(ACTION_COSTS.declareWarJustified), war: costLine(ACTION_COSTS.declareWarUnjustified) });
 const INDEX_TABS = ['term', 'people', 'tech', 'unit', 'building', 'resource', 'improvement'];
 const SEARCH_LIMIT = 40;
 
@@ -156,7 +160,10 @@ const GlossarySheet = () => {
     </>);
   } else if (e.kind === 'term') {
     title = t(`gloss.term.${e.id}`);
-    body = <p className="text-fa-text">{t(`gloss.term.${e.id}.text`)}</p>;
+    body = (<>
+      {t(`gloss.term.${e.id}.text`, termVars()).split('\n').map((line) => <p key={line} className="text-fa-text">{line}</p>)}
+      {GLOSSARY_TOPICS[e.id] && <p data-testid="glossary-see-also">{rich(t('gloss.seeAlso'), { list: joined(GLOSSARY_TOPICS[e.id].map((id) => <GlossaryLink key={id} kind="term" id={id}>{t(`gloss.term.${id}`)}</GlossaryLink>)) })}</p>}
+    </>);
   } else {
     title = dt(`unit.${e.ageId}.${e.classId}`, e.name);
     body = (<>

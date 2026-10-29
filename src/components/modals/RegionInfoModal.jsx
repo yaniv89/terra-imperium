@@ -47,6 +47,8 @@ import { useReportInset } from '../../context/MapInsetsContext';
 import ProgressBar from '../ui/ProgressBar';
 import { ActionButton } from '../ui';
 import TopLayer from '../ui/TopLayer';
+import { Bubble } from '../ui/WhyTip';
+import { useAnswer } from '../ui/useAnswer';
 import PreBattleModal from '../battle/PreBattleModal';
 import { startMarch, selectNation, selectArmy, selectTile } from '../map/marchEvents';
 import { settlerStatus } from '../map/settleRoutes';
@@ -101,6 +103,7 @@ const isReachable = (fromRegionId, toRegionId, age) =>
 // the mode toggle) stays translucent.
 const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) => {
   const { state, dispatch, addLog } = useGame();
+  const answer = useAnswer(state, dispatch); // a peace offer answers on this card, as on the people's card
   const { t } = useT();
   const turnsOf = (n) => t('ind.turns', { count: n });
   const { triggerEffect } = useEffects();
@@ -289,7 +292,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         : `${isCornerCard ? `absolute corner-card ${cornerTopClass} start-[calc(var(--city-rail-w,0px)+0.5rem)] pl:start-[max(var(--safe-start),0.5rem)] z-20 max-h-[calc(100dvh-var(--header-height,4.5rem)-1.5rem)] overflow-y-auto overscroll-contain` : 'relative'}
            fa-sheet p-3 rounded-[10px] text-[13px] w-[310px] max-w-[calc(100vw-1rem)]
            border border-fa-line shadow-xl`
-    }>
+    } onClickCapture={answer.capture}>
+      {answer.notice?.rect && <Bubble rect={answer.notice.rect} text={answer.notice.text} />}
       {mobileSheet && (
         // Tapping the grab handle toggles between the half-height sheet and a near-full-screen one
         // (and brings a peeking sheet straight back).
@@ -387,7 +391,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           {regionState.occupiedBy === state.playerNationId && occupationWar && (
             <div className="rounded-lg border border-fa-line bg-fa-raised p-2 text-[12px] space-y-1.5" data-testid="occupation-note">
               <div>{t('ri.occupationNote', { city: nameNow('city', null, regionData.name), owner: pn(ownerNation) || t('ri.theirs') })}</div>
-              <button type="button" onClick={() => setPeaceOpen(true)} className="fa-btn fa-btn-secondary w-full" data-testid="open-peace-deal">{t('ri.negotiate')}</button>
+              <button type="button" onClick={() => setPeaceOpen(true)} className="fa-btn fa-btn-secondary w-full" data-testid="open-peace-deal" data-help="term:diplomacy">{t('ri.negotiate')}</button>
             </div>
           )}
           {regionState.occupiedBy && (
@@ -472,6 +476,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
                 onClick={handleDeclareWar}
                 disabled={!!warBlockedReason || !canPay(state, declareWarCosts)}
                 why={warBlockedReason || payWhy(state, declareWarCosts)}
+                help="term:diplomacy"
                 variant="danger"
                 size="small"
               />
@@ -489,6 +494,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               onClick={() => dispatch({ type: ActionTypes.SET_ROUTE, payload: { fromRegionId: srcId, toRegionId: regionId, attack: true } })}
               disabled={!march.ok}
               why={march.ok ? null : reasonText(march)}
+              help="term:battle"
               variant="danger"
               size="small"
             />
@@ -500,6 +506,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               description={blockedReason || t('ri.landUnits', { count: unitCount })}
               costs={ACTION_COSTS.launchInvasion}
               onClick={() => handleInvade(srcId)}
+              help="term:battle"
               disabled={!!blockedReason}
               why={blockedReason}
               variant="danger"
@@ -514,6 +521,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               description={blockedReason || t('ri.embarked', { count: cargoCount })}
               costs={ACTION_COSTS.amphibiousAssault}
               onClick={() => handleAmphibiousAssault(unit.id)}
+              help="term:ships"
               disabled={!!blockedReason}
               why={blockedReason}
               variant="danger"
@@ -528,6 +536,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               description={t('ri.contest', { count: defendingNavalUnits.length })}
               costs={ACTION_COSTS.navalEngagement}
               onClick={() => handleNavalEngagement(srcId)}
+              help="term:ships"
               disabled={!canPay(state, ACTION_COSTS.navalEngagement)}
               why={payWhy(state, ACTION_COSTS.navalEngagement)}
               variant="danger"
@@ -757,7 +766,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
 
       <TopLayer>
         {battleChoiceFrom && <PreBattleModal fromRegionId={battleChoiceFrom} targetRegionId={regionId} onClose={() => setBattleChoiceFrom(null)} />}
-        {peaceOpen && occupationWar && <PeaceDealSheet warId={occupationWar.id} onClose={() => setPeaceOpen(false)} />}
+        {peaceOpen && occupationWar && <PeaceDealSheet warId={occupationWar.id} onClose={() => setPeaceOpen(false)} onSend={answer.dispatch} />}
         {landingChoice && <PreBattleModal navalUnitId={landingChoice} targetRegionId={regionId} onClose={() => setLandingChoice(null)} />}
       </TopLayer>
 

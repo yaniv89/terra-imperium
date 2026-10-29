@@ -147,6 +147,7 @@ export const peaceDealModel = (state, warId, selected = new Set()) => {
     rows,
     demanded: cost,
     accepted: acc.accepted,
+    refusal: acc.accepted ? null : refusalReason(acc), // said after their answer when the offer goes out
     short,
     verdict: acc.accepted ? (state.nations?.[them]?.name ? agreed('bt.peace.theyAccept', { name: nationNow(state, them) }, () => `${state.nations[them].name} accept${/[^s]s$/.test(state.nations[them].name) ? '' : 's'}`) : t('bt.peace.theyAcceptDefault')) : t('bt.peace.refusedShort', { n: short }),
     counter: best.keys.length

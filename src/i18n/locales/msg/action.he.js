@@ -173,7 +173,7 @@ export default {
   'm.act.warUnjustified': 'הכרזתם מלחמה לא מוצדקת על {nation}: העולם שם לב.',
   'm.act.claimStarted': 'סוכניכם מתחילים לזייף תביעה על {city} ({nation}): מוכנה בעוד {turns} תורות.',
   'm.act.peaceTreaty': 'נחתם הסכם שלום עם {nation}.',
-  'm.act.peaceRejected': '{nation} דוחה את תנאי השלום שלכם.',
+  'm.act.peaceRejected': 'תנאי השלום שלכם נדחו על ידי {nation}.',
   'm.act.peaceSigned': 'נחתם שלום עם {nation}.',
   'm.act.peaceAccepted': 'קיבלתם שלום עם {nation}.',
   'm.act.stillAtWar': 'אתם עדיין במלחמה עם {nation}.',
