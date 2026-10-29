@@ -19,6 +19,7 @@ import { reasonText } from '../../i18n/messageText';
 import { UNREST_PROMPT } from '../ui/nextPromptModel';
 import { t as tNow } from '../../i18n/core';
 import { ageOf } from '../../engine/nationState';
+import { outpostTurnsLeft } from '../../engine/settlers';
 
 export const RAIL_STORAGE_KEY = 'terra-imperium-city-rail-collapsed';
 
@@ -54,7 +55,7 @@ export const cityRailModel = (state) => {
     const buildWait = first?.wait ? reasonText(first.wait) : null;
     const buildTurns = first && !buildWait ? first.pieceTurns ?? first.turns : null;
     return {
-      id: c.id, name: c.name, size: c.size, capital: c.id === capital, outpost: !!c.outpost,
+      id: c.id, name: c.name, size: c.size, capital: c.id === capital, outpost: !!c.outpost, outpostTurns: outpostTurnsLeft(state, c, ageId),
       growthTurns, starving: growth.state === 'starving',
       building: shortItemLabel(item, tiles, ageId), buildTurns, buildWait, idle: !item && !c.outpost,
       // what waits behind it: the list showed only the current item and queued units seemed lost (newcomer playtest step 103)

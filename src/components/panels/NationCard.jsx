@@ -48,7 +48,7 @@ import { ageOf } from '../../engine/nationState';
 import { ageVersusPlayer } from '../ui/ageProgress';
 import GlossaryLink from '../glossary/GlossaryLink';
 import { shortAge } from './researchSheetModel';
-import { canPay, walletOf } from '../../utils/costs';
+import { canPay, walletOf, warCost } from '../../utils/costs';
 import { costLine, shortfallLine } from './empireText';
 import { GIFT_OPINION, GIFT_OPINION_MAX } from '../../data/opinion';
 import { menText } from '../../engine/battleLedger';
@@ -155,7 +155,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
   const playerWarScore = activeWar ? (activeWar.aggressor === state.playerNationId ? activeWar.score : -activeWar.score) : 0;
   const war = atWarWithPlayer ? warStatus(state, nation.id) : null; // what the war is for and how it ends
   const justified = hasCasusBelli(state, state.playerNationId, nation.id);
-  const declareWarCosts = justified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
+  const declareWarCosts = warCost(state, justified);
   const sueForPeaceCosts = { gold: Math.max(SUE_FOR_PEACE_MIN_GOLD, Math.round(SUE_FOR_PEACE_BASE_GOLD - (nation.warExhaustion || 0) * 2)) };
 
   const player = state.nations[state.playerNationId];

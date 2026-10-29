@@ -65,7 +65,9 @@ export const ACTION_COSTS = {
   // decree; without one it costs a real gold premium on top — see GameContext.jsx's DECLARE_WAR for
   // the rest of an unjustified war's cost (global relations, home unrest).
   declareWarJustified: { decrees: 1 },
-  declareWarUnjustified: { gold: 300 },
+  // Gold per the payer age's unitCostMult (ages.js): 150 in the Stone and Bronze ages, 690 in the Future (lead's call 29 Oct:
+  // a flat 300 was 34 to 38 turns of Stone income and 2 to 3 by Kingdoms; warPrice.sim.js). Read through costs.js warCost.
+  declareWarUnjustified: { gold: 150 },
   fabricateClaim: { gold: 150, decrees: 1 },
   tradeAgreement: { gold: 100 },
   openBorders: { gold: 50 },

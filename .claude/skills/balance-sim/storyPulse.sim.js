@@ -36,7 +36,7 @@ SEEDS.forEach((seed) => {
     s = { ...s, research: { ...s.research, auto: true }, battleSettings: { autoDefend: true } };
     const scripted = createScriptedPlayer({ engine: { gameReducer, ActionTypes, chooseProduction, nationCounts, bestSites, MAX_SETTLE_RINGS, getResearched, getTechAgeId, getEffectiveAgeId: AGES.getEffectiveAgeId, speedCostMult: AGES.speedCostMult, speedTrainMult: AGES.speedTrainMult }, demands: 'refuse', opinionOf });
     const per = {};
-    const row = (age) => (per[age] ||= { turns: 0, ev: 0, real: 0, free: 0, goldOnly: 0, follow: 0, crisisCard: 0, raidCard: 0, dawn: 0, warn: 0, hit: 0, congress: 0, goals: 0 });
+    const row = (age) => (per[age] ||= { turns: 0, ev: 0, real: 0, free: 0, goldOnly: 0, follow: 0, crisisCard: 0, raidCard: 0, dawn: 0, warn: 0, hit: 0, congress: 0, goals: 0, rep: 0, repFam: 0, forced: 0, seen: new Set() });
     let warnSeen = null; let histLen = 0; let votes = 0;
     for (let t = 1; t <= TURNS && s.gameStatus === GameStatus.ACTIVE; t++) {
       const age = getTechAgeId(s, s.playerNationId);
@@ -44,6 +44,10 @@ SEEDS.forEach((seed) => {
       if (s.activeEventId || s.activeProceduralEvent) {
         const ev = s.activeEventId ? cardOf(s.activeEventId) : s.activeProceduralEvent;
         r.ev += 1;
+        // rep: a card already shown in this age (by template or story id); repFam: one of the same family
+        const repKey = String(ev?.templateId || s.activeEventId || ev?.id || ''); const famKey = ev?.family ? `f:${ev.family}` : null;
+        if (r.seen.has(repKey)) r.rep += 1; if (famKey && r.seen.has(famKey)) r.repFam += 1;
+        r.seen.add(repKey); if (famKey) r.seen.add(famKey);
         if (s.activeEventId ? !HISTORICAL_EVENTS[s.activeEventId] : !ev.procedural) r.follow += 1;
         const c = classify(ev?.options || []);
         const cid = String(s.activeEventId || ev?.id || '');
@@ -52,9 +56,9 @@ SEEDS.forEach((seed) => {
         if (ev?.templateId === 'era_dawn') r.dawn += 1;
         if (c.real) r.real += 1; if (c.free) r.free += 1; if (c.goldOnly) r.goldOnly += 1;
         s = gameReducer(s, { type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex: Math.min(PICK, (ev?.options?.length || 1) - 1) } });
-        if (s.activeEventId || s.activeProceduralEvent) s = gameReducer(s, { type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex: 0 } });
-        if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null };
-        if (s.activeEventId) s = { ...s, activeEventId: null };
+        for (let k = 0; k < 6 && (s.activeEventId || s.activeProceduralEvent); k++) s = gameReducer(s, { type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex: k } });
+        // no option affordable: cleared unanswered, so a story comes back next turn; not a card a player would see twice
+        if (s.activeEventId || s.activeProceduralEvent) { r.forced += 1; r.ev -= 1; r.seen.delete(repKey); s = { ...s, activeEventId: null, activeProceduralEvent: null }; }
       }
       s = scripted.answer(s).state;
       const before = s.turnNumber;
@@ -69,7 +73,7 @@ SEEDS.forEach((seed) => {
     }
     const goals = s.nations[s.playerNationId]?.eraGoals || {};
     Object.entries(goals).forEach(([age, g]) => { row(age).goals = (g.met || []).length; });
-    AGES.AGE_ORDER.filter((a) => per[a]).forEach((a) => console.log(`PULSE seed=${seed} age=${a} ${Object.entries(per[a]).map(([k, v]) => `${k}=${v}`).join(' ')}`));
+    AGES.AGE_ORDER.filter((a) => per[a]).forEach((a) => console.log(`PULSE seed=${seed} age=${a} ${Object.entries(per[a]).filter(([k]) => k !== 'seen').map(([k, v]) => `${k}=${v}`).join(' ')}`));
     console.log(`PULSE seed=${seed} end turn=${s.turnNumber} status=${s.gameStatus} worldCrises=${(s.crises?.history || []).map((h) => h.id).join(',')} congressVotes=${s.worldCongress?.votes || 0} focus=${Object.entries(s.nations[s.playerNationId]?.eraGoals || {}).map(([a, g]) => `${a}:${g.focus || '-'}`).join(',')}`);
   });
 });

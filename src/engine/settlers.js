@@ -477,7 +477,7 @@ export const processSettlers = (state, regions, units, world, ageById, turn) => 
         if (founded) {
           nextRegions = founded.regions; nextWorld = founded.world;
           delete nextUnits[u.id];
-          logs.push({ nationId: u.ownerId, ...msg('m.world.outpostFounded', { city: cityRef(founded.city.id, founded.city.name) }) });
+          logs.push({ nationId: u.ownerId, ...msg('m.world.outpostFounded', { city: cityRef(founded.city.id, founded.city.name), count: outpostTurns(view(), settler.tile, ageId) }) });
           return;
         }
       } else if (/belongs|close|land|ice/.test(can.reason)) {

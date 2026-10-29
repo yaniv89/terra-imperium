@@ -19,7 +19,7 @@ import { unitClassLabel as unitClassLabelEn } from '../../data/unitNames';
 import { buildingTierName, wonderName, improvementName, districtName, tileResourceName } from '../../i18n/gameText';
 const unitClassLabel = (c) => unitClassName(c, unitClassLabelEn(c));
 import { useScrollHint } from '../../hooks/useScrollHint';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Lock, Unlock, X, Plus, Coins, Wheat, Hammer, Home, Smile, ArrowUp, ArrowUpToLine, ChevronDown, ChevronUp, MapPin, AlertTriangle, Check } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
@@ -111,6 +111,9 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   // Build tab state: the open queue, the group shown, the row opened for its details, and the
   // last tap (what the confirmation line under the queue bar reports).
   const [queueOpen, setQueueOpen] = useState(false);
+  // The list opens in the scroll above a scrolled-down build list: bring it under the pinned bar, or
+  // the toggle seems to open nothing (civ-veteran playtest steps 46 and 260, warmonger 145).
+  const showQueue = useCallback((el) => el?.scrollIntoView?.({ block: 'nearest' }), []);
   const [hintOpen, setHintOpen] = useState(false); // the long-build advice: one line, the rest on a tap
   const [group, setGroup] = useState('All');
   const keepRow = useScrollHint();
@@ -374,14 +377,14 @@ const CityPanel = ({ cityId, view = 'city' }) => {
       </div>
       {/* Below the bar, in the scroll: the queue list never covers the rows (BUILD-01). */}
       {queueOpen && queue.length > 0 && (
-        <div className="mt-1.5 max-h-[42vh] overflow-y-auto">
+        <div ref={showQueue} className="mt-1.5 max-h-[42vh] overflow-y-auto scroll-mt-[112px]">
           <ol className="space-y-1" data-testid="city-queue">
             {queue.map((q) => (
               <li key={`${q.key}-${q.index}`} className="flex items-center gap-1 rounded-lg ps-2 min-h-[44px] text-[13px] fa-card">
                 <ItemIcon item={q.item} ageId={ageId} size={24} />
                 <div className="min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0} onClick={() => openTile(q.tile)} onKeyDown={(e) => { if (e.key === 'Enter') openTile(q.tile); }}>
                   <div className="truncate">{q.index === 0 ? '' : `${q.index + 1}. `}{q.label}</div>
-                  <div className="text-fa-muted text-[12px]"><span className="fa-num">{q.progress > 0 || q.index === 0 ? `${Math.round(q.progress)}/${q.cost}` : q.cost}</span> · {q.waitText || (q.turns == null ? t('cy.noProduction') : t('cy.doneIn', { turns: turnsText(q.turns) }))}</div>
+                  <div className="text-fa-muted text-[12px]"><span className="fa-num">{q.progress > 0 || q.index === 0 ? `${Math.round(q.progress)}/${q.cost}` : q.cost}</span> · {q.waitText || (q.turns == null ? t('cy.noProduction') : q.index > 0 && q.progress >= q.cost ? t('cy.paidWaits', { turns: turnsText(q.turns) }) : t('cy.doneIn', { turns: turnsText(q.turns) }))}</div>
                 </div>
                 {mine && q.rush?.gold > 0 && (
                   <button type="button" onClick={() => setBuyAt(q.index)} className={`fa-icon-btn min-w-[44px] min-h-[44px] text-[11px] ${q.rush.ok ? '' : 'opacity-50 text-fa-muted'}`} aria-label={t('cy.buyItemAria', { label: q.label, gold: q.rush.gold })} title={rushText(q)?.title} data-testid="queue-rush">
