@@ -5,8 +5,9 @@
 // ERA_LEGACY_TURNS long, plus a decree and renown. Meeting ERA_GOALS_FOR_LEGACY of them before the
 // age ends also earns the era legacy (renown and a virtue point). Targets are keyed by age id and
 // calibrated with the balance-sim (eraGoals.sim.js: 8 seeds, Normal, 20 to 70% of majors each). Stone and Bronze
-// Expand and Science were eased (lane early-pace-8): the player's Stone Age is about 24 turns on Normal, and a
-// scripted player met no goal there (best: 2 of 4 cities, 4 of 7 boosts); it now meets Science in both ages.
+// Science were eased (lane early-pace-8): the player's Stone Age is about 24 turns on Normal and a scripted
+// player met no goal there (best 4 of 7 boosts); now it meets Science in both ages. Expand stays (its +manpower
+// reward, met by most AI majors, made early wars on the player more likely).
 import { AGES, AGE_ORDER, FIRST_AGE_ID } from './ages';
 
 export const ERA_GOALS_FOR_LEGACY = 2;
@@ -15,7 +16,7 @@ export const ERA_LEGACY_TURNS = 50;
 // The reward is a national modifier `mod`: n = n0 + step per age after the first (rounded down;
 // a percent when `pct`), `sign` its direction; `bonusLabel` shows it.
 export const PLAYSTYLES = {
-  expand: { label: 'Expand', targets: { stone: 3, bronze: 6, classical: 17, kingdoms: 25, gunpowder: 28, modern: 28, information: 29, future: 33 }, unit: 'cities', mod: 'national.hrMult', sign: 1, pct: true, n0: 10, step: 5, bonusLabel: '+{n}% manpower' },
+  expand: { label: 'Expand', targets: { stone: 4, bronze: 8, classical: 17, kingdoms: 25, gunpowder: 28, modern: 28, information: 29, future: 33 }, unit: 'cities', mod: 'national.hrMult', sign: 1, pct: true, n0: 10, step: 5, bonusLabel: '+{n}% manpower' },
   wealth: { label: 'Wealth', targets: { stone: 9, bronze: 15, classical: 19, kingdoms: 21, gunpowder: 22, modern: 22, information: 23, future: 24 }, unit: 'kinds of resource', mod: 'national.goldMult', sign: 1, pct: true, n0: 10, step: 5, bonusLabel: '+{n}% gold' },
   war: { label: 'War', targets: { stone: null, bronze: null, classical: 2, kingdoms: 2, gunpowder: 2, modern: 1, information: 1, future: 1 }, unit: 'battles won', mod: 'national.moraleRecovery', sign: 1, pct: true, n0: 10, step: 5, bonusLabel: '+{n}% morale recovery' },
   culture: { label: 'Culture', targets: { stone: 3, bronze: 8, classical: 14, kingdoms: 23, gunpowder: 31, modern: 40, information: 49, future: 55 }, unit: 'building levels in one city', mod: 'national.stabilityBonus', sign: 1, pct: false, n0: 1, step: 1 / 3, bonusLabel: '+{n} stability' },

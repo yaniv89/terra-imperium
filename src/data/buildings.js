@@ -211,9 +211,7 @@ const tierRank = (category, tierIndex) => tierIndex + (category.tiers[0].age ===
 // building took 8 turns in the Stone Age and 23 in the Gunpowder Age (balance-sim cityBuilds).
 // This curve rises about as fast as production does (Civ VI: an Industrial building costs about
 // four times an Ancient one, not thirty). The gold price of the old buy path keeps the table above.
-// The first three ranks are about 8 to 12 turns of the age's benchmark city on Normal (ages.js benchProduction;
-// math report 29 Oct, section 3: core buildings 6 to 10 turns), so a young city is not stuck for 15 to 20.
-const BUILD_TIER_COST = [25, 45, 80, 130, 175, 225, 280, 340];
+const BUILD_TIER_COST = [30, 55, 90, 130, 175, 225, 280, 340];
 export const getBuildingBuildCost = (categoryId, tierIndex) => {
   const category = BUILDING_CATEGORIES[categoryId];
   if (!category?.tiers[tierIndex]) return null;

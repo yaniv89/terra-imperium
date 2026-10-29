@@ -84,7 +84,7 @@ export const BORDER_DEFEND_UTILITY = 1.4;
 // supply, a bonus's yields), and the AI never built one, so its luxuries and iron did nothing. A
 // city now builds the matching improvement on its own resource tiles, worked tiles first:
 //   score = RESOURCE_IMPROVEMENT_UTILITY[kind] x (UNWORKED_IMPROVEMENT_MULT when not worked) x affordability
-// Improvements are cheap (a few turns of the benchmark city, cities.js IMPROVEMENT_BENCH_TURNS), so this is a short detour.
+// Improvements are cheap (2 to 3 turns of IMPROVEMENT_COST_PER_TURN), so this is a short detour.
 export const RESOURCE_IMPROVEMENT_UTILITY = { luxury: 1.3, strategic: 1.2, bonus: 1.0 };
 export const UNWORKED_IMPROVEMENT_MULT = 0.6;
 export const RANGED_SHARE = 0.25; // about a quarter of an army are archers: one per three foot (eight-ages plan U36)
@@ -193,7 +193,7 @@ export const chooseProduction = (state, city, ctx) => {
   const units = ctx.units || state.units || {};
   const counts = ctx.counts || { settlers: settlersOf(units, nationId).length, outposts: outpostsOf(state.regions, nationId).length, landUnits: Object.values(units).filter((u) => u.ownerId === nationId && u.domain === 'land' && u.classId !== 'settler').length, ships: Object.values(units).filter((u) => u.ownerId === nationId && u.domain === 'naval').length };
   const production = Math.max(1, city.lastYields?.production ?? city.dev?.production ?? city.size ?? 1);
-  const costOf = (item) => productionCost(item, { ageId: ctx.ageId, citiesOwned: ctx.citiesOwned, speedMult: ctx.speedMult, trainMult: ctx.trainMult, costMult: ctx.costMult });
+  const costOf = (item) => productionCost(item, { ageId: ctx.ageId, citiesOwned: ctx.citiesOwned, speedMult: ctx.speedMult, trainMult: ctx.trainMult, costMult: ctx.costMult, bench: ctx.bench });
   const affordable = (item) => costOf(item) / production <= MAX_BUILD_TURNS * (ctx.speedMult || 1);
   const situation = situationOf(state, nationId);
   const threatened = situation.atWar && getNeighborIds(city.id).some((n) => situation.enemies.has(state.regions[n]?.owner));

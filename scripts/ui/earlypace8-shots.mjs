@@ -54,6 +54,11 @@ const run = async (browser, sizeId, lang) => {
   console.log(`${sizeId} ${lang}: queue after: ${(await page.getByTestId('city-queue').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 300)}`);
   console.log(`${sizeId} ${lang}: lock shown: ${await page.getByTestId('queue-locked').count()}`);
   await shot('2-paid-locked');
+  // 3. The research card: Fund research (a share of the treasury for science).
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('ti:close-panels'))); await wait(600);
+  await ev('ti:open-tab', 'tech'); await wait(4000);
+  console.log(`${sizeId} ${lang}: fund: ${await page.getByTestId('research-fund').innerText().catch(() => 'not found')}`);
+  await shot('3-research-fund');
   await g.ctx?.close?.();
 };
 

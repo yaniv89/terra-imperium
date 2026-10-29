@@ -42,7 +42,8 @@ describe('training has its own speed share (I024, the Civ model)', () => {
   it('prices units, settlers and army orders by it, buildings by the cost multiplier', () => {
     const ctx = { ageId: 'bronze', citiesOwned: 1, speedMult: 4, trainMult: 2.8 };
     expect(productionCost(SPEAR, ctx)).toBe(Math.round(40 * 2.8));
-    expect(productionCost({ kind: 'settler' }, ctx)).toBe(Math.round(30 * 2.8)); // 6.5 benchmark turns of 5 / 1.6, plus 10 for the city
+    expect(productionCost({ kind: 'settler' }, ctx)).toBe(Math.round(70 * 2.8));
+    expect(productionCost({ kind: 'settler' }, { ...ctx, bench: true })).toBe(Math.round(30 * 2.8)); // the player's: 6.5 benchmark turns of 5 / 1.6, plus 10 for the city
     expect(productionCost(GRANARY, ctx)).toBe(productionCost(GRANARY, { ...ctx, trainMult: 1 }));
     expect(productionCost(SPEAR, { ageId: 'bronze', speedMult: 4 })).toBe(160); // no trainMult: as before
   });

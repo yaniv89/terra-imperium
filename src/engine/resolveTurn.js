@@ -163,6 +163,7 @@ const runCitiesPhase = (state, newTurnNumber) => {
         citiesOwned: citiesOwned[nid] || 1,
         speedMult: speedCostMult(state.gameSpeed, ageOf(state, nid)), // the speed table (ages.js)
         trainMult: speedTrainMult(state.gameSpeed, ageOf(state, nid)), // units and settlers (I024)
+        bench: nid === state.playerNationId, // the player's settlers and improvements in benchmark turns (cities.js)
         luxuries: luxuriesByNation[nid] ? luxuriesByNation[nid].size : 0,
         greatProjects: state.greatProjects || {},
         ...forageCtx(nid ? getResearched(state, nid) : []), // no Agriculture: a size cap (hearths.js)

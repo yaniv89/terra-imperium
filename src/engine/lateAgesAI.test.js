@@ -17,17 +17,16 @@ const step = (s) => { const n = resolveTurn(s.pendingPeaceOffer ? { ...s, pendin
 const aiMajors = (s) => majorIds(s).filter((id) => id !== s.playerNationId && !s.nations[id].isEliminated);
 
 describe('Information AI (U57)', () => {
-  it('AI majors build Energy tiers within their first 40 Information turns', () => {
+  it('AI majors build Energy tiers within their first 30 Information turns', () => {
     // A grown late realm: every line one tier short of its last, no Energy yet.
     const categories = Object.fromEntries(Object.entries(BUILDING_CATEGORIES).filter(([id]) => id !== 'energy').map(([id, c]) => [id, c.tiers.length - 2]));
     const w = peoplesWorld({ seed: 11, age: 'information' });
     let s = { ...aiMajors(w).reduce((x, id) => growCities(x, id, { size: 8, categories }), w), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
-    for (let t = 0; t < 40; t++) s = step(s);
+    for (let t = 0; t < 30; t++) s = step(s);
     const powered = new Set(Object.values(s.regions).filter((c) => (c.buildings?.categories?.energy ?? -1) >= 0).map((c) => c.owner));
     const ids = aiMajors(s);
     // Settlers (queued the turn a city can, follow-up 20) and tile improvements come first on this
-    // fixture's empty land: the first plant on seed 11 near turn 24; turn 35 since settlers and improvements
-    // cost turns of the age's benchmark city (early-pace-8).
+    // fixture's empty land: the first plant on seed 11 near turn 24, two by turn 30.
     expect(ids.filter((id) => powered.has(id)).length).toBeGreaterThan(0);
   }, 120000);
 

@@ -900,8 +900,7 @@ describe('resolveTurn victory', () => {
   // leads the world, GameStatus.COMPLETE (with finalRank) otherwise.
   it('rank 8: a major that dominates in legacy for the hold ends the game early, ranked as usual', () => {
     const base = withAllEventsFired({ ...world(), turnNumber: 600 });
-    // goals met in four ages: rivals now score Stone goals and the two-cities ambition on the next turn (early-pace-8 prices)
-    const nations = { ...base.nations, [R1]: { ...base.nations[R1], eraGoals: Object.fromEntries(['stone', 'bronze', 'classical', 'kingdoms'].map((a) => [a, { met: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] }])) } };
+    const nations = { ...base.nations, [R1]: { ...base.nations[R1], eraGoals: { stone: { met: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] } } } };
     const first = resolveTurn({ ...base, nations });
     expect(first.dominance).toMatchObject({ nationId: R1 });
     expect(first.ending).toBeUndefined();
