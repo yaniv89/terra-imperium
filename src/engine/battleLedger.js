@@ -29,6 +29,13 @@ export const LEDGER_VERSION = 1;
 
 /** Men for a strength on the map. */
 export const menOf = (strength) => Math.round(Math.max(0, strength || 0) * MEN_PER_STRENGTH);
+// A scout party (unit.explorer, scouting.js) is a few riders, not a regiment: its strength is its
+// health, and at full strength it is SCOUT_PARTY_MEN men (it read "3,000 men", help-map-8 playtest).
+export const SCOUT_PARTY_MEN = 30;
+/** Men in one unit on the map: menOf its strength, a scout party's own few. */
+export const unitMenOf = (u) => (u?.explorer
+  ? Math.round((SCOUT_PARTY_MEN * Math.max(0, u.strength || 0)) / Math.max(1, u.maxStrength || u.strength || 1))
+  : menOf(u?.strength));
 /** A count of men as text: 12,340. */
 export const countText = (men) => Math.round(men || 0).toLocaleString('en-US');
 /** Men for a strength on the map, as text. */
@@ -36,19 +43,25 @@ export const menText = (strength) => countText(menOf(strength));
 
 const isGone = (u) => u.fate === 'runDown';
 
-/** One side's totals from its rows, in strength: { units, before, after, fallen, fled, runDown, destroyed }. */
+/** Men for `strength` of a report row (battleReports.js: a scout's row carries `explorer` and `max`). */
+export const rowMenOf = (row, strength) => unitMenOf({ explorer: row?.explorer, strength, maxStrength: row?.max });
+
+/** One side's totals from its rows, in strength: { units, before, after, fallen, fled, runDown,
+ * destroyed }, and the same in men (`men`, each row through rowMenOf, so the men balance too). */
 export const sideTotals = (rows = []) => {
   const t = { units: rows.length, before: 0, after: 0, fallen: 0, fled: 0, runDown: 0, destroyed: 0 };
+  const men = { before: 0, after: 0, fallen: 0, fled: 0, runDown: 0 };
   rows.forEach((u) => {
     const before = Math.max(0, u.before || 0);
     const end = Math.max(0, Math.min(before, u.after || 0));
-    t.before += before;
-    t.fallen += before - end;
+    const mBefore = rowMenOf(u, before); const mEnd = rowMenOf(u, end);
+    t.before += before; men.before += mBefore;
+    t.fallen += before - end; men.fallen += mBefore - mEnd;
     if (end <= 0) { t.destroyed += 1; return; }
-    if (isGone(u)) { t.destroyed += 1; t.runDown += end; t.fallen += end; return; }
-    if (u.routed) t.fled += end; else t.after += end;
+    if (isGone(u)) { t.destroyed += 1; t.runDown += end; t.fallen += end; men.runDown += mEnd; men.fallen += mEnd; return; }
+    if (u.routed) { t.fled += end; men.fled += mEnd; } else { t.after += end; men.after += mEnd; }
   });
-  return t;
+  return { ...t, men };
 };
 
 /** before = after + fallen + fled for these totals. */

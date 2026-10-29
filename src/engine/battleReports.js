@@ -21,7 +21,7 @@
 // only the English field. `reason` is a code (src/battle/sim/result.js), not a sentence.
 // Display only: no game rule reads it back.
 import { battleName } from './battleNames';
-import { auxiliariesOf, menOf, sideTotals } from './battleLedger';
+import { auxiliariesOf, sideTotals } from './battleLedger';
 
 export const BATTLE_REPORT_HISTORY = 30;
 
@@ -64,6 +64,9 @@ const sideOf = (units, beforeOf, fateOf) => (units || []).map((u) => {
     navalLine: u.navalLine || undefined,
     domain: u.domain,
     regiment: u.regiment || undefined,
+    // a scout party counts its few men (battleLedger.js rowMenOf)
+    explorer: u.explorer || undefined,
+    max: u.explorer ? u.maxStrength : undefined,
     before: Math.max(0, Math.round(beforeOf(u))),
     after: Math.max(0, Math.round(u.strength || 0)),
     routed: !!u.routed && u.strength > 0,
@@ -74,8 +77,8 @@ const sideOf = (units, beforeOf, fateOf) => (units || []).map((u) => {
 
 // The ledger's sums, in men: the fallen include the survivors the result destroyed (run down), the
 // fled only those who got away.
-const menLost = (side) => menOf(sideTotals(side).fallen);
-const menFled = (side) => menOf(sideTotals(side).fled);
+const menLost = (side) => sideTotals(side).men.fallen;
+const menFled = (side) => sideTotals(side).men.fled;
 
 // `report` is the full report stored as lastBattleReport (resolveBattle's report plus where and
 // who). `attackers` / `defenders` are the units after the battle; `beforeOf(u)` their strength

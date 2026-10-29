@@ -92,6 +92,17 @@ export const isCamp = (region) => !!region && (!!region.outpost || (!region.owne
  * Falls back to the other layout when only one exists. */
 export const townAssetUrl = (ageId, tierId, seed = 0, style = null) => URL_BY_NAME[townFileKey(ageId, tierId, seed, style, FILE_INDEX)] || null;
 
+/** Another town file of this age to stand in when a town's file fails to load (`failed`: a Set of
+ * urls that failed): the base kit's layouts of the size first, then any file of the age; null when
+ * none is left. A town never falls back to the procedural blocks while its age has a file (Tiryns
+ * once drew as cubes, help-map-8 playtest). */
+export const townFallbackUrl = (ageId, tierId, failed) => {
+  const names = Object.keys(URL_BY_NAME).filter((n) => n.startsWith(`${ageId}-town-`));
+  const rank = (n) => (n === `${ageId}-town-${tierId}-a` || n === `${ageId}-town-${tierId}-b` ? 0 : n.startsWith(`${ageId}-town-${tierId}-`) ? 1 : 2);
+  const name = names.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b)).find((n) => !failed.has(URL_BY_NAME[n]));
+  return name ? URL_BY_NAME[name] : null;
+};
+
 /** The level of detail the brief assigns to a zoom k: LOD2 below 20, LOD1 below 40, LOD0 above. */
 export const lodForZoom = (k) => (k < 20 ? 2 : k < 40 ? 1 : 0);
 

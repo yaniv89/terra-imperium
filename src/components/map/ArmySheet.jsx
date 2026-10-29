@@ -6,7 +6,7 @@
 import React, { useMemo, useState } from 'react';
 import { useCornerSheet } from '../../hooks/useExclusivePanel';
 import { X, Flag, Shield, Pencil, Trash2, Flame, Award, Swords, Castle, Anchor, Compass, ChevronLeft, ChevronRight } from 'lucide-react';
-import { menText } from '../../engine/battleLedger';
+import { countText } from '../../engine/battleLedger';
 import { useT } from '../../i18n/useT';
 import { tOr } from '../../i18n/core';
 import { nameNow } from '../../i18n/names';
@@ -52,7 +52,7 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
           <Shield className="w-4 h-4 text-fa-good shrink-0" />
           <div className="min-w-0">
             <div className="font-bold text-fa-text truncate text-sm">{model.groups.length === 1 && model.groups[0].key ? model.groups[0].name : tr(model.naval ? 'mx.army.fleetAt' : 'mx.army.armyAt', { where })}</div>
-            <div className="text-fa-muted text-[10px]" data-testid="army-where">{menText(model.soldiers)} {model.naval ? tr('mx.army.crew') : tr('mx.army.soldiers')} · {where}{showBase ? tr('mx.army.basedAt') : ''}{showBase && <button type="button" onClick={() => onSelectRegion?.(model.regionId)} className="underline">{model.base}</button>}</div>
+            <div className="text-fa-muted text-[10px]" data-testid="army-where">{countText(model.men)} {model.naval ? tr('mx.army.crew') : tr('mx.army.soldiers')} · {where}{showBase ? tr('mx.army.basedAt') : ''}{showBase && <button type="button" onClick={() => onSelectRegion?.(model.regionId)} className="underline">{model.base}</button>}</div>
           </div>
         </div>
         {order.length > 1 && onCycleUnit && (
@@ -113,7 +113,7 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
                 <div className="min-w-0 flex-1">
                   <div className="text-fa-text truncate">{u.name}{u.general ? ` · ${u.general}` : ''}{u.promotions ? tr('mx.army.promotions', { count: u.promotions }) : ''}</div>
                   {u.tag && <div className="text-fa-brass truncate" data-testid="unit-tag">{u.tag}</div>}
-                  <div className="text-fa-muted">{tr(u.robot ? 'mx.army.statsRobot' : 'mx.army.stats', { strength: menText(u.strength), max: menText(u.maxStrength), morale: u.morale, supply: model.naval ? tr('mx.army.aboard', { n: u.cargo }) : tr('mx.army.supply', { n: u.supply, max: u.supplyMax }), moves: u.moves, pace: u.movePoints })}</div>
+                  <div className="text-fa-muted">{tr(u.robot ? 'mx.army.statsRobot' : 'mx.army.stats', { strength: countText(u.men), max: countText(u.maxMen), morale: u.morale, supply: model.naval ? tr('mx.army.aboard', { n: u.cargo }) : tr('mx.army.supply', { n: u.supply, max: u.supplyMax }), moves: u.moves, pace: u.movePoints })}</div>
                   <div className="text-fa-muted capitalize">{u.rank}{u.nextRankAt ? tr('mx.army.xp', { xp: u.xp, next: u.nextRankAt }) : ''}{u.general ? tr('mx.army.commands', { general: u.general }) : ''}</div>
                   {u.general
                     ? <button type="button" onClick={() => dispatch({ type: ActionTypes.APPOINT_GENERAL, payload: { generalId: u.generalId, unitId: null } })} className="text-fa-muted underline min-h-[32px]">{tr('mx.army.recall')}</button>

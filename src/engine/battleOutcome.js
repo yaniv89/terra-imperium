@@ -49,7 +49,7 @@ import { recordBattle } from './diplomacy';
 import { conquerRegion } from './conquest';
 import { applyBattleAftermath } from './aftermath';
 import { recordBattleReport } from './battleReports';
-import { checkLedger, ledgerOf, menOf } from './battleLedger';
+import { checkLedger, ledgerOf } from './battleLedger';
 import { cityManifestOf, applyCityBattleDamage } from './cityManifest';
 import { hasMeleeUnitDeployed, isGarrisonBroken, resolveSiegeControlDamage, SIEGE_CONTROL_DAMAGE, SIEGE_CAPTURE_CONTROL_THRESHOLD } from './siege';
 import { findTilePath, passableTile, placeInCity, regionForTile, unitTile, nearestHeldCity } from './armies';
@@ -737,7 +737,7 @@ export const applyBattleOutcome = (state, o) => {
     });
     // The Log reads the same ledger as the report and the result screen (X05: one count of men).
     const ledger = ledgerOf(reportFields.battleReports[0]);
-    if (ledger.mine.fallen + ledger.theirs.fallen > 0) lossLine = sub('m.battle.fallenLine', { mine: menOf(ledger.mine.fallen), theirs: menOf(ledger.theirs.fallen) });
+    if (ledger.mine.fallen + ledger.theirs.fallen > 0) lossLine = sub('m.battle.fallenLine', { mine: ledger.mine.men.fallen, theirs: ledger.theirs.men.fallen });
   }
   return {
     ...s,
