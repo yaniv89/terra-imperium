@@ -83,7 +83,7 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   Loyalty and culture per
   city (flips, free cities): src/engine/loyalty.js. AI fronts (attacks from touching tiles,
   tile marches, sieges and assaults): src/engine/aiOperations.js. AI war preparation (lane ai-armies): a decided war is armed for first
-  (`nation.warPrep`, warPlans.js `armedFor`: declare when the muster point can strike or after WAR_PREP_REF_TURNS), and a city keeps at most
+  (`nation.warPrep`, warPlans.js `armedFor`: declare when the muster point is within ARM_SLACK of striking or after WAR_PREP_REF_TURNS; the nation card says "X is mustering an army on your border"), and a city keeps at most
   PEACE_GARRISON_MAX units at peace (aiOperations.js `spreadGarrisons`). Research boosts from map facts:
   src/engine/boosts.js over src/data/boosts.js. Era goals and legacies: src/engine/eraGoals.js.
   Independent cities (phase W1, one-city `kind: 'independent'` nations of a peoples world): src/engine/independents.js

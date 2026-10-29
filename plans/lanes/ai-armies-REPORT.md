@@ -4,6 +4,31 @@ ponytail read in full at 16:30 UTC, 28 Oct (`cat .claude/skills/ponytail/SKILL.m
 
 Branch `claude/ai-armies` from claude/integration 31193b6b (the base of every comparison below). Owned: AI recruitment, garrisons and war preparation (aiLogic.js, aiOperations.js, warPlans.js, threat.js). No API use.
 
+## Round 4 (29 Oct): the lead's option (a)
+
+Second session, ponytail loaded by the Skill tool (`ponytail:ponytail`, whole SKILL.md printed) and by the session start hook.
+
+Built:
+1. **Skip arming when the muster is close** (warPlans.js `ARM_SLACK = 2`, `armedFor`). A nation declares at once when the stack at its staging city, minus one regiment of garrison, is within 2 units of goSize. With no plan on that target yet (the first decision), `armedFor` reckons the plan it would make (pickTargetCity, pickStaging, strikeSize at its own age). Test: aiArmies.test.js (with and without a plan).
+2. **"X is mustering an army on your border"** on the nation card (NationCard.jsx, `nc.mustering` en and he), shown while that nation arms for a war on the player (`warPrep.target` is the player and `prepLive`), not once the war is on. Shots at 844x390 and 1600x900, en and he: plans/lanes/ai-armies-shots/ (the first-contact card in the desktop shot comes from the test setup, which marks the people as met).
+
+Evidence: compare.sh, base = this branch before round 4 (922449da), head = round 4, scripted, PLAYER=akkad, 200 turns, seeds 11-18 (the same seeds as the table below; the base column matches it).
+
+| metric | before | after | diff | 95% CI | seeds up/down |
+|---|---|---|---|---|---|
+| wars (AI, warsDeclaredMajors) | 6.00 | 7.13 | +1.13 | [-1.04, 3.29] | 4/2 |
+| aggressor 2+ stacks idle at home, no enemy in reach | 0.14 | 0.18 | +0.04 | [-0.02, 0.10] | 5/2 |
+| aggressor 2+ stacks idle at home, all | 0.60 | 0.65 | +0.05 | [-0.11, 0.20] | |
+| captures (all / from majors / from independents) | 9.5 / 3.25 / 6.25 | 10.6 / 3.88 / 6.75 | +1.1 / +0.6 / +0.5 | none starred | |
+| wars on the player | 1.00 | 1.13 | +0.13 | [-0.17, 0.42] | |
+| AI demands on the player | 1.00 | 0.50 | -0.50 | [-1.39, 0.39] | |
+| 99th percentile garrison, kingdoms | 6.50 | 6.38 | -0.13 | | |
+| largest garrison, kingdoms | 14.0 | 12.5 | -1.5 | [-5.1, 2.1] | |
+
+Wars per seed (before/after): 11: 2/3, 12: 6/5, 13: 8/15, 14: 4/5, 15: 7/7, 16: 5/4, 17: 9/9, 18: 7/9. No row is starred.
+
+Against the targets: idle at home with no enemy in reach 18%, inside the 20% target. AI wars 7.13 a game, short of 7.5 (the gain leans on seed 13, 8 to 15; the median seed went 6.5 to 6.0). Not significant either way with 8 seeds (seeds@80% = 42).
+
 ## What was wrong (measured on the base, seeds 11-16, 200 turns, scripted)
 
 **Idle war stacks.** Aggressor stacks of 2+ units stood idle in one of their own cities in 53% of their war turns. A debug trace of every decision in aiOperations.js (removed before the commit) found three causes:
@@ -87,7 +112,12 @@ Full suite before the merge: 512 files passed, 2 skipped (4,792 tests); lint cle
 
 ## For the lead (design calls)
 
-1. **AI wars may be a little fewer.**
+0. **Round 4: wars 7.13, target 7.5** (option (a) built; see Round 4 above). Idle is within target. To close the gap, which do you want?
+   - accept 7.13 (not significantly below 7.5 on 8 seeds, base 31193b6b was 8.38, also not significant);
+   - also build (b): a nation that is arming may still roll on a second target;
+   - or widen ARM_SLACK from 2 to 3 (a change to your call, so not built).
+
+1. **AI wars may be a little fewer** (round 3, before option (a)).
    - Scripted 8 seeds: 8.4 to 6.0 a game, not significant (5 seeds down). Passive 6 seeds: unchanged. The 923-turn game: 49 to 32.
    - Every prep I counted ended in a declaration (seed 13: 7 set, 7 declared; seed 16: 5 of 6). So the wars are not lost; they start up to 8 turns later.
    - A shorter wait (4) did not bring the count back on seeds 11, 14, 16; turning arming off did (7, 7, 8). The likely cause is the war-contagion chain (warContagion.js) spreading out when each war starts later.
@@ -98,6 +128,7 @@ Full suite before the merge: 512 files passed, 2 skipped (4,792 tests); lint cle
 
 ## Not done
 
-- No UI line for "X is mustering on your border" while an AI arms against the player. The army is visible on the map. A nation-card line would be the natural place, but that is a UI lane.
+- The mustering line is on the nation card only (round 4), not on the map or the turn report.
+- engine-rules-reviewer not run on round 4 (the lead runs it before the merge).
 - The `reach` threat uses base MOVE_POINTS, not the tech and perk bonuses (it slightly undercounts).
 - The largest garrison at war is still 14 units: that is the muster point of a war, by design.

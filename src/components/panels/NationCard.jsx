@@ -44,6 +44,7 @@ import { reasonText } from '../../i18n/messageText';
 import { msgRefText } from '../battle/battleText';
 import { opinionLabel, opinionDetail } from './opinionText';
 import { ageOf } from '../../engine/nationState';
+import { prepLive } from '../../engine/warPlans';
 import { ageVersusPlayer } from '../ui/ageProgress';
 import GlossaryLink from '../glossary/GlossaryLink';
 import { shortAge } from './researchSheetModel';
@@ -295,6 +296,10 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
             {war.goal && <span className="text-fa-text">{t(war.goal.key, { city: nameNow('city', null, war.goal.vars?.city) })}{war.goal.done ? t('ws.goalDone') : ''} </span>}
             <span className={war.outlook.tone === 'danger' ? 'text-fa-danger-text' : war.outlook.tone === 'good' ? 'text-fa-good' : 'text-fa-muted'}>{t(war.outlook.key, war.outlook.vars)}</span>
           </p>
+        )}
+        {/* Arming for a war on the player (warPlans.js prepLive): the muster is on the map, say it here too. */}
+        {!atWarWithPlayer && nation.warPrep?.target === state.playerNationId && prepLive(state, nation.id) && (
+          <p className="text-[12px] mt-1 text-fa-danger-text flex items-center gap-1" data-testid="nation-mustering"><AlertTriangle size={13} aria-hidden="true" />{t('nc.mustering', { name: nameNow('people', nation.id, nation.name) })}</p>
         )}
         {/* Where they are (peopleWhere.js): the cities you know, their armies in sight, and the way there. */}
         <p className="text-[12px] text-fa-muted mt-1.5" data-testid="people-where">

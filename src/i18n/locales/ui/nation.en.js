@@ -39,6 +39,7 @@ export default {
   'nc.whereArmies.one': '{count} army of theirs in sight',
   'nc.whereArmies.other': '{count} armies of theirs in sight',
   'nc.whereNoArmy': 'No army of theirs in sight',
+  'nc.mustering': '{name} is mustering an army on your border.',
   'nc.whereNone': 'Not seen yet: explore toward them to find their land.',
   'nc.showOnMap': 'Show on map',
   'nc.marchTo': 'March to {name}',

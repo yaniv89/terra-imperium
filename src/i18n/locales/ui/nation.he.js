@@ -40,6 +40,7 @@ export default {
   'nc.whereArmies.two': 'שני צבאות שלהם בטווח ראייה',
   'nc.whereArmies.other': '{count} צבאות שלהם בטווח ראייה',
   'nc.whereNoArmy': 'אף צבא שלהם אינו בטווח ראייה',
+  'nc.mustering': 'צבא של {name} מתכנס על גבולכם.',
   'nc.whereNone': 'עוד לא נראו: צאו לחקור לעברם כדי למצוא את ארצם.',
   'nc.showOnMap': 'הצגה במפה',
   'nc.marchTo': 'צעידה אל {name}',

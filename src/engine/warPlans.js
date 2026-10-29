@@ -41,7 +41,7 @@ import { UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
 import { unitUpkeepGold } from './economy';
 import { claimsInProgressOf } from './claims';
 import { speedTurns } from '../data/ages';
-import { getResearched } from './nationState';
+import { getResearched, ageOf } from './nationState';
 import { waitAgeOf } from './ageRefs';
 
 export const STRIKE_PER_GARRISON = 2;
@@ -228,14 +228,27 @@ export const prepLive = (state, nationId) => {
   const target = prep && state.nations[prep.target];
   return !!target && !target.isEliminated && !exploreOn(state) && (state.turnNumber || 0) - prep.since < 2 * prepTurns(state, nationId, prep.target);
 };
+// The lead's call (option a, 29 Oct): a muster already within ARM_SLACK units of goSize declares at
+// once. Arming every war delayed each by up to 8 turns and AI-vs-AI wars fell 8.4 to 6.0 a game.
+export const ARM_SLACK = 2;
+/** May the nation declare on targetId now: its muster (the stack at the staging city minus one
+ * regiment of garrison) within ARM_SLACK of goSize, or the arming wait over? With no plan on the
+ * target yet, the plan it would make (target city, staging, strike) is reckoned. */
 export const armedFor = (state, nationId, targetId) => {
   const nation = state.nations[nationId];
   const prep = nation?.warPrep;
   if (prep?.target === targetId && (state.turnNumber || 0) - prep.since >= prepTurns(state, nationId, targetId)) return true;
-  const plan = nation?.warPlan;
-  const staging = plan && state.regions[plan.staging];
-  if (!plan || plan.enemy !== targetId || staging?.tile == null) return false;
+  let plan = nation?.warPlan;
+  if (!plan || plan.enemy !== targetId) {
+    const mine = ownCities(state, nationId);
+    const cityId = pickTargetCity(state, nationId, new Set([targetId]), [], mine);
+    const staging = cityId && pickStaging(state, mine, state.regions[cityId].tile);
+    if (!staging) return false;
+    plan = { staging, strike: strikeSize(state, state.regions[cityId], ageOf(state, nationId)) };
+  }
+  const staging = state.regions[plan.staging];
+  if (staging?.tile == null) return false;
   let there = 0;
   for (const u of Object.values(state.units || {})) if (u.ownerId === nationId && isLandArmy(u) && u.tile === staging.tile) there += 1;
-  return there - 1 >= goSize(plan);
+  return there - 1 >= goSize(plan) - ARM_SLACK;
 };
