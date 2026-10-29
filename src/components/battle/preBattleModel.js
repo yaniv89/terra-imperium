@@ -9,7 +9,7 @@ import { getRegionTerrain } from '../../data/terrain';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { getTiles } from '../../data/geo/tiles';
 import { ageOf } from '../../engine/nationState';
-import { autoParityOf, estimateInvasionOdds, estimateLandingOdds, estimateFieldOdds, estimateFleetOdds } from '../../engine/battleOdds';
+import { autoParityOf, seenStandby, estimateInvasionOdds, estimateLandingOdds, estimateFieldOdds, estimateFleetOdds } from '../../engine/battleOdds';
 import { battleName } from '../../engine/battleNames';
 import { validateInvasion, validateAmphibious } from '../../engine/invasion';
 import { validateFieldAttack } from '../../engine/fieldBattle';
@@ -31,6 +31,7 @@ import { canPay } from '../../utils/costs';
 import { consequenceLines } from './consequenceText';
 import { menText } from '../../engine/battleLedger';
 import { HOPELESS_HOLD } from './defenseSheetModel';
+import { garrisonSince, alliesText } from './oddsMemory';
 
 const nationLabel = (state, id) => (id === 'rebels' ? t('bt.pre.rebels') : state.nations?.[id]?.name ? nameNow('people', id, state.nations[id].name) : t('bt.pre.theEnemy'));
 const verb = (name, one, many) => (/[^s]s$/.test(name) ? many : one);
@@ -103,6 +104,11 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
   const theirs = armyView(theirUnits, { ageId: theirAge, hiredCommanders: state.hiredCommanders || {} });
   // The militia stand with the garrison: the odds' defender strength counts them.
   const theirMen = odds?.defenderStrength ?? theirs.men;
+  // Round 3b (Zafar: scouts 14,900, the battle 44,900, the march 294,900): the troops a commanded
+  // battle calls in, with any allies among them, and how the garrison changed since an earlier turn.
+  const standby = !field && !fleet && v?.ok ? seenStandby(state, targetRegionId) : null;
+  const since = !field && !fleet && hasIntel && odds ? garrisonSince(targetRegionId, state.turnNumber, theirMen) : '';
+  const forceNotes = [since, standby?.strength > 0 ? t('march.standby', { men: menText(standby.strength), allies: alliesText(standby.allies) }) : ''].filter(Boolean);
   const enemy = nationLabel(state, enemyId);
   const me = state.nations?.[state.playerNationId]?.name ? nameNow('people', state.playerNationId, state.nations[state.playerNationId].name) : t('bt.pre.you');
   const placeEn = fleet ? null : field ? (getTiles().names?.[tile] || REGIONS_DATA[origin]?.name) : (REGIONS_DATA[targetRegionId]?.name || region?.name || targetRegionId);
@@ -133,7 +139,9 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
       const band = scoutsEstimate(odds.attacker);
       // A band on the bar, not a point: a third of the bar centred on the real chance.
       const lo = Math.max(0, Math.min(0.67, odds.attacker - 0.17));
-      chance = { exact: false, source: source.label, verdict: band.label, bandId: band.id, hint: band.hint, band: [lo, lo + 0.33] };
+      // The scouts' verdict names what weighs most, without its number (round 3b: "Likely win" at 14,900 to 10,000, Technology x1.96 unsaid).
+      const why = (odds.reasons || []).map((f) => factorText(f).label).join(', ');
+      chance = { exact: false, source: source.label, verdict: band.label, bandId: band.id, hint: why ? `${band.hint} ${t('bt.scout.why', { why })}` : band.hint, band: [lo, lo + 0.33] };
     }
   }
 
@@ -163,7 +171,7 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
       men: theirMen,
       title: fleet ? t('bt.pre.theirFleet') : field ? t('bt.pre.theirArmy') : t('bt.pre.garrison'),
       total: hasIntel ? theirMen : scoutsRange(theirMen).text,
-      note: hasIntel ? (source.exact ? t('bt.pre.exactNote', { src: source.label }) : '') : t('bt.pre.scoutsOnly')
+      note: [hasIntel ? (source.exact ? t('bt.pre.exactNote', { src: source.label }) : '') : t('bt.pre.scoutsOnly'), ...forceNotes].filter(Boolean).join(' ')
     },
     size,
     walls,

@@ -7,6 +7,10 @@ import { atGates } from '../../engine/testWorld';
 import { preBattleModel, autoText, parityLine, rangeLine } from './preBattleModel';
 import { cityManifestOf } from '../../engine/cityManifest';
 import { peoplesWorld, rivalOf, withBorder } from '../../engine/testWorld';
+import { estimateMarchOdds, seenStandby } from '../../engine/battleOdds';
+import { battleInputs } from '../../engine/battleInputs';
+import { getTiles } from '../../data/geo/tiles';
+import { forgetSeen } from './oddsMemory';
 
 // The old fixture named countries; a peoples world names its own (src/engine/testWorld.js).
 const WORLD = peoplesWorld({ seed: 7 });
@@ -113,5 +117,41 @@ describe('DEF-01 on the attack card: Command with nobody to fight', () => {
     // Without intel the card cannot know: Command stays, and the reducer says so on the result.
     const blind = preBattleModel({ ...bare, intel: {} }, { fromRegionId: from, targetRegionId: target }, { samples: 4 });
     expect(blind.commandBlocked).toBeNull();
+  });
+});
+
+// Round 3b (odds-truth): one city, one turn, one strength on every surface; the troops a commanded
+// battle calls in and a garrison that grew since an earlier turn are said on the card.
+describe('odds truth', () => {
+  it('the march preview, the pre-battle card and Auto read the same strength on the same state', { timeout: 30000 }, () => {
+    const { s, from, target } = setup();
+    const spy = { ...s, intel: { [DE]: s.turnNumber + 3 } };
+    const m = preBattleModel(spy, { fromRegionId: from, targetRegionId: target }, { samples: 10 });
+    const march = estimateMarchOdds(spy, [spy.units.a], target, 10);
+    const auto = battleInputs(spy, { attackerUnits: m.v.attackerUnits, defenderUnits: m.v.defenderUnits, cityId: target, fromRegionId: from });
+    const sum = (us) => us.reduce((n, u) => n + u.strength, 0);
+    expect(march.defenderStrength).toBe(sum(auto.defenderUnits));
+    expect(m.theirs.men).toBe(sum(auto.defenderUnits));
+    expect(march.attackerStrength).toBe(sum(auto.attackerUnits));
+  });
+
+  it('names the enemy troops standing near the city, which join only a commanded battle', { timeout: 30000 }, () => {
+    const { s, from, target } = setup();
+    const near = getTiles().neighbors[s.regions[target].tile].find((x) => x !== s.units.a.tile);
+    const st = { ...s, intel: { [DE]: s.turnNumber + 3 }, units: { ...s.units, r: { id: 'r', ownerId: DE, regionId: 'elsewhere', tile: near, domain: 'land', classId: 'infantry', strength: 2000, maxStrength: 2000, morale: 100, movesLeft: 1 } } };
+    expect(seenStandby(st, target).strength).toBe(2000);
+    const m = preBattleModel(st, { fromRegionId: from, targetRegionId: target }, { samples: 4 });
+    expect(m.theirs.note).toMatch(/20,000 more enemy men stand near it\. They join a battle you command; Auto fights without them\./);
+  });
+
+  it('a garrison that grew since an earlier turn says so', { timeout: 30000 }, () => {
+    forgetSeen();
+    const { s, from, target } = setup();
+    const spy = { ...s, intel: { [DE]: s.turnNumber + 3 } };
+    preBattleModel(spy, { fromRegionId: from, targetRegionId: target }, { samples: 4 });
+    const later = { ...spy, turnNumber: spy.turnNumber + 2, units: { ...spy.units, d: { ...spy.units.d, strength: 3000, maxStrength: 3000 } } };
+    const m = preBattleModel(later, { fromRegionId: from, targetRegionId: target }, { samples: 4 });
+    expect(m.theirs.note).toMatch(/Up from [\d,]+ on turn \d+: more troops marched in\./);
+    expect(m.theirs.note).toContain(`on turn ${spy.turnNumber}:`);
   });
 });

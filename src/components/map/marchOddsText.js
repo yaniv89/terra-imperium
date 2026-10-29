@@ -9,6 +9,7 @@
 import { t } from '../../i18n/core';
 import { menText } from '../../engine/battleLedger';
 import { HOPELESS_HOLD } from '../battle/defenseSheetModel';
+import { garrisonSince, alliesText } from '../battle/oddsMemory';
 
 export const marchOddsText = (odds, target) => {
   if (!odds) return null;
@@ -18,7 +19,9 @@ export const marchOddsText = (odds, target) => {
   const hopeless = chance < HOPELESS_HOLD;
   const walls = odds.autoRule === 'attack' && odds.city;
   const key = `march.odds${garrison ? 'Garrison' : walls ? 'Walls' : ''}${hopeless ? 'Hopeless' : ''}`;
-  const standby = odds.standbyStrength > 0 ? ` ${t('march.standby', { men: menText(odds.standbyStrength) })}` : '';
+  const standby = odds.standbyStrength > 0 ? ` ${t('march.standby', { men: menText(odds.standbyStrength), allies: alliesText(odds.standbyAllies) })}` : '';
   const hp = walls ? { a: odds.city.hpBefore, b: odds.city.maxHp, c: odds.city.hpAfter } : {};
-  return { text: t(key, { target, theirs: menText(odds.defenderStrength), mine: menText(odds.attackerStrength), pct: Math.round(chance * 100), ...hp }) + standby, hopeless };
+  // A number that jumped since an earlier turn says so (round 3b: Zafar 14,900, then 294,900).
+  const since = odds.cityId ? garrisonSince(odds.cityId, odds.turn, odds.defenderStrength) : '';
+  return { text: t(key, { target, theirs: menText(odds.defenderStrength), mine: menText(odds.attackerStrength), pct: Math.round(chance * 100), ...hp }) + (since ? ` ${since}` : '') + standby, hopeless };
 };

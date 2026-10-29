@@ -174,12 +174,23 @@ export const estimateMarchOdds = (state, attackerUnits, cityId, samples = 100) =
   const v = { attackerUnits: withAirSupport(state, state.playerNationId, city.tile, land, defenderUnits), defenderUnits: withAirSupport(state, city.owner, city.tile, defenderUnits, land), targetRegion: city };
   const ctx = getInvasionBattleContext(state, { targetRegionId: cityId, targetRegion: city, defenderUnits: v.defenderUnits });
   const r = simulate(state, v, getResolveBattleArgs(v, ctx), ctx, samples, { kind: 'invasion', cityId, fromRegionId: land[0].regionId });
-  // The troops a commanded assault would call in for the city (the same reinforcementSources as the
-  // pending battle), as far as the player sees them: a 1,600-man garrison with 20,000 beside it is
-  // not a weak city (newcomer playtest, round 3).
-  const standby = reinforcementSources(state, cityId, city.owner, state.playerNationId)
+  const standby = seenStandby(state, cityId);
+  return { known: true, cityId, turn: state.turnNumber, capture: r.capture, attacker: r.attacker, autoRule: r.autoRule, city: r.city, standbyStrength: standby.strength, standbyAllies: standby.allies, attackerStrength: r.attackerStrength, defenderStrength: r.defenderStrength, range: r.range, reasons: r.reasons };
+};
+
+/**
+ * The troops a commanded assault on `cityId` would call in (the same reinforcementSources as the
+ * pending battle), as far as the player sees them: a 1,600-man garrison with 20,000 beside it is
+ * not a weak city (newcomer playtest, round 3). Auto fights without them. `allies`: the owner's
+ * co-belligerents among them, [{ id, name, strength }] (round 3b: huge armies, no reason shown).
+ */
+export const seenStandby = (state, cityId) => {
+  const owner = state.regions?.[cityId]?.owner;
+  const units = reinforcementSources(state, cityId, owner, state.playerNationId)
     .flatMap((src) => src.unitIds.map((id) => state.units[id])).filter((u) => u && canSeeTile(state, unitTile(state, u)));
-  return { known: true, capture: r.capture, attacker: r.attacker, autoRule: r.autoRule, city: r.city, standbyStrength: sumStrength(standby), attackerStrength: r.attackerStrength, defenderStrength: r.defenderStrength, range: r.range, reasons: r.reasons };
+  const allies = new Map();
+  units.forEach((u) => { if (u.ownerId !== owner) allies.set(u.ownerId, (allies.get(u.ownerId) || 0) + Math.max(0, u.strength)); });
+  return { strength: sumStrength(units), allies: [...allies].map(([id, strength]) => ({ id, name: state.nations?.[id]?.name || id, strength })) };
 };
 
 // The land battle of an amphibious landing (the naval interception, if any, is fought first and

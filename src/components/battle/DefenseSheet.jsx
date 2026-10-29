@@ -102,6 +102,7 @@ const DefenseSheet = () => {
           </div>
         )}
         {m.odds.walls && <div className="text-[11px] leading-snug text-fa-muted px-0.5" data-testid="defense-walls">{m.odds.walls}</div>}
+        {m.standby && <div className="text-[11px] leading-snug text-fa-muted px-0.5" data-testid="defense-standby">{m.standby}</div>}
         {/* the choice right under the odds: a long warning pushed it off a phone's sheet (playtest 40650973042 step 129) */}
         <ModeCards options={options} value={chosen} onChange={setMode} compact />
         {m.reasons.length > 0 && (

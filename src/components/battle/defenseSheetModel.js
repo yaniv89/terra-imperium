@@ -7,7 +7,8 @@
 import { ageOf } from '../../engine/nationState';
 import { queuedBattleView, queuedKind, queuedCommandBlock } from '../../engine/battleQueue';
 import { getWithdrawalTarget, WITHDRAW_MORALE_LOSS, WITHDRAW_STRENGTH_LOSS } from '../../engine/defense';
-import { cityMilitia } from '../../engine/battleInputs';
+import { cityMilitia, reinforcementSources } from '../../engine/battleInputs';
+import { menText } from '../../engine/battleLedger';
 import { legacyTerrainOf } from '../../engine/world/registry';
 import { getTiles } from '../../data/geo/tiles';
 import { plainPlace } from '../../engine/grammar';
@@ -17,6 +18,7 @@ import { nameNow } from '../../i18n/names';
 import { agreed, msgRefText } from './battleText';
 import { rangeLine, factorText, auxLine } from './preBattleModel';
 import { armyView, battleSize, cityWallsView } from './warModel';
+import { wallsSince } from './oddsMemory';
 
 const OURS = { defense: 'garrison', field: 'army', naval: 'fleet', raid: 'troops', sack: 'town', intercept: 'fleet', landing: 'garrison' };
 const KIND_OBJECT = { defense: '', field: 'your army near ', naval: 'your fleet near ', raid: 'your land near ', sack: '', intercept: 'your fleet near ', landing: '' };
@@ -63,7 +65,9 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
   const fallsIn = c && c.hpAfter > 0 && c.hpBefore > c.hpAfter ? Math.ceil(c.hpBefore / (c.hpBefore - c.hpAfter)) : null;
   // Why an empty city holds, on the odds row itself (newcomer rerun step 251: "Auto holds 100%" at 1,500 militia to 20,000;
   // the reason sat in the Auto box below the fold): its walls this battle, or no foot soldiers to take it once they are down.
-  const wallsWhy = c ? (c.hpAfter <= 0 && v.odds?.hasMelee === false ? t('bt.def.wallsNoTaker', { max: c.maxHp }) : t('bt.def.wallsLine', { a: c.hpBefore, b: c.hpAfter, max: c.maxHp })) : null;
+  // How far the walls fell since an earlier turn: the 100% that turns into 0% says why (round 3b, Jerusalem).
+  const wallsBefore = c && city ? wallsSince(def.regionId, state.turnNumber, c.hpBefore, c.maxHp) : '';
+  const wallsWhy = c ? wallsBefore + (wallsBefore ? ' ' : '') + (c.hpAfter <= 0 && v.odds?.hasMelee === false ? t('bt.def.wallsNoTaker', { max: c.maxHp }) : t('bt.def.wallsLine', { a: c.hpBefore, b: c.hpAfter, max: c.maxHp })) : null;
   const odds = v.odds?.undefended
     ? { undefended: true, hold, fallsIn, walls: wallsWhy, verdict: hold >= 0.65 ? (fallsIn != null && fallsIn <= 5 ? t('bt.def.vThisTurn') : t('bt.def.vLikelyHold')) : hold >= 0.35 ? t('bt.def.vClose') : t('bt.def.vLikelyLost'), text: c ? `${t('bt.def.noDefendUndefended', { a: c.hpBefore, b: c.hpAfter, max: c.maxHp, likely: hold < 0.5 ? t('bt.def.likelyFalls') : '', pct })}${fallsIn != null ? t('bt.def.fallsIn', { n: fallsIn }) : ''}` : t('bt.def.noRegiment') }
     : { undefended: false, hold, text: t(attacking ? 'bt.def.autoWins' : 'bt.def.autoHolds', { pct, avg: city && v.odds?.avgDamage != null ? t('bt.def.avgLost', { n: v.odds.avgDamage }) : '', note: city && !attacking ? t('bt.def.garrisonFirst') : '' }), verdict: attacking ? (hold >= 0.65 ? t('bt.pre.likelyWin') : hold >= 0.35 ? t('bt.def.vClose') : t('bt.pre.likelyLoss')) : (hold >= 0.65 ? t('bt.def.vLikelyHold') : hold >= 0.35 ? t('bt.def.vClose') : t('bt.def.vLikelyLost')) };
@@ -84,12 +88,15 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
   const worst = reasons.find((f) => f.value < 1); // the biggest factor against you
   const hopeless = !attacking && hold < HOPELESS_HOLD && !(odds.undefended && !militia.length);
   const warning = hopeless
-    ? t('bt.def.warning', { pct, why: worst ? t('bt.def.warnWhy', { reason: `${worst.label} x${worst.value.toFixed(2)}` }) : '', body: city ? t('bt.def.warnCity', { place }) : t('bt.def.warnField'), withdraw: withdrawTo ? t('bt.def.warnWithdraw', { to: withdrawTo }) : '' })
+    ? t('bt.def.warning', { pct, why: odds.undefended && c ? t('bt.def.warnWalls', { hp: c.hpBefore, max: c.maxHp }) : worst ? t('bt.def.warnWhy', { reason: `${worst.label} x${worst.value.toFixed(2)}` }) : '', body: city ? t('bt.def.warnCity', { place }) : t('bt.def.warnField'), withdraw: withdrawTo ? t('bt.def.warnWithdraw', { to: withdrawTo }) : '' })
     : null;
   const setting = state.battleSettings?.defaultMode;
   const preferred = setting === 'auto' || setting === 'command' ? setting : hopeless ? (withdrawTo ? 'withdraw' : 'auto') : 'command';
   const suggested = commandBlocked && preferred === 'command' ? 'auto' : preferred;
   const militiaMen = militia.reduce((s, u) => s + u.strength, 0);
+  // Your troops near the city that a commanded defence calls in (the reducer's own reinforcementSources); Auto fights without them.
+  const nearMen = city && !attacking ? reinforcementSources(state, def.regionId, state.playerNationId, def.aggressorId)
+    .flatMap((src) => src.unitIds.map((id) => state.units[id])).reduce((n, u) => n + Math.max(0, u?.strength || 0), 0) : 0;
   const militiaOnly = city && !attacking && !commandBlocked && !(v.defenderUnits || []).length && militiaMen > 0;
   return {
     kind,
@@ -106,6 +113,7 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
     walls,
     size,
     odds,
+    standby: nearMen > 0 ? t('bt.def.standby', { men: menText(nearMen) }) : null,
     reasons,
     aux: auxLine(v.odds?.auxiliaries, attacking),
     hopeless,
