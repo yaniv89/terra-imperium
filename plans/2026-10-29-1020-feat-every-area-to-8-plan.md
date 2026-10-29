@@ -13,14 +13,13 @@ execution: code
 
 ## Goal Capsule
 
-- **Objective:** Opus playtests score every graded area of Terra Imperium (campaign, battle, art and animation, plus sound and Hebrew) at 8/10 by the done rule in R1, and in those runs a player wins a commanded battle, fights at sea and reaches the late game with decisions to make every few turns.
-- **Means:** finish wave 4 (the seven lanes running now), then wave 5 (U5 to U13 below), then wave 6 lanes built only from areas still under 8, each wave closed by an Opus grade round (KTD1, KTD2).
+- **Objective:** grade playtests score every graded area of Terra Imperium (campaign, battle, art and animation, plus sound and Hebrew) at 8/10 by the done rule in R1, and in those runs a player wins a commanded battle, fights at sea and reaches the late game with decisions to make every few turns.
+- **Means:** finish wave 4 (the seven lanes running now), then wave 5 (U5 to U13 below), then wave 6 lanes built only from areas still under 8, each wave closed by a grade round of Claude playtest sessions (KTD1, KTD3).
 - **Authority:** the user's standing rules (CLAUDE.md "Working rules" and "Lead workflow", plans/HANDOFF-2026-10-29.md section 2) win over this plan; this plan wins over lane briefs; a lane's report never overrides a grade.
 - **Stop conditions:**
   - Every area closed by R1: publish the final report (R15).
-  - The month's API spend would pass $90: stop dispatching, tell the user.
   - A fix would break a kept design decision: stop that lane, ask the user.
-  - An area moves less than 1 point across two Opus rounds after its owner lane merged: stop sending lanes at it and bring it to the user (KTD8).
+  - An area moves less than 1 point across two grade rounds after its owner lane merged: stop sending lanes at it and bring it to the user (KTD8).
   - 31 Dec 2026: publish the final report with each area's status, closed or not.
 - **Execution profile:** the lead session runs lanes as local worktree sessions (cloud sub sessions when the PC is busy), at most seven at once, merges one at a time into `claude/integration`, and pushes `main` only with the user's go.
 
@@ -30,7 +29,7 @@ execution: code
 
 ### Summary
 
-Every area below 8 gets a named owner, the causes testers gave, a fix and a proof. The seven wave 4 lanes cover most battle, forecast, naval, pacing, help and polish causes. Wave 5 adds nine lanes for areas no one owns today: battle HUD, tech tree, diplomacy answers, early pace, sieges and sea starts, map speed, battle art, map art, sound and Hebrew. Opus grade rounds run on November money at the end of each wave, with free browser playtests in between.
+Every area below 8 gets a named owner, the causes testers gave, a fix and a proof. The seven wave 4 lanes cover most battle, forecast, naval, pacing, help and polish causes. Wave 5 adds nine lanes for areas no one owns today: battle HUD, tech tree, diplomacy answers, early pace, sieges and sea starts, map speed, battle art, map art, sound and Hebrew. Grade rounds run at the end of each wave as Claude playtest sessions in a real browser (no API spend), with a lighter interim playtest after each merge batch.
 
 ### Problem Frame
 
@@ -44,10 +43,10 @@ Testers on the same build also disagree by up to 5 points (round 3b glossary 5/7
 ### Requirements
 
 Grades and process
-- R1. Done rule: an area is closed when, in one Opus round, its average across that round's runs is 8+ and no run scores it below 7, except a low score whose cited cause is already fixed on the graded build or is a harness defect. A closed area stays closed unless a later round drops its average below 7.
-- R2. A grade counts only from a fresh playtest. Free browser playtests are interim grades that steer lanes; only an Opus round closes an area. Sound is the exception: it closes by KTD6.
+- R1. Done rule: an area is closed when, in one grade round, its average across that round's runs is 8+ and no run scores it below 7, except a low score whose cited cause is already fixed on the graded build or is a harness defect. A closed area stays closed unless a later round drops its average below 7.
+- R2. A grade counts only from a fresh playtest by a Claude session that did not build the fix. Interim playtests steer lanes; only a full grade round (KTD3) closes an area. Sound is the exception: it closes by KTD6.
 - R3. Old grades stay in the dashboard; each round appends rows.
-- R4. API spend stays at $90 a calendar month or less, each dispatch's `max_usd` added to the month's spend before it runs.
+- R4. Grade rounds use Claude sessions, not the API; any API dispatch still follows the $90-a-month rule.
 
 Battles
 - R5. A player who follows the forecast wins a commanded battle the forecast calls likely; forecast, card, Auto and result screen read the same forces.
@@ -63,14 +62,16 @@ Campaign
 
 Presentation
 - R13. Art and animation (map units, melee, hits, deaths, projectiles, sea, unit size, transitions) reach 8, judged from real-GPU shots (KTD5).
-- R14. Sound and music reach 8 by KTD6; Hebrew reaches 8 in an Opus run played in Hebrew.
+- R14. Sound and music reach 8 by KTD6; Hebrew reaches 8 in a grade run played in Hebrew.
 
 Delivery
 - R15. A very extensive report of what was done and the status of every area, with screenshots and explanations, published as an artifact.
 
 ### Key Decisions
 
-- **Free browser playtests count as interim grades; only Opus closes an area.** (session-settled: user-approved — chosen over Opus-only grading: Opus runs are 3-4 a month.) Governs R1, R2.
+- **Playtests run as Claude sessions in a real browser, not through the API.** (session-settled: user-directed — chosen over API Opus runs: no spend, as many rounds as needed.) Governs R2, R4.
+- **Interim playtests steer lanes; only a full grade round closes an area.** (session-settled: user-approved — chosen over grading from one run.) Governs R1, R2.
+- **Art fixes in Blender run through the user's Blender MCP:** the lead tells the user when an art fix needs it. (session-settled: user-directed.) Governs R13.
 - **Rule changes are allowed, each proven by balance-sim or battle-lab.** (session-settled: user-approved — chosen over UI-only fixes: testers name rules, not only screens.) Governs R5, R8, R9, R12.
 - **Sound and music join the graded areas.** (session-settled: user-approved — chosen over leaving them out.) Governs R14.
 - **Core loop first:** battles, forecasts, events and pacing merge first, then naval and units, then presentation. (session-settled: user-approved — chosen over weakest-area-first.) Governs Sequencing.
@@ -78,8 +79,8 @@ Delivery
 
 ### Success Criteria
 
-- Every area closed by R1 in the last Opus round, with sound closed by KTD6.
-- At least one Opus run wins a commanded battle, one fights a sea battle and one plays a late-age slice with a decision every few turns.
+- Every area closed by R1 in the last grade round, with sound closed by KTD6.
+- At least one grade run wins a commanded battle, one fights a sea battle and one plays a late-age slice with a decision every few turns.
 - Every finding in plans/playtests/manual-2026-10-29.md is fixed or recorded as a decision with evidence.
 
 ### Scope Boundaries
@@ -106,17 +107,19 @@ Delivery
 ### Key Technical Decisions
 
 - KTD1. **Waves, not a rolling stream.** A wave's lanes share no files and merge one at a time; one grade round follows on the merged build. Wave 4 = the seven lanes running now. Wave 5 = U5 to U13. Wave 6 = lanes written after round B from areas still under 8, with no pre-written units.
-- KTD2. **Every lane brief carries its target grade, the tester step numbers and shots, and a "check on current integration first" rule.** To stop lanes fitting the graders' exact paths, each Opus round plays a people and seed that no lane brief has seen (held-out run); an area only closes if the held-out run also scores it 7+.
-- KTD3. **Interim grades from a free browser playtest after each merge batch; Opus rounds only at wave ends.** The interim run uses the playtester's own area list (U2), a late-age save slice for the late game, and balance-sim navalTrace as the interim proof of R8. Interim scores that the browser cannot judge the same way as Opus (touch, sound) are marked not comparable.
-- KTD4. **Budget, at $0.025 a step on Opus with `limit` always set:**
-  - Round A (November): newcomer-phone 255 steps $6.40, civ-veteran 400 steps $10 (one slice from a late-age save), warmonger 330 steps $8.25, battle-commander 320 steps $8 = about $33.
-  - Round B (November if spend allows, else December): the same four, with newcomer-phone playing in Hebrew (`lang: he`) so Hebrew needs no fifth run = about $33.
-  - Held: about $24 for one more full round or a targeted rerun.
-  - Each round first checks the harness: the run reached its limit, taps registered, no stuck step loop. A failed check means the round does not count and its cost is recorded.
-- KTD5. **Art is judged from real-GPU shots.** CI shots may be software-rendered, so art rows from them are provisional. Art lanes attach before and after shots at 844x390 from a real GPU (the user's PC) to their report, and the next grade run is given those shots alongside its own. Art work happens only in the user's open Blender (memory: live Blender only).
+- KTD2. **Every lane brief carries its target grade, the tester step numbers and shots, and a "check on current integration first" rule.** To stop lanes fitting the graders' exact paths, each grade round plays a people and seed that no lane brief has seen (held-out run); an area only closes if the held-out run also scores it 7+.
+- KTD3. **Grade rounds are four fresh Claude playtest sessions, one per persona, in the built-in browser on the merged build.** Each session gets only its persona and the rubric, never a lane's report, and runs on the dev server at 844x390 (desktop 1600x900 for one slice). The interim playtest is one such session, shorter, after each merge batch. All use the playtester's own area list (U2) so scores line up with every earlier round; balance-sim navalTrace backs R8.
+- KTD4. **Grade round shape (no API spend):**
+  - newcomer-phone: about 250 steps, Stone to Classical, first commanded battle; in round B it plays in Hebrew, so Hebrew needs no fifth session.
+  - civ-veteran: about 400 steps, including one slice from a late-age save for the last three ages.
+  - warmonger: about 330 steps, wars, sieges, a landing.
+  - battle-commander: every age in the battle sandbox plus one campaign battle; grades the battle and art rows.
+  - Sessions run two at a time so the PC stays usable by lanes. Each session first checks its own run: the dev server answered, taps registered, no stuck loop; a failed check means that session reruns.
+  - The old API Opus playtester (`claude-content.yml`, `human-playtest`) stays available but is not used for grading.
+- KTD5. **Art is judged from real-GPU shots and built in the user's Blender.** Playtest sessions run in the built-in browser on this PC's GPU, so their shots count for art. Art lanes attach before and after shots at 844x390 to their report. Any fix that needs a model change waits for the user: the lead tells the user which assets and why, and the user opens Blender with the MCP add-on (memory: live Blender only); code-only art fixes (shaders, flashes, roof fade, scale) go ahead without it.
 - KTD6. **Sound closes by a gate plus the user's score.** Gate: a test that every map and battle event id has a cue and every age has music, and that music and effects have separate volumes with a one-tap mute on map and battle. Score: the user rates sound 1-10 after one phone session. Sound is closed at 8+ with the gate passing.
 - KTD7. **odds-truth owns every force count; battle-truth does not touch autoBattle.js.** One owner for the honest auto-resolve (lead call, 29 Oct).
-- KTD8. **Convergence check.** After each Opus round, an area that moved less than 1 point since the previous round, with its owner lane merged in between, gets no new lane. The lead writes down why it is stuck (grader, design gap, or next layer) and asks the user to choose: a design change, accept the grade with evidence, or change the rubric row.
+- KTD8. **Convergence check.** After each grade round, an area that moved less than 1 point since the previous round, with its owner lane merged in between, gets no new lane. The lead writes down why it is stuck (grader, design gap, or next layer) and asks the user to choose: a design change, accept the grade with evidence, or change the rubric row.
 - KTD9. **One UI pattern for phones:** a disabled button stays tappable and shows its reason in a one-line note; tap targets are at least 40 px at 844x390; text at least 11 px. Every UI lane attaches mobile-check shots at 844x390 and 1600x900 in en and he.
 
 ### High-Level Technical Design
@@ -126,14 +129,14 @@ flowchart LR
   W4[Wave 4: 7 lanes] --> M4[Merge one by one, CI green]
   M4 --> I4[Interim browser playtest]
   M4 --> W5[Wave 5 lanes start on merged build]
-  I4 --> GA[Opus round A]
+  I4 --> GA[grade round A]
   GA --> W5
-  W5 --> M5[Merge] --> I5[Interim] --> GB[Opus round B]
+  W5 --> M5[Merge] --> I5[Interim] --> GB[grade round B]
   GB --> D{Every area closed by R1?}
   D -- yes --> R[Final report]
   D -- no --> K{Stuck by KTD8?}
   K -- yes --> U[User decides per area]
-  K -- no --> W6[Wave 6 lanes for open areas] --> GC[Next Opus round] --> D
+  K -- no --> W6[Wave 6 lanes for open areas] --> GC[Next grade round] --> D
 ```
 
 Area to owner map:
@@ -170,9 +173,9 @@ Area to owner map:
 
 ### Sequencing
 
-1. Close wave 4 (U1), interim playtest (U2), Opus round A (U3).
+1. Close wave 4 (U1), interim playtest (U2), grade round A (U3).
 2. Wave 5 lanes start on the merged wave 4 build, as slots free (memory: auto-start lanes); each folds round A's findings into its brief when they land. U5 and U11 do not run at the same time (both touch battle presentation; U11 owns the renderer).
-3. Merge wave 5, interim playtest, Opus round B (U14).
+3. Merge wave 5, interim playtest, grade round B (U14).
 4. KTD8 check, then wave 6 or the user's decisions.
 5. Final report (U15).
 
@@ -183,8 +186,8 @@ Area to owner map:
 | U-ID | Title | Key files | Depends on |
 |---|---|---|---|
 | U1 | Close wave 4 lanes and merge | plans/lanes/*-REPORT.md | none |
-| U2 | Interim playtest and rubric rows | scripts/ai/human-playtest.mjs | U1 |
-| U3 | Opus grade round A | .github/workflows/claude-content.yml | U1, U2 |
+| U2 | Playtest session brief and rubric rows | plans/playtests/session-brief.md | U1 |
+| U3 | Grade round A | plans/playtests/ | U1, U2 |
 | U4 | Dashboard and findings upkeep | dashboard datasets | U1 |
 | U5 | battle-hud lane | src/components/battle/ | U1 |
 | U6 | tech-tree lane | src/components/panels/TechPanel.jsx | U1 |
@@ -195,7 +198,7 @@ Area to owner map:
 | U11 | battle-art and camera lane | src/battle/render/ | U1, after U5 |
 | U12 | map-art lane | src/components/map/closeView/ | U1 |
 | U13 | sound and Hebrew lane | src/audio/, src/i18n/ | U1 |
-| U14 | Opus round B | .github/workflows/claude-content.yml | U5-U13 |
+| U14 | Grade round B | plans/playtests/ | U5-U13 |
 | U15 | Final report artifact | artifact | U14 or 31 Dec |
 
 ### U1. Close wave 4 lanes and merge
@@ -219,30 +222,30 @@ Area to owner map:
 
 ### U2. Interim playtest and rubric rows
 
-**Goal:** the Opus playtester grades art, transitions and language rows, and a free browser playtest uses the same area list.
+**Goal:** one session brief that turns a fresh Claude session into a playtester for any persona, scoring the same areas as every earlier round plus art, transitions and language.
 **Requirements:** R2, R3, R13, R14.
 **Dependencies:** U1.
-**Files:** scripts/ai/human-playtest.mjs (AREAS and BATTLE_AREAS), its test if one exists; plans/playtests/manual-YYYY-MM-DD.md per interim run.
+**Files:** scripts/ai/human-playtest.mjs (AREAS and BATTLE_AREAS gain the new rows, so old and new rubrics stay one list), plans/playtests/session-brief.md (new), plans/playtests/<round>-<persona>.md per run.
 **Approach:**
 1. Add the art rows (campaign map units, melee, hits, deaths, projectiles, sea, unit size at phone zoom), transitions and a language row to the area lists.
-2. The interim run reads the area list and required actions straight from that script (area names from AREAS and BATTLE_AREAS, actions from MUST_DO) and writes a report in the shape of plans/playtests/manual-2026-10-29.md.
-3. Interim script: 60 turns Fast with a coastal people, one commanded field battle, one siege, one sea action, save and reload, one slice from a late-age save, 10 turns in Hebrew; navalTrace stands in for R8.
+2. session-brief.md: load ponytail; play in the built-in browser on the dev server at 844x390; take the persona's goals and MUST_DO actions from human-playtest.mjs; score every area 1-10 with the cause and step for anything under 8; save shots; report in the shape of plans/playtests/manual-2026-10-29.md; never read lane reports.
+3. Interim run: the same brief, 60 turns Fast with a coastal people, one commanded field battle, one siege, one sea action, save and reload, one late-age save slice, 10 turns in Hebrew; navalTrace stands in for R8.
 **Test scenarios:**
 - A step reporting area "Hit feedback" is accepted by the playtester's area check; an unknown area is rejected as before.
 **Verification:** one interim run after U1 scores every area including the new rows.
 
-### U3. Opus grade round A
+### U3. Grade round A
 
-**Goal:** four Opus runs on the wave 4 build, appended to the dashboard.
-**Requirements:** R1, R3, R4.
+**Goal:** four fresh Claude playtest sessions on the wave 4 build, grades appended to the dashboard.
+**Requirements:** R1, R2, R3.
 **Dependencies:** U1, U2.
-**Files:** .github/workflows/claude-content.yml (inputs), dashboard datasets scores and spend.
+**Files:** plans/playtests/A-<persona>.md and shots; dashboard dataset scores.
 **Approach:**
-1. Dispatch per KTD4 on ref `claude/integration`, `play_model: opus`, `limit` and `max_usd` set; personas newcomer-phone, civ-veteran (late-age slice), warmonger, battle-commander over every age.
-2. One run uses a people and seed no lane brief has seen (KTD2).
-3. Run the harness check (KTD4) before the round counts; record real costs.
-**Test expectation:** none -- dispatch only.
-**Verification:** four reports on `ai/human-playtest-*` branches; grades appended; November spend at or under $90.
+1. Start four sessions from session-brief.md (KTD3, KTD4), two at a time, on the dev server running the merged `claude/integration`.
+2. One session plays a people and seed no lane brief has seen (KTD2).
+3. A session whose self-check fails reruns before the round counts.
+**Test expectation:** none -- playtest only.
+**Verification:** four reports in plans/playtests/; grades appended as round A.
 
 ### U4. Dashboard and findings upkeep
 
@@ -404,14 +407,14 @@ Area to owner map:
 - Muting in battle silences both channels; unmuting restores the previous volumes.
 **Verification:** sound closed by KTD6; Hebrew closes by R1 in round B's Hebrew run.
 
-### U14. Opus round B
+### U14. Grade round B
 
 **Goal:** grade wave 5.
-**Requirements:** R1, R4.
+**Requirements:** R1, R2.
 **Dependencies:** U5 to U13 merged.
-**Files:** .github/workflows/claude-content.yml (inputs), dashboard.
-**Approach:** same four personas per KTD4 with newcomer-phone in Hebrew and a new held-out people and seed; harness check first; then KTD8 for every area still open.
-**Test expectation:** none -- dispatch only.
+**Files:** plans/playtests/B-<persona>.md and shots; dashboard.
+**Approach:** four fresh sessions from session-brief.md per KTD4, newcomer-phone in Hebrew, a new held-out people and seed; self-check first; then KTD8 for every area still open.
+**Test expectation:** none -- playtest only.
 **Verification:** Success Criteria met, or a wave 6 lane list (or user decisions under KTD8) for the open areas.
 
 ### U15. Final report artifact
@@ -443,7 +446,7 @@ Area to owner map:
 ## Risks & Dependencies
 
 - **Grader noise:** testers disagree by up to 5 points; R1's exception for fixed causes and harness defects, plus KTD8, keep waves from chasing noise.
-- **Budget:** two rounds plus a reserve fill $90; round B moves to December if November's spend would pass $90.
+- **PC time:** a grade round is four long browser sessions; running two at a time beside lanes slows tests, so rounds start when no merge test run is going.
 - **Shared PC load:** seven lanes make full test runs time out; targeted tests in lanes, full checks after merges alone.
 - **Balance ripples:** ai-armies pushed the passive world to the Future goal early; every macro rule change runs the passive endgame test before merge.
 - **Art needs the user's Blender and GPU:** U11 and U12 asset work and shots wait on the user's PC.
