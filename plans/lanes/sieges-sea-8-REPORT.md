@@ -52,3 +52,14 @@ Options for the lead (each needs aiDuel and parityEco, and the Auto retune throu
 - Lint: eslint --max-warnings 0 on every changed file, clean.
 - Tests: `npm run test:related -- src/battle/sim/world.js src/battle/setup/mapgen.js src/components/battle/BattleSandbox.jsx` (result in the commit message); naval.test.js 6 of 6.
 - Not run: full suite (shared PC), aiDuel sea rows, browser shot of the sandbox sack.
+
+## Option A (lead, 29 Oct): work in progress, usage limit reached
+
+Built: CITY_STORES_PER_SEC 2.5 food, 1.2 wood while the keep stands (economy.js), the walled city's hall trains infantry and ranged in turns (CITY_HALL_TRAINS, `trainsOf`, HUD view row carries `trains`), the defender AI keeps laborers inside and raises nothing while the ring is whole (economyAI.js). SETUP_VERSION 32.
+
+parityEco N=16 MATCH=0 assault (base: bronze 32/32, classical>kingdoms 29/32 of N=32):
+- hall infantry only: bronze 15/16, classical>kingdoms 9/16
+- archers first: 11/16, 0/16
+- alternating (committed): 14/16, 0/16; Command/Auto ratio 1.44x and 2.86x, both IN
+
+Left: (1) trained men hold at the keep (tacticalAI thinkDefender: leave held auxiliaries alone while the ring is whole), aiming bronze mirror at 40-60%; (2) EconomyHud.jsx:257 and TacticalBattleScreen.jsx:815 read `building.trains || def.trains` so the player can train at the hall; (3) autoCalib retune in autoBattle.js (Auto still 13/16); (4) aiDuel, N=32 rows, test:related, a test for the hold rule. classical>kingdoms is not a mirror (defender one age ahead).

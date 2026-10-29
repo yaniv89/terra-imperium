@@ -15,7 +15,8 @@ import { distSq } from './fixed';
 import { canSeeSquad } from './fog';
 import { getCounterMultiplier } from '../../data/unitClasses';
 import { Q, SIDE_ATTACKER } from './constants';
-import { placementBlock, population, housingCap, ecoAlive, applyEcoOrder } from './economy';
+import { placementBlock, population, housingCap, ecoAlive, applyEcoOrder, walledCity, trainsOf } from './economy';
+import { ringBroken } from './siegeRules';
 import { BUILDINGS, UNITS, RESOURCES, MILLI, costMilli, buildableFor, trainableRoles, POP_LIMIT, WORKER_MIX } from '../data/economy';
 
 // workers: laborers it keeps; prod: production buildings; towers: when defending; mix: the share of
@@ -115,17 +116,27 @@ export const thinkEconomy = (w, side, difficultyId, orders) => {
   const roles = trainableRoles(ageId);
   // The production types in the order to raise and feed them: by counter value (prince+), else as listed.
   const ranked = cfg.counter && ECO_FEATURES.counter ? counterOrder(w, side, ageId) : PRODUCTION;
-  const prod = mine.filter((b) => PRODUCTION.includes(b.type)).sort((a, b) => ranked.indexOf(a.type) - ranked.indexOf(b.type) || a.idx - b.idx);
+  const prod = mine.filter((b) => PRODUCTION.includes(b.type) || (BUILDINGS[b.type].hq && trainsOf(b).length > 1)).sort((a, b) => ranked.indexOf(a.type) - ranked.indexOf(b.type) || a.idx - b.idx);
   // Keep the production buildings training (a little food kept back for laborers). With bases the
   // keep or the camp may fall while the barracks stand (base.js, Q4): they train on regardless.
   const keepTraining = () => prod.filter((b) => b.built).forEach((b) => {
     if (b.queue.length >= cfg.queue) return;
-    const role = BUILDINGS[b.type].trains.find((r) => roles.includes(r));
+    // A building that trains more than one kind (a walled city's hall) takes turns, the least trained first.
+    const done = w.eco.stats[side].trained;
+    const role = trainsOf(b).filter((r) => r !== 'worker' && roles.includes(r)).sort((x, y) => (done[x] || 0) - (done[y] || 0))[0];
     if (!role || !afford(stock, UNITS[role].cost, 40)) return;
     spend(stock, UNITS[role].cost);
     orders.push({ side, type: 'train', building: b.idx, role });
   });
   if (!hq) { keepTraining(); return; }
+  // Behind a whole wall ring the city holds (U9, lead option A): its laborers come in and nothing is
+  // raised outside, the keep trains on its stores; once the ring breaks the economy goes out again.
+  if (side !== SIDE_ATTACKER && walledCity(w) && !ringBroken(w)) {
+    const out = workers.filter((q) => q.order.type !== 'move' && distSq(q.x, q.y, hq.x, hq.y) > (6 * Q) ** 2).map((q) => q.idx);
+    if (out.length) orders.push({ side, type: 'move', squads: out, x: hq.x, y: hq.y });
+    keepTraining();
+    return;
+  }
 
   // 1. Idle laborers to whatever resource is furthest under its share.
   const onRes = Object.fromEntries(RESOURCES.map((r) => [r, 0]));

@@ -31,7 +31,7 @@ import { capShotOn, crewShares, turnOnShooter, fireShare, recentlyHit, REPAIR_UN
 import {
   RESOURCES, MILLI, POP_LIMIT, POP_PER_SQUAD, CARRY, GATHER_PER_SEC, FARM_RATE_MULT, MINE_RATE_MULT, WORK_REACH,
   buildRateHalves, CANCEL_REFUND, REPAIR_HP_PER_SEC, REPAIR_RECENT_TICKS, REPAIR_RECENT_MULT_QUARTERS,
-  BUILD_RADIUS_HQ, BUILD_RADIUS_OWN, QUEUE_MAX, LOOT_SHARE, CITY_BUILDING_LOOT, TRADE_GOLD_PER_SEC, TRADE_GOLD_MAX,
+  BUILD_RADIUS_HQ, BUILD_RADIUS_OWN, QUEUE_MAX, LOOT_SHARE, CITY_BUILDING_LOOT, TRADE_GOLD_PER_SEC, TRADE_GOLD_MAX, CITY_STORES_PER_SEC, CITY_HALL_TRAINS,
   AID_RADIUS, AID_HEAL_PER_SEC, HOUSE_HOUSING, HALL_HOUSING, BUILDINGS, UNITS, costMilli, costTotal, buildTicks, trainTicks,
   trainableRoles, buildableFor, WORKER_PRESETS, RES_INDEX, CITY_REPAIR_STONE_PER_HP
 } from '../data/economy';
@@ -102,11 +102,17 @@ export const initEconomy = (w) => {
   const hall = makeBuilding(w, SIDE_DEFENDER, 'hall', Math.floor(keep.x / Q) - 1, Math.floor(keep.y / Q) - 1, { built: true, proxy: 0, x: keep.x, y: keep.y });
   hall.radius = keep.radius + (Q >> 1);
   hall.startHousing = e.housing[1];
+  if (walledCity(w)) hall.trains = [...BUILDINGS.hall.trains, ...CITY_HALL_TRAINS];
   // A few laborers by each headquarters, already at work.
   [camp, hall].forEach((hq) => { for (let k = 0; k < START_WORKERS; k++) spawnUnit(w, hq, 'worker', true); });
 };
 
 // ---- queries -----------------------------------------------------------------------------------
+
+/** A real city with a wall ring (cityBattle.js): its keep is a citadel with stores (CITY_STORES_PER_SEC). */
+export const walledCity = (w) => !!w.setup.city && w.structures.some((s) => s.kind === 'gate');
+/** What building `b` trains: a walled city's town hall trains its foot too. */
+export const trainsOf = (b) => b.trains || BUILDINGS[b.type].trains || [];
 
 /** Is building `b` standing (a proxy town hall stands while its keep does)? */
 export const ecoAlive = (w, b) => (b.proxy !== null && b.proxy !== undefined ? !!w.structures[b.proxy]?.alive : b.alive);
@@ -321,7 +327,7 @@ export const applyEcoOrder = (w, o) => {
       const b = w.eco.buildings[o.building];
       if (!b || b.side !== side || !ready(w, b) || b.queue.length >= QUEUE_MAX) return true;
       const role = o.role;
-      if (!BUILDINGS[b.type].trains?.includes(role) || !trainableRoles(w.setup.sides[side].ageId).includes(role)) return true;
+      if (!trainsOf(b).includes(role) || !trainableRoles(w.setup.sides[side].ageId).includes(role)) return true;
       const count = Math.max(1, Math.min(5, o.count || 1));
       for (let k = 0; k < count && b.queue.length < QUEUE_MAX; k++) {
         if (!canAfford(w, side, UNITS[role].cost)) break;
@@ -608,11 +614,13 @@ export const updateEconomy = (w) => {
     if (item.ticks >= item.need) { b.queue.shift(); spawnUnit(w, b, item.role); }
   }
   if (w.tick % TICK_HZ !== 0) return;
-  // Once a second: trade posts bring gold; aid posts heal the resting.
+  // Once a second: a walled city's stores, trade posts bring gold; aid posts heal the resting.
+  const walled = walledCity(w);
   for (let i = 0; i < nb; i++) {
     const b = eco.buildings[i];
     if (!ready(w, b)) continue;
     const def = BUILDINGS[b.type];
+    if (walled && def.hq && b.side === SIDE_DEFENDER) Object.entries(CITY_STORES_PER_SEC).forEach(([r, v]) => { const g = Math.round(v * MILLI); eco.stock[b.side][RES_INDEX[r]] += g; eco.stats[b.side].gathered[RES_INDEX[r]] += g; });
     if (def.trade && b.traded < TRADE_GOLD_MAX * MILLI) {
       const g = Math.min(Math.round(TRADE_GOLD_PER_SEC * MILLI), TRADE_GOLD_MAX * MILLI - b.traded);
       b.traded += g; eco.stock[b.side][GOLD] += g; eco.stats[b.side].gathered[GOLD] += g;
@@ -722,7 +730,8 @@ export const ecoView = (w, playerSide) => {
         idx: b.idx, id: b.id, type: b.type, side: b.side, x: b.x, y: b.y, tx: b.tx, ty: b.ty, size: b.size, radius: b.radius,
         hp: keep ? keep.hp : b.hp, maxHp: keep ? keep.maxHp : b.maxHp, alive, built: b.built, progress: pct(b.progress, b.need), proxy: b.proxy != null,
         queue: own ? b.queue.map((it) => ({ role: it.role, pct: pct(it.ticks, it.need), started: it.started, blocked: it.blocked || null })) : [],
-        rally: own ? b.rally : null
+        rally: own ? b.rally : null,
+        ...(b.trains ? { trains: b.trains } : {})
       };
     }).filter(Boolean),
     // A spent grove stays, `spent` (X31: its stumps are drawn; it is no longer a target or an
