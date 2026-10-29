@@ -17,7 +17,7 @@ import {
 } from 'three';
 import { wrapNear } from './mapView';
 import { TERRITORY_VERTEX, TERRITORY_FRAGMENT } from './territoryShader';
-import { DATA_W, LOOKUP_W, LOOKUP_H } from './tileGpuData';
+import { DATA_W, LOOKUP_W, LOOKUP_H, WALK_STEPS } from './tileGpuData';
 import { CITY_W } from './territoryData';
 import { TERRAIN_VERTEX, TERRAIN_FRAGMENT, pxPerKm, closeGroundSetup } from '../closeView/terrainShader';
 import { rasterTileUrl, rasterZoomFor, RASTER_MAX_Z, RASTER_TILE } from '../../../data/geo/rasterTiles';
@@ -38,6 +38,8 @@ const fogTexture = (data, w, h) => {
   t.minFilter = LinearFilter; t.magFilter = LinearFilter; t.wrapS = RepeatWrapping;
   return t;
 };
+// the territory shader's loop bounds (territoryShader.js uLoops): neighbours, outline passes, walk steps, noise octaves
+export const LOOPS = new Vector4(6, 3, WALK_STEPS, 4);
 export const createTerritoryLayer = (scene, grid) => {
   const centres = dataTexture(grid.centres, DATA_W, grid.rows, RGBAFormat, FloatType);
   const neigh = dataTexture(grid.neighbours, DATA_W, grid.neighbourRows, RGBAFormat, FloatType);
@@ -48,7 +50,7 @@ export const createTerritoryLayer = (scene, grid) => {
     uTile: { value: empty() }, uCity: { value: empty() }, uFog: { value: fogTexture(new Uint8Array(4), 1, 1) }, uTint: { value: dataTexture(new Uint8Array(4), 1, 1, RGBAFormat, UnsignedByteType) },
     uView: { value: new Vector4() }, uViewport: { value: new Vector2(1, 1) }, uProj: { value: new Vector4() },
     uK: { value: 1 }, uDpr: { value: 1 }, uHex: { value: 0 }, uCityDetail: { value: 0 }, uNationHalf: { value: 0.55 },
-    uSelTile: { value: -1 }, uTintOn: { value: 0 }, uFogOn: { value: 0 }
+    uSelTile: { value: -1 }, uTintOn: { value: 0 }, uFogOn: { value: 0 }, uLoops: { value: LOOPS }
   };
   const material = new ShaderMaterial({
     glslVersion: GLSL3, vertexShader: TERRITORY_VERTEX, fragmentShader: TERRITORY_FRAGMENT, uniforms,
@@ -108,6 +110,7 @@ export const createTerritoryCache = (territory) => {
   quadScene.add(quad);
   const clear = new Color();
   let cache = null; // { key, k, left, top, w, h }
+  let linked = false; // the shader's programs are ready (warm)
   const fits = (v, key) => {
     if (!cache || cache.key !== key || cache.k !== v.k) return false;
     const left = wrapNear(cache.left, v.worldLeft, v.worldW);
@@ -116,8 +119,22 @@ export const createTerritoryCache = (territory) => {
   return {
     /** Forget the cached picture (a lost and restored WebGL context emptied it). */
     invalidate: () => { cache = null; },
+    /**
+     * Links the shader's two programs (into the cache texture, and on screen while a zoom is under
+     * way) off the main thread (KHR_parallel_shader_compile). Until they are ready `draw` draws
+     * nothing, so the map shows the Earth at once instead of freezing on the link. Resolves when ready.
+     */
+    warm: (renderer, camera) => {
+      const before = renderer.getRenderTarget();
+      renderer.setRenderTarget(target);
+      const intoCache = renderer.compileAsync(scene, camera);
+      renderer.setRenderTarget(before);
+      return Promise.all([intoCache, renderer.compileAsync(scene, camera)]).then(() => { linked = true; });
+    },
+    ready: () => linked,
     /** Draws the territories for view `v` (the shader's `opts`): from the cache when it fits, else live; caches when `settled`. */
     draw: (renderer, camera, v, opts, settled) => {
+      if (!linked) return 'linking';
       const key = `${territory.version}|${JSON.stringify(opts)}|${v.width}x${v.height}@${v.dpr}`;
       if (!fits(v, key) && settled) {
         const m = CACHE_MARGIN; const w = v.width * (1 + 2 * m); const h = v.height * (1 + 2 * m);
@@ -194,12 +211,15 @@ const prepareCover = (texture) => {
 export const createRasterLayer = (scene, { request, onReady, source = null }) => {
   const quad = new PlaneGeometry(1, 1).translate(0.5, -0.5, 0); // top-left corner at the origin
   const loader = new TextureLoader();
-  const r = { world: null, tiles: new Map(), disposed: false, detail: null, stats: { level: 0, tiles: 0, fallback: 0, pending: 0 } };
+  // stats: loading = tiles on screen still on their way, failed = tiles (or the world picture) that did not come
+  const r = { world: null, asked: null, worldFailed: false, tiles: new Map(), disposed: false, detail: null, stats: { level: 0, tiles: 0, fallback: 0, pending: 0, loading: 0, failed: 0 } };
   let budget = 0; // procedural tiles still allowed this frame
   // A generated world (MV4) has only its painted base picture: no Earth detail or pyramid tiles.
   if (!proceduralRaster()) loadDetailIndex().then((index) => { if (!r.disposed && index) { r.detail = index; request(); } });
   const setWorld = (url, size) => {
-    if (r.world?.url === url) return;
+    // (asked once: every frame asked again while the picture was on its way, and after a failure)
+    if (r.world?.url === url || r.asked === url) return;
+    r.asked = url; r.worldFailed = false;
     loader.load(url, (texture) => {
       if (r.disposed) { texture.dispose(); return; }
       prepare(texture, true);
@@ -209,7 +229,7 @@ export const createRasterLayer = (scene, { request, onReady, source = null }) =>
       const meshes = [-1, 0, 1].map(() => { const m = new Mesh(quad, plain); m.renderOrder = 0; m.frustumCulled = false; scene.add(m); return m; });
       r.world = { url, texture, plain, terrain, meshes };
       request(); onReady?.(true);
-    }, undefined, () => onReady?.(false));
+    }, undefined, () => { r.worldFailed = true; request(); onReady?.(false); });
   };
   const tileEntry = (z, x, y) => {
     const key = `${z}/${x}-${y}`;
@@ -226,10 +246,12 @@ export const createRasterLayer = (scene, { request, onReady, source = null }) =>
         e.terrain = terrainMaterial(texture, [RASTER_TILE, RASTER_TILE], [-180 + (x * 360) / cols, 90 - (y * 180) / rows, 360 / cols, 180 / rows]);
         if (e.cover) { e.terrain.uniforms.uCover.value = e.cover; e.terrain.uniforms.uCoverOn.value = 1; }
         request();
-      }, undefined, () => { e.failed = true; });
+      }, undefined, () => { e.failed = true; request(); });
     }
     return e;
   };
+  // where a tile on screen stands: drawn, still on its way, or failed
+  const count = (e) => { if (e.failed) r.stats.failed += 1; else if (!e.texture) r.stats.loading += 1; };
   // A generated world's tile, painted now by the GPU painter (proceduralPaint.js) when the frame's
   // budget allows; false while it waits.
   const paintTile = (e) => {
@@ -288,7 +310,7 @@ export const createRasterLayer = (scene, { request, onReady, source = null }) =>
     const tilesOn = (close || z > baseZ) && (source ? true : !proceduralRaster());
     budget = source ? PAINT_BUDGET : 0;
     r.tiles.forEach((e) => { e.meshes.forEach((m) => { m.visible = false; }); });
-    r.stats = { level: tilesOn ? z : 0, tiles: 0, fallback: 0, pending: 0 };
+    r.stats = { level: tilesOn ? z : 0, tiles: 0, fallback: 0, pending: 0, loading: r.world || r.worldFailed ? 0 : 1, failed: r.worldFailed ? 1 : 0 };
     if (tilesOn) {
       const cols = 2 ** (z + 1); const rows = 2 ** z;
       const tw = rr.width / cols; const th = rr.height / rows;
@@ -333,7 +355,7 @@ export const createRasterLayer = (scene, { request, onReady, source = null }) =>
           if (z <= RASTER_MAX_Z) {
             const e = tileEntry(z, col, ty);
             e.used = now;
-            if (e.texture) draw(e, copy, 1);
+            if (e.texture) draw(e, copy, 1); else count(e);
             continue;
           }
           // a detail tile: itself when it exists and has loaded, else its pyramid parent
@@ -341,12 +363,14 @@ export const createRasterLayer = (scene, { request, onReady, source = null }) =>
           const own = best.z === z ? tileEntry(z, col, ty) : null;
           if (own) own.used = now;
           if (own?.texture) { draw(own, copy, 2); continue; }
+          if (own) count(own);
           // the pyramid's top level is complete: the parent always exists
           const up = z - RASTER_MAX_Z;
           const parent = tileEntry(RASTER_MAX_Z, col >> up, ty >> up);
           parent.used = now;
           const pk = `${parent.key}@${copy}`;
           if (parent.texture && !parents.has(pk)) { parents.add(pk); draw(parent, copy, 1); r.stats.fallback += 1; }
+          if (!own && !parents.has(pk)) { parents.add(pk); count(parent); }
         }
       }
     }
@@ -364,6 +388,12 @@ export const createRasterLayer = (scene, { request, onReady, source = null }) =>
     update,
     ready: () => !!r.world,
     stats: () => r.stats,
+    /** Asks again for the world picture and every tile that failed (the map's retry chip). */
+    retry: () => {
+      r.asked = null; r.worldFailed = false;
+      r.tiles.forEach((e) => { if (e.failed) { e.meshes.forEach((m) => scene.remove(m)); r.tiles.delete(e.key); } });
+      request();
+    },
     dispose: () => {
       r.disposed = true;
       if (r.world) { r.world.meshes.forEach((m) => scene.remove(m)); r.world.plain.dispose(); r.world.terrain.dispose(); r.world.texture.dispose(); }
