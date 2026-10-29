@@ -374,7 +374,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     // unique battle ids, and how the player likes to fight ('ask' | 'auto' | 'command').
     pendingBattle: null,
     battleCounter: 0,
-    battleSettings: { defaultMode: 'ask', autoDefend: false, difficulty: 'normal' },
+    battleSettings: { defaultMode: 'ask', autoDefend: false }, // no difficulty: battleAiOf (data/battleDifficulty.js) maps a missing one from the campaign's
     // AI assaults on the player's garrisons, fought before the turn can end (src/engine/defense.js).
     pendingDefenses: [],
     gameStatus: GameStatus.ACTIVE,
@@ -1776,7 +1776,7 @@ const reduceAction = (state, action) => {
       next.smallTowns = next.smallTowns === 'ask' ? 'ask' : 'auto';
       next.smallTownDefense = next.smallTownDefense === 'auto' ? 'auto' : 'ask';
       next.instantBattles = next.instantBattles === true; // skip the auto-resolve replay
-      next.difficulty = battleAiOf({ battleSettings: next }); // the battle AI: easy, normal or hard
+      next.difficulty = battleAiOf({ ...state, battleSettings: next }); // the battle AI: easy, normal or hard (a missing one from the campaign difficulty)
       return { ...state, battleSettings: next };
     }
 
