@@ -195,6 +195,17 @@ export const turnReportModel = (before, after, lang = getLanguage()) => {
     });
   }
 
+  // New units: they join the city's garrison without a word, so each city that trained some says so,
+  // and the button selects that stack (lead's manual playtest, 29 Oct).
+  const oldUnits = before.units || {};
+  const newByCity = new Map();
+  Object.values(after.units || {}).forEach((u) => {
+    if (oldUnits[u.id] || u.ownerId !== me || u.classId === 'settler' || u.domain === 'naval' || !(u.strength > 0)) return;
+    const c = now[u.homeRegionId];
+    if (c && u.tile === c.tile) newByCity.set(c, (newByCity.get(c) || 0) + 1);
+  });
+  newByCity.forEach((n, c) => add('cities', { tone: 'you', title: tr(n === 1 ? 'report.unitReadyOne' : 'report.unitReadyMany', { city: cityName(c), n }), sub: tr('report.unitReadySub'), place: { kind: 'army', id: c.id, tile: c.tile, name: cityName(c) } }));
+
   // Research.
   const knew = before.techTree || {};
   Object.keys(after.techTree || {}).filter((id) => after.techTree[id]?.researched && !knew[id]?.researched).forEach((id) => {

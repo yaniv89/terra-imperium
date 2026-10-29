@@ -37,3 +37,22 @@ No design call is open. Two notes:
 
 - The Close view chip and the march re-centre are not unit tested (DOM and camera code in GLMapView; covered by the browser checks).
 - The hold hint uses `(pointer: coarse)`: a touch laptop with a mouse attached may not see it.
+
+## Round 2: the lead's manual playtest (plans/playtests/manual-2026-10-29.md, section help-map-8)
+
+Checked on current code first with `node scripts/ui/help-map-8-camera.mjs [--size desktop]` (classical save):
+
+| # | Finding | On current code | Fix | After |
+|---|---|---|---|---|
+| M1 | Camera does not move on the city list | Works: a Cities row centres its city on the phone and desktop (`city list -> Megiddo ... centred`; both lists call openCityOnMap, which flies through cameraTarget). Not reproduced; maybe the city was already in view | none | as before |
+| M2 | Camera does not move to settlers | Works: the Idle chip's tile event starts the settle mode and flies there (`settler -> 522,214 centred`) | none | as before |
+| M3 | Camera does not move after a load | Reproduced: loading a save of the same game kept the old camera (`after a second load: capital 1937,-613 NOT CENTRED`). The remembered camera is keyed by people, seed and mode, so it survived, and a mounted map never redid its first view | GameContext's dispatch calls `noteGameLoaded()` (mapCamera.js) on LOAD_GAME: the remembered camera is dropped and GLMapView redoes its first view (the capital, close) | `after a second load: capital ... centred`, phone and desktop |
+| M4 | New units join the garrison silently; "Next army" showed 1 while 4 units sat in Mycenae | Reproduced: `next army cycle 0 of 2 land stacks` (idleArmyTiles skips city tiles on purpose: a garrison is no turn blocker) | armyCycle (mapCamera.js, UI only; the engine rule is unchanged) ends with the garrisons in the player's cities, and the button shows whenever a stack is not just waiting. The turn report says "2 new units are ready in Mycenae. They wait in its garrison. Tap to give them orders." and its button selects that stack (turnReportModel.js, TurnReportSheet.jsx) | `next army cycle 2 of 2`; tests in mapCamera.test.js and turnReportModel.test.js |
+| M5 | Phone: chips overlap panels | Reproduced three: the iPhone install hint lay under the settle bar (top centre); the World button slid under End Turn when the settle legend widened the bottom-left row; with a wide dock open the map's search button lay over the prompt chips (`after/1b-research-first-open-phone-en`) | The install hint joins the interaction registry as a notice without a chip (on a phone it waits for an open panel or card; it lay over the dock too) and waits while a map tool bar is up (index.css, as `.map-goals` already does); World hides in the settle view (its legend has the row); the map's corner buttons (search, Close view) hide when an open dock leaves under 320 px of map | elementsFromPoint at the old World spot: only the chips and End Turn; `after/1b-research-first-open-phone-en` has no search button or install hint over the dock and chips; help-map-8-shots all checks ok again |
+| M6 | "Go and found village: 1 turn" clipped, with a scrollbar | Not reproduced on the bronze save: "Go and found city: 2 turns" fits its button (scrollWidth 272 = clientWidth 272); the site sheet scrolls because its list is taller than a 390 px screen | none | |
+| M7 | Battle tips say "right click" | By design: the words follow `mouseFirst` (battleCoach.js: a fine pointer and no touch screen). A desktop browser at 844x390 has a mouse, so it says click; a phone or touch emulation gets the tap words | none | |
+| M8 | Focus cost blank ("costs )") | `ACTION_COSTS.setResearchFocus` is `{}`, truthy, so the line got ", costs " with nothing | Only a non-empty cost line is added (TechPanel.jsx): "(+N% science for one line)" | |
+| M9 | Sandbox Fight button covers a checkbox; a glossary popover clipped behind a panel; tech panel 70 px above the age strip | Not taken: the sandbox is a dev page; the popover was not reproduced; the 70 px is the strip the dock keeps for End Turn (PanelDrawer `pb-[...+50px]`) | none | |
+| M10 | Map black 5 to 10 s after load and after a scroll zoom | Perf item, not quick: the raster and close-view models stream in after a load. For the perf lane | none | |
+
+Tests for round 2: mapCamera, turnReportModel, InstallHint, glossary, i18n, panels, ui and context: 41 files, 521 passed. Lint `--no-ignore` clean on every touched file.

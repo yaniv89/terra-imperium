@@ -58,7 +58,7 @@ import { createAtlas } from './spriteAtlas';
 import { onImageLoad } from './spriteArt';
 import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, carryTransform, isSaneTransform, startZoomFor, wheelZoomDelta, maxZoomFor, flingVelocity, FLING_DECAY, FLING_MIN_SPEED } from './mapView';
 import { kmPerRing } from '../../../data/geo/gridScale';
-import { cleanLatLng, latLngOfCity, knownLatLngOfCity, cameraTarget, cameraKey, rememberCamera, recallCamera, createIntentGate, INTENT_SETTLE_MS } from '../mapCamera';
+import { cleanLatLng, latLngOfCity, knownLatLngOfCity, cameraTarget, cameraKey, rememberCamera, recallCamera, createIntentGate, INTENT_SETTLE_MS, GAME_LOADED } from '../mapCamera';
 import {
   citySprites, nearView, markerSprites, landSprites, groundMarks, settlerSprites, marchShapes, lensShapes, terrainSprites, tileOutline,
   HEX_FROM_ZOOM, CITY_DETAIL_ZOOM, CLOSE_ZOOM_K
@@ -452,6 +452,12 @@ const GLMapView = ({
   // globe was shown), else close on the capital (startZoomFor), else the selected army; never a
   // default corner of the world. Again for another game on the same map (a new game, a load).
   const initialKeyRef = useRef(null);
+  const [loadSeq, setLoadSeq] = useState(0);
+  useEffect(() => {
+    const onLoad = () => { appliedInitialFocusRef.current = false; setLoadSeq((n) => n + 1); };
+    window.addEventListener(GAME_LOADED, onLoad);
+    return () => window.removeEventListener(GAME_LOADED, onLoad);
+  }, []);
   useEffect(() => {
     if (initialKeyRef.current !== camKey) { initialKeyRef.current = camKey; appliedInitialFocusRef.current = false; }
     if (appliedInitialFocusRef.current || !ready || !projection) return;
@@ -460,7 +466,7 @@ const GLMapView = ({
     const t = cameraTarget(gameStateRef.current, [{ regionId: initialFocusRegionId }], { selectedArmyTile: selectedArmy });
     const k = startZoomFor({ height, scale: projection.scale(), viewKm: START_VIEW_KM, minK: CLOSE_ZOOM_K * 1.05, maxK: ZOOM_MAX }) ?? INITIAL_FOCUS_ZOOM;
     if (t && focusOnLatLng(t.lat, t.lng, k)) appliedInitialFocusRef.current = true;
-  }, [initialFocusRegionId, focusOnLatLng, ready, projection, camKey, selectedArmy, height, ZOOM_MAX]);
+  }, [initialFocusRegionId, focusOnLatLng, ready, projection, camKey, selectedArmy, height, ZOOM_MAX, loadSeq]);
 
   // A new action effect: pan to it (keeping a deeper zoom) and keep it centred while it plays.
   const lastEffectIdRef = useRef(effects.length ? effects[effects.length - 1].id : null);
@@ -567,6 +573,8 @@ const GLMapView = ({
   const armyTarget = selectedArmy != null ? cameraTarget(state, [], { selectedArmyTile: selectedArmy }) : null;
   const goHome = useCallback(() => goTo(cameraTarget(gameStateRef.current, [], {})), [goTo]);
   const goArmy = useCallback(() => { const t = cameraTarget(gameStateRef.current, [], { selectedArmyTile: selectedArmy }); if (t?.from === 'army') goTo(t); }, [goTo, selectedArmy]);
+  // A wide dock on a phone leaves a strip of map: the corner buttons would lie over the prompt chips there.
+  const roomForControls = width - insets.left - insets.right >= 320;
   // the close view of the middle of the screen
   const goCloseView = useCallback(() => { const c = projection?.invert(screenToWorld(view(), width / 2, height / 2)); if (c) goTo({ lat: c[1], lng: c[0] }); }, [goTo, projection, view, width, height]);
   const zoomBy = useCallback((factor) => { if (zoomBehaviorRef.current && containerRef.current) select(containerRef.current).transition().duration(200).call(zoomBehaviorRef.current.scaleBy, factor); }, []);
@@ -1062,14 +1070,14 @@ const GLMapView = ({
       )}
       {!prefersReducedMotion() && <EffectsLayer effects={effects} getProjector={getProjector} width={width} height={height} ageId={ageOf(state, state.playerNationId)} testId="map2d-effects" />}
       {/* Zoomed out, the close view (3D towns and armies) is one tap away: a double tap only zoomed one step, and players did not know it existed (round 3b civ-veteran 39-40). */}
-      {hudOffset && k < CLOSE_ZOOM_K && (
+      {roomForControls && hudOffset && k < CLOSE_ZOOM_K && (
         <button type="button" onClick={goCloseView} title={tr('zoom.closeViewTip')} data-testid="map-close-view"
           style={{ insetInlineEnd: insets.end + 60 }}
           className="absolute z-20 top-[calc(var(--header-height,2.25rem)+0.625rem)] min-h-[40px] px-3 rounded-full bg-fa-panel/95 border border-fa-line shadow-xl text-[12px] font-semibold text-fa-text hover:bg-fa-raised flex items-center gap-1.5">
           <Eye className="w-4 h-4" aria-hidden="true" />{tr('zoom.closeView')}
         </button>
       )}
-      <MapZoomControls
+      {roomForControls && <MapZoomControls
         style={{ insetInlineEnd: insets.end + 8 }}
         className={hudOffset ? 'top-[calc(var(--header-height,2.25rem)+0.625rem)]' : 'top-12'}
         onZoomIn={() => zoomBy(ZOOM_STEP_SCALE)} canZoomIn={kNow < ZOOM_MAX}
@@ -1077,7 +1085,7 @@ const GLMapView = ({
         onReset={resetZoom} canReset={kNow > minK}
         onHome={homeTarget ? goHome : null} onArmy={armyTarget?.from === 'army' ? goArmy : null}
         findCities={(q) => findCities(gameState, q)} onFindCity={(id) => { onSelectRegion?.(id); focusPlace([{ regionId: id }]); }} // marching: the march aims at it
-      />
+      />}
     </div>
   );
 };

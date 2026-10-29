@@ -35,6 +35,16 @@ describe('turn report model (W10)', () => {
     expect(m.quiet).toBe(true);
   });
 
+  it('says when new units are ready in a city\'s garrison, and the button selects that stack', () => {
+    const capId = cap(FR); const c = before.regions[capId];
+    const u = (id) => ({ id, ownerId: FR, homeRegionId: capId, regionId: capId, tile: c.tile, domain: 'land', classId: 'infantry', strength: 1000 });
+    const m = turnReportModel(before, next({ units: { ...before.units, n1: u('n1'), n2: u('n2') } }), 'en');
+    const item = m.items.find((i) => i.place?.kind === 'army');
+    expect(item.title).toBe(`2 new units are ready in ${c.name}`);
+    expect(item.place).toMatchObject({ kind: 'army', tile: c.tile });
+    expect(m.quiet).toBe(false);
+  });
+
   it('an army or raiders coming for a city of yours carry Defend (the city\'s Defense tab)', () => {
     const capId = cap(FR);
     const line = { year: before.year, type: LogTypes.CRISIS, ...msg('m.battle.armyNears', { nation: people('x', 'Hittites'), men: '8,000', count: 2, place: cityRef(capId, before.regions[capId].name) }) };

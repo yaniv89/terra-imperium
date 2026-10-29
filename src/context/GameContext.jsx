@@ -27,6 +27,7 @@ import { startLog, logAction } from '../engine/actionLog';
 import { challengeScore, turnsIn } from '../engine/challenges';
 import { stateHash } from '../engine/macroVerify';
 import { ENGINE_BUILD } from '../data/challenges';
+import { noteGameLoaded } from '../components/map/mapCamera';
 
 export { createInitialState, gameReducer };
 
@@ -198,6 +199,7 @@ export const GameProvider = ({ children }) => {
     if (action?.type === ActionTypes.LOAD_GAME || action?.type === ActionTypes.RESET_GAME) challengeLogRef.current = null;
     else if (challengeLogRef.current) challengeLogRef.current = logAction(challengeLogRef.current, action);
     reducerDispatch(action);
+    if (action?.type === ActionTypes.LOAD_GAME) noteGameLoaded(); // the camera starts over on the loaded game's capital
   }, []);
   useEffect(() => {
     const prev = soundPrevRef.current; soundPrevRef.current = state;

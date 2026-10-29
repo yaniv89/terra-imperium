@@ -300,7 +300,8 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
         {miniOpen && <div className="relative"><MiniMap onOpen={() => setModalOpen(true)} viewportBounds={viewportBounds} onNavigate={handleMiniMapNavigate} /><button type="button" onClick={() => setMini(false)} aria-label={t('minimap.hide')} data-testid="minimap-hide" className="absolute -top-2 -end-2 w-8 h-8 rounded-full bg-fa-panel border border-fa-line text-fa-text text-sm pointer-events-auto">×</button></div>}
         <div className="flex items-end gap-2">
           <LensStrip lens={shownLens} onChange={pickLens} onOpenChange={setLensOpen} />
-          {!miniOpen && <button type="button" onClick={() => setMini(true)} aria-label={t('minimap.show')} data-testid="minimap-show" className="min-h-[40px] px-3 rounded-full bg-fa-panel/95 border border-fa-line shadow-xl text-[12px] font-semibold text-fa-text pointer-events-auto hover:bg-fa-raised">{t('minimap.world')}</button>}
+          {/* (the settle legend widens the lens strip: World slid under End Turn on a phone, lead's manual playtest 29 Oct) */}
+          {!miniOpen && shownLens !== 'settle' && <button type="button" onClick={() => setMini(true)} aria-label={t('minimap.show')} data-testid="minimap-show" className="min-h-[40px] px-3 rounded-full bg-fa-panel/95 border border-fa-line shadow-xl text-[12px] font-semibold text-fa-text pointer-events-auto hover:bg-fa-raised">{t('minimap.world')}</button>}
         </div>
       </div>
       {globeAllowed && <MapModeToggle mode={mode} onChange={handleModeChange} />}
