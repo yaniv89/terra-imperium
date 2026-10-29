@@ -73,3 +73,17 @@ Before this lane (Prince AI, the player alone unable to rout, Shaken 0.6 / 1.3):
   (4 flank blows of 69 in 45 s).
 - Sieges and naval battles were not duelled with the scripted controllers (field only).
 - Did not touch BattleHud.jsx, EconomyHud.jsx, PreBattleModal.jsx, BattleResultScreen.jsx.
+
+## After merging integration (sieges-sea-8, SETUP_VERSION 34)
+
+Assault rows, parityEco N=32, mixed terrain, KEEP_HELD_MULT 0.3 unchanged:
+- Routing as before (Auto's rules): IN 6 of 6, walled mirror (bronze) 20/32 attacker wins.
+- Neither side routing (commanded rules, `NOROUT=both`): IN 5 of 6, walled mirror 23/32. OUT: classical
+  attackers (3 foot, horse, archers) against a Kingdoms town of foot and archers, 3.57x against the 3.5x
+  limit, attacker wins 1/32 (16/32 when everyone routs). The defender is an age ahead (x1.4) and its
+  beaten squads now fight on Shaken instead of fleeing.
+- KEEP_HELD_MULT does not fix it: 0.35 / 0.4 / 0.45 give that row 3.44x / 3.50x / 3.48x (IN, by a
+  hair) while the mirror rises to 25 / 26 / 25 of 32; 0.2 sends the mirror to 0/32. Kept at 0.3.
+- Making a Shaken garrison squad stop counting for `garrisonHolds` changed nothing (identical numbers),
+  so it was left out.
+- Field win-rate table unchanged by the merge (same numbers as above, 160 battles a cell).
