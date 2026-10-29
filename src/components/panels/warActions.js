@@ -2,11 +2,10 @@
 // Declaring war from wherever the intent is (plans/playtest-1.md P2.1): the city card, an enemy
 // army's tile, the army sheet's greyed Attack button and the nation card all read one model so
 // the cost, the justification and the reasons it is blocked never differ. Pure.
-import { ACTION_COSTS } from '../../data/actionCosts';
 import { hasCasusBelli, isInTruce, isAtWarWithPlayer } from '../../engine/diplomacy';
 import { t } from '../../i18n/core';
 import { nameNow } from '../../i18n/names';
-import { canPay } from '../../utils/costs';
+import { canPay, warCost } from '../../utils/costs';
 import { payWhy } from './empireText';
 import { peopleWhere } from './peopleWhere';
 
@@ -16,7 +15,7 @@ export const declareWarModel = (state, nationId) => {
   if (!nation || nationId === me || nationId === 'rebels') return null;
   const atWar = isAtWarWithPlayer(state, nationId);
   const justified = hasCasusBelli(state, me, nationId);
-  const costs = justified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
+  const costs = warCost(state, justified);
   // A people you know of but have never seen (no city known, no army in sight) cannot be fought:
   // a war with nobody to fight (warmonger playtest step 31). Find them first.
   const unseen = !atWar && peopleWhere(state, nationId).places.length === 0;

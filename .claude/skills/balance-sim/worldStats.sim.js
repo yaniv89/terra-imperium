@@ -26,6 +26,8 @@ import { opinionOf } from '../../../src/engine/opinion';
 import { decreeCap } from '../../../src/engine/decrees';
 import { calcNationBalance } from '../../../src/engine/economy';
 import { isIndependentNation } from '../../../src/data/independents';
+import { ringsAround } from '../../../src/engine/world/cities';
+import { MOVE_POINTS, DEFAULT_MOVE_POINTS } from '../../../src/engine/armies';
 import fs from 'node:fs';
 import path from 'node:path';
 // A glob, so a base before U16 (no legacy.js) still runs this harness: {} there.
@@ -271,6 +273,19 @@ const snapshot = (s, t, counters, ms, lives, telemetry) => {
   };
 };
 
+// Land strength (in units of 1000) of `enemies` that can reach `tile` next turn (one march of its class).
+const enemyInReach = (st, enemies, tile) => {
+  if (!enemies?.size) return 0;
+  let n = 0;
+  const near = ringsAround(getTiles(), tile, Math.max(...Object.values(MOVE_POINTS), DEFAULT_MOVE_POINTS));
+  for (const u of Object.values(st.units)) {
+    if (!enemies.has(u.ownerId) || u.domain !== 'land' || u.classId === 'settler' || u.embarkedOn || !(u.strength > 0)) continue;
+    const d = near.get(u.tile);
+    if (d != null && d <= (MOVE_POINTS[u.classId] ?? DEFAULT_MOVE_POINTS)) n += u.strength / 1000;
+  }
+  return Math.round(n * 10) / 10;
+};
+
 SEEDS.forEach((seed) => {
   it(`world seed ${seed}`, () => {
     let map = null; let mapReport = null;
@@ -281,7 +296,7 @@ SEEDS.forEach((seed) => {
     if (OUT_DIR) fs.mkdirSync(OUT_DIR, { recursive: true });
     const traceStream = TRACE_WARS ? fs.openSync(path.join(OUT_DIR, `warstacks-${seed}.jsonl`), 'w') : null;
     const scripted = POLICY === 'scripted' ? createScriptedPlayer({ engine: { gameReducer, ActionTypes, chooseProduction, nationCounts, bestSites, MAX_SETTLE_RINGS, getResearched, getTechAgeId, getEffectiveAgeId: AGES.getEffectiveAgeId, speedCostMult: AGES.speedCostMult, speedTrainMult: AGES.speedTrainMult, rushQuote: SPENDING?.rushQuote }, demands: DEMANDS, rush: RUSH, opinionOf }) : null;
-    const telemetry = createTelemetry({ playerId: s.playerNationId, isIndependent: isIndependentNation, authorityOf, getOverextension, metNations, getTiles, traceFile: TRACE_WARS, writeLine: traceStream == null ? null : (line) => fs.writeSync(traceStream, line + '\n') });
+    const telemetry = createTelemetry({ playerId: s.playerNationId, isIndependent: isIndependentNation, authorityOf, getOverextension, metNations, getTiles, enemyInReach, traceFile: TRACE_WARS, writeLine: traceStream == null ? null : (line) => fs.writeSync(traceStream, line + '\n') });
     let telemMs = 0;
     s = { ...s, research: { ...s.research, auto: true } }; // the passive player lets its advisor pick research
     const counters = { leagues: 0, conquests: 0, changedHands: 0, flips: 0, civilWars: 0, leadChanges: 0, plagued: new Set(), famine: { strikes: 0, lost: 0, shares: [] }, pastAt: {}, actions: scripted ? { turns: 0, turns100: 0, gap: 0, maxGap: 0, maxGap100: 0, over5: 0, techsPrev: null } : null };

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CARDS, cardOf, drawEvent, cooldownTurns, cardChoice, eraDawnCard, raidAftermathCard, RAID_AFTERMATH_TURNS, REST_GROWTH_MAX } from './eventDeck';
+import { CARDS, cardOf, drawEvent, cooldownTurns, cardChoice, eraDawnCard, raidAftermathCard, RAID_AFTERMATH_TURNS, REST_GROWTH_MAX, STORY_GAP } from './eventDeck';
 import { applyEventEffects } from './applyEventEffects';
 import { factsUsed, predicateMet, factContext } from './predicates';
 import { HISTORICAL_EVENTS } from '../data/events';
@@ -62,13 +62,24 @@ describe('event deck (U26)', () => {
   it('no family repeats inside its cooldown over 300 turns', () => {
     const state = quiet();
     const fired = play(state, 300);
-    expect(fired.length).toBeGreaterThan(20);
+    expect(fired.length).toBeGreaterThan(10); // one age: each drawn card once (pacing-8)
     const gap = cooldownTurns(state, 'family');
     const last = {};
     fired.forEach((e) => {
       if (last[e.family] != null) expect(e.turn - last[e.family], e.family).toBeGreaterThanOrEqual(gap);
       last[e.family] = e.turn;
     });
+  });
+
+  it('a due story waits out the gap and leaves one; the dawn card does not (pacing-8)', () => {
+    const s = quiet({ firedEvents: {} });
+    const dawnOff = { ...s, eventHistory: { 'dawn:stone': 1 } };
+    const now = drawEvent(dawnOff, createRng(4));
+    expect(now.activeEventId).toBeTruthy();
+    expect(now.proceduralEventCooldown).toBe(STORY_GAP);
+    expect(drawEvent({ ...dawnOff, proceduralEventCooldown: 3 }, createRng(4)).activeEventId).toBe(null);
+    const dawn = eraDawnCard(s);
+    if (dawn) expect(drawEvent({ ...s, proceduralEventCooldown: 3 }, createRng(4)).activeProceduralEvent?.templateId).toBe('era_dawn');
   });
 
   it('no card reads a year', () => {
@@ -123,7 +134,7 @@ describe('event deck (U26)', () => {
       if (prev) expect(e.turn - prev.turn, e.templateId).toBeGreaterThanOrEqual(cd * (1 + Math.min(prev.n, REST_GROWTH_MAX)));
       seen[e.templateId] = { turn: e.turn, n: (prev?.n || 0) + 1 };
     });
-    expect(Object.values(seen).some((x) => x.n > 1)).toBe(true);
+    expect(Object.values(seen).every((x) => x.n === 1)).toBe(true); // once an age (pacing-8): the rest grows across ages
   });
 
   it('no drawn card offers an option that is as good or better than another on every count', () => {

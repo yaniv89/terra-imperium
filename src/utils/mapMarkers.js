@@ -2,7 +2,7 @@
 // What the map draws on top of the map (plan §4a): one army banner per stack on a tile (workstream
 // 5: armies stand on tiles), fleets, and last turn's battles. Pure, shared by the flat map and the
 // globe. Each marker carries `tile` (where to draw it) and `regionId` (the city it belongs to).
-//   Own armies: soldiers (strength x MEN_PER_STRENGTH), main unit type, average morale, whether any
+//   Own armies: soldiers (unitMenOf: strength x MEN_PER_STRENGTH, a scout party its few), main unit type, average morale, whether any
 //   unit can still move, and how many units ride on a fleet. A land stack past two thirds of its
 //   tile's cap (supplyMeter.js stackCap, the units the supply meter counts) carries capUse [n, cap]
 //   (the AoE and Civ report's rank 9: the flag says 9/12 before the supply drain starts).
@@ -12,7 +12,7 @@
 import { REGIONS_DATA, getNeighborIds } from '../data/regions';
 import { GREAT_PROJECTS } from '../data/greatProjects';
 import { REBEL_OWNER_ID } from '../data/rebellion';
-import { MEN_PER_STRENGTH } from '../engine/aftermath';
+import { unitMenOf } from '../engine/battleLedger';
 import { hasIntel } from '../engine/intel';
 import { playerWon } from '../engine/battleReports';
 import { unitTile, aboardShip } from '../engine/armies';
@@ -99,9 +99,10 @@ export const getMapMarkers = (state, { selected = null } = {}) => {
         top: topUnit(orderedStack(g.units), selected?.tile === g.tile ? selected.unitId : null)?.id,
         topClass: topUnit(orderedStack(g.units), selected?.tile === g.tile ? selected.unitId : null)?.classId,
         topAge: topUnit(orderedStack(g.units), selected?.tile === g.tile ? selected.unitId : null)?.ageId || null, // its own age's model (unitUpgrades.js)
+        scout: !!topUnit(orderedStack(g.units), selected?.tile === g.tile ? selected.unitId : null)?.explorer, // a scout party's smaller figure (scale.js)
         civilians: g.domain === 'land' ? civilians.get(g.tile) || 0 : 0,
         count: g.units.length + (g.domain === 'land' ? civilians.get(g.tile) || 0 : 0),
-        men: Math.round(strength * MEN_PER_STRENGTH),
+        men: g.units.reduce((s, u) => s + unitMenOf(u), 0), // a scout party counts its few men (battleLedger.js)
         mainClass: mainClass(g.units),
         navalLine: g.domain === 'naval' ? (g.units[0].navalLine || 'warship') : null,
         morale: Math.round(g.units.reduce((s, u) => s + (u.morale ?? 100), 0) / g.units.length),

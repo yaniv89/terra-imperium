@@ -15,7 +15,7 @@
 import { getTiles } from '../data/geo/tiles';
 import { ringsAround } from './world/cities';
 import { landUnitsByTile } from './sieges';
-import { unitTile } from './armies';
+import { unitTile, MOVE_POINTS, DEFAULT_MOVE_POINTS } from './armies';
 import { lawRulesOf } from './lawRules';
 import { ringsForKm } from '../data/geo/gridScale';
 import { copyTileMap } from './world/tileIndex';
@@ -26,12 +26,13 @@ export const THREAT_DEFEND_RATIO = 0.8;
 export const RELIEF_RATIO = 1.2;
 export const RAID_GOLD = 20;
 
-/** Enemy land strength within THREAT_RINGS of the city. */
-export const threatOf = (state, city, enemies, byTile = null) => {
+/** Enemy land strength within THREAT_RINGS of the city. With `reach`, only the enemies that can
+ * strike it next turn: those within one turn's march of it (armies.js MOVE_POINTS by class). */
+export const threatOf = (state, city, enemies, byTile = null, reach = false) => {
   if (city.tile == null) return 0;
   const index = byTile || landUnitsByTile(state);
   let threat = 0;
-  ringsAround(getTiles(), city.tile, THREAT_RINGS).forEach((d, t) => { (index.get(t) || []).forEach((u) => { if (enemies.has(u.ownerId)) threat += u.strength || 0; }); });
+  ringsAround(getTiles(), city.tile, THREAT_RINGS).forEach((d, t) => { (index.get(t) || []).forEach((u) => { if (enemies.has(u.ownerId) && (!reach || d <= (MOVE_POINTS[u.classId] ?? DEFAULT_MOVE_POINTS))) threat += u.strength || 0; }); });
   return threat;
 };
 
@@ -41,13 +42,13 @@ export const garrisonStrength = (state, nationId, city, byTile = null) => {
   return (index.get(city.tile) || []).reduce((s, u) => s + (u.ownerId === nationId ? u.strength || 0 : 0), 0);
 };
 
-/** The ids of the nation's cities that need defending now, in id order. */
-export const threatenedCities = (state, nationId, enemies, byTile = null) => {
+/** The ids of the nation's cities that need defending now, in id order (`reach`: see threatOf). */
+export const threatenedCities = (state, nationId, enemies, byTile = null, reach = false) => {
   const index = byTile || landUnitsByTile(state);
   return Object.values(state.regions || {}).filter((c) => {
     if (c.owner !== nationId) return false;
     if (c.siege?.by || c.underInvasion) return true;
-    const threat = threatOf(state, c, enemies, index);
+    const threat = threatOf(state, c, enemies, index, reach);
     return threat > 0 && threat > garrisonStrength(state, nationId, c, index) * THREAT_DEFEND_RATIO;
   }).map((c) => c.id).sort();
 };

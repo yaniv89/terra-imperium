@@ -322,7 +322,7 @@ export const refusedText = (m) => (m?.full
 export const minutesLeft = (seconds, speed = 1) => Math.max(0, Math.round(seconds / 60 / speed));
 
 // A side of the participant ledger (battleLedger.js sideTotals), in the result screen's words.
-const fromLedger = (t) => ({ start: t.before, end: t.after + t.fled, lost: t.fallen, destroyed: t.destroyed, fled: t.fled, runDown: t.runDown });
+const fromLedger = (t) => ({ start: t.before, end: t.after + t.fled, lost: t.fallen, destroyed: t.destroyed, fled: t.fled, runDown: t.runDown, men: t.men && { start: t.men.before, lost: t.men.fallen, fled: t.men.fled, runDown: t.men.runDown } });
 // The battle's own reading, unit by unit and with the ledger's arithmetic, so "lost" and "destroyed"
 // can never disagree: each unit in the result is matched to its strength when it came in (its army
 // or the reinforcements that joined; playtest 40550100958 steps 82 and 102 showed "0 lost" beside
@@ -330,7 +330,7 @@ const fromLedger = (t) => ({ start: t.before, end: t.after + t.fled, lost: t.fal
 const lossOf = (units, side) => {
   const before = new Map();
   [...(side.units || []), ...(side.reinforcements || []).flatMap((r) => r.units || [])].forEach((u) => before.set(u.id, u.strength));
-  return fromLedger(sideTotals(units.map((u) => ({ before: before.get(u.id) ?? u.strength, after: u.strength, routed: u.routed }))));
+  return fromLedger(sideTotals(units.map((u) => ({ before: before.get(u.id) ?? u.strength, after: u.strength, routed: u.routed, explorer: u.explorer, max: u.maxStrength }))));
 };
 
 const GENERAL_TEXT = {

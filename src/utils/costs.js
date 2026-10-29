@@ -4,6 +4,13 @@
 // from the ruler's bank (nation.ruler.decrees, src/engine/decrees.js). Pure.
 import { canAfford, applyCosts } from './helpers';
 import { decreesOf, spendDecree } from '../engine/decrees';
+import { ACTION_COSTS } from '../data/actionCosts';
+import { AGES } from '../data/ages';
+import { ageOf } from '../engine/nationState';
+
+/** The price of a war declaration: a decree with a casus belli, else the base gold times the payer's age's unitCostMult. */
+export const warCost = (state, justified, nationId = state.playerNationId) => (justified ? ACTION_COSTS.declareWarJustified
+  : { gold: Math.round(ACTION_COSTS.declareWarUnjustified.gold * (AGES[ageOf(state, nationId)]?.unitCostMult || 1)) });
 
 const poolOf = (state, nationId) => (nationId === state.playerNationId ? state.resources : state.nations?.[nationId]?.economy) || {};
 

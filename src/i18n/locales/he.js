@@ -654,6 +654,9 @@ export default {
   'zoom.closeView': 'מבט קרוב',
   'zoom.closeViewTip': 'התקרבו למבט הקרוב: ערים, שדות וצבאות מקרוב (או צביטה פנימה)',
   'zoom.army': 'הצבא הנבחר',
+  'map.loadingDetail': 'טוען פרטי מפה',
+  'map.detailFailed': 'פרטי המפה לא נטענו',
+  'map.retry': 'נסו שוב',
   'minimap.tip': 'לחצו או גררו כדי לנווט',
   'minimap.aria': 'מיני־מפה: לחצו או גררו כדי לנווט במפה',
   'minimap.open': 'פתיחת המפה המלאה',
@@ -808,6 +811,8 @@ export default {
 
   // ---- Research, Peoples, Empire, Legacy headings and buttons (H2) ----
   'tech.research': 'חקר',
+  'tech.researchNow': 'חקר עכשיו',
+  'tech.queue': 'לתור',
   'tech.queueAria': 'הוספת {name} לתור',
   'tech.addQueue': 'הוספה לתור',
   'tech.nothing': 'שום דבר לא בדרך',

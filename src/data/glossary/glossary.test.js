@@ -50,3 +50,17 @@ describe('glossary buildings, resources and improvements', () => {
     expect(glossaryEntry('building', 'food.99')).toBeNull();
   });
 });
+
+describe('U7 topic cards', () => {
+  it('battles, ships and diplomacy costs are terms in en and he, and their links resolve', async () => {
+    const { GLOSSARY_TOPICS } = await import('./index');
+    const { translate } = await import('../../i18n/core');
+    expect(Object.keys(GLOSSARY_TOPICS)).toEqual(['battle', 'ships', 'diplomacy']);
+    Object.entries(GLOSSARY_TOPICS).forEach(([id, links]) => {
+      expect(glossaryEntry('term', id)).toEqual({ kind: 'term', id });
+      links.forEach((l) => expect(glossaryEntry('term', l), `${id} -> ${l}`).toBeTruthy());
+      ['en', 'he'].forEach((lang) => expect(translate(`gloss.term.${id}.text`, {}, lang).split('\n').length, `${id} ${lang}`).toBe(3));
+    });
+    ['en', 'he'].forEach((lang) => ['gloss.seeAlso', 'gloss.topics'].forEach((k) => expect(hasKey(k, lang), `${k} ${lang}`).toBe(true)));
+  });
+});

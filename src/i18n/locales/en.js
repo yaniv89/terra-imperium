@@ -652,6 +652,9 @@ export default {
   'zoom.closeView': 'Close view',
   'zoom.closeViewTip': 'Zoom in to the close view: towns, fields and armies up close (or pinch in)',
   'zoom.army': 'Selected army',
+  'map.loadingDetail': 'Loading map detail',
+  'map.detailFailed': 'Map detail did not load',
+  'map.retry': 'Retry',
   'minimap.tip': 'Click or drag to navigate',
   'minimap.aria': 'Minimap: click or drag to navigate the map',
   'minimap.open': 'Open full map',
@@ -806,6 +809,8 @@ export default {
 
   // ---- Research, Peoples, Empire, Legacy headings and buttons (H2) ----
   'tech.research': 'Research',
+  'tech.researchNow': 'Research now',
+  'tech.queue': 'Queue',
   'tech.queueAria': 'Queue {name}',
   'tech.addQueue': 'Add to the queue',
   'tech.nothing': 'Nothing under way',

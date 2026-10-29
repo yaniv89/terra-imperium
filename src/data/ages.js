@@ -179,7 +179,7 @@ export const artAgeFor = (available, ageId, { kind = null } = {}) => {
 // Marathon are calibrated so each age after Stone lasts Normal's turns scaled by the turn limit (U96,
 // balance-sim worldStats halfIn_<age>, seeds 11 to 14); an age lasts about the square of its multiplier. `turnLimit` is the speed's length of a full game (src/engine/ending.js).
 export const GAME_SPEEDS = {
-  fast: { id: 'fast', name: 'Fast', costMult: { stone: 0.8, bronze: 0.75, classical: 0.86, kingdoms: 0.79, gunpowder: 0.91, modern: 0.97, information: 0.92, future: 1 }, turnLimit: 440, blurb: 'About 440 turns.' },
+  fast: { id: 'fast', name: 'Fast', costMult: { stone: 0.8, bronze: 0.75, classical: 0.86, kingdoms: 0.79, gunpowder: 0.91, modern: 0.97, information: 0.92, future: 1.6 }, turnLimit: 440, blurb: 'About 440 turns.' },
   normal: { id: 'normal', name: 'Normal', costMult: { stone: 1.6, bronze: 1.6, classical: 20 / 12, kingdoms: 10 / 6, gunpowder: 2, modern: 2, information: 2, future: 2 }, turnLimit: 923, blurb: 'About 920 turns.' },
   marathon: { id: 'marathon', name: 'Marathon', costMult: { stone: 2, bronze: 2.3, classical: 2.8, kingdoms: 3, gunpowder: 3.7, modern: 3.8, information: 3.7, future: 3 }, turnLimit: 1514, blurb: 'About 1,500 turns.' }
 };

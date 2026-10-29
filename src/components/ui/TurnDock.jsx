@@ -16,7 +16,7 @@
 // Sits left of the tab rail (--rail-w, never the dock: it stays in the same place when a panel
 // opens, playtest audit X17 / I156; the dock leaves a strip at its foot for it) and above the
 // bottom bar of a phone held upright.
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Hammer, Repeat, FlaskConical, Scroll, Shield, Feather, Bell, Swords, HeartHandshake, Coins } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
@@ -44,6 +44,8 @@ const TurnDock = () => {
   const { t, lang } = useT();
   const isMobile = useIsMobile();
   const [armed, setArmed] = useState(false);
+  // Advisor builds tapped before: Always stands out, as the prompt keeps coming back (warmonger playtest 310 to 328)
+  const [advised, setAdvised] = useState(false);
   // A sheet, the log or march mode is open: End Turn rides above the sheets, and a tap closes them
   // all and then does what End Turn does (the first tap used to only close the overlay, H-17).
   const overlayOpen = useOverlayOpen();
@@ -77,6 +79,15 @@ const TurnDock = () => {
   };
   const pressRef = useRef(press);
   pressRef.current = press;
+  // The row's width as --turn-row-w on <html>: Research's age tabs share its band and keep clear of it.
+  const rowObserver = useRef(null);
+  const rowRef = useCallback((el) => {
+    const root = document.documentElement;
+    rowObserver.current?.disconnect();
+    if (!el || typeof ResizeObserver === 'undefined') { root.style.setProperty('--turn-row-w', '0px'); return; }
+    rowObserver.current = new ResizeObserver(() => root.style.setProperty('--turn-row-w', `${Math.round(el.getBoundingClientRect().width)}px`));
+    rowObserver.current.observe(el);
+  }, []);
   useEffect(() => {
     const onKey = (e) => {
       if (e.key !== 'Enter' || e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
@@ -105,7 +116,7 @@ const TurnDock = () => {
           </div>
         </div>
       )}
-      <div className="flex items-stretch gap-2 pointer-events-auto">
+      <div ref={rowRef} className="flex items-stretch gap-2 pointer-events-auto">
         {/* "Idle N": the next army or settler that waits, one tap each (IdleChip.jsx). */}
         {/* the next army, waiting or marching, one tap each (NextArmyButton.jsx) */}
         {btn.mode !== 'moving' && <NextArmyButton />}
@@ -121,7 +132,7 @@ const TurnDock = () => {
           </button>
         )}
         {blocking && btn.idleCities > 0 && (
-          <button type="button" onClick={() => { interactions.dismissOverlays(); dispatch({ type: ActionTypes.ADVISOR_PRODUCTION }); }}
+          <button type="button" onClick={() => { interactions.dismissOverlays(); setAdvised(true); dispatch({ type: ActionTypes.ADVISOR_PRODUCTION }); }}
             className="fa-btn fa-btn-secondary !min-h-[50px] pl:!min-h-[44px] shadow-xl gap-1.5 !px-3 text-[13px]" data-testid="advisor-build" title={t('turn.advisorTip')}>
             <Hammer className="w-4 h-4 shrink-0" aria-hidden="true" />
             <span className="whitespace-nowrap">{btn.idleCities > 1 ? t('turn.advisorBuildMany', { n: btn.idleCities }) : t('turn.advisorBuild')}</span>
@@ -131,8 +142,8 @@ const TurnDock = () => {
             picks whenever a queue runs dry, so this banner stops coming back (warmonger playtest:
             Advisor builds before nearly every End Turn). Each city's Build tab can change it. */}
         {blocking && btn.idleCities > 0 && (
-          <button type="button" onClick={() => { interactions.dismissOverlays(); Object.values(state.regions).filter((c) => c.owner === state.playerNationId && !c.outpost && !c.production?.keep).forEach((c) => dispatch({ type: ActionTypes.SET_PRODUCTION_KEEP, payload: { cityId: c.id, keep: 'advisor' } })); }}
-            className="fa-btn fa-btn-secondary !min-h-[50px] pl:!min-h-[44px] shadow-xl gap-1 !px-2.5 text-[13px]" data-testid="advisor-always" title={t('turn.advisorAlwaysTip')} aria-label={t('turn.advisorAlwaysTip')}>
+          <button type="button" onClick={() => { interactions.dismissOverlays(); Object.values(state.regions).filter((c) => c.owner === state.playerNationId && !c.production?.keep).forEach((c) => dispatch({ type: ActionTypes.SET_PRODUCTION_KEEP, payload: { cityId: c.id, keep: 'advisor' } })); }}
+            className={`fa-btn ${advised ? 'fa-btn-primary' : 'fa-btn-secondary'} !min-h-[50px] pl:!min-h-[44px] shadow-xl gap-1 !px-2.5 text-[13px]`} data-testid="advisor-always" title={t('turn.advisorAlwaysTip')} aria-label={t('turn.advisorAlwaysTip')}>
             <Repeat className="w-4 h-4 shrink-0" aria-hidden="true" /><span className="whitespace-nowrap">{t('turn.advisorAlways')}</span>
           </button>
         )}

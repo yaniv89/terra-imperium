@@ -22,7 +22,7 @@ import { WebGLRenderer, Scene, OrthographicCamera, Group } from 'three';
 import { useGame } from '../../../context/GameContext';
 import { useEffects } from '../../../context/EffectsContext';
 import { useMapInsets } from '../../../context/MapInsetsContext';
-import { Eye } from 'lucide-react';
+import { Eye, Loader2, RefreshCw } from 'lucide-react';
 import { useT } from '../../../i18n/useT';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { loadLandFeatures } from '../../../data/geo/loadWorldFeatures';
@@ -161,6 +161,8 @@ const GLMapView = ({
   // A new canvas (and renderer) when a lost WebGL context does not come back (canvasGen).
   const [canvasGen, setCanvasGen] = useState(0);
   const [assetsTick, setAssetsTick] = useState(0);
+  // 'loading' while the map's detail is on its way, 'failed' when some of it did not come (a retry chip), else null
+  const [detail, setDetail] = useState('loading');
   // a browser zoom or another screen changes the pixel ratio without a resize: draw again at it
   const [, setDprTick] = useState(0);
   useEffect(() => watchPixelRatio(() => setDprTick((n) => n + 1)), []);
@@ -208,6 +210,8 @@ const GLMapView = ({
     g.raster = createRasterLayer(ground, { request: g.request, onReady: () => g.request(), source });
     g.territory = createTerritoryLayer(new Scene(), tileGpuData(getTiles()));
     g.territoryCache = createTerritoryCache(g.territory);
+    // (the Earth draws at once; the territories once their shader is linked, off the main thread)
+    g.territoryCache.warm(renderer, camera).then(() => g.request());
     g.rivers = createRiverLayer(terrain, 1);
     g.terrainSprites = createSpriteLayer(terrain, atlas, 6);
     g.lowLines = createLineLayer(base, 20);
@@ -330,6 +334,10 @@ const GLMapView = ({
     }
     renderer.render(g.top, camera);
     g.frames += 1;
+    // the detail chip: the territories' shader or the Earth's pictures for this view still coming, or failed
+    const st = g.raster.stats();
+    const detail = st.failed ? 'failed' : !g.territoryCache.ready() || st.loading ? 'loading' : null;
+    if (detail !== g.detail) { g.detail = detail; setDetail(detail); }
     if (gliding || (g.closeActive && g.closeScene.moving())) g.request();
   }, [view, width, height, stepGlide]);
   useEffect(() => { if (gl.current) { gl.current.frame = frame; gl.current.request(); } }, [frame, ready]);
@@ -1024,7 +1032,7 @@ const GLMapView = ({
       worldView: () => resetZoom()
     };
     window.__glMap = {
-      info: () => ({ ...gl.current.renderer.info.render, frames: gl.current.frames, territory: gl.current.lastTerritory, raster: gl.current.raster.stats(), terrainSprites: gl.current.terrainSprites.mesh.geometry.instanceCount, rivers: gl.current.rivers.count() }),
+      info: () => ({ ...gl.current.renderer.info.render, frames: gl.current.frames, detail: gl.current.detail, territory: gl.current.lastTerritory, raster: gl.current.raster.stats(), terrainSprites: gl.current.terrainSprites.mesh.geometry.instanceCount, rivers: gl.current.rivers.count() }),
       renderer: gl.current?.renderer,
       // the banners as last drawn (a glide moves them frame by frame: marchGlide.js, I070)
       banners: () => (gl.current?.markerShown || []).map((s) => ({ key: s.glideKey, anchor: [...s.anchor], size: [...s.size] })),
@@ -1075,6 +1083,19 @@ const GLMapView = ({
           style={{ insetInlineEnd: insets.end + 60 }}
           className="absolute z-20 top-[calc(var(--header-height,2.25rem)+0.625rem)] min-h-[40px] px-3 rounded-full bg-fa-panel/95 border border-fa-line shadow-xl text-[12px] font-semibold text-fa-text hover:bg-fa-raised flex items-center gap-1.5">
           <Eye className="w-4 h-4" aria-hidden="true" />{tr('zoom.closeView')}
+        </button>
+      )}
+      {/* F145: the map shows the Earth at once; this small chip says more is coming, or offers a retry (never a black map). */}
+      {detail === 'loading' && (
+        <div role="status" data-testid="map-detail-loading"
+          className="absolute z-20 bottom-3 left-1/2 -translate-x-1/2 pointer-events-none px-2.5 py-1 rounded-full bg-fa-panel/90 border border-fa-line text-[11px] text-fa-muted flex items-center gap-1.5">
+          <Loader2 className="w-3.5 h-3.5 motion-safe:animate-spin" aria-hidden="true" />{tr('map.loadingDetail')}
+        </div>
+      )}
+      {detail === 'failed' && (
+        <button type="button" onClick={() => gl.current?.raster.retry()} data-testid="map-detail-retry"
+          className="absolute z-20 bottom-3 left-1/2 -translate-x-1/2 min-h-[40px] px-3 rounded-full bg-fa-panel/95 border border-fa-line shadow-xl text-[12px] font-semibold text-fa-text hover:bg-fa-raised flex items-center gap-1.5">
+          <RefreshCw className="w-4 h-4" aria-hidden="true" />{tr('map.detailFailed')}: {tr('map.retry')}
         </button>
       )}
       {roomForControls && <MapZoomControls

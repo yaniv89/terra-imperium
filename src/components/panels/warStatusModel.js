@@ -5,6 +5,7 @@
 // PEACE_SCORE_OFFER_THRESHOLD, warns at PEACE_WARN_SCORE and dictates it at PEACE_SCORE_ENFORCE_THRESHOLD).
 // Pure; returns i18n keys and vars (keys ws.*).
 import { isWarBetween, PEACE_SCORE_OFFER_THRESHOLD, PEACE_SCORE_ENFORCE_THRESHOLD, PEACE_WARN_SCORE } from '../../engine/diplomacy';
+import { nameNow } from '../../i18n/names';
 
 export const warStatus = (state, nationId) => {
   const me = state.playerNationId;
@@ -14,7 +15,7 @@ export const warStatus = (state, nationId) => {
   const side = war.aggressor === me ? 'You' : 'Them';
   const city = war.goal?.type === 'capture_region' ? state.regions?.[war.goal.regionId] : null;
   const goal = war.goal?.type === 'independence' ? { key: `ws.goalFree${side}` }
-    : city ? { key: `ws.goalCity${side}`, vars: { city: city.name } }
+    : city ? { key: `ws.goalCity${side}`, vars: { city: nameNow('city', null, city.name) } }
       : war.goal?.type === 'destroy_military' ? { key: `ws.goalArmy${side}` } : null;
   const outlook = score <= -PEACE_WARN_SCORE ? { key: 'ws.danger', tone: 'danger' }
     : score <= -PEACE_SCORE_OFFER_THRESHOLD ? { key: 'ws.losing', tone: 'danger' }

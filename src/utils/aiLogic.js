@@ -46,6 +46,8 @@ import { msg, people, sub } from '../engine/messages';
 import { ageOf, getResearched } from '../engine/nationState';
 import { speedTurns } from '../data/ages';
 import { waitAgeOf } from '../engine/ageRefs';
+import { armedFor, prepLive, PEACE_GARRISON_MAX } from '../engine/warPlans';
+import { exploreOn } from '../engine/hostility';
 
 const DEFAULT_RNG = { next: () => Math.random() };
 const DEFAULT_DOCTRINE = DOCTRINES.attrition;
@@ -225,9 +227,17 @@ export const chooseAIRecruitClass = (state, units, nationId, ageId) => {
   return best;
 };
 
-// Recruit into controlled provinces, prioritizing threatened war goals and enemy borders.
-// Population breaks ties; peace-time recruitment still favors population centers.
+// Recruit into controlled provinces. At war or arming, the war plan's muster point (warPlans.js
+// staging) takes every recruit unless a city of ours is besieged or invaded, so the strike stack fills where it gathers. Otherwise threatened war
+// goals and enemy borders first; then a city under PEACE_GARRISON_MAX regiments, then population.
+// (Ties went to population alone, so every recruit of a nation at peace stood in its capital: 15
+// of a 22-unit army in one city, lane ai-armies.)
 export const chooseAIRecruitRegion = (state, regions, nationId) => {
+  const staging = regions[state.nations?.[nationId]?.warPlan?.staging];
+  const attacked = getOwnedRegionIds(regions, nationId).some((id) => regions[id]?.underInvasion || regions[id]?.siege?.by);
+  if (!attacked && staging?.owner === nationId && !(staging.occupiedBy && staging.occupiedBy !== nationId)) return staging.id;
+  const garrison = new Map();
+  Object.values(state.units || {}).forEach((u) => { if (u.ownerId === nationId && u.domain === 'land' && u.classId !== 'settler') garrison.set(u.regionId, (garrison.get(u.regionId) || 0) + 1); });
   const enemies = new Set();
   const goals = new Set();
   (state.wars || []).forEach(w => {
@@ -240,8 +250,9 @@ export const chooseAIRecruitRegion = (state, regions, nationId) => {
     const r=regions[id];
     if (r.owner !== nationId || (r.occupiedBy && r.occupiedBy !== nationId)) return;
     const threatened = getNeighborIds(id).some(n => enemies.has(regions[n]?.occupiedBy || regions[n]?.owner));
-    const threat = (r.underInvasion ? 4 : 0) + (goals.has(id) ? 2 : 0) + (threatened ? 1 : 0);
-    if (threat > bestThreat || (threat === bestThreat && (r.currentPopulation || 0) > (regions[best]?.currentPopulation || 0))) {
+    const threat = (r.underInvasion ? 4 : 0) + (goals.has(id) ? 2 : 0) + (threatened ? 1 : 0) - (r.outpost ? 10 : 0); // an outpost only when there is no city
+    const full = (garrison.get(id) || 0) >= PEACE_GARRISON_MAX; const bestFull = (garrison.get(best) || 0) >= PEACE_GARRISON_MAX;
+    if (threat > bestThreat || (threat === bestThreat && ((!full && bestFull) || (full === bestFull && (r.currentPopulation || 0) > (regions[best]?.currentPopulation || 0))))) {
       best = id; bestThreat = threat;
     }
   });
@@ -435,7 +446,7 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
         [nationId]: { ...nation, hostility: Math.min(100, (nation.hostility || 0) + COALITION_HOSTILITY_RISE_PER_TURN) }
       };
     }
-    const activeNation = currentNations[nationId];
+    let activeNation = currentNations[nationId];
     const leader = isCoalitionMember ? currentNations[runawayLeaderId] : null;
     const canStrikeLeader = !!leader && !hasActiveWarBetween({ wars: currentWars }, nationId, runawayLeaderId)
       && getBorderingNationIds(state.regions, nationId).includes(runawayLeaderId)
@@ -466,7 +477,16 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     // turn every truce ended: six Kanesh wars on one player in 90 turns).
     const spent = new Set(activeNation.spentClaims || []);
     const freshClaims = claimsOf(activeNation).filter((cid) => !spent.has(cid));
-    const readyTarget = freshClaims.map((cid) => state.regions[cid]?.owner).find((t) => t && t !== nationId && !(warRollOpinionMult(opinion) <= 0 && t === state.playerNationId) && pickWarTarget(view, nationId, t, null, null, byOwner) === t) || null;
+    // A war being armed for (warPrep, warPlans.js armedFor) needs no new roll either; one whose
+    // target can no longer be fought is dropped.
+    const prepped = activeNation.warPrep?.target;
+    const prepTarget = prepped && prepLive(state, nationId) && !(warRollOpinionMult(opinion) <= 0 && prepped === state.playerNationId) && pickWarTarget(view, nationId, prepped, null, null, byOwner) === prepped ? prepped : null;
+    if (prepped && !prepTarget) {
+      const { warPrep: _dropped, ...rest } = activeNation; // eslint-disable-line no-unused-vars
+      activeNation = rest;
+      currentNations = { ...currentNations, [nationId]: rest };
+    }
+    const readyTarget = prepTarget || freshClaims.map((cid) => state.regions[cid]?.owner).find((t) => t && t !== nationId && !(warRollOpinionMult(opinion) <= 0 && t === state.playerNationId) && pickWarTarget(view, nationId, t, null, null, byOwner) === t) || null;
     const targetId = readyTarget || pickWarTarget(view, nationId, canStrikeLeader ? runawayLeaderId : null, warRollOpinionMult(opinion) <= 0 ? state.playerNationId : null, canStrikeLeader ? runawayLeaderId : null, byOwner);
     if (!targetId) return;
     // Recent wars nearby raise the roll (warContagion.js, a Hawkes process).
@@ -491,7 +511,14 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
         currentNations = { ...currentNations, [nationId]: startClaim(spendDecree({ ...activeNation, economy: { ...pool, gold: pool.gold - cost.gold } }, 'fabricateClaim', state.turnNumber), site.city.id, state.turnNumber) };
         return;
       }
-      if (boostedOnly) return; // the weak-neighbour roll never makes an unjustified surprise war
+      if (boostedOnly || activeNation.warPrep?.boosted) return; // the weak-neighbour roll never makes an unjustified surprise war (nor a war armed for after it)
+    }
+    // Arm before declaring (warPlans.js armedFor): the strike stack gathers first, then the war.
+    // (A nation with no economy yet, a hand-built fixture as in processAIRecruitment, declares at once.)
+    if (!exploreOn(state) && currentNations[nationId].economy && !armedFor({ ...view, nations: currentNations }, nationId, targetId)) {
+      const me = currentNations[nationId];
+      if (me.warPrep?.target !== targetId) currentNations = { ...currentNations, [nationId]: { ...me, warPrep: { target: targetId, since: state.turnNumber, ...(boostedOnly ? { boosted: true } : {}) } } };
+      return;
     }
     const justified = hasCasusBelli(view, nationId, targetId);
     // Follow-up 26: the log says why (hasCasusBelli's grounds in its order; hostility and opinion are a grievance).
@@ -500,6 +527,7 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     if (result.wars === currentWars) return; // no-op (shouldn't happen given pickWarTarget's filter, but stay defensive)
     draggedIn.add(targetId);
     currentNations = result.nations;
+    if (currentNations[nationId].warPrep) { const { warPrep: _done, ...rest } = currentNations[nationId]; currentNations = { ...currentNations, [nationId]: rest }; } // eslint-disable-line no-unused-vars
     // A justified war spends a decree like the player's (U8); a court without one still marches.
     if (justified && decreesOf(currentNations[nationId]) > 0) currentNations = { ...currentNations, [nationId]: spendDecree(currentNations[nationId], 'declareWarJustified', state.turnNumber) };
     // Every claim on the target is spent by this war (see readyTarget above).

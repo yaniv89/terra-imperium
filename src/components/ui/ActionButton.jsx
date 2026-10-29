@@ -55,7 +55,8 @@ const ActionButton = ({
   // (turn-1 government adoption, first unit recruit) — inert when omitted, every other call site
   // is unaffected.
   resources = null,
-  why: reason = null // the reason a disabled action is blocked, shown on tap (WhyTip.jsx)
+  why: reason = null, // the reason a disabled action is blocked, shown on tap (WhyTip.jsx)
+  help = null // a glossary "kind:id" a hold opens (useHoldHelp.js)
 }) => {
   useT(); // redraw when the language changes
   const [why, bubble] = useWhy();
@@ -82,6 +83,7 @@ const ActionButton = ({
     <>
     <button
       {...why(disabled, whyText, onClick)}
+      data-help={help || undefined}
       className={`
         w-full rounded-lg border transition-all flex items-start text-start
         ${sizeClasses[size]}

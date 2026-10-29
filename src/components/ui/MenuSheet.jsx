@@ -10,6 +10,8 @@ import { Button, SheetHeader } from './atlas';
 import { useLastSave } from '../../context/GameContext';
 import { useInteraction, useDismissOverlays, PRIORITY } from '../../hooks/useExclusivePanel';
 import { useT } from '../../i18n/useT';
+import { openGlossary } from './uiEvents';
+import { GLOSSARY_TOPICS } from '../../data/glossary';
 
 const ENTRIES = [
   { id: 'save', icon: Save, help: false },
@@ -45,6 +47,12 @@ const MenuSheet = ({ open, view = 'all', onClose, on }) => {
           {menuEntries(view, on).map((e) => (
             <Button key={e.id} onClick={() => pick(e)} className="!min-h-[44px] !justify-start" data-testid={`menu-${e.id}`}>
               <e.icon className="w-4 h-4 shrink-0" aria-hidden="true" />{t(`hub.go.${e.id}`)}
+            </Button>
+          ))}
+          {view === 'help' && <p className="col-span-2 fa-label mt-1">{t('gloss.topics')}</p>}
+          {view === 'help' && Object.keys(GLOSSARY_TOPICS).map((id) => (
+            <Button key={id} onClick={() => { close(); openGlossary('term', id); }} className="!min-h-[44px] !justify-start" data-testid={`menu-topic-${id}`}>
+              <BookOpen className="w-4 h-4 shrink-0" aria-hidden="true" />{t(`gloss.term.${id}`)}
             </Button>
           ))}
           {view !== 'help' && (

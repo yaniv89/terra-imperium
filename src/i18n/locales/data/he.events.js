@@ -297,6 +297,8 @@ export default {
 
   // the age's dawn card (eventDeck.js eraDawnCard; {age}, and per goal {value}, {target}, {n})
   'pevt.era_dawn.title': 'שחר {age}',
+  'pevt.era_next.title': 'יעד חדש ב{age}',
+  'pevt.era_next.desc': 'עמכם השיג את היעד שקבע ל{age}. בחרו את הבא: כשיושג, הפרס שלו יוכפל.',
   'pevt.era_dawn.desc': 'עידן חדש נפתח לפני עמכם. בחרו את היעד שבו ייזכרו ב{age}: כשיושג, הפרס שלו יוכפל.',
   'pevt.era_dawn.expand': 'התפשטות: {value} מתוך {target} ערים (כשיושג: {n}%+ כוח אדם)',
   'pevt.era_dawn.wealth': 'עושר: {value} מתוך {target} סוגי משאבים (כשיושג: {n}%+ זהב)',

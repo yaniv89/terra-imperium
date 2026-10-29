@@ -17,7 +17,7 @@
 // age begins at its start year: no jump at the age change. Every turn that puts science into a
 // tech of this age or the last moves it a little (follow-up 18: it froze through a long tech, then
 // jumped centuries at the age change). Research is never lost and the age only rises, so the label
-// only goes down by a year or so, when the price of a tech under way rises (diffusion). resolveTurn writes it to state.year once a turn for saves, logs and reports; no
+// never goes down: shares are of a steady price (no cost modifiers or diffusion, research.js getResearchCost `steady`). resolveTurn writes it to state.year once a turn for saves, logs and reports; no
 // rule reads state.year (the purity test in ruleYearPurity.test.js).
 import { AGES, AGE_ORDER, LAST_AGE_ID, getAgeIndex } from '../data/ages';
 import { getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
@@ -52,6 +52,6 @@ export const displayYear = (state) => {
   // Shares are of the full price: the opening techs' cut price (research.js) would otherwise make
   // every share jump the turn an opening tech is done.
   const full = openingCostMult(known);
-  const partialOf = (t) => (progress[t.id] > 0 ? (progress[t.id] * full) / getResearchCost(state, id, t.id) : 0);
+  const partialOf = (t) => (progress[t.id] > 0 ? (progress[t.id] * full) / getResearchCost(state, id, t.id, undefined, true) : 0);
   return labelYear(ageOf(state, id), known, partialOf);
 };

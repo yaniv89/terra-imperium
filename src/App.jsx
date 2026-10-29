@@ -381,6 +381,7 @@ const GameLayout = () => {
         event={eventShown}
         onResolve={resolveEvent}
         resources={state.resources}
+        year={state.year}
         placeName={state.activeProceduralEvent?.cityId ? state.regions[state.activeProceduralEvent.cityId]?.name || null : null}
         cityId={state.activeProceduralEvent?.cityId || null}
         comingIn={state.crises?.coming?.answered && state.activeEventId === crisisCardId(state.crises.coming.id) ? Math.max(1, state.crises.coming.turn - (state.turnNumber || 0)) : null}

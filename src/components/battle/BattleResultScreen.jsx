@@ -12,7 +12,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Crown, Info } from 'lucide-react';
 import { battleResultModel, endReasonText } from './battleHudModel';
-import { menText } from '../../engine/battleLedger';
+import { countText, menText } from '../../engine/battleLedger';
+// a ledger side's men (battleHudModel.js fromLedger: a scout party counts its few), else its strength in men
+const sideMen = (l, k) => (l.men ? countText(l.men[k]) : menText(l[k]));
 import { useT } from '../../i18n/useT';
 
 const Bar = ({ value, max, color }) => (
@@ -62,13 +64,13 @@ const BattleResultScreen = ({ ended, setup, playerSide, title, getCampaign, rece
           <div className="fa-label">{t(m.naval ? 'bt.result.crewsLost' : 'bt.result.menLost')}</div>
           {[[t('bt.result.yours'), m.mine, 'var(--fa-you)', 'text-fa-you', null], [t('bt.result.theirs'), m.theirs, 'var(--fa-enemy)', 'text-fa-enemy', m.theirAux]].map(([label, l, c, tone, aux]) => (
             <div key={label} className="mt-1.5">
-              <div className="flex justify-between text-[12.5px]"><span className={`font-semibold ${tone}`}>{label}</span><span>{t('bt.result.ofMen', { a: menText(l.lost), b: menText(l.start) })}</span></div>
+              <div className="flex justify-between text-[12.5px]"><span className={`font-semibold ${tone}`}>{label}</span><span>{t('bt.result.ofMen', { a: sideMen(l, 'lost'), b: sideMen(l, 'start') })}</span></div>
               <Bar value={l.lost} max={l.start} color={c} />
-              {l.destroyed > 0 && <div className="text-[11px] text-fa-muted">{t(m.naval ? 'bt.result.sunk' : 'bt.result.destroyed', { count: l.destroyed })}{l.runDown > 0 ? t('bt.result.runDown', { men: menText(l.runDown) }) : ''}</div>}
-              {l.fled > 0 && <div className="text-[11px] text-fa-muted">{t(m.naval ? 'bt.result.fledSea' : 'bt.result.fled', { men: menText(l.fled) })}</div>}
+              {l.destroyed > 0 && <div className="text-[11px] text-fa-muted">{t(m.naval ? 'bt.result.sunk' : 'bt.result.destroyed', { count: l.destroyed })}{l.runDown > 0 ? t('bt.result.runDown', { men: sideMen(l, 'runDown') }) : ''}</div>}
+              {l.fled > 0 && <div className="text-[11px] text-fa-muted">{t(m.naval ? 'bt.result.fledSea' : 'bt.result.fled', { men: sideMen(l, 'fled') })}</div>}
               {aux && <div className="text-[11px] text-fa-muted leading-snug" data-testid="battle-result-their-aux">{aux}</div>}
               {/* the rest came through (stood or withdrew in order), so the three lines add up to the start (playtest 40651418969 step 126) */}
-              {l.start - l.lost - (l.fled || 0) > 0 && <div className="text-[11px] text-fa-muted" data-testid="battle-result-kept">{t('bt.result.cameThrough', { men: menText(l.start - l.lost - (l.fled || 0)) })}</div>}
+              {l.start - l.lost - (l.fled || 0) > 0 && <div className="text-[11px] text-fa-muted" data-testid="battle-result-kept">{t('bt.result.cameThrough', { men: l.men ? countText(l.men.start - l.men.lost - (l.men.fled || 0)) : menText(l.start - l.lost - (l.fled || 0)) })}</div>}
             </div>
           ))}
           <div className="text-[11px] text-fa-muted mt-1.5 leading-snug">{m.state === 'committed' ? t('bt.result.sameCount') : t(m.naval ? 'bt.result.goneForGoodSea' : 'bt.result.goneForGood')}</div>

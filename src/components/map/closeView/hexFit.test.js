@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import { geoEquirectangular } from 'd3-geo';
 import { getTiles } from '../../../data/geo/tiles';
 import { kmPerRing } from '../../../data/geo/gridScale';
-import { armySpotPx, CITY_SPOT_HEX, hexPxOf, figureScale, figureGap, armyBannerOffset, FIGURE_HEIGHT_HEX, FIGURE_WIDTH_RATIO, GROUP_WIDTH_HEX, ARMY_SPOT_HEX, SETTLER_FIGURE_SHARE } from './scale';
+import { armySpotPx, CITY_SPOT_HEX, hexPxOf, figureScale, figureGap, armyBannerOffset, FIGURE_HEIGHT_HEX, FIGURE_WIDTH_RATIO, GROUP_WIDTH_HEX, ARMY_SPOT_HEX, SETTLER_FIGURE_SHARE, CITY_FIGURE_SHARE, SCOUT_FIGURE_SHARE, figureShareOf } from './scale';
 import { maxZoomFor, HEXES_ACROSS_AT_MAX_ZOOM } from '../gl/mapView';
 import { CLOSE_ZOOM_K } from '../gl/sceneModel';
 
@@ -65,6 +65,17 @@ describe('one figure per tile, standing on its hex', () => {
     const [, yPlain] = armyBannerOffset(100, false); const [, yCity] = armyBannerOffset(100, true);
     expect(yCity).toBeGreaterThan(yPlain); // feet are further forward, so the flag is too
     expect(yCity).toBeLessThan(armySpotPx(100, true)[1]);
+  });
+  it('a figure in front of a town and a scout party stand smaller, their banner just over the head', () => {
+    expect(figureShareOf({})).toBe(1);
+    expect(figureShareOf({ inCity: true })).toBe(CITY_FIGURE_SHARE);
+    expect(figureShareOf({ scout: true })).toBe(SCOUT_FIGURE_SHARE);
+    expect(figureShareOf({ scout: true, inCity: true })).toBeLessThan(CITY_FIGURE_SHARE);
+    expect(CITY_FIGURE_SHARE).toBeLessThan(1);
+    const [, feet] = armySpotPx(100, true);
+    const [, flag] = armyBannerOffset(100, true);
+    expect(feet - flag).toBeLessThan(FIGURE_HEIGHT_HEX * 100 * 0.85); // nearer than over a field-size figure
+    expect(armyBannerOffset(100, false, SCOUT_FIGURE_SHARE)[1]).toBeGreaterThan(armyBannerOffset(100, false)[1]);
   });
 });
 

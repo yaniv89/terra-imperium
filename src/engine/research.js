@@ -55,7 +55,12 @@ import { IMPROVEMENTS } from '../data/tileYields';
 // Bronze 38 turns long, Information 272+ and no Future by 923 to Bronze 50, Information 178 and the
 // Future at turn 851, Civ VI's share of the game per era (Kingdoms stays: 96 for the majors, about
 // 200 for the small scripted player). 17 to 27 to 40: a Bronze age is mostly the late Stone techs'.
-export const RESEARCH_AGE_BASE = { stone: 15, bronze: 40, classical: 200, kingdoms: 800, gunpowder: 2400, modern: 5000, information: 5500, future: 16000 };
+// Future (lead's call, 29 Oct, lane ai-armies): 16000 let a passive world's leader meet the Future goal
+// before Normal's turn limit on 6 of 8 seeds (turns 749 to 918), so any change to the random stream
+// flipped endgameReachability. 36000 ends all 8 on the turn limit, the leader at 3 to 9 of 12 goal
+// techs; entry into the Future is unchanged (it is paid in Information techs). Ripples: Future techs
+// and robot units (U72) come later, and the Future goal ends a game only for a strong player.
+export const RESEARCH_AGE_BASE = { stone: 15, bronze: 40, classical: 200, kingdoms: 800, gunpowder: 2400, modern: 5000, information: 5500, future: 36000 };
 export { SCIENCE_PER_DEV } from '../data/actionCosts';
 export const FOCUS_SCIENCE_BONUS = 0.1;
 // Future Tech (U65) repeats; each one done adds this share of its first cost to the next.
@@ -85,12 +90,14 @@ const researchedSetOf = (state, nationId) => new Set(isPlayer(state, nationId)
   : state.nations[nationId]?.tech?.researched || []);
 const techAgeOf = (state, nationId) => ageOf(state, nationId);
 
-export const getResearchCost = (state, nationId, techId, repeats = futureTechsOf(state, nationId)) => {
+// `steady`: without the cost modifiers and diffusion, for the year label (displayYear.js), which must not
+// move back when a new city or diffusion changes the price of a tech under way.
+export const getResearchCost = (state, nationId, techId, repeats = futureTechsOf(state, nationId), steady = false) => {
   const tech = TECH_TREE[techId];
   if (!tech) return Infinity;
   const base = (RESEARCH_AGE_BASE[tech.ageId] ?? RESEARCH_AGE_BASE.modern) * (tech.repeatable ? 1 + FUTURE_TECH_COST_GROWTH * repeats : 1);
   const speed = speedCostMult(state.gameSpeed, techAgeOf(state, nationId)); // the speed table (ages.js, KTD9): keyed by the paying nation's own age
-  const mult = withDiffusion(state, nationId, techId, getModifier(state, nationId, 'national.researchCost').total);
+  const mult = steady ? 0 : withDiffusion(state, nationId, techId, getModifier(state, nationId, 'national.researchCost').total);
   const known = getResearched(state, nationId);
   const writing = known.includes(WRITING_TECH) ? 1 : NO_WRITING_COST_MULT; // stonePhase.js: no writing, half the science
   const first = openingCostMult(known);
