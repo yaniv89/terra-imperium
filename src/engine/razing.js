@@ -105,6 +105,7 @@ export const removeCity = (cityId, { regions, nations, units, world, wars }) => 
   Object.keys(units).forEach((id) => {
     const u = units[id];
     if (u.regionId !== cityId && u.homeRegionId !== cityId) return;
+    if (u.pirate) { delete units[id]; return; } // their home is gone: the pirates (pirates.js) with it
     const capital = nations[u.ownerId]?.capitalRegionId;
     const home = capital && capital !== cityId && regions[capital]?.owner === u.ownerId ? capital : Object.keys(regions).sort().find((r) => regions[r].owner === u.ownerId);
     if (!home) { delete units[id]; return; }

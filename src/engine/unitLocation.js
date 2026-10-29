@@ -109,6 +109,7 @@ export const fieldUnitsOf = (state, cityId, nationId = state.playerNationId, uni
  * turn's working copy.
  */
 export const canReinforce = (state, unit, regions = state.regions) => {
+  if (unit.pirate) return false; // a pirate (pirates.js) lurks far from its port
   const here = unit.domain === 'naval' || unit.embarkedOn || !state.world?.tileOwner ? unit.regionId : cityOfTile(state, unitTile(state, unit));
   const city = here != null ? regions[here] : null;
   return !!city && city.owner === unit.ownerId && !city.occupiedBy;

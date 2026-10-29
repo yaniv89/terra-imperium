@@ -861,7 +861,7 @@ export const processAINavalOperations = state => {
   const tiles=getTiles();
   const T=next.turnNumber;
   const shipsOf={};
-  Object.values(next.units).forEach(u=>{ if(u.domain==='naval')(shipsOf[u.ownerId]||=[]).push(u.id); });
+  Object.values(next.units).forEach(u=>{ if(u.domain==='naval'&&!u.pirate)(shipsOf[u.ownerId]||=[]).push(u.id); }); // a pirate ship (pirates.js) stays where it lurks
   for(const id of Object.keys(next.nations).sort()){
     if(id===state.playerNationId || next.nations[id].isEliminated)continue;
     const enemies=new Set(next.wars.filter(w=>w.active&&(w.aggressor===id||w.enemy===id)).map(w=>w.aggressor===id?w.enemy:w.aggressor));
@@ -898,7 +898,8 @@ export const processAINavalOperations = state => {
       next={...next,regions:after.regions,units:after.units,wars:after.wars,world:after.world,rngSeed:after.rngSeed,nextUnitSeq:after.nextUnitSeq,hiredCommanders:after.hiredCommanders,nations:{...after.nations,[id]:{...after.nations[id],economy:after.resources}},logs:next.logs,battleReports:reports,battleReportSeq:after.battleReportSeq,lastBattleReport:fresh.length?after.lastBattleReport:next.lastBattleReport};
       return true;
     };
-    const aiFleetAttack=(fleet)=>{
+    // `onlyPirates`: at peace a fleet still sinks the pirates beside it (pirates.js).
+    const aiFleetAttack=(fleet,onlyPirates=false)=>{
       const tiles=getTiles();
       const from=unitTile(next,fleet);
       if(from==null)return false;
@@ -906,7 +907,7 @@ export const processAINavalOperations = state => {
       const power=mine.reduce((s,u)=>s+u.strength,0);
       for(const n of tiles.neighbors[from]){
         if(tiles.land[n]===1)continue;
-        const foe=enemyFleetsAt({...next,playerNationId:id},n,id);
+        const foe=enemyFleetsAt({...next,playerNationId:id},n,id).filter(u=>!onlyPirates||u.pirate);
         if(!foe.length || foe.reduce((s,u)=>s+u.strength,0)*AI_FLEET_ATTACK_RATIO>power)continue;
         // Against the player's fleet: queued for the player's Command or Auto (battleQueue.js).
         if(foe[0].ownerId===state.playerNationId){
@@ -927,13 +928,14 @@ export const processAINavalOperations = state => {
       for(const fid of shipsOf[id]||[]){
         let f=next.units[fid];
         if(!f || !(f.strength>0))continue;
+        if((f.movesLeft ?? 0)>0&&!isUnitInBattle(next,f.id)&&aiFleetAttack(f,true))continue;
         if(f.route?.length){ if(f.marchedTurn!==T)f=walk(f); continue; }
         if(atSea(next,f)){ home(f); continue; }
         for(const u of Object.values(next.units))if(u.embarkedOn===fid&&u.id!==fid)apply({type:ActionTypes.DISEMBARK_UNIT,payload:{landUnitId:u.id}});
       }
       continue;
     }
-    let fleets=Object.values(next.units).filter(u=>u.ownerId===id&&u.domain==='naval'&&u.strength>0&&!isUnitInBattle(next,u.id));
+    let fleets=Object.values(next.units).filter(u=>u.ownerId===id&&u.domain==='naval'&&!u.pirate&&u.strength>0&&!isUnitInBattle(next,u.id));
     if(!fleets.length){
       const port=ports.find(p=>coast.some(t=>isReachableBySea(p,t,ageOf(next,id)))&&Object.values(next.units).some(u=>u.ownerId===id&&u.domain==='land'&&u.regionId===p&&!u.embarkedOn));
       if(port && (getPool(next,id).gold || 0)>300)apply({type:ActionTypes.RECRUIT_UNIT,payload:{regionId:port,classId:'naval'}});

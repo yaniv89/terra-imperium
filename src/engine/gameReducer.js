@@ -1806,7 +1806,7 @@ const reduceAction = (state, action) => {
       // Naval interception (plan §7.5): a defending fleet forces a naval battle before the landing,
       // fought and applied through the outcome service like any sea battle. Losing it sinks the
       // transport and everything still aboard, and the assault never lands.
-      const defenderNavalUnits = Object.values(state.units).filter(u => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
+      const defenderNavalUnits = Object.values(state.units).filter(u => u.regionId === targetRegionId && u.domain === 'naval' && !u.pirate && u.ownerId !== state.playerNationId);
       if (defenderNavalUnits.length > 0) {
         const navalBattle = resolveAutoBattle(state, {
           attackerUnits: [navalUnit],

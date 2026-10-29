@@ -34,9 +34,10 @@ import { settlingOutlook } from '../../engine/settlers';
 import { rushQuote, rushGold, rushRate, RUSH_GOLD_PER_HAMMER } from '../../engine/spending';
 import { calcNationBalance } from '../../engine/economy';
 import { FIRST_AGE_ID } from '../../data/ages';
+import { nameNow } from '../../i18n/names';
 import { techEta, techEtaText } from '../panels/researchView';
 
-export const GROUPS = ['Units', 'Armies', 'Buildings', 'Wonders', 'Improvements'];
+export const GROUPS = ['Units', 'Ships', 'Armies', 'Buildings', 'Wonders', 'Improvements'];
 /** The words of a group id ('All' too). */
 export const groupLabel = (g) => tNow(`cy.group.${g}`);
 /** An army template's name: the two default templates have a Hebrew name; a name the player typed stays as typed. */
@@ -164,11 +165,16 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
     const need = isUnitUnlocked(ageId, classId, researched) ? null : unitUnlockTech(ageId, classId);
     const lock = need ? lockOf(need) : {};
     if (classId === 'naval') {
-      // Ships are listed only where they can be built: an inland city (river, oasis or lake) has
-      // no ship rows at all (I039), instead of rows that look available.
       // What a ship is for, in numbers (lane naval-8): the troops it carries and its pace a turn.
       const pace = fleetPace(state, { ownerId: city.owner });
-      if (coast) navalLinesFor(ageId).forEach((navalLine) => add({ kind: 'unit', classId, navalLine }, 'Units', { fields: { detail: navalCargo(navalLine, ageId) > 0 ? tNow('cy.shipCarries', { n: navalCargo(navalLine, ageId), tiles: pace }) : tNow('cy.shipPace', { tiles: pace }), ...lock } }));
+      if (coast) navalLinesFor(ageId).forEach((navalLine) => add({ kind: 'unit', classId, navalLine }, 'Ships', { fields: { detail: navalCargo(navalLine, ageId) > 0 ? tNow('cy.shipCarries', { n: navalCargo(navalLine, ageId), tiles: pace }) : tNow('cy.shipPace', { tiles: pace }), ...lock } }));
+      else if (navalLinesFor(ageId).length) {
+        // An inland city shows one greyed ship row that names the player's sea ports (naval-9: a
+        // veteran searched three inland cities for 60 steps before finding where ships are built).
+        const ports = Object.values(state.regions).filter((c) => c.owner === city.owner && !c.ghost && !c.outpost && hasSeaCoast(tiles, c)).map((c) => nameNow('city', null, c.name));
+        const reason = ports.length ? tNow('cy.shipInland', { cities: ports.slice(0, 3).join(', ') }) : tNow('cy.shipNoPort');
+        add({ kind: 'unit', classId, navalLine: navalLinesFor(ageId)[0] }, 'Ships', { ok: false, reason, fields: { ports: ports.length } });
+      }
       return;
     }
     add({ kind: 'unit', classId }, 'Units', { fields: { detail: unitClassRole(classId, UNIT_CLASSES[classId]?.role) || null, tag: unitTagText(city.owner, ageId, classId), ...lock } }); // the signature tag and the age's matchups (rank 16)

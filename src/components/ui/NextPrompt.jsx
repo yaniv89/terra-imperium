@@ -15,7 +15,7 @@ import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { nextPrompts } from './nextPromptModel';
 import { nextStep } from './nextStepModel';
-import { manageCity, selectRegion } from '../map/marchEvents';
+import { manageCity, selectRegion, startMarch, selectArmy } from '../map/marchEvents';
 import { openPeople } from '../panels/panelEvents';
 import { goToPrompt, chipLabel } from './promptActions';
 import { stackPrompts, nextInStack, stackLabel, stackHint } from './promptStack';
@@ -45,6 +45,8 @@ const NextPrompt = () => {
   const goStep = () => {
     if (step.queue) { dispatch({ type: ActionTypes.QUEUE_PRODUCTION, payload: step.queue }); manageCity(step.queue.cityId, 'build'); return; }
     if (step.explore) dispatch({ type: ActionTypes.EXPLORE_ORDER, payload: { unitIds: step.explore.unitIds } });
+    else if (step.army != null) selectArmy(step.army);
+    else if (step.sail) startMarch(step.sail.regionId, { naval: true, unitIds: step.sail.unitIds });
     else if (step.people) openPeople(step.people);
     else if (step.regionId) selectRegion(step.regionId);
   };
