@@ -6,7 +6,9 @@ autoBattle.js or engine file changed; battleLoop.js untouched (F99 is solved in 
 
 ## For the lead
 
-1. **F99 design call (asked by message, no answer yet).** The only timed prompts left in a battle are the HUD alerts (Go, Rally);
+1. **F99 decided by the lead (29 Oct): B approved.** This replaces the plan's "pause the clock" wording for F99 (U5 step 4 and its
+   test scenario): alerts stay 8 real seconds at every speed, no pause, so the battle never freezes and the player keeps control.
+   The question as asked: The only timed prompts left in a battle are the HUD alerts (Go, Rally);
    "Attack it" already stays until tapped (battle-truth). They fire often (troops hit every 20 s, squad lost, shaken, reinforcements,
    enemy built). Pausing the sim until each is answered would freeze the battle every ~20 s of fighting. **Built (B):** an alert stays
    8 real seconds at every speed (was 8 battle seconds: 2.7 s at 3x). If you want the literal pause (C: the sim stops until Go or close),
