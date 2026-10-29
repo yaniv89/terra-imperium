@@ -47,13 +47,16 @@ const scan = (opts = {}) => page.evaluate(async (opts) => {
   const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   for (let n = w.nextNode(); n; n = w.nextNode()) {
     const txt = n.nodeValue.replace(/\s+/g, ' ').trim();
-    if (!txt || !/[A-Za-z]/.test(txt)) continue;
+    // A sign before a number in right-to-left text flips to the number's far side ("10%-") unless isolated.
+    const sign = /(^|[\s(:])[+\-−]\d/.test(txt) && !/[⁦⁨]/.test(txt);
+    if (!txt || (!/[A-Za-z]/.test(txt) && !sign)) continue;
     const el = n.parentElement;
     if (!el || el.closest('script,style,noscript,canvas')) continue;
     if (!visible(el)) continue;
     const range = document.createRange(); range.selectNodeContents(n);
     if (![...range.getClientRects()].some(onScreen)) continue;
-    add('text', txt, el);
+    if (sign && getComputedStyle(el).direction === 'rtl') add('sign', txt, el);
+    if (/[A-Za-z]/.test(txt)) add('text', txt, el);
   }
   for (const el of document.querySelectorAll('[aria-label],[title],[placeholder]')) {
     const r = el.getBoundingClientRect();
@@ -87,6 +90,7 @@ const scan = (opts = {}) => page.evaluate(async (opts) => {
 }, opts);
 
 const latin = (items) => items.filter((it) => {
+  if (it.kind === 'sign') return true; // not Latin, but a right-to-left break all the same
   if (it.where === 'lang-en' || it.where === 'lang-he') return false; // the language names stay in their own language
   const toks = it.text.match(/[A-Za-z]+/g) || [];
   return toks.some((tk) => !ALLOW.has(tk));
@@ -230,8 +234,17 @@ const manage = (regionId, tab) => evalMod('components/map/marchEvents.js', 'mana
 
 await step('city', async () => {
   const cap = await capitalId();
-  await manage(cap, 'overview');
+  // One overlay at a time: the turn-1 research choice (a decision card, Escape keeps it) and the Settings sheet would hide the city.
+  const advisor = tid('research-let-advisor');
+  if (await has(advisor)) { await click(advisor); await wait(500); }
+  for (let i = 0; i < 3; i += 1) await esc();
+  const found = tid('found-city'); // a new game starts as a band: found the first city
+  for (let i = 0; i < 4 && !(await has(found)); i += 1) { if (await has(tid('idle-chip'))) await click(tid('idle-chip')); await wait(600); } // the chip selects the band
+  if (await has(found)) { await click(found); await wait(1500); for (let i = 0; i < 2; i += 1) await esc(); }
+  await manage(await capitalId() || cap, 'overview');
   await wait(1500);
+  const row = tid('city-rail-row'); // manage may land on the Cities list: open the city from it
+  if (await has(row)) { await click(row.first()); await wait(1200); }
   await record('city: opened');
   const sheet = page.locator('[data-testid="city-sheet"], [data-testid="region-info-modal"], [data-testid="city-panel"]').first();
   console.log('  city sheet visible:', await has(sheet));

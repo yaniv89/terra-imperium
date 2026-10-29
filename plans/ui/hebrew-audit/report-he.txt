@@ -1,5 +1,5 @@
-Hebrew audit (he) 2026-10-27T20:01:43.048Z
-screens: 117, with Latin: 1, skipped: 25, unique Latin strings: 1
+Hebrew audit (he) 2026-10-29T09:29:46.628Z
+screens: 114, with Latin: 0, skipped: 25, unique Latin strings: 0
 
 clean   start: people list: 0
 clean   start: start-step-people: 0
@@ -10,9 +10,6 @@ clean   onboarding 1: 0
 clean   onboarding 2: 0
 clean   onboarding 3: 0
 clean   onboarding 4: 0
-clean   onboarding 5: 0
-clean   onboarding 6: 0
-clean   onboarding 7: 0
 clean   map: political: 0
 clean   map: lens political: 0
 clean   map: lens yields: 0
@@ -24,7 +21,7 @@ clean   map: lens settle: 0
 clean   map: lens list open: 0
 clean   rail: האימפריה: 0
 SKIPPED rail: האימפריה: tabs: no tabs visible
-LATIN   rail: שליט: 1
+clean   rail: שליט: 0
 SKIPPED rail: שליט: tabs: no tabs visible
 clean   rail: ערים: 0
 SKIPPED rail: ערים: tabs: no tabs visible
@@ -120,4 +117,3 @@ clean   turn 12: report: 0
 SKIPPED turns: error: TimeoutError: locator.dispatchEvent: Timeout 30000ms exceeded.
 
 Unique Latin strings, with the first screen each appeared on:
-  A   <rail: שליט>
