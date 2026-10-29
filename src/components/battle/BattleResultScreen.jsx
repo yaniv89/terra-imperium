@@ -62,7 +62,7 @@ const BattleResultScreen = ({ ended, setup, playerSide, title, getCampaign, rece
           <div className="fa-label">{t(m.naval ? 'bt.result.crewsLost' : 'bt.result.menLost')}</div>
           {[[t('bt.result.yours'), m.mine, 'var(--fa-you)', 'text-fa-you', null], [t('bt.result.theirs'), m.theirs, 'var(--fa-enemy)', 'text-fa-enemy', m.theirAux]].map(([label, l, c, tone, aux]) => (
             <div key={label} className="mt-1.5">
-              <div className="flex justify-between text-[12.5px]"><span className={`font-semibold ${tone}`}>{label}</span><span className="fa-num">{t('bt.result.ofMen', { a: menText(l.lost), b: menText(l.start) })}</span></div>
+              <div className="flex justify-between text-[12.5px]"><span className={`font-semibold ${tone}`}>{label}</span><span>{t('bt.result.ofMen', { a: menText(l.lost), b: menText(l.start) })}</span></div>
               <Bar value={l.lost} max={l.start} color={c} />
               {l.destroyed > 0 && <div className="text-[11px] text-fa-muted">{t(m.naval ? 'bt.result.sunk' : 'bt.result.destroyed', { count: l.destroyed })}{l.runDown > 0 ? t('bt.result.runDown', { men: menText(l.runDown) }) : ''}</div>}
               {l.fled > 0 && <div className="text-[11px] text-fa-muted">{t(m.naval ? 'bt.result.fledSea' : 'bt.result.fled', { men: menText(l.fled) })}</div>}
@@ -81,7 +81,7 @@ const BattleResultScreen = ({ ended, setup, playerSide, title, getCampaign, rece
           <div className="mt-1 space-y-0.5 overflow-y-auto max-h-[7.5rem]">
             {m.xp.length === 0 && <div className="text-[12px] text-fa-muted">{t(m.mine?.lost ? 'bt.result.noLearn' : 'bt.result.noFight')}</div>}
             {m.xp.slice(0, 6).map((x) => (
-              <div key={x.id} className="flex justify-between gap-2 text-[12.5px]"><span className="truncate">{x.name}</span><span className="fa-num text-fa-good shrink-0">{x.rankUp ? t('bt.result.xpGainRank', { n: x.gained, rank: t(`bt.rank.${x.rankUp}`) }) : t('bt.result.xpGain', { n: x.gained })}</span></div>
+              <div key={x.id} className="flex justify-between gap-2 text-[12.5px]"><span className="truncate">{x.name}</span><span className="text-fa-good shrink-0">{x.rankUp ? t('bt.result.xpGainRank', { n: x.gained, rank: t(`bt.rank.${x.rankUp}`) }) : t('bt.result.xpGain', { n: x.gained })}</span></div>
             ))}
           </div>
           <div className="text-[11px] text-fa-muted mt-1 leading-snug">{m.xpRule}.</div>
@@ -116,8 +116,8 @@ const BattleResultScreen = ({ ended, setup, playerSide, title, getCampaign, rece
             <div className="mt-auto pt-1.5 border-t border-fa-line" data-testid="battle-result-loot">
               <div className="fa-label">{m.loot.banked ? t('bt.result.goldTreasury') : t('bt.result.battleLoot')}</div>
               {m.loot.banked
-                ? <div className="fa-num text-[13px]">{t('bt.result.goldCaps')} <span className="text-fa-good">+{m.loot.gold}</span></div>
-                : <div className="text-[11.5px] text-fa-muted leading-snug fa-num">{t('bt.result.lootSpent', { gold: m.loot.gold })}</div>}
+                ? <div className="text-[13px]">{t('bt.result.goldCaps')} <span className="fa-num text-fa-good">+{m.loot.gold}</span></div>
+                : <div className="text-[11.5px] text-fa-muted leading-snug">{t('bt.result.lootSpent', { gold: m.loot.gold })}</div>}
             </div>
           )}
         </div>

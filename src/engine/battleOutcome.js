@@ -514,8 +514,10 @@ const raidAdapter = (s, o, war, att, def) => {
   const tileName = o.kind === 'sack' ? null : getTiles().names?.[o.tile];
   const place = o.kind === 'sack' ? cityOr(s.regions, o.regionId, 'm.battle.theTown') : tileName ? placeRef(tileName) : cityOr(s.regions, o.regionId, 'm.battle.theFrontier');
   const mine = o.defenderNationId === o.viewerId;
+  // Won because nobody was left to defend (step.js raidEnd defendersBroken), not by burning: say so.
+  const overrun = o.report?.tactical?.reason === 'defendersBroken';
   const line = o.outcome === 'attacker'
-    ? msg(o.kind === 'sack' ? 'm.battle.sackGotAway' : 'm.battle.raidGotAway', { raiders, place })
+    ? msg(o.kind === 'sack' ? (overrun ? 'm.battle.sackOverrun' : 'm.battle.sackGotAway') : (overrun ? 'm.battle.raidOverrun' : 'm.battle.raidGotAway'), { raiders, place })
     : msg('m.battle.raidDrivenOff', { who: mine ? sub('m.battle.yourTroops') : nameRef(s, o.defenderNationId), raiders, place, cut: cutDown ? sub(cutDown > 1 ? 'm.battle.cutDownMany' : 'm.battle.cutDownOne', { n: cutDown }) : '' });
   return { units, regions: s.regions, nations: s.nations, captured: false, ...line, cutDown, score: null, aftermathOutcome: o.outcome, aftermathRegionId: o.regionId, markTile: o.kind === 'sack' ? s.regions[o.regionId]?.tile ?? o.tile : o.tile, reportKind: o.kind };
 };

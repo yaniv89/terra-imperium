@@ -107,6 +107,17 @@ describe('the raid on the battle map (the light battle)', () => {
     expect(lost.length).toBeGreaterThan(0);
     lost.forEach((r) => expect(['raidersDriven', 'attackerRetreated', 'timeLimit']).toContain(r.report.tactical.reason));
   });
+
+  it('a sack ends Sacked with fewer than the needed burned only once no defender stands (lead check 28 Oct: Hazor, 2,200 against 20,000)', () => {
+    const cityManifest = buildTownManifest({ cityId: 'sack-2', ageId: 'bronze', tierId: 'medium', style: 'europe', seed: 2, defenseTier: -1 });
+    [1, 2, 3].forEach((seed) => {
+      const { world, result } = runHeadless(raidSetup(seed, { city: true, cityManifest, attackerUnits: mk('a', ['cavalry', 'cavalry', 'infantry', 'infantry', 'infantry', 'cavalry']), defenderUnits: mk('d', ['infantry']) }));
+      const burned = world.structures.filter((x) => x.loot && !x.alive).length;
+      if (result.outcome !== 'attacker' || burned >= SACK_BURN_NEEDED) return;
+      expect(result.report.tactical.reason).toBe('defendersBroken');
+      expect(world.squads.some((q) => q.side === 1 && !q.worker && !q.isGeneral && q.alive && !q.fled && q.onField && !q.routed)).toBe(false);
+    });
+  });
 });
 
 describe('the honest Auto of a raid', () => {
@@ -172,6 +183,14 @@ describe('the raid in the outcome service', () => {
     expect(city.size).toBeGreaterThanOrEqual(2);
     expect(city.size).toBeLessThanOrEqual(4);
     expect(Object.keys(city.cityDamage?.ruined || {}).length).toBeLessThanOrEqual(Math.floor(manifest.structures.filter((x) => x.kind === 'house').length / 2));
+  });
+
+  it('a sack won because no defender was left says so, not that they got away with the loot (lead check 28 Oct)', () => {
+    const { s, raider, capital } = atTheGates();
+    const spec = { kind: 'sack', raidKind: 'sack', attackerId: raider.id, defenderId: 'akkad', tile: capital.tile, cityId: capital.id, attackerUnits: ['p0', 'p1', 'p2'].map((id) => s.units[id]), defenderUnits: [] };
+    const won = (reason, id) => JSON.stringify(applyBattleOutcome(s, raidOutcome(s, spec, { outcome: 'attacker', attackerUnits: spec.attackerUnits, defenderUnits: [], report: { tactical: { mode: 'command', reason } } }, { id })));
+    expect(won('defendersBroken', 'sack-o')).toContain('m.battle.sackOverrun');
+    expect(won('escaped', 'sack-e')).toContain('m.battle.sackGotAway');
   });
 });
 

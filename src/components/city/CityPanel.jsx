@@ -194,7 +194,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                     </div>
                     {q.need && !q.need.built && <div className="text-[11px] leading-snug text-fa-muted" data-testid="land-resource-need">{q.need.text}</div>}
                   </div>
-                  <button type="button" disabled={!q.affordable} onClick={() => dispatch({ type: ActionTypes.BUY_TILE, payload: { cityId, tile: q.tile } })} className="fa-btn fa-btn-secondary fa-num disabled:opacity-40 min-h-[44px]" data-testid="buy-tile" title={q.affordable ? t('cy.buyFor', { cost: q.cost }) : t('cy.needsGold', { cost: q.cost })} aria-label={t('cy.buyTileAria', { cost: q.cost })}>
+                  <button type="button" disabled={!q.affordable} onClick={() => dispatch({ type: ActionTypes.BUY_TILE, payload: { cityId, tile: q.tile } })} className="fa-btn fa-btn-secondary disabled:opacity-40 min-h-[44px]" data-testid="buy-tile" title={q.affordable ? t('cy.buyFor', { cost: q.cost }) : t('cy.needsGold', { cost: q.cost })} aria-label={t('cy.buyTileAria', { cost: q.cost })}>
                     {t('cy.goldShort', { n: q.cost })}
                   </button>
                 </li>
@@ -265,7 +265,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
           <div className="text-fa-muted">{t('cy.size')}</div>
           <div className="fa-num text-[15px] font-semibold">{city.size}</div>
           <div className="text-fa-muted text-[11px] leading-tight">{growthLine}</div>
-          {growth.threshold > 0 && <div className="text-fa-muted text-[11px] leading-tight fa-num" title={t('cy.foodBanked')}>{t('cy.foodBank', { bank: Math.floor(growth.bank), threshold: growth.threshold })}</div>}
+          {growth.threshold > 0 && <div className="text-fa-muted text-[11px] leading-tight" title={t('cy.foodBanked')}>{t('cy.foodBank', { bank: Math.floor(growth.bank), threshold: growth.threshold })}</div>}
           {nextCitizen && <div className="text-fa-good text-[11px] leading-tight mt-0.5" data-testid="city-next-citizen">{t('cy.nextCitizen', { effect: nextCitizen.text })}</div>}
         </div>
         <div className="fa-card px-2 py-1.5">
@@ -344,8 +344,10 @@ const CityPanel = ({ cityId, view = 'city' }) => {
           )}
           {mine && current?.rush?.gold > 0 && (
             <button type="button" onClick={() => setBuyAt((v) => (v === 0 ? null : 0))} aria-expanded={buyAt === 0} data-testid="city-rush-open"
-              className={`fa-btn fa-btn-secondary min-h-[44px] px-2 shrink-0 ${current.rush.ok ? '' : 'opacity-60'}`} title={rushText(current)?.title}>
+              className={`fa-btn fa-btn-secondary min-h-[44px] px-2 shrink-0 ${current.rush.ok ? '' : 'opacity-50 border-dashed text-fa-muted'}`} title={rushText(current)?.title}>
               <Coins className="w-4 h-4 me-0.5" aria-hidden="true" /><span className="fa-num">{current.rush.gold}</span>
+              {/* out of reach: greyed, with the turns of income it takes (civ-veteran playtest step 28) */}
+              {current.rush.saveTurns != null && <span className="text-[10px] ms-1" data-testid="city-rush-save">{t('p2.q.turns', { n: current.rush.saveTurns })}</span>}
             </button>
           )}
           <button type="button" onClick={() => setQueueOpen((v) => !v)} disabled={!queue.length} aria-expanded={queueOpen} data-testid="city-queue-toggle"
@@ -361,7 +363,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
           const q = queue[buyAt]; const words = rushText(q);
           return (
             <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-fa-line bg-fa-raised px-2.5 py-1.5 text-[12px] leading-snug" data-testid="city-rush-offer">
-              <div className="min-w-0 flex-1">{q.rush.ok ? words.text : `${words.text} ${reasonText(q.rush, lang)}`}</div>
+              <div className="min-w-0 flex-1">{q.rush.ok ? words.text : `${words.text} ${words.save || reasonText(q.rush, lang)}`}</div>
               <button type="button" disabled={!q.rush.ok} data-testid="city-rush-pay"
                 onClick={() => { dispatch({ type: ActionTypes.RUSH_PRODUCTION, payload: { cityId, index: q.index } }); setBuyAt(null); }}
                 className="fa-btn fa-btn-primary fa-btn-sm min-h-[44px] shrink-0 disabled:opacity-40">{t('cy.pay', { n: q.rush.gold })}</button>
@@ -382,7 +384,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                   <div className="text-fa-muted text-[12px]"><span className="fa-num">{q.progress > 0 || q.index === 0 ? `${Math.round(q.progress)}/${q.cost}` : q.cost}</span> · {q.waitText || (q.turns == null ? t('cy.noProduction') : t('cy.doneIn', { turns: turnsText(q.turns) }))}</div>
                 </div>
                 {mine && q.rush?.gold > 0 && (
-                  <button type="button" onClick={() => setBuyAt(q.index)} className={`fa-icon-btn min-w-[44px] min-h-[44px] text-[11px] fa-num ${q.rush.ok ? '' : 'opacity-60'}`} aria-label={t('cy.buyItemAria', { label: q.label, gold: q.rush.gold })} title={rushText(q)?.title} data-testid="queue-rush">
+                  <button type="button" onClick={() => setBuyAt(q.index)} className={`fa-icon-btn min-w-[44px] min-h-[44px] text-[11px] ${q.rush.ok ? '' : 'opacity-50 text-fa-muted'}`} aria-label={t('cy.buyItemAria', { label: q.label, gold: q.rush.gold })} title={rushText(q)?.title} data-testid="queue-rush">
                     {t('cy.goldShort', { n: q.rush.gold })}
                   </button>
                 )}

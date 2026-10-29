@@ -61,8 +61,11 @@ export const defenseSheetModel = (state, def, { samples = 30, view = null } = {}
   const c = v.odds?.city;
   // EU4's siege status: holding this turn is not holding out; at this rate, when do its defences fall?
   const fallsIn = c && c.hpAfter > 0 && c.hpBefore > c.hpAfter ? Math.ceil(c.hpBefore / (c.hpBefore - c.hpAfter)) : null;
+  // Why an empty city holds, on the odds row itself (newcomer rerun step 251: "Auto holds 100%" at 1,500 militia to 20,000;
+  // the reason sat in the Auto box below the fold): its walls this battle, or no foot soldiers to take it once they are down.
+  const wallsWhy = c ? (c.hpAfter <= 0 && v.odds?.hasMelee === false ? t('bt.def.wallsNoTaker', { max: c.maxHp }) : t('bt.def.wallsLine', { a: c.hpBefore, b: c.hpAfter, max: c.maxHp })) : null;
   const odds = v.odds?.undefended
-    ? { undefended: true, hold, fallsIn, verdict: hold >= 0.65 ? (fallsIn != null && fallsIn <= 5 ? t('bt.def.vThisTurn') : t('bt.def.vLikelyHold')) : hold >= 0.35 ? t('bt.def.vClose') : t('bt.def.vLikelyLost'), text: c ? `${t('bt.def.noDefendUndefended', { a: c.hpBefore, b: c.hpAfter, max: c.maxHp, likely: hold < 0.5 ? t('bt.def.likelyFalls') : '', pct })}${fallsIn != null ? t('bt.def.fallsIn', { n: fallsIn }) : ''}` : t('bt.def.noRegiment') }
+    ? { undefended: true, hold, fallsIn, walls: wallsWhy, verdict: hold >= 0.65 ? (fallsIn != null && fallsIn <= 5 ? t('bt.def.vThisTurn') : t('bt.def.vLikelyHold')) : hold >= 0.35 ? t('bt.def.vClose') : t('bt.def.vLikelyLost'), text: c ? `${t('bt.def.noDefendUndefended', { a: c.hpBefore, b: c.hpAfter, max: c.maxHp, likely: hold < 0.5 ? t('bt.def.likelyFalls') : '', pct })}${fallsIn != null ? t('bt.def.fallsIn', { n: fallsIn }) : ''}` : t('bt.def.noRegiment') }
     : { undefended: false, hold, text: t(attacking ? 'bt.def.autoWins' : 'bt.def.autoHolds', { pct, avg: city && v.odds?.avgDamage != null ? t('bt.def.avgLost', { n: v.odds.avgDamage }) : '', note: city && !attacking ? t('bt.def.garrisonFirst') : '' }), verdict: attacking ? (hold >= 0.65 ? t('bt.pre.likelyWin') : hold >= 0.35 ? t('bt.def.vClose') : t('bt.pre.likelyLoss')) : (hold >= 0.65 ? t('bt.def.vLikelyHold') : hold >= 0.35 ? t('bt.def.vClose') : t('bt.def.vLikelyLost')) };
   // The same range the attack card shows, seen from the attacker like every odds: flipped to read as yours when you defend.
   const r = v.odds?.range;

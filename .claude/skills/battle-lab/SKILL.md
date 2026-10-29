@@ -209,6 +209,15 @@ gives towers and gates) and prints the tick it falls, what each attacker does th
 `ECO=1` builds the setup with the battle economy as campaign battles do (`ECO_SUPPLY`, `ECO_DEV`
 0..1); workers are left out of the orders and an `ECO workers=.. buildings=..` line is printed.
 
+## The sandbox's own battle (lead check 28 Oct)
+```bash
+ORDER=attack|attackMove|split SEEDS=1-8 [REPEAT=60 EVERY=60 VERBOSE=0 ENEMY=1] \
+  npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/battle-lab/sandboxTrace
+```
+`?battleSandbox`'s default battle (mixed, kingdoms, balanced v balanced, fort 2, the economy, the sample tile), the
+army sent at the keep every REPEAT s; `split` is what a tap on a building or Attack it sends (selection.js
+buildingAttackOrders). A SUMMARY line per seed: end, keep, losses both ways, yours by cause.
+
 ## Commanded assaults (mobile campaign audit H-02, H-03, H-04, H-26)
 ```bash
 SEEDS=1-8 POLICY=once|keep|ai [ATT=.. STR_A=588 DEF=.. STR_D=190 TERRAIN=desert FORT=1 TIER=small CAPITAL=1 AGE=kingdoms] [TRACE=<seed>] \

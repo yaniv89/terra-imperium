@@ -10,7 +10,7 @@ import { deployZone } from '../../battle/sim/world';
 import { BattleRenderer } from '../../battle/render/BattleRenderer';
 import { createBattleClient } from '../../battle/worker/battleClient';
 import { createGestureRecognizer, insidePolygon } from '../../battle/input/gestures';
-import { decidePointer, isCycleClick, pickOwnBuilding, selectionAfter, BUILDING_PICK_TILES, BUILDING_PICK_PX, groundOrderType } from '../../battle/input/selection';
+import { decidePointer, isCycleClick, pickOwnBuilding, selectionAfter, BUILDING_PICK_TILES, BUILDING_PICK_PX, groundOrderType, buildingAttackOrders } from '../../battle/input/selection';
 import { Q, TICK_HZ, battleLimitTicks } from '../../battle/sim/constants';
 import BattleHud, { isIdleSquad } from './BattleHud';
 import { BattleRotateGate } from '../ui/RotateOverlay';
@@ -33,7 +33,7 @@ import { Check, X as XIcon, Ban, Hammer, Wrench } from 'lucide-react';
 import GameIcon from '../ui/GameIcon';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useCornerSheet } from '../../hooks/useExclusivePanel';
-import { BuildMenu, BuildingActions, InfoCard, HammerButton, WorkerAutoButtons } from './EconomyHud';
+import { BuildMenu, BuildingActions, InfoCard, HammerButton, WorkerAutoButtons, laborerNote } from './EconomyHud';
 import { inspectInfo } from './inspectModel';
 import { contextFor, refusedText, enemyObjectives, supplyRate, armyGone, endVerdict } from './battleHudModel';
 import BattleMinimap from './BattleMinimap';
@@ -47,6 +47,8 @@ import { buildFlowNext, BUILD_FLOW_CLOSED, closePrecedence } from './buildFlow';
 import { preloadBattleIcons } from './battleIcons';
 import { commandedSetup } from '../../battle/setup/buildBattleSetup';
 import { arrivalNote } from '../../battle/input/orderFeedback';
+import { SHIP_PICK_TILES } from '../../battle/input/squadPick';
+import { GARRISON_SLOTS } from '../../battle/sim/objectives';
 import { DEPLOY_PRESETS, deployPreset as presetSlots, presetFits } from '../../battle/input/deployPresets';
 import { t as tNow } from '../../i18n/core';
 import { useT } from '../../i18n/useT';
@@ -349,10 +351,11 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           const f = frames.current;
           if (m.sim) f.sim = m.sim;
           if (!f.cur || m.view.tick !== f.cur.tick) { f.prev = f.cur; f.cur = m.view; f.arrival = performance.now(); } else f.cur = m.view;
-          // First frame: look straight at your own army.
+          // First frame: look straight at your own army, all of it between the HUD's bars (r3-battle: the closer phone camera).
           if (!f.centered) {
             const own = m.view.squads.filter((q) => q.side === playerSide && q.alive && q.onField);
-            if (own.length) renderer.centerOn(own.reduce((a, q) => a + q.x, 0) / own.length / Q, own.reduce((a, q) => a + q.y, 0) / own.length / Q);
+            const fighters = own.filter((q) => q.classId !== 'worker');
+            renderer.frameGround((fighters.length ? fighters : own).map((q) => ({ x: q.x / Q, z: q.y / Q })), 0.75);
             f.centered = true;
             renderer.startIntro?.();
             // Resumed: say where it picks up (playtest 4 H2); a rejected checkpoint says so instead.
@@ -397,7 +400,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       }
     });
     clientRef.current = client;
-    if (import.meta.env.DEV) window.__battleOrders = (orders) => client.sendOrders(orders); // console / visual-test driving
+    if (import.meta.env.DEV) { window.__battleOrders = (orders) => client.sendOrders(orders); window.__battleSelected = () => [...selectedRef.current]; } // console / visual-test driving
 
     let raf; let lastT = performance.now(); let lastHud = 0; let lastPerf = 0;
     let renderErrors = 0;
@@ -742,7 +745,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       if (workers.length) r.setOrderTarget(workers, { kind: 'eco', index: hit.index }, 'assist');
       if (!onlyWorkers) { r.addMarker(hit.ground.x, hit.ground.z, '#a3e635'); markPending({ kind: 'move', x: hit.ground.x, z: hit.ground.z, squads: fighters, color: '#a3e635' }); }
     } else if (hit.kind === 'eco') {
-      send([{ type: 'attack', squads: sel, target: { kind: 'eco', index: hit.index } }]);
+      send(buildingAttackOrders(sel, { kind: 'eco', index: hit.index }, Math.round(hit.ground.x * Q), Math.round(hit.ground.z * Q)));
       r.setOrderTarget(sel, { kind: 'eco', index: hit.index }, 'attack');
       r.addMarker(hit.ground.x, hit.ground.z, '#ef4444');
       markPending({ kind: 'attack', x: hit.ground.x, z: hit.ground.z, squads: sel, color: '#ef4444' });
@@ -755,15 +758,16 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       r.setOrderTarget(sel, { kind: 'squad', index: hit.idx }, 'attack'); // its ring holds while paused (orderTarget.js)
       markPending({ kind: 'attack', squads: sel, x: hit.ground.x, z: hit.ground.z, color: '#ef4444', ringless: true });
       noteFor('attack');
-    } else if (hit.kind === 'structure' && playerSide === 1) {
+    } else if (hit.kind === 'structure' && playerSide === 1 && GARRISON_SLOTS[cur.structures[hit.index]?.kind]) {
       // Defending: tap your keep or a tower to man it (infantry and ranged; fortified buildings only).
+      // A house is ground: placed or moved onto (playtest 40736779836, the sack deploy).
       const eligible = sel.filter((i) => ['infantry', 'ranged'].includes(cur.squads[i]?.classId));
       if (eligible.length) {
         send([{ type: 'garrison', squads: eligible, structure: hit.index }]);
         r.setOrderTarget(eligible, { kind: 'structure', index: hit.index }, 'garrison');
       } else setOrderNote(tNow('bt.screen.onlyInfantry'));
     } else if (hit.kind === 'structure' && playerSide === 0) {
-      send([{ type: 'attack', squads: sel, target: { kind: 'structure', index: hit.index } }]);
+      send(buildingAttackOrders(sel, { kind: 'structure', index: hit.index }, Math.round(hit.ground.x * Q), Math.round(hit.ground.z * Q)));
       r.setOrderTarget(sel, { kind: 'structure', index: hit.index }, 'attack');
       r.addMarker(hit.ground.x, hit.ground.z, '#ef4444');
       markPending({ kind: 'attack', x: hit.ground.x, z: hit.ground.z, squads: sel, color: '#ef4444' });
@@ -921,9 +925,11 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         const r = rendererRef.current; const cur = frames.current.cur;
         if (!r || !cur) return;
         const x0 = Math.min(s.x, p.x); const x1 = Math.max(s.x, p.x); const y0 = Math.min(s.y, p.y); const y1 = Math.max(s.y, p.y);
+        const hullPx = SHIP_PICK_TILES / r.worldPerPixel(); // a box that reaches a ship's long hull takes it (playtest 40736779836 step 47)
         const ids = cur.squads.filter((q) => q.side === playerSide && q.alive && q.onField && !q.fled).filter((q) => {
           const sp = r.worldToScreen(q.x / Q, q.y / Q);
-          return mods?.polygon ? insidePolygon(sp, mods.polygon) : sp.x >= x0 && sp.x <= x1 && sp.y >= y0 && sp.y <= y1;
+          const m = q.classId === 'naval' ? hullPx : 0;
+          return mods?.polygon ? insidePolygon(sp, mods.polygon) : sp.x >= x0 - m && sp.x <= x1 + m && sp.y >= y0 - m && sp.y <= y1 + m;
         }).map((q) => q.idx);
         updateSelection(mods?.shift ? [...new Set([...selectedRef.current, ...ids])] : ids);
       },
@@ -977,9 +983,11 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   });
 
   // --- HUD actions -----------------------------------------------------------------------------
+  // Defending a raid or sack: the raiders reach the houses in seconds, so the first move is said (playtest 40736779836).
+  const raidDefence = playerSide === 1 && (setup.battleType === 'raid' || setup.battleType === 'sack');
   const togglePause = () => {
     const c = clientRef.current; if (!c) return;
-    if (!started) { startedRef.current = true; setStarted(true); setPaused(false); rendererRef.current?.setDeployZone(null); audioRef.current?.battleStarted(); c.resume(); return; } // deployment ג†’ battle
+    if (!started) { startedRef.current = true; setStarted(true); setPaused(false); rendererRef.current?.setDeployZone(null); audioRef.current?.battleStarted(); c.resume(); if (raidDefence) setOrderNote(tNow('bt.hud.raidStart')); return; } // deployment ג†’ battle
     setPaused((p) => { if (p) c.resume(); else c.pause(); return !p; });
   };
   const toggleSound = () => setAudioSettings({ sound: !soundOn });
@@ -1076,7 +1084,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     let sel = [...selectedRef.current].filter((i) => cur.squads[i]?.classId !== 'worker');
     if (!sel.length) sel = fightersOf(cur).map((q) => q.idx);
     if (!sel.length) { setOrderNote(tNow('bt.order.noTroops')); return; } // never silent (playtest 40651416284 step 166)
-    send([{ type: 'attack', squads: sel, target: o.target }]);
+    send(o.target.kind === 'squad' ? [{ type: 'attack', squads: sel, target: o.target }] : buildingAttackOrders(sel, o.target, Math.round(o.x * Q), Math.round(o.y * Q)));
     r.setOrderTarget(sel, o.target, 'attack');
     r.addMarker(o.x, o.y, '#ef4444', 1.6, 1.4);
     markPending({ kind: 'attack', x: o.x, z: o.y, squads: sel, color: '#ef4444' });
@@ -1343,7 +1351,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         supplyRate={supplyGain}
         perf={showPerf ? <pre ref={perfRef} className="pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre overflow-hidden" data-testid="battle-perf" /> : null}
         onOpenBuild={() => flowTo({ type: 'toggle' })} buildOpen={buildMenu} onSelectHq={selectHq} onSteward={(on) => { send([{ type: 'steward', on }]); setOrderNote(tNow(on ? 'bt.hud.stewardOn' : 'bt.hud.stewardOff')); }}
-        onWorkerPreset={(preset) => send([{ type: 'workerPreset', preset }])} onAutoRebuild={(on) => send([{ type: 'autoRebuild', on }])} onTrainLaborer={(building) => send([{ type: 'train', building, role: 'worker' }])}
+        onWorkerPreset={(preset) => send([{ type: 'workerPreset', preset }])} onAutoRebuild={(on) => send([{ type: 'autoRebuild', on }])} onTrainLaborer={(building) => { send([{ type: 'train', building, role: 'worker' }]); setOrderNote(laborerNote(ageId, !!hud?.eco?.steward)); }}
         groups={groupCounts} onGroup={pickGroup}
         soundOn={soundOn} onToggleSound={toggleSound}
         selectMode={selectMode} onToggleSelectMode={() => setSelectModeOn(!selectModeRef.current)}

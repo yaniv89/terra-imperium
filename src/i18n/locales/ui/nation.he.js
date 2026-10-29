@@ -2,7 +2,7 @@
 // UI text: nation (phase H5). Plural forms use .one / .two / .other with { count }.
 export default {
   'nc.shortfallItem': '{cost} (יש לכם {have})',
-  'nc.notEnough': 'אין מספיק משאבים — נדרש {list}',
+  'nc.notEnough': 'אין מספיק משאבים: נדרש {list}',
   'nc.notEnoughNeed': 'אין מספיק משאבים: נדרש {list}',
   'nc.cantAnnex': 'עוד אי אפשר לספח: זמין בתור {n}',
   'nc.vassalNoWar': 'אי אפשר להכריז מלחמה כשאתם וסאלים',
@@ -44,6 +44,7 @@ export default {
   'nc.showOnMap': 'הצגה במפה',
   'nc.marchTo': 'צעידה אל {name}',
   'nc.marchToArmy': 'צעידה אל הצבא שלהם',
+  'nc.marchSub': '{men} הלוחמים שלכם יוצאים: הקישו "צעידה לתקיפה" ואז "סיום תור" עד שיגיעו.',
   'nc.noArmyToMarch': 'אין לכם צבא בשטח שיצעד.',
   'nc.warExhaustion': 'תשישות מלחמה',
   'nc.warScore': 'ניקוד מלחמה',

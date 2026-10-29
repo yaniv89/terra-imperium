@@ -18,7 +18,7 @@ import { useWhy } from '../ui/WhyTip';
 import { useT } from '../../i18n/useT';
 import { rich } from '../../i18n/rich';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FlaskConical, Check, Lock, X, ListPlus, Sparkles, BookOpen, GraduationCap, MapPin } from 'lucide-react';
+import { FlaskConical, Check, Lock, X, ListPlus, Sparkles, BookOpen, GraduationCap, MapPin, ArrowDown } from 'lucide-react';
 import { ageIconUrl } from '../../data/icons';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
@@ -189,20 +189,20 @@ const EraCard = ({ era }) => {
 };
 
 // The age strip: each age's techs known of its total, the age you are in outlined.
-// In the web view it is the jump strip: tap an age to scroll to its columns (a collapsed past age opens).
+// It is the jump strip: tap an age to see its columns in the web (a collapsed past age opens). Its cells
+// looked like tabs and did nothing in the lines view (civ-veteran playtest, round 3).
 const AgeStrip = ({ ages, onJump }) => (
-  // Under the web it runs the web's way, Stone Age at the left, in Hebrew too.
-  <div dir={onJump ? 'ltr' : undefined} className="sticky bottom-0 z-[1] -mx-3 sm:-mx-4 mt-3 px-3 sm:px-4 py-2 bg-fa-panel border-t border-fa-line flex gap-1.5 overflow-x-auto" data-testid="research-age-strip">
+  // It runs the web's way, Stone Age at the left, in Hebrew too.
+  <div dir="ltr" className="sticky bottom-0 z-[1] -mx-3 sm:-mx-4 mt-3 px-3 sm:px-4 py-2 bg-fa-panel border-t border-fa-line flex gap-1.5 overflow-x-auto" data-testid="research-age-strip">
     {ages.map((a) => {
-      const Cell = onJump ? 'button' : 'div';
       return (
-      <Cell key={a.ageId} {...(onJump ? { type: 'button', onClick: () => onJump(a.ageId), 'data-testid': `jump-${a.ageId}`, 'aria-label': tNow('p2.jump.to', { name: a.name }) } : {})} className={`rounded-md border px-1.5 py-1 min-w-[6rem] pl:min-w-[4.5rem] flex-1 text-start ${a.current ? 'fa-selected' : 'border-fa-line'}`} aria-current={a.current ? 'step' : undefined} title={tNow('p2.as.title', { name: a.name, known: a.known, total: a.total })}>
+      <button key={a.ageId} type="button" onClick={() => onJump(a.ageId)} data-testid={`jump-${a.ageId}`} aria-label={tNow('p2.jump.to', { name: a.name })} className={`rounded-md border px-1.5 py-1 min-w-[6rem] pl:min-w-[4.5rem] flex-1 text-start ${a.current ? 'fa-selected' : 'border-fa-line'}`} aria-current={a.current ? 'step' : undefined} title={tNow('p2.as.title', { name: a.name, known: a.known, total: a.total })}>
         <div className="flex items-baseline justify-between gap-1 pl:flex-col pl:items-start pl:gap-0">
           <span className={`fa-heading text-[11px] truncate max-w-full ${a.current || a.known > 0 ? '' : '!text-fa-muted'}`}>{a.name}</span>
           <span className="fa-num text-[10px] text-fa-muted shrink-0">{a.known}/{a.total}</span>
         </div>
         <Meter value={a.known} max={a.total} color={a.known === a.total ? 'var(--fa-good)' : 'var(--fa-text)'} height={3} className="mt-1" />
-      </Cell>
+      </button>
       );
     })}
   </div>
@@ -226,6 +226,7 @@ const TechPanel = () => {
   const [jump, setJump] = useState(null);
   const [picked, setPicked] = useState(null); // the web node tapped: its row shows under the web
   const webRef = useRef(null);
+  const allRef = useRef(null); // the "All techs" heading: the header chip scrolls to it (six scrolls on a phone before)
   const collapsed = m.ages.filter((a) => a.known === a.total && !a.current && !opened.includes(a.ageId)).map((a) => a.ageId);
   useEffect(() => { if (jump) webRef.current?.querySelector(`[data-age-head="${jump.ageId}"]`)?.scrollIntoView?.({ inline: 'start', block: 'center' }); }, [jump]);
   // Behind the research leader: known peoples in later ages make their techs cheaper (KTD5).
@@ -262,6 +263,9 @@ const TechPanel = () => {
       <div className="flex items-baseline gap-2 flex-wrap mb-2.5">
         <h2 className="fa-heading text-[19px]">{tNow('rail.tech')}</h2>
         <span className="fa-label" data-testid="research-header">{tNow('p2.th.header', { age: m.header.ageName, known: m.header.known, total: m.header.total, next: m.header.nextAgeName ? tNow('p2.th.next', { name: m.header.nextAgeName, n: m.header.techsLeft }) : '' })}</span>
+        <button type="button" onClick={() => allRef.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' })} className="fa-chip !min-h-[28px] gap-1 text-[12px]" data-testid="research-to-all">
+          <ArrowDown className="w-3.5 h-3.5" aria-hidden="true" />{tNow('tech.all')}
+        </button>
         <span className="ms-auto fa-num text-[12px]" style={{ color: SCIENCE }}>{tNow('p2.th.science', { n: science })}{m.bank > 0 ? <span className="text-fa-muted">{tNow('p2.th.banked', { n: m.bank })}</span> : null}</span>
       </div>
 
@@ -331,7 +335,7 @@ const TechPanel = () => {
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-2">
+      <div ref={allRef} className="mt-3 flex items-center justify-between gap-2 scroll-mt-2">
         <h3 className="fa-heading text-[16px]">{tNow('tech.all')}</h3>
         <Segmented label={tNow('tech.showAs')} className="w-[11rem]" value={web ? 'web' : 'lines'} onChange={(v) => setWeb(v === 'web')}
           options={[{ id: 'lines', label: tNow('p2.web.lines') }, { id: 'web', label: tNow('p2.web.web'), testId: 'research-web-toggle' }]} />
@@ -377,7 +381,7 @@ const TechPanel = () => {
         );
       })}
 
-      <AgeStrip ages={m.ages} onJump={web ? (ageId) => { setOpened((o) => (o.includes(ageId) ? o : [...o, ageId])); setJump({ ageId }); } : undefined} />
+      <AgeStrip ages={m.ages} onJump={(ageId) => { setWeb(true); setOpened((o) => (o.includes(ageId) ? o : [...o, ageId])); setJump({ ageId }); }} />
     </div>
   );
 };

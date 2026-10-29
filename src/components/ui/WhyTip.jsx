@@ -10,7 +10,7 @@ import { computePosition } from './Tooltip';
 
 const SHOW_MS = 3500;
 
-const Bubble = ({ rect, text }) => {
+export const Bubble = ({ rect, text }) => {
   const ref = useRef(null);
   const [at, setAt] = useState(null);
   useLayoutEffect(() => { if (ref.current) setAt(computePosition(rect, ref.current.getBoundingClientRect(), 'top')); }, [rect, text]);
@@ -32,7 +32,7 @@ export const useWhy = () => {
     return () => clearTimeout(id);
   }, [tip]);
   const why = (blocked, reason, onClick) => (blocked && reason
-    ? { 'aria-disabled': true, title: reason, onClick: (e) => { e.stopPropagation(); setTip({ rect: e.currentTarget.getBoundingClientRect(), text: reason }); } }
+    ? { 'aria-disabled': true, title: reason, onClick: (e) => { e.stopPropagation(); e.currentTarget.scrollIntoView?.({ block: 'nearest' }); setTip({ rect: e.currentTarget.getBoundingClientRect(), text: reason }); } }
     : { disabled: !!blocked, onClick });
   return [why, tip ? <Bubble rect={tip.rect} text={tip.text} /> : null];
 };

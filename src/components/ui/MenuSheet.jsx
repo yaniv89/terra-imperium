@@ -59,6 +59,7 @@ const MenuSheet = ({ open, view = 'all', onClose, on }) => {
 };
 
 // A brief "Autosaved, turn N" after the autosave of a new turn (not after every quiet-time save).
+// Top centre: the start corner holds the next-step chips (MapGoals), which it used to cover (lead check 28 Oct).
 export const AutosaveToast = () => {
   const { t } = useT();
   const savedTurn = useLastSave()?.turn ?? null;
@@ -75,7 +76,7 @@ export const AutosaveToast = () => {
   }, [savedTurn]);
   if (shown == null) return null;
   return (
-    <div className="fixed top-[calc(var(--header-height,2.25rem)+0.5rem)] start-[max(0.75rem,var(--safe-start))] z-30 pointer-events-none fa-panel !bg-fa-panel/95 px-2.5 py-1 text-[12px] text-fa-muted shadow" role="status" data-testid="autosave-toast">
+    <div className="fixed top-[calc(var(--header-height,2.25rem)+0.5rem)] left-1/2 -translate-x-1/2 z-30 pointer-events-none fa-panel !bg-fa-panel/95 px-2.5 py-1 text-[12px] text-fa-muted shadow" role="status" data-testid="autosave-toast">
       {t('hub.autosavedTurn', { turn: shown })}
     </div>
   );

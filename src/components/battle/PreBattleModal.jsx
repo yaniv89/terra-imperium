@@ -138,7 +138,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
               <GeneralsLine generals={m.yours.generals} />
               <span className="flex items-center gap-1.5 mt-1 text-[12px] text-fa-text" data-testid="pre-battle-size">
                 <Users className="w-3.5 h-3.5 text-fa-muted shrink-0" aria-hidden="true" />
-                <span className="flex-1 min-w-0"><b className="fa-num">{t('bt.pre.capASide', { cap: m.size.cap })}</b>{m.size.heldBack ? t('bt.pre.stayOut', { n: m.size.heldBack }) : t('bt.pre.allAtOnce', { n: m.yours.regiments })}</span>
+                <span className="flex-1 min-w-0"><b>{t('bt.pre.capASide', { cap: m.size.cap })}</b>{m.size.heldBack ? t('bt.pre.stayOut', { n: m.size.heldBack }) : t('bt.pre.allAtOnce', { n: m.yours.regiments })}</span>
                 <button type="button" onClick={openSettings} className="underline text-fa-muted hover:text-fa-text shrink-0 min-h-[32px]">{t('bt.pre.settings')}</button>
               </span>
             </>} />

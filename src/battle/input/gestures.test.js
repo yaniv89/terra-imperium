@@ -25,7 +25,7 @@ describe('battle gestures', () => {
   beforeEach(() => {
     vi.useFakeTimers(); clock = 0;
     el = makeEl();
-    h = { tap: vi.fn(), pan: vi.fn(), longPress: vi.fn(), radial: vi.fn(), formationDrag: vi.fn(), formationEnd: vi.fn(), lassoDrag: vi.fn(), lassoEnd: vi.fn(), zoom: vi.fn(), order: vi.fn(), isOnSelectedSquad: vi.fn(() => false) };
+    h = { tap: vi.fn(), pan: vi.fn(), longPress: vi.fn(), radial: vi.fn(), formationDrag: vi.fn(), formationEnd: vi.fn(), lassoDrag: vi.fn(), lassoEnd: vi.fn(), zoom: vi.fn(), order: vi.fn(), isOnSelectedSquad: vi.fn(() => false), hasSelection: vi.fn(() => true) };
     dispose = createGestureRecognizer(el, h);
   });
   afterEach(() => { dispose(); vi.useRealTimers(); });
@@ -76,6 +76,14 @@ describe('battle gestures', () => {
     down(1, 100, 100); clock += LONG_MS + 40; up(1, 100, 100); // fake timers not advanced: the timer is starved
     expect(h.longPress).toHaveBeenCalledTimes(1);
     expect(h.tap).not.toHaveBeenCalled();
+  });
+
+  it('with nothing selected a held press is a tap, timer run or starved (playtest 40736779836 deploy)', () => {
+    h.hasSelection = vi.fn(() => false);
+    down(1, 100, 100); vi.advanceTimersByTime(LONG_MS + 10); clock += LONG_MS + 10; up(1, 100, 100);
+    down(1, 200, 100); clock += LONG_MS + 900; up(1, 200, 100);
+    expect(h.longPress).not.toHaveBeenCalled();
+    expect(h.tap).toHaveBeenCalledTimes(2);
   });
 
   it('a press on a selected squad held past LONG_MS whose timer never ran still opens the radial', () => {
@@ -235,6 +243,7 @@ describe('battle gestures', () => {
     });
 
     it('the mouse ignores it: right drag with nothing selected pans', () => {
+      h.hasSelection = vi.fn(() => false);
       down(1, 50, 50, { pointerType: 'mouse', button: 2 }); clock += 30; move(1, 120, 90, { pointerType: 'mouse', button: 2 }); up(1, 120, 90, { pointerType: 'mouse', button: 2 });
       expect(h.pan).toHaveBeenCalled();
       expect(h.lassoEnd).not.toHaveBeenCalled();

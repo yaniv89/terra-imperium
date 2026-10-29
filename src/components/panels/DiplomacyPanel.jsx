@@ -188,7 +188,8 @@ const DiplomacyPanel = () => {
           <ul className="space-y-1.5" data-testid="peoples-list">
             {m.rows.map((r) => (
               <li key={r.id}>
-                <button type="button" onClick={() => setPicked(r.id)} aria-pressed={r.id === selectedId} data-people-row={r.id} data-help={`people:${r.id}`}
+                {/* no hold-for-glossary here: a slow tap opened the entry, not the card (warmonger playtest step 30); the card's title links to it */}
+                <button type="button" onClick={() => setPicked(r.id)} aria-pressed={r.id === selectedId} data-people-row={r.id}
                   className={`w-full text-start rounded-lg border px-2.5 py-2 min-h-[52px] ${r.id === selectedId ? 'fa-selected' : 'border-fa-line bg-fa-raised hover:bg-fa-hover'} ${r.eliminated ? 'opacity-60' : ''}`}>
                   <span className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: r.color }} aria-hidden="true" />

@@ -41,6 +41,13 @@ export const BATTLE_AREAS = ['battle setup screen (age, armies, terrain, walls)'
   'unit readability and size', 'camera pan and zoom', 'combat clarity (who is winning, damage, morale, rout)', 'economy and workers HUD', 'powers',
   'buildings, sieges and walls', 'naval', 'end of battle and the result screen', 'speed and smoothness', 'layout on this screen and language', 'fun'];
 export const AREAS_OF = { campaign: AREAS, battle: BATTLE_AREAS };
+// Round 2 graded several areas after one glance: these are done for real before done (lead, 28 Oct).
+export const MUST_DO = {
+  campaign: ['open the tech tree, tap three techs and open one tech\'s glossary entry', 'pinch and drag the map, open the close view on a city, find your army with the next army button',
+    'build a ship in a coastal city, carry an army by sea and land it', 'answer at least three event cards and look for the World Congress or a crisis', 'hold a name for help and open the glossary index',
+    'build in a city and buy one item with gold', 'meet a neighbour, open its card and try a diplomatic action', 'fight one battle yourself and one on Auto'],
+  battle: ['deploy with a preset, then move one squad by hand', 'circle select and draw a path', 'use every power once', 'train a worker and a unit', 'attack a building or the walls', 'zoom the camera in and out']
+};
 // One setup per battle, in turn, so a run meets walls, the sea and a sack as well as an open field (BattleSandbox.jsx URL options).
 export const BATTLE_SETUPS = [
   { id: 'field', query: '&fort=0', what: 'an open field battle, your army against theirs' }, // the sandbox's own default is fort 2: an assault on a base (battle-engage)
@@ -167,6 +174,8 @@ If the screen did not change after a tap, the tap may have missed or the game ma
 Use note for anything the team should know: bugs (something broken or wrong), ux (hard to find or use, too small, covered), confusing (you do not understand it), boring, slow, fun and praise. Be specific: what you did, what you expected, what happened. One note per finding.
 ${scene === 'battle' ? `${BATTLE_PLAY}\n` : ''}Play naturally, in your own style, but cover this checklist; before done make sure each area was at least looked at:
 ${AREAS_OF[scene].map((a) => `- ${a}`).join('\n')}
+Before done, also do each of these for real (several steps each, not one look), so your grades rest on use:
+${MUST_DO[scene].map((a) => `- ${a}`).join('\n')}
 ${scene === 'battle' ? `Judge the controls on this screen${size.mobile ? ' with your fingers: are the units and buttons big enough to hit' : ''}, and ${lang === 'he' ? 'the Hebrew text and right-to-left layout' : 'the text'}.` : 'End turns now and then so the world moves (the End Turn button); answer the cards and prompts the game shows. If a battle opens, play it or pick Auto as your persona would.'} Do not stop early. No em dashes.`;
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -243,8 +252,11 @@ export const battleCheck = async ({ page }, seen) => {
 
 /** Runs one gesture in the page. Touch through CDP on a phone, the mouse on desktop. */
 export const perform = async ({ page, cdp, mobile }, { name, args: a }) => {
-  const touch = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts });
-  const tap = async (x, y, hold = 60) => { await touch('touchStart', [{ x, y, id: 1 }]); await wait(hold); await touch('touchEnd', []); };
+  // Each event carries its own time: CDP answers only once a slow frame has handled the event, so a
+  // 60 ms tap used to reach the page as a press of seconds, a long press (r3-battle, playtest 40736779836).
+  const t0 = Date.now() / 1000;
+  const touch = (type, pts, at = 0) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts, timestamp: t0 + at / 1000 });
+  const tap = async (x, y, hold = 60) => { const down = touch('touchStart', [{ x, y, id: 1 }]); await wait(hold); await touch('touchEnd', [], hold); await down; };
   const m = page.mouse;
   switch (name) {
     case 'tap': return mobile ? tap(a.x, a.y) : m.click(a.x, a.y);
@@ -252,7 +264,7 @@ export const perform = async ({ page, cdp, mobile }, { name, args: a }) => {
     case 'long_press': return mobile ? tap(a.x, a.y, 900) : m.move(a.x, a.y).then(() => m.down()).then(() => wait(900)).then(() => m.up());
     case 'drag': {
       const at = (k) => [a.x1 + ((a.x2 - a.x1) * k) / 12, a.y1 + ((a.y2 - a.y1) * k) / 12];
-      if (mobile) { await touch('touchStart', [{ x: a.x1, y: a.y1, id: 1 }]); for (let k = 1; k <= 12; k++) { const [x, y] = at(k); await touch('touchMove', [{ x, y, id: 1 }]); await wait(16); } return touch('touchEnd', []); }
+      if (mobile) { const sent = [touch('touchStart', [{ x: a.x1, y: a.y1, id: 1 }])]; for (let k = 1; k <= 12; k++) { const [x, y] = at(k); sent.push(touch('touchMove', [{ x, y, id: 1 }], k * 16)); await wait(16); } sent.push(touch('touchEnd', [], 13 * 16)); return Promise.all(sent); }
       await m.move(a.x1, a.y1); await m.down(); await m.move(a.x2, a.y2, { steps: 12 }); return m.up();
     }
     case 'pinch': return mobile

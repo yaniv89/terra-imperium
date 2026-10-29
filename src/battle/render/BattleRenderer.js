@@ -80,7 +80,7 @@ const SCREEN_RIGHT = new Vector3(1, 0, -1).normalize();
 const SCREEN_UP_GROUND = new Vector3(-1, 0, -1).normalize();
 export const PHONE_MAX_ZOOM = 5;
 const VIEW_TILES = 30;       // landscape; portrait phones get a closer camera (see resize)
-const PHONE_VIEW_TILES = 15; // a landscape phone (short side <= 500 css px): soldiers about 23 css px tall
+const PHONE_VIEW_TILES = 13; // a landscape phone (short side <= 500 css px): soldiers about 25 css px tall, the army still on one screen (r3-battle)
 const BANNER_HEIGHT = 0.62;  // of the old pole: standards above the men, not a forest over them
 const BANNER_MIN_ZOOM = 0.6; // zoomed further out only generals and the selection carry one
 const FAR_MARK_PX = 10;      // soldiers shorter than this on screen: every squad gets its side's disc (I218)
