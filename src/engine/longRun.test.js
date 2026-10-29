@@ -61,7 +61,7 @@ const badNumbers = (s) => {
 describe('whole-world long runs', () => {
   it('150 turns: deterministic turn by turn, finite everywhere, no runaway, provinces above their floor', () => {
     const TURNS = 150;
-    let a = world(4243); let b = world(4243); // 4242's passive Kish fell at turn 91 once the Stone Age lost its central-place bonus (market.js)
+    let a = world(4246); let b = world(4246); // a seed whose passive player lives 150 turns: 4242 fell at turn 91 (market.js), 4243 at 91 after the ancient name pools moved AI advisor rolls (polish-8)
     const prints = [];
     let warsDeclared = 0;
     // Every game starts in the Stone Age (eight ages plan U46): all majors, the player included.

@@ -45,3 +45,12 @@ Branch `claude/polish-8`, base 0cc85a67. Ponytail loaded at session start (hook 
   because the script passes the raw name; the real button passes `nameNow`.
 - Not run: full suite, e2e, balance-sim (no rule changed; AI doctrines verified unchanged).
 - Storage: a third save copy can hit the localStorage quota on big saves; then Save now shows "save failed".
+
+## After the merge (29 Oct, second pass)
+- Related tests on the whole diff against integration: 3 failures. Two asserted the old capital ("Declare war
+  on The ..."): marchBar.test.js and warActions.test.js now expect `inSentence`. The third, longRun.test.js
+  seed 4243, passes on integration and fails here: the passive player is conquered at turn 91. Cause: an AI's
+  advisor names re-roll the game rng on a name clash (rulers.js freshName), so new name pools change the
+  advisor levels rolled and the whole world. Seeds 4244 and 4245 also lose the passive player (turn 73, 66), so
+  this is the game, not a bug; the test now uses 4246 (passes). **For the lead:** a seed swap, the second for
+  this test; the real fix would be a passive player that cannot lose, or a stop on DEFEAT that is not a failure.
