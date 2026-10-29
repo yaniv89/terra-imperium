@@ -96,3 +96,17 @@ Lead call: neither side routs in a commanded battle, so Auto models those rules;
 - The field win-rate table (skillDuel) is the same after the merge: Normal novice 29% / skilled 79%,
   Easy 28% / 70%, Hard 6% / 43% (160 battles a cell).
 - Not refreshed: src/data/autoParity.json (the pre-battle card's parity summary, parityTable.sim.js).
+
+## After the second integration merge (early-pace-8, battle-art-8: buildings block movement; SETUP_VERSION 36)
+
+parityEco N=32, field, assault, town, WALLS_AGE_RELIEF 0.8, KEEP_HELD_MULT 0.3:
+- Everyone routs: **IN 18 of 18**; walled mirror 16/32 attacker wins (Auto 14/32).
+- Neither side routs (commanded rules): **IN 17 of 18**; walled mirror 21/32 (in 12-24; Auto 14/32).
+  OUT again: the classical-against-Kingdoms 5-against-2 assault, 4.83x (real-time attacker exchange 8.1,
+  was 5.6 before battle-art-8; attacker wins 4/32, Auto 31/32).
+- autoCalib on the merged numbers (A 22-26, D 10-18, WAR 0.4-0.8): every set that brings that row IN
+  needs defender auxiliaries 18 ([22, 18] WAR 0.8: 0 of 18 out), and then Auto wins the even walled
+  mirror only 4 of 32 against 21 in real time. Not shipped: lead's call between the one OUT row and an
+  Auto that undersells an even walled assault. [22, 14] WAR 0.4 is the middle (3.63x, still OUT; mirror
+  Auto 9/32).
+- Battle tests (src/battle, autoBattle, tacticalBattle, battleVerify, gameReducer: 77 files) and lint: green.
