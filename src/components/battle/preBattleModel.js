@@ -108,7 +108,7 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
   // battle calls in, with any allies among them, and how the garrison changed since an earlier turn.
   const standby = !field && !fleet && v?.ok ? seenStandby(state, targetRegionId) : null;
   const since = !field && !fleet && hasIntel && odds ? garrisonSince(targetRegionId, state.turnNumber, theirMen) : '';
-  const allIn = standby && odds ? allInText({ city: theirMen, near: standby.strength, allies: standby.allies, auxiliaries: odds.auxiliaries }) : '';
+  const allIn = standby && odds ? allInText({ city: theirMen, near: hasIntel ? odds.defenderStandby || 0 : standby.strength, allies: standby.allies, auxiliaries: odds.auxiliaries }) : '';
   const forceNotes = [since, allIn].filter(Boolean);
   const enemy = nationLabel(state, enemyId);
   const me = state.nations?.[state.playerNationId]?.name ? nameNow('people', state.playerNationId, state.nations[state.playerNationId].name) : t('bt.pre.you');

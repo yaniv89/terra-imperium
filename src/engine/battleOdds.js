@@ -181,7 +181,9 @@ export const estimateMarchOdds = (state, attackerUnits, cityId, samples = 100) =
   const ctx = getInvasionBattleContext(state, { targetRegionId: cityId, targetRegion: city, defenderUnits: v.defenderUnits });
   const r = simulate(state, v, getResolveBattleArgs(v, ctx), ctx, samples, { kind: 'invasion', cityId, fromRegionId: land[0].regionId });
   const standby = seenStandby(state, cityId);
-  return { known: true, cityId, turn: state.turnNumber, capture: r.capture, attacker: r.attacker, autoRule: r.autoRule, city: r.city, standbyStrength: standby.strength, standbyAllies: standby.allies, auxiliaries: r.auxiliaries, defenderStandby: r.defenderStandby, attackerStrength: r.attackerStrength, defenderStrength: r.defenderStrength, range: r.range, reasons: r.reasons };
+  // With a spy report on the owner every man standing by is known (the same count Auto fights); else those in sight.
+  const near = canSeeRegionDetails(state, cityId) ? r.defenderStandby : standby.strength;
+  return { known: true, cityId, turn: state.turnNumber, capture: r.capture, attacker: r.attacker, autoRule: r.autoRule, city: r.city, standbyStrength: near, standbyAllies: standby.allies, auxiliaries: r.auxiliaries, defenderStandby: r.defenderStandby, attackerStrength: r.attackerStrength, defenderStrength: r.defenderStrength, range: r.range, reasons: r.reasons };
 };
 
 /**
