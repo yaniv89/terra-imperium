@@ -28,6 +28,7 @@ await page.getByTestId('battle-speed-3').click().catch(() => page.getByTestId('b
 const hit = await page.getByTestId('battle-alerts').filter({ hasText: /Your .* are under attack|שלכם תחת מתקפה/ }).first()
   .waitFor({ timeout: 300000 }).then(() => true, () => false);
 await shot('clash');
+if (process.env.STOP === 'clash') { console.log(JSON.stringify({ clashAlert: hit, errors })); await browser.close(); process.exit(0); }
 await page.getByTestId('battle-army-gone').waitFor({ timeout: 600000 }).catch(async (e) => { await shot('timeout'); throw e; });
 await shot('gone');
 const clock = await page.getByTestId('battle-clock').first().textContent().catch(() => '?');

@@ -47,12 +47,12 @@ Q3 kept: Finish now runs the same sim to its own end (base buildings or the cloc
 
 ## For the lead
 
-1. Design call: Auto does not fight the enemy's standby troops, a commanded battle does (autoCompare.js, battleOdds.js, autoBattle.js). Should Auto count them (Auto gets harder), or should Command stop calling them in? This lane only made the result line say it. odds-truth works on the same estimators, so I did not touch them.
+1. Decided by the lead (odds-truth Q1 A): Auto will fight with the same standby troops as Command; odds-truth builds it. Once it lands, the "Auto does not fight the N men" line here never fires and can be removed.
 2. Not done: a stronger "Unlikely" or "Hopeless" warning before Command (warmonger report fix 5). Odds wording is odds-truth's.
 
 ## Not checked / risks
 
-- No real-browser shot of Finish now or the "finishing" line: two sandbox runs (finish-shot.mjs) ended without the army-gone banner. In one, the small army outlived the clock. In the other, the camp burned while the steward's auxiliaries still stood. The tab also crashed once under the shared machine's load. The headless loop test is the evidence.
-- mobile-check not run in full (he and 1600x900 shots missing) for the new texts: the warning box, "finishing", "left the field", the troops alert and the Arrow Storm line. All texts are en and he.
+- No real-browser shot of Finish now or the "finishing" line. Three sandbox runs (finish-shot.mjs: 844x390 twice, 1600x900 once) never reached the army-gone banner. The player's side keeps training soldiers (16,000 "came through" in receipt-en-1600.jpg), so the camp burns first. That is right: "none is coming" would be false. The banner needs a commanded campaign battle with no training. The headless loop test (frozen clock, same hash) is the evidence. Lead: superseded standby call, decided in odds-truth (Q1 A).
+- mobile-check: shots done for 844x390 en (finish-en-clash.jpg, receipt-en-844.jpg), 844x390 he (he-844-clash.jpg: the Hebrew alert, right to left, truncated by the chip width as other alerts are) and 1600x900 en (desk-en-clash.jpg, receipt-en-1600.jpg). Not shot: the pre-battle siege warning box (campaign only), "finishing", "left the field" and he at 1600x900.
 - The first-clash camera moves once per battle, with no off-screen test. A player who is placing a building at that moment sees the camera jump.
 - Status panel `pointer-events-none`: its `title` tooltips no longer show on desktop hover.
