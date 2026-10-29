@@ -10,7 +10,7 @@ import { productionCost, queueItem, dequeueItem, itemProgress } from './world/ci
 import { getBuildingTierCost, getBuildingBuildCost } from '../data/buildings';
 import { queueView, investInGrowth, growthView, GROWTH_BUY_SHARE } from './cityEconomy';
 import {
-  rushQuote, applyRush, rushGold, rushAffordable, rushHeat, rushPriceMult, RUSH_GOLD_PER_HAMMER, RUSH_KIND_MULT, RUSH_HEAT_MAX, RUSH_COOL_REF_TURNS,
+  rushQuote, applyRush, rushGold, rushAffordable, rushHeat, rushPriceMult, rushRate, RUSH_GOLD_PER_HAMMER, RUSH_KIND_MULT, RUSH_HEAT_MAX, RUSH_COOL_REF_TURNS,
   scaledGold, eraGoldFactor, infrastructureCosts, defensesCosts, growthCosts
 } from './spending';
 import { speedTurns } from '../data/ages';
@@ -40,7 +40,7 @@ describe('training has its own speed share (I024, the Civ model)', () => {
   it('prices units, settlers and army orders by it, buildings by the cost multiplier', () => {
     const ctx = { ageId: 'bronze', citiesOwned: 1, speedMult: 4, trainMult: 2.8 };
     expect(productionCost(SPEAR, ctx)).toBe(Math.round(40 * 2.8));
-    expect(productionCost({ kind: 'settler' }, ctx)).toBe(Math.round(70 * 2.8));
+    expect(productionCost({ kind: 'settler' }, ctx)).toBe(Math.round(30 * 2.8)); // 6.5 benchmark turns of 5 / 1.6, plus 10 for the city
     expect(productionCost(GRANARY, ctx)).toBe(productionCost(GRANARY, { ...ctx, trainMult: 1 }));
     expect(productionCost(SPEAR, { ageId: 'bronze', speedMult: 4 })).toBe(160); // no trainMult: as before
   });
@@ -55,7 +55,7 @@ describe('rush (I019)', () => {
     const row = queueView(s, id)[0];
     expect(q.ok).toBe(true);
     expect(q.hammers).toBe(row.cost - 10);
-    expect(q.gold).toBe(Math.ceil(q.hammers * RUSH_GOLD_PER_HAMMER));
+    expect(q.gold).toBe(Math.ceil(q.hammers * RUSH_GOLD_PER_HAMMER * rushRate(GRANARY)));
     const after = gameReducer(s, { type: ActionTypes.RUSH_PRODUCTION, payload: { cityId: id, index: 0 } });
     expect(after.resources.gold).toBe(5000 - q.gold);
     expect(after.regions[id].production.progress).toBe(row.cost);

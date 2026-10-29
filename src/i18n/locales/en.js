@@ -667,7 +667,7 @@ export default {
   'legend.indep': 'Independent city',
   'goals.backResearch': 'Back to Research',
   'goals.done': 'Done',
-  'goals.chipNext': 'Goal: {value}/{target} {unit}',
+  'goals.chipNext': '{goal}: {value}/{target} {unit} · {bonus}',
   'goals.title': 'Goals',
   'goals.intro': '{age} goals. Each pays when met: its reward for {turns} turns, a decree and renown. Meet {needed} for the era legacy.',
   'goals.close': 'Close the goals',

@@ -119,6 +119,16 @@ export const rushQuote = (state, cityId, index = 0, nationId = state.playerNatio
   return { ok: true, ...quote };
 };
 
+/** The head order bought this turn (lane early-pace-8): it is paid in full and done next turn, so it
+ * cannot be removed or pushed off the front (no refund game, no lost gold by a slip of the finger). */
+export const paidHead = (state, cityId) => {
+  const city = state.regions?.[cityId];
+  if (!city?.production?.current || city.rush?.turn !== state.turnNumber) return false;
+  const row = queueView(state, cityId)[0];
+  return !!row && row.progress >= row.cost;
+};
+export const PAID_LOCK = 'm.why.rush.locked';
+
 /** A short name of an order for the log ("Granary", "Spearmen", "settlers"). */
 export const rushItemName = (item, ageId = FIRST_AGE_ID) => {
   if (!item) return 'order';

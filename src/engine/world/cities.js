@@ -40,7 +40,7 @@
 // Deterministic: no randomness at all; ties break by tile id and city id. Returns the same world
 // object when nothing changed.
 import { DISTRICTS, districtSite, districtEntry, districtYields, hasDistrict, repairedDistrict } from '../districts';
-import { AGES, FIRST_AGE_ID, buildSpeedMult, isAgeBefore } from '../../data/ages';
+import { AGES, FIRST_AGE_ID, buildSpeedMult, isAgeBefore, speedCostMult } from '../../data/ages';
 import { ringsForKm, gridSpacing, foundingDisk } from '../../data/geo/gridScale';
 import { BUILDING_CATEGORIES, getBuildingBuildCost, canBuildTier, createEmptyRegionBuildings } from '../../data/buildings';
 import { getAvailableClasses, isUnitUnlocked } from '../../data/unitClasses';
@@ -101,13 +101,16 @@ export const TILE_COST_PER_TILE = 5;
 export const TILE_COST_AREA_KM2 = 9067;
 const TILE_COST_RING_KM = 102;
 export const BUY_TILE_MULT = 3;
-export const SETTLER_BASE_COST = 60;
+// Early items are priced in turns of a young city of the payer's age (ages.js benchProduction) at
+// Normal speed, then the speed table scales them as everything else (math report 29 Oct, section 3):
+// a first Settlers takes about 10 turns on Normal, a basic improvement about 3 a step of its turns.
+export const SETTLER_BENCH_TURNS = 6.5;
 export const SETTLER_COST_PER_CITY = 10;
 export const SETTLER_MIN_SIZE = 2;
 export const UNIT_BASE_COST = 40;
 export const UNIT_CLASS_COST = { infantry: 1, ranged: 1.1, cavalry: 1.5, siege: 1.6, naval: 1.4, support: 1.2, air: 2.2 };
 export const EXPLORER_COST_SHARE = 0.4; // a scout costs this share of a Spearman (scouting.js)
-export const IMPROVEMENT_COST_PER_TURN = 10;
+export const IMPROVEMENT_BENCH_TURNS = 1.5; // benchmark turns per step of an improvement's turns (tileYields.js)
 // Rings between city centres: about 300 km, so the city count stays near the old one on any grid
 // (3 rings at frequency 75, 4 at frequency 100; 2 on the old 150 km grid). One ring less across
 // water, as in Civ VI: the rule lives in src/data/geo/citySpacing.js, shared with the starts.
@@ -427,12 +430,14 @@ export const amenitiesOf = (city, ctx = {}) => {
 const TRAINED_KINDS = new Set(['unit', 'settler', 'army']);
 // costMult (lawRules.js rulerCityCtx): the ruler's Founder, Master Builder and Engineer-King.
 export const productionCost = (item, { ageId = FIRST_AGE_ID, citiesOwned = 1, speedMult = 1, trainMult = null, costMult = null } = {}) => Math.round(baseProductionCost(item, { ageId, citiesOwned }) * (TRAINED_KINDS.has(item.kind) ? trainMult ?? speedMult : buildSpeedMult(speedMult, ageId)) * (1 + (costMult?.[item.kind] || 0)));
+// One turn of the benchmark city at Normal, in production before the speed multiplier.
+const benchCost = (ageId) => (AGES[ageId] ?? AGES[FIRST_AGE_ID]).benchProduction / speedCostMult('normal', AGES[ageId] ? ageId : FIRST_AGE_ID);
 const baseProductionCost = (item, { ageId = FIRST_AGE_ID, citiesOwned = 1 } = {}) => {
   switch (item.kind) {
     case 'building': return getBuildingBuildCost(item.category, item.tier) ?? 9999;
     case 'unit': return Math.round(UNIT_BASE_COST * (AGES[ageId]?.unitCostMult ?? AGES[FIRST_AGE_ID].unitCostMult) * (item.explorer ? EXPLORER_COST_SHARE : UNIT_CLASS_COST[item.classId] || 1) * (item.robot ? ROBOT_PRODUCTION_MULT : 1));
-    case 'improvement': return (IMPROVEMENTS[item.improvement]?.turns || 2) * IMPROVEMENT_COST_PER_TURN;
-    case 'settler': return SETTLER_BASE_COST + SETTLER_COST_PER_CITY * citiesOwned;
+    case 'improvement': return Math.round((IMPROVEMENTS[item.improvement]?.turns || 2) * IMPROVEMENT_BENCH_TURNS * benchCost(ageId));
+    case 'settler': return Math.round(SETTLER_BENCH_TURNS * benchCost(ageId)) + SETTLER_COST_PER_CITY * citiesOwned;
     case 'army': { const next = nextTemplateUnit(item); return next ? baseProductionCost({ kind: 'unit', classId: next }, { ageId, citiesOwned }) : 0; } // the next piece of the army (armyTemplates.js)
     case 'wonder': return item.cost || 100; // stamped by wonders.js wonderItem at queue time (no import: the registry would cycle)
     default: return item.cost || 9999;

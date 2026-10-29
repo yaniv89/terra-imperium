@@ -22,7 +22,9 @@ import { getResearched, getTechAgeId } from '../../../src/engine/nationState';
 import * as AGES from '../../../src/data/ages';
 import { opinionOf } from '../../../src/engine/opinion';
 import { congressMembers } from '../../../src/engine/worldCongress';
-import { cardOf, cardChoice as classify } from '../../../src/engine/eventDeck';
+import * as DECK from '../../../src/engine/eventDeck';
+
+const { cardOf, cardChoice: classify } = DECK;
 
 const SPEED = process.env.SPEED || 'normal';
 const TURNS = Number(process.env.TURNS || AGES.speedTurnLimit(SPEED));
@@ -38,6 +40,10 @@ SEEDS.forEach((seed) => {
     const per = {};
     const row = (age) => (per[age] ||= { turns: 0, ev: 0, real: 0, free: 0, goldOnly: 0, follow: 0, crisisCard: 0, raidCard: 0, dawn: 0, warn: 0, hit: 0, congress: 0, goals: 0, rep: 0, repFam: 0, forced: 0, seen: new Set() });
     let warnSeen = null; let histLen = 0; let votes = 0;
+    // gaps (lane early-pace-8): the fewest turns between two draws of one card, of one family, of two harsh cards,
+    // and draws or stories in the turns right after the player lost a city (afterLoss: within QUIET_REF reference turns)
+    const last = {}; const gaps = { minSame: null, minFam: null, minHarsh: null, afterLoss: 0 }; let cities = null; let lostAt = null;
+    const gap = (k, key, t) => { if (last[key] != null) gaps[k] = Math.min(gaps[k] ?? Infinity, t - last[key]); last[key] = t; };
     for (let t = 1; t <= TURNS && s.gameStatus === GameStatus.ACTIVE; t++) {
       const age = getTechAgeId(s, s.playerNationId);
       const r = row(age);
@@ -54,6 +60,8 @@ SEEDS.forEach((seed) => {
         if (cid.startsWith('crisis_')) r.crisisCard += 1;
         if (/^raid_(beaten|suffered)/.test(cid)) r.raidCard += 1;
         if (ev?.templateId === 'era_dawn') r.dawn += 1;
+        if (ev?.procedural && ev.templateId && ev.templateId !== 'era_dawn') { gap('minSame', `t:${ev.templateId}`, s.turnNumber); gap('minFam', `f:${ev.family}`, s.turnNumber); if (DECK.HARSH_CARDS?.has(ev.templateId)) gap('minHarsh', 'h', s.turnNumber); }
+        if (lostAt != null && s.turnNumber - lostAt <= 3 && (ev?.procedural || HISTORICAL_EVENTS[s.activeEventId]) && ev?.templateId !== 'era_dawn') gaps.afterLoss += 1;
         if (c.real) r.real += 1; if (c.free) r.free += 1; if (c.goldOnly) r.goldOnly += 1;
         s = gameReducer(s, { type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex: Math.min(PICK, (ev?.options?.length || 1) - 1) } });
         for (let k = 0; k < 6 && (s.activeEventId || s.activeProceduralEvent); k++) s = gameReducer(s, { type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex: k } });
@@ -64,6 +72,9 @@ SEEDS.forEach((seed) => {
       const before = s.turnNumber;
       s = resolveTurn(s);
       if (s.turnNumber !== before) r.turns += 1;
+      const now = Object.values(s.regions).filter((c) => c.owner === s.playerNationId).length;
+      if (cities != null && now < cities) lostAt = s.turnNumber;
+      cities = now;
       const coming = s.crises?.coming;
       if (coming && coming.nations.includes(s.playerNationId) && warnSeen !== coming.turn) { warnSeen = coming.turn; r.warn += 1; }
       const hist = s.crises?.history || [];
@@ -74,6 +85,7 @@ SEEDS.forEach((seed) => {
     const goals = s.nations[s.playerNationId]?.eraGoals || {};
     Object.entries(goals).forEach(([age, g]) => { row(age).goals = (g.met || []).length; });
     AGES.AGE_ORDER.filter((a) => per[a]).forEach((a) => console.log(`PULSE seed=${seed} age=${a} ${Object.entries(per[a]).filter(([k]) => k !== 'seen').map(([k, v]) => `${k}=${v}`).join(' ')}`));
+    console.log(`PULSE seed=${seed} gaps ${Object.entries(gaps).map(([k, v]) => `${k}=${v}`).join(' ')}`);
     console.log(`PULSE seed=${seed} end turn=${s.turnNumber} status=${s.gameStatus} worldCrises=${(s.crises?.history || []).map((h) => h.id).join(',')} congressVotes=${s.worldCongress?.votes || 0} focus=${Object.entries(s.nations[s.playerNationId]?.eraGoals || {}).map(([a, g]) => `${a}:${g.focus || '-'}`).join(',')}`);
   });
 });

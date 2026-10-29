@@ -253,6 +253,7 @@ export default {
   'm.why.rush.cannot': 'This cannot be bought.',
   'm.why.rush.firstKind': 'Rush the first order of this kind first.',
   'm.why.rush.paid': 'Already paid for: it is done next turn.',
+  'm.why.rush.locked': 'Paid in full: it is done next turn, so it cannot be removed or moved.',
   'm.why.needsGold': 'Needs {gold} gold.',
   'm.why.cantClaim': 'That tile cannot be claimed.',
   'm.why.scout.noFog': 'There is no fog on this map: nothing is left to find.',

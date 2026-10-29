@@ -346,7 +346,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
             </button>
           )}
           {mine && current?.rush?.gold > 0 && (
-            <button type="button" onClick={() => setBuyAt((v) => (v === 0 ? null : 0))} aria-expanded={buyAt === 0} data-testid="city-rush-open"
+            <button type="button" onClick={() => (current.rush.quick ? dispatch({ type: ActionTypes.RUSH_PRODUCTION, payload: { cityId, index: 0 } }) : setBuyAt((v) => (v === 0 ? null : 0)))} aria-expanded={buyAt === 0} data-testid="city-rush-open"
               className={`fa-btn fa-btn-secondary min-h-[44px] px-2 shrink-0 ${current.rush.ok ? '' : 'opacity-50 border-dashed text-fa-muted'}`} title={rushText(current)?.title}>
               <Coins className="w-4 h-4 me-0.5" aria-hidden="true" /><span className="fa-num">{current.rush.gold}</span>
               {/* out of reach: greyed, with the turns of income it takes (civ-veteran playtest step 28) */}
@@ -384,14 +384,14 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                 <ItemIcon item={q.item} ageId={ageId} size={24} />
                 <div className="min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0} onClick={() => openTile(q.tile)} onKeyDown={(e) => { if (e.key === 'Enter') openTile(q.tile); }}>
                   <div className="truncate">{q.index === 0 ? '' : `${q.index + 1}. `}{q.label}</div>
-                  <div className="text-fa-muted text-[12px]"><span className="fa-num">{q.progress > 0 || q.index === 0 ? `${Math.round(q.progress)}/${q.cost}` : q.cost}</span> · {q.waitText || (q.turns == null ? t('cy.noProduction') : q.index > 0 && q.progress >= q.cost ? t('cy.paidWaits', { turns: turnsText(q.turns) }) : t('cy.doneIn', { turns: turnsText(q.turns) }))}</div>
+                  <div className="text-fa-muted text-[12px]"><span className="fa-num">{q.progress > 0 || q.index === 0 ? `${Math.round(q.progress)}/${q.cost}` : q.cost}</span> · {q.locked || q.waitText || (q.turns == null ? t('cy.noProduction') : q.index > 0 && q.progress >= q.cost ? t('cy.paidWaits', { turns: turnsText(q.turns) }) : t('cy.doneIn', { turns: turnsText(q.turns) }))}</div>
                 </div>
                 {mine && q.rush?.gold > 0 && (
-                  <button type="button" onClick={() => setBuyAt(q.index)} className={`fa-icon-btn min-w-[44px] min-h-[44px] text-[11px] ${q.rush.ok ? '' : 'opacity-50 text-fa-muted'}`} aria-label={t('cy.buyItemAria', { label: q.label, gold: q.rush.gold })} title={rushText(q)?.title} data-testid="queue-rush">
+                  <button type="button" onClick={() => (q.rush.quick ? dispatch({ type: ActionTypes.RUSH_PRODUCTION, payload: { cityId, index: q.index } }) : setBuyAt(q.index))} className={`fa-icon-btn min-w-[44px] min-h-[44px] text-[11px] ${q.rush.ok ? '' : 'opacity-50 text-fa-muted'}`} aria-label={t('cy.buyItemAria', { label: q.label, gold: q.rush.gold })} title={rushText(q)?.title} data-testid="queue-rush">
                     {t('cy.goldShort', { n: q.rush.gold })}
                   </button>
                 )}
-                {mine && q.index > 0 && (
+                {mine && q.index > 0 && !q.headLocked && (
                   <button type="button" onClick={() => dispatch({ type: ActionTypes.MOVE_PRODUCTION, payload: { cityId, index: q.index, to: 0 } })} className="fa-icon-btn min-w-[44px] min-h-[44px]" aria-label={t('cy.buildFirst', { label: q.label })} title={t('cy.moveFront')} data-testid="queue-front">
                     <ArrowUpToLine className="w-4 h-4" />
                   </button>
@@ -401,7 +401,11 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                     <ArrowUp className="w-4 h-4" />
                   </button>
                 )}
-                {mine && (
+                {/* a head bought this turn is locked: no remove, nothing moves in front of it */}
+                {mine && q.locked && (
+                  <span className="fa-icon-btn min-w-[44px] min-h-[44px] text-fa-muted" role="img" aria-label={q.locked} title={q.locked} data-testid="queue-locked"><Lock className="w-4 h-4" /></span>
+                )}
+                {mine && !q.locked && (
                   <button type="button" onClick={() => dispatch({ type: ActionTypes.DEQUEUE_PRODUCTION, payload: { cityId, index: q.index } })} className="fa-icon-btn min-w-[44px] min-h-[44px]" aria-label={t('cy.removeAria', { label: q.label })} title={t('cy.remove')} data-testid="queue-remove">
                     <X className="w-4 h-4" />
                   </button>

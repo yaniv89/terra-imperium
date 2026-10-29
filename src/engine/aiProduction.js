@@ -84,7 +84,7 @@ export const BORDER_DEFEND_UTILITY = 1.4;
 // supply, a bonus's yields), and the AI never built one, so its luxuries and iron did nothing. A
 // city now builds the matching improvement on its own resource tiles, worked tiles first:
 //   score = RESOURCE_IMPROVEMENT_UTILITY[kind] x (UNWORKED_IMPROVEMENT_MULT when not worked) x affordability
-// Improvements are cheap (2 to 3 turns of IMPROVEMENT_COST_PER_TURN), so this is a short detour.
+// Improvements are cheap (a few turns of the benchmark city, cities.js IMPROVEMENT_BENCH_TURNS), so this is a short detour.
 export const RESOURCE_IMPROVEMENT_UTILITY = { luxury: 1.3, strategic: 1.2, bonus: 1.0 };
 export const UNWORKED_IMPROVEMENT_MULT = 0.6;
 export const RANGED_SHARE = 0.25; // about a quarter of an army are archers: one per three foot (eight-ages plan U36)
