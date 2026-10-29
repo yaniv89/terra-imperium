@@ -57,7 +57,7 @@ const run = async (browser, sizeId, lang) => {
   await wait(2500);
   await patch(page, ZAFAR); await wait(1500);
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('ti:select-region', { detail: 'c86094' }))); await wait(2000);
-  const invade = page.locator('button', { hasText: /^Invade |^פלשו אל / }).filter({ hasNot: page.locator('[disabled]') });
+  const invade = page.getByText(/^(Invade Zafar|פלשו אל )/);
   await shot('0-zafar-card');
   if (await invade.count()) { await invade.first().dispatchEvent('click'); await page.getByTestId('pre-battle').waitFor({ timeout: 30000 }).catch(() => {}); await wait(1500); await shot('1-zafar-attack'); console.log(sizeId, lang, 'theirs:', await page.getByTestId('pre-battle-theirs').textContent().catch(() => 'none')); }
   await page.keyboard.press('Escape'); await wait(500);
