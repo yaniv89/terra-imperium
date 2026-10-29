@@ -126,3 +126,4 @@ claude/integration, main gets the push once the quick suite and CI are green.
 - Merged pacing-8 (review: no findings; one import conflict in cityBuildModel.js fixed). Quick-test failures pass alone.
 - Lead calls: ai-armies raises fast.costMult.future (about 1.6-2) so passive Fast seeds end on turnLimit; sieges-sea-8 builds option A for walled mirror assaults (defender keeps laborers and soldiers inside the ring, city stores keep it training), with autoCalib retune allowed. Fun brainstorm stopped at the user's request (no artifact).
 - Merged tech-tree-8, map-art-8, sound-hebrew-8, answers-8 (reviews: no findings; PanelDrawer conflict resolved). Quick tests: only the known load flakes.
+- Merged ai-armies (Future cost Normal 36000, Fast x1.6; ages.test updated) and map-speed-8 (plus a catch so a failed shader compile still draws). Quick tests: only challengeFiles (Windows).

@@ -53,11 +53,11 @@ describe('game speed (KTD9: a cost multiplier per age, a turn limit, no years pe
     expect(['fast', 'normal', 'marathon'].map((sp) => speedCostMult(sp, 'information'))).toEqual([0.92, 2, 3.7]);
   });
 
-  it('registers the Future last: 2100 to 2500, power 64/48, multipliers 1/2/3 (U64, rank 4)', () => {
+  it('registers the Future last: 2100 to 2500, power 64/48, multipliers 1.6/2/3 (U64, rank 4; Fast 1.6 keeps a passive Fast game to its turn limit, ai-armies 29 Oct)', () => {
     expect(LAST_AGE_ID).toBe('future');
     expect([AGES.information.endYear, AGES.future.startYear, AGES.future.endYear, END_YEAR]).toEqual([2100, 2100, 2500, 2500]);
     expect(AGES.future.power).toEqual({ attack: 64, defense: 48 });
-    expect(['fast', 'normal', 'marathon'].map((sp) => speedCostMult(sp, 'future'))).toEqual([1, 2, 3]);
+    expect(['fast', 'normal', 'marathon'].map((sp) => speedCostMult(sp, 'future'))).toEqual([1.6, 2, 3]);
   });
 
   it('keeps the Normal values of the old calendar and the U96 calibration of Fast and Marathon', () => {
