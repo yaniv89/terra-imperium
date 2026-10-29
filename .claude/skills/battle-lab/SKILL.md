@@ -252,3 +252,18 @@ Land rows: MATCH=0 mixed mirror, 1 two cavalry vs two archers, 2 with a siege en
 moves), 8 v 8 with transports. TRACE lines read `side#idx class strength:order>target!@x,y` (`!` the
 target is in reach, `>s0` a structure). At sea judge on the exchange and 30 seeds (battle-ai-2: target
 choice barely moves it, damage scales with the shooter's strength).
+
+## Does commanding well win? (battle-skill-8)
+```bash
+N=20 DIFF=normal AGES=bronze,kingdoms [CTRL=novice,baseline,skilled SKILLS=nochase[,rear] PDIFF=prince AIOVR='{"thinkEvery":30}' TRACE=40] \
+  npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/battle-lab/skillDuel
+node .claude/skills/battle-lab/flank-shot.mjs <out.png> [seconds]   # dev server first; URL=, W=844 H=390
+```
+skillDuel fights mirrored field battles, the player's side commanded (it never routs) by a scripted
+controller against the battle AI at DIFF (easy, normal, hard are the player's battle difficulty,
+battleSettings.difficulty): novice attack-moves everything every 10 s; baseline is the AI at PDIFF;
+skilled is that plus SKILLS. Each seed is fought from both sides; rows give player wins with a Wilson
+95% interval. Target (GPT report section 2): skilled 60-70% on Normal. AIOVR tries another tuning of
+DIFF's level. flank-shot screenshots the first held flank ring (gold yours, red theirs) and counts blows
+by arc. Position rules: combat.js FLANK_BONUS_MULT, REAR_BONUS_MULT, POSITION_CAP, FLANK_HOLD_TICKS,
+COVER_RANGED_MULT. parityEco takes `DIFF=` too.

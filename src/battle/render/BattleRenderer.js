@@ -1227,6 +1227,17 @@ export class BattleRenderer {
   // Turn sim events into short effects.
   pushEvents(events, view) {
     events.forEach((e) => {
+      // A held flank or rear blow (combat.js heldArc): a small ring on the target, gold when it is
+      // yours, red when the enemy has your flank; once a second and a half per target at most.
+      if (e.flank && e.to !== undefined) {
+        const to = view.squads[e.to];
+        const seen = (this.flankMarkAt ||= new Map());
+        if (to && !(this.time - (seen.get(e.to) ?? -9) < 1.5)) {
+          seen.set(e.to, this.time);
+          const mine = this.setup.controllers?.[view.squads[e.from]?.side] === 'player';
+          this.addMarker(to.x / Q, to.y / Q, mine ? '#fbbf24' : '#ef4444', 0.9, 0.8, 'burst');
+        }
+      }
       if (e.type === 'shot' || e.type === 'towerShot') {
         const from = e.type === 'towerShot' ? view.structures.find((s) => s.id === e.structure) : view.squads[e.from];
         const to = e.to !== undefined ? view.squads[e.to] : view.structures.find((s) => s.id === e.structure);

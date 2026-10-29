@@ -156,6 +156,43 @@ describe('ground and nerve', () => {
     expect(elevationMult(w, a, t)).toBeCloseTo(1 + ELEVATION_MAX_BONUS);
   });
 
+  it('a flank or rear counts only once held for a second, and with height never past +35%', async () => {
+    const { heldArc, FLANK_HOLD_TICKS, POSITION_CAP, REAR_BONUS_MULT, ELEVATION_MAX_BONUS } = await import('./combat');
+    const w = world();
+    const a = w.squads.find((q) => q.side === 0 && q.classId === 'infantry');
+    const [t, u] = w.squads.filter((q) => q.side === 1 && q.classId === 'infantry');
+    a.stats = { ...a.stats, noFormation: false }; // the test world is Stone: no drilled ranks
+    const blow = (target, arc) => { const held = heldArc(w, a, target, arc); a.lastStrikeTick = w.tick; return held; };
+    expect(blow(t, 2)).toBe(0); // the first blow from behind: not held yet
+    w.tick += FLANK_HOLD_TICKS - 1;
+    expect(blow(t, 2)).toBe(0);
+    w.tick += 1;
+    expect(blow(t, 2)).toBe(2);
+    w.tick += 10 * FLANK_HOLD_TICKS;
+    expect(blow(t, 2)).toBe(0); // contact broken and back: the clock starts again
+    expect(heldArc(w, a, u, 1)).toBe(0); // a new target starts the clock again
+    expect(heldArc(w, a, u, 0)).toBe(0); // the front resets it
+    expect(a.flankOn).toBe(-1);
+    expect(REAR_BONUS_MULT * (1 + ELEVATION_MAX_BONUS)).toBeGreaterThan(POSITION_CAP); // so the cap bites
+  });
+
+  it('shots into a wood do a quarter less', async () => {
+    const { attackSquad, COVER_RANGED_MULT } = await import('./combat');
+    const { TILE } = await import('../setup/mapgen');
+    const hit = (forest) => {
+      const w = world();
+      const a = w.squads.find((q) => q.side === 0 && q.classId === 'ranged');
+      const t = w.squads.find((q) => q.side === 1 && q.onField && q.classId === 'infantry');
+      if (forest) { w.map = { ...w.map, tiles: w.map.tiles.slice() }; w.map.tiles[Math.floor(t.y / Q) * w.map.w + Math.floor(t.x / Q)] = TILE.FOREST; }
+      const before = t.strength;
+      attackSquad(w, a, t);
+      return before - t.strength;
+    };
+    const open = hit(false);
+    expect(open).toBeGreaterThan(0);
+    expect(hit(true)).toBe(Math.round(open * COVER_RANGED_MULT));
+  });
+
   it('a squad takes at most the capped shock however many neighbours break at once', async () => {
     const { updateMorale, SHOCK_CAP_PER_TICK } = await import('./morale');
     const w = world();

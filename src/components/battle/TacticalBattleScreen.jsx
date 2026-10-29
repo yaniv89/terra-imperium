@@ -1417,7 +1417,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
 // so the renderer builds its instanced layers from the final geometry. With no model files (the
 // default) there is nothing to wait for and the battle opens immediately.
 const TacticalBattleScreen = (props) => {
-  // The player's side never routs in a commanded battle (morale.js canRout); fixed for the battle.
+  // Neither side routs in a commanded battle (morale.js canRout); fixed for the battle.
   const setup = useMemo(() => commandedSetup(props.setup), [props.setup]);
   const [ready, setReady] = useState(() => !needsUnitModels(props.setup) && isSoldierLodReady());
   useEffect(() => {

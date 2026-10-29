@@ -4,7 +4,8 @@
 // real battlefield knows and auto-resolve can't: which side of the target was hit (flank/rear),
 // a cavalry charge's impact, pursuit of routed squads, and whether a defender is fighting from
 // behind its walls. Damage is always rounded to an integer immediately, so replays stay exact.
-import { computeHitMultiplier, BASE_DAMAGE_RATE, RNG_VARIANCE, FLANK_BONUS_MULT, PURSUIT_EXTRA_LOSS_MULT } from '../../engine/battle';
+import { computeHitMultiplier, BASE_DAMAGE_RATE, RNG_VARIANCE, PURSUIT_EXTRA_LOSS_MULT } from '../../engine/battle';
+import { TILE } from '../setup/mapgen';
 import { getCounterMultiplier, getSiegeMultiplier } from '../../data/unitClasses';
 import { getPromotionMoraleLossMultiplier, applySapperToSiegeMultiplier } from '../../data/promotions';
 import { nextRandom } from './rng';
@@ -29,7 +30,15 @@ const REVEAL_ON_ATTACK_TICKS = secondsToTicks(3);
 
 // Seconds of continuous contact that equal one auto-resolve exchange; tuned by the parity harness.
 export const EXCHANGE_SECONDS = 6;
-export const REAR_BONUS_MULT = 1.5;          // RoN: rear hits +50% (flank uses battle.js's 1.3)
+// Position (GPT math report section 2, lane battle-skill-8): bounded edges a commander earns. A blow
+// from the side +15%, from behind +30%, times higher ground, never more than +35% in all; the side or
+// rear counts only once the striker has held it on the same target for FLANK_HOLD_TICKS (a squad
+// brushing past a corner gets nothing). A squad in a wood takes a quarter less from shots.
+export const FLANK_BONUS_MULT = 1.15;
+export const REAR_BONUS_MULT = 1.3;
+export const POSITION_CAP = 1.35;
+export const FLANK_HOLD_TICKS = secondsToTicks(1);
+export const COVER_RANGED_MULT = 0.75;
 export const CHARGE_BONUS_MULT = 1.25;
 export const CHARGE_DISTANCE = 4 * Q;
 export const NON_SIEGE_STRUCTURE_MULT = 0.15; // only siege really cracks walls
@@ -174,12 +183,23 @@ const tally = (w, phase, a, t, damage) => {
   entry.hits += 1;
 };
 
+// The side or rear arc once held: 0 front (or not held long enough), 1 flank, 2 rear.
+export const heldArc = (w, a, t, arc) => {
+  if (arc === 0 || a.stats.noFormation) { a.flankOn = -1; return 0; }
+  // A new target, or contact broken since the last blow, starts the clock again.
+  if (a.flankOn !== t.idx || w.tick - a.lastStrikeTick > FLANK_HOLD_TICKS + a.stats.attackTicks) { a.flankOn = t.idx; a.flankSince = w.tick; }
+  return w.tick - a.flankSince >= FLANK_HOLD_TICKS ? arc : 0;
+};
+const inCover = (w, q) => w.map.tiles[Math.max(0, Math.min(w.map.h - 1, Math.floor(q.y / Q))) * w.map.w + Math.max(0, Math.min(w.map.w - 1, Math.floor(q.x / Q)))] === TILE.FOREST;
+
 export const attackSquad = (w, a, t) => {
   const phase = t.routed ? 'pursuit' : (a.stats.melee ? 'shock' : 'ranged');
   let mult = computeHitMultiplier(view(a), view(t), { ...sideCtx(w, a, t), phase });
   const arc = hitArc(a, t);
-  if (arc === 1 && !a.stats.noFormation) mult *= FLANK_BONUS_MULT;
-  else if (arc === 2 && !a.stats.noFormation) mult *= REAR_BONUS_MULT;
+  const held = heldArc(w, a, t, arc);
+  const height = !a.stats.flying && !t.stats.flying ? elevationMult(w, a, t) : 1;
+  mult *= Math.min(POSITION_CAP, (held === 1 ? FLANK_BONUS_MULT : held === 2 ? REAR_BONUS_MULT : 1) * height);
+  if (!a.stats.melee && !t.stats.flying && inCover(w, t)) mult *= COVER_RANGED_MULT;
   if (a.stats.charge && a.movedSinceAttack >= CHARGE_DISTANCE) mult *= CHARGE_BONUS_MULT;
   if (t.routed) mult *= 1 + PURSUIT_EXTRA_LOSS_MULT;
   if (a.stats.precision && a.lastStrikeTick < 0) mult *= a.stats.precision; // a guided first shot
@@ -187,7 +207,6 @@ export const attackSquad = (w, a, t) => {
   // Shaken (a side that cannot rout, morale.js): weaker blows, more hurt taken.
   if (isShaken(w, a)) mult *= SHAKEN_DAMAGE_DEALT;
   if (isShaken(w, t)) mult *= SHAKEN_DAMAGE_TAKEN;
-  if (!a.stats.flying && !t.stats.flying) mult *= elevationMult(w, a, t);
   // Shooting gives your position away (and breaks an ambush).
   a.hiddenUntil = 0;
   a.revealedUntil = w.tick + REVEAL_ON_ATTACK_TICKS;
@@ -196,7 +215,7 @@ export const attackSquad = (w, a, t) => {
   const damage = Math.max(0, Math.round(strikingStrength(a, t) * perHitFraction(a.stats) * mult * variance));
   a.movedSinceAttack = 0;
   a.lastStrikeTick = w.tick;
-  w.events.push({ t: w.tick, type: a.stats.melee ? 'melee' : 'shot', from: a.idx, to: t.idx, damage, arc });
+  w.events.push({ t: w.tick, type: a.stats.melee ? 'melee' : 'shot', from: a.idx, to: t.idx, damage, arc, ...(held ? { flank: held } : {}) });
   if (damage > 0) { applyDamage(w, a, t, damage, arc); tally(w, phase, a, t, damage); }
   if (a.stats.suppress) t.suppressedUntil = w.tick + a.stats.suppress;
   if (a.stats.pierce && damage > 0) {

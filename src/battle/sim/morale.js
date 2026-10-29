@@ -27,16 +27,16 @@ const REGEN_QUIET_TICKS = secondsToTicks(3);
 export const ROUTED_REGEN_PER_SEC = 3;
 
 // Who may rout (the user's rule, 2026-10-07; plans/UI-DESIGN.md section 8): a side whose setup says
-// `canRout: false` never breaks and runs. In a commanded battle that is the player's side
-// (TacticalBattleScreen.jsx sets it from setup.controllers): morale only makes its squads Shaken.
-// The AI's side still routs; auto-resolve keeps routing for both. Without the flag (every headless
+// `canRout: false` never breaks and runs. In a commanded battle that is both sides (buildBattleSetup.js
+// commandedSetup, same rule for the AI since battle-skill-8): morale only makes squads Shaken.
+// Auto-resolve keeps routing for both. Without the flag (every headless
 // battle, tests, parity, bench) everyone may rout, as before.
 export const canRout = (w, side) => w.setup.sides?.[side]?.canRout !== false;
 // Shaken: a squad of a side that cannot rout, at or under the rout threshold, fights worse until its
 // morale comes back (out of the fight, Rally Cry). Never for a side that routs instead.
 export const SHAKEN_MORALE = MORALE_ROUT_THRESHOLD;
-export const SHAKEN_DAMAGE_DEALT = 0.6;
-export const SHAKEN_DAMAGE_TAKEN = 1.3;
+export const SHAKEN_DAMAGE_DEALT = 0.85; // a soft penalty (lane battle-skill-8: 0.6 and 1.3 were a death spiral)
+export const SHAKEN_DAMAGE_TAKEN = 1.1;
 export const isShaken = (w, q) => q.morale <= SHAKEN_MORALE && !q.worker && !canRout(w, q.side);
 
 export const updateMorale = (w) => {

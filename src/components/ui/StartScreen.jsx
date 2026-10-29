@@ -28,6 +28,7 @@ import HOMES from '../../data/geo/peopleHomes.json';
 import { currentWorldSpec } from '../../worldgen/worldLoader';
 import LanguageSwitch from './LanguageSwitch';
 import { useT } from '../../i18n/useT';
+import { BATTLE_DIFFICULTIES } from '../../data/battleDifficulty';
 import { t as tNow } from '../../i18n';
 import { rich } from '../../i18n/rich';
 
@@ -204,6 +205,7 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle, headerExtra = nu
   const [selectedId, setSelectedId] = useState(DEFAULT_PEOPLE_ID);
   const [gameSpeed, setGameSpeed] = useState('normal');
   const [difficultyId, setDifficultyId] = useState('prince');
+  const [battleDifficulty, setBattleDifficulty] = useState('normal');
   const [exploredWorld, setExploredWorld] = useState(false);
   const [crises, setCrises] = useState(true);
   const [explore, setExplore] = useState(false);
@@ -229,10 +231,10 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle, headerExtra = nu
   const peopleName = (p) => nm('people', p.id, p.name);
   const last = START_STEPS.length - 1;
 
-  const begin = useCallback(() => onStart({ playerNationId: selectedId, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: worldSize, cityStates, seed: newWorldSeed(), map: mapSpec, band: true }, exploredWorld, crises: crises ? 'on' : 'off', explore }),
-    [onStart, selectedId, gameSpeed, difficultyId, worldSize, cityStates, mapSpec, exploredWorld, crises, explore]);
+  const begin = useCallback(() => onStart({ playerNationId: selectedId, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: worldSize, cityStates, seed: newWorldSeed(), map: mapSpec, band: true }, exploredWorld, crises: crises ? 'on' : 'off', explore, battleDifficulty }),
+    [onStart, selectedId, gameSpeed, difficultyId, worldSize, cityStates, mapSpec, exploredWorld, crises, explore, battleDifficulty]);
   // The guided start teaches on the Nile: always the real Earth.
-  const guided = () => onStart({ playerNationId: TUTORIAL_NATION, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: TUTORIAL_WORLD_SIZE, seed: newWorldSeed(), map: { kind: 'earth' } }, guided: true, exploredWorld, crises: crises ? 'on' : 'off', explore });
+  const guided = () => onStart({ playerNationId: TUTORIAL_NATION, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: TUTORIAL_WORLD_SIZE, seed: newWorldSeed(), map: { kind: 'earth' } }, guided: true, exploredWorld, crises: crises ? 'on' : 'off', explore, battleDifficulty });
   const random = () => { const pool = peoples.length ? peoples : MAJOR_PEOPLES_LIST; setSelectedId(pool[Math.floor(Math.random() * pool.length)].id); };
 
   // Moving between steps puts the focus on the new step's heading (read out; Enter then goes on).
@@ -393,6 +395,13 @@ const StartScreen = ({ onStart, initialStep = 0, onBackToTitle, headerExtra = nu
           ))}
         </div>
         <p className="text-[12px] text-fa-muted leading-snug">{t(`start.diff.${difficultyId}.desc`)}</p>
+        <Label className="mt-1">{t('start.battleDifficulty')}</Label>
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('start.battleDifficulty')}>
+          {BATTLE_DIFFICULTIES.map((id) => (
+            <button key={id} type="button" onClick={() => setBattleDifficulty(id)} aria-pressed={battleDifficulty === id} data-testid={`battle-difficulty-${id}`} className="fa-chip !min-h-[40px]">{t(`battleDiff.${id}`)}</button>
+          ))}
+        </div>
+        <p className="text-[12px] text-fa-muted leading-snug">{t(`battleDiff.${battleDifficulty}.desc`)}</p>
         <Label className="mt-1">{t('start.options')}</Label>
         <div className="flex items-center justify-between gap-3 min-h-[44px]">
           <div className="min-w-0">
