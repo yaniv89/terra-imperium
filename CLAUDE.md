@@ -204,6 +204,7 @@ The live site is Cloudflare Pages (https://terra-imperium.pages.dev), built and 
   dispatch and tell the user. Record each run's real cost there when it finishes.
 
 ## Lessons (mistakes not to repeat; add one line each time)
+- Judge lint and tests by their exit code or the "problem"/"FAIL" lines, never by `| tail -1`: on 29 Oct a lint error sat hidden behind `npm run lint | tail -1` through three pushes and broke CI.
 - Never edit a file while `npm run test:quick` runs on it: the run reports a false failure. Rerun before calling it red.
 - A design call must respect the player's build phase: a 60 s AI march-out in economy battles skipped towers and training (battle-stall, 27 Oct). Check every timer against the battle clocks and the RTS identity, not only AI-vs-AI traces.
 - A choice stored for later (crisis answered early) must be re-checked when it is paid: if it can no longer be afforded, reopen the card, never drop it silently.

@@ -221,7 +221,7 @@ const BattleHud = ({
     fresh.forEach((a) => { if (a.kind === 'workers') lastRef.current.workers = a.tick; if (a.kind === 'troopsHit') lastRef.current.troops = a.tick; });
     // The battle's first clash is an alert with Go; the camera stays where the player wants it (user, 29 Oct).
     setAlerts((list) => [...list.filter((a) => !fresh.some((f) => f.id === a.id)), ...fresh].slice(-20));
-  }, [hud, playerSide, setup]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hud, playerSide, setup]);
   // Esc closes the open sheet first (the wand, the supply card, the history) before the battle
   // screen's own Esc (let go of the selection) sees it.
   const anySheet = wandOpen || supplyOpen || historyOpen || stocksOpen || viewOpen;
