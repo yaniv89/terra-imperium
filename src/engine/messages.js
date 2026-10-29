@@ -78,13 +78,15 @@ export const msgText = (key, vars, lang = 'en', nameOfRef = null) => {
     }
     return String(v);
   };
-  const out = text.replace(/\{(\w+)(?::(\w+)(?:=([\w ]+))?)?\}/g, (m, name, fmt, arg) => {
+  const out = text.replace(/\{(\w+)(?::(\w+)(?:=([\w ]+))?)?\}/g, (m, name, fmt, arg, at, all) => {
     const v = vars ? vars[name] : undefined;
     if (v === undefined) return m;
     if (fmt === 'num') return Number.isFinite(v) ? groupDigits(v) : value(v);
     if (fmt === 'money') return lang === 'he' ? heMoney(v) : `${shortNumber(v)}g`;
     if (fmt === 'pct') return `${v}%`;
     if (fmt === 'agree') return agree(isRef(v) ? v.en : String(v), arg || '');
+    // "The Dacian tribes" starts a line; inside one it is "the Dacian tribes"
+    if (isRef(v) && v.k === 'people' && !/(^|[.!?:]\s+)$/.test(all.slice(0, at))) return value(v).replace(/^The /, 'the ');
     return value(v);
   });
   return isRtl(lang) ? isolateSigned(out) : out;

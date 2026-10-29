@@ -1,7 +1,7 @@
 // src/components/ui/MenuSheet.jsx
 // The menu hub (human playtest issue 3: nobody found save, load, help or the glossary). Opened from
 // Menu on the tab rail (all entries) and the "?" on the top bar (view 'help': Help and Glossary).
-// Every entry reuses an existing screen: Save writes the autosave now (GameContext saveNow), Load
+// Every entry reuses an existing screen: Save writes the autosave and the manual slot (GameContext saveManual), Load
 // and Back to title open the title screen (its load view lists the save slots), Help replays the
 // onboarding cards, Glossary opens the glossary index, Settings the sheet.
 import React, { useEffect, useRef, useState } from 'react';

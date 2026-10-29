@@ -318,7 +318,7 @@ const TechPanel = () => {
         <ActionCard icon={GraduationCap} label={tNow('tech.scholars')} description={tNow('p2.sch.desc')} cost={costLine(ACTION_COSTS.fundScholars)}
           effect={scholarsPreview(state, FUND_SCHOLARS_TECHPOINTS).note} onClick={handleFundScholars} disabled={!canPay(state, ACTION_COSTS.fundScholars)} why={payWhy(state, ACTION_COSTS.fundScholars)} />
         <div className="space-y-1.5">
-          <Label><GlossaryLink kind="term" id="focus">{tNow('p2.fo.label')}</GlossaryLink> <span className="normal-case tracking-normal font-normal">{tNow('p2.fo.hint', { pct: Math.round(FOCUS_SCIENCE_BONUS * 100), cost: focusCost ? tNow('p2.fo.cost', { list: costLine(focusCost) }) : '' })}</span></Label>
+          <Label><GlossaryLink kind="term" id="focus">{tNow('p2.fo.label')}</GlossaryLink> <span className="normal-case tracking-normal font-normal">{tNow('p2.fo.hint', { pct: Math.round(FOCUS_SCIENCE_BONUS * 100), cost: costLine(focusCost) ? tNow('p2.fo.cost', { list: costLine(focusCost) }) : '' })}</span></Label>
           <div className="flex flex-wrap gap-1.5">
             {Object.values(TechCategories).map((categoryId) => (
               <Chip key={categoryId} pressed={state.researchFocus === categoryId}

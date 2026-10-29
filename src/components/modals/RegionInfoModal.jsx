@@ -17,11 +17,13 @@ import { ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD, ESPIONAGE_SUCCESS_CHAN
 import { isCoastal, isReachableBySea } from '../../data/navalReach';
 import { isAtWarWithPlayer, hasCasusBelli, isInTruce } from '../../engine/diplomacy';
 import { canAttack } from '../../engine/hostility';
+import { opinionOf } from '../../engine/opinion';
+import { moodWord } from './firstContactModel';
 import { isIndependentNation, PERSONALITIES } from '../../data/independents';
 import IndependentCityCard from '../independents/IndependentCityCard';
 import RazeControl from './RazeControl';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
-import { formatNumber, getControlColor, getRelationColor, getFieldedStrength, getStability, getSupplyCapacity } from '../../utils/helpers';
+import { formatNumber, getControlColor, getFieldedStrength, getStability, getSupplyCapacity } from '../../utils/helpers';
 import { categoryTierName, extractionName, wonderName, terrainWord, buildingCategoryLabel, unitClassName, resourceName, independentKindName } from '../../i18n/gameText';
 import { BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, EXTRACTION_BUILDINGS, getBuildingSlots, getUsedBuildingSlots } from '../../data/buildings';
 import { UNIT_CLASSES } from '../../data/unitClasses';
@@ -67,7 +69,7 @@ import { nameNow } from '../../i18n/names';
 import { useT } from '../../i18n/useT';
 import { reasonText } from '../../i18n/messageText';
 import { msgRefText } from '../battle/battleText';
-import { t as tNow, hasKey } from '../../i18n/core';
+import { t as tNow } from '../../i18n/core';
 import { ageOf } from '../../engine/nationState';
 import { sideAgeOf } from '../../engine/ageRefs';
 import { shownPeople } from '../../data/ages';
@@ -189,6 +191,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   // Already held by your army (an occupation from an older save): no attack left to make there.
   // An independent city (hostility.js) may be attacked without a war: it counts as "at war" here.
   const ownerIsIndependent = !!ownerNation && isIndependentNation(ownerNation);
+  const ownerMood = ownerNation ? moodWord(opinionOf(state, ownerNation.id)) : null;
   const atWarWithOwner = !!ownerNation && (isAtWarWithPlayer(state, ownerNation.id) || canAttack(state, state.playerNationId, ownerNation.id)) && regionState.occupiedBy !== state.playerNationId;
   // Land nobody owns (an emergent world's frontier) has no war to declare and no one to invade.
   const hasMilitaryOption = !!ownerNation && invasionSources.length + amphibiousSources.length + navalEngagementSources.length > 0;
@@ -412,7 +415,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       {/* Foreign relations */}
       {!isPlayerOwned && ownerNation && (
         <div className="mb-2 space-y-1">
-          <StatLine label={t('ri.relation')} value={hasKey(`nc.rel.${ownerNation.relationStatus}`, 'en') ? t(`nc.rel.${ownerNation.relationStatus}`) : ownerNation.relationStatus} valueStyle={{ color: getRelationColor(ownerNation.relationStatus) }} />
+          {/* the word follows the opinion number, never the status stored when a deal was signed */}
+          <StatLine label={t('ri.relation')} value={t(`p2.mood.${ownerMood}`)} valueClass={ownerMood === 'Friendly' || ownerMood === 'Warm' ? 'text-fa-good' : ownerMood === 'Wary' ? '' : 'text-fa-danger-text'} />
           <StatLine icon={Swords} label={t('ri.nationArmy')} value={revealed ? formatNumber(getFieldedStrength(state, regionState.owner)) : t('ri.armyUnknown')} valueClass={revealed ? 'text-fa-danger-text' : 'text-fa-muted'} />
           <StatLine label={t('ri.hostility')} value={`${ownerNation.hostility}%`} valueClass="text-fa-enemy" />
           <div className="flex flex-wrap gap-1 pt-1">

@@ -65,7 +65,8 @@ const TileSheet = ({ tile, onClose, onSelectRegion, onAttack, settleUnitId = nul
   const idle = settlers.filter((u) => u.target == null && u.tile !== tile);
   const ownerCity = state.world?.tileOwner?.[tile] ? state.regions[state.world.tileOwner[tile]] : null;
   const ownerNation = ownerCity ? state.nations[ownerCity.owner] : null;
-  const name = tiles.names[tile] ? nameNow('place', null, tiles.names[tile]) : facts.river ? (tiles.riverNames[tile] ? t('mx.tile.onRiver', { name: nameNow('place', null, tiles.riverNames[tile]) }) : t('mx.tile.onRiverPlain')) : facts.land ? t('mx.tile.wild') : t('mx.tile.openWater');
+  // a site you can settle shows the name its city will take, never another place name (manual playtest 29 Oct)
+  const name = settlers.length && site?.ok && site.cityName ? nameNow('city', null, site.cityName) : tiles.names[tile] ? nameNow('place', null, tiles.names[tile]) : facts.river ? (tiles.riverNames[tile] ? t('mx.tile.onRiver', { name: nameNow('place', null, tiles.riverNames[tile]) }) : t('mx.tile.onRiverPlain')) : facts.land ? t('mx.tile.wild') : t('mx.tile.openWater');
   const parts = [terrainWord(facts.terrain), facts.relief !== 'flat' ? terrainWord(facts.relief) : null, facts.feature !== 'none' ? terrainWord(facts.feature) : null, facts.river ? terrainWord('river') : null, facts.coastal && facts.land ? terrainWord('coast') : null].filter(Boolean);
   const country = tiles.countryOf(tile);
   const turnsFor = (u) => { const p = settlerPath(state, u.tile, tile, me); return p ? Math.ceil(p.length / SETTLER_MOVES) : null; };
