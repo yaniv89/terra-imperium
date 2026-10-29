@@ -30,8 +30,8 @@ import { soldierLodGeometries, triangleCount } from '../../../battle/render/sold
 import { skinToneFor, soldierSkinTone, emblemCellFor } from '../../../battle/render/unitVariants';
 import { getNationColor } from '../../../data/nationColors';
 import { getTownGeometry, townTier } from './townModels';
-import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrls, palaceFor, wallsFor, COLONY_CAMP, isCamp, FIELDS_FOR_WORK, instanceTownAsset, showLod, lodForZoom } from './townAssets';
-import { armySpotPx, SETTLER_FIGURE_SHARE, unitPx, tiltFor, lightRig, townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE, figureScale, figureGap, hexPxOf, hexCapPx, fleetCapPx, SHIP_SPACING } from './scale';
+import { townAssetUrl, townFallbackUrl, loadTownAsset, loadAssetObjects, sharedAssetUrls, palaceFor, wallsFor, COLONY_CAMP, isCamp, FIELDS_FOR_WORK, instanceTownAsset, showLod, lodForZoom } from './townAssets';
+import { armySpotPx, figureShareOf, SETTLER_FIGURE_SHARE, unitPx, tiltFor, lightRig, townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE, figureScale, figureGap, hexPxOf, hexCapPx, fleetCapPx, SHIP_SPACING } from './scale';
 import { cityHexOf, hexTownPx, insideHex } from './cityHex';
 import { cachedFootprint, screenFrame, plotsOnScreen, reliefOnScreen, riverDiscsOnScreen } from './terrainPlacement';
 import { getRidgeGeometry, getHillGeometry, RIDGE_VARIANTS } from './mountainModels';
@@ -117,7 +117,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     return mesh;
   };
   const t = {
-    sky, sun, townMaterial, soldierMaterial, towns: new Map(), wonders: new Map(), fieldWorks: new Map(), layers: new Map(), soldierLoads: new Set(), assets: new Map(),
+    sky, sun, townMaterial, soldierMaterial, towns: new Map(), wonders: new Map(), fieldWorks: new Map(), layers: new Map(), soldierLoads: new Set(), assets: new Map(), townFile: new Map(), townFailed: new Set(),
     trees: new Map(TREE_KINDS.map((kind) => [kind, instanced(getTreeGeometry(kind), MAX_TREES)])),
     works: new Map(WORK_KINDS.map((kind) => [kind, instanced(getWorkGeometry(kind), MAX_WORKS)])),
     buildings: createBuildingLayer(root), improvements: createBuildingLayer(root), ships: createBuildingLayer(root), moving: false,
@@ -267,13 +267,23 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
       // the land's architecture style (the tile's country), whoever owns the city (art spec 3b)
       const landNation = region.tile != null ? landOf(region.tile, state.scenario?.sites) : null;
       const style = styleOfLand(landNation || owner, opts.ageId);
-      const assetUrl = camp ? null : townAssetUrl(opts.ageId, tier.id, seed, style);
+      // a file that failed to load is replaced by another town file of the age (townFallbackUrl)
+      const wantedUrl = camp ? null : townAssetUrl(opts.ageId, tier.id, seed, style);
+      const assetUrl = t.townFile.has(wantedUrl) ? t.townFile.get(wantedUrl) : wantedUrl;
       const asset = assetUrl ? t.assets.get(use(assetUrl)) : null;
       if (assetUrl && !t.assets.has(assetUrl)) {
         t.assets.set(assetUrl, null);
         loadTownAsset(assetUrl).then((r) => { t.assets.set(assetUrl, r); onAssets(); })
-          .catch((e) => { console.warn('town model failed, keeping the procedural town:', e.message); });
+          .catch((e) => {
+            t.townFailed.add(assetUrl);
+            const next = townFallbackUrl(opts.ageId, tier.id, t.townFailed);
+            console.warn(`town model failed (${e.message}), ${next ? 'standing in another town of the age' : 'no town file left: the procedural town'}`);
+            t.townFile.set(wantedUrl, next);
+            onAssets();
+          });
       }
+      // while its file loads the town is not drawn (it showed as placeholder blocks)
+      if (assetUrl && !asset) return;
       // The camp, a capital's palace, the wall ring and the fields come from the age's shared file.
       const shared = camp || asset ? sharedFor(opts.ageId, style) : null;
       // An outpost shows its age band's camp (outpostModels.js) once that file is in; until then,
@@ -702,7 +712,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         // Civilization's rule: scaled up against the land but inside the hex, one world size
         // (a share of the hex, no pixel floor); the army's banner carries the far zoom
         const side = rigFig ? 2.8 : 1.1; // elephants stand wider apart than men and horses, as in battle
-        const scale = figureScale(hexPx, l.height, MODEL_SCALE[classId] || 0.88);
+        const scale = figureScale(hexPx, l.height, MODEL_SCALE[classId] || 0.88) * figureShareOf(m); // smaller in front of a town, and a scout party
         const gap = figureGap(hexPx, scale * l.height, n, side);
         color.set(m.own ? PLAYER_COLOR : getNationColor(m.ownerId) || '#64748b');
         const tone = skinToneFor(m.ownerId); const cell = emblemCellFor(m.own ? 0 : 1, mi);

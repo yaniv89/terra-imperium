@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { addCity, cap, gateTile } from '../../engine/testWorld';
 import { getNeighborIds } from '../../data/regions';
 import { getTiles } from '../../data/geo/tiles';
+import { inSentence } from '../../i18n/core';
 import { marchBarModel } from './MarchBar';
 import RegionInfoModal from '../modals/RegionInfoModal';
 import { peoplesWorld, rivalOf } from '../../engine/testWorld';
@@ -69,7 +70,7 @@ describe('ACT-01 march bar: an army beside a city', () => {
     const m = marchBarModel(s, march(), PLAN);
     expect(m.canAttackNow).toBe(false);
     expect(m.canMarchAttack).toBe(false);
-    expect(m.marchAttackBlocked).toBe(`At peace with ${s.nations[DE].name}: declare war before attacking (its province card).`);
+    expect(m.marchAttackBlocked).toBe(`At peace with ${inSentence(s.nations[DE].name, "x ")}: declare war before attacking (its province card).`);
   });
 
   it('far at war: March to attack, no refusal', () => {
@@ -114,6 +115,15 @@ describe('ACT-01 march bar: an army beside a city', () => {
     const m = marchBarModel(s, march(spot), PLAN);
     expect(m.enemyArmy?.adjacent).toBe(true);
     expect(m.enemyArmy.blocked).toMatch(/End the turn before attacking again\./);
+  });
+  it('a land march over water counts its sea tiles (the army embarks by itself); a dry one none', () => {
+    const tiles = getTiles();
+    const sea = tiles.land.findIndex((x) => x !== 1);
+    const land = tiles.land.findIndex((x) => x === 1);
+    const tile = gateTile(BASE.state, BASE.home, BASE.target);
+    expect(marchBarModel(s, march(tile), { ...PLAN, steps: [land, sea, sea, land], stepTurns: [0, 0, 1, 1] }).seaSteps).toBe(2);
+    expect(marchBarModel(s, march(tile), { ...PLAN, steps: [land], stepTurns: [0] }).seaSteps).toBe(0);
+    expect(marchBarModel(s, { ...march(tile), naval: true }, { ...PLAN, steps: [sea] }).seaSteps).toBe(0);
   });
 });
 

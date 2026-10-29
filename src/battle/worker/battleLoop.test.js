@@ -2,7 +2,7 @@
 // arriving at arbitrary wall-clock moments, pauses, speed changes) replays to the identical final
 // world from (setup, recorded log) — what save/resume and multiplayer verification rely on.
 import { describe, it, expect } from 'vitest';
-import { createBattleLoop, replayTo } from './battleLoop';
+import { createBattleLoop, replayTo, FINISH_SPEED } from './battleLoop';
 import { runHeadless } from '../sim/headless';
 import { createWorld } from '../sim/world';
 import { worldHash } from '../sim/hash';
@@ -34,6 +34,24 @@ describe('battle loop', () => {
     const replay = runHeadless(makeSetup(), { orders: ended.log });
     expect(replay.hash).toBe(ended.hash);
     expect(replay.result).toEqual(ended.result);
+  });
+
+  // Finish now (playtests 40746164607 steps 238 and 313, 40746170250 step 88): the battle reaches its end
+  // within the frames, however slow the device's clock, and the end replays to the same world.
+  it('Finish now runs the battle flat out to its end, and the end replays', () => {
+    const messages = [];
+    const loop = createBattleLoop({ setup: makeSetup(), post: (m) => messages.push(m) });
+    let now = 0;
+    loop.frame(now);
+    loop.pushOrders([{ side: 0, type: 'attackMove', squads: [0, 1, 2, 3], x: 70 * Q, y: 30 * Q }]);
+    loop.setSpeed(FINISH_SPEED);
+    let frames = 0;
+    // a frozen clock: no wall-clock time passes between frames, the loop still moves on
+    for (; frames < 2000 && !messages.some((m) => m.type === 'ended'); frames++) loop.frame(now);
+    const ended = messages.find((m) => m.type === 'ended');
+    expect(ended).toBeTruthy();
+    expect(frames).toBeLessThan(2000);
+    expect(runHeadless(makeSetup(), { orders: ended.log }).hash).toBe(ended.hash);
   });
 
   it('resumes mid-battle from a checkpoint log exactly where it left off', () => {

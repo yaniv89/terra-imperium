@@ -3,7 +3,7 @@
 // as a list with filters (All, Won, Lost, Command, Auto, Sieges, Field, Sea) and the detail of
 // one: its name, the result from your side (Victory, Held, Defeat, Lost, Repelled, Stalemate),
 // Command or Auto, both sides in and lost, a plain summary and the strength timeline. Pure.
-import { ledgerOf, menOf } from '../../engine/battleLedger';
+import { ledgerOf, rowMenOf, sideTotals } from '../../engine/battleLedger';
 import { t, formatYear } from '../../i18n/core';
 import { auxiliaryText } from './battleText';
 import { messageOf } from '../../i18n/messageText';
@@ -47,7 +47,7 @@ export const resultOf = (e) => {
 
 export const yearText = (y) => formatYear(y);
 const men = (n) => Math.round(n || 0);
-const sideMen = (e, side) => menOf((e.sides?.[side] || []).reduce((s, u) => s + u.before, 0));
+const sideMen = (e, side) => sideTotals(e.sides?.[side]).men.before;
 
 /** One row of the list. */
 export const reportRow = (state, e) => {
@@ -71,7 +71,7 @@ export const fateRows = (e, side) => (e?.sides?.[side] || []).map((u) => {
   const fate = fateOf(e, side, u);
   return {
     id: u.id, classId: u.classId, navalLine: u.navalLine || null, regiment: u.regiment || null,
-    menBefore: menOf(u.before), menAfter: menOf(u.after), temp: u.temp || null,
+    menBefore: rowMenOf(u, u.before), menAfter: rowMenOf(u, u.after), temp: u.temp || null,
     fate, tone: FATE_VIEW[fate].tone, text: fateText(e, side, u), byCavalry: !!u.byCavalry
   };
 });
@@ -103,8 +103,9 @@ export const reportDetail = (state, e) => {
   const outcome = describeOutcome(e);
   const fled = (e.fled?.[mine] || 0) + (e.fled?.[theirs] || 0) > 0
     ? t('bt.rep.fledField', { a: men(e.fled[mine]), b: men(e.fled[theirs]) }) : '';
-  const destroyed = (e.sides?.[theirs] || []).filter((u) => u.after <= 0).length;
-  const lostUnits = (e.sides?.[mine] || []).filter((u) => u.after <= 0).length;
+  // Regiments are units on the map: a city's militia (temp) is never "a regiment lost" (manual playtest 29 Oct).
+  const destroyed = (e.sides?.[theirs] || []).filter((u) => !u.temp && u.after <= 0).length;
+  const lostUnits = (e.sides?.[mine] || []).filter((u) => !u.temp && u.after <= 0).length;
   const ledger = ledgerOf(e);
   // One round has no course to play back (I016): say so, and keep the replay for the longer ones.
   const rounds = e.rounds ?? Math.max(0, timelineFor(e).filter((p) => !p.pursuit).length - 1);

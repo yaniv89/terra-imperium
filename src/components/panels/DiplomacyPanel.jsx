@@ -33,7 +33,7 @@ import { getNationCapital } from '../../data/regions';
 import { isAgeAtLeast } from '../../data/ages';
 import ActionCard from './ActionCard';
 import { Button } from '../ui/atlas';
-import { peoplesModel, RELATION_LABEL } from './peoplesModel';
+import { peoplesModel, keepOrder, RELATION_LABEL } from './peoplesModel';
 
 import NationCard from './NationCard';
 import { demandTerms } from '../../engine/aiAccords';
@@ -77,7 +77,11 @@ const DiplomacyPanel = () => {
   const playerNation = state.nations[state.playerNationId];
 
   // The peoples you met (engine/fog.js) and anyone at war with you, war first, then the coldest.
-  const m = useMemo(() => peoplesModel(state, search), [state, search]);
+  const model = useMemo(() => peoplesModel(state, search), [state, search]);
+  // the order the list was first shown in stays while the tab is open; a new search sorts again
+  const [order, setOrder] = useState({ search, ids: [] });
+  const m = useMemo(() => ({ ...model, rows: keepOrder(model.rows, order.search === search ? order.ids : []) }), [model, order, search]);
+  useEffect(() => { const ids = m.rows.map((r) => r.id); if (order.search !== search || ids.join() !== order.ids.join()) setOrder({ search, ids }); }, [m.rows, order, search]);
   const selectedId = picked && m.rows.some((r) => r.id === picked) ? picked : m.rows[0]?.id || null;
   // Keep the card on the people shown: an action that warms them (a gift, a map) re-sorts the
   // list, and the card must not jump to whoever is now first.
@@ -169,7 +173,7 @@ const DiplomacyPanel = () => {
             {rich(tNow('p2.pp.mapOffer'), { name: <button type="button" className="font-semibold underline" onClick={() => setPicked(mapOffer.from)}>{nameIn('people', mapOffer.from, mapOffer.name)}</button> })} <span className="text-fa-muted">{tNow('p2.pp.mapNote', { text: say(mapOffer.textMsg), turn: mapOffer.until })}</span>
           </div>
           <div className="flex gap-1.5 shrink-0">
-            <Button size="sm" disabled={!mapOffer.ok} onClick={() => dispatch({ type: ActionTypes.ANSWER_MAP_OFFER, payload: { accept: true } })} data-testid="map-offer-accept">{tNow('dip.swap')}</Button>
+            <Button size="sm" disabled={!mapOffer.ok} why={mapOffer.ok ? null : say(mapOffer.textMsg)} onClick={() => dispatch({ type: ActionTypes.ANSWER_MAP_OFFER, payload: { accept: true } })} data-testid="map-offer-accept">{tNow('dip.swap')}</Button>
             <Button size="sm" variant="ghost" onClick={() => dispatch({ type: ActionTypes.ANSWER_MAP_OFFER, payload: { accept: false } })} data-testid="map-offer-decline">{tNow('dip.decline')}</Button>
           </div>
         </div>

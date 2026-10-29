@@ -22,7 +22,7 @@ import { isolateLtr } from '../../i18n/core';
 const signed = (v) => isolateLtr(`${v > 0 ? '+' : ''}${v}`); // Hebrew keeps "+5" and "-5" in order
 const toneOf = (v) => (v > 0 ? 'text-fa-good' : v < 0 ? 'text-fa-danger-text' : 'text-fa-muted');
 
-// `onSend` (NationCard): sends the offer through the card's dispatch, which shows the answer on the card.
+// `onSend(action, why)` (people's card, city card): sends the offer through the card's answer (useAnswer.js), shown on the card.
 const PeaceDealSheet = ({ warId, onClose, onSend = null }) => {
   const { state, dispatch } = useGame();
   const { t } = useT();
@@ -46,7 +46,8 @@ const PeaceDealSheet = ({ warId, onClose, onSend = null }) => {
     }
     return next;
   });
-  const send = (terms) => { (onSend || dispatch)({ type: ActionTypes.OFFER_PEACE, payload: { warId, terms } }); onClose(); };
+  // `why`: their reason to refuse, said after the answer (onSend only; the log keeps the plain answer).
+  const send = (terms, why) => { (onSend || dispatch)({ type: ActionTypes.OFFER_PEACE, payload: { warId, terms } }, why); onClose(); };
   const scoreShare = Math.max(0, Math.min(1, (m.score + 100) / 200));
 
   // Portalled to <body>: opened from inside the side panel, whose transformed container would
@@ -124,10 +125,10 @@ const PeaceDealSheet = ({ warId, onClose, onSend = null }) => {
             <div className="fa-card px-2.5 py-1.5">
               <Label>{t('bt.peace.whitePeace')}</Label>
               <div className="text-[12px] leading-snug mt-0.5">{m.whitePeace.text}</div>
-              <Button size="sm" className="w-full mt-1.5 !min-h-[40px]" onClick={() => send([])} data-testid="peace-white">{t('bt.peace.offerWhite')}</Button>
+              <Button size="sm" className="w-full mt-1.5 !min-h-[40px]" onClick={() => send([], m.whitePeace.accepted ? null : m.whitePeace.text)} data-testid="peace-white">{t('bt.peace.offerWhite')}</Button>
             </div>
             </div>
-            <Button variant="primary" hero className="w-full !min-h-[52px] shrink-0" disabled={!m.terms.length} title={m.terms.length ? undefined : t('bt.peace.chooseFirst')} onClick={() => send(m.terms)} data-testid="peace-offer">
+            <Button variant="primary" hero className="w-full !min-h-[52px] shrink-0" disabled={!m.terms.length} title={m.terms.length ? undefined : t('bt.peace.chooseFirst')} onClick={() => send(m.terms, m.refusal)} data-testid="peace-offer">
               {t('bt.peace.sendOffer')}
             </Button>
           </div>

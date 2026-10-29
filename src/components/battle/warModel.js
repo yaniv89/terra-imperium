@@ -26,8 +26,10 @@ const men = (u) => Math.max(0, Math.round(u.strength || 0));
 export const armyView = (units = [], { ageId = FIRST_AGE_ID, hiredCommanders = {} } = {}) => {
   const by = new Map();
   units.forEach((u) => {
-    const key = u.militia ? 'militia' : u.classId;
-    const row = by.get(key) || { id: key, name: u.militia ? t('bt.war.militia') : unitDisplayName(ageId, u.classId, u.navalLine) || u.classId, regiments: 0, men: 0 };
+    // Units keep their age (the user's rule): a Bronze regiment in a Classical army is still Spearmen (manual playtest 29 Oct).
+    const age = u.ageId || ageId;
+    const key = u.militia ? 'militia' : `${u.classId}:${age}`;
+    const row = by.get(key) || { id: key, name: u.militia ? t('bt.war.militia') : unitDisplayName(age, u.classId, u.navalLine) || u.classId, regiments: 0, men: 0 };
     row.regiments += 1; row.men += men(u);
     by.set(key, row);
   });

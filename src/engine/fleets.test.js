@@ -9,7 +9,7 @@ import { getTiles } from '../data/geo/tiles';
 import { distanceKm } from '../data/geo/geodesic';
 import { REGIONS_DATA } from '../data/regions';
 import { findSeaPath, portWaters, seaPassable, isBlockaded, atSea, NAVAL_MOVES_BY_AGE } from './fleets';
-import { planMarch, advanceMarches } from './routes';
+import { planMarch, advanceMarches, shorePlan } from './routes';
 import { validateAmphibious } from './invasion';
 import { normalizeUnitTiles } from './armies';
 import { assertGameState } from './stateAudit';
@@ -148,5 +148,31 @@ describe('sea depths (plan D5b)', () => {
     expect(seaPassable(tiles, deep, 'classical', true)).toBe(true); // a tech that opens the ocean
     expect(seaPassable(tiles, deep, 'gunpowder')).toBe(true);
     expect(shelfOk('bronze')).toBe(false); expect(shelfOk('classical')).toBe(true); expect(deepOk('kingdoms')).toBe(false);
+  });
+});
+
+describe('sailing to a shore (manual playtest 29 Oct: "A fleet can only put in at a city")', () => {
+  // A sea tile off the port with a free shore beside it, and a free shore farther out.
+  const waters = portWaters(port.s, tiles, port.id).filter((t) => seaPassable(tiles, t, 'bronze'));
+  const free = (t) => tiles.land[t] === 1 && port.s.world.tileOwner[t] == null;
+  const sea = waters.find((t) => tiles.neighbors[t].some(free));
+  const shore = tiles.neighbors[sea].find(free);
+  it('from port: sails to the water beside the shore, the landing to follow', () => {
+    const s = withUnits(port.s, [fleet('f1', port.id, { tile: S.regions[port.id].tile })]);
+    const p = shorePlan(s, port.id, shore, ['f1']);
+    expect(p).toMatchObject({ ok: true, shoreOf: shore });
+    expect(tiles.neighbors[shore]).toContain(p.approachTile);
+    expect(tiles.land[p.approachTile]).not.toBe(1);
+  });
+  it('beside the shore: lands the troops aboard, or says there are none', () => {
+    const s = withUnits(port.s, [fleet('f1', port.id, { tile: sea }), army('a1', port.id, { tile: sea, embarkedOn: 'f1' })]);
+    expect(shorePlan(s, port.id, shore, ['f1'])).toMatchObject({ shoreOf: shore, landHere: ['a1'] });
+    const landed = gameReducer(s, { type: ActionTypes.DISEMBARK_UNIT, payload: { landUnitId: 'a1', tile: shore } });
+    expect(landed.units.a1).toMatchObject({ embarkedOn: null, tile: shore });
+    const empty = withUnits(port.s, [fleet('f1', port.id, { tile: sea })]);
+    expect(shorePlan(empty, port.id, shore, ['f1'])).toMatchObject({ landHere: [], reasonMsg: { key: 'm.why.noneAboard' } });
+  });
+  it('a sea tile is no shore', () => {
+    expect(shorePlan(port.s, port.id, sea)).toBeNull();
   });
 });

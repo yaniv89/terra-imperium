@@ -42,7 +42,7 @@ import { getResearched } from './nationState';
 import { enemyFleetAt, findSeaPath, fleetPace, isFleet, portsBeside, portWaters, touchesCoastOf } from './fleets';
 import {
   BANK_CAP, DEFAULT_MOVE_POINTS, ENEMY_TILE_COST, MARCH_ATTRITION, MAX_ROUTE_STEPS, MOVE_POINTS,
-  aboardShip, armiesByTile, enemyArmyAt, findTilePath, inEnemyZoc, isHarsh, movePoints, regionAccess, regionForTile, stackPace, tileAccess, tileStepCost, unitTile
+  aboardShip, armiesByTile, enemyArmyAt, findTilePath, passableTile, inEnemyZoc, isHarsh, movePoints, regionAccess, regionForTile, stackPace, tileAccess, tileStepCost, unitTile
 } from './armies';
 import { isStationedIn } from './unitLocation';
 
@@ -264,6 +264,28 @@ export const planMarch = (state, fromId, target, unitIds = null, { naval = false
   const supplies = Math.round(units.length * MARCH_SUPPLY_PER_UNIT * (charged + Math.min(charged, enemySteps)) * 10) / 10;
   const haltTile = haltIndex >= 0 ? steps[haltIndex] : null;
   return { ok: true, naval, from, path: found.path, steps, stepTurns, turns, pace, spent, units: units.map((u) => u.id), supplies, haltTile, haltAt: haltTile != null ? state.world?.tileOwner?.[haltTile] ?? null : null };
+};
+
+/** A fleet aimed at a shore (a land tile, not a port): beside it already, `landHere` lists the troops
+ * aboard that may land there now (DISEMBARK_UNIT's rule: own, free or friendly land); else the sail
+ * to the nearest water beside it (`approachTile`), the landing to follow on arrival. `shoreOf` is
+ * the shore; null when the tile is not land or no water beside it is in reach (planMarch says why). */
+export const shorePlan = (state, fromId, shore, unitIds = null) => {
+  const tiles = getTiles();
+  if (shore == null || tiles.land[shore] !== 1) return null;
+  const fleets = marchingUnits(state, fromId, unitIds, { naval: true });
+  if (!fleets.length) return null;
+  const at = mainTile(state, fleets);
+  if (at != null && tiles.land[at] !== 1 && tiles.neighbors[at].includes(shore)) {
+    const ids = new Set(fleets.map((f) => f.id));
+    const open = passableTile(tiles, shore) && !['enemy', 'held', 'closed'].includes(tileAccess(state, shore, state.playerNationId));
+    const aboard = open ? Object.values(state.units).filter((u) => ids.has(u.embarkedOn) && u.embarkedOn !== u.id).map((u) => u.id) : [];
+    return { ok: false, naval: true, shoreOf: shore, landHere: aboard, ...reasonOf(open ? 'm.why.noneAboard' : 'm.why.enemyShore') };
+  }
+  const best = tiles.neighbors[shore].filter((n) => tiles.land[n] !== 1)
+    .map((n) => planMarch(state, fromId, n, unitIds, { naval: true })).filter((p) => p.ok)
+    .sort((a, b) => a.turns - b.turns || a.steps.length - b.steps.length)[0];
+  return best ? { ...best, shoreOf: shore, approachTile: best.path[best.path.length - 1] } : null;
 };
 
 /** A new move order ends a standing one: Hold (`unit.hold`) and Lay siege (`unit.siegeOf`, sieges.js)

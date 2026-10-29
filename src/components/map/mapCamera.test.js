@@ -214,6 +214,10 @@ describe('the next army button (armyCycle)', () => {
   it('lists the stacks waiting for orders, then the marching ones, one tile each', () => {
     expect(armyCycle(state)).toEqual([A, B, E]);
   });
+  it('ends with the garrisons in the player\'s cities (new units join one)', () => {
+    const withCity = { ...state, regions: { c1: { id: 'c1', tile: C, owner: 'me' } }, units: { ...state.units, h: unit('h', C), s: unit('s', C, { classId: 'settler' }) } };
+    expect(armyCycle(withCity)).toEqual([A, B, E, C]);
+  });
   it('goes on to the next stack and wraps', () => {
     expect(nextTileAfter([100, 200], null)).toBe(100);
     expect(nextTileAfter([100, 200], 100)).toBe(200);

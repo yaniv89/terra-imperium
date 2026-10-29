@@ -12,7 +12,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MapPin, ScrollText } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { GameStatus } from '../../data/types';
-import { selectRegion, selectNation, focusPlace, openFieldAttack, manageCity } from '../map/marchEvents';
+import { selectRegion, selectNation, selectArmy, focusPlace, openFieldAttack, manageCity } from '../map/marchEvents';
 import { openPanelTab } from '../panels/panelEvents';
 import { OPEN_TURN_REPORT, setTurnReportShown } from './uiEvents';
 import { turnReportModel } from './turnReportModel';
@@ -102,6 +102,7 @@ const TurnReportSheet = () => {
   const go = (place) => {
     close();
     if (place.kind === 'city') { if (state.regions?.[place.id]) selectRegion(place.id); focusPlace([{ regionId: place.id }, { tile: place.tile }]); }
+    else if (place.kind === 'army') selectArmy(place.tile);
     else if (place.kind === 'nation') selectNation(place.id);
     else if (place.kind === 'tab') openPanelTab(place.id);
   };

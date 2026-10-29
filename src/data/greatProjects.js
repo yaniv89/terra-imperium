@@ -37,7 +37,7 @@
 // Three projects (Pyramids, Great Wall, Arsenal) name a flavor effect that doesn't exist as a real
 // mechanic yet (a stability floor, a combat malus on invaders, ship cost/naval morale) — each gets a
 // modest real bonus from an already-wired hook instead, as a stand-in, so building one is never a
-// pure dead end; every such trim/substitution is noted inline in that project's own `description`.
+// pure dead end; the player-facing `description` names only the real effect.
 //
 // NATIONAL wonders (plans/game/israelite-wonders.md): a project with a `homeland` (a country code
 // of the hex grid) can only be built by a city whose centre stands on that country's land, on a
@@ -117,7 +117,7 @@ export const GREAT_PROJECTS = {
   },
   great_pyramids: {
     id: 'great_pyramids', name: 'The Great Pyramids', ageId: 'bronze', siteRule: 'capital',
-    description: 'Built at your capital. +1/2/3 stability, standing in for the legitimacy/turn and stability-floor effects a monumental tomb complex would ideally grant.',
+    description: 'Built at your capital. +1/2/3 stability.',
     tiers: [
       { effects: { stabilityBonus: 1 }, completionPrestige: 10 },
       { effects: { stabilityBonus: 2 }, completionPrestige: 20 },
@@ -135,7 +135,7 @@ export const GREAT_PROJECTS = {
   },
   great_wall: {
     id: 'great_wall', name: 'The Great Wall', ageId: 'bronze', siteRule: 'palisade',
-    description: 'Built in a region with a Palisade. Decrees come faster, 1/2/3 steps (a secured, well-administered frontier), standing in for the "enemy stacks lose strength entering your border regions" combat mechanic.',
+    description: 'Built in a region with a Palisade. Decrees come faster, 1/2/3 steps (a secured, well-administered frontier).',
     tiers: [
       { effects: { decreePace: 1 }, completionPrestige: 10 },
       { effects: { decreePace: 2 }, completionPrestige: 20 },
@@ -225,7 +225,7 @@ export const GREAT_PROJECTS = {
   },
   arsenal: {
     id: 'arsenal', name: 'The Arsenal', ageId: 'gunpowder', siteRule: 'coastalNavalBase',
-    description: 'Built in a coastal region with a Naval Base. +5/10/15% manpower, standing in for the ship-cost/naval-morale effects.',
+    description: 'Built in a coastal region with a Naval Base. +5/10/15% manpower.',
     tiers: [
       { effects: { hrMult: 0.05 }, completionPrestige: 10 },
       { effects: { hrMult: 0.1 }, completionPrestige: 20 },
@@ -290,7 +290,7 @@ export const GREAT_PROJECTS = {
   // Famine protection only (plan U51), but the game has no famine yet: steadier growth stands in.
   global_seed_vault: {
     id: 'global_seed_vault', name: 'The Global Seed Vault', ageId: 'information', siteRule: 'capital',
-    description: 'Built at your capital. +0.1/0.2/0.3% population growth, standing in for famine protection.',
+    description: 'Built at your capital. +0.1/0.2/0.3% population growth.',
     tiers: [
       { effects: { popGrowthBonus: 0.001 }, completionPrestige: 10 },
       { effects: { popGrowthBonus: 0.002 }, completionPrestige: 20 },

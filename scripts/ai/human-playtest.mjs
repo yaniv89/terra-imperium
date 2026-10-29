@@ -36,10 +36,12 @@ export const SLICE_AGES = AGE_ORDER.slice(1); // the era saves (scripts/ai/era-s
 export const SCENES = ['campaign', 'battle'];
 export const AREAS = ['start screen and world setup', 'map pan, zoom, close view and fog', 'cities, builds and settlers', 'units and armies',
   'tech tree', 'economy and gold', 'diplomacy', 'wars and AI behaviour', 'RTS battles (deploy, orders, workers, sieges)', 'naval',
-  'crises, events, era goals, independents, raids, World Congress', 'glossary and help', 'save and load', 'speed feel', 'pacing and fun'];
+  'crises, events, era goals, independents, raids, World Congress', 'glossary and help', 'save and load', 'speed feel', 'pacing and fun',
+  'art and animation on the map', 'language (Hebrew text and right-to-left)'];
 export const BATTLE_AREAS = ['battle setup screen (age, armies, terrain, walls)', 'deploy phase', 'selection and orders on touch (tap, circle select, draw a path, attack-move)',
   'unit readability and size', 'camera pan and zoom', 'combat clarity (who is winning, damage, morale, rout)', 'economy and workers HUD', 'powers',
-  'buildings, sieges and walls', 'naval', 'end of battle and the result screen', 'speed and smoothness', 'layout on this screen and language', 'fun'];
+  'buildings, sieges and walls', 'naval', 'end of battle and the result screen', 'speed and smoothness', 'layout on this screen and language', 'fun',
+  'melee readability', 'hit feedback', 'deaths and corpses', 'projectiles and impacts', 'unit size at phone zoom', 'transitions (map to battle, battle to result)'];
 export const AREAS_OF = { campaign: AREAS, battle: BATTLE_AREAS };
 // Round 2 graded several areas after one glance: these are done for real before done (lead, 28 Oct).
 export const MUST_DO = {

@@ -22,6 +22,8 @@ import { WebGLRenderer, Scene, OrthographicCamera, Group } from 'three';
 import { useGame } from '../../../context/GameContext';
 import { useEffects } from '../../../context/EffectsContext';
 import { useMapInsets } from '../../../context/MapInsetsContext';
+import { Eye, Loader2, RefreshCw } from 'lucide-react';
+import { useT } from '../../../i18n/useT';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { loadLandFeatures } from '../../../data/geo/loadWorldFeatures';
 import { getCityFeatures, tileAtLatLon } from '../../../data/geo/cityFeatures';
@@ -56,7 +58,7 @@ import { createAtlas } from './spriteAtlas';
 import { onImageLoad } from './spriteArt';
 import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit, focusZoomFor, carryTransform, isSaneTransform, startZoomFor, wheelZoomDelta, maxZoomFor, flingVelocity, FLING_DECAY, FLING_MIN_SPEED } from './mapView';
 import { kmPerRing } from '../../../data/geo/gridScale';
-import { cleanLatLng, latLngOfCity, knownLatLngOfCity, cameraTarget, cameraKey, rememberCamera, recallCamera, createIntentGate, INTENT_SETTLE_MS } from '../mapCamera';
+import { cleanLatLng, latLngOfCity, knownLatLngOfCity, cameraTarget, cameraKey, rememberCamera, recallCamera, createIntentGate, INTENT_SETTLE_MS, GAME_LOADED } from '../mapCamera';
 import {
   citySprites, nearView, markerSprites, landSprites, groundMarks, settlerSprites, marchShapes, lensShapes, terrainSprites, tileOutline,
   HEX_FROM_ZOOM, CITY_DETAIL_ZOOM, CLOSE_ZOOM_K
@@ -127,6 +129,7 @@ const GLMapView = ({
   // 2: the settle view (stronger at the strategic zoom, blocked land hatched: territoryShader.js)
   const tintOn = lens === 'settle' ? 2 : lens === 'supply' ? 1 : 0;
   const { effects } = useEffects();
+  const { t: tr } = useT();
   const rawInsets = useMapInsets();
   const insets = hudOffset ? rawInsets : { top: 0, bottom: 0, left: 0, right: 0, start: 0, end: 0 };
   const layoutMode = useLayoutMode();
@@ -158,6 +161,8 @@ const GLMapView = ({
   // A new canvas (and renderer) when a lost WebGL context does not come back (canvasGen).
   const [canvasGen, setCanvasGen] = useState(0);
   const [assetsTick, setAssetsTick] = useState(0);
+  // 'loading' while the map's detail is on its way, 'failed' when some of it did not come (a retry chip), else null
+  const [detail, setDetail] = useState('loading');
   // a browser zoom or another screen changes the pixel ratio without a resize: draw again at it
   const [, setDprTick] = useState(0);
   useEffect(() => watchPixelRatio(() => setDprTick((n) => n + 1)), []);
@@ -205,6 +210,8 @@ const GLMapView = ({
     g.raster = createRasterLayer(ground, { request: g.request, onReady: () => g.request(), source });
     g.territory = createTerritoryLayer(new Scene(), tileGpuData(getTiles()));
     g.territoryCache = createTerritoryCache(g.territory);
+    // (the Earth draws at once; the territories once their shader is linked, off the main thread)
+    g.territoryCache.warm(renderer, camera).then(() => g.request());
     g.rivers = createRiverLayer(terrain, 1);
     g.terrainSprites = createSpriteLayer(terrain, atlas, 6);
     g.lowLines = createLineLayer(base, 20);
@@ -327,6 +334,10 @@ const GLMapView = ({
     }
     renderer.render(g.top, camera);
     g.frames += 1;
+    // the detail chip: the territories' shader or the Earth's pictures for this view still coming, or failed
+    const st = g.raster.stats();
+    const detail = st.failed ? 'failed' : !g.territoryCache.ready() || st.loading ? 'loading' : null;
+    if (detail !== g.detail) { g.detail = detail; setDetail(detail); }
     if (gliding || (g.closeActive && g.closeScene.moving())) g.request();
   }, [view, width, height, stepGlide]);
   useEffect(() => { if (gl.current) { gl.current.frame = frame; gl.current.request(); } }, [frame, ready]);
@@ -449,6 +460,12 @@ const GLMapView = ({
   // globe was shown), else close on the capital (startZoomFor), else the selected army; never a
   // default corner of the world. Again for another game on the same map (a new game, a load).
   const initialKeyRef = useRef(null);
+  const [loadSeq, setLoadSeq] = useState(0);
+  useEffect(() => {
+    const onLoad = () => { appliedInitialFocusRef.current = false; setLoadSeq((n) => n + 1); };
+    window.addEventListener(GAME_LOADED, onLoad);
+    return () => window.removeEventListener(GAME_LOADED, onLoad);
+  }, []);
   useEffect(() => {
     if (initialKeyRef.current !== camKey) { initialKeyRef.current = camKey; appliedInitialFocusRef.current = false; }
     if (appliedInitialFocusRef.current || !ready || !projection) return;
@@ -457,7 +474,7 @@ const GLMapView = ({
     const t = cameraTarget(gameStateRef.current, [{ regionId: initialFocusRegionId }], { selectedArmyTile: selectedArmy });
     const k = startZoomFor({ height, scale: projection.scale(), viewKm: START_VIEW_KM, minK: CLOSE_ZOOM_K * 1.05, maxK: ZOOM_MAX }) ?? INITIAL_FOCUS_ZOOM;
     if (t && focusOnLatLng(t.lat, t.lng, k)) appliedInitialFocusRef.current = true;
-  }, [initialFocusRegionId, focusOnLatLng, ready, projection, camKey, selectedArmy, height, ZOOM_MAX]);
+  }, [initialFocusRegionId, focusOnLatLng, ready, projection, camKey, selectedArmy, height, ZOOM_MAX, loadSeq]);
 
   // A new action effect: pan to it (keeping a deeper zoom) and keep it centred while it plays.
   const lastEffectIdRef = useRef(effects.length ? effects[effects.length - 1].id : null);
@@ -504,31 +521,42 @@ const GLMapView = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [insets.left, insets.right, insets.top, insets.bottom]);
 
-  // What a march aims at is never left under its bar (playtest audit I083): once the bar shows the
-  // plan, a target under it (or just below it) is panned down into the free map, the zoom kept.
+  // What a march aims at is never left under its bar or off the free map (playtest audit I083;
+  // round 3b civ-veteran 198, warmonger 159: the war card's fly-to centred it with the closing
+  // sheet's insets, under the bottom HUD). Once the bar shows the plan, a hidden target is centred
+  // in the room above the bar, the zoom of the fly-to kept; a target already in view stays put.
   const marchTarget = marchCtx?.march && !marchCtx.march.dragging ? marchCtx.march.target ?? null : null;
   useEffect(() => {
     if (marchTarget == null || !hudOffset || !projection) return undefined;
     let raf = requestAnimationFrame(() => {
       raf = requestAnimationFrame(() => {
-        const el = containerRef.current; const v = view();
+        const el = containerRef.current;
         const bar = document.querySelector('[data-testid="march-bar"]');
-        if (!el || !v || !bar || !zoomBehaviorRef.current) return;
+        if (!el || !bar || !zoomBehaviorRef.current) return;
         const ll = typeof marchTarget === 'number'
           ? (() => { const p = getTiles().latLonOf(marchTarget); return p ? { lat: p.lat, lng: p.lon } : null; })()
           : latLngOfCity(gameStateRef.current, marchTarget);
         const w = ll && projection([ll.lng, ll.lat]);
         if (!w) return;
-        const [sx, sy] = worldToScreen(v, w[0], w[1]);
+        const f = lastFly.current; const flying = f && Date.now() - f.at <= INTENT_SETTLE_MS;
+        const k = flying ? Math.min(ZOOM_MAX, Math.max(minK, f.zoom)) : transformRef.current.k;
+        // where it stands once a fly-to under way ends (it lands at the same zoom wherever it aims)
+        const t = transformRef.current; const v = view();
+        if (!v) return;
+        const [sx, sy] = flying ? [null, null] : worldToScreen(v, w[0], w[1]);
         const box = el.getBoundingClientRect(); const b = bar.getBoundingClientRect();
-        const left = b.left - box.left - 24; const right = b.right - box.left + 24; const bottom = b.bottom - box.top + 28;
-        if (sx < left || sx > right || sy > bottom || sy < -40) return;
-        const dy = bottom + 24 - sy;
-        select(el).transition().duration(300).call(zoomBehaviorRef.current.translateBy, 0, dy / transformRef.current.k);
+        const ins = insetsRef.current;
+        const top = ins.top + 8; const barTop = b.top - box.top - 8; const right = width - ins.right - 8; const left = ins.left + 8;
+        const underBar = sx != null && sx > b.left - box.left - 24 && sx < b.right - box.left + 24 && sy > barTop && sy < b.bottom - box.top + 28;
+        if (sx != null && !underBar && sx > left && sx < right && sy > top && sy < height - ins.bottom - 8) return;
+        const px = wrapNear(w[0], (width / 2 - t.x) / t.k, v.worldW);
+        const ax = (left + right) / 2; const ay = barTop > top + 40 ? (top + barTop) / 2 : height / 2;
+        lastFly.current = null; // a sheet closing a moment later must not redo the fly-to
+        select(el).transition().duration(350).call(zoomBehaviorRef.current.transform, zoomIdentity.translate(ax - px * k, ay - w[1] * k).scale(k));
       });
     });
     return () => cancelAnimationFrame(raf);
-  }, [marchTarget, hudOffset, projection, view]);
+  }, [marchTarget, hudOffset, projection, view, width, height, minK, ZOOM_MAX]);
 
   // The minimap's "you are here" box, once the view settles.
   useEffect(() => {
@@ -553,6 +581,10 @@ const GLMapView = ({
   const armyTarget = selectedArmy != null ? cameraTarget(state, [], { selectedArmyTile: selectedArmy }) : null;
   const goHome = useCallback(() => goTo(cameraTarget(gameStateRef.current, [], {})), [goTo]);
   const goArmy = useCallback(() => { const t = cameraTarget(gameStateRef.current, [], { selectedArmyTile: selectedArmy }); if (t?.from === 'army') goTo(t); }, [goTo, selectedArmy]);
+  // A wide dock on a phone leaves a strip of map: the corner buttons would lie over the prompt chips there.
+  const roomForControls = width - insets.left - insets.right >= 320;
+  // the close view of the middle of the screen
+  const goCloseView = useCallback(() => { const c = projection?.invert(screenToWorld(view(), width / 2, height / 2)); if (c) goTo({ lat: c[1], lng: c[0] }); }, [goTo, projection, view, width, height]);
   const zoomBy = useCallback((factor) => { if (zoomBehaviorRef.current && containerRef.current) select(containerRef.current).transition().duration(200).call(zoomBehaviorRef.current.scaleBy, factor); }, []);
   const resetZoom = useCallback(() => { if (zoomBehaviorRef.current && containerRef.current) select(containerRef.current).transition().duration(200).call(zoomBehaviorRef.current.transform, zoomIdentity.scale(minK)); }, [minK]);
 
@@ -1000,7 +1032,7 @@ const GLMapView = ({
       worldView: () => resetZoom()
     };
     window.__glMap = {
-      info: () => ({ ...gl.current.renderer.info.render, frames: gl.current.frames, territory: gl.current.lastTerritory, raster: gl.current.raster.stats(), terrainSprites: gl.current.terrainSprites.mesh.geometry.instanceCount, rivers: gl.current.rivers.count() }),
+      info: () => ({ ...gl.current.renderer.info.render, frames: gl.current.frames, detail: gl.current.detail, territory: gl.current.lastTerritory, raster: gl.current.raster.stats(), terrainSprites: gl.current.terrainSprites.mesh.geometry.instanceCount, rivers: gl.current.rivers.count() }),
       renderer: gl.current?.renderer,
       // the banners as last drawn (a glide moves them frame by frame: marchGlide.js, I070)
       banners: () => (gl.current?.markerShown || []).map((s) => ({ key: s.glideKey, anchor: [...s.anchor], size: [...s.size] })),
@@ -1045,7 +1077,28 @@ const GLMapView = ({
         </svg>
       )}
       {!prefersReducedMotion() && <EffectsLayer effects={effects} getProjector={getProjector} width={width} height={height} ageId={ageOf(state, state.playerNationId)} testId="map2d-effects" />}
-      <MapZoomControls
+      {/* Zoomed out, the close view (3D towns and armies) is one tap away: a double tap only zoomed one step, and players did not know it existed (round 3b civ-veteran 39-40). */}
+      {roomForControls && hudOffset && k < CLOSE_ZOOM_K && (
+        <button type="button" onClick={goCloseView} title={tr('zoom.closeViewTip')} data-testid="map-close-view"
+          style={{ insetInlineEnd: insets.end + 60 }}
+          className="absolute z-20 top-[calc(var(--header-height,2.25rem)+0.625rem)] min-h-[40px] px-3 rounded-full bg-fa-panel/95 border border-fa-line shadow-xl text-[12px] font-semibold text-fa-text hover:bg-fa-raised flex items-center gap-1.5">
+          <Eye className="w-4 h-4" aria-hidden="true" />{tr('zoom.closeView')}
+        </button>
+      )}
+      {/* F145: the map shows the Earth at once; this small chip says more is coming, or offers a retry (never a black map). */}
+      {detail === 'loading' && (
+        <div role="status" data-testid="map-detail-loading"
+          className="absolute z-20 bottom-3 left-1/2 -translate-x-1/2 pointer-events-none px-2.5 py-1 rounded-full bg-fa-panel/90 border border-fa-line text-[11px] text-fa-muted flex items-center gap-1.5">
+          <Loader2 className="w-3.5 h-3.5 motion-safe:animate-spin" aria-hidden="true" />{tr('map.loadingDetail')}
+        </div>
+      )}
+      {detail === 'failed' && (
+        <button type="button" onClick={() => gl.current?.raster.retry()} data-testid="map-detail-retry"
+          className="absolute z-20 bottom-3 left-1/2 -translate-x-1/2 min-h-[40px] px-3 rounded-full bg-fa-panel/95 border border-fa-line shadow-xl text-[12px] font-semibold text-fa-text hover:bg-fa-raised flex items-center gap-1.5">
+          <RefreshCw className="w-4 h-4" aria-hidden="true" />{tr('map.detailFailed')}: {tr('map.retry')}
+        </button>
+      )}
+      {roomForControls && <MapZoomControls
         style={{ insetInlineEnd: insets.end + 8 }}
         className={hudOffset ? 'top-[calc(var(--header-height,2.25rem)+0.625rem)]' : 'top-12'}
         onZoomIn={() => zoomBy(ZOOM_STEP_SCALE)} canZoomIn={kNow < ZOOM_MAX}
@@ -1053,7 +1106,7 @@ const GLMapView = ({
         onReset={resetZoom} canReset={kNow > minK}
         onHome={homeTarget ? goHome : null} onArmy={armyTarget?.from === 'army' ? goArmy : null}
         findCities={(q) => findCities(gameState, q)} onFindCity={(id) => { onSelectRegion?.(id); focusPlace([{ regionId: id }]); }} // marching: the march aims at it
-      />
+      />}
     </div>
   );
 };

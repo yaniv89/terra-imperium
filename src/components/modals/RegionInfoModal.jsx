@@ -17,11 +17,13 @@ import { ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD, ESPIONAGE_SUCCESS_CHAN
 import { isCoastal, isReachableBySea } from '../../data/navalReach';
 import { isAtWarWithPlayer, hasCasusBelli, isInTruce } from '../../engine/diplomacy';
 import { canAttack } from '../../engine/hostility';
+import { opinionOf } from '../../engine/opinion';
+import { moodWord } from './firstContactModel';
 import { isIndependentNation, PERSONALITIES } from '../../data/independents';
 import IndependentCityCard from '../independents/IndependentCityCard';
 import RazeControl from './RazeControl';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
-import { formatNumber, getControlColor, getRelationColor, getFieldedStrength, getStability, getSupplyCapacity } from '../../utils/helpers';
+import { formatNumber, getControlColor, getFieldedStrength, getStability, getSupplyCapacity } from '../../utils/helpers';
 import { categoryTierName, extractionName, wonderName, terrainWord, buildingCategoryLabel, unitClassName, resourceName, independentKindName } from '../../i18n/gameText';
 import { BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, EXTRACTION_BUILDINGS, getBuildingSlots, getUsedBuildingSlots } from '../../data/buildings';
 import { UNIT_CLASSES } from '../../data/unitClasses';
@@ -45,6 +47,8 @@ import { useReportInset } from '../../context/MapInsetsContext';
 import ProgressBar from '../ui/ProgressBar';
 import { ActionButton } from '../ui';
 import TopLayer from '../ui/TopLayer';
+import { Bubble } from '../ui/WhyTip';
+import { useAnswer } from '../ui/useAnswer';
 import PreBattleModal from '../battle/PreBattleModal';
 import { startMarch, selectNation, selectArmy, selectTile } from '../map/marchEvents';
 import { settlerStatus } from '../map/settleRoutes';
@@ -67,12 +71,13 @@ import { nameNow } from '../../i18n/names';
 import { useT } from '../../i18n/useT';
 import { reasonText } from '../../i18n/messageText';
 import { msgRefText } from '../battle/battleText';
-import { t as tNow, hasKey } from '../../i18n/core';
+import { t as tNow } from '../../i18n/core';
 import { ageOf } from '../../engine/nationState';
+import { outpostTurnsLeft } from '../../engine/settlers';
 import { sideAgeOf } from '../../engine/ageRefs';
 import { shownPeople } from '../../data/ages';
 import { sizeToPeople } from '../../engine/world/cities';
-import { canPay } from '../../utils/costs';
+import { canPay, warCost } from '../../utils/costs';
 
 const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
 // a nation's name in the current language (a people's title, or an independent's form)
@@ -99,6 +104,7 @@ const isReachable = (fromRegionId, toRegionId, age) =>
 // the mode toggle) stays translucent.
 const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) => {
   const { state, dispatch, addLog } = useGame();
+  const answer = useAnswer(state, dispatch); // a peace offer answers on this card, as on the people's card
   const { t } = useT();
   const turnsOf = (n) => t('ind.turns', { count: n });
   const { triggerEffect } = useEffects();
@@ -189,11 +195,12 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   // Already held by your army (an occupation from an older save): no attack left to make there.
   // An independent city (hostility.js) may be attacked without a war: it counts as "at war" here.
   const ownerIsIndependent = !!ownerNation && isIndependentNation(ownerNation);
+  const ownerMood = ownerNation ? moodWord(opinionOf(state, ownerNation.id)) : null;
   const atWarWithOwner = !!ownerNation && (isAtWarWithPlayer(state, ownerNation.id) || canAttack(state, state.playerNationId, ownerNation.id)) && regionState.occupiedBy !== state.playerNationId;
   // Land nobody owns (an emergent world's frontier) has no war to declare and no one to invade.
   const hasMilitaryOption = !!ownerNation && invasionSources.length + amphibiousSources.length + navalEngagementSources.length > 0;
   const warJustified = !!ownerNation && hasCasusBelli(state, state.playerNationId, ownerNation.id);
-  const declareWarCosts = warJustified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
+  const declareWarCosts = warCost(state, warJustified);
   const breaksTruce = !!ownerNation && !atWarWithOwner && isInTruce(state, state.playerNationId, ownerNation.id);
   const warBlockedReason = !ownerNation || atWarWithOwner ? null
     : state.nations[state.playerNationId]?.vassalOf ? t('ri.vassalNoWar')
@@ -286,7 +293,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         : `${isCornerCard ? `absolute corner-card ${cornerTopClass} start-[calc(var(--city-rail-w,0px)+0.5rem)] pl:start-[max(var(--safe-start),0.5rem)] z-20 max-h-[calc(100dvh-var(--header-height,4.5rem)-1.5rem)] overflow-y-auto overscroll-contain` : 'relative'}
            fa-sheet p-3 rounded-[10px] text-[13px] w-[310px] max-w-[calc(100vw-1rem)]
            border border-fa-line shadow-xl`
-    }>
+    } onClickCapture={answer.capture}>
+      {answer.notice?.rect && <Bubble rect={answer.notice.rect} text={answer.notice.text} />}
       {mobileSheet && (
         // Tapping the grab handle toggles between the half-height sheet and a near-full-screen one
         // (and brings a peeking sheet straight back).
@@ -345,7 +353,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           data-testid="open-city-sheet"
         >
           <Settings2 className="w-4 h-4" aria-hidden="true" />
-          {t('ri.openCity')}
+          {/* an outpost builds nothing yet: the button says so (civ-veteran playtest step 187) */}
+          {regionState?.outpost ? t('ri.openOutpost', { count: outpostTurnsLeft(state, regionState, ageOf(state, state.playerNationId)) ?? 2 }) : t('ri.openCity')}
         </button>
       )}
 
@@ -384,7 +393,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           {regionState.occupiedBy === state.playerNationId && occupationWar && (
             <div className="rounded-lg border border-fa-line bg-fa-raised p-2 text-[12px] space-y-1.5" data-testid="occupation-note">
               <div>{t('ri.occupationNote', { city: nameNow('city', null, regionData.name), owner: pn(ownerNation) || t('ri.theirs') })}</div>
-              <button type="button" onClick={() => setPeaceOpen(true)} className="fa-btn fa-btn-secondary w-full" data-testid="open-peace-deal">{t('ri.negotiate')}</button>
+              <button type="button" onClick={() => setPeaceOpen(true)} className="fa-btn fa-btn-secondary w-full" data-testid="open-peace-deal" data-help="term:diplomacy">{t('ri.negotiate')}</button>
             </div>
           )}
           {regionState.occupiedBy && (
@@ -412,7 +421,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       {/* Foreign relations */}
       {!isPlayerOwned && ownerNation && (
         <div className="mb-2 space-y-1">
-          <StatLine label={t('ri.relation')} value={hasKey(`nc.rel.${ownerNation.relationStatus}`, 'en') ? t(`nc.rel.${ownerNation.relationStatus}`) : ownerNation.relationStatus} valueStyle={{ color: getRelationColor(ownerNation.relationStatus) }} />
+          {/* the word follows the opinion number, never the status stored when a deal was signed */}
+          <StatLine label={t('ri.relation')} value={t(`p2.mood.${ownerMood}`)} valueClass={ownerMood === 'Friendly' || ownerMood === 'Warm' ? 'text-fa-good' : ownerMood === 'Wary' ? '' : 'text-fa-danger-text'} />
           <StatLine icon={Swords} label={t('ri.nationArmy')} value={revealed ? formatNumber(getFieldedStrength(state, regionState.owner)) : t('ri.armyUnknown')} valueClass={revealed ? 'text-fa-danger-text' : 'text-fa-muted'} />
           <StatLine label={t('ri.hostility')} value={`${ownerNation.hostility}%`} valueClass="text-fa-enemy" />
           <div className="flex flex-wrap gap-1 pt-1">
@@ -468,6 +478,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
                 onClick={handleDeclareWar}
                 disabled={!!warBlockedReason || !canPay(state, declareWarCosts)}
                 why={warBlockedReason || payWhy(state, declareWarCosts)}
+                help="term:diplomacy"
                 variant="danger"
                 size="small"
               />
@@ -485,6 +496,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               onClick={() => dispatch({ type: ActionTypes.SET_ROUTE, payload: { fromRegionId: srcId, toRegionId: regionId, attack: true } })}
               disabled={!march.ok}
               why={march.ok ? null : reasonText(march)}
+              help="term:battle"
               variant="danger"
               size="small"
             />
@@ -496,6 +508,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               description={blockedReason || t('ri.landUnits', { count: unitCount })}
               costs={ACTION_COSTS.launchInvasion}
               onClick={() => handleInvade(srcId)}
+              help="term:battle"
               disabled={!!blockedReason}
               why={blockedReason}
               variant="danger"
@@ -510,6 +523,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               description={blockedReason || t('ri.embarked', { count: cargoCount })}
               costs={ACTION_COSTS.amphibiousAssault}
               onClick={() => handleAmphibiousAssault(unit.id)}
+              help="term:ships"
               disabled={!!blockedReason}
               why={blockedReason}
               variant="danger"
@@ -524,6 +538,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               description={t('ri.contest', { count: defendingNavalUnits.length })}
               costs={ACTION_COSTS.navalEngagement}
               onClick={() => handleNavalEngagement(srcId)}
+              help="term:ships"
               disabled={!canPay(state, ACTION_COSTS.navalEngagement)}
               why={payWhy(state, ACTION_COSTS.navalEngagement)}
               variant="danger"
@@ -753,7 +768,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
 
       <TopLayer>
         {battleChoiceFrom && <PreBattleModal fromRegionId={battleChoiceFrom} targetRegionId={regionId} onClose={() => setBattleChoiceFrom(null)} />}
-        {peaceOpen && occupationWar && <PeaceDealSheet warId={occupationWar.id} onClose={() => setPeaceOpen(false)} />}
+        {peaceOpen && occupationWar && <PeaceDealSheet warId={occupationWar.id} onClose={() => setPeaceOpen(false)} onSend={answer.dispatch} />}
         {landingChoice && <PreBattleModal navalUnitId={landingChoice} targetRegionId={regionId} onClose={() => setLandingChoice(null)} />}
       </TopLayer>
 

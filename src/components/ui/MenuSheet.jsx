@@ -1,7 +1,7 @@
 // src/components/ui/MenuSheet.jsx
 // The menu hub (human playtest issue 3: nobody found save, load, help or the glossary). Opened from
 // Menu on the tab rail (all entries) and the "?" on the top bar (view 'help': Help and Glossary).
-// Every entry reuses an existing screen: Save writes the autosave now (GameContext saveNow), Load
+// Every entry reuses an existing screen: Save writes the autosave and the manual slot (GameContext saveManual), Load
 // and Back to title open the title screen (its load view lists the save slots), Help replays the
 // onboarding cards, Glossary opens the glossary index, Settings the sheet.
 import React, { useEffect, useRef, useState } from 'react';
@@ -10,6 +10,8 @@ import { Button, SheetHeader } from './atlas';
 import { useLastSave } from '../../context/GameContext';
 import { useInteraction, useDismissOverlays, PRIORITY } from '../../hooks/useExclusivePanel';
 import { useT } from '../../i18n/useT';
+import { openGlossary } from './uiEvents';
+import { GLOSSARY_TOPICS } from '../../data/glossary';
 
 const ENTRIES = [
   { id: 'save', icon: Save, help: false },
@@ -45,6 +47,12 @@ const MenuSheet = ({ open, view = 'all', onClose, on }) => {
           {menuEntries(view, on).map((e) => (
             <Button key={e.id} onClick={() => pick(e)} className="!min-h-[44px] !justify-start" data-testid={`menu-${e.id}`}>
               <e.icon className="w-4 h-4 shrink-0" aria-hidden="true" />{t(`hub.go.${e.id}`)}
+            </Button>
+          ))}
+          {view === 'help' && <p className="col-span-2 fa-label mt-1">{t('gloss.topics')}</p>}
+          {view === 'help' && Object.keys(GLOSSARY_TOPICS).map((id) => (
+            <Button key={id} onClick={() => { close(); openGlossary('term', id); }} className="!min-h-[44px] !justify-start" data-testid={`menu-topic-${id}`}>
+              <BookOpen className="w-4 h-4 shrink-0" aria-hidden="true" />{t(`gloss.term.${id}`)}
             </Button>
           ))}
           {view !== 'help' && (

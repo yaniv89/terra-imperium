@@ -3,7 +3,7 @@
 // against the committed map (a destroyed regiment left standing, a survivor made whole, a unit
 // missing from the result), one conversion of strength to men, and the temporary troops.
 import { describe, expect, it } from 'vitest';
-import { auxiliariesOf, auxiliaryLine, checkLedger, conserved, countText, ledgerOf, menOf, menText, sideTotals } from './battleLedger';
+import { auxiliariesOf, auxiliaryLine, checkLedger, conserved, countText, ledgerOf, menOf, menText, sideTotals, unitMenOf, SCOUT_PARTY_MEN } from './battleLedger';
 import { MEN_PER_STRENGTH } from './aftermath';
 import { recordBattleReport } from './battleReports';
 
@@ -25,7 +25,7 @@ describe('battle ledger', () => {
       row('d', 1000, 250, { routed: true, fate: 'runDown' }) // lived the fight, caught after
     ];
     const t = sideTotals(rows);
-    expect(t).toEqual({ units: 4, before: 4000, after: 700, fallen: 300 + 1000 + 600 + 750 + 250, fled: 400, runDown: 250, destroyed: 2 });
+    expect(t).toEqual({ units: 4, before: 4000, after: 700, fallen: 300 + 1000 + 600 + 750 + 250, fled: 400, runDown: 250, destroyed: 2, men: { before: menOf(4000), after: menOf(700), fallen: menOf(2900), fled: menOf(400), runDown: menOf(250) } });
     expect(conserved(t)).toBe(true);
     expect(conserved({ ...t, after: t.after + 1 })).toBe(false);
   });
@@ -87,5 +87,29 @@ describe('battle ledger', () => {
     expect(auxiliaryLine(auto.attacker, { yours: false })).toMatch(/^Their auxiliaries raised for the battle: 4,000 men, 1,500 standing at the end\. Temporary/);
     expect(auxiliariesOf({})).toBeNull();
     expect(auxiliaryLine(null)).toBeNull();
+  });
+});
+
+describe('men of a unit', () => {
+  it('counts a regiment by its strength and a scout party by its few riders', () => {
+    expect(unitMenOf({ strength: 1000 })).toBe(menOf(1000));
+    expect(unitMenOf({ explorer: true, strength: 300, maxStrength: 300 })).toBe(SCOUT_PARTY_MEN);
+    expect(unitMenOf({ explorer: true, strength: 150, maxStrength: 300 })).toBe(SCOUT_PARTY_MEN / 2);
+  });
+});
+
+describe('a scout party in a battle', () => {
+  it('counts the same men in the ledger as on its banner, and the men balance', () => {
+    const scout = { id: 's', classId: 'support', explorer: true, strength: 300, maxStrength: 300, ownerId: 'fr' };
+    const state = { playerNationId: 'fr', turnNumber: 4, year: -2000, units: { s: scout }, battleReports: [] };
+    const out = recordBattleReport(state, { outcome: 'attacker', kind: 'field', attackerNationId: 'be', defenderNationId: 'fr', opId: 'op2' }, {
+      attackers: [], defenders: [{ ...scout, strength: 120, routed: true, disposition: 'fled' }]
+    });
+    const entry = out.battleReports[0];
+    const { mine } = ledgerOf(entry);
+    expect(mine.men.before).toBe(unitMenOf(scout)); // the banner's count (mapMarkers.js men)
+    expect(mine.men.before).toBe(SCOUT_PARTY_MEN);
+    expect(mine.men.before).toBe(mine.men.after + mine.men.fallen + mine.men.fled);
+    expect(entry.fallen.defender + entry.fled.defender).toBe(SCOUT_PARTY_MEN);
   });
 });

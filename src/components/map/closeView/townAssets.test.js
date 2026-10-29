@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 import { Group, Mesh, BoxGeometry, BufferGeometry, Float32BufferAttribute, MeshStandardMaterial } from 'three';
 import { styleOfLand, styleChain } from '../../../data/architecture';
 import { readGlbJson } from '../../../../scripts/art/glbInfo.mjs';
-import { sharedAssetUrls, townAssetUrl, townVariant, lodForZoom, loadTownAsset, loadAssetObjects, cutBakedRing, instanceTownAsset, showLod, palaceFor, sharedAssetUrl, wallsFor, isCamp, COLONY_CAMP, fieldsAround, fieldCount, FIELDS_FOR_WORK } from './townAssets';
+import { sharedAssetUrls, townAssetUrl, townFallbackUrl, townVariant, lodForZoom, loadTownAsset, loadAssetObjects, cutBakedRing, instanceTownAsset, showLod, palaceFor, sharedAssetUrl, wallsFor, isCamp, COLONY_CAMP, fieldsAround, fieldCount, FIELDS_FOR_WORK } from './townAssets';
 
 const fakeObject = (name, lodNames = ['LOD0', 'LOD1', 'LOD2']) => {
   const root = new Group(); root.name = name;
@@ -235,5 +235,19 @@ describe('architecture regions', () => {
     }
     expect(sharedAssetUrls('kingdoms', 'israelite').map((u) => u.match(/shared-kingdoms(-[a-z]+)?/)[0]))
       .toEqual(['shared-kingdoms-israelite', 'shared-kingdoms-levant', 'shared-kingdoms']);
+  });
+});
+
+describe('a town whose file fails', () => {
+  it('stands in another town file of its age, the size first, until none is left', () => {
+    const failed = new Set([townAssetUrl('bronze', 'small', 0)]);
+    const next = townFallbackUrl('bronze', 'small', failed);
+    expect(next).toBeTruthy();
+    expect(failed.has(next)).toBe(false);
+    expect(next).toMatch(/bronze-town-small-/);
+    // every file of the age failed: null (the procedural town is the last resort)
+    for (let u = next; u; u = townFallbackUrl('bronze', 'small', failed)) failed.add(u);
+    expect(townFallbackUrl('bronze', 'small', failed)).toBeNull();
+    expect([...failed].every((u) => /bronze-town-/.test(u))).toBe(true);
   });
 });

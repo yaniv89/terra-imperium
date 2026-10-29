@@ -15,7 +15,10 @@ export const GLOSSARY_KINDS = ['people', 'city', 'tech', 'unit', 'building', 're
 export const buildingId = (categoryId, tierIndex) => `${categoryId}.${tierIndex}`;
 // The game's own words, for a newcomer (newcomer playtest: Glossary opened a people page, never a
 // list). Text lives in the i18n keys gloss.term.<id> and gloss.term.<id>.text.
-export const GLOSSARY_TERMS = ['gold', 'production', 'science', 'settlers', 'scouts', 'army', 'battle', 'war', 'pact', 'independents', 'ruler', 'decrees', 'governor', 'laws', 'ages', 'goals', 'food', 'culture', 'boosts', 'queue', 'focus', 'landmarks', 'catchup', 'help'];
+export const GLOSSARY_TERMS = ['gold', 'production', 'science', 'settlers', 'scouts', 'army', 'battle', 'war', 'pact', 'independents', 'ruler', 'decrees', 'governor', 'laws', 'ages', 'goals', 'food', 'culture', 'boosts', 'queue', 'focus', 'landmarks', 'catchup', 'help', 'empire', 'cities', 'peoples', 'log', 'ships', 'diplomacy'];
+// Topic cards (newcomer playtest: How to play said nothing on battles, ships or decrees): longer terms,
+// listed under Help's "?" and linked to the terms they lean on.
+export const GLOSSARY_TOPICS = { battle: ['war', 'army'], ships: ['army', 'battle'], diplomacy: ['decrees', 'pact', 'war'] };
 
 /** Every id of a kind that has an entry. */
 export const glossaryIds = (kind) => ({

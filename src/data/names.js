@@ -7,7 +7,7 @@
 // the 240 nations falling back to a generic pool — real flavor for the common case, honestly
 // approximate for the long tail, rather than either blocking M3 on the full pipeline or faking
 // precision the mapping doesn't have.
-import { countryOfNation } from './peoples';
+import { countryOfNation, PEOPLES } from './peoples';
 
 const NAME_POOLS = {
   western_european: {
@@ -74,14 +74,74 @@ const COUNTRY_TO_GROUP = {
   pe: 'latin_american', cl: 'latin_american', ve: 'latin_american'
 };
 
-// A people of the pool (src/data/peoples.js) reads the group of its modern land.
+// The peoples of the pool (src/data/peoples.js) are ancient: their governors and advisors take
+// names of their own culture and time, never the modern pools above (Mycenaeans were named
+// Beatriz and Diego, manual playtest 29 Oct). Given names only; the dynasty pools stay legacy.
+// A people with no recorded personal names (Hopewell, Dorset, Lapita, Nuragic...) takes the pool of
+// its nearest neighbours whose names survive (lead, 29 Oct), never a generic list.
+const ANCIENT_POOLS = {
+  aegean: ['Alexandros', 'Nikias', 'Theron', 'Kleon', 'Lykos', 'Damon', 'Hektor', 'Menelaos', 'Helene', 'Ariadne', 'Kassandra', 'Penelope', 'Phaidra'],
+  etruscan: ['Larth', 'Arnth', 'Vel', 'Aule', 'Lars', 'Sethre', 'Laris', 'Tanaquil', 'Ramtha', 'Thana', 'Velia', 'Fasti'],
+  iberian: ['Viriathus', 'Indibilis', 'Mandonius', 'Arganthonios', 'Caro', 'Retogenes', 'Ambatus', 'Aucia', 'Boutia', 'Camala'],
+  celtic: ['Ambiorix', 'Brennus', 'Caratacus', 'Dumnorix', 'Cunobelin', 'Commius', 'Togodumnus', 'Boudica', 'Cartimandua', 'Medb', 'Brigid'],
+  germanic: ['Arminius', 'Segestes', 'Maroboduus', 'Hrothgar', 'Ingvar', 'Sigurd', 'Hrolf', 'Thusnelda', 'Gudrun', 'Sigrid', 'Hilda'],
+  thracian: ['Burebista', 'Decebalus', 'Sitalkes', 'Seuthes', 'Kotys', 'Teres', 'Dromichaetes', 'Rhesus', 'Zia', 'Bendis'],
+  mesopotamian: ['Sargon', 'Rimush', 'Shulgi', 'Zimri-Lim', 'Ishbi-Erra', 'Untash', 'Shutruk', 'Kutik', 'Enheduanna', 'Kubaba', 'Shibtu', 'Puabi'],
+  egyptian: ['Ahmose', 'Thutmose', 'Amenhotep', 'Khufu', 'Senusret', 'Nebamun', 'Ramesses', 'Hatshepsut', 'Nefertari', 'Tiye', 'Merit'],
+  levantine: ['David', 'Yoav', 'Asa', 'Hiram', 'Niqmaddu', 'Abimelech', 'Ammurapi', 'Deborah', 'Miriam', 'Tamar', 'Baalat'],
+  arabian: ['Aretas', 'Malichus', 'Obodas', 'Karibil', 'Yathaamar', 'Hujr', 'Imru', 'Zabibe', 'Samsi', 'Shaqilath', 'Bilqis'],
+  anatolian: ['Hattusili', 'Mursili', 'Suppiluliuma', 'Gyges', 'Alyattes', 'Midas', 'Gordias', 'Argishti', 'Sarduri', 'Puduhepa', 'Kubaba'],
+  iranian: ['Cyaxares', 'Deioces', 'Arsaces', 'Mithridates', 'Spitamenes', 'Oxyartes', 'Farnbag', 'Roxana', 'Atossa', 'Amytis', 'Rhodogune'],
+  steppe: ['Bumin', 'Istemi', 'Tardu', 'Bilge', 'Bayan', 'Tonyukuk', 'Kapgan', 'Bori', 'Ashina', 'Ilbilga', 'Ay'],
+  indic: ['Chandragupta', 'Bimbisara', 'Ajatashatru', 'Pradyota', 'Kharavela', 'Satakarni', 'Udayana', 'Devanampiya', 'Prabhavati', 'Gautami', 'Sanghamitta', 'Sumitra'],
+  sinic: ['Wu Ding', 'Ji Fa', 'Jiang Shang', 'Xiong Yi', 'Goujian', 'Zhao Tuo', 'Zhuang', 'Fu Hao', 'Bao Si', 'Xi Shi', 'Fu Jing'],
+  korean: ['Dangun', 'Jumong', 'Onjo', 'Geunchogo', 'Wiman', 'Haemosu', 'Biryu', 'Yuhwa', 'Soseono', 'Arang'],
+  japanese: ['Nashime', 'Aterui', 'More', 'Takeru', 'Ojin', 'Oyamato', 'Himiko', 'Iyo', 'Toyo', 'Jingu'],
+  tibetan: ['Songtsen', 'Namri', 'Trisong', 'Ligmigya', 'Nyatri', 'Drigum', 'Tritsun', 'Sadmarkar'],
+  seasian: ['Kaundinya', 'Jayavarman', 'Rudravarman', 'Bhadravarman', 'Purnawarman', 'Mulawarman', 'Balaputra', 'Sanjaya', 'Soma', 'Kulaprabhavati', 'Pramodhawardhani'],
+  berber: ['Massinissa', 'Jugurtha', 'Syphax', 'Juba', 'Bocchus', 'Micipsa', 'Gulussa', 'Tin Hinan', 'Dihya', 'Sophonisba'],
+  west_african: ['Oduduwa', 'Oranmiyan', 'Dinga', 'Kaya Maghan', 'Sumanguru', 'Dugu', 'Hume', 'Moremi', 'Yennenga', 'Amina'],
+  nubian: ['Piye', 'Kashta', 'Taharqa', 'Shabaka', 'Arkamani', 'Parehu', 'Wahar', 'Amanirenas', 'Amanishakheto', 'Ati', 'Shanakdakhete'],
+  bantu: ['Mutota', 'Matope', 'Ilunga', 'Nkongolo', 'Mbidi', 'Ruhinda', 'Ndahura', 'Wamara', 'Ralambo', 'Rueji', 'Nyabingi'],
+  mesoamerican: ['Kinich', 'Yax Nuun', 'Siyaj Kak', 'Jasaw', 'Yikin', 'Cosijoeza', 'Ix Yohl', 'Ix Kabel', 'Ix Wak', 'Pelaxilla', 'Donaji'],
+  andean: ['Naymlap', 'Tacaynamo', 'Manco', 'Sinchi', 'Mayta', 'Lloque', 'Nemequene', 'Tisquesusa', 'Ceterni', 'Ocllo', 'Cusi', 'Chimpu'],
+  caribbean: ['Caonabo', 'Hatuey', 'Guarionex', 'Bohechio', 'Cunhambebe', 'Aimbere', 'Arariboia', 'Anacaona', 'Higuamota', 'Paraguacu', 'Moema'],
+  north_american: ['Koyah', 'Ninstints', 'Skidegate', 'Cumshewa', 'Senquene', 'Popay', 'Tecumseh', 'Wingina', 'Nanyehi', 'Weetamoo', 'Awashonks'],
+  pacific: ['Naulivou', 'Isokelekel', 'Olosohpa', 'Taga', 'Quipuha', 'Matapang', 'Hurao', 'Tui', 'Adi Kuila']
+};
+Object.entries(ANCIENT_POOLS).forEach(([group, given]) => { NAME_POOLS[group] = { given, dynasty: [] }; });
+// A people reads the ancient group of its modern land; PEOPLE_GROUP corrects the lands that held
+// more than one culture.
+const LAND_TO_ANCIENT = {
+  gr: 'aegean', it: 'etruscan', es: 'iberian', pt: 'iberian', fr: 'celtic', gb: 'celtic', at: 'celtic',
+  de: 'germanic', cz: 'germanic', no: 'germanic', se: 'germanic', bg: 'thracian', ro: 'thracian', ua: 'thracian',
+  hu: 'steppe', ru: 'iranian', iq: 'mesopotamian', bh: 'mesopotamian', om: 'mesopotamian', ir: 'iranian',
+  eg: 'egyptian', il: 'levantine', sy: 'levantine', sa: 'arabian', ye: 'arabian', tr: 'anatolian', ge: 'anatolian',
+  az: 'anatolian', tm: 'iranian', uz: 'iranian', kz: 'steppe', kg: 'steppe', mn: 'steppe', cn: 'sinic',
+  kp: 'korean', kr: 'korean', jp: 'japanese', in: 'indic', pk: 'indic', lk: 'indic', id: 'seasian', kh: 'seasian',
+  th: 'seasian', mm: 'seasian', ph: 'seasian', vn: 'seasian', dz: 'berber', ma: 'berber', ly: 'berber',
+  ng: 'west_african', gh: 'west_african', ml: 'west_african', mr: 'west_african', td: 'west_african',
+  sd: 'nubian', so: 'nubian', et: 'nubian', tz: 'bantu', ug: 'bantu', zw: 'bantu', za: 'bantu', cd: 'bantu',
+  mg: 'bantu', bw: 'bantu', mx: 'mesoamerican', gt: 'mesoamerican', pe: 'andean', bo: 'andean', co: 'andean',
+  ar: 'andean', br: 'caribbean', dm: 'caribbean', ht: 'caribbean', us: 'north_american', ca: 'north_american',
+  pg: 'pacific', fj: 'pacific', fm: 'pacific', gu: 'pacific', au: 'pacific', al: 'thracian', af: 'iranian', ao: 'bantu'
+};
+const PEOPLE_GROUP = {
+  bosporan_kingdom: 'aegean', cyrene: 'aegean', pontus: 'aegean', khazaria: 'steppe', elam: 'mesopotamian',
+  libu: 'berber', khotan: 'iranian', kroraina: 'iranian', zhangzhung: 'tibetan', yarlung: 'tibetan',
+  xianbei: 'steppe', buyeo: 'korean', wusun: 'steppe'
+};
+
+// The broad group of a nation's modern land; AI doctrines read it too (peopleNation.js), so it stays.
 export const getCultureGroup = (nationId) => COUNTRY_TO_GROUP[countryOfNation(nationId)] || 'generic';
+/** The name pool a nation's people draw from: a people's own ancient group, else its land's group. */
+export const nameGroupOf = (nationId) => (PEOPLES[nationId] && (PEOPLE_GROUP[nationId] || LAND_TO_ANCIENT[countryOfNation(nationId)])) || getCultureGroup(nationId);
 
 const pick = (list, rng) => list[Math.floor(rng.next() * list.length)];
 
 // A ruler's given name plus their dynasty's name — `dynasty` is passed in rather than rolled
 // here so a monarchy's next ruler keeps the royal house (see rulers.js), only a fresh line
 // (post-civil-war, or the game's very first ruler) rolls a brand new one.
-export const generateGivenName = (nationId, rng) => pick(NAME_POOLS[getCultureGroup(nationId)].given, rng);
+export const generateGivenName = (nationId, rng) => pick(NAME_POOLS[nameGroupOf(nationId)].given, rng);
 /** The whole given-name list of a nation's culture group (for a deterministic fallback scan). */
-export const givenNamePool = (nationId) => NAME_POOLS[getCultureGroup(nationId)].given;
+export const givenNamePool = (nationId) => NAME_POOLS[nameGroupOf(nationId)].given;

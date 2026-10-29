@@ -145,8 +145,10 @@ describe('real TECH_TREE content integrity', () => {
     });
   });
 
+  // The Future is the exception: it is the last age, entered through Information techs, and its cost
+  // keeps a passive world's leader from the Future goal before the turn limit (research.js, 29 Oct).
   it('no cliff from Classical on: an age costs at most 4 times the one before (follow-up 17: Kingdoms was 15 times)', () => {
-    for (let i = getAgeIndex('kingdoms'); i < AGE_ORDER.length; i++) expect(RESEARCH_AGE_BASE[AGE_ORDER[i]] / RESEARCH_AGE_BASE[AGE_ORDER[i - 1]], AGE_ORDER[i]).toBeLessThanOrEqual(4);
+    for (let i = getAgeIndex('kingdoms'); i < AGE_ORDER.length; i++) if (AGE_ORDER[i] !== 'future') expect(RESEARCH_AGE_BASE[AGE_ORDER[i]] / RESEARCH_AGE_BASE[AGE_ORDER[i - 1]], AGE_ORDER[i]).toBeLessThanOrEqual(4);
   });
 
   it('research costs rise with each age (src/engine/research.js RESEARCH_AGE_BASE)', () => {

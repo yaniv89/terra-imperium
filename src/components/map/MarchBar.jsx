@@ -25,6 +25,7 @@ import { canAttack } from '../../engine/hostility';
 import { openBordersAcceptance } from '../../engine/accords';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { canPay } from '../../utils/costs';
+import { useWhy } from '../ui/WhyTip';
 import { costLine } from '../panels/empireText';
 import { describeAttackBlock } from '../../utils/attackAvailability';
 import PreBattleModal from '../battle/PreBattleModal';
@@ -84,6 +85,9 @@ export const marchBarModel = (state, march, plan) => {
     // The target's known strength and Auto's odds before the march starts (playtest 40651416284 step 286).
     odds: enemyCity && reach === 'far' && !!plan?.ok && !marchAttackBlocked ? marchOddsText(estimateMarchOdds(state, units, target), name(target)) : null,
     stopsAt: plan?.ok && plan.haltAt && plan.haltAt !== target ? plan.haltAt : null,
+    // An army whose route crosses water embarks by itself (armies.js self-embark): say so, it read as
+    // "does it board the ship?" (warmonger playtest 198 to 201).
+    seaSteps: !naval && plan?.ok ? (plan.steps || []).filter((t) => getTiles().land[t] !== 1).length : 0,
     // Leaving supply (supplyMeter.js): the meter over the whole march, turn by turn, then how long
     // it lasts where the march ends; `starvesAt` when it empties on the way (playtest issue 6).
     supplyOut: !naval && plan?.ok && plan.steps?.length ? supplyAlongMarch(state, units, plan.steps, plan.stepTurns) : null
@@ -93,6 +97,7 @@ export const marchBarModel = (state, march, plan) => {
 const MarchBar = () => {
   const { state, dispatch, addLog } = useGame();
   const { t, n } = useT();
+  const [why, whyBubble] = useWhy(); // a blocked attack says why on tap
   const ctx = useMarch();
   const [fieldAttack, setFieldAttack] = useState(null); // the tile of an enemy army beside the stack
   const [cityAttack, setCityAttack] = useState(null); // the enemy city the stack borders (ACT-01: its attack card, not the province card)
@@ -108,7 +113,9 @@ const MarchBar = () => {
   const { target, isTile, naval } = m;
   const targetName = isTile ? placeLabel(state, target) : name(target);
 
-  const toTile = isTile ? target : plan?.approachTile ?? null;
+  const toTile = plan?.shoreOf != null ? plan.approachTile ?? null : isTile ? target : plan?.approachTile ?? null;
+  const landHere = plan?.landHere?.length ? plan.landHere : null;
+  const land = () => { landHere.forEach((id) => dispatch({ type: ActionTypes.DISEMBARK_UNIT, payload: { landUnitId: id, tile: target } })); cancel(); };
   const marchNow = () => { dispatch({ type: ActionTypes.SET_ROUTE, payload: { ...(toTile != null ? { fromRegionId: march.from, toTile, via: march.via || undefined } : { fromRegionId: march.from, toRegionId: target }), naval, unitIds: march.unitIds || null } }); cancel(); };
   const marchAttack = () => { dispatch({ type: ActionTypes.SET_ROUTE, payload: { fromRegionId: march.from, toRegionId: target, attack: true, unitIds: march.unitIds || null } }); cancel(); };
   const moveNow = () => { m.units.forEach((u) => dispatch({ type: ActionTypes.MOVE_ARMY, payload: { unitId: u.id, toRegionId: target } })); cancel(); };
@@ -139,11 +146,13 @@ const MarchBar = () => {
   else if (m.approach?.there) line = <span data-testid="march-approach-there">{t('march.approachThere', { name: m.approach.name })}</span>;
   else if (m.approach && plan?.ok) line = <span data-testid="march-approach">{R('march.approach', { target: <b>{targetName}</b> }, { name: m.approach.name, turns: turnsText(plan.turns) })}</span>;
   else if (m.marchAttackBlocked) line = <span data-testid="march-attack-blocked">{plan?.ok ? <>{R('march.toTurns', { target: <b>{targetName}</b> }, { turns: turnsText(plan.turns) })}. </> : null}{danger(m.marchAttackBlocked)}</span>;
+  else if (landHere) line = <span data-testid="march-land-line">{t('march.landHere', { target: targetName })}</span>;
   else if (!plan?.ok) line = <span className="text-fa-danger-text">{plan?.reason ? reasonText(plan) : t('march.noRoute')}</span>;
+  else if (plan.shoreOf != null) line = <span data-testid="march-to-shore">{t('march.toShore', { target: targetName, turns: turnsText(plan.turns) })}</span>;
   else if (m.canMarchAttack) {
     line = (
       <span data-testid="march-attack-plan">
-        {R('march.attackPlan', { target: <b>{targetName}</b> }, { turns: turnsText(plan.turns), supplies: suppliesText(plan.supplies) })}{m.stopsAt && danger(t('march.stopsFirst', { place: name(m.stopsAt) }))}
+        {R('march.attackPlan', { target: <b>{targetName}</b> }, { turns: turnsText(plan.turns), supplies: suppliesText(plan.supplies) })}{m.seaSteps > 0 && t('march.selfEmbark', { count: m.seaSteps })}{m.stopsAt && danger(t('march.stopsFirst', { place: name(m.stopsAt) }))}
       </span>
     );
   } else if (m.enemyArmy) {
@@ -151,7 +160,7 @@ const MarchBar = () => {
   } else {
     line = (
       <span data-testid="march-plan">
-        {R('march.toTurns', { target: <b>{targetName}</b> }, { turns: `${turnsText(plan.turns)}${leaves}` })}{naval ? '.' : t('march.supplies', { supplies: suppliesText(plan.supplies) })}{m.canMoveNow ? t('march.moveNowNote') : ''}
+        {R('march.toTurns', { target: <b>{targetName}</b> }, { turns: `${turnsText(plan.turns)}${leaves}` })}{naval ? '.' : t('march.supplies', { supplies: suppliesText(plan.supplies) })}{m.seaSteps > 0 && <span data-testid="march-self-embark">{t('march.selfEmbark', { count: m.seaSteps })}</span>}{m.canMoveNow ? t('march.moveNowNote') : ''}
         {plan.haltAt && danger(t('march.halts', { place: name(plan.haltAt) }))}
       </span>
     );
@@ -176,14 +185,15 @@ const MarchBar = () => {
         {m.consequences.map((c) => <div key={c.id} className="text-fa-brass pl:line-clamp-1" data-testid={`march-${c.id}`}>{c.text}</div>)}
       </div>
       {!naval && <button onClick={() => ctx.setPathMode(!march.pathMode)} aria-pressed={!!march.pathMode} data-testid="march-path-mode" className={`relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg font-semibold flex items-center gap-1.5 ${march.pathMode ? 'bg-emerald-600 text-fa-text' : 'bg-fa-hover hover:bg-fa-line'}`}><Spline className="w-3.5 h-3.5" aria-hidden="true" />{t('march.path')}</button>}
-      {m.canAttackNow && <button onClick={attack} disabled={!!m.attackBlocked} title={m.attackBlocked || undefined} data-testid="march-attack-now" className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:hover:bg-red-600 font-semibold text-fa-text">{t('march.attack')}</button>}
+      {m.canAttackNow && <button {...why(!!m.attackBlocked, m.attackBlocked, attack)} data-testid="march-attack-now" className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 aria-disabled:opacity-50 disabled:hover:bg-red-600 font-semibold text-fa-text">{t('march.attack')}</button>}
       {m.canMarchAttack && (
         <button onClick={marchAttack} data-testid="march-attack" className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 font-semibold text-fa-text flex items-center gap-1.5">
           <Swords className="w-3.5 h-3.5" aria-hidden="true" />{t('march.marchAttack')}
         </button>
       )}
-      {m.enemyArmy?.adjacent && <button onClick={() => { if (!m.enemyArmy.blocked) setFieldAttack(target); }} disabled={!!m.enemyArmy.blocked} title={m.enemyArmy.blocked || undefined} data-testid="march-attack-army" className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 font-semibold text-fa-text">{t('march.attack')}</button>}
+      {m.enemyArmy?.adjacent && <button {...why(!!m.enemyArmy.blocked, m.enemyArmy.blocked, () => setFieldAttack(target))} data-testid="march-attack-army" className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 aria-disabled:opacity-50 font-semibold text-fa-text">{t('march.attack')}</button>}
       {m.canMoveNow && <button onClick={moveNow} data-testid="march-move-now" className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-fa-hover hover:bg-fa-line font-semibold">{t('march.moveNow')}</button>}
+      {landHere && <button onClick={land} data-testid="march-land" className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-semibold text-fa-text">{t('march.land')}</button>}
       {plan?.ok && !m.canAttackNow && !m.canMarchAttack && !m.enemyArmy?.adjacent &&<button onClick={marchNow} data-testid="march-confirm" className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-semibold text-fa-text">{naval ? t('march.sail') : t('march.march')}</button>}
       <button onClick={cancel} aria-label={t('march.cancel')} className="relative before:content-[''] before:absolute before:-inset-1.5 shrink-0 p-2 rounded-lg hover:bg-fa-raised text-fa-muted"><X className="w-4 h-4" /></button>
       {/* Closed land: their answer to open borders and the offer, on a row of their own so a phone's text keeps its width. */}
@@ -193,6 +203,7 @@ const MarchBar = () => {
           <button onClick={askBorders} data-testid="march-ask-borders" className={`relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-fa-hover hover:bg-fa-line font-semibold ${m.approach.borders.accepted && canPay(state, ACTION_COSTS.openBorders) ? '' : 'opacity-60'}`}>{t('march.askBorders', { cost: costLine(ACTION_COSTS.openBorders) })}</button>
         </div>
       )}
+      {whyBubble}
     </div>
   );
 };

@@ -40,7 +40,7 @@ import { validateFleetAttack, enemyFleetsAt } from '../../engine/navalBattle';
 import { declareWarModel } from '../panels/warActions';
 import { wallsLabel } from '../battle/warModel';
 import { fleetPace, atSea } from '../../engine/fleets';
-import { menText } from '../../engine/battleLedger';
+import { countText, unitMenOf } from '../../engine/battleLedger';
 import { navalLineOf, navalName } from '../../data/navalLines';
 import { validateInvasion } from '../../engine/invasion';
 import { besiegersOf, siegeHpOf, siegeMaxHp, wallsOf, isEncircled, siegeStrength, siegeOrders, centreIndex } from '../../engine/sieges';
@@ -166,7 +166,7 @@ export const armySheetModel = (state, tile, fleet = false) => {
     navalLine: naval ? navalLineOf(u) : null,
     army: u.army?.name || null,
     armyId: u.army?.id || null,
-    strength: u.strength, maxStrength: u.maxStrength || u.strength,
+    strength: u.strength, maxStrength: u.maxStrength || u.strength, men: unitMenOf(u), maxMen: unitMenOf({ ...u, strength: u.maxStrength || u.strength }),
     morale: u.morale ?? 100, robot: !!u.robot,
     supply: supplyOf(u, max), supplyMax: max,
     moves: u.movesLeft ?? 0, movePoints: naval ? fleetPace(state, u) : movePoints(u, researched),
@@ -217,7 +217,7 @@ export const armySheetModel = (state, tile, fleet = false) => {
   // A fleet in port: the troops in the city that can board it, and the cargo that can step ashore
   // (EMBARK_UNIT / DISEMBARK_UNIT). `other`: the other kind of stack on this city tile, to switch to.
   const inPort = naval && !atSea(state, units[0]);
-  const landName = (c) => `${unitRosterName(ageId, c.classId, getUnitDefinition(ageId, c.classId)?.name || UNIT_CLASSES[c.classId]?.name || c.classId)} (${menText(c.strength)})`;
+  const landName = (c) => `${unitRosterName(ageId, c.classId, getUnitDefinition(ageId, c.classId)?.name || UNIT_CLASSES[c.classId]?.name || c.classId)} (${countText(unitMenOf(c))})`;
   const cargoOf = (u) => Object.values(state.units).filter((c) => c.embarkedOn === u.id);
   const ship = inPort ? units.find((u) => cargoOf(u).length < (u.transportCapacity || 0)) : null;
   const board = ship ? Object.values(state.units)
@@ -232,7 +232,7 @@ export const armySheetModel = (state, tile, fleet = false) => {
     regionId: units[0].regionId,
     base: state.regions[units[0].regionId]?.name ? nameNow('city', null, state.regions[units[0].regionId].name) : null,
     where: whereText(state, tile), atBase: loc.atBase,
-    soldiers: units.reduce((s, u) => s + u.strength, 0),
+    soldiers: units.reduce((s, u) => s + u.strength, 0), men: units.reduce((s, u) => s + unitMenOf(u), 0),
     groups,
     zone: zone.zone, zoneText: report ? supplyText(report, hungry) : inPort ? '' : ZONE_TEXT[zone.zone] || '', // "at sea" would be wrong in port
     supplyReport: report, fortified, mergeFrom,

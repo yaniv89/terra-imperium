@@ -121,6 +121,11 @@ export const recallCamera = (key) => (remembered && key && remembered.key === ke
 
 export const forgetCamera = () => { remembered = null; };
 
+/** A save was loaded (GameContext): the remembered camera is forgotten and a mounted map goes to its first view again
+ * (the capital), as on a fresh mount; a load of the same game kept the old spot (lead's manual playtest, 29 Oct). */
+export const GAME_LOADED = 'ti:game-loaded';
+export const noteGameLoaded = () => { remembered = null; if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(GAME_LOADED)); };
+
 // ---------------------------------------------------------------- camera intents, applied once
 // A fly-to is an INTENT (the minimap, a chip, "Show on map"): it is applied once. The map's
 // callbacks are rebuilt whenever a sheet changes the free part of the screen or the screen is
@@ -144,9 +149,11 @@ export const createIntentGate = (settleMs = INTENT_SETTLE_MS) => {
 
 /**
  * The player's army stacks the "next army" button cycles (Civ VI's unit cycling, map-8): the ones
- * waiting for orders first (standingOrders idleArmyTiles), then the ones marching, one tile per
- * stack in unit id order. After End Turn this is where the moving armies went (playtest run
- * 40651416284 steps 70-72: the player panned to find a marching army).
+ * waiting for orders first (standingOrders idleArmyTiles), then the ones marching, then the
+ * garrisons in the player's cities, one tile per stack in unit id order. After End Turn this is
+ * where the moving armies went (playtest run 40651416284 steps 70-72: the player panned to find a
+ * marching army); new units join a city's garrison, and the button showed 1 while 4 units sat in
+ * Mycenae (lead's manual playtest, 29 Oct).
  */
 export const armyCycle = (state, nationId = state.playerNationId) => {
   const idle = idleArmyTiles(state, nationId);
@@ -156,6 +163,11 @@ export const armyCycle = (state, nationId = state.playerNationId) => {
     .filter((u) => u.ownerId === nationId && u.strength > 0 && u.domain !== 'naval' && !isSettler(u) && u.route?.length) // (one crossing water on its own boats too)
     .sort((a, b) => (a.id < b.id ? -1 : 1))
     .forEach((u) => { const t = unitTile(state, u); if (t != null && !seen.has(t)) { seen.add(t); out.push(t); } });
+  const cityTiles = new Set(Object.values(state.regions || {}).map((c) => c.tile));
+  Object.values(state.units || {})
+    .filter((u) => u.ownerId === nationId && u.strength > 0 && u.domain !== 'naval' && !u.embarkedOn && !isSettler(u))
+    .sort((a, b) => (a.id < b.id ? -1 : 1))
+    .forEach((u) => { const t = unitTile(state, u); if (t != null && cityTiles.has(t) && !seen.has(t)) { seen.add(t); out.push(t); } });
   return out;
 };
 

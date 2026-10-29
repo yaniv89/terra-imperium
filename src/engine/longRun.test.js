@@ -59,9 +59,11 @@ const badNumbers = (s) => {
 };
 
 describe('whole-world long runs', () => {
-  it('150 turns: deterministic turn by turn, finite everywhere, no runaway, provinces above their floor', () => {
+  // The passive player may be conquered (seed 4243 falls near turn 91): DEFEAT is a normal end of the run,
+  // checked like the last turn. A stall (a turn that does not advance) or an invariant break still fails.
+  it('150 turns or until the passive player falls: deterministic turn by turn, finite everywhere, no runaway, provinces above their floor', () => {
     const TURNS = 150;
-    let a = world(4243); let b = world(4243); // 4242's passive Kish fell at turn 91 once the Stone Age lost its central-place bonus (market.js)
+    let a = world(4243); let b = world(4243);
     const prints = [];
     let warsDeclared = 0;
     // Every game starts in the Stone Age (eight ages plan U46): all majors, the player included.
@@ -69,17 +71,20 @@ describe('whole-world long runs', () => {
     majors.forEach((id) => expect(ageOf(a, id), id).toBe(FIRST_AGE_ID));
     const rulers = Object.fromEntries(Object.entries(a.nations).map(([id, n]) => [id, n.ruler]));
     for (let t = 0; t < TURNS && a.gameStatus === GameStatus.ACTIVE; t++) {
+      const before = a.turnNumber;
       a = advance(a); b = advance(b);
+      if (a.gameStatus === GameStatus.ACTIVE) expect(a.turnNumber, `stalled at turn ${before}`).toBe(before + 1);
       warsDeclared += a.logs.filter((l) => l.year === a.year && /declared war/.test(l.message)).length;
       assertGameState(a);
       const pa = fingerprint(a);
       expect(fingerprint(b), `diverged at turn ${a.turnNumber}`).toBe(pa);
-      if (t === 49 || t === TURNS - 1) {
+      if (t === 49 || t === TURNS - 1 || a.gameStatus !== GameStatus.ACTIVE) {
         expect(badNumbers(a), `non-finite values at turn ${a.turnNumber}`).toEqual([]);
         prints.push(pa);
       }
     }
-    expect(a.turnNumber).toBeGreaterThanOrEqual(100); // the run didn't stall on something unanswered
+    // the run ends by playing every turn or by the passive player's defeat, never by anything else
+    expect(a.gameStatus === GameStatus.ACTIVE ? 'played' : a.gameStatus).toMatch(/^(played|DEFEAT)$/);
     const counts = {};
     Object.values(a.regions).forEach((r) => { counts[r.owner] = (counts[r.owner] || 0) + 1; });
     const total = Object.keys(a.regions).length;

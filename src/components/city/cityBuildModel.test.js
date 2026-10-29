@@ -23,6 +23,12 @@ const withTech = (s, ids) => ({ ...s, techTree: { ...s.techTree, ...Object.fromE
 const queue = (s, item, cityId = paris) => gameReducer(s, { type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId, item } });
 
 describe('build options', () => {
+  it('lists no building tier more than one age ahead (no Coal Plant or Market in the Stone Age)', () => {
+    const rows = buildOptions(S, paris).filter((o) => o.item.kind === 'building');
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.map((o) => o.item.category)).not.toContain('energy');
+    expect(rows.some((o) => o.label === 'Market')).toBe(false);
+  });
   it('every improvement row names its own tile: no two rows read the same', () => {
     const s = withTech(S, ['economy_bronze_trade_routes', 'military_bronze_casting', 'infrastructure_mudbrick_roads', 'infrastructure_irrigation_canals']);
     const rows = buildOptions(s, paris).filter((o) => o.group === 'Improvements');
@@ -68,7 +74,7 @@ describe('build options', () => {
     expect(locked.needsName).toBeTruthy();
   });
 
-  it('an inland city lists no ships and no harbor; a coastal one lists both', () => {
+  it('an inland city lists no harbor and one locked ship row naming the ports; a coastal one lists both', () => {
     const tiles = getTiles();
     const s = { ...S, age: 'classical', techAgeId: 'classical' };
     const mineOf = (pred) => Object.values(s.regions).find((c) => c.tile != null && !c.outpost && pred(c));
@@ -76,9 +82,13 @@ describe('build options', () => {
     const coastal = mineOf((c) => tiles.coastal[c.tile] === 1);
     const own = (c) => ({ ...s, playerNationId: c.owner });
     const inlandRows = buildOptions(own(inland), inland.id);
-    expect(inlandRows.some((o) => o.item.classId === 'naval')).toBe(false);
+    expect(inlandRows.filter((o) => o.item.classId === 'naval').map((o) => ({ group: o.group, ok: o.ok }))).toEqual([{ group: 'Ships', ok: false }]);
     expect(inlandRows.some((o) => o.id === 'building:naval')).toBe(false);
+    // with a port of the same owner, the row names it
+    const both = { ...own(inland), regions: { ...s.regions, [coastal.id]: { ...coastal, owner: inland.owner } } };
+    expect(buildOptions(both, inland.id).find((o) => o.item.classId === 'naval').reason).toContain(coastal.name);
     const coastRows = buildOptions(own(coastal), coastal.id);
+    expect(coastRows.filter((o) => o.item.classId === 'naval').every((o) => o.group === 'Ships')).toBe(true);
     expect(coastRows.some((o) => o.item.classId === 'naval')).toBe(true);
     expect(coastRows.some((o) => o.id === 'building:naval')).toBe(true);
     // The Buildings tab keeps the line, says why, and offers nothing to tap.

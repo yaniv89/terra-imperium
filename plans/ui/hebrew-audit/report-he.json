@@ -46,21 +46,6 @@
    "items": []
   },
   {
-   "screen": "onboarding 5",
-   "note": "",
-   "items": []
-  },
-  {
-   "screen": "onboarding 6",
-   "note": "",
-   "items": []
-  },
-  {
-   "screen": "onboarding 7",
-   "note": "",
-   "items": []
-  },
-  {
    "screen": "map: political",
    "note": "",
    "items": []
@@ -118,13 +103,7 @@
   {
    "screen": "rail: שליט",
    "note": "",
-   "items": [
-    {
-     "kind": "text",
-     "text": "A",
-     "where": "ruler-sheet"
-    }
-   ]
+   "items": []
   },
   {
    "screen": "rail: שליט: tabs",

@@ -15,7 +15,7 @@ import { queueItem, dequeueItem, moveQueueItem, itemKey, setFocus, toggleLock, c
 import { quoteBuyTile, investInGrowth } from './cityEconomy';
 import { stonePhaseOf, canAnnex } from './stonePhase';
 import { placeCamps, resolveCamp } from './tribalCamps';
-import { isSettler, settlerPath, canSettle, foundOutpost, SETTLER_MOVES, setSettlerHold, disbandSettlers, isBand, canFoundVillage, foundVillage, withVillageLog } from './settlers';
+import { isSettler, settlerPath, canSettle, foundOutpost, outpostTurns, SETTLER_MOVES, setSettlerHold, disbandSettlers, isBand, canFoundVillage, foundVillage, withVillageLog } from './settlers';
 import { markTutorialStep } from './tutorial';
 import { answerDemand } from './aiAccords';
 import { getTiles, loadedWorldSpec } from '../data/geo/tiles';
@@ -136,7 +136,7 @@ import { clampStability, clampPrestige, getIncreaseStabilityCost } from './natio
 import { getTotalDev, DEV_TYPE_IDS, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO, applyDevelopment } from './development';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
 import { canAfford, applyCosts } from '../utils/helpers';
-import { canPay, payCost } from '../utils/costs';
+import { canPay, payCost, warCost } from '../utils/costs';
 import { TAX_RATE_IDS, DEFAULT_TAX_RATE, TAX_RATE_CHANGE_COOLDOWN_TURNS } from '../data/taxRates';
 import { getLoanCapacity, getLoanInterestRate, getLoanSize, clampMaintenance, getRecruitUnitCost, hasBankingHouses } from './economy';
 import { canFabricateClaim, claimableCities, startClaim, CLAIM_FABRICATE_TURNS } from './claims';
@@ -1806,7 +1806,7 @@ const reduceAction = (state, action) => {
       // Naval interception (plan §7.5): a defending fleet forces a naval battle before the landing,
       // fought and applied through the outcome service like any sea battle. Losing it sinks the
       // transport and everything still aboard, and the assault never lands.
-      const defenderNavalUnits = Object.values(state.units).filter(u => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
+      const defenderNavalUnits = Object.values(state.units).filter(u => u.regionId === targetRegionId && u.domain === 'naval' && !u.pirate && u.ownerId !== state.playerNationId);
       if (defenderNavalUnits.length > 0) {
         const navalBattle = resolveAutoBattle(state, {
           attackerUnits: [navalUnit],
@@ -2118,7 +2118,7 @@ const reduceAction = (state, action) => {
       // same enemy is refused.
       if (!target || nationId === state.playerNationId || isAtWarWithPlayer(state, nationId) || player?.vassalOf) return state;
       const justified = hasCasusBelli(state, state.playerNationId, nationId);
-      const costs = justified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
+      const costs = warCost(state, justified);
       if (!canPay(state, costs)) return state;
 
       // Truce-breaking (plan §M12/M13): the player MAY declare anyway — unlike the AI, which
@@ -2996,7 +2996,7 @@ const reduceAction = (state, action) => {
       const founded = foundOutpost(state, state.regions, { tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} }, unit, state.turnNumber);
       if (!founded) return reject(state, msg('m.act.no.noCityHere'));
       const units = { ...state.units }; delete units[unitId];
-      return normalizeUnitTiles(syncWorldRegistry({ ...state, regions: founded.regions, world: { ...(state.world || {}), tileOwner: founded.world.tileOwner, tileState: founded.world.tileState }, units, logs: [...state.logs, { year: state.year, ...msg('m.act.outpostFounded', { city: cityRef(founded.city.id, founded.city.name) }), type: 'action' }] }));
+      return normalizeUnitTiles(syncWorldRegistry({ ...state, regions: founded.regions, world: { ...(state.world || {}), tileOwner: founded.world.tileOwner, tileState: founded.world.tileState }, units, logs: [...state.logs, { year: state.year, ...msg('m.act.outpostFounded', { city: cityRef(founded.city.id, founded.city.name), count: outpostTurns(state, unit.tile, ageOf(state, state.playerNationId)) }), type: 'action' }] }));
     }
     case ActionTypes.DEQUEUE_PRODUCTION: {
       const { cityId: id, index } = action.payload || {};

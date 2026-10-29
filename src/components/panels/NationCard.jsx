@@ -4,14 +4,15 @@
 // the opinion of you with its reasons on tap and a bar centred on zero, the treaties as chips, the
 // main actions as tiles that say before you try whether they would accept or refuse (and why, in
 // one line under them), and the long tail of secondary actions behind "More actions".
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Target, Gift, Eye, Heart, Users, Crown, Ban, AlertTriangle, ChevronDown, ChevronUp, DoorOpen, Scale, Milestone, MapPin } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { Chip } from '../ui/atlas';
 import { askConfirm } from '../ui/ConfirmActionDialog';
 import { declareWarModel } from './warActions';
 import { useWhy, Bubble } from '../ui/WhyTip';
-import { declareWarConfirm } from '../ui/confirmSpecs';
+import { useAnswer } from '../ui/useAnswer';
+import { declareWarConfirm, tradeConfirm } from '../ui/confirmSpecs';
 import TopLayer from '../ui/TopLayer';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
 import { useEffects } from '../../context/EffectsContext';
@@ -40,14 +41,16 @@ import { canAttack } from '../../engine/hostility';
 import { hasKey } from '../../i18n/core';
 import { useT } from '../../i18n/useT';
 import { nameNow } from '../../i18n/names';
-import { reasonText, logText } from '../../i18n/messageText';
+import { reasonText } from '../../i18n/messageText';
 import { msgRefText } from '../battle/battleText';
 import { opinionLabel, opinionDetail } from './opinionText';
+import { moodWord } from '../modals/firstContactModel';
 import { ageOf } from '../../engine/nationState';
+import { prepLive } from '../../engine/warPlans';
 import { ageVersusPlayer } from '../ui/ageProgress';
 import GlossaryLink from '../glossary/GlossaryLink';
 import { shortAge } from './researchSheetModel';
-import { canPay, walletOf } from '../../utils/costs';
+import { canPay, walletOf, warCost } from '../../utils/costs';
 import { costLine, shortfallLine } from './empireText';
 import { GIFT_OPINION, GIFT_OPINION_MAX } from '../../data/opinion';
 import { menText } from '../../engine/battleLedger';
@@ -113,21 +116,9 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
   const [expanded, setExpanded] = useState(false);
   const [peaceOpen, setPeaceOpen] = useState(false);
   // A blocked tap says why on the card itself (and in the log): phones have no hover, and the log is out of sight.
-  // Every answer, a refusal or the reducer's own log line after an action, also shows in a bubble on the
-  // tapped tile: the notice under the tiles was below the fold on a phone ("Offer pact did nothing", newcomer playtest).
-  const [notice, setNotice] = useState(null);
-  const tapRect = useRef(null);
-  const awaiting = useRef(null); // the log length when an action was sent: its answer is the next line
-  const show = (text) => setNotice({ text, rect: tapRect.current });
+  // Every answer also shows in a bubble on the tapped tile (useAnswer.js).
+  const { notice, show, dispatch, capture } = useAnswer(state, send);
   const say = (text) => { show(text); addLog(text, 'action'); };
-  const dispatch = (action) => { awaiting.current = { from: state, logs: state.logs.length }; send(action); };
-  useEffect(() => {
-    const w = awaiting.current;
-    if (!w || state === w.from) return; // an action that changed nothing leaves no answer to show
-    awaiting.current = null;
-    if (state.logs.length > w.logs && state.turnNumber === w.from.turnNumber) show(logText(state.logs[state.logs.length - 1]));
-  }, [state]);
-  useEffect(() => { if (!notice) return undefined; const id = setTimeout(() => setNotice(null), 6000); return () => clearTimeout(id); }, [notice]);
 
   const dispatchIfAffordable = (type, costs, extra = {}) => {
     if (!canPay(state, costs)) return say(t('nc.notEnough', { list: shortfallLine(walletOf(state), costs) }));
@@ -154,7 +145,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
   const playerWarScore = activeWar ? (activeWar.aggressor === state.playerNationId ? activeWar.score : -activeWar.score) : 0;
   const war = atWarWithPlayer ? warStatus(state, nation.id) : null; // what the war is for and how it ends
   const justified = hasCasusBelli(state, state.playerNationId, nation.id);
-  const declareWarCosts = justified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
+  const declareWarCosts = warCost(state, justified);
   const sueForPeaceCosts = { gold: Math.max(SUE_FOR_PEACE_MIN_GOLD, Math.round(SUE_FOR_PEACE_BASE_GOLD - (nation.warExhaustion || 0) * 2)) };
 
   const player = state.nations[state.playerNationId];
@@ -211,7 +202,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
         : null;
 
   return (
-    <div className="space-y-2.5" data-testid="nation-card" data-nation={nation.id} onClickCapture={(e) => { tapRect.current = e.target.closest?.('button')?.getBoundingClientRect() || null; }}>
+    <div className="space-y-2.5" data-testid="nation-card" data-nation={nation.id} onClickCapture={capture}>
       {notice?.rect && <Bubble rect={notice.rect} text={notice.text} />}
       {!hideTitle && <div className="flex items-start gap-2">
         <span className="w-3 h-3 rounded-sm mt-1.5 shrink-0" style={{ backgroundColor: nation.color }} aria-hidden="true" />
@@ -219,7 +210,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
           <div className="fa-heading text-[17px] leading-tight"><GlossaryLink kind="people" id={nation.id}>{nameNow('people', nation.id, nation.name)}</GlossaryLink></div>
           <div className="flex items-center gap-1.5 flex-wrap mt-1">
             <span className={`fa-chip !min-h-[24px] !px-2 !text-[11px] uppercase tracking-wide ${atWarWithPlayer ? 'text-fa-danger-text border-fa-danger' : nation.hasMilitaryPact ? 'text-fa-good border-fa-good/60' : ''}`}>
-              {atWarWithPlayer ? t('nc.status.war') : isVassalOfPlayer ? t('nc.status.vassal') : nation.hasMilitaryPact ? t('nc.status.pact') : nation.hasPeaceTreaty ? t('nc.status.peace') : nation.relationStatus ? (hasKey(`nc.rel.${nation.relationStatus}`, 'en') ? t(`nc.rel.${nation.relationStatus}`) : nation.relationStatus) : t('nc.status.met')}
+              {atWarWithPlayer ? t('nc.status.war') : isVassalOfPlayer ? t('nc.status.vassal') : nation.hasMilitaryPact ? t('nc.status.pact') : nation.hasPeaceTreaty ? t('nc.status.peace') : t(`p2.mood.${moodWord(opinion)}`)}
             </span>
             <span className="fa-chip !min-h-[24px] !px-2 !text-[11px]" data-testid="nation-age" data-age-vs-you={ageVersusPlayer(state, nation.id)}>{t(`p2.pp.age.${ageVersusPlayer(state, nation.id)}`, { age: shortAge(ageOf(state, nation.id)) })}</span>
             <span className="text-[12px] text-fa-muted">{metTurn != null ? t('nc.metT', { n: metTurn }) : t('nc.known')}{nation.doctrine ? `, ${hasKey(`p2.aidoc.${nation.doctrine}`, 'en') ? t(`p2.aidoc.${nation.doctrine}`) : nation.doctrine}` : ''}</span>
@@ -228,7 +219,8 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
       </div>}
 
       {/* The actions first, war last: on a phone they sat under the fold (newcomer playtest step 98). */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* Hold any action for its topic card (useHoldHelp.js): its costs, or how battles go. */}
+      <div className="grid grid-cols-2 gap-2" data-help={atWarWithPlayer ? 'term:battle' : 'term:diplomacy'}>
         {isVassalOfPlayer ? (
           <>
             <Tile label={t('nc.annex', { n: annexCost.decrees })} sub={canAnnex ? t('nc.annexSub') : t('nc.fromTurn', { n: (nation.vassalizedTurn || 0) + VASSAL_ANNEX_COOLDOWN_TURNS })} looksDisabled={!canAnnex || !canPay(state, annexCost)}
@@ -266,9 +258,9 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
             )}
             {!nation.hasTradeAgreement && (
               <Tile label={t('nc.trade')} sub={tradeBlock || t('nc.tradeSub', { cost: costLine(ACTION_COSTS.tradeAgreement), a: activeTradePactCount, b: tradePactCapacity })} blocked={tradeBlock} looksDisabled={!canPay(state, ACTION_COSTS.tradeAgreement)}
-                onClick={() => dispatchIfAffordable(ActionTypes.TRADE_AGREEMENT, ACTION_COSTS.tradeAgreement)} />
+                onClick={() => (canPay(state, ACTION_COSTS.tradeAgreement) ? askConfirm(tradeConfirm(state, nation.id, nameNow('people', nation.id, nation.name)), () => dispatchIfAffordable(ActionTypes.TRADE_AGREEMENT, ACTION_COSTS.tradeAgreement)) : dispatchIfAffordable(ActionTypes.TRADE_AGREEMENT, ACTION_COSTS.tradeAgreement))} />
             )}
-            <Tile label={t('nc.demandTribute')} sub={tributeReason || (tribute.accepted ? t('nc.wouldYieldCost', { cost: costLine(ACTION_COSTS.demand) }) : t('nc.wouldRefuseCause'))} refuse={!tribute.accepted}
+            <Tile label={t('nc.demandTribute')} sub={tributeReason || (!tribute.accepted ? t('nc.wouldRefuseCause') : canPay(state, ACTION_COSTS.demand) ? t('nc.wouldYieldCost', { cost: costLine(ACTION_COSTS.demand) }) : t('nc.notEnough', { list: shortfallLine(walletOf(state), ACTION_COSTS.demand) }))} refuse={!tribute.accepted}
               looksDisabled={!!tribute.reason || !canPay(state, ACTION_COSTS.demand)}
               onClick={() => (tribute.reason ? say(tributeReason) : dispatchIfAffordable(ActionTypes.DEMAND, ACTION_COSTS.demand, { kind: 'tribute', cityId: null }))} />
             <Tile label={t('nc.declareWar')} testId="declare-war"
@@ -323,6 +315,10 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
             <span className={war.outlook.tone === 'danger' ? 'text-fa-danger-text' : war.outlook.tone === 'good' ? 'text-fa-good' : 'text-fa-muted'}>{t(war.outlook.key, war.outlook.vars)}</span>
           </p>
         )}
+        {/* Arming for a war on the player (warPlans.js prepLive): the muster is on the map, say it here too. */}
+        {!atWarWithPlayer && nation.warPrep?.target === state.playerNationId && prepLive(state, nation.id) && (
+          <p className="text-[12px] mt-1 text-fa-danger-text flex items-center gap-1" data-testid="nation-mustering"><AlertTriangle size={13} aria-hidden="true" />{t('nc.mustering', { name: nameNow('people', nation.id, nation.name) })}</p>
+        )}
         {/* Where they are (peopleWhere.js): the cities you know, their armies in sight, and the way there. */}
         <p className="text-[12px] text-fa-muted mt-1.5" data-testid="people-where">
           {where.places.length === 0 ? t('nc.whereNone') : <>
@@ -367,7 +363,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
       )}
 
       {expanded && hasSecondary && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5" data-help="term:diplomacy">
           {(() => {
             const site = claimableCities(state, player.id, nation.id)[0];
             return (

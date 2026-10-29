@@ -38,7 +38,7 @@ const EffectBadge = ({ text, sign, tooltip }) => {
 };
 
 // comingIn: a crisis card answered during its warning (crises.js): the turns until it strikes.
-const EventModal = ({ event, onResolve, resources, placeName = null, cityId = null, comingIn = null }) => {
+const EventModal = ({ event, onResolve, resources, year = null, placeName = null, cityId = null, comingIn = null }) => {
   const isMobile = useIsMobile();
   // Centre the map on the event's city while the sheet is open; release it after.
   useEffect(() => { if (!event || !cityId) return undefined; focusRegion(cityId); return () => focusRegion(null); }, [event, cityId]);
@@ -70,10 +70,11 @@ const EventModal = ({ event, onResolve, resources, placeName = null, cityId = nu
             <span className="line-clamp-2 pl:line-clamp-1">{eventTitle(event, { city: placeName || '' })}</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-fa-muted mt-1 pl:mt-0 pl:shrink-0">
-            {event.year != null && (
+            {/* the game's year, not the card's historical one: cards come by age, so that date ran centuries off (manual playtest 29 Oct) */}
+            {(year ?? event.year) != null && (
               <>
                 <Calendar className="w-3 h-3" />
-                <span className="[unicode-bidi:isolate]">{formatYear(event.year)}</span>
+                <span className="[unicode-bidi:isolate]">{formatYear(year ?? event.year)}</span>
               </>
             )}
             {placeName && (

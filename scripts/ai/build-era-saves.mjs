@@ -26,7 +26,7 @@ export const ENEMY_REACH_KM = 400; // about two turns of a march (armies.js MOVE
 export const WAR_TURNS = 40;
 export const NAVAL_WAIT = 60;
 export const SAVE_UP_TURNS = 30;
-const WAR_GOLD = 300; // data/actionCosts.js declareWarUnjustified
+const WAR_GOLD = 700; // the dearest war price (utils/costs.js warCost: 150 x the age's unitCostMult, 690 in the Future)
 export const DEFAULT_AGES = AGE_ORDER.slice(1); // the stone age is the start screen's own session
 
 export const ERA_ENGINE = [
@@ -121,7 +121,7 @@ export const prepareEraSave = (e, base, log = () => {}) => {
   const near = e.metNations(s, p).filter((id) => id !== p && isMajor(e, s.nations[id]) && cities(s, id).length)
     .map((id) => [id, Math.min(...cities(s, id).flatMap((c) => mine.map((m) => e.distanceKm(t.centres[c.tile], t.centres[m.tile]))))])
     .sort((a, b) => a[1] - b[1]);
-  // war on the nearest met major that will have it (a war costs 300 gold without a cause: the player saves up for it)
+  // war on the nearest met major that will have it (a war costs gold without a cause: the player saves up for it)
   const declare = (st) => {
     if (atWarWith(st, p).length) return st;
     for (const [id] of near) {

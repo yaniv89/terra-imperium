@@ -41,6 +41,7 @@ import { ATTRIBUTES, raiseBlock, virtueBlock } from '../../engine/rulers';
 import { VIRTUES } from '../../data/rulerVirtues';
 import { cityGroups, governorChoices } from '../../engine/governors';
 import { decreesOf, decreeCap } from '../../engine/decrees';
+import { LAW_CATEGORIES, canEnactLaw } from '../../data/laws';
 
 const pName = (state, id) => nameNow('people', id, state.nations?.[id]?.name || '');
 const cName = (c) => nameNow('city', null, c.name);
@@ -87,8 +88,11 @@ export const nextPrompts = (state) => {
   if (nation?.ruler && (ATTRIBUTES.some((a) => !raiseBlock(state, me, a)) || Object.keys(VIRTUES).some((v) => !virtueBlock(state, me, v)))) out.push({ id: 'ruler', kind: 'ruler', label: tNow('prompt.ruler'), tab: 'ruler' });
   const emptySeats = nation && cities.length ? cityGroups(state, me).filter((g) => !nation.governors?.[g.seat]).length : 0;
   if (emptySeats && governorChoices(nation).length) out.push({ id: 'governor', kind: 'governor', label: tNow('prompt.governor', { count: emptySeats }), tab: 'domestic', section: 'court.governors', count: emptySeats });
-  if (nation?.freeLawChange) out.push({ id: 'freeLaw', kind: 'law', label: tNow('prompt.freeLaw'), tab: 'domestic', section: 'laws' });
-  if (nation?.ruler && decreesOf(nation) >= decreeCap(nation)) out.push({ id: 'decrees', kind: 'decrees', label: tNow('prompt.decrees'), tab: 'ruler' });
+  // only when a law can be enacted now (manual playtest 29 Oct: the chip stayed with nothing to adopt)
+  const lawOpen = !!nation && Object.entries(LAW_CATEGORIES).some(([cat, laws]) => laws.some((l) => canEnactLaw(state, me, cat, l.id)));
+  if (nation?.freeLawChange && lawOpen) out.push({ id: 'freeLaw', kind: 'law', label: tNow('prompt.freeLaw'), tab: 'domestic', section: 'laws' });
+  // full decrees go where they are spent: a law, else the Peoples tab (demands, claims, pacts); the ruler sheet spends none
+  if (nation?.ruler && decreesOf(nation) >= decreeCap(nation)) out.push({ id: 'decrees', kind: 'decrees', label: tNow('prompt.decrees'), ...(lawOpen ? { tab: 'domestic', section: 'laws' } : { tab: 'diplomacy' }) });
   const units = Object.values(state.units || {}).filter((u) => u.ownerId === me && u.strength > 0).sort((a, b) => (a.id < b.id ? -1 : 1));
   // (settlers told to wait, settlers.js setSettlerHold, are not asked about again: I093)
   // Settlers with no good site known in reach are not idle either: nothing to order but Send home, and
