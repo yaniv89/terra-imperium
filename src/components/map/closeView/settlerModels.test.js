@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { settlerBand, settlerModelReady, settlerModelled, settlersInSight, ownerAge } from './settlerModels';
-import { findSettlerModel, bakeOptionsFor, SETTLER_KEY } from '../../../battle/render/unitModels';
+import { findSettlerModel, findUnitModel, bakeOptionsFor, SETTLER_KEY } from '../../../battle/render/unitModels';
 import { parseUnitModel } from '../../../battle/render/gltfUnitLoader';
 import { settlerSprites } from '../gl/sceneModel';
 
@@ -60,6 +60,18 @@ describe('settler models', () => {
       const { geometry, stats } = await parseUnitModel(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength), bakeOptionsFor(ageId, SETTLER_KEY, 'support', model));
       expect(geometry.attributes.position.count, name).toBeGreaterThan(500);
       expect(stats.scale, name).toBeGreaterThan(0);
+    }
+  }, 60000);
+
+  // the scout party (map-art-8 asked for a model; built in Blender 29 Oct: the age's figure, no weapon, a pack)
+  it('ships a scout for every age; each is found by class and bakes as a walking figure', async () => {
+    for (const ageId of ['stone', 'bronze', 'classical', 'kingdoms', 'gunpowder', 'modern', 'information', 'future']) {
+      const model = findUnitModel(ageId, 'scout');
+      expect(model?.name, ageId).toBe(`${ageId}-scout`);
+      const b = readFileSync(`src/assets/units/${ageId}-scout.glb`);
+      const { geometry, stats } = await parseUnitModel(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength), bakeOptionsFor(ageId, 'scout', 'scout', model));
+      expect(geometry.attributes.position.count, ageId).toBeGreaterThan(500);
+      expect(stats.scale, ageId).toBeGreaterThan(0);
     }
   }, 60000);
 });

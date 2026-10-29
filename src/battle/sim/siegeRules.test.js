@@ -5,7 +5,7 @@ import { createWorld } from './world';
 import { step } from './step';
 import { attackStructure, attackSquad } from './combat';
 import { updateBuildings } from './buildings';
-import { strikingStrength, capShotOn, fireShare, ringBroken, AUX_FRONTAGE, AUX_SHOT_CAP, STRUCTURE_FIRE_FLOOR, KEEP_STORM_MULT, REPAIR_UNDER_ATTACK_MAX_PER_SEC } from './siegeRules';
+import { strikingStrength, capShotOn, fireShare, ringBroken, AUX_FRONTAGE, AUX_SHOT_CAP, STRUCTURE_FIRE_FLOOR, KEEP_STORM_MULT, KEEP_HELD_MULT, REPAIR_UNDER_ATTACK_MAX_PER_SEC } from './siegeRules';
 import { TICK_HZ } from './constants';
 import { buildTownManifest } from '../../data/townLayout';
 
@@ -59,10 +59,12 @@ describe('assaults (I212)', () => {
   });
 
   it('the keep loses its walls\' cover once the ring is broken, and men without engines storm it', () => {
-    const blow = (breach) => {
+    const blow = (breach, held = false) => {
       const w = walledCity();
       const keep = w.structures[0];
       expect(keep.walls).toBe(true);
+      // U9: the storm comes once the garrison is beaten; while it holds a regiment the keep takes KEEP_HELD_MULT
+      if (!held) w.squads.forEach((q) => { if (q.side === 1 && !q.worker) q.alive = false; });
       if (breach) { const gate = w.structures.find((s) => s.kind === 'gate'); gate.alive = false; }
       expect(ringBroken(w)).toBe(breach);
       const a = w.squads.find((q) => q.side === 0 && !q.worker && q.classId === 'infantry');
@@ -74,6 +76,8 @@ describe('assaults (I212)', () => {
     expect(whole).toBeGreaterThan(0);
     // 0.6 walls' cover gone and the storm: about KEEP_STORM_MULT / 0.6 times the blow
     expect(broken / whole).toBeGreaterThan(KEEP_STORM_MULT);
+    // a city falls only when its defence is beaten: a held keep takes a fraction of the storm
+    expect(blow(true, true) / broken).toBeLessThan(KEEP_HELD_MULT);
   });
 
   it('every hit on a city work marks it as under attack', () => {

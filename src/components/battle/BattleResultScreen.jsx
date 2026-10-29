@@ -126,7 +126,8 @@ const BattleResultScreen = ({ ended, setup, playerSide, title, getCampaign, rece
       </div>
       )}
 
-      <div className="flex items-center gap-2 mt-2">
+      {/* Pinned to the bottom: at 844x390 Continue never needs a scroll (NC 162) */}
+      <div className="sticky bottom-0 -mx-2.5 px-2.5 pt-2 pb-[calc(0.625rem+env(safe-area-inset-bottom))] -mb-[calc(0.625rem+env(safe-area-inset-bottom))] bg-fa-ink/95 flex items-center gap-2 mt-2" data-testid="battle-result-footer">
         <div className="flex-1 min-w-0 text-[12px] text-fa-muted leading-snug" data-testid="battle-result-auto">{pending ? t('bt.result.checking') : m.auto}</div>
         <button type="button" onClick={onContinue} disabled={pending || !ready} className="fa-btn fa-btn-primary fa-btn-hero !min-h-[50px] !px-8 shrink-0 disabled:opacity-50" data-testid="battle-continue">{t('bt.result.continue')}</button>
       </div>

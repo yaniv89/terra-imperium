@@ -35,6 +35,8 @@ import { preBattleModel } from './preBattleModel';
 import { battleRequired, autoSiegeOn } from '../../engine/battleThreshold';
 import { prewarmBattleWorker } from '../../battle/worker/warmWorker';
 
+/** How long "Command anyway" waits for its second tap. */
+const RISK_CONFIRM_MS = 3000;
 const pct = (v) => `${Math.round(v * 100)}%`;
 
 const Tile = ({ icon: Icon, label, title, children, testId }) => (
@@ -51,13 +53,20 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   const { triggerEffect } = useEffects();
   const m = useMemo(() => preBattleModel(state, { fromRegionId, targetRegionId, navalUnitId, tile, fromTile }),
     [state, fromRegionId, targetRegionId, navalUnitId, tile, fromTile]);
-  const turn = useInteraction(arrival ? 'pre-battle-arrival' : 'pre-battle', true, { priority: PRIORITY.preBattle, label: tNow('wait.commandOrAuto', { name: m.name }), testId: 'pre-battle-chip', tone: 'danger', user: !arrival });
+  const turn = useInteraction(arrival ? 'pre-battle-arrival' : 'pre-battle', true, { priority: PRIORITY.preBattle, label: tNow('wait.commandOrAuto', { name: m.name }), testId: 'pre-battle-chip', tone: 'danger', user: !arrival, keepOpener: !arrival });
   useEffect(() => { prewarmBattleWorker(); }, []); // the battle's worker loads while the player decides
   const setting = state.battleSettings?.defaultMode;
   const preferred = setting === 'auto' || (setting !== 'command' && m.hopeless) ? 'auto' : 'command';
   const [mode, setMode] = useState(preferred);
   const [prefer, setPrefer] = useState(false);
   const [quick, setQuick] = useState(false);
+  // WM fix 5: with Unlikely or Hopeless odds the first tap on Begin battle only arms "Command anyway" for 3 s; Auto and Call off stay one tap.
+  const [confirmRisk, setConfirmRisk] = useState(false);
+  useEffect(() => {
+    if (!confirmRisk) return undefined;
+    const timer = setTimeout(() => setConfirmRisk(false), RISK_CONFIRM_MS);
+    return () => clearTimeout(timer);
+  }, [confirmRisk]);
   const { landing, fleet, field, blockedReason, affordable, blockedAtSea, knownEmpty, noMansLand, commandBlocked } = m;
   const autoOnly = blockedAtSea || !!noMansLand || !!commandBlocked;
   const chosen = autoOnly ? 'auto' : mode;
@@ -81,6 +90,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
     return onClose();
   };
   const command = () => {
+    if (m.risk && !confirmRisk && !blockedReason && !autoOnly && affordable) return setConfirmRisk(true);
     if (blockedReason || autoOnly) return addLog(blockedReason || noMansLand || commandBlocked || t('bt.pre.defeatFleet'), 'action');
     if (!affordable) return addLog(t('bt.pre.notEnough'), 'action');
     remember('command');
@@ -116,7 +126,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   // close the card and lose the attack.
   const card = (
     <div className="fixed inset-0 z-[70] bg-black/55 flex items-end sm:items-center justify-center pe-[var(--rail-inset,0px)]" data-testid="battle-choice">
-      <div role="dialog" aria-modal="true" aria-labelledby="pre-battle-title" data-testid="pre-battle"
+      <div role="dialog" aria-modal="true" onPointerDown={(e) => { if (confirmRisk && !e.target.closest?.('[data-testid="battle-go"]')) setConfirmRisk(false); }} aria-labelledby="pre-battle-title" data-testid="pre-battle"
         className="fa-panel !bg-fa-panel shadow-2xl w-full sm:w-[min(56rem,calc(100vw-1rem-var(--rail-inset,0px)))] max-h-[94dvh] sm:max-h-[calc(100dvh-1rem)] flex flex-col rounded-b-none sm:rounded-[10px]">
         <div className="flex items-center gap-2 px-3 pt-2 pb-1.5 border-b border-fa-line">
           <Castle className="w-5 h-5 text-fa-muted shrink-0" aria-hidden="true" />
@@ -226,8 +236,8 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
           {options.length > 0 ? <ModeCards options={options} value={chosen} onChange={setMode} compact /> : <div />}
           <ModeExplain title={chosen === 'command' ? t('bt.pre.modeCommand') : t('bt.pre.modeAuto')} compact className="min-w-0 pl:max-h-[4.75rem] pl:overflow-y-auto">{chosen === 'command' ? m.command : m.auto}</ModeExplain>
           <div className="flex flex-col gap-1 justify-center">
-            <Button variant="primary" hero disabled={disabled || (chosen === 'command' && autoOnly)} onClick={chosen === 'command' ? command : auto} data-testid="battle-go" className="!min-h-[52px] !px-6 pl:!px-3 w-full">
-              {chosen === 'command' ? t('bt.pre.beginBattle') : t('bt.pre.fightAuto')}
+            <Button variant="primary" hero disabled={disabled || (chosen === 'command' && autoOnly)} onClick={chosen === 'command' ? command : auto} data-testid="battle-go" data-confirm={confirmRisk || undefined} className={`!min-h-[52px] !px-6 pl:!px-3 w-full${confirmRisk ? ' !bg-fa-danger !text-white' : ''}`}>
+              {chosen !== 'command' ? t('bt.pre.fightAuto') : confirmRisk ? t('bt.pre.commandAnyway', { risk: m.risk }) : t('bt.pre.beginBattle')}
             </Button>
             {field && !autoOnly && chosen === 'command' && <Switch label={t('bt.pre.quick')} checked={quick} onChange={setQuick} testId="battle-quick" />}
             {!landing && !fleet && !field && state.regions?.[targetRegionId]?.siege && <Switch label={t('bt.siege.auto')} checked={autoSiegeOn(state, targetRegionId)} onChange={(on) => dispatch({ type: ActionTypes.SET_AUTO_SIEGE, payload: { regionId: targetRegionId, on } })} testId="battle-auto-siege" />}

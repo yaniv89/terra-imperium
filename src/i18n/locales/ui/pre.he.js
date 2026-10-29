@@ -154,6 +154,8 @@ export default {
   'bt.pre.modeCommand': 'פיקוד',
   'bt.pre.modeAuto': 'אוטומטי',
   'bt.pre.beginBattle': 'התחילו קרב',
+  'bt.pre.riskHopeless': 'סיכוי קלוש',
+  'bt.pre.commandAnyway': 'פקדו בכל זאת: {risk}',
   'bt.pre.fightAuto': 'נהלו באוטומטי',
   'bt.pre.quick': 'קרב מהיר (כחמש דקות)',
   'bt.pre.highlight': 'הדגשת הבחירה שלי בפעם הבאה',

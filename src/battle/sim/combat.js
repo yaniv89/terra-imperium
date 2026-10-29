@@ -20,7 +20,7 @@ import { moraleFromLosses } from './moraleMath';
 import { isShaken, SHAKEN_DAMAGE_DEALT, SHAKEN_DAMAGE_TAKEN } from './morale';
 import { destroyEcoBuilding, ecoTargetIndex } from './economy';
 import { loseStrength } from './losses';
-import { strikingStrength, ringBroken, KEEP_STORM_MULT } from './siegeRules';
+import { strikingStrength, ringBroken, garrisonHolds, KEEP_STORM_MULT, KEEP_HELD_MULT } from './siegeRules';
 
 // The structure a squad is going for: a fixed one (the keep, a tower, a city building) or one the
 // battle economy raised ('eco', economy.js).
@@ -241,7 +241,10 @@ export const attackStructure = (w, a, s) => {
   if (s.kind === 'keep' && s.walls) {
     const breached = ringBroken(w);
     if (!breached && s.hp > s.maxHp / 2) mult *= WALLS_MULT;
-    if (breached && !a.stats.structureBonus) mult *= KEEP_STORM_MULT;
+    // A city falls only when its defence is beaten (the user's rule, U9): while its garrison holds a
+    // regiment (garrisonHolds) the keep takes KEEP_HELD_MULT of a blow; then it is stormed through the breach.
+    if (garrisonHolds(w)) mult *= KEEP_HELD_MULT;
+    else if (breached && !a.stats.structureBonus) mult *= KEEP_STORM_MULT;
   }
   if (s.loot && a.side === SIDE_ATTACKER) mult *= LOOT_BURN_MULT;
   if (isShaken(w, a)) mult *= SHAKEN_DAMAGE_DEALT;

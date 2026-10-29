@@ -20,6 +20,7 @@ import { endVerdict, endReasonText } from './battleHudModel';
 import { menText } from '../../engine/battleLedger';
 import { ageName } from '../../i18n/core';
 import { terrainWord } from '../../i18n/gameText';
+import { SACK_GARRISON_RATIO } from '../../data/independents';
 
 const PRESETS = {
   balanced: ['infantry', 'infantry', 'cavalry', 'ranged', 'ranged', 'siege', 'infantry'],
@@ -50,6 +51,8 @@ const RAID_KINDS = ['none', 'raid', 'sack'];
 // `&people=shang&enemy=kemet`: the two sides' peoples (src/data/peoples.js), so their signature
 // units and their culture's battle buildings show (the sandbox's sides are nobody otherwise).
 const RAID_PARTY = 'sandbox-raiders';
+// A party sacks only a city it outweighs (raids.js SACK_GARRISON_RATIO): in a sack the garrison is under half the raiders and no help comes (U9: at 900 a regiment the raiders were cut down in 44 s).
+const sackGarrison = (defender) => Math.floor((SACK_GARRISON_RATIO * 800 * PRESETS.raiders.length) / PRESETS[defender].length) - 1;
 const hiredBand = ({ classId }) => (classId === 'infantry' ? { mercenary: { from: 'sandbox', pay: 2 } } : null);
 // A sea battle (`?battleSandbox&sea`): fleets by naval line (navalLines.js) instead of armies.
 const FLEETS = { attacker: ['warship', 'warship', 'warship', 'raider', 'transport'], defender: ['warship', 'warship', 'raider', 'transport'] };
@@ -124,7 +127,7 @@ const BattleSandbox = () => {
     seed: config.seed + runId,
     attackerUnits: raiding ? buildArmy('a', 'raiders', config.ageId, 800, null, () => ({ raidOf: RAID_PARTY }))
       : buildArmy('a', config.attacker, config.ageId, 1000, 'g_att', config.merc ? hiredBand : () => null),
-    defenderUnits: buildArmy('d', config.defender, config.ageId, 900, raiding ? 'g_att' : 'g_def', raiding && config.merc ? hiredBand : () => null),
+    defenderUnits: buildArmy('d', config.defender, config.ageId, config.raid === 'sack' ? sackGarrison(config.defender) : 900, raiding ? 'g_att' : 'g_def', raiding && config.merc ? hiredBand : () => null),
     ...(raiding ? { battleType: config.raid, raid: true } : {}),
     ...(params.get('people') ? { attackerNationId: params.get('people') } : {}),
     ...(params.get('enemy') ? { defenderNationId: params.get('enemy') } : {}),
@@ -133,7 +136,7 @@ const BattleSandbox = () => {
     landing: config.landing,
     // The defended province's own buildings, as a real region with a few built would have them.
     regionBuildings: [{ category: 'military', tier: 1, name: 'Barracks' }, { category: 'economy', tier: 1, name: 'Bazaar' }, { category: 'culture', tier: 2, name: 'Temple' }, { category: 'food', tier: 1, name: 'Granary' }, { category: 'industry', tier: 0, name: 'Workshop' }, { category: 'science', tier: 2, name: 'Scriptorium' }],
-    reinforcements: [
+    reinforcements: config.raid === 'sack' ? [[], []] : [
       config.landing ? [] : [{ regionId: 'north', name: 'Northern March', edge: 'N', units: buildArmy('r', 'small', config.ageId, 800) }],
       [{ regionId: 'east', name: 'Eastern Garrison', edge: 'S', units: buildArmy('s', 'small', config.ageId, 700) }]
     ],

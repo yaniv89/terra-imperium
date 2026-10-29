@@ -55,7 +55,12 @@ import { IMPROVEMENTS } from '../data/tileYields';
 // Bronze 38 turns long, Information 272+ and no Future by 923 to Bronze 50, Information 178 and the
 // Future at turn 851, Civ VI's share of the game per era (Kingdoms stays: 96 for the majors, about
 // 200 for the small scripted player). 17 to 27 to 40: a Bronze age is mostly the late Stone techs'.
-export const RESEARCH_AGE_BASE = { stone: 15, bronze: 40, classical: 200, kingdoms: 800, gunpowder: 2400, modern: 5000, information: 5500, future: 16000 };
+// Future (lead's call, 29 Oct, lane ai-armies): 16000 let a passive world's leader meet the Future goal
+// before Normal's turn limit on 6 of 8 seeds (turns 749 to 918), so any change to the random stream
+// flipped endgameReachability. 36000 ends all 8 on the turn limit, the leader at 3 to 9 of 12 goal
+// techs; entry into the Future is unchanged (it is paid in Information techs). Ripples: Future techs
+// and robot units (U72) come later, and the Future goal ends a game only for a strong player.
+export const RESEARCH_AGE_BASE = { stone: 15, bronze: 40, classical: 200, kingdoms: 800, gunpowder: 2400, modern: 5000, information: 5500, future: 36000 };
 export { SCIENCE_PER_DEV } from '../data/actionCosts';
 export const FOCUS_SCIENCE_BONUS = 0.1;
 // Future Tech (U65) repeats; each one done adds this share of its first cost to the next.

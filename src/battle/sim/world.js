@@ -142,7 +142,7 @@ export const deployZone = (w, side) => {
 // Where each side's lines stand before the battle, by battle type (plans/civ-map-rework.md D5,
 // the AI's deployment templates): { front, back } tile x per side, and 'column' for an attacker
 // that must enter an ambush in file. The default is the field template.
-export const NAVAL_GAP = 6; // tiles from the middle of the sea to each fleet's front line
+export const NAVAL_GAP = 10; // tiles from the middle of the sea to each fleet's front line (10: no ship is hit before tick 60, BC 47)
 const DEPLOY_TEMPLATES = {
   field: { attacker: (w, e) => [e + 7, e + 3], defender: (w) => [w.map.keep.x - 10, w.map.keep.x - 6] },
   river: { attacker: (w, e) => [Math.min(e + 7, Math.floor(w.map.w / 2) - 3), e + 3], defender: (w) => [Math.floor(w.map.w / 2) + 2, Math.floor(w.map.w / 2) + 5] }, // the defender holds the far bank
@@ -150,7 +150,7 @@ const DEPLOY_TEMPLATES = {
   assault: { attacker: (w, e) => [e + 7, e + 3], defender: (w) => [w.map.keep.x - 6, w.map.keep.x - 3] }, // the garrison keeps close to its walls
   sally: { attacker: (w, e) => [e + 6, e + 3], defender: (w) => [w.map.keep.x - 10, w.map.keep.x - 6] },
   landing: { attacker: (w, e) => [e + 3, e + 1], defender: (w) => [w.map.keep.x - 8, w.map.keep.x - 4] }, // on the sand; the defender a little inland
-  // Two lines of ships facing each other across the middle of the sea, close enough to meet at once.
+  // Two lines of ships facing each other across the middle of the sea, out of reach for the first seconds.
   naval: { attacker: (w) => [Math.floor(w.map.w / 2) - NAVAL_GAP, Math.floor(w.map.w / 2) - NAVAL_GAP - 4], defender: (w) => [Math.floor(w.map.w / 2) + NAVAL_GAP, Math.floor(w.map.w / 2) + NAVAL_GAP + 4] }
 };
 export const deployTemplate = (type) => DEPLOY_TEMPLATES[type] || DEPLOY_TEMPLATES.field;

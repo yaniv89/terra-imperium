@@ -254,7 +254,7 @@ export const BuildingActions = ({ building, ageId, stock, eco = null, onTrain, o
   useEffect(() => { if (!said) return undefined; const timer = setTimeout(() => setSaid(null), 3000); return () => clearTimeout(timer); }, [said]);
   if (!building) return null;
   const def = BUILDINGS[building.type];
-  const roles = building.built ? (def.trains || []).filter((r) => trainableRoles(ageId).includes(r)) : [];
+  const roles = building.built ? (building.trains || def.trains || []).filter((r) => trainableRoles(ageId).includes(r)) : [];
   if (!roles.length && !building.queue.length) return null;
   const train = (role) => {
     setAsked((a) => (a && paused ? { ...a, roles: [...a.roles, role] } : { roles: [role], before: building.queue.length, at: Date.now() }));
@@ -321,26 +321,30 @@ export const BuildingActions = ({ building, ageId, stock, eco = null, onTrain, o
  * panel): the bottom bar's Economy opens this sheet; one more tap sets the steward, what the
  * laborers gather (with how many are on each now), trains a laborer at the camp, picks the idle
  * ones or turns auto rebuild. Every button is an order the HUD already had. */
-export const EconomySheet = ({ eco, hq = null, onSteward, onPreset, onRebuild, onTrainLaborer, onIdle, onClose }) => {
+/** `compact` (a phone held sideways, R7): the steward joins the title row and the explanations go to its title, so the sheet stays small on the field. */
+export const EconomySheet = ({ eco, hq = null, onSteward, onPreset, onRebuild, onTrainLaborer, onIdle, onClose, compact = false }) => {
   const { t } = useT();
   const gathering = eco.gathering || [];
   const laborCost = UNITS.worker.cost;
   const queued = hq ? hq.queue.filter((it) => it.role === 'worker').length : 0;
   const chip = 'min-h-[44px] rounded-[10px] border text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 leading-none';
+  const steward = (
+    <button type="button" onClick={() => onSteward(!eco.steward)} aria-pressed={!!eco.steward} data-testid="battle-steward" title={compact ? t('bt.eco.stewardLine') : undefined}
+      className={cx('min-h-[44px] px-2 rounded-[10px] border flex items-center gap-2 text-start', compact ? 'flex-1 min-w-0' : 'w-full mb-1', eco.steward ? 'bg-fa-raised border-fa-good' : 'border-fa-line')}>
+      <Users className={cx('w-5 h-5 shrink-0', eco.steward ? 'text-fa-good' : 'text-fa-muted')} aria-hidden="true" />
+      <span className="flex-1 min-w-0"><span className={cx('block font-semibold', compact ? 'text-[11px] leading-tight line-clamp-2' : 'text-[12px]')}>{eco.steward ? t('bt.eco.stewardOn') : t('bt.eco.stewardOff')}</span>
+        {!compact && <span className="block text-[10.5px] text-fa-muted leading-snug">{t('bt.eco.stewardLine')}</span>}</span>
+    </button>
+  );
   return (
-    <div className="w-[min(26rem,100%)] p-1.5 fa-panel !bg-fa-panel/95 shadow-2xl pointer-events-auto text-[11px]" role="dialog" aria-label={t('bt.eco.sheet')} data-testid="battle-economy-sheet">
-      <div className="flex items-center gap-2 ps-1">
+    <div className={cx(compact ? 'w-[min(20rem,100%)]' : 'w-[min(26rem,100%)]', 'p-1.5 fa-panel !bg-fa-panel/95 shadow-2xl pointer-events-auto text-[11px]')} role="dialog" aria-label={t('bt.eco.sheet')} data-testid="battle-economy-sheet">
+      <div className={cx('flex items-center gap-2 ps-1', compact && 'mb-1')}>
         <span className="fa-label">{t('bt.eco.sheet')}</span>
-        {eco.popSplit && <span className="flex-1 min-w-0 text-[10px] text-fa-muted truncate">{t('bt.eco.popSplit', { pop: eco.pop, cap: eco.cap, army: eco.popSplit.army, workers: eco.popSplit.workers, training: eco.popSplit.training })}</span>}
+        {compact ? steward : eco.popSplit && <span className="flex-1 min-w-0 text-[10px] text-fa-muted truncate">{t('bt.eco.popSplit', { pop: eco.pop, cap: eco.cap, army: eco.popSplit.army, workers: eco.popSplit.workers, training: eco.popSplit.training })}</span>}
         <button type="button" onClick={onClose} aria-label={t('bt.close')} data-testid="battle-economy-close" className="ms-auto w-11 h-11 -my-1 shrink-0 flex items-center justify-center text-fa-muted"><X className="w-4 h-4" aria-hidden="true" /></button>
       </div>
-      <button type="button" onClick={() => onSteward(!eco.steward)} aria-pressed={!!eco.steward} data-testid="battle-steward"
-        className={cx('w-full min-h-[44px] px-2 mb-1 rounded-[10px] border flex items-center gap-2 text-start', eco.steward ? 'bg-fa-raised border-fa-good' : 'border-fa-line')}>
-        <Users className={cx('w-5 h-5 shrink-0', eco.steward ? 'text-fa-good' : 'text-fa-muted')} aria-hidden="true" />
-        <span className="flex-1 min-w-0"><span className="block font-semibold text-[12px]">{eco.steward ? t('bt.eco.stewardOn') : t('bt.eco.stewardOff')}</span>
-          <span className="block text-[10.5px] text-fa-muted leading-snug">{t('bt.eco.stewardLine')}</span></span>
-      </button>
-      <div className="ps-1 pb-0.5 text-fa-muted">{t('bt.eco.gatherFocus')}</div>
+      {!compact && steward}
+      {!compact && <div className="ps-1 pb-0.5 text-fa-muted">{t('bt.eco.gatherFocus')}</div>}
       <div className="grid grid-cols-5 gap-1 mb-1" role="group" aria-label={t('bt.eco.gatherFocus')} data-testid="battle-economy-presets">
         {Object.keys(WORKER_PRESETS).map((id) => {
           const n = RESOURCES.includes(id) ? gathering[RESOURCES.indexOf(id)] : null;

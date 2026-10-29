@@ -89,6 +89,11 @@ export const CITY_BUILDING_LOOT = 60;
 // Trade: a trade post brings in gold while it stands, up to a fixed amount (no free endless loop).
 export const TRADE_GOLD_PER_SEC = 0.5;
 export const TRADE_GOLD_MAX = 300;
+// A walled city holds its walls (U9, F98, lead option A): while its keep stands its stores give the
+// defender this a second, and its town hall trains the foot inside the ring (the mirror walled assault
+// went 32 of 32 to the attacker: the defender's laborers and barracks outside its walls were cut down).
+export const CITY_STORES_PER_SEC = { food: 2.5, wood: 1.2 };
+export const CITY_HALL_TRAINS = ['infantry', 'ranged'];
 // The aid post heals friendly squads resting near it.
 export const AID_RADIUS = 6 * Q;
 export const AID_HEAL_PER_SEC = 0.004;

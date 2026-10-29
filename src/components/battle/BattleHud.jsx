@@ -50,6 +50,7 @@ import { structureName } from './inspectModel';
 const fmtTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 const cx = (...p) => p.filter(Boolean).join(' ');
 const SPEEDS = [1, 2, 3];
+const STATUS_FOLD_MS = 10000;
 const STRUCTURE_WORD = { keep: 'keep', tower: 'tower', gate: 'gate', wall: 'wall', house: 'house', building: 'building', palace: 'palace', wonder: 'wonder', landmark: 'landmark', townhall: 'town hall' };
 
 // The usable rectangle (U03): the safe-area insets, never less than a small gutter.
@@ -180,9 +181,21 @@ const BattleHud = ({
   const [wandOpen, setWandOpen] = useState(false);
   const [supplyOpen, setSupplyOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [deployFolded, setDeployFolded] = useState(false);
+  const short = useShortScreen();
+  // R7 (F116, BC 35, BC 53): on a phone the deploy card opens compact (title, formations, Start); its chevron shows the rest.
+  const [deployFolded, setDeployFolded] = useState(short);
+  // The objective line folds 10 s after Start; a tap on the status box brings it back.
+  const [statusOpen, setStatusOpen] = useState(true);
   const [attrOpen, setAttrOpen] = useState(false); // the attrition chip's why, on a tap (a phone has no hover title)
   const [ecoOpen, setEcoOpen] = useState(false);
+  useEffect(() => {
+    if (!started) return undefined;
+    if (hud?.eco && onSteward) setEcoOpen(true); // the build phase starts with the economy in view (the Economy button folds and reopens it)
+    const timer = setTimeout(() => setStatusOpen(false), STATUS_FOLD_MS);
+    return () => clearTimeout(timer);
+  }, [started]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A selection's own panel (laborers, a building, placing) takes the economy sheet's place, so the two never stack.
+  useEffect(() => { if (panel) setEcoOpen(false); }, [!!panel]); // eslint-disable-line react-hooks/exhaustive-deps
   const [stocksOpen, setStocksOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   // On a phone one battle overlay shows at a time (the radial too, TacticalBattleScreen): the one opened last.
@@ -193,7 +206,6 @@ const BattleHud = ({
   useCornerSheet('battle-stocks', stocksOpen, () => setStocksOpen(false));
   useCornerSheet('battle-view', viewOpen, () => setViewOpen(false));
   useCornerSheet('battle-pause', !!hud && !ended && started && paused && !sheetHidden, () => setSheetHidden(true));
-  const short = useShortScreen();
   const narrowMedia = useMedia(NARROW_QUERY);
   const narrow = narrowProp ?? narrowMedia;
   const [alerts, setAlerts] = useState([]);
@@ -241,7 +253,7 @@ const BattleHud = ({
   const target = selectedSquads.find((q) => q.targetKind === 'structure' && q.target >= 0);
   const targetSt = target ? hud.structures[target.target] : null;
   const city = cityAssaultView(hud, setup);
-  const { shown: shownAlerts, history } = visibleAlerts(alerts, hud.tick, short ? 1 : 2); // a phone keeps one on the field at a time
+  const { shown: shownAlerts, history } = visibleAlerts(alerts, hud.tick, short ? 1 : 2, speed); // a phone keeps one on the field at a time
   const pauseOpen = started && paused && !sheetHidden;
   const bt = BATTLE_TYPES[hud.battleType || 'field'];
   const youPct = Math.round(strengthShare(hud, playerSide) * 100);
@@ -286,7 +298,7 @@ const BattleHud = ({
   // steps 3, 103, 255: in the centre it covered the fleet). The field never mirrors, so the side is physical.
   const deployCard = !started && (
             // The deploy card (playtest 40651418969 step 3): Start never scrolls or folds away; the chevron folds the words to a slim bar.
-            <div className="absolute pointer-events-auto w-[min(20rem,calc(100vw-1rem))] px-3 py-2 fa-panel !bg-fa-panel/95 text-[12px] leading-snug shadow-xl flex flex-col" style={{ bottom: ABOVE_BOTTOM, ...(playerSide === 1 ? { left: 'max(0.5rem, var(--sa-l, 0px))' } : { right: 'max(0.5rem, var(--sa-r, 0px))' }), maxHeight: `calc(var(--app-height, 100vh) - ${short ? '9.5rem' : '11rem'} - var(--sa-t, 0px) - var(--sa-b, 0px))` }} data-testid="battle-deploy-help">
+            <div className="absolute pointer-events-auto w-[min(22rem,calc(100vw-1rem))] px-3 py-2 fa-panel !bg-fa-panel/95 text-[12px] leading-snug shadow-xl flex flex-col" style={{ bottom: ABOVE_BOTTOM, ...(playerSide === 1 ? { left: 'max(0.5rem, var(--sa-l, 0px))' } : { right: 'max(0.5rem, var(--sa-r, 0px))' }), maxHeight: `calc(var(--app-height, 100vh) - ${short ? '9.5rem' : '11rem'} - var(--sa-t, 0px) - var(--sa-b, 0px))` }} data-testid="battle-deploy-help">
               <div className="flex items-center gap-2 shrink-0">
                 <div className="min-w-0 flex-1">
                   {title && <div className="fa-label truncate lg:hidden" data-testid="battle-deploy-title">{title}</div>}
@@ -296,7 +308,6 @@ const BattleHud = ({
                 <button type="button" onClick={() => setDeployFolded((v) => !v)} aria-expanded={!deployFolded} aria-label={deployFolded ? t('bt.hud.moreAbout') : t('bt.hud.foldDeploy')} data-testid="battle-deploy-more"
                   className="w-11 h-11 -my-2 -me-2 shrink-0 flex items-center justify-center text-fa-muted">{deployFolded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}</button>
               </div>
-              {!deployFolded && <>
                 {deployPresets.length > 1 && (
                   <div className="mb-1 shrink-0" data-testid="battle-deploy-presets">
                     <div className="flex items-center gap-1" role="group" aria-label={t('bt.hud.formationPick')}>
@@ -306,9 +317,10 @@ const BattleHud = ({
                           className={cx('flex-1 min-h-[44px] px-1.5 rounded-[8px] border text-[12px] font-semibold', deployPreset === id ? 'bg-fa-raised border-fa-brass text-fa-text' : 'border-fa-line text-fa-muted')}>{t(`bt.hud.preset.${id}`)}</button>
                       ))}
                     </div>
-                    {deployPreset && <div className="mt-0.5 text-fa-brass" data-testid="battle-deploy-preset-note">{t(`bt.hud.preset.${deployPreset}.title`)}</div>}
+                    {deployPreset && !deployFolded && <div className="mt-0.5 text-fa-brass" data-testid="battle-deploy-preset-note">{t(`bt.hud.preset.${deployPreset}.title`)}</div>}
                   </div>
                 )}
+              {!deployFolded && <>
                 {sel && <div className="mb-1 shrink-0 font-semibold text-fa-you" data-testid="battle-deploy-selected">{t(mouse ? 'bt.hud.deploySelectedMouse' : 'bt.hud.deploySelected', { name: sel.name })}</div>}
                 {!sel && playerSide === 1 && (setup.battleType === 'raid' || setup.battleType === 'sack') && <div className="mb-1 shrink-0 font-semibold text-fa-brass" data-testid="battle-raid-first">{t('bt.hud.raidFirst')}</div>}
                 <div className={cx('min-h-0 overflow-y-auto overscroll-contain', short && 'max-h-[6.75rem]')} data-testid="battle-deploy-details">
@@ -467,7 +479,7 @@ const BattleHud = ({
             </button>
           )}
           {/* Who is winning, the objective and the loot (playtest issues 3 to 5); the base rule in words (sim/base.js, UI16). */}
-          <div className="pointer-events-none fa-panel !bg-fa-panel/95 !rounded-[10px] px-2 py-0.5 text-[10.5px] leading-tight w-[min(20rem,100%)] shadow-xl" data-testid="battle-status">
+          <div className="relative pointer-events-none fa-panel !bg-fa-panel/95 !rounded-[10px] px-2 py-0.5 text-[10.5px] leading-tight w-[min(20rem,100%)] shadow-xl" data-testid="battle-status">
             <div className="flex items-center gap-1.5" title={t('bt.status.title')} role="img" aria-label={t('bt.status.aria', { a: youPct, b: themPct })}>
               <span className="font-semibold text-fa-muted">{t('bt.status.army')}</span>
               <span className="font-semibold text-fa-you">{t('bt.status.you')}</span>
@@ -476,8 +488,12 @@ const BattleHud = ({
               <span className="flex-1 min-w-[1.5rem] h-1.5 rounded-full bg-fa-ink overflow-hidden" aria-hidden="true"><span className="block h-full bg-fa-enemy" style={{ width: `${themPct}%` }} /></span>
               <span className="fa-num text-fa-enemy" data-testid="battle-status-them">{themPct}%</span>
               <span className="font-semibold text-fa-enemy">{t('bt.status.them')}</span>
+              <span className="w-5 shrink-0" aria-hidden="true" />
             </div>
-            <div className="line-clamp-2 text-fa-brass" title={objective} data-testid="battle-objective-line">{objective}</div>
+            {/* the reopen handle of the folded objective line; only it takes taps (attack-move clicks pass through the box) */}
+            <button type="button" onClick={() => setStatusOpen((v) => !v)} aria-expanded={statusOpen} aria-label={t(statusOpen ? 'bt.hud.foldObjective' : 'bt.hud.showObjective')} data-testid="battle-status-toggle"
+              className="pointer-events-auto absolute top-0 end-0 w-11 h-11 -mt-2 flex items-center justify-center text-fa-muted">{statusOpen ? <ChevronUp className="w-3.5 h-3.5" aria-hidden="true" /> : <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />}</button>
+            {statusOpen && <div className="line-clamp-2 text-fa-brass" title={objective} data-testid="battle-objective-line">{objective}</div>}
             {/* What decides it (Q3): base buildings standing, each bar against the most that side has had (battle-engage). */}
             {base && (
               <div className="flex items-center gap-1.5 text-fa-muted" title={t('bt.hud.baseTitle')} role="img" aria-label={t('bt.status.buildings', { a: base[0], b: base[1] })} data-testid="battle-base">
@@ -643,7 +659,7 @@ const BattleHud = ({
               </div>
             )}
             {ecoOpen && eco && onSteward && (
-              <EconomySheet eco={eco} hq={ecoHq} onSteward={onSteward} onPreset={onWorkerPreset} onRebuild={onAutoRebuild}
+              <EconomySheet compact={short} eco={eco} hq={ecoHq} onSteward={onSteward} onPreset={onWorkerPreset} onRebuild={onAutoRebuild}
                 onTrainLaborer={() => ecoHq && onTrainLaborer?.(ecoHq.idx)} onIdle={() => { setEcoOpen(false); onSelectClass('idle'); }} onClose={() => setEcoOpen(false)} />
             )}
             {panel}

@@ -75,6 +75,10 @@ describe('W11 preBattleModel', () => {
     expect(m.hopeless).toBe(true);
     expect(m.hopelessText).toMatch(/^Hopeless: Auto wins only \d+% of the time, mostly from Numbers x0\.\d\d\. Call off/);
     expect(preBattleModel(spy, { fromRegionId: from, targetRegionId: target }, { samples: 20 }).hopelessText).toBeNull();
+    // WM fix 5: the word on "Command anyway"; none for a fight Auto wins
+    expect(m.risk).toBe('Hopeless');
+    const even = preBattleModel(spy, { fromRegionId: from, targetRegionId: target }, { samples: 20 });
+    expect(even.risk).toBe(even.autoP < 0.35 ? 'Unlikely' : null);
   });
 
   it('no parity record or no range yields no line, never a made-up number', () => {

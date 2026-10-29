@@ -130,7 +130,8 @@ describe('AI accords (plan C6)', () => {
     const only = { [bully]: angry.nations[bully], [P]: angry.nations[P] };
     const free = processAIWarDecisions({ ...angry, pendingDemand: null }, only, [], sortedNow, rng);
     const held = processAIWarDecisions({ ...angry, pendingDemand: r.pendingDemand }, only, [], sortedNow, rng);
-    const onPlayer = (res) => res.wars.some((w) => w.aggressor === bully && w.enemy === P);
+    // A war decided on the player: declared, or being armed for first (warPlans.js armedFor, lane ai-armies).
+    const onPlayer = (res) => res.wars.some((w) => w.aggressor === bully && w.enemy === P) || res.nations[bully]?.warPrep?.target === P;
     expect(onPlayer(free)).toBe(true);
     expect(onPlayer(held)).toBe(false);
     // The player went to war with them anyway: the demand is void, nothing is paid, no casus belli.
