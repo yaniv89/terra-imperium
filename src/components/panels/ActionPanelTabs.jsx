@@ -14,13 +14,14 @@ import { useT } from '../../i18n/useT';
 
 // The War section stays in the Empire sheet (plans/civ-map-rework.md E4); Diplomacy is its own tab
 // again as "Peoples" (W07), so the Empire sheet no longer repeats it.
+// `help`: the glossary term a held tab opens (useHoldHelp; round 3b warmonger 42: holding Research only opened it).
 export const TABS = [
-  { id: 'domestic', label: 'Empire', icon: Landmark },
-  { id: 'ruler', label: 'Ruler', icon: Crown },
-  { id: 'cities', label: 'Cities', icon: Building2 },
-  { id: 'tech', label: 'Research', icon: FlaskConical },
-  { id: 'diplomacy', label: 'Peoples', icon: HeartHandshake },
-  { id: 'legacy', label: 'Legacy', icon: Trophy }
+  { id: 'domestic', label: 'Empire', icon: Landmark, help: 'empire' },
+  { id: 'ruler', label: 'Ruler', icon: Crown, help: 'ruler' },
+  { id: 'cities', label: 'Cities', icon: Building2, help: 'cities' },
+  { id: 'tech', label: 'Research', icon: FlaskConical, help: 'science' },
+  { id: 'diplomacy', label: 'Peoples', icon: HeartHandshake, help: 'peoples' },
+  { id: 'legacy', label: 'Legacy', icon: Trophy, help: 'goals' }
 ];
 
 // The count on a tab (also used by the landscape tab rail in PanelDrawer.jsx).
@@ -58,7 +59,7 @@ const ActionPanelTabs = ({ activeTab, onTabChange }) => {
         const Icon = tab.icon;
         const badge = getTabBadge(state, tab.id);
         return (
-          <button key={tab.id} type="button" role="tab" aria-selected={activeTab === tab.id} aria-label={t(`rail.${tab.id}`)} onClick={() => onTabChange(tab.id)}
+          <button key={tab.id} type="button" role="tab" aria-selected={activeTab === tab.id} aria-label={t(`rail.${tab.id}`)} onClick={() => onTabChange(tab.id)} data-help={`term:${tab.help}`}
             className="fa-tab flex-1 flex-col !gap-0.5 !px-1 !text-[10px] min-w-[3.5rem]">
             <Icon className="w-[18px] h-[18px]" aria-hidden="true" />
             {t(`rail.${tab.id}`)}

@@ -163,6 +163,8 @@ export default {
   'mx.army.enemy': 'Enemy',
   'mx.army.why.no_war': 'not at war',
   'mx.army.why.no_moves': 'no moves left',
+  'mx.army.why.marchWait': 'No moves left this turn (a landing or a march used them). It can march again next turn.',
+  'mx.army.why.pickOne': 'Pick at least one regiment to march.',
   'mx.army.why.cost': 'cannot afford the attack',
   'mx.army.why.no_units': 'no unit beside it',
   'mx.army.why.not_adjacent': 'not beside it',

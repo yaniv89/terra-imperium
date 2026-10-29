@@ -134,7 +134,7 @@ export default {
   'nc.cause': 'A cause for war',
   'nc.noCause': 'No cause for war: costs more, hurts relations (a refused tribute demand gives one)',
   'nc.declareSub': '{cause}, {cost}{fighting}',
-  'nc.alreadyFighting': '. Already fighting {list}',
+  'nc.alreadyFighting': '. They are at war with {list} (their war, not yours)',
   'nc.breakPact': 'Break the pact',
   'nc.breakPactSub': 'Their hostility rises',
   'nc.offerPact': 'Offer pact',

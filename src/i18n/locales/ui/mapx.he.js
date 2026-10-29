@@ -163,6 +163,8 @@ export default {
   'mx.army.enemy': 'אויב',
   'mx.army.why.no_war': 'לא במלחמה',
   'mx.army.why.no_moves': 'נגמרה התנועה',
+  'mx.army.why.marchWait': 'נגמרה התנועה בתור הזה (נחיתה או צעידה). אפשר לצעוד שוב בתור הבא.',
+  'mx.army.why.pickOne': 'בחרו לפחות גדוד אחד לצעידה.',
   'mx.army.why.cost': 'אין כסף לתקיפה',
   'mx.army.why.no_units': 'אין יחידה לידה',
   'mx.army.why.not_adjacent': 'לא צמוד אליה',

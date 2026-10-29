@@ -135,7 +135,7 @@ export default {
   'nc.cause': 'עילה למלחמה',
   'nc.noCause': 'אין עילה למלחמה: עולה יותר ופוגע ביחסים (דרישת מס שנדחתה נותנת עילה)',
   'nc.declareSub': '{cause}, {cost}{fighting}',
-  'nc.alreadyFighting': '. כבר נלחמים נגד {list}',
+  'nc.alreadyFighting': '. הם במלחמה עם {list} (מלחמה שלהם, לא שלכם)',
   'nc.breakPact': 'שברו את הברית',
   'nc.breakPactSub': 'האיבה שלהם עולה',
   'nc.offerPact': 'הציעו ברית',
