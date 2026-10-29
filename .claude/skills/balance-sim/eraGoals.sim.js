@@ -27,12 +27,16 @@ SEEDS.forEach((seed) => {
     let s = createInitialState({ playerNationId: PLAYER, rngSeed: seed, gameSpeed: SPEED, scenario: { mode: 'peoples', size: 'standard', seed } });
     s = { ...s, research: { ...s.research, auto: true }, battleSettings: { autoDefend: true } };
     const scripted = createScriptedPlayer({ engine: { gameReducer, ActionTypes, chooseProduction, nationCounts, bestSites, MAX_SETTLE_RINGS, getResearched, getTechAgeId, getEffectiveAgeId: AGES.getEffectiveAgeId, speedCostMult: AGES.speedCostMult, speedTrainMult: AGES.speedTrainMult }, demands: 'refuse', opinionOf });
+    const prog = {};
     for (let t = 1; t <= TURNS && s.gameStatus === GameStatus.ACTIVE; t++) {
       if (s.activeEventId || s.activeProceduralEvent) s = gameReducer(s, { type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex: 0 } });
       if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null }; // an option it cannot afford
       s = scripted.answer(s).state;
       const before = s.turnNumber;
       s = resolveTurn(s);
+      // the player's best value per goal and age (lane early-pace-8: how close a scripted player comes)
+      const pa = getTechAgeId(s, s.playerNationId); const pp = (prog[pa] ||= { turns: 0 }); pp.turns += 1;
+      eraGoalProgress(s, pa, s.playerNationId).goals.forEach((g) => { pp[g.id] = `${Math.max(Number(String(pp[g.id] || '0/').split('/')[0]), g.value)}/${g.target}`; });
       if (s.turnNumber === before && process.env.DEBUG) console.log('STALL', s.turnNumber, Object.keys(s).filter((k) => /^(pending|active)/i.test(k) && s[k] && (!Array.isArray(s[k]) || s[k].length)));
     }
     // ages[age] = { n: majors scored, goal: count met }; an age still running at the stop is read live.
@@ -48,5 +52,6 @@ SEEDS.forEach((seed) => {
       });
     });
     console.log(`ERAGOALS seed=${seed} turn=${s.turnNumber} status=${s.gameStatus} ages=${JSON.stringify(ages)}`);
+    console.log(`PLAYERGOALS seed=${seed} met=${JSON.stringify(Object.fromEntries(Object.entries(s.nations[s.playerNationId]?.eraGoals || {}).map(([a, r]) => [a, r.met || []])))} best=${JSON.stringify(prog)}`);
   });
 });

@@ -21,6 +21,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FlaskConical, Check, Lock, X, ListPlus, Sparkles, BookOpen, GraduationCap, MapPin, ArrowDown, Hourglass } from 'lucide-react';
 import { ageIconUrl } from '../../data/icons';
 import { useGame } from '../../context/GameContext';
+import { reasonText as whyText } from '../../i18n/messageText';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes, TechCategories } from '../../data/types';
 import { TECH_TREE } from '../../data/techTree';
@@ -96,7 +97,7 @@ const TechRow = ({ info, onResearch, onQueue, recommended, needs = [], onPick })
 };
 
 // The tech under way: name, what it gives, the bar with a waiting boost, the numbers.
-const CurrentCard = ({ m }) => {
+const CurrentCard = ({ m, onFund }) => {
   useT();
   const c = m.current;
   if (!c) {
@@ -124,6 +125,13 @@ const CurrentCard = ({ m }) => {
         {c.pendingBoost > 0 && <span className="fa-num text-fa-good" data-testid="research-boost-waiting">{tNow('p2.cc.boostWaiting', { pct: c.pendingShare })}</span>}
         <span className="fa-num font-semibold ms-auto" data-testid="research-eta">{formatEta(c)}</span>
       </div>
+      {/* a late gold sink: a share of the treasury buys science, less for each extra gold (spending.js fundQuote) */}
+      {m.fund?.gold > 0 && (
+        <button type="button" onClick={onFund} disabled={!m.fund.ok} data-testid="research-fund" title={m.fund.ok ? undefined : whyText(m.fund)}
+          className="fa-btn fa-btn-secondary min-h-[44px] px-2.5 text-[12px] disabled:opacity-50">
+          {m.fund.ok ? tNow('p2.cc.fund', { gold: m.fund.gold, n: m.fund.points }) : whyText(m.fund)}
+        </button>
+      )}
       {!c.canStart && <div className="text-[12px] text-fa-danger-text" data-testid="research-gate">{c.gate ? m.status.note : tNow('p2.cc.banks', { reason: c.reasonText })}</div>}
     </div>
   );
@@ -298,7 +306,7 @@ const TechPanel = () => {
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(170px,200px)]">
         <div className="space-y-3 min-w-0">
           {landmarkAge && <LandmarkCard ageId={landmarkAge} onPick={(landmarkId) => dispatch({ type: ActionTypes.CHOOSE_AGE_LANDMARK, payload: { ageId: landmarkAge, landmarkId } })} />}
-          <CurrentCard m={m} />
+          <CurrentCard m={m} onFund={() => dispatch({ type: ActionTypes.FUND_RESEARCH })} />
 
           {m.boosts.length > 0 && (
             <section className="space-y-1.5" aria-labelledby="research-boosts">

@@ -3,7 +3,7 @@
 // and the Research Map button):
 //   the hint    "what to do here", set by showMapHint (uiEvents.js) when a Research boost sends you
 //               to the map, with a way back to Research and a Done button
-//   the tracker the era goals as one chip naming the goal closest to done ("Goal: 2/4 cities"); open, each goal has its bar, the legacy it
+//   the tracker the era goals as one chip naming the goal closest to done, its progress and reward ("Expand: 2/4 cities · +10% manpower"); open, each goal has its bar, the legacy it
 //               gives and what to do next (data/eraGoals.js). Closed by default so the map stays clear.
 import React, { useEffect, useMemo, useState } from 'react';
 import { Target, X } from 'lucide-react';
@@ -57,7 +57,7 @@ const MapGoals = () => {
       <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} data-testid="goal-tracker-chip"
         className="relative before:content-[''] before:absolute before:-inset-y-1 before:inset-x-0 pointer-events-auto min-h-[36px] inline-flex items-center gap-1.5 px-2.5 rounded-full bg-fa-panel/90 border border-fa-line text-[12px] text-fa-text">
         <Target size={14} aria-hidden="true" />
-        {next ? <span>{t('goals.chipNext', { value: Math.min(next.value, next.target), target: next.target, unit: goalUnit(next.id, next.unit) })}</span>
+        {next ? <span className="truncate max-w-[60vw]">{t('goals.chipNext', { goal: playstyleName(next.id, next.label), value: Math.min(next.value, next.target), target: next.target, unit: goalUnit(next.id, next.unit), bonus: goalBonus(next.id, next.bonus, next.n) })}</span>
           : <>{t('goals.title')} <span className="fa-num">{era.met}/{era.needed}</span></>}
       </button>
       {open && (

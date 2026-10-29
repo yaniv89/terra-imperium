@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CARDS, cardOf, drawEvent, cooldownTurns, cardChoice, eraDawnCard, raidAftermathCard, RAID_AFTERMATH_TURNS, REST_GROWTH_MAX, STORY_GAP } from './eventDeck';
+import { CARDS, cardOf, drawEvent, cooldownTurns, cardChoice, eraDawnCard, raidAftermathCard, RAID_AFTERMATH_TURNS, REST_GROWTH_MAX, STORY_GAP, HARSH_CARDS } from './eventDeck';
 import { applyEventEffects } from './applyEventEffects';
 import { factsUsed, predicateMet, factContext } from './predicates';
 import { HISTORICAL_EVENTS } from '../data/events';
@@ -69,6 +69,34 @@ describe('event deck (U26)', () => {
       if (last[e.family] != null) expect(e.turn - last[e.family], e.family).toBeGreaterThanOrEqual(gap);
       last[e.family] = e.turn;
     });
+  });
+
+  it('at Normal one card waits 30 turns, a family 10, two harsh cards 10 to 12 (math report section 6)', () => {
+    const state = quiet({ gameSpeed: 'normal' });
+    expect(cooldownTurns(state, 'template')).toBeGreaterThanOrEqual(30);
+    expect(cooldownTurns(state, 'family')).toBeGreaterThanOrEqual(10);
+    expect(cooldownTurns(state, 'harsh')).toBeGreaterThanOrEqual(8);
+    expect(cooldownTurns(state, 'harsh')).toBeLessThanOrEqual(12);
+    const fired = play(state, 300).filter((e) => HARSH_CARDS.has(e.templateId));
+    fired.slice(1).forEach((e, i) => expect(e.turn - fired[i].turn).toBeGreaterThanOrEqual(cooldownTurns(state, 'harsh')));
+  });
+
+  it('a lost city buys quiet turns: no story or draw, and an empty pool shows no card', () => {
+    const s = quiet({ firedEvents: {}, eventHistory: { 'dawn:stone': 1 } });
+    const me = s.playerNationId;
+    const mine = Object.values(s.regions).filter((c) => c.owner === me);
+    const seen = drawEvent(s, createRng(4));
+    expect(seen.activeEventId).toBeTruthy(); // a due story, as before
+    // the next turn one city is gone: the story waits out the quiet turns
+    const lost = { ...s, eventHistory: { ...seen.eventHistory, cities: mine.length + 1 }, turnNumber: s.turnNumber + 1 };
+    const out = drawEvent(lost, createRng(4));
+    expect(out.activeEventId).toBe(null);
+    expect(out.eventHistory.quiet).toBe(lost.turnNumber);
+    const later = { ...lost, eventHistory: out.eventHistory, turnNumber: lost.turnNumber + cooldownTurns(lost, 'quiet') };
+    expect(drawEvent(later, createRng(4)).activeEventId).toBeTruthy();
+    // nothing eligible: no filler card
+    const empty = { ...quiet(), eventHistory: { 'dawn:stone': 1, ...Object.fromEntries(Object.keys(CARDS).map((id) => [`a:${id}`, ageOf(s, me)])) } };
+    for (let k = 0; k < 20; k++) expect(drawEvent({ ...empty, turnNumber: 10 + k }, createRng(k)).activeProceduralEvent).toBe(null);
   });
 
   it('a due story waits out the gap and leaves one; the dawn card does not (pacing-8)', () => {

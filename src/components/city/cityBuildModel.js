@@ -14,6 +14,7 @@
 import { getTiles } from '../../data/geo/tiles';
 import { TECH_TREE } from '../../data/techTree';
 import { reasonText } from '../../i18n/messageText';
+import { reasonOf } from '../../engine/messages';
 import { t as tNow, dataText } from '../../i18n/core';
 import { unitName as unitDisplayName } from '../../i18n/gameText';
 import { robotUnitName, unitClassRole, navalLineRole, buildingTierName, buildingCategoryLabel, wonderName, wonderDescription, techName, improvementName, terrainWord, tileResourceName } from '../../i18n/gameText';
@@ -31,7 +32,7 @@ import { wonderOptions, wonderItem } from '../../engine/wonders';
 import { cityLive, queueView, buildQuote, worldOf, isLongBuild, longBuildTurns, focusPreview } from '../../engine/cityEconomy';
 import { buildingEffect, improvementEffect } from '../../engine/cityEffects';
 import { settlingOutlook } from '../../engine/settlers';
-import { rushQuote, rushGold, rushRate, RUSH_GOLD_PER_HAMMER } from '../../engine/spending';
+import { rushQuote, rushGold, rushRate, paidHead, PAID_LOCK, RUSH_GOLD_PER_HAMMER } from '../../engine/spending';
 import { calcNationBalance } from '../../engine/economy';
 import { FIRST_AGE_ID, isAgeBefore, nextAgeId } from '../../data/ages';
 import { nameNow } from '../../i18n/names';
@@ -87,14 +88,19 @@ export const buildQueue = (state, cityId, live = cityLive(state, cityId)) => {
   if (!live) return [];
   const tiles = getTiles();
   let net; // the gold a turn, read only when a price is out of reach
+  const gold = Math.floor(state.resources?.gold || 0);
+  const locked = paidHead(state, cityId) ? reasonText(reasonOf(PAID_LOCK)) : null;
   return queueView(state, cityId, live).map((q) => {
     const rush = live.city.owner === state.playerNationId ? rushQuote(state, cityId, q.index) : null;
     return {
-      ...q, label: itemLabel(q.item, tiles, live.ctx.ageId, live.city.tile), waitText: q.wait ? reasonText(q.wait) : null, tile: q.item.kind === 'improvement' || q.item.kind === 'wonder' ? q.item.tile ?? null : null,
-      rush: rush ? { ...rush, ...goldWait(state, rush, () => (net ??= calcNationBalance(state, state.playerNationId).net)) } : null
+      ...q, locked: q.index === 0 ? locked : null, headLocked: !!locked, label: itemLabel(q.item, tiles, live.ctx.ageId, live.city.tile), waitText: q.wait ? reasonText(q.wait) : null, tile: q.item.kind === 'improvement' || q.item.kind === 'wonder' ? q.item.tile ?? null : null,
+      rush: rush ? { ...rush, ...goldWait(state, rush, () => (net ??= calcNationBalance(state, state.playerNationId).net)), ...(rush.ok ? { left: gold - rush.gold, quick: rush.gold <= BUY_CONFIRM_SHARE * gold } : {}) } : null
     };
   });
 };
+
+/** A buy at or below this share of the treasury pays on the first tap; above it the offer asks again (NC issue 2). */
+export const BUY_CONFIRM_SHARE = 0.25;
 
 /** A price the treasury cannot pay: { have, saveTurns } (turns of the current gold income to save it; null with no income). */
 export const goldWait = (state, rush, netOf) => {
@@ -110,12 +116,14 @@ export const rushText = (q) => {
   if (!r || r.gold == null) return null;
   const wait = r.turns == null ? tNow('cy.rush.noProd') : tNow('cy.rush.instead', { turns: turnsText(r.turns) });
   const heat = r.heat > 0 ? ` ${tNow('cy.rush.heat', { pct: Math.round((r.mult - 1) * 100) })}` : '';
-  const save = r.have == null ? null : r.saveTurns == null ? tNow('cy.rush.noIncome', { have: r.have }) : tNow('cy.rush.save', { have: r.have, turns: turnsText(r.saveTurns) });
+  const short = r.have == null ? '' : `${tNow('cy.rush.short', { n: r.gold - r.have })} `;
+  const save = r.have == null ? null : short + (r.saveTurns == null ? tNow('cy.rush.noIncome', { have: r.have }) : tNow('cy.rush.save', { have: r.have, turns: turnsText(r.saveTurns) }));
   return {
     button: tNow('cy.rush.button', { gold: r.gold }),
     title: r.ok ? tNow('cy.rush.title', { gold: r.gold, hammers: r.hammers, label: q.label }) : r.have != null ? save : r.reason,
     save: r.have != null ? save : null,
-    text: `${tNow('cy.rush.text', { label: q.label, hammers: r.hammers, gold: r.gold, each: Math.round(RUSH_GOLD_PER_HAMMER * rushRate(q.item) * 10) / 10, wait })}${heat}`
+    text: `${tNow('cy.rush.text', { label: q.label, hammers: r.hammers, gold: r.gold, each: Math.round(RUSH_GOLD_PER_HAMMER * rushRate(q.item) * 10) / 10, wait })}${r.left != null ? ` ${tNow('cy.rush.left', { left: r.left })}` : ''}${heat}`,
+    left: r.left != null ? tNow('cy.rush.left', { left: r.left }) : null
   };
 };
 

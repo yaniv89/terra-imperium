@@ -672,7 +672,7 @@ export default {
   'legend.indep': 'עיר עצמאית',
   'goals.backResearch': 'חזרה למחקר',
   'goals.done': 'סיום',
-  'goals.chipNext': 'יעד: {value}/{target} {unit}',
+  'goals.chipNext': '{goal}: {value}/{target} {unit} · {bonus}',
   'goals.title': 'יעדים',
   'goals.intro': 'יעדי {age}. כל יעד משתלם כשהוא מושג: הפרס שלו למשך {turns} תורות, צו ותהילה. עמדו ב־{needed} למורשת העידן.',
   'goals.close': 'סגירת היעדים',

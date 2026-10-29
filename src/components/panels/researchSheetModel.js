@@ -14,6 +14,7 @@ import { ERA_LEGACY_TURNS } from '../../data/eraGoals';
 import { eraGoalProgress } from '../../engine/eraGoals';
 import { nationFacts, boostOf } from '../../engine/boosts';
 import { canStartTech } from '../../engine/research';
+import { fundQuote } from '../../engine/spending';
 import { getResearchView, researchedSet } from './researchView';
 import { techName } from '../../i18n/gameText';
 import { t as tNow, hasKey, ageName } from '../../i18n/core';
@@ -69,6 +70,7 @@ export const researchSheetModel = (state) => {
 
   const era = eraGoalProgress(state);
   return {
+    fund: fundQuote(state), // gold for science, once a turn (spending.js)
     science: view.science,
     bank: view.bank,
     auto: view.auto,

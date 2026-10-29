@@ -226,6 +226,8 @@ export const ActionTypes = {
   // Pay gold for the production an order still lacks (src/engine/spending.js rushQuote, playtest
   // audits I019): payload { cityId, index } over [current, ...queue]; it completes on the next turn.
   RUSH_PRODUCTION: 'RUSH_PRODUCTION',
+  // Gold for science toward the current tech, once a turn (src/engine/spending.js fundQuote, lane early-pace-8).
+  FUND_RESEARCH: 'FUND_RESEARCH',
   // Map trading (src/engine/mapTrade.js, playtest audit I116): payload { nationId, kind } with kind
   // 'swap' | 'give' | 'ask' | 'buy' | 'sell'; and the answer to an AI's offer to swap maps
   // (`state.pendingMapOffer`): payload { accept }.

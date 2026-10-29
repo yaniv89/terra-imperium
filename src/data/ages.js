@@ -25,6 +25,8 @@ export const AGES = {
     unlocksResources: ['copper'],
     power: { attack: 7, defense: 6 },
     unitCostMult: 1,
+    // A young city's production in this age: early items are priced in its turns (cities.js).
+    benchProduction: 4,
     peopleShown: 0.01
   },
   bronze: {
@@ -38,6 +40,7 @@ export const AGES = {
     // age's position, so a new age can slot in anywhere.
     power: { attack: 10, defense: 8 },
     unitCostMult: 1,
+    benchProduction: 5,
     peopleShown: 0.05
   },
   classical: {
@@ -48,6 +51,7 @@ export const AGES = {
     unlocksResources: ['iron'],
     power: { attack: 18, defense: 14 },
     unitCostMult: 1.6,
+    benchProduction: 8,
     peopleShown: 0.15
   },
   kingdoms: {
@@ -58,6 +62,7 @@ export const AGES = {
     unlocksResources: [],
     power: { attack: 26, defense: 20 },
     unitCostMult: 2.2,
+    benchProduction: 12,
     peopleShown: 0.3
   },
   gunpowder: {
@@ -68,6 +73,7 @@ export const AGES = {
     unlocksResources: [],
     power: { attack: 34, defense: 26 },
     unitCostMult: 2.8,
+    benchProduction: 16,
     peopleShown: 0.6
   },
   modern: {
@@ -78,6 +84,7 @@ export const AGES = {
     unlocksResources: ['oil'],
     power: { attack: 42, defense: 32 },
     unitCostMult: 3.4,
+    benchProduction: 25,
     peopleShown: 1
   },
   // Phase D (U48); power from KTD21.
@@ -89,6 +96,7 @@ export const AGES = {
     unlocksResources: [],
     power: { attack: 52, defense: 40 },
     unitCostMult: 4,
+    benchProduction: 35,
     peopleShown: 1
   },
   // Phase E (U64): the last age; finishing its techs is the final goal (src/engine/ending.js).
@@ -100,6 +108,7 @@ export const AGES = {
     unlocksResources: [],
     power: { attack: 64, defense: 48 },
     unitCostMult: 4.6,
+    benchProduction: 45,
     peopleShown: 1
   }
 };

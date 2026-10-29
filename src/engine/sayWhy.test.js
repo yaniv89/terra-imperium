@@ -22,7 +22,7 @@ describe('held orders', () => {
   it('settlers in a size 1 city stop at their cost and say "Needs size 2"', () => {
     let { world, city } = foundCity(emptyWorld(), tiles, { nationId: 'eg', tile: tiles.capitals.eg, size: 1 });
     city = queueItem(city, { kind: 'settler' });
-    const cost = productionCost({ kind: 'settler' });
+    const cost = productionCost({ kind: 'settler' }, { ageId: 'bronze' });
     for (let i = 0; i < 40; i++) {
       const r = processCity(world, tiles, city, ctx({ maxSize: 1 })); // no growth: the city stays size 1
       world = r.world; city = r.city;

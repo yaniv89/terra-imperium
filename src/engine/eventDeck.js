@@ -89,8 +89,12 @@ export const nextStory = (state) => {
 };
 
 // Cooldowns (playtest audit I221): reference turns scaled by the speed table at the player's age
-// (KTD7): a card, its family and one city each rest after a draw.
-export const EVENT_COOLDOWN_TURNS = { template: 14, family: 5, city: 7 };
+// (KTD7): a card, its family and one city each rest after a draw. Math report 29 Oct, section 6, at Normal
+// (1.6 to 2 turns a reference turn): one card at least 30 turns apart, one family at least 10, two harsh
+// cards (HARSH_CARDS) 10 to 12, and `quiet` turns with no story or draw after the player loses a city.
+export const EVENT_COOLDOWN_TURNS = { template: 19, family: 6.5, city: 7, harsh: 6, quiet: 2.5 };
+// The drawn cards that hurt whatever the answer (a loss to soften, not a choice to make).
+export const HARSH_CARDS = new Set(['sick_herds', 'overcrowded_plague', 'frontier_raiders', 'failed_harvest', 'river_flood', 'harsh_winter']);
 export const cooldownTurns = (state, kind) => Math.ceil(EVENT_COOLDOWN_TURNS[kind] * speedCostMult(state.gameSpeed, ageOf(state, state.playerNationId)));
 // A card rests longer each time it is drawn (River Rises four times in a game, round 2): its
 // cooldown is EVENT_COOLDOWN_TURNS.template times (1 + the times it was drawn), at most
@@ -108,6 +112,7 @@ const onCooldown = (state, key, kind, times = 0) => {
 export const noteEventFired = (history, event, turnNumber) => ({
   ...(history || {}),
   ...(event?.templateId ? { [`t:${event.templateId}`]: turnNumber, [`f:${event.family}`]: turnNumber, [`n:${event.templateId}`]: (history?.[`n:${event.templateId}`] || 0) + 1 } : {}),
+  ...(HARSH_CARDS.has(event?.templateId) ? { h: turnNumber } : {}),
   ...(event?.cityId != null ? { [`c:${event.cityId}`]: turnNumber } : {})
 });
 
@@ -116,7 +121,7 @@ export const noteEventFired = (history, event, turnNumber) => ({
 export const drawCard = (state, rng) => {
   const ctx = factContext(state, state.playerNationId);
   const eligible = DRAWS
-    .filter((t) => (!t.theme || t.theme === peopleOf(state.playerNationId)?.theme) && !(t.once && state.eventHistory?.[`t:${t.id}`] != null) && !onCooldown(state, `t:${t.id}`, 'template', state.eventHistory?.[`n:${t.id}`] || 0) && !onCooldown(state, `f:${t.family}`, 'family') && state.eventHistory?.[`a:${t.id}`] !== ageOf(state, state.playerNationId) && (!t.requires || predicateMet(t.requires, ctx)))
+    .filter((t) => (!t.theme || t.theme === peopleOf(state.playerNationId)?.theme) && !(t.once && state.eventHistory?.[`t:${t.id}`] != null) && !onCooldown(state, `t:${t.id}`, 'template', state.eventHistory?.[`n:${t.id}`] || 0) && !onCooldown(state, `f:${t.family}`, 'family') && !(HARSH_CARDS.has(t.id) && onCooldown(state, 'h', 'harsh')) && state.eventHistory?.[`a:${t.id}`] !== ageOf(state, state.playerNationId) && (!t.requires || predicateMet(t.requires, ctx)))
     .map((t) => ({ t, cities: t.subjects?.city ? t.subjects.city(state).filter((c) => !onCooldown(state, `c:${c.id}`, 'city')) : null }))
     .filter(({ cities }) => !cities || cities.length > 0);
   if (eligible.length === 0) return null;
@@ -246,6 +251,12 @@ export const drawEvent = (state, rng) => {
   // past any real gap (NO_CARDS_COOLDOWN, the tests' and harnesses' "quiet") still holds it.
   const dawn = out.proceduralEventCooldown < NO_CARDS_COOLDOWN ? eraDawnCard(state) : null;
   if (dawn) return { ...out, activeProceduralEvent: dawn, eventHistory: { ...out.eventHistory, [dawn.historyKey]: state.turnNumber } };
+
+  // A lost city buys quiet turns: no story or draw (links, raid answers and the dawn card above still come).
+  const cities = Object.values(state.regions || {}).filter((c) => c.owner === state.playerNationId).length;
+  if (cities < (out.eventHistory.cities ?? cities)) out.eventHistory = { ...out.eventHistory, quiet: state.turnNumber };
+  if (out.eventHistory.cities !== cities) out.eventHistory = { ...out.eventHistory, cities };
+  if (onCooldown({ ...state, eventHistory: out.eventHistory }, 'quiet', 'quiet')) return out;
 
   // A due story waits out the gap after a story or draw, and leaves one (pacing-8, manual playtest 29 Oct: a card
   // almost every turn on Fast; storyPulse Fast Stone 0.73 to 0.45 cards a turn).
