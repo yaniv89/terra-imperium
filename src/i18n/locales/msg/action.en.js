@@ -174,7 +174,7 @@ export default {
   'm.act.warUnjustified': 'You declared an unjustified war on {nation} — the world takes note.',
   'm.act.claimStarted': 'Your agents start fabricating a claim on {city} ({nation}): ready in {turns} turns.',
   'm.act.peaceTreaty': 'Signed a peace treaty with {nation}.',
-  'm.act.peaceRejected': '{nation} rejects your peace terms.',
+  'm.act.peaceRejected': 'Your peace terms are refused by {nation}.',
   'm.act.peaceSigned': 'Peace signed with {nation}.',
   'm.act.peaceAccepted': 'You accept peace with {nation}.',
   'm.act.stillAtWar': 'You are still at war with {nation}.',

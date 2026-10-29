@@ -173,7 +173,7 @@ const DiplomacyPanel = () => {
             {rich(tNow('p2.pp.mapOffer'), { name: <button type="button" className="font-semibold underline" onClick={() => setPicked(mapOffer.from)}>{nameIn('people', mapOffer.from, mapOffer.name)}</button> })} <span className="text-fa-muted">{tNow('p2.pp.mapNote', { text: say(mapOffer.textMsg), turn: mapOffer.until })}</span>
           </div>
           <div className="flex gap-1.5 shrink-0">
-            <Button size="sm" disabled={!mapOffer.ok} onClick={() => dispatch({ type: ActionTypes.ANSWER_MAP_OFFER, payload: { accept: true } })} data-testid="map-offer-accept">{tNow('dip.swap')}</Button>
+            <Button size="sm" disabled={!mapOffer.ok} why={mapOffer.ok ? null : say(mapOffer.textMsg)} onClick={() => dispatch({ type: ActionTypes.ANSWER_MAP_OFFER, payload: { accept: true } })} data-testid="map-offer-accept">{tNow('dip.swap')}</Button>
             <Button size="sm" variant="ghost" onClick={() => dispatch({ type: ActionTypes.ANSWER_MAP_OFFER, payload: { accept: false } })} data-testid="map-offer-decline">{tNow('dip.decline')}</Button>
           </div>
         </div>

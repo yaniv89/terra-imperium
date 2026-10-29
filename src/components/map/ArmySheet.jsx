@@ -67,7 +67,7 @@ const ArmySheet = ({ tile, unitId = null, onCycleUnit = null, onClose, onSelectR
       {model.other && <button type="button" onClick={() => setFleetView(!model.naval)} data-testid="army-switch" className="w-full mb-2 min-h-[40px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold">{model.naval ? tr('mx.army.showTroops') : tr('mx.army.showFleet')}</button>}
       {model.inPort && (model.board.length > 0 || model.cargo.length > 0) && (
         <div className="mb-2 space-y-1" data-testid="fleet-cargo">
-          {model.board.map((c) => <button key={c.id} type="button" onClick={() => dispatch({ type: ActionTypes.EMBARK_UNIT, payload: { landUnitId: c.id, navalUnitId: c.shipId } })} data-testid="board-ship" className="w-full min-h-[40px] rounded-lg bg-sky-800/70 hover:bg-sky-700 text-fa-text text-xs font-semibold">{tr('mx.army.board', { name: c.name })}</button>)}
+          {model.board.map((c) => <button key={c.id} type="button" onClick={() => dispatch({ type: ActionTypes.EMBARK_UNIT, payload: { landUnitId: c.id, navalUnitId: c.shipId } })} data-testid="board-ship" data-help="term:ships" className="w-full min-h-[40px] rounded-lg bg-sky-800/70 hover:bg-sky-700 text-fa-text text-xs font-semibold">{tr('mx.army.board', { name: c.name })}</button>)}
           {model.cargo.map((c) => <button key={c.id} type="button" onClick={() => dispatch({ type: ActionTypes.DISEMBARK_UNIT, payload: { landUnitId: c.id } })} data-testid="unload-ship" className="w-full min-h-[40px] rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text text-xs font-semibold">{tr('mx.army.unload', { name: c.name })}</button>)}
         </div>
       )}

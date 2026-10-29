@@ -90,3 +90,16 @@ describe('W13 peaceDealModel', () => {
     expect(loaded.accepted).toBe(true);
   });
 });
+
+describe('U7 the offer carries its refusal reason (city card and people card answer bubbles)', () => {
+  it('a refused offer has a reason with willingness and price; an accepted one has none', () => {
+    const s = atWar(30);
+    const war = s.wars.find((w) => w.id === 'w13');
+    const all = new Set(peaceCandidates(s, war).map((c) => c.key));
+    const greedy = peaceDealModel(s, 'w13', all);
+    expect(greedy.accepted).toBe(false);
+    expect(greedy.refusal).toMatch(/willingness is -?[0-9]+ and the price is [0-9]+/);
+    const none = peaceDealModel(s, 'w13', new Set());
+    expect(none.refusal === null).toBe(none.accepted);
+  });
+});
