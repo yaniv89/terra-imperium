@@ -141,10 +141,59 @@ const run = async (vp, lang) => {
     const line = page.getByTestId('march-self-embark');
     check(await onScreen(page, line), `${vp.id} ${lang}: the march bar says it crosses on its own boats`);
     await shot(page, `4-self-embark-${lang}`, vp);
+    await page.locator('button[aria-label="Cancel"], button[aria-label="ביטול"]').first().dispatchEvent('click').catch(() => {});
+    await wait(600);
+  }
+
+  // 4. pirates beside the port and a warship in port: the next step says sink them
+  await patch(page, `
+    const { port, tile } = window.__naval; const tiles = m.getTiles();
+    const water = tiles.neighbors[tile].find((n) => tiles.land[n] !== 1);
+    const indep = Object.values(s.nations).find((n) => n.kind === 'independent' && !n.isEliminated && n.capitalRegionId);
+    window.__naval.sea = water;
+    const units = { ...s.units, n9pi: { id: 'n9pi', ownerId: indep.id, regionId: indep.capitalRegionId, homeRegionId: indep.capitalRegionId, tile: water, domain: 'naval', classId: 'naval', navalLine: 'raider', transportCapacity: 0, strength: 400, maxStrength: 400, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null, pirate: { target: port, until: s.turnNumber + 8 } } };
+    return { ...s, units };`, ['data/geo/tiles.js']);
+  const pirates = page.locator('[data-testid="next-step"][data-step="pirates"]');
+  await pirates.waitFor({ timeout: 8000 }).catch(() => {});
+  check(await onScreen(page, pirates), `${vp.id} ${lang}: next step "Sink the pirates" on screen`);
+  await shot(page, `5-pirates-step-${lang}`, vp);
+
+  // 5. the fleet at sea with troops beside a free shore: Sail, tap the shore, Land here
+  const shore = await page.evaluate(async () => {
+    const { getTiles } = await import('/terra-imperium/src/data/geo/tiles.js');
+    const s = window.__game.state; const tiles = getTiles();
+    const seen = new Set([window.__naval.tile]); let ring = [window.__naval.tile];
+    for (let d = 0; d < 6; d++) {
+      const next = [];
+      for (const at of ring) for (const n of tiles.neighbors[at]) { if (seen.has(n)) continue; seen.add(n); next.push(n);
+        if (d >= 1 && tiles.land[n] !== 1 && n !== window.__naval.sea) { const l = tiles.neighbors[n].find((x) => tiles.land[x] === 1 && s.world.tileOwner[x] == null && tiles.terrainOf(x) !== 'mountain'); if (l != null) return { sea: n, land: l }; } }
+      ring = next.filter((t) => tiles.land[t] !== 1);
+    }
+    return null;
+  });
+  check(shore != null, `${vp.id} ${lang}: found free shore beside water`);
+  if (shore) {
+    await patch(page, `
+      const u = { ...s.units };
+      delete u.n9pi;
+      u.n9sh = { ...u.n9sh, tile: ${shore.sea} };
+      u.n9inf = { ...u.n9inf, tile: ${shore.sea}, embarkedOn: 'n9sh' };
+      return { ...s, units: u };`);
+    await wait(2000);
+    await page.evaluate(({ port, target }) => window.dispatchEvent(new CustomEvent('ti:start-march', { detail: { from: port, naval: true, unitIds: ['n9sh'], target } })), { port: nv.port, target: shore.land });
+    await wait(1500);
+    if (process.env.DEBUG) console.log(await page.evaluate(async ({ port, land }) => { const r = await import('/terra-imperium/src/engine/routes.js'); const s = window.__game.state; return JSON.stringify({ units: r.marchingUnits(s, port, ['n9sh'], { naval: true }).map((u) => u.id), plan: r.shorePlan(s, port, land, ['n9sh']), sh: s.units.n9sh }); }, { port: nv.port, land: shore.land }));
+    const landBtn = page.getByTestId('march-land');
+    check(await onScreen(page, landBtn), `${vp.id} ${lang}: sail order on a shore offers Land here`);
+    await shot(page, `6-land-shore-${lang}`, vp);
+    if (await landBtn.isVisible().catch(() => false)) await click(landBtn);
+    await wait(800);
+    const landed = await page.evaluate((t) => window.__game.state.units.n9inf?.tile === t && !window.__game.state.units.n9inf?.embarkedOn, shore.land);
+    check(landed, `${vp.id} ${lang}: the troops landed on the shore`);
   }
   check(!errors.length, `${vp.id} ${lang}: no page errors ${errors.slice(0, 2).join(' | ')}`);
   await browser.close();
 };
 
-for (const vp of VIEWPORTS) for (const lang of process.argv.includes('--he') ? ['en', 'he'] : ['en']) await run(vp, lang);
+for (const vp of (process.env.DEBUG ? VIEWPORTS.slice(1) : VIEWPORTS)) for (const lang of process.argv.includes('--he') ? ['en', 'he'] : ['en']) await run(vp, lang);
 process.exit(failed ? 1 : 0);

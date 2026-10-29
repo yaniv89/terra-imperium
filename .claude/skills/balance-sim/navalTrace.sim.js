@@ -108,6 +108,7 @@ else PLAYERS.forEach((PLAYER) => SEEDS.forEach((seed) => {
     const tiles = getTiles();
     const coastalMajors = majors.filter((id) => Object.values(s.regions).some((c) => c.owner === id && hasSeaCoast(tiles, c)));
     const ms = Object.fromEntries(majors.map((id) => [id, {}]));
+    const pirates = new Set();
     for (let t = 1; t <= TURNS && s.gameStatus === GameStatus.ACTIVE; t++) {
       s = scripted.answer(s).state;
       if (NAVAL) {
@@ -129,10 +130,11 @@ else PLAYERS.forEach((PLAYER) => SEEDS.forEach((seed) => {
       if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null };
       if (s.activeEventId) s = { ...s, activeEventId: null };
       majors.forEach((id) => milestones(s, id, ms[id], t));
+      Object.values(s.units).forEach((u) => { if (u.pirate && s.regions[u.pirate.target]?.owner === PLAYER) pirates.add(u.id); });
     }
     const sea = BATTLES.filter((b) => SEA_KINDS.has(b.kind));
     const firstSea = (id) => sea.find((b) => b.a === id || b.d === id)?.turn ?? null;
-    const p = { ...ms[PLAYER], seaBattle: firstSea(PLAYER), playerSeaBattles: sea.filter((b) => b.a === PLAYER || b.d === PLAYER).length, coastalStart: coastalMajors.includes(PLAYER), age: getTechAgeId(s, PLAYER) };
+    const p = { ...ms[PLAYER], seaBattle: firstSea(PLAYER), playerSeaBattles: sea.filter((b) => b.a === PLAYER || b.d === PLAYER).length, piratesOffPlayer: pirates.size, coastalStart: coastalMajors.includes(PLAYER), age: getTechAgeId(s, PLAYER) };
     const ai = coastalMajors.filter((id) => id !== PLAYER);
     const share = (k) => `${ai.filter((id) => ms[id][k] != null).length}/${ai.length}`;
     const median = (k) => { const v = ai.map((id) => ms[id][k]).filter((x) => x != null).sort((a, b) => a - b); return v.length ? v[Math.floor(v.length / 2)] : null; };

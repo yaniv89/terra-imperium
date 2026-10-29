@@ -70,10 +70,10 @@ export const advancePirates = (state, turn) => {
     if (!isAgeAtLeast(age, PIRATE_FROM_AGE)) return;
     const wait = speedTurns(PIRATE_REF_TURNS, state.gameSpeed, age);
     if (nation.pirateNext == null) { nations = { ...nations, [id]: { ...nations[id], pirateNext: turn + wait } }; return; } // the age's first turns are quiet
-    if (turn < nation.pirateNext || hashRoll(`pirates|${id}|${turn}`) >= PIRATE_CHANCE) return;
+    if (turn < nation.pirateNext || hashRoll(`${turn}|pirates|${id}`) >= PIRATE_CHANCE) return;
     const ports = Object.values(state.regions).filter((c) => c.owner === id && c.tile != null && !c.outpost && !c.ghost && hasSeaCoast(tiles, c)).sort((a, b) => (a.id < b.id ? -1 : 1));
     if (!ports.length) return;
-    const port = ports[Math.floor(hashRoll(`pirates|port|${id}|${turn}`) * ports.length)];
+    const port = ports[Math.floor(hashRoll(`${turn}|pirate port|${id}`) * ports.length)];
     indeps ||= coastalIndependents(state, tiles);
     const at = tiles.centres[port.tile];
     const home = indeps.map((n) => ({ n, km: distanceKm(at, tiles.centres[state.regions[n.capitalRegionId].tile]), raiders: n.indep?.seaRaiders ? 0 : 1 }))
