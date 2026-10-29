@@ -55,16 +55,16 @@ await page.evaluate(async (lang) => {
   window.__risk = { target: r.cityId, capId };
   window.__game.dispatch({ type: 'LOAD_GAME', payload: s });
 }, lang);
-await page.evaluate((l) => { try { localStorage.setItem('terra-imperium.language', l); } catch { /* blocked */ } }, lang);
+await page.evaluate(async (l) => { (await import('/terra-imperium/src/i18n/index.js')).setLanguage(l); }, lang); // the start screen ran in English
 await wait(1500);
 // the welcome tour and first contact step aside
 for (let i = 0; i < 3; i++) {
-  for (const loc of [page.getByRole('button', { name: /^(Skip|דלגו)$/ }), page.getByRole('button', { name: /^(Let my advisor choose|שהיועץ שלי יבחר)$/ }), page.locator('[data-testid="first-contact"] button', { hasText: /Later|אחר כך/ })]) if (await loc.first().isVisible().catch(() => false)) await click(loc.first());
+  for (const loc of [page.getByRole('button', { name: /^(Skip|דלגו|דילוג)$/ }), page.getByRole('button', { name: /^(Let my advisor choose|שהיועץ שלי יבחר)$/ }), page.locator('[data-testid="first-contact"] button', { hasText: /Later|אחר כך/ })]) if (await loc.first().isVisible().catch(() => false)) await click(loc.first());
   await wait(400);
 }
 await page.evaluate(() => window.dispatchEvent(new CustomEvent('ti:select-region', { detail: window.__risk.target })));
 await wait(1500);
-await page.getByRole('button', { name: /^Invade|^Attack|^פלשו|^תקפו/ }).first().click();
+await page.getByRole('button', { name: /^Invade|^Attack|^פלשו|^תקפו/ }).first().click({ force: true });
 await page.getByTestId('pre-battle').waitFor({ timeout: 15000 }).catch(async (e) => { console.log('ids:', await page.evaluate(() => [...document.querySelectorAll('[data-testid]')].map((e) => e.dataset.testid).filter((x) => /battle|chip|wait|region/i.test(x)).join(' ')));
 console.log('state:', await page.evaluate(() => { const g = window.__game.state; return JSON.stringify({ g1: g.units.g1 && { tile: g.units.g1.tile, region: g.units.g1.regionId, moves: g.units.g1.movesLeft, route: g.units.g1.route, target: g.units.g1.target }, log: (g.log || g.eventLog || []).slice(-3) }); })); await page.screenshot({ path: path.join(outDir, 'risk-failed.png') }); throw e; });
 const go = page.getByTestId('battle-go');

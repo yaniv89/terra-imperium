@@ -53,7 +53,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   const { triggerEffect } = useEffects();
   const m = useMemo(() => preBattleModel(state, { fromRegionId, targetRegionId, navalUnitId, tile, fromTile }),
     [state, fromRegionId, targetRegionId, navalUnitId, tile, fromTile]);
-  const turn = useInteraction(arrival ? 'pre-battle-arrival' : 'pre-battle', true, { priority: PRIORITY.preBattle, label: tNow('wait.commandOrAuto', { name: m.name }), testId: 'pre-battle-chip', tone: 'danger', user: !arrival });
+  const turn = useInteraction(arrival ? 'pre-battle-arrival' : 'pre-battle', true, { priority: PRIORITY.preBattle, label: tNow('wait.commandOrAuto', { name: m.name }), testId: 'pre-battle-chip', tone: 'danger', user: !arrival, keepOpener: !arrival });
   useEffect(() => { prewarmBattleWorker(); }, []); // the battle's worker loads while the player decides
   const setting = state.battleSettings?.defaultMode;
   const preferred = setting === 'auto' || (setting !== 'command' && m.hopeless) ? 'auto' : 'command';
