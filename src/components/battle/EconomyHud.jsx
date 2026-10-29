@@ -254,7 +254,7 @@ export const BuildingActions = ({ building, ageId, stock, eco = null, onTrain, o
   useEffect(() => { if (!said) return undefined; const timer = setTimeout(() => setSaid(null), 3000); return () => clearTimeout(timer); }, [said]);
   if (!building) return null;
   const def = BUILDINGS[building.type];
-  const roles = building.built ? (def.trains || []).filter((r) => trainableRoles(ageId).includes(r)) : [];
+  const roles = building.built ? (building.trains || def.trains || []).filter((r) => trainableRoles(ageId).includes(r)) : [];
   if (!roles.length && !building.queue.length) return null;
   const train = (role) => {
     setAsked((a) => (a && paused ? { ...a, roles: [...a.roles, role] } : { roles: [role], before: building.queue.length, at: Date.now() }));

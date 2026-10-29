@@ -25,6 +25,18 @@ export const fireShare = (s) => STRUCTURE_FIRE_FLOOR + (1 - STRUCTURE_FIRE_FLOOR
 // Storming through a breach (I212): once the ring is broken, men without engines carry ladders and
 // rams to the keep itself; their blows on a walled keep count KEEP_STORM_MULT times (combat.js).
 export const KEEP_STORM_MULT = 2.5;
+// A keep whose own garrison still holds a regiment (garrisonHolds) takes this share of a blow (U9: a city
+// falls only when its defence is beaten; 0 held every mirror assault to the clock).
+export const KEEP_HELD_MULT = 0.3;
+/** Does the city's own garrison (its regiments and militia, not companies trained in battle) still hold CREW_FULL men? */
+export const garrisonHolds = (w) => {
+  let men = 0;
+  for (let i = 0; i < w.squads.length; i++) {
+    const q = w.squads[i];
+    if (q.side === 1 && q.alive && !q.fled && !q.routed && !q.worker && !q.isGeneral && !isAuxiliary(q) && (q.onField || q.inside >= 0)) men += q.strength;
+  }
+  return men >= CREW_FULL;
+};
 /** Is the city's wall ring broken (a wall segment or the gate down)? The keep then loses its walls' cover (combat.js). */
 export const ringBroken = (w) => w.structures.some((s) => !s.alive && (s.kind === 'wall' || s.kind === 'gate'));
 
