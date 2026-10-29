@@ -24,13 +24,13 @@ vite port 5231, 844x390, Ahhiyawa (Mycenae, Stone Age), close view k 80, in `pla
 
 | Finding | Cause | Fix | Before | After |
 |---|---|---|---|---|
-| The soldier figure dwarfs the town | Every army figure is `FIGURE_HEIGHT_HEX` 0.85 of a hex (the Civ size), also on a city hex where it stands in front of a Stone town of a few huts: figure as tall as the whole town | `figureShareOf(marker)` (scale.js): 0.55 on a city hex, 0.7 for a scout; used by the figure (closeViewScene.js) and by both banner placements (sceneModel.js, Map2DMarkersOverlay.jsx via `armyBannerOffset(hexPx, inCity, share)`), so the flag sits just over the smaller head | before-en.jpg | after-en.jpg, after-he.jpg |
-| Scouts show as "3,000 men" | A scout's strength is 300 (`EXPLORER_STRENGTH`), and the map turns strength into men at 10 a point | `unitMenOf` (battleLedger.js): a scout party is 30 men at full strength; mapMarkers.js, armySheetModel.js and ArmySheet.jsx read it. Banner "3k" now "30"; sheet "30 soldiers", "30/30" | before-en.jpg (banner 3k) | after-en.jpg (banner 30), after-he-scout-sheet.jpg |
+| The soldier figure dwarfs the town | Every army figure is `FIGURE_HEIGHT_HEX` 0.85 of a hex (the Civ size), also on a city hex where it stands in front of a Stone town of a few huts: figure as tall as the whole town | `figureShareOf(marker)` (scale.js): 0.55 on a city hex, 0.7 for a scout; used by the figure (closeViewScene.js) and by both banner placements (sceneModel.js, Map2DMarkersOverlay.jsx via `armyBannerOffset(hexPx, inCity, share)`), so the flag sits just over the smaller head | before-en.jpg, before-he.jpg | after-en.jpg, after-he.jpg |
+| Scouts show as "3,000 men" | A scout's strength is 300 (`EXPLORER_STRENGTH`), and the map turns strength into men at 10 a point | `unitMenOf` (battleLedger.js): a scout party is 30 men at full strength; mapMarkers.js, armySheetModel.js and ArmySheet.jsx read it. Banner "3k" now "30"; sheet "30 soldiers", "30/30" | before-en.jpg, before-he.jpg (banner 3k) | after-en.jpg (banner 30), after-he-scout-sheet.jpg |
 | Tiryns once drew as placeholder cubes | A town draws the procedural block town (townModels.js, boxes and cones) while its GLB loads, again after the file is evicted (assetMemory, lost context), and forever if the load fails (the failed url stayed `null` in `t.assets`) | closeViewScene.js: no town is drawn while its file loads; a failed file is replaced by another town file of the age (`townFallbackUrl`, townAssets.js: the base kit's layouts of the size first, then any file of the age); the procedural town is left only when every file of the age failed | not reproduced in the browser (no failing file on this PC) | unit test `a town whose file fails` (townAssets.test.js) |
 
 ## Checks
 
 - Tests: battleLedger, mapMarkers, armySheetModel, townAssets, hexFit: 54 pass. `npm run test:related`
-  on the changed files: see the commit message for the final count.
+  on the changed files: 3080 pass; sight.test and tacticalBattle.test timed out under load and pass alone.
 - Lint: `npx eslint --no-ignore --max-warnings 0` on the changed files: clean.
 - Not checked: the cube fallback in a real browser (would need a failing GLB); 1600x900 desktop shots.
