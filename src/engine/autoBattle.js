@@ -86,7 +86,7 @@ export const RAID_SLIP = 0.5;
 // classical walls loses what it loses against bronze walls: the fight is the gate, not the weapons),
 // while the round-based exchange multiplies the whole roster gap. The attacker gets back this share
 // (as an exponent) of the defender's roster advantage on a walled assault; 0 = off.
-export const WALLS_AGE_RELIEF = 1.2; // 0.7 before U19: the cross-age assault and fort rows read 0.37 to 0.53
+export const WALLS_AGE_RELIEF = 0.8; // 0.8 since battle-skill-8 (Auto models a commanded battle, where neither side routs: autoCalib over parityEco NOROUT=both field, assault, town, N=32, 0 of 18 out; at 1.2 the classical-against-Kingdoms 5-against-2 assault read 3.57); 1.2 before; 0.7 before U19: the cross-age assault and fort rows read 0.37 to 0.53
 // Robots in a walled garrison (eight ages U67): they never rout, so the real-time ones stand on the
 // walls and in the gate until they fall (parityEco ROBOT=defender: 88 to 97% of them die) while the
 // round-based exchange keeps them whole. On a walled assault the attacker's blows count up to this,

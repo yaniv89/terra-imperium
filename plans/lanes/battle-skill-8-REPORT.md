@@ -74,16 +74,25 @@ Before this lane (Prince AI, the player alone unable to rout, Shaken 0.6 / 1.3):
 - Sieges and naval battles were not duelled with the scripted controllers (field only).
 - Did not touch BattleHud.jsx, EconomyHud.jsx, PreBattleModal.jsx, BattleResultScreen.jsx.
 
-## After merging integration (sieges-sea-8, SETUP_VERSION 34)
+## After merging integration (sieges-sea-8, SETUP_VERSION 34) and the Auto retune
 
-Assault rows, parityEco N=32, mixed terrain, KEEP_HELD_MULT 0.3 unchanged:
-- Routing as before (Auto's rules): IN 6 of 6, walled mirror (bronze) 20/32 attacker wins.
-- Neither side routing (commanded rules, `NOROUT=both`): IN 5 of 6, walled mirror 23/32. OUT: classical
-  attackers (3 foot, horse, archers) against a Kingdoms town of foot and archers, 3.57x against the 3.5x
-  limit, attacker wins 1/32 (16/32 when everyone routs). The defender is an age ahead (x1.4) and its
-  beaten squads now fight on Shaken instead of fleeing.
-- KEEP_HELD_MULT does not fix it: 0.35 / 0.4 / 0.45 give that row 3.44x / 3.50x / 3.48x (IN, by a
-  hair) while the mirror rises to 25 / 26 / 25 of 32; 0.2 sends the mirror to 0/32. Kept at 0.3.
-- Making a Shaken garrison squad stop counting for `garrisonHolds` changed nothing (identical numbers),
-  so it was left out.
-- Field win-rate table unchanged by the merge (same numbers as above, 160 battles a cell).
+Lead call: neither side routs in a commanded battle, so Auto models those rules; the walled mirror band is
+12-24 attacker wins of 32. parityEco N=32, field, assault and town, bronze and classical>kingdoms, mixed.
+
+| Run | Before (WALLS_AGE_RELIEF 1.2) | After (0.8) |
+|---|---|---|
+| Neither side routs (`NOROUT=both`, commanded rules) | IN 17 of 18 | **IN 18 of 18** |
+| Everyone routs (as before this lane) | IN 18 of 18 | IN 18 of 18 |
+| The OUT row: assault, classical 3 foot, horse, archers against Kingdoms foot and archers | 3.57x OUT | 3.36x IN |
+| Walled mirror (bronze 3 v 3), attacker wins real time / Auto | 23 / 14 of 32 | 23 / 14 of 32 |
+| Cross-age walled mirror (classical>kingdoms 3 v 3), Auto wins | 13 of 32 | 7 of 32 (real time 0) |
+
+- The one change: `WALLS_AGE_RELIEF` 1.2 to 0.8 (src/engine/autoBattle.js). autoCalib over the
+  `NOROUT=both` output (K 1.5, R 0, U 1000, EFF 1, F 6, A 18-30, D 10-24, W 0.8-1, WAR 0.8-1.2): the
+  lowest-error set was assault auxiliaries [18, 24] with WAR 0.8, but it took Auto's walled mirror to
+  0 of 32 wins against 23 in real time; WAR 0.8 alone is 0 of 18 out and keeps the mirror at 14 of 32.
+- KEEP_HELD_MULT stays 0.3: the mirror (23 of 32) is inside 12-24. Probes 0.2 / 0.35 / 0.4 / 0.45 under
+  no-rout gave mirror 0 / 25 / 26 / 25 and did not move the OUT row (3.44x to 3.50x).
+- The field win-rate table (skillDuel) is the same after the merge: Normal novice 29% / skilled 79%,
+  Easy 28% / 70%, Hard 6% / 43% (160 battles a cell).
+- Not refreshed: src/data/autoParity.json (the pre-battle card's parity summary, parityTable.sim.js).
