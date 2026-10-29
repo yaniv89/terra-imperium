@@ -99,3 +99,12 @@ claude/integration, main gets the push once the quick suite and CI are green.
 - Lead answers: perf-8 Concede on an empty field already exists (battle-engage "Finish now" and Auto); pausing the clock during timed prompts at 3x is a yes, small follow-up. battle-ai-2 Prince cavalry flanking yes; wind and broadside rules only if sea battles grade under 8; walled mirror assaults 88% attacker is a balance finding. raids-march: an unguarded town stays raidable (the player's choice), the set-out warning may come from the fog (scouts' report).
 - New lane: ai-armies (idle 2-unit war stacks, 228k-342k garrisons, arm before declaring).
 - Process fix after a lost wakeup (90 idle minutes): hourly create_trigger heartbeat plus send_later check-ins, plan in the task list.
+
+### 28 Oct 21:20: round 3b grades in; round 4 planned, on hold for the user
+- Opus full-length runs on a0312e08: newcomer 255 steps $5.28, civ-veteran 418 steps $9.01, warmonger 329 steps $6.78 (October $85.57 of $90).
+- Averages: start 8.0 and save 8.3. Everything else is 4.3 to 7.0. RTS battles, tech and naval are the lowest.
+- The worst finding, shared by all three runs: commanded battles wiped out out of sight, and the forecasts conflicted.
+- Several findings predate r3-campaign and r3-battle, which fixed them.
+- Five round 4 lanes were planned: battle-truth, odds-truth, pacing-8, naval-9 and help-map-8. Briefs are in plans/lanes/briefs-round4/.
+- ai-armies got the answer "option (a)". All of them were interrupted on the user's order ("make plans, wait for my go").
+- Integration 460a7f94 has green CI. Main is still at 0cc85a67. Details: plans/HANDOFF-2026-10-29.md.
