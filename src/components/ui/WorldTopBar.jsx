@@ -25,6 +25,8 @@ import { Shield, signed } from './atlas';
 import ResourceBar from './ResourceBar';
 import { CULTURE_HELP } from '../../data/cultureHelp';
 import { useT } from '../../i18n/useT';
+import { Volume2, VolumeX } from 'lucide-react';
+import { useAudioSettings, setAudioSettings } from '../../audio/audioSettings';
 
 const GoldIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--fa-brass)" strokeWidth="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v8M9.5 10.5h5" /></svg>;
 const FoodIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--fa-food)" strokeWidth="1.8" aria-hidden="true"><path d="M12 21V8M12 8c0-3 2-5 5-5 0 3-2 5-5 5zM12 12c0-3-2-5-5-5 0 3 2 5 5 5zM12 16c0-3 2-5 5-5 0 3-2 5-5 5z" /></svg>;
@@ -78,6 +80,7 @@ const WorldTopBar = () => {
   // The model reads the current language through t(): recompute when it changes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const m = useMemo(() => topBarModel(state), [state, lang]);
+  const soundOn = useAudioSettings().sound; // one-tap mute, the same switch as the battle HUD's speaker
 
   useEffect(() => {
     const el = ref.current;
@@ -144,6 +147,7 @@ const WorldTopBar = () => {
             {t('topbar.turn')} <span className="fa-num text-[12px] text-fa-text tracking-normal">{m.turn}</span>
           </button>
         )}
+        <button type="button" onClick={() => setAudioSettings({ sound: !soundOn })} className="relative before:content-[''] before:absolute before:-inset-1.5 shrink-0 w-8 h-8 -me-1 flex items-center justify-center rounded-full text-fa-muted hover:text-fa-text hover:bg-fa-raised" aria-label={soundOn ? t('bt.hud.muteSound') : t('bt.hud.soundOn')} title={soundOn ? t('bt.hud.muteSound') : t('bt.hud.soundOn')} aria-pressed={!soundOn} data-testid="top-bar-sound">{soundOn ? <Volume2 className="w-4 h-4" aria-hidden="true" /> : <VolumeX className="w-4 h-4" aria-hidden="true" />}</button>
         <button type="button" onClick={() => openMenu('help')} className="relative before:content-[''] before:absolute before:-inset-1.5 shrink-0 w-8 h-8 -me-1 rounded-full border border-fa-line text-[14px] font-bold text-fa-muted hover:text-fa-text hover:bg-fa-raised" aria-label={t('hub.helpAria')} title={t('hub.helpAria')} data-testid="top-bar-help">?</button>
       </div>
       {open === 'gold' && (

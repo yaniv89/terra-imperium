@@ -10,6 +10,7 @@ import { endTurnWarnings } from './nextPromptModel';
 import { t as tNow } from '../../i18n';
 import { calcNationBalance } from '../../engine/economy';
 import { rushQuote } from '../../engine/spending';
+import { nameNow } from '../../i18n/names';
 
 /**
  * { mode, label, badge, blocker, count, idleCities }:
@@ -59,7 +60,7 @@ export const buyHint = (state) => {
     if (c.owner !== me || !c.production?.current) continue;
     const q = rushQuote(state, c.id, 0);
     if (!q.ok || !(q.turns > 1) || gold - q.gold < reserve) continue;
-    if (!best || q.turns / q.gold > best.turns / best.gold) best = { cityId: c.id, name: c.name, gold: q.gold, turns: q.turns };
+    if (!best || q.turns / q.gold > best.turns / best.gold) best = { cityId: c.id, name: nameNow('city', null, c.name), gold: q.gold, turns: q.turns };
   }
   return best;
 };
