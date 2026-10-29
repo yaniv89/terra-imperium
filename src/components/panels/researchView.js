@@ -78,6 +78,7 @@ export const techEta = (state, techId) => {
 export const techEtaText = (eta) => {
   if (!eta) return null;
   if (eta.gate) return gateText(eta.gate);
+  if (eta.turns === Infinity) return formatTurns(Infinity); // "about no science of research" read as nonsense
   const turns = formatTurns(eta.turns);
   if (eta.kind === 'current') return tNow('p2.eta.current', { turns });
   if (eta.kind === 'queued') return tNow('p2.eta.queued', { turns });
@@ -144,9 +145,32 @@ export const techInfo = (state, techId, science = getSciencePerTurn(state)) => {
     queuedAt: (research.queue || []).indexOf(techId),
     canStart: start.ok,
     reason: start.reason,
+    future: !!start.window, // its age is not open yet: shows the age, never a turn count
     reasonText: start.ok ? null : startReasonText(techId, researched, ageOf(state, state.playerNationId)),
     diffusion
   };
+};
+
+// The All techs list of one age (TechPanel's age tabs, plan U6): one row a tech, in the order a
+// player acts on them, each with its state and the honest time. `line` is the row's second line:
+// turns of science for an open tech, the path's turns for a tech under way, queued or behind a
+// prerequisite (`needs` lists those), the age for a future one.
+const ROW_ORDER = ['current', 'queued', 'available', 'locked', 'future', 'researched'];
+export const rowStateOf = (info) => (info.researched ? 'researched' : info.current ? 'current' : info.queuedAt >= 0 ? 'queued' : info.canStart ? 'available' : info.future ? 'future' : 'locked');
+export const ageRows = (state, ageId, science = getSciencePerTurn(state)) => {
+  const researched = researchedSet(state);
+  return Object.values(TECH_TREE).filter((t) => t.ageId === ageId).map((tech) => {
+    const info = techInfo(state, tech.id, science);
+    const rowState = rowStateOf(info);
+    const needs = rowState === 'locked' ? (tech.prerequisites || []).filter((p) => !researched.has(p)) : [];
+    const eta = rowState === 'current' || rowState === 'queued' || rowState === 'locked' ? techEta(state, tech.id) : null;
+    const line = rowState === 'researched' ? tNow('p2.tr.known')
+      : rowState === 'future' ? tNow('p2.row.futureLine', { age: ageName(tech.ageId, AGES[tech.ageId]?.name) })
+        : rowState === 'available' ? (info.gate ? info.gateText : tNow('p2.tr.costTurns', { cost: info.cost, turns: formatTurns(info.turns) }))
+          : rowState === 'locked' && !needs.length ? info.reasonText
+            : techEtaText(eta);
+    return { info, rowState, needs, eta, line };
+  }).sort((a, b) => ROW_ORDER.indexOf(a.rowState) - ROW_ORDER.indexOf(b.rowState));
 };
 
 // The current tech and the queue, each with the turn it would finish (cumulative, and never before

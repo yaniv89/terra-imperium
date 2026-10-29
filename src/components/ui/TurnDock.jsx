@@ -16,7 +16,7 @@
 // Sits left of the tab rail (--rail-w, never the dock: it stays in the same place when a panel
 // opens, playtest audit X17 / I156; the dock leaves a strip at its foot for it) and above the
 // bottom bar of a phone held upright.
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Hammer, Repeat, FlaskConical, Scroll, Shield, Feather, Bell, Swords, HeartHandshake, Coins } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
@@ -79,6 +79,15 @@ const TurnDock = () => {
   };
   const pressRef = useRef(press);
   pressRef.current = press;
+  // The row's width as --turn-row-w on <html>: Research's age tabs share its band and keep clear of it.
+  const rowObserver = useRef(null);
+  const rowRef = useCallback((el) => {
+    const root = document.documentElement;
+    rowObserver.current?.disconnect();
+    if (!el || typeof ResizeObserver === 'undefined') { root.style.setProperty('--turn-row-w', '0px'); return; }
+    rowObserver.current = new ResizeObserver(() => root.style.setProperty('--turn-row-w', `${Math.round(el.getBoundingClientRect().width)}px`));
+    rowObserver.current.observe(el);
+  }, []);
   useEffect(() => {
     const onKey = (e) => {
       if (e.key !== 'Enter' || e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
@@ -107,7 +116,7 @@ const TurnDock = () => {
           </div>
         </div>
       )}
-      <div className="flex items-stretch gap-2 pointer-events-auto">
+      <div ref={rowRef} className="flex items-stretch gap-2 pointer-events-auto">
         {/* "Idle N": the next army or settler that waits, one tap each (IdleChip.jsx). */}
         {/* the next army, waiting or marching, one tap each (NextArmyButton.jsx) */}
         {btn.mode !== 'moving' && <NextArmyButton />}
