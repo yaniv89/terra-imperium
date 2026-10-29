@@ -20,6 +20,7 @@ import { SAVE_PROBLEM_TEXT } from '../../engine/saveMigrations';
 import { useMapPrefs, setMapPrefs } from '../map/mapPrefs';
 import { fogOn } from '../../engine/fog';
 import { Button, Label, SheetHeader, Segmented, Switch } from './atlas';
+import { BATTLE_DIFFICULTIES, battleAiOf } from '../../data/battleDifficulty';
 import { useAudioSettings, setAudioSettings } from '../../audio/audioSettings';
 import { turnLogText } from '../../services/turnClient';
 import MapCard from './MapCard';
@@ -120,6 +121,9 @@ const SettingsSheet = ({ open, onClose, onOpenAccount, onReset, cloudLabel }) =>
             <Label id="settings-battles">{t('menu.battles')}</Label>
             <Segmented label={t('menu.battles')} options={modeOptions} value={mode} onChange={(v) => setBattle({ defaultMode: v })} />
             <p className="text-[12px] text-fa-muted">{t(`menu.modeHint.${mode}`)}</p>
+            <div className="text-[14px] font-semibold leading-tight pt-1">{t('start.battleDifficulty')}</div>
+            <Segmented label={t('start.battleDifficulty')} options={BATTLE_DIFFICULTIES.map((id) => ({ id, label: t(`battleDiff.${id}`), testId: `settings-battle-difficulty-${id}` }))} value={battleAiOf(state)} onChange={(v) => setBattle({ difficulty: v })} />
+            <p className="text-[12px] text-fa-muted">{t(`battleDiff.${battleAiOf(state)}.desc`)}</p>
             <Switch label={t('menu.autoDefend')} hint={t('menu.autoDefendHint')} checked={bs.autoDefend === true} onChange={(v) => setBattle({ autoDefend: v })} testId="settings-auto-defend" />
             <Switch label={t('menu.smallTowns')} hint={t('menu.smallTownsHint')} checked={bs.smallTowns === 'ask'} onChange={(v) => setBattle({ smallTowns: v ? 'ask' : 'auto' })} testId="settings-small-towns" />
             <Switch label={t('menu.smallTownDefense')} hint={t('menu.smallTownDefenseHint')} checked={bs.smallTownDefense === 'auto'} onChange={(v) => setBattle({ smallTownDefense: v ? 'auto' : 'ask' })} testId="settings-small-town-defense" />

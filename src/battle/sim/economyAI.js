@@ -27,6 +27,8 @@ export const AI_ECONOMY = {
   king: { every: 30, workers: 20, prod: 3, towers: 1, queue: 2, counter: true },
   emperor: { every: 24, workers: 26, prod: 4, towers: 2, queue: 3, counter: true }
 };
+// The battle difficulty (tacticalAI.js AI_DIFFICULTY easy, normal, hard) runs the base of the level it stands for.
+Object.assign(AI_ECONOMY, { easy: AI_ECONOMY.chieftain, normal: AI_ECONOMY.prince, hard: AI_ECONOMY.king });
 /** Counter training on its own (battle-lab aiDuel.sim.js FEAT_OFF=counter measures it); on in play. */
 export const ECO_FEATURES = { counter: true };
 /** The level the player's economy steward plays at (the `steward` order, run by step.js). */

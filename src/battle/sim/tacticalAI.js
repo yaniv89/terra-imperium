@@ -26,7 +26,14 @@ export const AI_DIFFICULTY = {
   chieftain: { thinkEvery: 20, retreatAt: 0.2, powers: false, abilities: false, flank: false },
   prince: { thinkEvery: 10, retreatAt: 0.25, powers: true, abilities: true, flank: false, micro: true },
   king: { thinkEvery: 6, retreatAt: 0.3, powers: true, abilities: true, flank: true, micro: true, pullBack: 0.25 },
-  emperor: { thinkEvery: 4, retreatAt: 0.3, powers: true, abilities: true, flank: true, micro: true, pullBack: 0.3 }
+  emperor: { thinkEvery: 4, retreatAt: 0.3, powers: true, abilities: true, flank: true, micro: true, pullBack: 0.3 },
+  // The battle difficulty the player picks (battleSettings.difficulty, lane battle-skill-8): Easy reacts
+  // in 2 s with no micro (no focus fire, no flank rides), Normal reacts in 1.5 s and keeps
+  // its counters and guards but neither focuses its fire nor rides round a flank, Hard is King's micro
+  // fought to the end (King's early withdrawal and pull-backs cost it field battles: skillDuel).
+  easy: { thinkEvery: 40, retreatAt: 0.2, powers: false, abilities: false, flank: false },
+  normal: { thinkEvery: 30, retreatAt: 0.25, powers: true, abilities: true, flank: false, micro: true, focus: false, cavFlank: false },
+  hard: { thinkEvery: 6, retreatAt: 0.1, powers: true, abilities: true, flank: true, micro: true }
 };
 // Each of the lane's behaviours on its own (battle-lab aiDuel.sim.js FEAT_OFF switches them off to
 // measure one at a time); all on in play.
@@ -487,7 +494,7 @@ const micro = (w, side, cfg, mine, enemies, orders) => {
     if (now && (soft(now) || now.classId === 'cavalry')) return; // already on a good target
     const fresh = q.strength * 5 >= q.startStrength * 2; // spent riders do not charge
     // An escorted one only once the lines have met and only round the flank (king+); else alone ones.
-    const prey = fresh ? nearest(targets.filter((t) => (met && (cfg.flank || AI_FEATURES.cavFlank)) || !escorted(t)), q.x, q.y, RIDE_REACH) : null;
+    const prey = fresh ? nearest(targets.filter((t) => (met && (cfg.flank || (AI_FEATURES.cavFlank && cfg.cavFlank !== false))) || !escorted(t)), q.x, q.y, RIDE_REACH) : null;
     const raid = !prey && fresh && !met ? nearest(laborers, q.x, q.y, RIDE_REACH) : null;
     if (raid) { attackSquad(q, raid); return; }
     if (!prey) {
@@ -499,7 +506,7 @@ const micro = (w, side, cfg, mine, enemies, orders) => {
       else used.add(q.idx);
       return;
     }
-    if ((cfg.flank || AI_FEATURES.cavFlank) && !now) {
+    if ((cfg.flank || (AI_FEATURES.cavFlank && cfg.cavFlank !== false)) && !now) {
       // Enemy foot between us and the prey: ride to its flank first.
       const mx = (q.x + prey.x) >> 1; const my = (q.y + prey.y) >> 1;
       const blocked = foes.some((o) => o.classId === 'infantry' && !o.routed && distSq(o.x, o.y, mx, my) <= ESCORT * ESCORT);
@@ -513,7 +520,7 @@ const micro = (w, side, cfg, mine, enemies, orders) => {
   // that it counters and that has the fewest men left; enemy foot on top of our archers first.
   // Every shooter: archers, and from Gunpowder on the foot too (muskets, rifles).
   const shooters = mine.filter((q) => !used.has(q.idx) && (q.classId === 'ranged' || (AI_FEATURES.shooters && q.classId === 'infantry' && !q.stats.melee)));
-  if (AI_FEATURES.focus && shooters.length) {
+  if (AI_FEATURES.focus && cfg.focus !== false && shooters.length) {
     const live = foes.filter((t) => !t.routed && !t.worker);
     const pool = live.length ? live : foes.filter((t) => !t.worker);
     const reach = new Map();

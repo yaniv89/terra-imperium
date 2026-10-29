@@ -395,7 +395,8 @@ export const GameProvider = ({ children }) => {
         crises: options.crises, // 'off' stops the history crises (engine/crises.js)
         explore: !!options.explore, // explore mode: no wars, raids or crises (engine/hostility.js exploreOn)
         doctrineId: meta.selectedDoctrine,
-        difficultyId: options.difficultyId || meta.difficulty
+        difficultyId: options.difficultyId || meta.difficulty,
+        battleDifficulty: options.battleDifficulty // the battle AI: easy, normal or hard (data/battleDifficulty.js)
       }
     });
   }, [meta.selectedDoctrine, meta.difficulty, dispatch]);

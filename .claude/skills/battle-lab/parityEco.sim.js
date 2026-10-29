@@ -93,7 +93,7 @@ it('parity with the battle economy', () => {
         controllers: ['ai', 'ai'], deposits: [], powers: [[], []], battleType: assault || raid || sally || landing ? null : 'field', city: assault, raid, sally, landing,
         ...(assault ? { fortLevel: walled ? FORT : 0, isAttackingFortification: walled, cityManifest, defenseReduction: reduction } : {}),
         ...(fort ? { fortLevel: FORT_BATTLE_LEVEL, isAttackingFortification: true, defenseReduction: reduction } : {}),
-        economy: true, economyInputs: { supply: [1, 1], development: [0.3, 0.3] }, generals: GENERALS
+        difficultyId: process.env.DIFF || 'prince', economy: true, economyInputs: { supply: [1, 1], development: [0.3, 0.3] }, generals: GENERALS
       })));
       tA += sum(attackers) - sum(result.attackerUnits); tD += sum(defenders) - sum(result.defenderUnits);
       led.t.push(ledgerShares(attackers, result.attackerUnits, defenders, result.defenderUnits));

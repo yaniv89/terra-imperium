@@ -150,6 +150,7 @@ import { canQueueWonder, wonderItem } from './wonders';
 import { rushQuote, applyRush, rushItemName, infrastructureCosts, defensesCosts, growthCosts } from './spending';
 import { tradeMaps, answerMapOffer } from './mapTrade';
 import { opinionOf, withGift } from './opinion';
+import { battleAiOf } from '../data/battleDifficulty';
 
 
 // How many land units one naval unit can carry (plan §7.5's Embark/Disembark).
@@ -373,7 +374,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     // unique battle ids, and how the player likes to fight ('ask' | 'auto' | 'command').
     pendingBattle: null,
     battleCounter: 0,
-    battleSettings: { defaultMode: 'ask', autoDefend: false },
+    battleSettings: { defaultMode: 'ask', autoDefend: false, difficulty: 'normal' },
     // AI assaults on the player's garrisons, fought before the turn can end (src/engine/defense.js).
     pendingDefenses: [],
     gameStatus: GameStatus.ACTIVE,
@@ -1775,6 +1776,7 @@ const reduceAction = (state, action) => {
       next.smallTowns = next.smallTowns === 'ask' ? 'ask' : 'auto';
       next.smallTownDefense = next.smallTownDefense === 'auto' ? 'auto' : 'ask';
       next.instantBattles = next.instantBattles === true; // skip the auto-resolve replay
+      next.difficulty = battleAiOf({ battleSettings: next }); // the battle AI: easy, normal or hard
       return { ...state, battleSettings: next };
     }
 
@@ -3195,8 +3197,9 @@ const CONTACT_ACTIONS = new Set([
 const NO_FOG_REFRESH = new Set([ActionTypes.ADVANCE_TURN, ActionTypes.FAST_FORWARD, ActionTypes.RESET_GAME, ActionTypes.LOAD_GAME]);
 
 // The state a new game starts from, out of RESET_GAME's payload (also a macro log's start, macroVerify.js).
-export const startState = ({ playerNationId, gameSpeed, doctrineId, difficultyId, scenario, rngSeed, guided, exploredWorld, crises, explore } = {}) => {
-  const base = createInitialState({ playerNationId, gameSpeed, scenario, rngSeed, guided, fog: !exploredWorld });
+export const startState = ({ playerNationId, gameSpeed, doctrineId, difficultyId, scenario, rngSeed, guided, exploredWorld, crises, explore, battleDifficulty } = {}) => {
+  const created = createInitialState({ playerNationId, gameSpeed, scenario, rngSeed, guided, fog: !exploredWorld });
+  const base = battleDifficulty ? { ...created, battleSettings: { ...created.battleSettings, difficulty: battleAiOf({ battleSettings: { difficulty: battleDifficulty } }) } } : created;
   const withCrises = crises === 'off' ? { ...base, settings: { ...base.settings, crises: 'off' } } : base;
   const fresh = explore ? { ...withCrises, settings: { ...withCrises.settings, explore: true } } : withCrises;
   const withDoctrine = doctrineId ? applyStartingDoctrine(fresh, doctrineId) : fresh;
