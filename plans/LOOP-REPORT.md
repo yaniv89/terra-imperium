@@ -108,3 +108,7 @@ claude/integration, main gets the push once the quick suite and CI are green.
 - Five round 4 lanes were planned: battle-truth, odds-truth, pacing-8, naval-9 and help-map-8. Briefs are in plans/lanes/briefs-round4/.
 - ai-armies got the answer "option (a)". All of them were interrupted on the user's order ("make plans, wait for my go").
 - Integration 460a7f94 has green CI. Main is still at 0cc85a67. Details: plans/HANDOFF-2026-10-29.md.
+
+### 29 Oct: round 4 lanes started (user's go)
+- User: "start lanes and make sure theyre all using /ponytail". Started as local worktree sessions from the PC lead (no cloud tools here): battle-truth local_54e9f7b4, odds-truth local_b3f58d78, pacing-8 local_1e8840c9, naval-9 local_0b1b947b, help-map-8 local_6661810c (all from claude/integration af3ee70e), ai-armies local_c06bfad0 (from claude/ai-armies, building option (a)).
+- Every brief's first line invokes the ponytail skill (fallback: cat the vendored SKILL.md); the lead checks each transcript. Lanes push HEAD:claude/<lane>, report by ending their turn (no send_message locally), node_modules as a junction.
