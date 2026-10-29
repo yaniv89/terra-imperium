@@ -163,7 +163,7 @@ export const updateWarPlan = (state, nationId, wars, ageId, { maxRings = Infinit
   const cap = armyCap(nation, mine.filter((c) => !c.outpost).length || 1, strike, land, unitUpkeepGold(state, { ageId, ownerId: nationId }));
   const siege = wallsOf(city) > 0 && getUnlockedClasses(ageId, getResearched(state, nationId)).includes('siege');
   const since = keep ? old.since : state.turnNumber;
-  const plan = { enemy: city.owner, cityId, staging, strike, cap, siege, since, waves: keep ? (old.waves || 0) : 0, ...(unreachable.length ? { unreachable } : {}) };
+  const plan = { enemy: city.owner, cityId, staging, strike, cap, siege, since, waves: keep ? (old.waves || 0) : 0, ...(unreachable.length ? { unreachable } : {}), ...(keep && old.near != null ? { near: old.near, nearTurn: old.nearTurn } : {}) };
   if (old && Object.keys(plan).every((k) => old[k] === plan[k])) return old;
   return plan;
 };
@@ -210,6 +210,23 @@ export const readyToStrike = (plan, units, turn) => units >= goSize(plan) || (tu
  * next updateWarPlan picks another city. A muster used to wait at the staging city all war (lane ai-armies). */
 export const dropTarget = (plan) => ({ ...plan, unreachable: [...(plan.unreachable || []), plan.cityId] });
 
+// Strikes that arrive fed and do not stall (lane odds-truth P2; the math report of 29 Oct, section 7).
+// A plan never leaves a target it can still take (updateWarPlan keeps it while it is the enemy's),
+// which is stricter than the report's "switch only for a 15% better one". What it adds:
+//   supply   a strike or siege party leaves only on a route where no meter empties on the way and
+//            it holds STRIKE_SUPPLY_TURNS turns of supply at the target (supplyMeter.js
+//            supplyAlongMarch); a target it cannot reach so is dropped like one with no road
+//   progress a launched strike that comes no nearer its target (steps left on its route, plan.near
+//            at plan.nearTurn) for REPLAN_REF_TURNS reference turns drops it, and its units stop
+//   warning  a war on the player is declared only after the mustering line (warPrep) has shown for
+//            PREP_VISIBLE_REF_TURNS reference turns, even when the muster is already full (ARM_SLACK)
+export const STRIKE_SUPPLY_TURNS = 3;
+export const REPLAN_REF_TURNS = 3;
+export const PREP_VISIBLE_REF_TURNS = 2;
+
+/** May a strike leave on a march with this supply forecast (supplyMeter.js supplyAlongMarch; null: it never loses supply)? */
+export const supplyAllows = (m) => !m || (m.starvesAt == null && (m.turns == null || m.turns >= STRIKE_SUPPLY_TURNS));
+
 /** The plan after a wave marched: the gathering clock restarts and later waves may be smaller. */
 export const launched = (plan, turn) => ({ ...plan, waves: (plan.waves || 0) + 1, since: turn });
 
@@ -238,6 +255,8 @@ export const armedFor = (state, nationId, targetId) => {
   const nation = state.nations[nationId];
   const prep = nation?.warPrep;
   if (prep?.target === targetId && (state.turnNumber || 0) - prep.since >= prepTurns(state, nationId, targetId)) return true;
+  // The player sees the muster (the mustering line) for a while before the war, however ready it is.
+  if (targetId === state.playerNationId && !(prep?.target === targetId && (state.turnNumber || 0) - prep.since >= speedTurns(PREP_VISIBLE_REF_TURNS, state.gameSpeed, waitAgeOf(state, nationId, targetId)))) return false;
   let plan = nation?.warPlan;
   if (!plan || plan.enemy !== targetId) {
     const mine = ownCities(state, nationId);

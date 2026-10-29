@@ -77,6 +77,38 @@ const auditCount = (s) => { const r = auditGameState(s); return Array.isArray(r)
 const isLand = (tile) => getTiles().land[tile] === 1;
 const checkpoints = () => { const c = []; for (let t = EVERY; t <= TURNS; t += EVERY) c.push(t); return c; };
 
+// AI strikes (lane odds-truth P2, the math report's section 7): a strike is the units of a nation that
+// set out on one turn for its war plan's target city. Departure strength when they set out; on
+// arrival (route done) or death the strike closes. attrition = strength lost on turns a unit stood at
+// an empty supply meter (shortcut: a battle fought on such a turn counts too; rare on the road).
+// strikesUnder80Attr: share of closed strikes that lost over 20% of their departure strength that way;
+// strikesArriveStarved: share with a unit arriving at an empty meter. aiAttacksOnPlayer30: new battles the
+// AI queued against the player (pendingDefenses) per 30 turns played.
+const trackStrikes = (pre, s, t, c) => {
+  c.strikes ||= { open: new Map(), byUnit: new Map(), closed: 0, under80: 0, starved: 0, attacks: 0 };
+  const k = c.strikes; const me = s.playerNationId;
+  const seenDef = new Set((pre.pendingDefenses || []).map((d) => d.id));
+  (s.pendingDefenses || []).forEach((d) => { if (!seenDef.has(d.id) && d.aggressorId !== me) k.attacks += 1; });
+  for (const u of Object.values(s.units)) {
+    if (u.ownerId === me || u.domain !== 'land' || u.classId === 'settler' || k.byUnit.has(u.id) || !u.route?.length) continue;
+    const plan = s.nations[u.ownerId]?.warPlan; const goal = plan && s.regions[plan.cityId]?.tile;
+    if (goal == null || u.route[u.route.length - 1] !== goal || pre.units[u.id]?.route?.length) continue;
+    const key = `${u.ownerId}|${goal}|${t}`;
+    if (!k.open.has(key)) k.open.set(key, { depart: 0, attr: 0, starved: false, live: new Set() });
+    const st = k.open.get(key); st.depart += u.strength; st.live.add(u.id); k.byUnit.set(u.id, key);
+  }
+  for (const [id, key] of [...k.byUnit]) {
+    const st = k.open.get(key); const u = s.units[id]; const was = pre.units[id];
+    if (u && was && (u.supply ?? 100) <= 0 && u.strength < was.strength) st.attr += was.strength - u.strength;
+    if (!u || !u.route?.length) {
+      if (u && (u.supply ?? 100) <= 0) st.starved = true;
+      st.live.delete(id); k.byUnit.delete(id);
+      if (!st.live.size) { k.closed += 1; if (st.attr > 0.2 * st.depart) k.under80 += 1; if (st.starved) k.starved += 1; k.open.delete(key); }
+    }
+  }
+};
+const strikeStats = (c, t) => { const k = c.strikes || { closed: 0, under80: 0, starved: 0, attacks: 0 }; return { strikes: k.closed, strikesUnder80Attr: +(k.under80 / Math.max(1, k.closed)).toFixed(3), strikesArriveStarved: +(k.starved / Math.max(1, k.closed)).toFixed(3), aiAttacksOnPlayer30: +(k.attacks * 30 / Math.max(1, t)).toFixed(2) }; };
+
 const isPlagued = (r) => r.disaster?.kind === 'plague' || (r.plague?.i || 0) > 0;
 
 // Ages (eight-ages plan U17): a nation's age as the engine under test sees it. An old engine (a
@@ -340,6 +372,7 @@ SEEDS.forEach((seed) => {
         if (f.open) { const lost = f.open.before - pop(s, f.open.hit); f.strikes += 1; f.lost += lost; f.shares.push(lost / Math.max(1, f.open.before)); f.open = null; }
         const h = s.crises?.history?.at(-1); if (h && h.turn === s.turnNumber && h !== pre.crises?.history?.at(-1) && h.id === 'little_ice_age') { const hit = new Set(h.nations); f.open = { hit, before: pop(pre, hit) }; } }
       const tm0 = performance.now(); telemetry.observe(pre, s); telemMs += performance.now() - tm0;
+      trackStrikes(pre, s, t, counters);
       turnsSince += 1;
       // The share of living majors past an age at that age's target end turn (SC4); the leader gap
       // over the median at every checkpoint is in ageStats (SC5).
@@ -404,7 +437,7 @@ SEEDS.forEach((seed) => {
         // The game ending early (a passive France falls to a siege around turn 100) still prints a
         // final snapshot with its real status, not the last round number's.
         last = snapshot(s, t, counters, (performance.now() - t0 - telemMs) / Math.max(1, turnsSince), lives, telemetry);
-        last = { ...last, decreeDeeds: counters.decrees.deeds, decreeTrickle: counters.decrees.trickle, decreeDeedShare: +(counters.decrees.deeds / Math.max(1, counters.decrees.deeds + counters.decrees.trickle)).toFixed(3), decreeSpent: counters.decrees.spent, aiLawChanges: counters.decrees.lawChanges, aiGovChanges: counters.decrees.govChanges, aiClaimsStarted: counters.decrees.claims || 0, aiDevTotal: Object.values(s.regions).reduce((a, r) => a + (r.owner && r.owner !== s.playerNationId && r.dev ? (r.dev.tax || 0) + (r.dev.production || 0) + (r.dev.manpower || 0) : 0), 0), ...Object.fromEntries(Object.entries(counters.decrees.acts || {}).map(([k, v]) => [`act_${k}`, v])), decreeFullShare: +(counters.decrees.full / Math.max(1, counters.decrees.majorTurns)).toFixed(3) };
+        last = { ...last, decreeDeeds: counters.decrees.deeds, decreeTrickle: counters.decrees.trickle, decreeDeedShare: +(counters.decrees.deeds / Math.max(1, counters.decrees.deeds + counters.decrees.trickle)).toFixed(3), decreeSpent: counters.decrees.spent, aiLawChanges: counters.decrees.lawChanges, aiGovChanges: counters.decrees.govChanges, aiClaimsStarted: counters.decrees.claims || 0, aiDevTotal: Object.values(s.regions).reduce((a, r) => a + (r.owner && r.owner !== s.playerNationId && r.dev ? (r.dev.tax || 0) + (r.dev.production || 0) + (r.dev.manpower || 0) : 0), 0), ...Object.fromEntries(Object.entries(counters.decrees.acts || {}).map(([k, v]) => [`act_${k}`, v])), decreeFullShare: +(counters.decrees.full / Math.max(1, counters.decrees.majorTurns)).toFixed(3), ...strikeStats(counters, t) };
         if (RUSH && scripted) last = { ...last, playerRushes: scripted.log.rushes || 0, playerRushGold: scripted.log.rushGold || 0 };
         console.log(`STATS seed=${seed} ${Object.entries(last).map(([k, v]) => `${k}=${v}`).join(' ')}`);
         t0 = performance.now(); turnsSince = 0; telemMs = 0;
