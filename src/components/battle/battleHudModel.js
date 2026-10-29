@@ -252,10 +252,11 @@ export const nextAlerts = (prev, cur, playerSide, setup, last = {}) => {
 /**
  * I203: the alerts to show now: the newest two of the last 8 seconds (they fade on their own, so they
  * never pile up over the field), how many others there are, and the whole list newest first (the
- * history the player can open).
+ * history the player can open). The 8 seconds are real seconds at every speed (F99: at 3x an alert
+ * lasted under 3 s, too short to tap Go), so `speed` stretches the window in battle ticks.
  */
-export const visibleAlerts = (alerts, tick, max = 2) => {
-  const fresh = alerts.filter((a) => tick - a.tick < ALERT_SHOW_TICKS);
+export const visibleAlerts = (alerts, tick, max = 2, speed = 1) => {
+  const fresh = alerts.filter((a) => tick - a.tick < ALERT_SHOW_TICKS * Math.max(1, speed));
   const shown = fresh.slice(-max).reverse();
   return { shown, older: Math.max(0, alerts.length - shown.length), history: [...alerts].reverse() };
 };

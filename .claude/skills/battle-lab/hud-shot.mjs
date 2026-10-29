@@ -73,14 +73,26 @@ const measure = () => page.evaluate(({ st, sr, sb, sl }) => {
     }
   });
   const covered = grid.reduce((s, v) => s + v, 0) / grid.length;
+  // R7: the share of the field (under the top bar) that the HUD's panels cover (target: 25% or less).
+  const bar = document.querySelector('[data-testid="battle-top-bar"]')?.getBoundingClientRect().bottom || 0;
+  const r0 = Math.ceil(bar / cell); let under = 0;
+  for (let i = r0 * cols; i < grid.length; i++) under += grid[i];
+  const panels = Math.round((under / Math.max(1, grid.length - r0 * cols)) * 1000) / 10;
+  // U5: the open panels alone (deploy card, economy sheet, status box, alerts, city card, minimap), not the button rows.
+  const open = new Uint8Array(cols * rows);
+  ['battle-deploy-help', 'battle-economy-sheet', 'battle-status', 'battle-alerts', 'battle-city', 'battle-minimap', 'battle-selection'].forEach((id) => document.querySelectorAll(`[data-testid="${id}"]`).forEach((el) => {
+    const r = el.getBoundingClientRect();
+    for (let y = Math.max(r0, Math.floor(r.top / cell)); y < Math.min(rows, Math.ceil(r.bottom / cell)); y++) for (let x = Math.max(0, Math.floor(r.left / cell)); x < Math.min(cols, Math.ceil(r.right / cell)); x++) open[y * cols + x] = 1;
+  }));
+  const openPanels = Math.round((open.reduce((s, v) => s + v, 0) / Math.max(1, grid.length - r0 * cols)) * 1000) / 10;
   const at = (id) => { const e = document.querySelector(`[data-testid="${id}"]`); if (!e) return null; const r = e.getBoundingClientRect(); return `${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}x${Math.round(r.height)}`; };
-  return { field: Math.round((1 - covered) * 1000) / 10, small, unsafe, pause: at('battle-pause'), speed: at('battle-speed') };
+  return { field: Math.round((1 - covered) * 1000) / 10, panels, openPanels, small, unsafe, pause: at('battle-pause'), speed: at('battle-speed') };
 }, { st, sr, sb, sl });
 const shot = async (name) => {
   const f = path.join(outDir, `${tag}-${name}.png`);
   await page.screenshot({ path: f });
   const m = await measure();
-  console.log(`${name}: field ${m.field}% | pause ${m.pause} speed ${m.speed}${m.small.length ? ` | small: ${m.small.join('; ')}` : ''}${m.unsafe.length ? ` | UNSAFE: ${m.unsafe.join('; ')}` : ''}\n  ${f}`);
+  console.log(`${name}: field ${m.field}% panels ${m.panels}% open ${m.openPanels}% | pause ${m.pause} speed ${m.speed}${m.small.length ? ` | small: ${m.small.join('; ')}` : ''}${m.unsafe.length ? ` | UNSAFE: ${m.unsafe.join('; ')}` : ''}\n  ${f}`);
 };
 
 await shot('1-deploy');
@@ -101,6 +113,9 @@ await page.waitForTimeout(2500);
 await page.getByTestId('battle-select-all').click();
 await page.waitForTimeout(600);
 await shot('2-army');
+// U5: the objective line folds 10 s after Start (the economy sheet opened at Start stays)
+await page.waitForTimeout(8500);
+await shot('2b-folded');
 if (await page.getByTestId('battle-wand').count()) {
   await page.getByTestId('battle-wand').click();
   await page.waitForTimeout(500);

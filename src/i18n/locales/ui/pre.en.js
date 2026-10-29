@@ -154,6 +154,8 @@ export default {
   'bt.pre.modeCommand': 'Command',
   'bt.pre.modeAuto': 'Auto',
   'bt.pre.beginBattle': 'Begin battle',
+  'bt.pre.riskHopeless': 'Hopeless',
+  'bt.pre.commandAnyway': 'Command anyway: {risk}',
   'bt.pre.fightAuto': 'Fight on Auto',
   'bt.pre.quick': 'Quick battle (about 5 min)',
   'bt.pre.highlight': 'Highlight my choice next time',

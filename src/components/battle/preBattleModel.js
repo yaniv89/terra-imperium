@@ -153,9 +153,11 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
   const worst = chance?.exact ? chance.reasons.find((f) => f.value < 1) : null;
   const hopeless = !!chance?.exact && autoP < HOPELESS_HOLD;
   const hopelessText = hopeless ? t('bt.pre.hopeless', { pct: Math.round(autoP * 100), why: worst ? t('bt.def.warnWhy', { reason: `${worst.label} x${worst.value.toFixed(2)}` }) : '' }) : null;
+  // WM fix 5: Unlikely or Hopeless odds take a second tap on Command (PreBattleModal.jsx); the verdicts' own 0.35 line.
+  const risk = hopeless ? t('bt.pre.riskHopeless') : chance && autoP < 0.35 ? t('bt.scout.unlikely') : null;
 
   return {
-    kind, field, fleet, landing, origin, hopeless, hopelessText, autoP,
+    kind, field, fleet, landing, origin, hopeless, hopelessText, risk, autoP,
     name: nameNow('battle', null, battleName(state, { kind, targetRegionId, tile })),
     subtitle: (() => {
       const who = shortName(me); const them = shortName(enemy);
