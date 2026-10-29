@@ -33,12 +33,8 @@ import { buildingEffect, improvementEffect } from '../../engine/cityEffects';
 import { settlingOutlook } from '../../engine/settlers';
 import { rushQuote, rushGold, rushRate, RUSH_GOLD_PER_HAMMER } from '../../engine/spending';
 import { calcNationBalance } from '../../engine/economy';
-<<<<<<< HEAD
-import { FIRST_AGE_ID } from '../../data/ages';
-import { nameNow } from '../../i18n/names';
-=======
 import { FIRST_AGE_ID, isAgeBefore, nextAgeId } from '../../data/ages';
->>>>>>> origin/claude/pacing-8
+import { nameNow } from '../../i18n/names';
 import { techEta, techEtaText } from '../panels/researchView';
 
 export const GROUPS = ['Units', 'Ships', 'Armies', 'Buildings', 'Wonders', 'Improvements'];
