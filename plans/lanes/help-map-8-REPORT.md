@@ -30,7 +30,7 @@ No design call is open. Two notes:
 
 - `node scripts/ui/help-map-8-shots.mjs` (dev server on 5231; classical save; 844x390 touch with CDP taps and 900 ms holds like the playtester, and 1600x900, en and he): every check ok (log above in the table). Shots: `plans/lanes/help-map-8-shots/after/`.
 - `node scripts/ui/help-map-8-probe.mjs --tag before|after`: the march target's screen point (before 372,369 off the free map; after 372,112).
-- Tests: `npm run test:related` on the touched files: RESULT_PLACEHOLDER
+- Tests: `npm run test:related` on the touched files (381 files, the locale files reach most of the app): 374 passed, 2 skipped, 5 failed under load (six lanes on this PC): build-edge-engine, buildingAttack, battleLoop, sight, stoneAI, all engine or battle files this lane does not touch; the 5 rerun alone: 5 passed (22 tests). Glossary, i18n, panels, marchBar and armySheetModel tests: 22 files, 177 passed.
 - Lint: `npx eslint --no-ignore` on every touched file: clean (the repo lint skips .claude/**, so it must be run that way in a worktree).
 
 ## Not done / risks
