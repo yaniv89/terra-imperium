@@ -18,6 +18,10 @@
 //        [--no-rivers]   the river lines off (riverLayer.js), to time what they cost on the same build
 //        [--at lat,lng]  where to pan (default Paris, all unexplored for the Akkad start; pass a
 //                        point on Akkad's fog edge to time the soft fog edge)
+//        [--load]        instead of panning, the wait for a picture (F145, "black for 5-10 s"):
+//                        ms from Begin to the map's first frame and to full detail, then a wheel zoom
+//                        out to the world and back in, each timed to its full detail; "blank %" is
+//                        the share of the map still the bare ocean colour in a shot at each mark
 // Builds the mobile bundle (npm run build:mobile, served from www/) unless --no-build. Uses the
 // installed Chrome (channel chrome) by default, on the real GPU (scripts/lib/browserLaunch.mjs); --swgl
 // runs SwiftShader instead (software WebGL makes every WebGL number pessimistic: 1 to 2 frames a second).
@@ -35,6 +39,7 @@ const CHANNEL = arg('channel', 'chrome');
 const OUT = arg('out', null);
 const SHOTS = arg('shots', null);
 const EXPLORED = flag('explored'); // the explored world: no fog, every nation drawn (the heavy case)
+const LOAD = flag('load');
 const STEPS = 24;
 const AT = arg('at', '48.85,2.35').split(',').map(Number); // where to pan: Paris, or the fog edge
 
@@ -60,7 +65,9 @@ const startGame = async (page) => {
   const buttons = page.locator('[data-people]');
   await buttons.first().dispatchEvent('click');
   await page.getByTestId('start-step-ready').dispatchEvent('click'); // Begin is on Ready only
+  const began = Date.now();
   await page.getByRole('button', { name: /^Begin as/ }).dispatchEvent('click');
+  if (LOAD) return began; // (the welcome card stays over the map: the load is timed under it)
   const skip = page.getByRole('button', { name: 'Skip' });
   await skip.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
   if (await skip.isVisible().catch(() => false)) await skip.dispatchEvent('click');
@@ -68,6 +75,56 @@ const startGame = async (page) => {
   const later = page.locator('[data-testid="research-choice"] button[aria-label="Later"]');
   await later.waitFor({ state: 'visible', timeout: 8000 }).catch(() => {});
   if (await later.isVisible().catch(() => false)) await later.dispatchEvent('click');
+  return began;
+};
+
+// --load: polls the map until `done(info)` (info: window.__glMap.info(), null before the first
+// frame), at most 30 s; returns ms from `from` to the first frame and to done, and the blank share
+// of a shot taken when the first frame shows.
+const BLANK = [15, 23, 42]; // OCEAN_COLOR (GLMapView.jsx): the clear colour and the loading fallback
+const blankShare = async (page) => {
+  const { default: sharp } = await import('sharp');
+  const box = await page.locator('[data-testid="flat-map"]').boundingBox().catch(() => null);
+  const shot = await page.screenshot(box ? { clip: box } : {});
+  const { data, info } = await sharp(shot).raw().toBuffer({ resolveWithObject: true });
+  let blank = 0; let n = 0;
+  for (let i = 0; i < data.length; i += info.channels * 5) { n++; if (BLANK.every((c, j) => Math.abs(data[i + j] - c) <= 3)) blank++; }
+  return round((100 * blank) / n);
+};
+const glInfo = (page) => page.evaluate(() => { try { return window.__glMap ? window.__glMap.info() : null; } catch { return null; } });
+// (detail: the map's own chip state, raster.loading its tiles on their way; a build before the chip has neither: done at its first frame)
+const detailDone = (i) => !!i && i.frames > 0 && i.detail == null && !(i.raster.loading > 0);
+const waitFor = async (page, from, done) => {
+  let first = null; let blankAtFirst = null;
+  for (;;) {
+    const i = await glInfo(page);
+    const t = Date.now() - from;
+    if (first == null && i?.frames > 0) { first = t; blankAtFirst = await blankShare(page); }
+    if (done(i)) return { first, done: t, blankAtFirst, blankAtDone: await blankShare(page) };
+    if (t > 30000) return { first, done: null, blankAtFirst, blankAtDone: await blankShare(page) };
+    await page.waitForTimeout(50);
+  }
+};
+const wheel = async (page, notches, dy) => {
+  const box = await page.locator('[data-testid="flat-map"]').boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  for (let i = 0; i < notches; i++) { await page.mouse.wheel(0, dy); await page.waitForTimeout(40); }
+  return Date.now();
+};
+const loadRun = async (page, began, name) => {
+  const load = await waitFor(page, began, detailDone);
+  // the welcome card and turn 1's prompts off the map, then wheel out to the world and back in
+  for (let i = 0; i < 4; i++) {
+    const b = page.getByRole('button', { name: /^(Skip|Later|Not now)$/ }).first();
+    if (await b.isVisible().catch(() => false)) await b.dispatchEvent('click');
+    await page.waitForTimeout(300);
+  }
+  await page.waitForTimeout(1500);
+  const out = await waitFor(page, await wheel(page, 14, 400), detailDone);
+  await page.waitForTimeout(1000);
+  const back = await waitFor(page, await wheel(page, 14, -400), detailDone);
+  if (SHOTS) { mkdirSync(SHOTS, { recursive: true }); await page.screenshot({ path: `${SHOTS}/load-${name}.png` }); }
+  return { load, out, back };
 };
 
 // In the page: pan by mouse events (d3-zoom listens on the map, then on the window).
@@ -155,6 +212,16 @@ const run = async () => {
       try { const body = await res.body(); mapBytes += body.length; mapFiles += 1; } catch { /* aborted */ }
     });
     await page.goto(`http://localhost:${PORT}/`);
+    if (LOAD) {
+      const cdp = await context.newCDPSession(page);
+      if (prof.throttle > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: prof.throttle });
+      const r = await loadRun(page, await startGame(page), name);
+      const row = { profile: name, ...r };
+      results.push(row);
+      console.log(JSON.stringify(row), errors.length ? `page errors: ${errors.join(' | ')}` : '');
+      await context.close();
+      continue;
+    }
     await startGame(page);
     await page.waitForFunction(() => window.__map2DTest?.focus, null, { timeout: 90000 });
     await page.waitForTimeout(2000);
@@ -199,6 +266,14 @@ const run = async () => {
     await context.close();
   }
   await browser.close();
+  if (LOAD) {
+    const ms = (v) => (v == null ? 'over 30 s' : v);
+    console.log('\n| profile | load: first frame / full detail, ms | blank % at first frame | zoom out: first / detail ms, blank % | zoom in: detail ms, blank % |');
+    console.log('|---|---|---|---|---|');
+    results.forEach((r) => console.log(`| ${r.profile} | ${ms(r.load.first)} / ${ms(r.load.done)} | ${r.load.blankAtFirst} | ${ms(r.out.done)}, ${r.out.blankAtFirst} | ${ms(r.back.done)}, ${r.back.blankAtFirst} |`));
+    if (OUT) writeFileSync(OUT, JSON.stringify(results, null, 2));
+    return;
+  }
   console.log('\n| profile | renderer | world | k | step median / p90 ms | pan fps | frame p90 / max ms | main ms per frame | longest task after a pan, ms | draws (GL calls or SVG nodes) | map download on arrival, kB (files) |');
   console.log('|---|---|---|---|---|---|---|---|---|---|---|');
   results.forEach((r) => console.log(`| ${r.profile} | ${r.renderer} | ${r.world} | ${r.k} | ${r.stepMedian} / ${r.stepP90} | ${r.fps} | ${r.frameP90} / ${r.frameMax} | ${r.mainMsPerFrame} | ${r.settleMs ?? '-'} | ${r.draws} | ${r.screenKB} (${r.screenFiles}) |`));

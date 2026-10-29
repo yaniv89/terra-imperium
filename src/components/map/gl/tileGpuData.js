@@ -63,14 +63,19 @@ export const tileGpuData = (tiles) => {
     for (let k = 0; k < ns.length && k < 6; k++) neighbours[i * 8 + k] = ns[k];
   }
   const lookup = new Float32Array(LOOKUP_W * LOOKUP_H);
+  // (unitOf's math with no object per texel: this loop runs before the map's first frame)
+  const cosLon = new Float64Array(LOOKUP_W); const sinLon = new Float64Array(LOOKUP_W);
+  for (let ix = 0; ix < LOOKUP_W; ix++) { const lo = (lookupTexelLatLon(ix, 0).lon * Math.PI) / 180; cosLon[ix] = Math.cos(lo); sinLon[ix] = Math.sin(lo); }
+  const v = [0, 0, 0];
   let start = 0;
   for (let iy = 0; iy < LOOKUP_H; iy++) {
     const { lat } = lookupTexelLatLon(0, iy);
     const near = tiles.nearest(lat, -180 + 180 / LOOKUP_W);
     start = near != null && near >= 0 ? near : start;
+    const la = (lat * Math.PI) / 180; const cl = Math.cos(la); v[2] = Math.sin(la);
     for (let ix = 0; ix < LOOKUP_W; ix++) {
-      const ll = lookupTexelLatLon(ix, iy);
-      start = walkNearest(tiles, unitOf(ll.lat, ll.lon), start);
+      v[0] = cl * cosLon[ix]; v[1] = cl * sinLon[ix];
+      start = walkNearest(tiles, v, start);
       lookup[iy * LOOKUP_W + ix] = start;
     }
   }

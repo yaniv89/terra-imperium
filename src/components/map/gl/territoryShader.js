@@ -14,7 +14,7 @@
 // unexplored tiles only and fades in from the edge of the explored land (fogEdgeMask), so
 // explored land, and what is drawn on it, never looks unexplored.
 // GLSL ES 3.00 (WebGL2): texelFetch and integer indices.
-import { DATA_W, LOOKUP_W, LOOKUP_H, WALK_STEPS } from './tileGpuData';
+import { DATA_W, LOOKUP_W, LOOKUP_H } from './tileGpuData';
 import { CITY_W, FLAG_ENEMY } from './territoryData';
 
 // Screen widths (CSS px), from Map2DView.jsx.
@@ -84,6 +84,10 @@ uniform float uNationHalf;// half width of the nation border, CSS px
 uniform float uSelTile;   // the selected tile or -1
 uniform float uTintOn;
 uniform float uFogOn;
+// The loop bounds (6 neighbours, 3 outline passes, WALK_STEPS, 4 noise octaves) come in as a
+// uniform: with constant bounds the D3D11 compiler of Chrome on Windows unrolled every loop and took
+// 5 to 10 s to link this shader, the map frozen meanwhile (F145). LOOPS in glLayers.js sets them.
+uniform ivec4 uLoops;
 in vec2 vWorld;
 out vec4 fragColor;
 
@@ -109,7 +113,7 @@ float vnoise(vec3 x) {
 }
 float fbm(vec3 x) {
   float s = 0.0; float amp = 0.5;
-  for (int i = 0; i < 4; i++) { s += amp * vnoise(x); x = x * 2.03 + 17.1; amp *= 0.5; }
+  for (int i = 0; i < uLoops.w; i++) { s += amp * vnoise(x); x = x * 2.03 + 17.1; amp *= 0.5; }
   return s / 0.9375;
 }
 
@@ -152,10 +156,10 @@ void main() {
     }
   }
   int n[6];
-  for (int it = 0; it < ${WALK_STEPS}; it++) {
+  for (int it = 0; it < uLoops.z; it++) {
     neighbours(a, n);
     float best = dot(p, centreOf(a).xyz); int next = a;
-    for (int k = 0; k < 6; k++) {
+    for (int k = 0; k < uLoops.x; k++) {
       if (n[k] < 0) continue;
       float d = dot(p, centreOf(n[k]).xyz);
       if (d > best) { best = d; next = n[k]; }
@@ -176,7 +180,7 @@ void main() {
   // outline is drawn on that edge. A lone explored tile of somebody's land used to get a border on
   // all six sides, a closed ring far from its city (playtest audit I078).
   float dist[6]; vec4 tn[6]; bool landN[6]; bool unk[6];
-  for (int k = 0; k < 6; k++) {
+  for (int k = 0; k < uLoops.x; k++) {
     dist[k] = 1e6; tn[k] = vec4(0.0); landN[k] = false; unk[k] = false;
     if (n[k] < 0) continue;
     vec4 cn = centreOf(n[k]);
@@ -201,7 +205,7 @@ void main() {
     float fine = inBand.r + inBand.g > 0.0 ? (fbm(p * ${(FOG_NOISE_FREQ * 4.3).toFixed(1)} + vec3(7.1, 3.3, 1.9)) - 0.5) * ${FOG_FINE.toFixed(2)} : 0.0;
     washA = 1.0 - smoothstep(${FOG_LO.toFixed(2)}, ${FOG_HI.toFixed(2)}, fogF.g + fine * inBand.g);
     float dEdge = 1e6; float dExp = 1e6;
-    for (int k = 0; k < 6; k++) { dEdge = min(dEdge, dist[k]); if (n[k] >= 0 && !unk[k]) dExp = min(dExp, dist[k]); }
+    for (int k = 0; k < uLoops.x; k++) { dEdge = min(dEdge, dist[k]); if (n[k] >= 0 && !unk[k]) dExp = min(dExp, dist[k]); }
     float core = smoothstep(${FOG_CORE0_KM.toFixed(1)}, ${FOG_CORE1_KM.toFixed(1)}, dEdge / pxPerRad * ${EARTH_KM.toFixed(1)} + warp * 16.0);
     washA = fogA < 1.5 ? max(washA, core) : min(washA, 1.0 - core);
     // The dark mask lies on unexplored land only, as in Civilization: explored land is never
@@ -229,8 +233,8 @@ void main() {
 
   // City outlines: the plain faint line between two of a nation's cities from the region zoom,
   // then the coloured outlines (both sides of the edge), the selected city last.
-  for (int pass = 0; pass < 3; pass++) {
-    for (int k = 0; k < 6; k++) {
+  for (int pass = 0; pass < uLoops.y; pass++) {
+    for (int k = 0; k < uLoops.x; k++) {
       if (n[k] < 0 || unk[k]) continue;
       int cityN = int(floor(tn[k].x + 0.5)) - 1;
       if (cityN == cityA) continue;
@@ -249,16 +253,16 @@ void main() {
   // The nation's band just inside its border.
   if (natA > 0.5) {
     float dBand = 1e6;
-    for (int k = 0; k < 6; k++) if (n[k] >= 0 && !unk[k] && tn[k].y != natA) dBand = min(dBand, dist[k]);
+    for (int k = 0; k < uLoops.x; k++) if (n[k] >= 0 && !unk[k] && tn[k].y != natA) dBand = min(dBand, dist[k]);
     if (dBand < ${BAND_PX.toFixed(1)} + 1.0) over(bandA.rgb, 0.9 * line(dBand, ${BAND_PX.toFixed(1)}));
   }
   // The nation border.
-  for (int k = 0; k < 6; k++) {
+  for (int k = 0; k < uLoops.x; k++) {
     if (n[k] < 0 || unk[k] || tn[k].y == natA || (natA < 0.5 && tn[k].y < 0.5)) continue;
     over(vec3(0.008, 0.024, 0.09), 0.85 * line(dist[k], uNationHalf));
   }
   // War: a red band round every enemy city, a dark red hairline on its edge.
-  for (int k = 0; k < 6; k++) {
+  for (int k = 0; k < uLoops.x; k++) {
     if (n[k] < 0 || unk[k]) continue;
     int cityN = int(floor(tn[k].x + 0.5)) - 1;
     if (cityN == cityA) continue;
@@ -269,7 +273,7 @@ void main() {
   }
   // The hex overlay over land.
   if (uHex > 0.5) {
-    for (int k = 0; k < 6; k++) if (n[k] >= 0 && (landA || landN[k])) over(vec3(1.0), 0.2 * line(dist[k], ${HEX_HALF_PX.toFixed(2)}));
+    for (int k = 0; k < uLoops.x; k++) if (n[k] >= 0 && (landA || landN[k])) over(vec3(1.0), 0.2 * line(dist[k], ${HEX_HALF_PX.toFixed(2)}));
   }
   // Explored, out of sight: the grey wash.
   if (washA > 0.0) over(vec3(0.059, 0.09, 0.165), 0.55 * washA);
@@ -293,9 +297,9 @@ void main() {
     int sel = int(floor(uSelTile + 0.5));
     if (a == sel) {
       over(vec3(1.0), 0.15);
-      for (int k = 0; k < 6; k++) if (n[k] >= 0) over(vec3(1.0), line(dist[k], 0.8));
+      for (int k = 0; k < uLoops.x; k++) if (n[k] >= 0) over(vec3(1.0), line(dist[k], 0.8));
     } else {
-      for (int k = 0; k < 6; k++) if (n[k] == sel) over(vec3(1.0), line(dist[k], 0.8));
+      for (int k = 0; k < uLoops.x; k++) if (n[k] == sel) over(vec3(1.0), line(dist[k], 0.8));
     }
   }
   // The soft edge of the unexplored dark, over everything.
