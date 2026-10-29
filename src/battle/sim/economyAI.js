@@ -116,14 +116,14 @@ export const thinkEconomy = (w, side, difficultyId, orders) => {
   const roles = trainableRoles(ageId);
   // The production types in the order to raise and feed them: by counter value (prince+), else as listed.
   const ranked = cfg.counter && ECO_FEATURES.counter ? counterOrder(w, side, ageId) : PRODUCTION;
-  const prod = mine.filter((b) => PRODUCTION.includes(b.type) || (BUILDINGS[b.type].hq && trainsOf(b).length > 1)).sort((a, b) => ranked.indexOf(a.type) - ranked.indexOf(b.type) || a.idx - b.idx);
+  const prod = mine.filter((b) => PRODUCTION.includes(b.type) || (BUILDINGS[b.type].hq && trainsOf(w, b).length > 1)).sort((a, b) => ranked.indexOf(a.type) - ranked.indexOf(b.type) || a.idx - b.idx);
   // Keep the production buildings training (a little food kept back for laborers). With bases the
   // keep or the camp may fall while the barracks stand (base.js, Q4): they train on regardless.
   const keepTraining = () => prod.filter((b) => b.built).forEach((b) => {
     if (b.queue.length >= cfg.queue) return;
     // A building that trains more than one kind (a walled city's hall) takes turns, the least trained first.
     const done = w.eco.stats[side].trained;
-    const role = trainsOf(b).filter((r) => r !== 'worker' && roles.includes(r)).sort((x, y) => (done[x] || 0) - (done[y] || 0))[0];
+    const role = trainsOf(w, b).filter((r) => r !== 'worker' && roles.includes(r)).sort((x, y) => (done[x] || 0) - (done[y] || 0))[0];
     if (!role || !afford(stock, UNITS[role].cost, 40)) return;
     spend(stock, UNITS[role].cost);
     orders.push({ side, type: 'train', building: b.idx, role });

@@ -16,8 +16,14 @@ describe('walled city', () => {
   it('its hall trains the foot, and the HUD view says so', () => {
     const w = walled();
     expect(walledCity(w)).toBe(true);
-    expect(trainsOf(hallOf(w))).toEqual(['worker', ...CITY_HALL_TRAINS]);
+    expect(trainsOf(w, hallOf(w))).toEqual(['worker', ...CITY_HALL_TRAINS]);
     expect(ecoView(w, 1).buildings.find((b) => b.type === 'hall').trains).toEqual(['worker', ...CITY_HALL_TRAINS]);
+  });
+
+  it('a weak town (under a regiment of its own) raises no army at its hall: the Siwa assault', () => {
+    const w = createWorld(town({ controllers: ['ai', 'ai'], fort: 1 }));
+    expect(walledCity(w)).toBe(true);
+    expect(trainsOf(w, hallOf(w))).toEqual(['worker']);
   });
 
   it('its stores feed the defender every second while the keep stands', () => {

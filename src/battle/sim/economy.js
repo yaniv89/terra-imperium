@@ -27,7 +27,7 @@ import { makeSquad } from './world';
 import { stepToward } from './movement';
 import { moraleFromLosses } from './moraleMath';
 import { loseStrength } from './losses';
-import { capShotOn, crewShares, turnOnShooter, fireShare, recentlyHit, REPAIR_UNDER_ATTACK_MAX_PER_SEC } from './siegeRules';
+import { capShotOn, crewShares, turnOnShooter, fireShare, recentlyHit, garrisonHolds, REPAIR_UNDER_ATTACK_MAX_PER_SEC } from './siegeRules';
 import {
   RESOURCES, MILLI, POP_LIMIT, POP_PER_SQUAD, CARRY, GATHER_PER_SEC, FARM_RATE_MULT, MINE_RATE_MULT, WORK_REACH,
   buildRateHalves, CANCEL_REFUND, REPAIR_HP_PER_SEC, REPAIR_RECENT_TICKS, REPAIR_RECENT_MULT_QUARTERS,
@@ -111,8 +111,8 @@ export const initEconomy = (w) => {
 
 /** A real city with a wall ring (cityBattle.js): its keep is a citadel with stores (CITY_STORES_PER_SEC). */
 export const walledCity = (w) => !!w.setup.city && w.structures.some((s) => s.kind === 'gate');
-/** What building `b` trains: a walled city's town hall trains its foot too. */
-export const trainsOf = (b) => b.trains || BUILDINGS[b.type].trains || [];
+/** What building `b` trains: a walled city's town hall trains its foot too, while the city's own garrison holds a regiment (a weak town raises no army from nothing; the Siwa assault). */
+export const trainsOf = (w, b) => (b.trains && garrisonHolds(w) ? b.trains : BUILDINGS[b.type].trains || []);
 
 /** Is building `b` standing (a proxy town hall stands while its keep does)? */
 export const ecoAlive = (w, b) => (b.proxy !== null && b.proxy !== undefined ? !!w.structures[b.proxy]?.alive : b.alive);
@@ -327,7 +327,7 @@ export const applyEcoOrder = (w, o) => {
       const b = w.eco.buildings[o.building];
       if (!b || b.side !== side || !ready(w, b) || b.queue.length >= QUEUE_MAX) return true;
       const role = o.role;
-      if (!trainsOf(b).includes(role) || !trainableRoles(w.setup.sides[side].ageId).includes(role)) return true;
+      if (!trainsOf(w, b).includes(role) || !trainableRoles(w.setup.sides[side].ageId).includes(role)) return true;
       const count = Math.max(1, Math.min(5, o.count || 1));
       for (let k = 0; k < count && b.queue.length < QUEUE_MAX; k++) {
         if (!canAfford(w, side, UNITS[role].cost)) break;
@@ -731,7 +731,7 @@ export const ecoView = (w, playerSide) => {
         hp: keep ? keep.hp : b.hp, maxHp: keep ? keep.maxHp : b.maxHp, alive, built: b.built, progress: pct(b.progress, b.need), proxy: b.proxy != null,
         queue: own ? b.queue.map((it) => ({ role: it.role, pct: pct(it.ticks, it.need), started: it.started, blocked: it.blocked || null })) : [],
         rally: own ? b.rally : null,
-        ...(b.trains ? { trains: b.trains } : {})
+        ...(b.trains && garrisonHolds(w) ? { trains: b.trains } : {})
       };
     }).filter(Boolean),
     // A spent grove stays, `spent` (X31: its stumps are drawn; it is no longer a target or an

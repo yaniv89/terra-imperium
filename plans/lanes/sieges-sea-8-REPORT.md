@@ -55,9 +55,13 @@ Options for the lead (each needs aiDuel and parityEco, and the Auto retune throu
 
 ## Option A (lead, 29 Oct): built
 
-### For the lead (decide before merge)
+### Lead's call (a), built
 
-**The Siwa test now fails** (src/battle/sim/autoContinue.test.js, audit H-02/H-26). A player who makes one attack-move with 4 x 588 on a small walled capital (2 x 190 and militia) and never trains now wins 0 of 4 (was 4 of 4). Auto still says the attacker wins 4 of 4 with 142 men lost.
+The hall trains its foot only while the city's own garrison (regiments and militia, not companies) holds CREW_FULL men (`trainsOf(w, b)` over `garrisonHolds`; the HUD shows the hall's training buttons only then). The Siwa test passes unchanged; walledCity.test.js checks that a weak town's hall trains only laborers. parityEco N=32 assault rows after: bronze mirror 18/32 (Auto 14), classical mirror 21/32 (Auto 14), all 9 rows IN; autoCalib keeps [22, 10] (0 of 9 out; [22, 5] would be 2 out). Targeted tests 61 of 61.
+
+### The question that was asked (kept for the record)
+
+**The Siwa test failed** (src/battle/sim/autoContinue.test.js, audit H-02/H-26). A player who makes one attack-move with 4 x 588 on a small walled capital (2 x 190 and militia) and never trains now wins 0 of 4 (was 4 of 4). Auto still says the attacker wins 4 of 4 with 142 men lost.
 - Cause: option A lets even a weak walled town train companies at its hall (ranged fire is 4,277 of the attacker's losses). Auto assumes the attacker trains 22 companies; this player trains none.
 - Not the stores (stores off: 1 of 4) and not the held keep (multiplier 1: 0 of 4). Tried and reverted: stores scaled by housing, stores scaled by the starting garrison (both 0 of 4).
 - Options: (a) the hall trains only while the city's own garrison holds a regiment (a weak town cannot raise an army from nothing); (b) accept it, change the test to "a commanded assault that also trains wins", and give Auto the attacker's real training; (c) drop hall training, keep only the stores and laborers inside. I lean (a). The test is left red so the merge cannot miss it.
