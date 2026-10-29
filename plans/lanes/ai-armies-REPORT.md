@@ -112,6 +112,15 @@ Full suite before the merge: 512 files passed, 2 skipped (4,792 tests); lint cle
 
 ## For the lead (design calls)
 
+00. **endgameReachability passive run (29 Oct).** Head = this branch merged with integration 039d3c18, base = 039d3c18. Same seed 7, passive player:
+   - base: COMPLETE on the turn limit at 923; the leader (gojoseon) never gets every Future goal tech.
+   - head: gojoseon gets every Future goal tech at turn 794, so the game ends on 'futureGoal' 129 turns early and the test fails.
+   - The ages are not faster: the first nation into each age arrives on the same turn within 3-6 turns (Future: 535 base, 538 head).
+   - The gap opens inside the Future age. Gojoseon's science per turn at 702: base 596, head 1117. Its cities, development and laws are about equal. What differs is city control: base 0.80, falling to 0.54 at turn 662; head 0.99 until 702. AI science is multiplied by control (aiEconomy.js calcAllNationIncomes).
+   - Control moves with the AI event deck (eventDeck.js AI_DRAWS; data/eventsAi.js cards with controlBonus and controlPenalty for every city of the nation). These are seeded draws. Any change to how many rolls the AI world makes reorders which nation draws which card.
+   - So no rule of this lane speeds research. The lane changes the random stream, and on seed 7 the leader lands on good cards. Base passes by a thin margin: gojoseon had 80 techs at turn 902 and still missed the goal by turn 923. The same flip hit events-8 (Congress gold).
+   - The cause is the margin: the passive Future goal lands near the turn limit. I did not change it, because the fix is a pacing call: Future tech costs (research.js FUTURE_TECH_COST_GROWTH, RESEARCH_AGE_BASE.future) or how far control scales AI science. Tuning this lane until seed 7 flips back would only hide the margin. Which do you want (or should pacing-8 own it)?
+
 0. **Round 4: wars 7.13, target 7.5** (option (a) built; see Round 4 above). Idle is within target. To close the gap, which do you want?
    - accept 7.13 (not significantly below 7.5 on 8 seeds, base 31193b6b was 8.38, also not significant);
    - also build (b): a nation that is arming may still roll on a second target;
