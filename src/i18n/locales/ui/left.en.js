@@ -45,6 +45,8 @@ export default {
   'm.why.fleetThere': 'The fleet is already there.',
   'm.why.fleetFromPort': 'A fleet sails from a port.',
   'm.why.fleetCityOnly': 'A fleet can only put in at a city.',
+  'm.why.noneAboard': 'The fleet is beside this shore but carries no troops: board an army in port first.',
+  'm.why.enemyShore': 'Troops cannot land unopposed on enemy or closed land: attack its city instead.',
   'm.why.thatCity': 'that city',
   'm.why.thatLand': 'that land',
   'm.why.ownerParen': ' ({nation})',

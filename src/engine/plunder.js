@@ -46,7 +46,7 @@ const enemyLandByTile = (state, me) => {
 const enemyRaidersByTile = (state, me) => {
   const map = new Map();
   Object.values(state.units || {}).forEach((u) => {
-    if (!isFleet(u) || !(u.strength > 0) || u.ownerId === me || navalLineOf(u) !== 'raider' || !raidsMe(state, me, u.ownerId)) return;
+    if (!isFleet(u) || !(u.strength > 0) || u.ownerId === me || navalLineOf(u) !== 'raider' || !(u.pirate || raidsMe(state, me, u.ownerId))) return; // pirates (pirates.js) cut sea trade without a war
     const t = unitTile(state, u);
     if (t != null && !map.has(t)) map.set(t, u.ownerId);
   });

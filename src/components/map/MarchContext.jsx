@@ -5,7 +5,7 @@
 // provides it; both maps read it to draw the lines. Views outside it (the minimap) get null.
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
-import { planMarch, marchingUnits, marchOrigin, accessOf, approachTile } from '../../engine/routes';
+import { planMarch, marchingUnits, marchOrigin, accessOf, approachTile, shorePlan } from '../../engine/routes';
 import { getMarchLines } from '../../utils/marchLines';
 import { START_MARCH } from './marchEvents';
 import { useDismissOverlays } from '../../hooks/useExclusivePanel';
@@ -29,6 +29,11 @@ export const MarchProvider = ({ children }) => {
   const plan = useMemo(() => {
     if (!march?.from || march.target == null) return null;
     const opts = { naval: !!march.naval, via: march.via || null };
+    // A fleet aimed at a shore sails beside it and lands there (manual playtest 29 Oct: "A fleet can only put in at a city").
+    if (march.naval && typeof march.target === 'number') {
+      const shore = shorePlan(state, march.from, march.target, march.unitIds || null);
+      if (shore) return shore;
+    }
     if (!march.naval && typeof march.target !== 'number' && accessOf(state, march.target) === 'closed') {
       const tile = approachTile(state, marchOrigin(state, march.from, march.unitIds || null), march.target);
       if (tile != null) return { ...planMarch(state, march.from, tile, march.unitIds || null, opts), approachOf: march.target, approachTile: tile };

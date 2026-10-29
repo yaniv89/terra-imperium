@@ -118,6 +118,8 @@ export default {
   'm.battle.fortStopsYou': 'המבצר ליד {place} עוצר את הצבא שלכם: עליו להילחם כדי לעבור.',
   'm.battle.fortStopsThem': 'המבצר שלכם ליד {place} עוצר את צבא {nation}.',
   'm.battle.fleetOffCoast': 'צי אויב מול {city} ({nation}), ועליו חיילים (גדודים: {n}): הוא יכול לנחות בתור הבא. חזקו את חיל המצב או צאו לקראתו בים.',
+  'm.pirates.appear': 'שודדי ים ({nation}) אורבים מול {city}: ספינת פשיטה אחת שחוסמת את סחר הים דרך הנמל. הטביעו אותה בספינת מלחמה (הקישו עליה ליד הצי שלכם), אחרת היא תפליג בעוד {turns} תורות.',
+  'm.pirates.gone': 'שודדי הים ({nation}) הפליגו מ{city}.',
   'm.battle.invasionFleetSunk': 'הצי שלכם הטביע את צי הפלישה של {nation} מול חופי {city}.',
   'm.battle.aiAttacksFrom': '{nation} תוקפת מ{from} לעבר {to}.',
   'm.battle.aiPillages': '{nation} בוזזת את אדמות {city} ({place}).',

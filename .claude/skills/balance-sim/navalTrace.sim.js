@@ -118,6 +118,11 @@ else PLAYERS.forEach((PLAYER) => SEEDS.forEach((seed) => {
           const port = Object.values(s.regions).find((c) => c.owner === me && hasSeaCoast(tiles, c));
           if (port) s = gameReducer(s, { type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId: port.id, item: { kind: 'unit', classId: 'naval', navalLine: navalLinesFor(age)[0] } } });
         }
+        // The advisor's "Sink the pirates" step (pirates.js): a ship beside a pirate attacks it.
+        Object.values(s.units).filter((u) => u.ownerId === me && u.domain === 'naval' && u.strength > 0 && u.tile != null).forEach((f) => {
+          const p = Object.values(s.units).find((u) => u.pirate && u.tile != null && tiles.neighbors[f.tile].includes(u.tile));
+          if (p) s = gameReducer(s, { type: ActionTypes.ATTACK_FLEET, payload: { fromTile: f.tile, tile: p.tile } });
+        });
         s = seaVoyage(s, ms[me], t);
       }
       s = resolveTurn(s);

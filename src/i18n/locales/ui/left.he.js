@@ -45,6 +45,8 @@ export default {
   'm.why.fleetThere': 'הצי כבר שם.',
   'm.why.fleetFromPort': 'צי מפליג מנמל.',
   'm.why.fleetCityOnly': 'צי יכול לעגון רק בעיר.',
+  'm.why.noneAboard': 'הצי ליד החוף הזה אבל אין עליו חיילים: העלו קודם צבא בנמל.',
+  'm.why.enemyShore': 'חיילים לא יכולים לנחות בלי קרב על אדמת אויב או אדמה סגורה: תקפו את העיר שלה.',
   'm.why.thatCity': 'העיר ההיא',
   'm.why.thatLand': 'הארץ ההיא',
   'm.why.ownerParen': ' ({nation})',

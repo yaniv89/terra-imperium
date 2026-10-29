@@ -9,6 +9,7 @@ import { updateCamps } from './tribalCamps';
 import { stonePhaseCtx } from './stonePhase';
 import { isIndependent, isIndependentNation } from '../data/independents';
 import { processAIOperations } from './aiOperations';
+import { advancePirates } from './pirates';
 import { processIndependents } from './raids';
 import { keepQueued } from './battleQueue';
 import { processFortBattles } from './forts';
@@ -1103,6 +1104,13 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   if (operations.world && operations.world !== state.world) state = { ...state, world: operations.world };
   // Sallies counted by aiSally (I125) ride on indepStats like the independents' tallies.
   if (operations.indepStats && operations.indepStats !== state.indepStats) state = { ...state, indepStats: operations.indepStats };
+  // Pirates (pirates.js): a raider ship sails off when its time is up, a new one may lurk off a port.
+  {
+    const pirates = advancePirates({ ...state, turnNumber: newTurnNumber, regions, units, nations: nationsAfterWars }, newTurnNumber);
+    if (pirates.units !== units) { Object.keys(units).forEach((id) => { if (!pirates.units[id]) delete units[id]; }); Object.assign(units, pirates.units); }
+    nationsAfterWars = pirates.nations;
+    logs.push(...pirates.logs.map((l) => ({ year: newYear, ...l, type: LogTypes.COMBAT })));
+  }
   invalidateRegionsCache(regions);
   const warProgress = resolveWarProgress({ ...state, regions, units, nations: nationsAfterWars }, regions, nationsAfterWars, wars, rng);
   Object.assign(regions, warProgress.regions);

@@ -111,7 +111,9 @@ const MarchBar = () => {
   const { target, isTile, naval } = m;
   const targetName = isTile ? placeLabel(state, target) : name(target);
 
-  const toTile = isTile ? target : plan?.approachTile ?? null;
+  const toTile = plan?.shoreOf != null ? plan.approachTile ?? null : isTile ? target : plan?.approachTile ?? null;
+  const landHere = plan?.landHere?.length ? plan.landHere : null;
+  const land = () => { landHere.forEach((id) => dispatch({ type: ActionTypes.DISEMBARK_UNIT, payload: { landUnitId: id, tile: target } })); cancel(); };
   const marchNow = () => { dispatch({ type: ActionTypes.SET_ROUTE, payload: { ...(toTile != null ? { fromRegionId: march.from, toTile, via: march.via || undefined } : { fromRegionId: march.from, toRegionId: target }), naval, unitIds: march.unitIds || null } }); cancel(); };
   const marchAttack = () => { dispatch({ type: ActionTypes.SET_ROUTE, payload: { fromRegionId: march.from, toRegionId: target, attack: true, unitIds: march.unitIds || null } }); cancel(); };
   const moveNow = () => { m.units.forEach((u) => dispatch({ type: ActionTypes.MOVE_ARMY, payload: { unitId: u.id, toRegionId: target } })); cancel(); };
@@ -142,7 +144,9 @@ const MarchBar = () => {
   else if (m.approach?.there) line = <span data-testid="march-approach-there">{t('march.approachThere', { name: m.approach.name })}</span>;
   else if (m.approach && plan?.ok) line = <span data-testid="march-approach">{R('march.approach', { target: <b>{targetName}</b> }, { name: m.approach.name, turns: turnsText(plan.turns) })}</span>;
   else if (m.marchAttackBlocked) line = <span data-testid="march-attack-blocked">{plan?.ok ? <>{R('march.toTurns', { target: <b>{targetName}</b> }, { turns: turnsText(plan.turns) })}. </> : null}{danger(m.marchAttackBlocked)}</span>;
+  else if (landHere) line = <span data-testid="march-land-line">{t('march.landHere', { target: targetName })}</span>;
   else if (!plan?.ok) line = <span className="text-fa-danger-text">{plan?.reason ? reasonText(plan) : t('march.noRoute')}</span>;
+  else if (plan.shoreOf != null) line = <span data-testid="march-to-shore">{t('march.toShore', { target: targetName, turns: turnsText(plan.turns) })}</span>;
   else if (m.canMarchAttack) {
     line = (
       <span data-testid="march-attack-plan">
@@ -187,6 +191,7 @@ const MarchBar = () => {
       )}
       {m.enemyArmy?.adjacent && <button onClick={() => { if (!m.enemyArmy.blocked) setFieldAttack(target); }} disabled={!!m.enemyArmy.blocked} title={m.enemyArmy.blocked || undefined} data-testid="march-attack-army" className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 font-semibold text-fa-text">{t('march.attack')}</button>}
       {m.canMoveNow && <button onClick={moveNow} data-testid="march-move-now" className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-fa-hover hover:bg-fa-line font-semibold">{t('march.moveNow')}</button>}
+      {landHere && <button onClick={land} data-testid="march-land" className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-semibold text-fa-text">{t('march.land')}</button>}
       {plan?.ok && !m.canAttackNow && !m.canMarchAttack && !m.enemyArmy?.adjacent &&<button onClick={marchNow} data-testid="march-confirm" className="relative before:content-[''] before:absolute before:-inset-1 shrink-0 min-h-[36px] px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-semibold text-fa-text">{naval ? t('march.sail') : t('march.march')}</button>}
       <button onClick={cancel} aria-label={t('march.cancel')} className="relative before:content-[''] before:absolute before:-inset-1.5 shrink-0 p-2 rounded-lg hover:bg-fa-raised text-fa-muted"><X className="w-4 h-4" /></button>
       {/* Closed land: their answer to open borders and the offer, on a row of their own so a phone's text keeps its width. */}

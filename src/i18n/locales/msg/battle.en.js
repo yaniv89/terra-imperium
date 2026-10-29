@@ -118,6 +118,8 @@ export default {
   'm.battle.fortStopsYou': 'The fort near {place} stops your army: it must fight its way past.',
   'm.battle.fortStopsThem': "Your fort near {place} stops {nation}'s army.",
   'm.battle.fleetOffCoast': 'Enemy fleet off {city} ({nation}), troops aboard (regiments: {n}): it can land next turn. Garrison the city or meet the fleet at sea.',
+  'm.pirates.appear': 'Pirates ({nation}) lurk off {city}: one raider ship that cuts sea trade through the port. Sink it with a warship (tap it beside your fleet), or it sails off in {turns} turns.',
+  'm.pirates.gone': 'The pirates ({nation}) sailed off from {city}.',
   'm.battle.invasionFleetSunk': "Your fleet sank {nation}'s invasion fleet off {city}.",
   'm.battle.aiAttacksFrom': '{nation} attacks from {from} toward {to}.',
   'm.battle.aiPillages': '{nation} pillages the land of {city} ({place}).',

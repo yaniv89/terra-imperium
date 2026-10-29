@@ -266,6 +266,28 @@ export const planMarch = (state, fromId, target, unitIds = null, { naval = false
   return { ok: true, naval, from, path: found.path, steps, stepTurns, turns, pace, spent, units: units.map((u) => u.id), supplies, haltTile, haltAt: haltTile != null ? state.world?.tileOwner?.[haltTile] ?? null : null };
 };
 
+/** A fleet aimed at a shore (a land tile, not a port): beside it already, `landHere` lists the troops
+ * aboard that may land there now (DISEMBARK_UNIT's rule: own, free or friendly land); else the sail
+ * to the nearest water beside it (`approachTile`), the landing to follow on arrival. `shoreOf` is
+ * the shore; null when the tile is not land or no water beside it is in reach (planMarch says why). */
+export const shorePlan = (state, fromId, shore, unitIds = null) => {
+  const tiles = getTiles();
+  if (shore == null || tiles.land[shore] !== 1) return null;
+  const fleets = marchingUnits(state, fromId, unitIds, { naval: true });
+  if (!fleets.length) return null;
+  const at = mainTile(state, fleets);
+  if (at != null && tiles.land[at] !== 1 && tiles.neighbors[at].includes(shore)) {
+    const ids = new Set(fleets.map((f) => f.id));
+    const open = !['enemy', 'held', 'closed'].includes(tileAccess(state, shore, state.playerNationId));
+    const aboard = open ? Object.values(state.units).filter((u) => ids.has(u.embarkedOn) && u.embarkedOn !== u.id).map((u) => u.id) : [];
+    return { ok: false, naval: true, shoreOf: shore, landHere: aboard, ...reasonOf(open ? 'm.why.noneAboard' : 'm.why.enemyShore') };
+  }
+  const best = tiles.neighbors[shore].filter((n) => tiles.land[n] !== 1)
+    .map((n) => planMarch(state, fromId, n, unitIds, { naval: true })).filter((p) => p.ok)
+    .sort((a, b) => a.turns - b.turns || a.steps.length - b.steps.length)[0];
+  return best ? { ...best, shoreOf: shore, approachTile: best.path[best.path.length - 1] } : null;
+};
+
 /** A new move order ends a standing one: Hold (`unit.hold`) and Lay siege (`unit.siegeOf`, sieges.js)
  * last until the unit is told to go somewhere. The same object when it had neither. */
 export const released = (u) => (u.hold || u.siegeOf ? { ...u, hold: false, siegeOf: null } : u);

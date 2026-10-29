@@ -52,6 +52,8 @@ export default [
   ['m.why.fleetThere', 'The fleet is already there.', 'הצי כבר שם.'],
   ['m.why.fleetFromPort', 'A fleet sails from a port.', 'צי מפליג מנמל.'],
   ['m.why.fleetCityOnly', 'A fleet can only put in at a city.', 'צי יכול לעגון רק בעיר.'],
+  ['m.why.noneAboard', 'The fleet is beside this shore but carries no troops: board an army in port first.', 'הצי ליד החוף הזה אבל אין עליו חיילים: העלו קודם צבא בנמל.'],
+  ['m.why.enemyShore', 'Troops cannot land unopposed on enemy or closed land: attack its city instead.', 'חיילים לא יכולים לנחות בלי קרב על אדמת אויב או אדמה סגורה: תקפו את העיר שלה.'],
   ['m.why.thatCity', 'that city', 'העיר ההיא'],
   ['m.why.thatLand', 'that land', 'הארץ ההיא'],
   ['m.why.ownerParen', ' ({nation})', ' ({nation})'],
