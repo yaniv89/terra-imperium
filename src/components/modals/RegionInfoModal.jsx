@@ -73,7 +73,7 @@ import { outpostTurnsLeft } from '../../engine/settlers';
 import { sideAgeOf } from '../../engine/ageRefs';
 import { shownPeople } from '../../data/ages';
 import { sizeToPeople } from '../../engine/world/cities';
-import { canPay } from '../../utils/costs';
+import { canPay, warCost } from '../../utils/costs';
 
 const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
 // a nation's name in the current language (a people's title, or an independent's form)
@@ -194,7 +194,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   // Land nobody owns (an emergent world's frontier) has no war to declare and no one to invade.
   const hasMilitaryOption = !!ownerNation && invasionSources.length + amphibiousSources.length + navalEngagementSources.length > 0;
   const warJustified = !!ownerNation && hasCasusBelli(state, state.playerNationId, ownerNation.id);
-  const declareWarCosts = warJustified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
+  const declareWarCosts = warCost(state, warJustified);
   const breaksTruce = !!ownerNation && !atWarWithOwner && isInTruce(state, state.playerNationId, ownerNation.id);
   const warBlockedReason = !ownerNation || atWarWithOwner ? null
     : state.nations[state.playerNationId]?.vassalOf ? t('ri.vassalNoWar')

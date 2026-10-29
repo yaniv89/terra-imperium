@@ -136,7 +136,7 @@ import { clampStability, clampPrestige, getIncreaseStabilityCost } from './natio
 import { getTotalDev, DEV_TYPE_IDS, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO, applyDevelopment } from './development';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
 import { canAfford, applyCosts } from '../utils/helpers';
-import { canPay, payCost } from '../utils/costs';
+import { canPay, payCost, warCost } from '../utils/costs';
 import { TAX_RATE_IDS, DEFAULT_TAX_RATE, TAX_RATE_CHANGE_COOLDOWN_TURNS } from '../data/taxRates';
 import { getLoanCapacity, getLoanInterestRate, getLoanSize, clampMaintenance, getRecruitUnitCost, hasBankingHouses } from './economy';
 import { canFabricateClaim, claimableCities, startClaim, CLAIM_FABRICATE_TURNS } from './claims';
@@ -2118,7 +2118,7 @@ const reduceAction = (state, action) => {
       // same enemy is refused.
       if (!target || nationId === state.playerNationId || isAtWarWithPlayer(state, nationId) || player?.vassalOf) return state;
       const justified = hasCasusBelli(state, state.playerNationId, nationId);
-      const costs = justified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
+      const costs = warCost(state, justified);
       if (!canPay(state, costs)) return state;
 
       // Truce-breaking (plan §M12/M13): the player MAY declare anyway — unlike the AI, which

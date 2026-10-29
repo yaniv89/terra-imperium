@@ -14,7 +14,7 @@ import { getResearched, getTechAgeId, ageOf } from '../../../src/engine/nationSt
 import * as AGES from '../../../src/data/ages';
 import { calcNationBalance } from '../../../src/engine/economy';
 import { hasCasusBelli } from '../../../src/engine/diplomacy';
-import { ACTION_COSTS } from '../../../src/data/actionCosts';
+import { warCost } from '../../../src/utils/costs';
 import { decreesOf } from '../../../src/engine/decrees';
 
 const TURNS = Number(process.env.TURNS || 120);
@@ -34,10 +34,11 @@ SEEDS.forEach((seed) => {
       s = scripted.answer(s).state;
       if (t % EVERY === 0 || t === 1) {
         const me = s.playerNationId;
+        const price = warCost(s, false).gold;
         const net = Math.round(calcNationBalance(s, me).net * 10) / 10;
         const majors = Object.keys(s.nations || {}).filter((id) => id !== me && s.nations[id]?.kind !== 'independent' && s.nations[id]?.isAlive !== false);
         const cb = majors.filter((id) => hasCasusBelli(s, me, id)).length;
-        appendFileSync(OUT, `WAR seed=${seed} turn=${s.turnNumber} age=${ageOf(s, me)} gold=${Math.round(s.resources?.gold || 0)} net=${net} price=${ACTION_COSTS.declareWarUnjustified.gold} turnsToPay=${net > 0 ? Math.ceil(ACTION_COSTS.declareWarUnjustified.gold / net) : 'never'} cbTargets=${cb} decrees=${decreesOf(s.nations[me])}\n`);
+        appendFileSync(OUT, `WAR seed=${seed} turn=${s.turnNumber} age=${ageOf(s, me)} gold=${Math.round(s.resources?.gold || 0)} net=${net} price=${price} turnsToPay=${net > 0 ? Math.ceil(price / net) : 'never'} cbTargets=${cb} decrees=${decreesOf(s.nations[me])}\n`);
       }
       s = resolveTurn(s);
     }
