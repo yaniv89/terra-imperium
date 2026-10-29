@@ -35,6 +35,18 @@ export const wallsSince = (cityId, turn, hp, maxHp) => {
   return b && b.value > hp ? t('odds.wallsSince', { turn: b.turn, hp: b.value, max: maxHp, now: hp }) : '';
 };
 
+/**
+ * Every enemy man the battle meets, from the odds (estimateMarchOdds, or the card's own): the city's
+ * garrison with its militia, the troops standing near it (a battle you command calls them in, Auto does
+ * not) and the auxiliaries it trains (Auto's own estimate). '' when there is nothing beyond the city.
+ * Lead playtest 29 Oct, Blidaru: the card said 33,440 to 50,160, the battle met 61,800.
+ */
+export const allInText = ({ defenderStrength = 0, standbyStrength = 0, standbyAllies = [], auxiliaries = null }) => {
+  const aux = auxiliaries?.defender || 0;
+  if (standbyStrength > 0) return t('odds.allInNear', { near: menText(standbyStrength), allies: alliesText(standbyAllies), all: menText(defenderStrength + standbyStrength + aux), aux: menText(aux) });
+  return aux > 0 ? t('odds.allIn', { all: menText(defenderStrength + aux), aux: menText(aux) }) : '';
+};
+
 /** " (20,000 from Elam)" for seenStandby's allies, else ''. The march line and the pre-battle card. */
 export const alliesText = (allies = []) => (allies.length
   ? t('march.standbyAllies', { list: allies.map((a) => t('march.allyMen', { who: nameNow('people', a.id, a.name), men: menText(a.strength) })).join(', ') })

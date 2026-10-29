@@ -175,8 +175,16 @@ export const estimateMarchOdds = (state, attackerUnits, cityId, samples = 100) =
   const ctx = getInvasionBattleContext(state, { targetRegionId: cityId, targetRegion: city, defenderUnits: v.defenderUnits });
   const r = simulate(state, v, getResolveBattleArgs(v, ctx), ctx, samples, { kind: 'invasion', cityId, fromRegionId: land[0].regionId });
   const standby = seenStandby(state, cityId);
-  return { known: true, cityId, turn: state.turnNumber, capture: r.capture, attacker: r.attacker, autoRule: r.autoRule, city: r.city, standbyStrength: standby.strength, standbyAllies: standby.allies, attackerStrength: r.attackerStrength, defenderStrength: r.defenderStrength, range: r.range, reasons: r.reasons };
+  return { known: true, cityId, turn: state.turnNumber, capture: r.capture, attacker: r.attacker, autoRule: r.autoRule, city: r.city, standbyStrength: standby.strength, standbyAllies: standby.allies, auxiliaries: r.auxiliaries, attackerStrength: r.attackerStrength, defenderStrength: r.defenderStrength, range: r.range, reasons: r.reasons };
 };
+
+/**
+ * The one chance every card shows for a city attack (the march line, the attack card's verdict and its
+ * hopeless line): a garrison is a battle to win (Auto never takes it in one), a city held by its militia
+ * alone falls only when its walls break, so its chance is the capture (lead playtest 29 Oct, Blidaru:
+ * the march said "Hopeless on Auto", the card "Likely win" from beating the militia). Field and sea: the win.
+ */
+export const autoChance = (odds) => (odds.autoRule === 'garrison' ? odds.attacker : odds.capture);
 
 /**
  * The troops a commanded assault on `cityId` would call in (the same reinforcementSources as the

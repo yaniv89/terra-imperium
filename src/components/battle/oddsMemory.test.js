@@ -1,6 +1,6 @@
 // What the player saw on an earlier turn explains a jump (round 3b: Zafar 14,900 then 294,900; Jerusalem 100% then 0%).
 import { beforeEach, describe, expect, it } from 'vitest';
-import { forgetSeen, garrisonSince, seenBefore, wallsSince, alliesText } from './oddsMemory';
+import { forgetSeen, garrisonSince, seenBefore, wallsSince, alliesText, allInText } from './oddsMemory';
 
 describe('oddsMemory', () => {
   beforeEach(forgetSeen);
@@ -20,6 +20,11 @@ describe('oddsMemory', () => {
     wallsSince('j', 130, 120, 240);
     expect(wallsSince('j', 131, 0, 240)).toBe('Its walls had 120 of 240 HP on turn 130; now 0.');
     expect(wallsSince('k', 1, 240, 240)).toBe('');
+  });
+  it('the enemy all in: the city, the men standing near it and the auxiliaries it trains (Blidaru: 61,800)', () => {
+    expect(allInText({ defenderStrength: 3344, standbyStrength: 2000, auxiliaries: { defender: 836 } })).toBe('20,000 more enemy men stand near it: a battle you command meets about 61,800 with them and about 8,360 auxiliaries it trains. Auto fights without the men near it.');
+    expect(allInText({ defenderStrength: 1000, auxiliaries: { defender: 500 } })).toBe('With about 5,000 auxiliaries it trains, the battle meets about 15,000 men.');
+    expect(allInText({ defenderStrength: 1000 })).toBe('');
   });
   it('names allies among the troops standing by', () => {
     expect(alliesText([{ id: 'elam', name: 'Elam', strength: 2000 }])).toBe(' (20,000 from Elam)');

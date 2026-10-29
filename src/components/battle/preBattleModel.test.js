@@ -7,7 +7,8 @@ import { atGates } from '../../engine/testWorld';
 import { preBattleModel, autoText, parityLine, rangeLine } from './preBattleModel';
 import { cityManifestOf } from '../../engine/cityManifest';
 import { peoplesWorld, rivalOf, withBorder } from '../../engine/testWorld';
-import { estimateMarchOdds, seenStandby } from '../../engine/battleOdds';
+import { estimateMarchOdds, seenStandby, autoChance } from '../../engine/battleOdds';
+import { marchOddsText } from '../map/marchOddsText';
 import { battleInputs } from '../../engine/battleInputs';
 import { getTiles } from '../../data/geo/tiles';
 import { forgetSeen } from './oddsMemory';
@@ -141,7 +142,20 @@ describe('odds truth', () => {
     const st = { ...s, intel: { [DE]: s.turnNumber + 3 }, units: { ...s.units, r: { id: 'r', ownerId: DE, regionId: 'elsewhere', tile: near, domain: 'land', classId: 'infantry', strength: 2000, maxStrength: 2000, morale: 100, movesLeft: 1 } } };
     expect(seenStandby(st, target).strength).toBe(2000);
     const m = preBattleModel(st, { fromRegionId: from, targetRegionId: target }, { samples: 4 });
-    expect(m.theirs.note).toMatch(/20,000 more enemy men stand near it\. They join a battle you command; Auto fights without them\./);
+    expect(m.theirs.note).toMatch(/20,000 more enemy men stand near it: a battle you command meets about [\d,]+ with them and about [\d,]+ auxiliaries it trains\. Auto fights without the men near it\./);
+  });
+
+  // Lead playtest 29 Oct, Blidaru: the march said "Hopeless on Auto", the card "Likely win". One chance, one verdict.
+  it.each([['a garrison', 300], ['militia alone', 0]])('with %s, the march line and the card give the same Auto chance and hopeless call', { timeout: 60000 }, (_, garrison) => {
+    const { s, from, target } = setup();
+    const units = { ...s.units, d: { ...s.units.d, strength: garrison } };
+    if (!garrison) delete units.d;
+    const spy = { ...s, units, intel: { [DE]: s.turnNumber + 3 }, regions: { ...s.regions, [target]: { ...s.regions[target], defenseLevel: 3 } } };
+    const m = preBattleModel(spy, { fromRegionId: from, targetRegionId: target }, { samples: 20 });
+    const march = estimateMarchOdds(spy, [spy.units.a], target, 20);
+    expect(m.autoP).toBe(autoChance(march));
+    expect(m.hopeless).toBe(marchOddsText(march, 'X').hopeless);
+    if (m.chance) expect(m.chance.verdict === 'Likely win').toBe(m.autoP >= 0.65);
   });
 
   it('a garrison that grew since an earlier turn says so', { timeout: 30000 }, () => {

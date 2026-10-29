@@ -9,7 +9,7 @@ import { getRegionTerrain } from '../../data/terrain';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { getTiles } from '../../data/geo/tiles';
 import { ageOf } from '../../engine/nationState';
-import { autoParityOf, seenStandby, estimateInvasionOdds, estimateLandingOdds, estimateFieldOdds, estimateFleetOdds } from '../../engine/battleOdds';
+import { autoParityOf, autoChance, seenStandby, estimateInvasionOdds, estimateLandingOdds, estimateFieldOdds, estimateFleetOdds } from '../../engine/battleOdds';
 import { battleName } from '../../engine/battleNames';
 import { validateInvasion, validateAmphibious } from '../../engine/invasion';
 import { validateFieldAttack } from '../../engine/fieldBattle';
@@ -31,7 +31,7 @@ import { canPay } from '../../utils/costs';
 import { consequenceLines } from './consequenceText';
 import { menText } from '../../engine/battleLedger';
 import { HOPELESS_HOLD } from './defenseSheetModel';
-import { garrisonSince, alliesText } from './oddsMemory';
+import { garrisonSince, allInText } from './oddsMemory';
 
 const nationLabel = (state, id) => (id === 'rebels' ? t('bt.pre.rebels') : state.nations?.[id]?.name ? nameNow('people', id, state.nations[id].name) : t('bt.pre.theEnemy'));
 const verb = (name, one, many) => (/[^s]s$/.test(name) ? many : one);
@@ -108,7 +108,8 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
   // battle calls in, with any allies among them, and how the garrison changed since an earlier turn.
   const standby = !field && !fleet && v?.ok ? seenStandby(state, targetRegionId) : null;
   const since = !field && !fleet && hasIntel && odds ? garrisonSince(targetRegionId, state.turnNumber, theirMen) : '';
-  const forceNotes = [since, standby?.strength > 0 ? t('march.standby', { men: menText(standby.strength), allies: alliesText(standby.allies) }) : ''].filter(Boolean);
+  const allIn = standby && odds ? allInText({ defenderStrength: theirMen, standbyStrength: standby.strength, standbyAllies: standby.allies, auxiliaries: odds.auxiliaries }) : '';
+  const forceNotes = [since, allIn].filter(Boolean);
   const enemy = nationLabel(state, enemyId);
   const me = state.nations?.[state.playerNationId]?.name ? nameNow('people', state.playerNationId, state.nations[state.playerNationId].name) : t('bt.pre.you');
   const placeEn = fleet ? null : field ? (getTiles().names?.[tile] || REGIONS_DATA[origin]?.name) : (REGIONS_DATA[targetRegionId]?.name || region?.name || targetRegionId);
@@ -123,11 +124,13 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
   const walls = !field && !fleet ? cityWallsView(state, targetRegionId) : null;
 
   let chance = null;
+  // The same chance the march line shows (autoChance): taking a militia-held city, else winning the battle.
+  const autoP = odds ? autoChance(odds) : 0;
   if (odds && !odds.undefended) {
     if (source.exact) {
       chance = {
         exact: true, source: source.label, win: odds.attacker, take: odds.capture, lose: odds.defender, draw: odds.stalemate,
-        verdict: odds.attacker >= 0.65 ? t('bt.pre.likelyWin') : odds.attacker >= 0.35 ? t('bt.pre.evenFight') : t('bt.pre.likelyLoss'),
+        verdict: autoP >= 0.65 ? t('bt.pre.likelyWin') : autoP >= 0.35 ? t('bt.pre.evenFight') : t('bt.pre.likelyLoss'),
         losses: t('bt.pre.expectedLosses', { a: Math.round(odds.attackerLossShare * 100), b: Math.round(odds.defenderLossShare * 100) }),
         factors: (odds.factors || []).filter((f) => Math.abs(f.value - 1) >= 0.02).map(factorText),
         reasons: (odds.reasons || []).filter((f) => Math.abs(f.value - 1) >= 0.02).map(factorText),
@@ -136,9 +139,9 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
         parity: parityLine(PARITY_KIND[kind])
       };
     } else {
-      const band = scoutsEstimate(odds.attacker);
+      const band = scoutsEstimate(autoP);
       // A band on the bar, not a point: a third of the bar centred on the real chance.
-      const lo = Math.max(0, Math.min(0.67, odds.attacker - 0.17));
+      const lo = Math.max(0, Math.min(0.67, autoP - 0.17));
       // The scouts' verdict names what weighs most, without its number (round 3b: "Likely win" at 14,900 to 10,000, Technology x1.96 unsaid).
       const why = (odds.reasons || []).map((f) => factorText(f).label).join(', ');
       chance = { exact: false, source: source.label, verdict: band.label, bandId: band.id, hint: why ? `${band.hint} ${t('bt.scout.why', { why })}` : band.hint, band: [lo, lo + 0.33] };
@@ -148,11 +151,11 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
   // I011 for attacks (playtest 40650976677: 10k against 41k offered like any fight): a hopeless
   // attack says so with its main reason and Auto is pre-selected (PreBattleModal.jsx).
   const worst = chance?.exact ? chance.reasons.find((f) => f.value < 1) : null;
-  const hopeless = !!chance?.exact && chance.win < HOPELESS_HOLD;
-  const hopelessText = hopeless ? t('bt.pre.hopeless', { pct: Math.round(chance.win * 100), why: worst ? t('bt.def.warnWhy', { reason: `${worst.label} x${worst.value.toFixed(2)}` }) : '' }) : null;
+  const hopeless = !!chance?.exact && autoP < HOPELESS_HOLD;
+  const hopelessText = hopeless ? t('bt.pre.hopeless', { pct: Math.round(autoP * 100), why: worst ? t('bt.def.warnWhy', { reason: `${worst.label} x${worst.value.toFixed(2)}` }) : '' }) : null;
 
   return {
-    kind, field, fleet, landing, origin, hopeless, hopelessText,
+    kind, field, fleet, landing, origin, hopeless, hopelessText, autoP,
     name: nameNow('battle', null, battleName(state, { kind, targetRegionId, tile })),
     subtitle: (() => {
       const who = shortName(me); const them = shortName(enemy);
