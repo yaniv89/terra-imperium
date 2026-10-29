@@ -134,3 +134,4 @@ claude/integration, main gets the push once the quick suite and CI are green.
 - User go (29 Oct): push claude/integration to main once the four running lanes (sieges-sea-8, battle-skill-8, early-pace-8, battle-art-8) are merged and integration CI is green.
 - battle-skill-8 call: accept Normal without the AI cavalry reserve (novice 29%, skilled 79%, Hard novice 6% skilled 43%); beginners winning sometimes beats capping skilled at 70%. Integration CI c0d08286 green.
 - Merged sieges-sea-8 (review clean; walled mirror 18-21 of 32, SETUP_VERSION 33). battle-skill-8 to merge it in, set SETUP_VERSION 34, rerun walled parity with no-rout; early-pace-8 to route FUND_RESEARCH through costs.js.
+- Merged early-pace-8 (FUND_RESEARCH via costs.js) and battle-art-8 (buildings block movement, camera only on player actions, roof fade off, SETUP_VERSION 35). battle-skill-8 next: retune Auto to no-rout, take SETUP_VERSION 36.

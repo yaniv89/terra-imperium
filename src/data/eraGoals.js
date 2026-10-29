@@ -4,7 +4,10 @@
 // the turn it is met (src/engine/eraGoals.js): its playstyle's bonus, bigger with each age (goalReward),
 // ERA_LEGACY_TURNS long, plus a decree and renown. Meeting ERA_GOALS_FOR_LEGACY of them before the
 // age ends also earns the era legacy (renown and a virtue point). Targets are keyed by age id and
-// calibrated with the balance-sim (eraGoals.sim.js: 8 seeds, Normal, 20 to 70% of majors each).
+// calibrated with the balance-sim (eraGoals.sim.js: 8 seeds, Normal, 20 to 70% of majors each). Stone and Bronze
+// Science were eased (lane early-pace-8): the player's Stone Age is about 24 turns on Normal and a scripted
+// player met no goal there (best 4 of 7 boosts); now it meets Science in both ages. Expand stays (its +manpower
+// reward, met by most AI majors, made early wars on the player more likely).
 import { AGES, AGE_ORDER, FIRST_AGE_ID } from './ages';
 
 export const ERA_GOALS_FOR_LEGACY = 2;
@@ -17,7 +20,7 @@ export const PLAYSTYLES = {
   wealth: { label: 'Wealth', targets: { stone: 9, bronze: 15, classical: 19, kingdoms: 21, gunpowder: 22, modern: 22, information: 23, future: 24 }, unit: 'kinds of resource', mod: 'national.goldMult', sign: 1, pct: true, n0: 10, step: 5, bonusLabel: '+{n}% gold' },
   war: { label: 'War', targets: { stone: null, bronze: null, classical: 2, kingdoms: 2, gunpowder: 2, modern: 1, information: 1, future: 1 }, unit: 'battles won', mod: 'national.moraleRecovery', sign: 1, pct: true, n0: 10, step: 5, bonusLabel: '+{n}% morale recovery' },
   culture: { label: 'Culture', targets: { stone: 3, bronze: 8, classical: 14, kingdoms: 23, gunpowder: 31, modern: 40, information: 49, future: 55 }, unit: 'building levels in one city', mod: 'national.stabilityBonus', sign: 1, pct: false, n0: 1, step: 1 / 3, bonusLabel: '+{n} stability' },
-  science: { label: 'Science', targets: { stone: 7, bronze: 8, classical: 8, kingdoms: 8, gunpowder: 9, modern: 9, information: 6, future: 4 }, unit: 'research boosts', mod: 'national.researchCost', sign: -1, pct: true, n0: 10, step: 2.5, bonusLabel: '-{n}% research cost' }
+  science: { label: 'Science', targets: { stone: 4, bronze: 7, classical: 8, kingdoms: 8, gunpowder: 9, modern: 9, information: 6, future: 4 }, unit: 'research boosts', mod: 'national.researchCost', sign: -1, pct: true, n0: 10, step: 2.5, bonusLabel: '-{n}% research cost' }
 };
 
 // What to do next for each goal, in one plain line (the map goal tracker, I149).

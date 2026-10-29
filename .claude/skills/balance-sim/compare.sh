@@ -6,6 +6,7 @@
 # Env passed through: PLAYER (default akkad), EVERY, POLICY, DEMANDS, SPEED, JOBS, AT (extra checkpoint turns to
 # compare, e.g. AT=50,100). Prints both sides' SUMMARY lines per seed (the old output), then the
 # paired table: mean difference, 95% interval, * where the interval excludes 0.
+# SIM picks the sim file (default worldStats.sim.js, the one that prints SUMMARY; the folder holds many slow sims).
 # Logs stay in $OUT (default: a temp dir) for pairedCompare.mjs reruns with --turn or --all.
 set -euo pipefail
 BASE=${1:?usage: compare.sh <base-ref> [TURNS] [SEEDS]}
@@ -27,10 +28,11 @@ mkdir -p "$WT/.claude/skills" "$WT/scripts"
 cp -r "$ROOT/.claude/skills/balance-sim" "$ROOT/.claude/skills/vitest.skills.config.js" "$WT/.claude/skills/"
 cp "$ROOT/scripts/simStats.mjs" "$ROOT/scripts/campaignTelemetry.mjs" "$WT/scripts/"
 run_one() { # side dir seed
-  (cd "$2" && SEEDS=$3 npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/balance-sim > "$OUT/$1-$3.log" 2>&1) \
+  (cd "$2" && SEEDS=$3 npx vitest run -c .claude/skills/vitest.skills.config.js "$SIM" > "$OUT/$1-$3.log" 2>&1) \
     || echo "run $1 seed $3 failed, see $OUT/$1-$3.log" >&2
 }
-export -f run_one; export OUT
+SIM=${SIM:-.claude/skills/balance-sim/worldStats.sim.js}
+export -f run_one; export OUT SIM
 echo "running $(( $(tr ',' '\n' <<<"$SEEDS" | wc -l) * 2 )) sims ($TURNS turns, PLAYER=$PLAYER), $JOBS at a time; logs in $OUT" >&2
 for s in ${SEEDS//,/ }; do echo "base $WT $s"; echo "head $ROOT $s"; done | xargs -P "$JOBS" -L 1 bash -c 'run_one "$@"' _
 for side in base head; do

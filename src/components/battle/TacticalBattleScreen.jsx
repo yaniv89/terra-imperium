@@ -568,12 +568,11 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   }, []);
   // The battle is over: the result screen opens at once, and the campaign counts the battle right
   // after (a tick later, so "counting" is on screen while the replay runs).
-  // Total War's end beat: a moment on the last of the fighting (the camera on it, the verdict) before the card covers the field.
+  // Total War's end beat: a moment on the last of the fighting (the verdict) before the card covers the field.
+  // The camera stays where the player left it (user, 29 Oct: no automatic camera moves in a battle).
   const [resultShown, setResultShown] = useState(false);
   useEffect(() => {
     if (!ended) return undefined;
-    const alive = (frames.current.cur?.squads || []).filter((q) => q.alive && q.onField && !q.fled && q.classId !== 'worker');
-    if (alive.length) rendererRef.current?.centerOn(alive.reduce((a, q) => a + q.x, 0) / alive.length / Q, alive.reduce((a, q) => a + q.y, 0) / alive.length / Q);
     const beat = setTimeout(() => setResultShown(true), END_BEAT_MS);
     return () => clearTimeout(beat);
   }, [ended]);

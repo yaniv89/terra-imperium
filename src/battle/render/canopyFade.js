@@ -1,7 +1,8 @@
 // src/battle/render/canopyFade.js
-// Trees and roofs over your troops stop hiding them (battle readability): the crown of a tree or
-// the roof of a house near a squad you have selected, or one of yours that is fighting, is
-// stippled away (a screen-door dither, no blending, no sorting) while the trunk and the walls stay.
+// Trees over your troops stop hiding them (battle readability): the crown of a tree near a squad
+// you have selected, or one of yours that is fighting, is stippled away (a screen-door dither, no
+// blending, no sorting) while the trunk stays. Roofs no longer fade: buildings block movement, so
+// troops walk round houses (battle-art-8, lead 29 Oct).
 // The models keep their size: nothing is scaled, swapped or cut, only fragments above FADE_FROM
 // tiles over the foot of the model are discarded, inside FADE_RADIUS of a hole. One uniform list
 // is shared by every prop material of a battle (`apply` patches a material once).

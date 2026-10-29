@@ -72,6 +72,8 @@ export default {
   'cy.rush.instead': 'instead of {turns}',
   'cy.rush.heat': 'The price is up {pct}% for this city\'s recent purchases; it falls back as turns pass.',
   'cy.rush.button': 'Buy {gold}g',
+  'cy.rush.left': '{left} gold left after.',
+  'cy.rush.short': '{n} gold short.',
   'cy.rush.save': 'You have {have} gold: {turns} of income to save it.',
   'cy.rush.noIncome': 'You have {have} gold and no gold income to save it.',
   'cy.rush.title': 'Pay {gold} gold for the {hammers} production {label} still needs',

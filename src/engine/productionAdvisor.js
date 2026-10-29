@@ -29,6 +29,7 @@ export const playerProductionCtx = (state) => {
     citiesOwned: Object.values(state.regions || {}).filter((c) => c.owner === me).length || 1,
     speedMult: speedCostMult(state.gameSpeed, ageId),
     trainMult: speedTrainMult(state.gameSpeed, ageId),
+    bench: true, // the player's prices (cities.js productionCost)
     greatProjects: state.greatProjects || {},
     ...rulerCityCtx(state.nations?.[me]),
     ...(isBound(state, 'weaponsBan', me) ? { noRobots: true } : {})

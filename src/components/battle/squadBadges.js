@@ -13,7 +13,7 @@ const YOU = '#60a5fa'; const ENEMY = '#f87171';
 const LOST = '#5b1717'; const ROUTED = '#9ca3af';
 const MORALE = '#efe3c2'; const SHAKEN = '#fbbf24'; const SHAKEN_AT = 0.4;
 /** Ticks (20 a second) a flag flashes after its squad is hit. */
-export const HIT_FLASH_TICKS = 4;
+export const HIT_FLASH_TICKS = 7; // 0.35 s, the figures' glow (BattleRenderer HIT_FLASH_S)
 const W = 30; const H = 13; // the flag in css px: the strength bar over a thin morale strip
 
 /** The flags to draw: [{ x, z, side, share, striking, selected }] in tiles. Pure. */
@@ -63,6 +63,22 @@ export const clusterFlags = (items, w = W + ICON, h = H) => {
   return out;
 };
 
+/**
+ * One flag per squad in a melee (battle-art-8): a fighting squad's flag that would cover one already
+ * placed steps up a row, up to `rows` rows; the rest (and every flag not fighting) merge as
+ * clusterFlags does. items: badgesFor rows with screen sx, sy. Pure.
+ */
+export const stackFlags = (items, w = W + ICON, h = H, rows = 3) => {
+  const placed = []; const rest = [];
+  const covers = (b, sy) => placed.some((o) => Math.abs(o.sx - b.sx) < w * 0.85 && Math.abs(o.sy - sy) < h);
+  items.forEach((b) => {
+    if (!b.striking && !b.hit) { rest.push(b); return; }
+    for (let r = 0, sy = b.sy; r < rows; r++, sy -= h + 2) if (!covers(b, sy)) { placed.push({ ...b, sy, n: 1, classes: { [b.classId]: 1 } }); return; }
+    rest.push(b);
+  });
+  return [...placed, ...clusterFlags(rest, w, h)];
+};
+
 // The class at a glance (NATO style, no words): infantry a cross, cavalry a slash, ranged a bow's
 // chevron, siege a dot, anything else a plus.
 const glyph = (ctx, classId, x, y) => {
@@ -86,7 +102,7 @@ export const updateSquadBadges = (cv, renderer, list) => {
   ctx.clearRect(0, 0, renderer.width, renderer.height);
   const flags = list.length > MAX_FLAGS ? [...list.filter((b) => b.side === 'you'), ...list.filter((b) => b.side !== 'you')].slice(0, MAX_FLAGS) : list;
   const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 120); // a routed flag's blink
-  const shown = clusterFlags(flags.map((b) => { const sp = renderer.worldToScreen(b.x, b.z, 1.6); return { ...b, sx: sp.x, sy: sp.y }; }));
+  const shown = stackFlags(flags.map((b) => { const sp = renderer.worldToScreen(b.x, b.z, 1.6); return { ...b, sx: sp.x, sy: sp.y }; }));
   ctx.font = 'bold 10px system-ui, sans-serif'; ctx.textBaseline = 'middle';
   shown.forEach((b) => {
     const c = b.routed ? ROUTED : b.side === 'you' ? YOU : ENEMY;

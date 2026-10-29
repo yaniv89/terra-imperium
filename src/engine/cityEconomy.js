@@ -71,6 +71,7 @@ export const cityCtx = (state, city) => {
     citiesOwned: facts.cities[nid] || 1,
     speedMult: speedCostMult(state.gameSpeed, ageId),
     trainMult: speedTrainMult(state.gameSpeed, ageId),
+    bench: nid === state.playerNationId, // the player's settlers and improvements in benchmark turns (cities.js)
     luxuries: facts.luxuries[nid] ? facts.luxuries[nid].size : 0,
     greatProjects: state.greatProjects || {},
     ...forageCtx(nid ? getResearched(state, nid) : []), // no Agriculture: a size cap (hearths.js)
@@ -88,7 +89,7 @@ export const cityCtx = (state, city) => {
 };
 
 /** What a production item costs in this city (the cost the turn will ask for). */
-export const costCtxOf = (ctx) => ({ ageId: ctx.ageId, citiesOwned: ctx.citiesOwned, speedMult: ctx.speedMult, trainMult: ctx.trainMult, costMult: ctx.costMult });
+export const costCtxOf = (ctx) => ({ ageId: ctx.ageId, citiesOwned: ctx.citiesOwned, speedMult: ctx.speedMult, trainMult: ctx.trainMult, costMult: ctx.costMult, bench: ctx.bench });
 
 const NO_YIELDS = Object.freeze({ food: 0, production: 0, gold: 0, science: 0, culture: 0, strategic: {}, luxuries: [], raw: { food: 0, production: 0, gold: 0 } });
 

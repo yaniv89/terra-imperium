@@ -147,7 +147,7 @@ import { cityGroups, governorChoices, assignGovernor, dismissGovernor, GOVERNOR_
 import { validateTemplate, saveTemplate, deleteTemplate, templatesOf, armyOrder } from './armyTemplates';
 import { NAVAL_LINES, navalCargo, navalAir } from '../data/navalLines';
 import { canQueueWonder, wonderItem } from './wonders';
-import { rushQuote, applyRush, rushItemName, infrastructureCosts, defensesCosts, growthCosts } from './spending';
+import { rushQuote, fundQuote, applyRush, paidHead, PAID_LOCK, rushItemName, infrastructureCosts, defensesCosts, growthCosts } from './spending';
 import { tradeMaps, answerMapOffer } from './mapTrade';
 import { opinionOf, withGift } from './opinion';
 import { battleAiOf } from '../data/battleDifficulty';
@@ -1936,6 +1936,20 @@ const reduceAction = (state, action) => {
       return { ...state, research, logs: [...state.logs, { year: state.year, ...msg('m.act.nowResearching', { tech: thing('tech', research.current, TECH_TREE[research.current]?.name), then: research.queue.length ? sub('m.act.researchThen', { list: techList(research.queue) }) : '' }), type: LogTypes.TECH }] };
     }
 
+    case ActionTypes.FUND_RESEARCH: {
+      // Gold for science (spending.js fundQuote): the quote the research card shows is the one paid.
+      const q = fundQuote(state);
+      if (!q.ok) return reject(state, whyOf(q));
+      if (!canPay(state, { gold: q.gold })) return reject(state, msg('m.why.fund.tooPoor'));
+      const paid = payCost(state, { gold: q.gold });
+      const progress = { ...state.research.progress, [q.techId]: (state.research.progress?.[q.techId] || 0) + q.points };
+      return {
+        ...paid,
+        research: { ...state.research, progress, fundedTurn: state.turnNumber },
+        logs: [...state.logs, { year: state.year, ...msg('m.act.funded', { gold: q.gold, n: q.points, tech: thing('tech', q.techId, TECH_TREE[q.techId]?.name) }), type: LogTypes.TECH }]
+      };
+    }
+
     case ActionTypes.QUEUE_RESEARCH: {
       const { techId } = action.payload;
       if (!TECH_TREE[techId] || state.techTree[techId]?.researched) return state;
@@ -2941,7 +2955,7 @@ const reduceAction = (state, action) => {
       const queued = queueItem(city, item);
       // `front`: build it first (the Defense tab's walls in a siege, round 2 civ veteran step 62); no progress is lost (moveQueueItem).
       const last = queued.production.queue.length;
-      return { ...state, regions: { ...state.regions, [id]: action.payload.front && last > 0 ? moveQueueItem(queued, last, 0) : queued } };
+      return { ...state, regions: { ...state.regions, [id]: action.payload.front && last > 0 && !paidHead(state, id) ? moveQueueItem(queued, last, 0) : queued } };
     }
     case ActionTypes.ADVISOR_PRODUCTION: {
       // The advisor's picks (productionAdvisor.js), each queued as the player would queue it.
@@ -3004,6 +3018,7 @@ const reduceAction = (state, action) => {
       const { cityId: id, index } = action.payload || {};
       const city = state.regions[id];
       if (!city || city.owner !== state.playerNationId) return reject(state, msg('m.act.no.notYourCity'));
+      if (!index && paidHead(state, id)) return reject(state, msg(PAID_LOCK));
       return { ...state, regions: { ...state.regions, [id]: dequeueItem(city, index || 0) } };
     }
     case ActionTypes.SET_CITY_FOCUS: {
@@ -3042,6 +3057,7 @@ const reduceAction = (state, action) => {
       const { cityId: id, index, to } = action.payload || {};
       const city = state.regions[id];
       if (!city || city.owner !== state.playerNationId) return reject(state, msg('m.act.no.notYourCity'));
+      if ((index === 0 || to === 0) && paidHead(state, id)) return reject(state, msg(PAID_LOCK));
       const next = moveQueueItem(city, index, to);
       return next === city ? state : { ...state, regions: { ...state.regions, [id]: next } };
     }
@@ -3153,10 +3169,12 @@ const reduceAction = (state, action) => {
       const quote = rushQuote(state, id, index);
       if (!quote.ok) return reject(state, whyOf(quote));
       const city = state.regions[id];
+      // A bought later order moves to the front (behind a head bought earlier this turn); the rest keep their order.
+      const paid = applyRush(city, index, quote, state.turnNumber);
       return {
         ...state,
         resources: { ...state.resources, gold: state.resources.gold - quote.gold },
-        regions: { ...state.regions, [id]: applyRush(city, index, quote, state.turnNumber) },
+        regions: { ...state.regions, [id]: index > 0 ? moveQueueItem(paid, index, paidHead(state, id) ? 1 : 0) : paid },
         logs: [...state.logs, { year: state.year, ...msg('m.act.rushed', { city: cityRef(city.id, city.name), gold: quote.gold, item: thing('rush', null, rushItemName(quote.item, quote.ageId)) }), type: LogTypes.ACTION }]
       };
     }

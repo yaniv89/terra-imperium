@@ -108,6 +108,37 @@ describe('build options', () => {
     expect(buildQueue(moved, paris).map((r) => r.label)[1]).toBe('Storage Pits');
   });
 
+  it('buying a later order moves it to the front, keeps the rest in order and locks it with a reason', () => {
+    let s = { ...S, resources: { ...S.resources, gold: 5000 } };
+    s = queue(s, { kind: 'building', category: 'food', tier: 0 });
+    s = queue(s, { kind: 'unit', classId: 'infantry' });
+    s = queue(s, { kind: 'settler' });
+    const before = buildQueue(s, paris);
+    expect(before[0].locked).toBeNull();
+    expect(before[1].rush.left).toBe(5000 - before[1].rush.gold); // gold after, on the row
+    const bought = gameReducer(s, { type: ActionTypes.RUSH_PRODUCTION, payload: { cityId: paris, index: 1 } });
+    const after = buildQueue(bought, paris);
+    expect(after.map((r) => r.item.classId || r.item.category || r.item.kind)).toEqual(['infantry', 'food', 'settler']);
+    expect(after[0].progress).toBe(after[0].cost);
+    expect(after[0].locked).toMatch(/cannot be removed or moved/);
+    // no cancel, no reorder past it
+    expect(gameReducer(bought, { type: ActionTypes.DEQUEUE_PRODUCTION, payload: { cityId: paris, index: 0 } }).regions[paris]).toBe(bought.regions[paris]);
+    expect(gameReducer(bought, { type: ActionTypes.MOVE_PRODUCTION, payload: { cityId: paris, index: 2, to: 0 } }).regions[paris]).toBe(bought.regions[paris]);
+    // a second buy goes right behind the paid head
+    const again = buildQueue(gameReducer(bought, { type: ActionTypes.RUSH_PRODUCTION, payload: { cityId: paris, index: 2 } }), paris);
+    expect(again.map((r) => r.item.classId || r.item.category || r.item.kind)).toEqual(['infantry', 'settler', 'food']);
+  });
+
+  it('an unaffordable buy names the shortfall; a cheap one pays on the first tap', () => {
+    let s = queue({ ...S, resources: { ...S.resources, gold: 3 } }, { kind: 'building', category: 'food', tier: 0 });
+    const [poor] = buildQueue(s, paris);
+    expect(rushText(poor).save).toContain(`${poor.rush.gold - 3} gold short.`);
+    s = { ...s, resources: { ...s.resources, gold: 100000 } };
+    expect(buildQueue(s, paris)[0].rush.quick).toBe(true);
+    s = { ...s, resources: { ...s.resources, gold: buildQueue(s, paris)[0].rush.gold * 2 } };
+    expect(buildQueue(s, paris)[0].rush.quick).toBe(false);
+  });
+
   it('warns about long builds and points at Production focus only when it would help', () => {
     // A city that makes almost nothing: one citizen on its centre.
     const city = S.regions[paris];

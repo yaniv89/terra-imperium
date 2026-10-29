@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSetupFromArmies } from './buildBattleSetup';
+import { buildSetupFromArmies, commandedSetup } from './buildBattleSetup';
 import { hallSize, hallPlacement, HALL_TILES, CITY_TILES_PER_UNIT } from './cityBattle';
 import { TILE, reachable, isPassable } from './mapgen';
 import { buildTownManifest, manifestHousing, townLayout } from '../../data/townLayout';
@@ -239,5 +239,52 @@ describe('a city assault loads the real city (cityBattle.js)', () => {
         if (!key.startsWith('modern')) expect([key, b.h <= (tierId === 'small' ? 1.0 : 1.25)]).toEqual([key, true]);
       });
     });
+  });
+});
+
+describe('troops walk round houses, never through them (battle-art-8)', () => {
+  const town = (seed) => buildSetupFromArmies({
+    regionId: `ghost-${seed}`, terrain: 'mixed', seed, fortLevel: 0,
+    attackerUnits: mk('a', ['infantry', 'infantry', 'infantry', 'cavalry', 'ranged']), defenderUnits: mk('d', ['infantry', 'ranged']),
+    attackerAgeId: 'bronze', defenderAgeId: 'bronze', controllers: ['player', 'ai'], city: true, deposits: [], powers: [[], []], economy: true, economyInputs: { supply: [1, 1], development: [0.3, 0.3] },
+    cityManifest: buildTownManifest({ cityId: `ghost-${seed}`, ageId: 'bronze', tierId: 'medium', style: 'europe', seed, defenseTier: -1 })
+  });
+  const drawn = (s) => s.structures.filter((st) => st.kind === 'house' && st.footprint?.length)
+    .map((st) => ({ st, x0: st.x / Q - st.w / 2, x1: st.x / Q + st.w / 2, y0: st.y / Q - st.d / 2, y1: st.y / Q + st.d / 2 }));
+
+  it('a house drawn on the field stands on blocked ground; none is drawn across the main street', () => {
+    [1, 2, 3, 4].forEach((seed) => {
+      const s = town(seed); const { map } = s; let blocked = 0; let all = 0;
+      drawn(s).forEach((r) => {
+        for (let y = r.y0 + 0.125; y < r.y1; y += 0.25) for (let x = r.x0 + 0.125; x < r.x1; x += 0.25) { all += 1; if (!isPassable(map.tiles[Math.floor(y) * map.w + Math.floor(x)])) blocked += 1; }
+        // the street (cityBattle.js `street`) is three tiles each side of the keep's row, west of it
+        const ky = map.keep.y + 0.5;
+        if (r.x0 < map.keep.x) expect(Math.min(r.y1, ky + 1.6) - Math.max(r.y0, ky - 1.6)).toBeLessThanOrEqual(0.3);
+      });
+      expect(blocked / all).toBeGreaterThan(0.88);
+    });
+  });
+
+  it('a squad sent onto a house ends on free ground beside it, its order done', () => {
+    const w = createWorld(commandedSetup(town(2)));
+    const house = drawn(w.setup)[0].st;
+    const q = w.squads.find((o) => o.side === 0 && o.classId === 'infantry');
+    step(w, [{ side: 0, type: 'move', squads: [q.idx], x: house.x, y: house.y }]);
+    for (let i = 0; i < 2400 && q.order.type === 'move'; i++) step(w, []);
+    expect(q.order.type).toBe('idle');
+    expect(isPassable(w.map.tiles[tileOf(w.map, q.x, q.y)])).toBe(true);
+    expect(Math.hypot(q.x - house.x, q.y - house.y) / Q).toBeLessThan(Math.max(house.w, house.d) / 2 + 3);
+  });
+
+  it('an attack-move on the keep reaches it by the streets, nobody ever standing on a house', () => {
+    const w = createWorld(commandedSetup(town(1)));
+    const keep = w.structures[0];
+    const army = w.squads.filter((o) => o.side === 0 && o.onField && !o.worker && !o.isGeneral);
+    step(w, [{ side: 0, type: 'attackMove', squads: army.map((o) => o.idx), x: keep.x, y: keep.y }]);
+    for (let i = 0; i < 6000 && !w.ended && keep.hp === keep.maxHp; i++) {
+      step(w, []); w.events.length = 0;
+      w.squads.forEach((o) => { if (o.alive && o.onField && !o.stats.flying && o.inside < 0) expect(isPassable(w.map.tiles[tileOf(w.map, o.x, o.y)]) || w.map.tiles[tileOf(w.map, o.x, o.y)] === TILE.GATE).toBe(true); });
+    }
+    expect(keep.hp).toBeLessThan(keep.maxHp);
   });
 });

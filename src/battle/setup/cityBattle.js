@@ -50,6 +50,9 @@ const RING_HALF = 0.75; // half the wall band, tiles
 // The town hall's drawn size by town size (tiles; 5.5 tiles = 20 m) and the smallest it gets.
 export const HALL_TILES = { small: 4.2, medium: 5.5, big: 5.5 };
 const HALL_MIN = 3;
+// A tile is a structure's ground when its centre lies within the drawn rectangle grown by this
+// (tiles): squads walk the streets round a house instead of through its drawn walls (battle-art-8).
+export const FOOT_EDGE = 0.2;
 
 const HALL_SHIFTS = [0, 0.5, 1, 1.5, 2, 2.5, 3];
 // A manifest rectangle in battle tiles about the keep's centre (the quarter turn: tile x = -z,
@@ -178,7 +181,7 @@ export const placeCity = ({ map, manifest, damage = null, fortLevel = 0, keepStr
     for (let j = Math.floor(ty - hy); j <= Math.ceil(ty + hy); j++) {
       for (let i = Math.floor(tx - hx); i <= Math.ceil(tx + hx); i++) {
         if (!inMap(i, j) || keepCell(i, j) || street(i, j)) continue;
-        if (Math.abs(i + 0.5 - tx) <= hx * 0.9 && Math.abs(j + 0.5 - ty) <= hy * 0.9) out.push(j * w + i);
+        if (Math.abs(i + 0.5 - tx) <= hx + FOOT_EDGE && Math.abs(j + 0.5 - ty) <= hy + FOOT_EDGE) out.push(j * w + i);
       }
     }
     const ci = Math.floor(tx); const cj = Math.floor(ty);
@@ -197,7 +200,9 @@ export const placeCity = ({ map, manifest, damage = null, fortLevel = 0, keepStr
       model: [st.x, st.z, st.w, st.d], // its ground in the town model's space (the renderer cuts ruins out of the town file)
       passive: !!st.passive, ...(st.housing ? { housing: st.housing } : {}), ...(st.category ? { category: st.category, tier: st.tier, name: st.name } : {}), ...(st.projectId ? { projectId: st.projectId } : {})
     };
-    if (st.kind === 'house' && underHall(st)) s.underHall = true;
+    // a house drawn across the main street (kept open, `street`) is cut out the same way: troops
+    // would walk through its walls (battle-art-8)
+    if (st.kind === 'house' && (underHall(st) || (Math.min(ty + hy, ky + 1.6) - Math.max(ty - hy, ky - 1.6) > 0.3 && tx - hx < kx))) s.underHall = true;
     s.footprint = st.kind === 'wall' || st.kind === 'gate' || s.underHall ? [] : claim(rectCells(tx, ty, hx, hy), structures.length);
     structures.push(s);
     return s;
