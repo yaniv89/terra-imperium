@@ -45,7 +45,7 @@ parityEco before -> after (exchange tactical, ratio to auto, wins tactical/auto)
 - town classical with siege: 2.067 (2.02x) -> 1.526 (1.49x), wins 4 -> 10
 
 ## After merging integration (sieges-sea-8, e9d77f84)
-SETUP_VERSION 34 (theirs 33 plus this lane). parityEco again 12 of 12 IN. Assault rows moved with their walled-city change (assault classical with siege 3.35x, close to the 3.5x limit; that row was 2.02x on their branch alone? not checked). ghostScan unchanged: centres in houses 0.0%, figures 0.5% / 0.2%, stuck 0. src/battle and src/components/battle: 103 files, 1095 tests pass.
+SETUP_VERSION 34 (theirs 33 plus this lane). parityEco again 12 of 12 IN. Assault rows moved with their walled-city change (assault classical with siege 3.35x, close to the 3.5x limit; I did not run their branch alone to split the cause). ghostScan unchanged: centres in houses 0.0%, figures 0.5% / 0.2%, stuck 0. src/battle and src/components/battle: 103 files, 1095 tests pass.
 
 ## How to rerun
 ```bash
