@@ -19,7 +19,7 @@ import { getGeneralXpMultiplier } from '../../data/generals';
 import { hashRoll, COMMANDER_FALL_CHANCE } from '../../engine/aftermath';
 import { XP_WIN, XP_LOSE } from '../../engine/battleOutcome';
 import { playerWon } from '../../engine/battleReports';
-import { sideTotals } from '../../engine/battleLedger';
+import { sideTotals, menText } from '../../engine/battleLedger';
 import { TICK_HZ, Q } from '../../battle/sim/constants';
 import { isBaseType } from '../../battle/sim/base';
 import { describeOutcome, verificationNotice } from './battleReportView';
@@ -175,6 +175,7 @@ export const endReasonText = (reason, won, draw = false, naval = false) => (!END
 
 export const ALERT_SHOW_TICKS = 8 * TICK_HZ; // an alert shows 8 s, then lives on in the history (I203)
 const WORKER_ALERT_GAP = 30 * TICK_HZ;
+const TROOP_ALERT_GAP = 20 * TICK_HZ;
 
 /**
  * New alerts between frame `prev` and `cur`: [{ id, kind, title, detail, x, y, tick, tone }].
@@ -212,6 +213,13 @@ export const nextAlerts = (prev, cur, playerSide, setup, last = {}) => {
   const hitWorkers = cur.squads.filter((q, i) => q.side === playerSide && q.classId === 'worker' && q.alive && prev.squads[i] && q.strength < prev.squads[i].strength);
   if (hitWorkers.length && cur.tick - (last.workers ?? -Infinity) >= WORKER_ALERT_GAP) {
     out.push({ id: `w${cur.tick}`, kind: 'workers', title: t('bt.alert.workersHit'), detail: t('bt.alert.squadsHit', { count: hitWorkers.length }), x: hitWorkers[0].x, y: hitWorkers[0].y, tick: cur.tick, tone: 'danger' });
+  }
+  // Your soldiers struck (playtests 40746164607 step 102, 40746170250 step 248: armies died off screen).
+  // `first` marks the battle's first clash: the HUD brings the camera there once.
+  const hitTroops = cur.squads.filter((q, i) => q.side === playerSide && q.classId !== 'worker' && q.alive && prev.squads[i] && q.lastHitTick > (prev.squads[i].lastHitTick ?? -Infinity));
+  if (hitTroops.length && cur.tick - (last.troops ?? -Infinity) >= TROOP_ALERT_GAP) {
+    const q = hitTroops[0];
+    out.push({ id: `th${cur.tick}`, kind: 'troopsHit', first: last.troops == null, squad: q.idx, title: t('bt.alert.troopsHit', { name: squadName(q.classId, q.ageId) }), detail: t('bt.alert.squadsHit', { count: hitTroops.length }), x: q.x, y: q.y, tick: cur.tick, tone: 'danger' });
   }
   // The loot (playtest issue 5): one burn from what wins the raiders the battle, and once it is theirs.
   const lp = lootView(prev, setup); const lc = lootView(cur, setup);
@@ -348,6 +356,8 @@ export const battleResultModel = (ended, setup, playerSide, campaign = {}, recei
   const autoWin = campaign.auto?.win;
   const theirEco = tac.economy?.[1 - playerSide] || null;
   const theirTrained = Object.entries(theirEco?.trained || {}).reduce((n, [k, c]) => n + (k === 'worker' ? 0 : c), 0);
+  const joined = new Set(tac.joinedReinforcements || []);
+  const theirRelief = (setup.sides[1 - playerSide]?.reinforcements || []).flatMap((r) => r.units || []).filter((u) => joined.has(u.id)).reduce((n, u) => n + Math.max(0, u.strength), 0);
   const common = {
     naval: setup.battleType === 'naval',
     // The other side's auxiliaries are not campaign men either: said apart, so "0 of theirs lost" after a fight reads right.
@@ -355,8 +365,12 @@ export const battleResultModel = (ended, setup, playerSide, campaign = {}, recei
     reason: tac.reason || null,
     duration: tac.durationSec || 0,
     workersLost: eco?.workersLost ?? null,
+    // Auto's estimate fights without the troops that stand by (autoCompare.js): when theirs joined this
+    // battle, the line says so instead of "the same either way" (civ-veteran 316: 100% after a total loss).
     auto: Number.isFinite(autoWin)
-      ? t('bt.result.autoWins', { pct: Math.round(autoWin * 100) })
+      ? (theirRelief > 0
+        ? t('bt.result.autoWinsNoRelief', { pct: Math.round(autoWin * 100), men: menText(theirRelief) })
+        : t('bt.result.autoWins', { pct: Math.round(autoWin * 100) }))
       : t('bt.result.autoTuned')
   };
   const empty = { mine: null, theirs: null, xp: [], xpRule: null, generals: [], city: null, loot: null, aux: null, theirAux: null, notice: null, headline: null };

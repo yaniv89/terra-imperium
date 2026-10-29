@@ -206,9 +206,12 @@ const BattleHud = ({
     const fresh = nextAlerts(prevRef.current, hud, playerSide, setup, lastRef.current);
     prevRef.current = hud;
     if (!fresh.length) return;
-    fresh.forEach((a) => { if (a.kind === 'workers') lastRef.current.workers = a.tick; });
+    fresh.forEach((a) => { if (a.kind === 'workers') lastRef.current.workers = a.tick; if (a.kind === 'troopsHit') lastRef.current.troops = a.tick; });
+    // The battle's first clash is shown wherever the camera was (armies died unseen: playtests 40746164607, 40746170250).
+    const clash = fresh.find((a) => a.first);
+    if (clash) onFocus?.(clash.x, clash.y);
     setAlerts((list) => [...list.filter((a) => !fresh.some((f) => f.id === a.id)), ...fresh].slice(-20));
-  }, [hud, playerSide, setup]);
+  }, [hud, playerSide, setup]); // eslint-disable-line react-hooks/exhaustive-deps
   // Esc closes the open sheet first (the wand, the supply card, the history) before the battle
   // screen's own Esc (let go of the selection) sees it.
   const anySheet = wandOpen || supplyOpen || historyOpen || stocksOpen || viewOpen;

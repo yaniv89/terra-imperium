@@ -15,6 +15,9 @@ import { createViewPacker, SLOW_EVERY } from '../render/packedView';
 
 const TICK_MS = 1000 / TICK_HZ;
 const CHECKPOINT_EVERY = 10 * TICK_HZ;
+/** The screen's Finish now speed: at or above it the loop runs flat out (FINISH_BUDGET_MS of each frame). */
+export const FINISH_SPEED = 16;
+const FINISH_BUDGET_MS = 40;
 
 // Re-simulate a recorded log headlessly up to `untilTick` (resume after the app was closed).
 export const replayTo = (world, log, untilTick) => {
@@ -106,15 +109,20 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
       if (last === null) last = now;
       const dt = Math.min(250, now - last);
       last = now;
-      if (!paused) acc += dt * speed;
+      // Finish now: as many ticks as fit in FINISH_BUDGET_MS of this frame, not a wall-clock multiple
+      // (16x of a 20-minute economy siege on a slow phone ran for minutes: playtests 40746164607, 40746170250).
+      const fast = speed >= FINISH_SPEED && !paused;
+      const until = performance.now() + FINISH_BUDGET_MS;
+      if (!paused && !fast) acc += dt * speed;
       const events = [];
-      while (acc >= TICK_MS && !world.ended) {
+      while ((fast ? performance.now() < until : acc >= TICK_MS) && !world.ended) {
         const orders = pending; pending = [];
         const t0 = performance.now();
         step(world, orders);
         tickMs[ticksTimed++ % tickMs.length] = performance.now() - t0;
-        events.push(...world.events); world.events.length = 0;
-        acc -= TICK_MS;
+        if (!fast) events.push(...world.events); // fast: no sounds or marks for ticks nobody watches
+        world.events.length = 0;
+        if (!fast) acc -= TICK_MS;
         if (world.tick % CHECKPOINT_EVERY === 0) post({ type: 'checkpoint', tick: world.tick, hash: worldHash(world), chain: world.hashChain, log: [...log] });
       }
       // A view only when the world moved on (20 Hz at 1x, not every screen frame): the screen
@@ -126,7 +134,7 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
       if (sendFog) lastFogTick = world.tick;
       const sendSlow = world.tick - lastSlowTick >= SLOW_EVERY || paused || world.ended;
       if (sendSlow) lastSlowTick = world.tick;
-      postFrame(sendFog, paused ? 1 : acc / TICK_MS, events, sendSlow);
+      postFrame(sendFog, paused || fast ? 1 : acc / TICK_MS, events, sendSlow);
       if (world.ended) emitEnd();
     }
   };

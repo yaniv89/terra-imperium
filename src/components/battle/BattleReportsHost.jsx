@@ -7,7 +7,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import BattleReplay from './BattleReplay';
 import BattleReportSheet from './BattleReportSheet';
-import { OPEN_BATTLE_REPORT } from './battleReportEvents';
+import { OPEN_BATTLE_REPORT, reportToTell } from './battleReportEvents';
 import { timelineFor } from './battleReportView';
 
 const NO_REPORTS = [];
@@ -29,10 +29,9 @@ const BattleReportsHost = ({ onShowRegion }) => {
     const fresh = news.filter((r) => (!r.commanded || r.switchedAtSec != null) && timelineFor(r).length > 0);
     seenRef.current = top;
     if (fresh.length && !state.battleSettings?.instantBattles && !state.pendingBattle) setReplay([...fresh].reverse());
-    // DEF-01: a Command the screen had to settle on Auto is never silent, even with no rounds to replay; nor is
-    // the player's own battle on Auto with no rounds (an attack on a city's walls: newcomer rerun step 253).
+    // No replay: the report itself (reportToTell), so no battle of the player ends in silence.
     else if (!state.pendingBattle) {
-      const told = news.find((r) => r.autoBecause) || (!state.battleSettings?.instantBattles && news.find((r) => r.playerSide && !r.commanded && r.turn === state.turnNumber));
+      const told = reportToTell(news, state.turnNumber, !!state.battleSettings?.instantBattles);
       if (told) setOpenId(told.id);
     }
   }, [reports, state.turnNumber, state.battleSettings?.instantBattles, state.pendingBattle]);
