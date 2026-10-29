@@ -136,13 +136,17 @@ describe('odds truth', () => {
     expect(march.attackerStrength).toBe(sum(auto.attackerUnits));
   });
 
-  it('names the enemy troops standing near the city, which join only a commanded battle', { timeout: 30000 }, () => {
+  it('names the enemy troops standing near the city, who join the battle on Auto and in command', { timeout: 30000 }, () => {
     const { s, from, target } = setup();
     const near = getTiles().neighbors[s.regions[target].tile].find((x) => x !== s.units.a.tile);
     const st = { ...s, intel: { [DE]: s.turnNumber + 3 }, units: { ...s.units, r: { id: 'r', ownerId: DE, regionId: 'elsewhere', tile: near, domain: 'land', classId: 'infantry', strength: 2000, maxStrength: 2000, morale: 100, movesLeft: 1 } } };
     expect(seenStandby(st, target).strength).toBe(2000);
     const m = preBattleModel(st, { fromRegionId: from, targetRegionId: target }, { samples: 4 });
-    expect(m.theirs.note).toMatch(/20,000 more enemy men stand near it: a battle you command meets about [\d,]+ with them and about [\d,]+ auxiliaries it trains\. Auto fights without the men near it\./);
+    expect(m.theirs.note).toMatch(/20,000 more enemy men stand near it and join the battle: with them and about [\d,]+ auxiliaries it trains, it meets about [\d,]+\./);
+    // The card's garrison is the city's own; the 20,000 near it are in the odds (Q1) and said in the note.
+    const without = preBattleModel({ ...st, units: s.units }, { fromRegionId: from, targetRegionId: target }, { samples: 4 });
+    expect(m.theirs.men).toBe(without.theirs.men);
+    expect(m.autoP).toBeLessThanOrEqual(without.autoP);
   });
 
   // Lead playtest 29 Oct, Blidaru: the march said "Hopeless on Auto", the card "Likely win". One chance, one verdict.

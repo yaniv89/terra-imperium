@@ -35,7 +35,7 @@
 //                the battle as it stood: continueFrom (strengths, the dead, the walls' HP share)
 // Deterministic: every roll comes from the caller's rng, after resolveBattle's own. Pure.
 import { resolveBattle, MAX_BATTLE_ROUNDS } from './battle';
-import { battleInputs, batteredReduction } from './battleInputs';
+import { battleInputs, batteredReduction, standbyFor } from './battleInputs';
 import { stockMult, TRAIN_STRENGTH } from '../battle/data/economy';
 import { cityManifestOf } from './cityManifest';
 import { getRosterCombatMultiplier } from '../data/unitClasses';
@@ -226,9 +226,16 @@ const mergeDamage = (a, b) => {
  * part (`report.tactical.mode` 'switched': the time of the switch, how the replay checked, the
  * powers spent, what was burned). Returns resolveBattle's shape plus `inputs` (the militia among them).
  */
+/** `args` with the troops standing by that a commanded battle would call in (battleInputs.js standbyFor). */
+export const withStandby = (state, args, spec) => {
+  const [att, def] = standbyFor(state, { kind: spec?.kind, cityId: spec?.cityId, fromRegionId: spec?.fromRegionId, attackerUnits: args.attackerUnits, defenderUnits: args.defenderUnits });
+  return att.length || def.length ? { ...args, attackerUnits: [...args.attackerUnits, ...att], defenderUnits: [...args.defenderUnits, ...def] } : args;
+};
+
 export const resolveAutoBattle = (state, args, spec, rng, inputs = null) => {
   const from = spec?.from || null;
-  if (!from) return autoBattleOf(state, args, spec, rng, inputs);
+  // `inputs` given (battleOdds.js simulate) were built on args that already carry the standby.
+  if (!from) return autoBattleOf(state, inputs ? args : withStandby(state, args, spec), spec, rng, inputs);
   // Reinforcements that had marched in are in the battle: they fight on.
   const withJoined = (list, ids = []) => [...list, ...ids.filter((id) => !list.some((u) => u.id === id)).map((id) => state.units?.[id]).filter((u) => u && u.strength > 0)];
   const all = { ...args, attackerUnits: withJoined(args.attackerUnits, from.joined?.[0]), defenderUnits: withJoined(args.defenderUnits, from.joined?.[1]) };

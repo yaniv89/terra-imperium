@@ -705,27 +705,35 @@ const marchAiArmies = (next, nationId) => {
   return { ...next, units, ...(warnings.length ? { logs: [...next.logs, ...warnings] } : {}) };
 };
 
-/** A stack marching on one of the player's cities warns once, this many tiles out (the raid warning's twin, raids.js). */
+/** A stack marching on one of the player's cities warns again, this many tiles out (the raid warning's twin, raids.js). */
 export const ARMY_WARN_TILES = 3;
-// Lead, lane city-builds: outlying cities fell to armies nobody announced. `unit.marchWarned` is the
-// city tile the stack already warned of, so a new march on another city warns again.
+// Lead, lane city-builds: outlying cities fell to armies nobody announced. A march on one of the
+// player's cities warns twice: when it sets out (`unit.marchSeen`, with the turns it needs; lane
+// odds-truth P1: marches of 13 to 18 tiles went unsaid until the last 3, and the war felt passive),
+// and ARMY_WARN_TILES out (`unit.marchWarned`). Both hold the city tile, so a march on another city warns again.
 export const warnMarches = (state, nationId, units) => {
   const me = state.playerNationId;
   const lines = [];
   const warned = new Set();
+  const researched = getResearched(state, nationId);
   Object.values(units).forEach((u) => {
-    if (u.ownerId !== nationId || !u.route?.length || u.route.length > ARMY_WARN_TILES) return;
+    if (u.ownerId !== nationId || !u.route?.length) return;
     const goal = u.route[u.route.length - 1];
-    if (u.marchWarned === goal) return;
+    const near = u.route.length <= ARMY_WARN_TILES;
+    if (near ? u.marchWarned === goal : u.marchSeen === goal) return;
     const cityId = state.world?.tileOwner?.[goal];
     const city = cityId != null ? state.regions[cityId] : null;
     if (!city || city.tile !== goal || city.owner !== me) return;
-    units[u.id] = { ...u, marchWarned: goal };
+    units[u.id] = { ...u, marchSeen: goal, ...(near ? { marchWarned: goal } : {}) };
     if (warned.has(cityId)) return;
     warned.add(cityId);
     const at = unitTile(state, u);
-    const men = menText(Object.values(units).filter((x) => x.ownerId === nationId && x.domain === 'land' && unitTile(state, x) === at).reduce((n, x) => n + Math.max(0, x.strength), 0));
-    lines.push({ year: state.year, nationId: me, type: LogTypes.CRISIS, ...msg('m.battle.armyNears', { nation: people(nationId, state.nations[nationId]?.name || nationId), men, count: u.route.length, place: cityRef(cityId, city.name) }) });
+    const stack = Object.values(units).filter((x) => x.ownerId === nationId && x.domain === 'land' && unitTile(state, x) === at);
+    const men = menText(stack.reduce((n, x) => n + Math.max(0, x.strength), 0));
+    const nation = people(nationId, state.nations[nationId]?.name || nationId); const place = cityRef(cityId, city.name);
+    lines.push({ year: state.year, nationId: me, type: LogTypes.CRISIS, ...(near
+      ? msg('m.battle.armyNears', { nation, men, count: u.route.length, place })
+      : msg('m.battle.armyMarches', { nation, men, count: Math.max(1, Math.ceil(u.route.length / Math.max(1, stackPace(stack, researched)))), place })) });
   });
   return lines;
 };

@@ -579,7 +579,7 @@ export default {
   'march.oddsGarrisonHopeless': 'סיכוי קלוש: ב{target} {theirs} לוחמים מול {mine} שלכם. האוטומטי מנצח בקרב ב־{pct}%.',
   'march.oddsWalls': 'ב{target} רק {theirs} לוחמי מיליציה מול {mine} שלכם; האוטומטי מכה בחומות מ־{a} מתוך {b} נק״ב לכ־{c} וכובש אותה ב־{pct}% מהמקרים.',
   'march.oddsWallsHopeless': 'סיכוי קלוש באוטומטי: החומות של {target} עומדות ({a} מתוך {b} נק״ב לכ־{c}); {theirs} לוחמי מיליציה מול {mine} שלכם.',
-  'odds.allInNear': 'עוד {near} לוחמי אויב עומדים לידה{allies}: קרב בפיקודכם פוגש כ־{all} איתם ועם כ־{aux} לוחמי עזר שהיא מאמנת. האוטומטי נלחם בלי העומדים לידה.',
+  'odds.allInNear': 'עוד {near} לוחמי אויב עומדים לידה{allies} ומצטרפים לקרב: איתם ועם כ־{aux} לוחמי עזר שהיא מאמנת, הקרב פוגש כ־{all}.',
   'odds.allIn': 'עם כ־{aux} לוחמי עזר שהיא מאמנת, הקרב פוגש כ־{all} לוחמים.',
   'march.standbyAllies': ' ({list})',
   'march.allyMen': '{men} של {who}',

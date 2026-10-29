@@ -20,10 +20,11 @@ export const marchOddsText = (odds, target) => {
   const hopeless = chance < HOPELESS_HOLD;
   const walls = odds.autoRule === 'attack' && odds.city;
   const key = `march.odds${garrison ? 'Garrison' : walls ? 'Walls' : ''}${hopeless ? 'Hopeless' : ''}`;
-  const all = allInText(odds);
+  const city = odds.defenderStrength - (odds.defenderStandby || 0); // the men in the city; those near it are counted below
+  const all = allInText({ city, near: odds.standbyStrength, allies: odds.standbyAllies, auxiliaries: odds.auxiliaries });
   const standby = all ? ` ${all}` : '';
   const hp = walls ? { a: odds.city.hpBefore, b: odds.city.maxHp, c: odds.city.hpAfter } : {};
   // A number that jumped since an earlier turn says so (round 3b: Zafar 14,900, then 294,900).
-  const since = odds.cityId ? garrisonSince(odds.cityId, odds.turn, odds.defenderStrength) : '';
-  return { text: t(key, { target, theirs: menText(odds.defenderStrength), mine: menText(odds.attackerStrength), pct: Math.round(chance * 100), ...hp }) + (since ? ` ${since}` : '') + standby, hopeless };
+  const since = odds.cityId ? garrisonSince(odds.cityId, odds.turn, city) : '';
+  return { text: t(key, { target, theirs: menText(city), mine: menText(odds.attackerStrength), pct: Math.round(chance * 100), ...hp }) + (since ? ` ${since}` : '') + standby, hopeless };
 };

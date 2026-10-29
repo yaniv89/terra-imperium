@@ -227,13 +227,17 @@ const invasionAdapter = (s, o, war, att, def) => {
     if (!units[u.id]) return;
     if (u.strength <= 0) { delete units[u.id]; return; }
     const stays = isAir(u); // aircraft fly home
-    units[u.id] = { ...u, regionId: stays ? u.regionId : captured ? o.regionId : o.fromRegionId, tile: stays ? unitTile(s, u) : captured ? target.tile : unitTile(s, u), movesLeft: 0 };
+    // A unit that stood by from another city keeps its own (battleInputs.js standbyFor).
+    const home = u.regionId === o.fromRegionId || !u.regionId ? o.fromRegionId : u.regionId;
+    units[u.id] = { ...u, regionId: stays ? u.regionId : captured ? o.regionId : home, tile: stays ? unitTile(s, u) : captured ? target.tile : unitTile(s, u), movesLeft: 0 };
   });
   const out = rule === 'garrison' && o.outcome === 'attacker' ? beatenGarrison(s, o) : null;
   def.forEach((u) => {
     if (!units[u.id]) return; // the militia and synthetic troops live on the battle only
-    if (captured || u.strength <= 0) { delete units[u.id]; return; }
-    units[u.id] = out ? out(u) : { ...u };
+    // Troops that stood by outside the city take their losses where they stand; the city's own fall with it or are driven out.
+    const inCity = units[u.id].regionId === o.regionId;
+    if ((captured && inCity) || u.strength <= 0) { delete units[u.id]; return; }
+    units[u.id] = out && inCity ? out(u) : { ...u };
     if (!units[u.id]) delete units[u.id];
   });
   let { regions, nations } = s; let capitalTaken = false;
@@ -311,7 +315,8 @@ const defenseAdapter = (s, o, war, att, def, record) => {
   const fallback = captured || drivenOut ? nearestHeldCity(s, o.regionId, o.defenderNationId) : null;
   def.forEach((u) => {
     if (!units[u.id]) return;
-    const leaves = captured || (drivenOut && !isAir(u));
+    // Troops that stood by outside the city (battleInputs.js standbyFor) stay where they are.
+    const leaves = (captured || (drivenOut && !isAir(u))) && units[u.id].regionId === o.regionId;
     if (u.strength <= 0 || (leaves && !fallback)) { delete units[u.id]; return; }
     const next = { ...units[u.id], strength: u.strength, morale: u.morale, xp: u.xp, rank: u.rank, promotions: u.promotions };
     units[u.id] = leaves ? { ...placeInCity(next, s.regions, fallback), ...(drivenOut ? { route: null, movesLeft: 0 } : {}) } : next;

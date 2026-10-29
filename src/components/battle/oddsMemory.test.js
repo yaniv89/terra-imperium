@@ -22,9 +22,9 @@ describe('oddsMemory', () => {
     expect(wallsSince('k', 1, 240, 240)).toBe('');
   });
   it('the enemy all in: the city, the men standing near it and the auxiliaries it trains (Blidaru: 61,800)', () => {
-    expect(allInText({ defenderStrength: 3344, standbyStrength: 2000, auxiliaries: { defender: 836 } })).toBe('20,000 more enemy men stand near it: a battle you command meets about 61,800 with them and about 8,360 auxiliaries it trains. Auto fights without the men near it.');
-    expect(allInText({ defenderStrength: 1000, auxiliaries: { defender: 500 } })).toBe('With about 5,000 auxiliaries it trains, the battle meets about 15,000 men.');
-    expect(allInText({ defenderStrength: 1000 })).toBe('');
+    expect(allInText({ city: 3344, near: 2000, auxiliaries: { defender: 836 } })).toBe('20,000 more enemy men stand near it and join the battle: with them and about 8,360 auxiliaries it trains, it meets about 61,800.');
+    expect(allInText({ city: 1000, auxiliaries: { defender: 500 } })).toBe('With about 5,000 auxiliaries it trains, the battle meets about 15,000 men.');
+    expect(allInText({ city: 1000 })).toBe('');
   });
   it('names allies among the troops standing by', () => {
     expect(alliesText([{ id: 'elam', name: 'Elam', strength: 2000 }])).toBe(' (20,000 from Elam)');

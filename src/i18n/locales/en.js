@@ -577,7 +577,7 @@ export default {
   'march.oddsGarrisonHopeless': 'Hopeless: {target} holds {theirs} men to your {mine}. Auto wins the battle {pct}%.',
   'march.oddsWalls': '{target} has only {theirs} militia to your {mine}; Auto batters its walls from {a} of {b} HP to about {c} and takes it {pct}% of the time.',
   'march.oddsWallsHopeless': 'Hopeless on Auto: {target}\'s walls hold ({a} of {b} HP to about {c}); {theirs} militia to your {mine}.',
-  'odds.allInNear': '{near} more enemy men stand near it{allies}: a battle you command meets about {all} with them and about {aux} auxiliaries it trains. Auto fights without the men near it.',
+  'odds.allInNear': '{near} more enemy men stand near it{allies} and join the battle: with them and about {aux} auxiliaries it trains, it meets about {all}.',
   'odds.allIn': 'With about {aux} auxiliaries it trains, the battle meets about {all} men.',
   'march.standbyAllies': ' ({list})',
   'march.allyMen': '{men} from {who}',

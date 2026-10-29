@@ -22,7 +22,10 @@
 //                                        a field battle (the AoE and Civ report's rank 9, Civ VI's
 //                                        support): each side's own and its co-belligerents' idle
 //                                        stacks on the tiles next to the battle tile stand by
-//                                        (fieldReinforcements), listed on the battle card
+//                                        (fieldReinforcements), listed on the battle card. Auto
+//                                        fights with the same standby as a commanded city battle
+//                                        (standbyFor; lead decision Q1, 29 Oct, as Total War's
+//                                        auto-resolve counts armies in reinforcement range)
 //   18 bankruptcy desertion              the armies are read live from state.units, after the
 //                                        turn's desertion (resolveTurn economy phase): never a snapshot
 //   19 the city's militia                a city assault adds the city's militia to the defenders:
@@ -156,6 +159,24 @@ export const reinforcementSources = (state, regionId, nationId, enemyId, exclude
     .forEach((u) => { const k = `${allyId}|${u.regionId}`; if (!byRegion.has(k)) byRegion.set(k, { regionId: u.regionId, nationId: allyId, unitIds: [] }); byRegion.get(k).unitIds.push(u.id); }));
   const allied = [...byRegion.values()].sort((a, b) => (a.regionId < b.regionId ? -1 : a.regionId > b.regionId ? 1 : a.nationId < b.nationId ? -1 : 1));
   return [...own, ...allied];
+};
+
+/**
+ * The troops standing by that Auto fights with, exactly those a commanded battle calls in
+ * (gameReducer.js BEGIN_TACTICAL_BATTLE and the commanded defence): the player's assault on a city
+ * brings both sides' (the player's not from the attack's origin), an assault on the player's city
+ * brings the player's. Every other battle (AI against AI, field, sea, landing): none. Never a unit
+ * already in the battle. Returns [attackerUnits, defenderUnits] from state.units.
+ */
+export const standbyFor = (state, { kind, cityId, fromRegionId = null, attackerUnits = [], defenderUnits = [] }) => {
+  const me = state.playerNationId; const city = cityId ? state.regions?.[cityId] : null;
+  const attId = attackerUnits[0]?.ownerId;
+  if (!city || !attId) return [[], []];
+  const inIt = new Set([...attackerUnits, ...defenderUnits].map((u) => u.id));
+  const pick = (sources) => sources.flatMap((src) => src.unitIds).filter((id) => !inIt.has(id)).map((id) => state.units[id]).filter((u) => u && u.strength > 0);
+  if (kind === 'invasion' && attId === me) return [pick(reinforcementSources(state, cityId, me, city.owner, [fromRegionId])), pick(reinforcementSources(state, cityId, city.owner, me))];
+  if (kind === 'defense' && city.owner === me) return [[], pick(reinforcementSources(state, cityId, me, attId))];
+  return [[], []];
 };
 
 /** Rank 9: idle land units of `nationId` and its co-belligerents against `enemyId` on the tiles next

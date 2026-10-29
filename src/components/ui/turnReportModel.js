@@ -136,7 +136,7 @@ export const turnReportModel = (before, after, lang = getLanguage()) => {
     const placeOf = (m) => { const p = placeIn(after, m); return p ? { ...p, name: nameOf('city', null, p.name, lang) } : null; };
     if (l.type !== LogTypes.ACTION && l.type !== LogTypes.TECH && isUnmet(msg)) { unmetNews.push(shown); return; }
     // Raiders or an army coming for one of the player's cities: Defend opens its Defense tab (pay, send an army, train, walls).
-    const coming = (l.msgKey === 'm.battle.raidersNear' || l.msgKey === 'm.battle.armyNears') && l.msgVars?.place?.k === 'city' && after.regions?.[l.msgVars.place.id]?.owner === after.playerNationId
+    const coming = (l.msgKey === 'm.battle.raidersNear' || l.msgKey === 'm.battle.armyNears' || l.msgKey === 'm.battle.armyMarches') && l.msgVars?.place?.k === 'city' && after.regions?.[l.msgVars.place.id]?.owner === after.playerNationId
       ? { engage: { cityId: l.msgVars.place.id, tile: null, defend: true } } : {};
     if (RAID_WORDS.test(msg) && (l.type === LogTypes.COMBAT || l.type === LogTypes.CRISIS)) {
       add('raids', { tone: 'danger', title: shown, sub: null, place: placeOf(msg), ...coming });

@@ -103,12 +103,12 @@ export const preBattleModel = (state, { fromRegionId = null, targetRegionId = nu
   const yours = armyView(mineUnits, { ageId: myAge, hiredCommanders: state.hiredCommanders || {} });
   const theirs = armyView(theirUnits, { ageId: theirAge, hiredCommanders: state.hiredCommanders || {} });
   // The militia stand with the garrison: the odds' defender strength counts them.
-  const theirMen = odds?.defenderStrength ?? theirs.men;
+  const theirMen = odds ? odds.defenderStrength - (odds.defenderStandby || 0) : theirs.men; // the men in the city; the standby is said below
   // Round 3b (Zafar: scouts 14,900, the battle 44,900, the march 294,900): the troops a commanded
   // battle calls in, with any allies among them, and how the garrison changed since an earlier turn.
   const standby = !field && !fleet && v?.ok ? seenStandby(state, targetRegionId) : null;
   const since = !field && !fleet && hasIntel && odds ? garrisonSince(targetRegionId, state.turnNumber, theirMen) : '';
-  const allIn = standby && odds ? allInText({ defenderStrength: theirMen, standbyStrength: standby.strength, standbyAllies: standby.allies, auxiliaries: odds.auxiliaries }) : '';
+  const allIn = standby && odds ? allInText({ city: theirMen, near: standby.strength, allies: standby.allies, auxiliaries: odds.auxiliaries }) : '';
   const forceNotes = [since, allIn].filter(Boolean);
   const enemy = nationLabel(state, enemyId);
   const me = state.nations?.[state.playerNationId]?.name ? nameNow('people', state.playerNationId, state.nations[state.playerNationId].name) : t('bt.pre.you');

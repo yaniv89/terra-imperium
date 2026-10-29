@@ -187,7 +187,7 @@ export default {
   'bt.def.warnField': 'If you lose, the regiments still on the field at the end are lost.',
   'bt.def.warnWithdraw': ' Withdraw keeps the men: they fall back to {to}.',
   'bt.def.warning': 'Hopeless: Auto holds only {pct}% of the time{why}. {body}{withdraw}',
-  'bt.def.standby': '{men} of your men stand near it. They join a battle you command; Auto fights without them.',
+  'bt.def.standby': '{men} of your men stand near it and join the battle, on Auto or in command.',
   'bt.def.warnWalls': ': no regiment holds it and its walls are at {hp} of {max} HP',
   'bt.def.warnWhy': ', mostly from {reason}',
   'bt.def.eyeStopped': 'Your army is stopped by {enemy} near {place}',

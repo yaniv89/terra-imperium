@@ -36,15 +36,15 @@ export const wallsSince = (cityId, turn, hp, maxHp) => {
 };
 
 /**
- * Every enemy man the battle meets, from the odds (estimateMarchOdds, or the card's own): the city's
- * garrison with its militia, the troops standing near it (a battle you command calls them in, Auto does
- * not) and the auxiliaries it trains (Auto's own estimate). '' when there is nothing beyond the city.
+ * Every enemy man the battle meets: `city` (the garrison with its militia), `near` (the troops seen
+ * standing near it, who join on Auto and in command alike, lead decision Q1) and the auxiliaries it
+ * trains (Auto's own estimate). '' when there is nothing beyond the city.
  * Lead playtest 29 Oct, Blidaru: the card said 33,440 to 50,160, the battle met 61,800.
  */
-export const allInText = ({ defenderStrength = 0, standbyStrength = 0, standbyAllies = [], auxiliaries = null }) => {
+export const allInText = ({ city = 0, near = 0, allies = [], auxiliaries = null }) => {
   const aux = auxiliaries?.defender || 0;
-  if (standbyStrength > 0) return t('odds.allInNear', { near: menText(standbyStrength), allies: alliesText(standbyAllies), all: menText(defenderStrength + standbyStrength + aux), aux: menText(aux) });
-  return aux > 0 ? t('odds.allIn', { all: menText(defenderStrength + aux), aux: menText(aux) }) : '';
+  if (near > 0) return t('odds.allInNear', { near: menText(near), allies: alliesText(allies), all: menText(city + near + aux), aux: menText(aux) });
+  return aux > 0 ? t('odds.allIn', { all: menText(city + aux), aux: menText(aux) }) : '';
 };
 
 /** " (20,000 from Elam)" for seenStandby's allies, else ''. The march line and the pre-battle card. */

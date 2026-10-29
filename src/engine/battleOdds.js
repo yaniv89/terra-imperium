@@ -4,7 +4,7 @@
 // rule to each result, so the numbers shown are exactly what pressing Auto-resolve does. Also
 // explains WHY — the multipliers each side fights under (numbers, matchups, terrain, walls, age)
 // — so the calculation isn't a black box. Pure and fast (~a few ms for 200 samples).
-import { resolveAutoBattle } from './autoBattle';
+import { resolveAutoBattle, withStandby } from './autoBattle';
 import { battleInputs, reinforcementSources } from './battleInputs';
 import { createRng } from '../utils/rng';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, validateAmphibious, getAmphibiousBattleContext } from './invasion';
@@ -85,7 +85,11 @@ export const autoParityOf = (kind) => parity[kind] || null;
 
 // Runs the real auto-resolve + siege rule `samples` times for an attack described by `v`
 // ({ attackerUnits, defenderUnits, targetRegion }) with resolveBattle `args` and context `ctx`.
-export const simulate = (state, v, args, ctx, samples, spec) => {
+export const simulate = (state, v0, args0, ctx, samples, spec) => {
+  // The troops standing by join, as on Auto and in a commanded battle (lead decision Q1): one force count.
+  const args = withStandby(state, args0, spec);
+  const v = args === args0 ? v0 : { ...v0, attackerUnits: args.attackerUnits, defenderUnits: args.defenderUnits };
+  const standbyStrength = sumStrength(args.defenderUnits) - sumStrength(args0.defenderUnits);
   const inputs = battleInputs(state, { attackerUnits: args.attackerUnits, defenderUnits: args.defenderUnits, cityId: spec.kind === 'field' || spec.kind === 'naval' ? null : spec.cityId, fromRegionId: spec.fromRegionId, naval: spec.kind === 'naval' });
   const attStart = sumStrength(v.attackerUnits); const defStart = sumStrength(inputs.defenderUnits); // the militia stand with the garrison
   const tally = { attacker: 0, defender: 0, stalemate: 0 };
@@ -137,6 +141,8 @@ export const simulate = (state, v, args, ctx, samples, spec) => {
     defenderLossShare: defStart ? defLoss / samples / defStart : 0,
     attackerStrength: attStart,
     defenderStrength: defStart,
+    // the defender's troops standing by, part of defenderStrength (the card says how many of them stand outside)
+    defenderStandby: standbyStrength,
     factors,
     reasons: rankReasons(factors),
     // What Auto expects as a range (KTD11): the attacker's win chance by batches of 20 samples, and each side's men lost.
@@ -175,7 +181,7 @@ export const estimateMarchOdds = (state, attackerUnits, cityId, samples = 100) =
   const ctx = getInvasionBattleContext(state, { targetRegionId: cityId, targetRegion: city, defenderUnits: v.defenderUnits });
   const r = simulate(state, v, getResolveBattleArgs(v, ctx), ctx, samples, { kind: 'invasion', cityId, fromRegionId: land[0].regionId });
   const standby = seenStandby(state, cityId);
-  return { known: true, cityId, turn: state.turnNumber, capture: r.capture, attacker: r.attacker, autoRule: r.autoRule, city: r.city, standbyStrength: standby.strength, standbyAllies: standby.allies, auxiliaries: r.auxiliaries, attackerStrength: r.attackerStrength, defenderStrength: r.defenderStrength, range: r.range, reasons: r.reasons };
+  return { known: true, cityId, turn: state.turnNumber, capture: r.capture, attacker: r.attacker, autoRule: r.autoRule, city: r.city, standbyStrength: standby.strength, standbyAllies: standby.allies, auxiliaries: r.auxiliaries, defenderStandby: r.defenderStandby, attackerStrength: r.attackerStrength, defenderStrength: r.defenderStrength, range: r.range, reasons: r.reasons };
 };
 
 /**
@@ -189,7 +195,7 @@ export const autoChance = (odds) => (odds.autoRule === 'garrison' ? odds.attacke
 /**
  * The troops a commanded assault on `cityId` would call in (the same reinforcementSources as the
  * pending battle), as far as the player sees them: a 1,600-man garrison with 20,000 beside it is
- * not a weak city (newcomer playtest, round 3). Auto fights without them. `allies`: the owner's
+ * not a weak city (newcomer playtest, round 3). Auto fights with them too. `allies`: the owner's
  * co-belligerents among them, [{ id, name, strength }] (round 3b: huge armies, no reason shown).
  */
 export const seenStandby = (state, cityId) => {
