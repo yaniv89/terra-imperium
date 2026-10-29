@@ -438,12 +438,12 @@ describe('morale, routing and hit arcs', () => {
 });
 
 // The user's rule (2026-10-07): in a commanded battle the player's side never routs; its beaten
-// squads are Shaken (weaker) instead. The AI side and every headless battle rout as before.
+// squads are Shaken (weaker) instead, and so are the AI's (battle-skill-8). Every headless battle routs as before.
 describe('who may rout (sides[s].canRout)', () => {
-  it('commandedSetup marks only the player side', async () => {
+  it('commandedSetup marks both sides of a commanded battle', async () => {
     const { commandedSetup } = await import('../setup/buildBattleSetup');
     const s = commandedSetup(setup({ controllers: ['player', 'ai'] }));
-    expect(s.sides.map((sd) => sd.canRout)).toEqual([false, true]);
+    expect(s.sides.map((sd) => sd.canRout)).toEqual([false, false]);
     const spectate = setup({ controllers: ['ai', 'ai'] });
     expect(commandedSetup(spectate)).toBe(spectate);
   });

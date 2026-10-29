@@ -21,7 +21,7 @@ import { battleLimitTicks, Q } from '../../../src/battle/sim/constants';
 import { isFighting, inRangeOfSquad } from '../../../src/battle/sim/combat';
 import { canSeeSquad } from '../../../src/battle/sim/fog';
 import { distSq, polarX, polarY } from '../../../src/battle/sim/fixed';
-import { thinkAI, AI_DIFFICULTY } from '../../../src/battle/sim/tacticalAI';
+import { thinkAI, AI_DIFFICULTY, AI_FEATURES } from '../../../src/battle/sim/tacticalAI';
 import { thinkEconomy } from '../../../src/battle/sim/economyAI';
 import { getAvailableClasses } from '../../../src/data/unitClasses';
 
@@ -31,6 +31,8 @@ const DIFF = process.env.DIFF || 'prince';
 // The player's own play for baseline and skilled is the battle AI at PDIFF (prince: a player who keeps a line and focuses fire).
 // AIOVR='{"thinkEvery":30}': try another tuning of the opponent's level.
 if (process.env.AIOVR) Object.assign(AI_DIFFICULTY[DIFF], JSON.parse(process.env.AIOVR));
+// FEAT_OFF=guard,hold: the battle AI without those behaviours, on both sides (tacticalAI.js AI_FEATURES).
+(process.env.FEAT_OFF || '').split(',').filter(Boolean).forEach((k) => { AI_FEATURES[k] = false; });
 const PDIFF = process.env.PDIFF || 'prince';
 const playerAI = (w, side, orders) => { const d = w.setup.difficultyId; w.setup.difficultyId = PDIFF; thinkAI(w, side, orders); w.setup.difficultyId = d; };
 const AGES = (process.env.AGES || 'bronze,classical').split(',');
@@ -38,6 +40,7 @@ const TERRAIN = process.env.TERRAIN || 'plains';
 const ECO = process.env.ECO === '1';
 const CTRL = (process.env.CTRL || 'novice,baseline,skilled').split(',');
 const SKILLS = (process.env.SKILLS || 'nochase').split(','); // the skilled controller's habits
+const NOVICE_EVERY = Number(process.env.NOVICE_EVERY || 200); // ticks between the novice's attack-moves
 const TRACE = Number(process.env.TRACE || 0); // ticks between squad lines (N=1 SEED0=s)
 const ARMIES = [
   ['infantry', 'infantry', 'infantry', 'cavalry', 'ranged', 'ranged'],
@@ -65,7 +68,7 @@ const makeController = (kind, side) => {
     const go = (list, o) => { if (list.length) orders.push({ side, squads: list.map((q) => q.idx), ...o }); };
     if (kind === 'novice') {
       thinkEconomy(w, side, DIFF, orders); // the base runs itself: only command is measured
-      if (w.tick % 200 === 1) go(mine, { type: 'attackMove', x: at.x, y: at.y });
+      if (w.tick % NOVICE_EVERY === 1) go(mine, { type: 'attackMove', x: at.x, y: at.y });
       return;
     }
     // Skilled: the battle AI's own play (lines, focus fire, guards), plus what a good player adds on

@@ -29,10 +29,11 @@ export const AI_DIFFICULTY = {
   emperor: { thinkEvery: 4, retreatAt: 0.3, powers: true, abilities: true, flank: true, micro: true, pullBack: 0.3 },
   // The battle difficulty the player picks (battleSettings.difficulty, lane battle-skill-8): Easy reacts
   // in 2 s with no micro (no focus fire, no flank rides), Normal reacts in 1.5 s and keeps
-  // its counters and guards but neither focuses its fire nor rides round a flank, Hard is King's micro
+  // its counters and guards but neither focuses its fire, rides round a flank nor holds its horse back
+  // until the lines meet (that reserve alone took a novice from about 55% to 0: skillDuel), Hard is King's micro
   // fought to the end (King's early withdrawal and pull-backs cost it field battles: skillDuel).
   easy: { thinkEvery: 40, retreatAt: 0.2, powers: false, abilities: false, flank: false },
-  normal: { thinkEvery: 30, retreatAt: 0.25, powers: true, abilities: true, flank: false, micro: true, focus: false, cavFlank: false },
+  normal: { thinkEvery: 30, retreatAt: 0.25, powers: true, abilities: true, flank: false, micro: true, focus: false, cavFlank: false, reserve: false },
   hard: { thinkEvery: 6, retreatAt: 0.1, powers: true, abilities: true, flank: true, micro: true }
 };
 // Each of the lane's behaviours on its own (battle-lab aiDuel.sim.js FEAT_OFF switches them off to
@@ -488,7 +489,7 @@ const micro = (w, side, cfg, mine, enemies, orders) => {
   // row of a line they rode ahead of it and were shot down alone (gunpowder trace).
   const foot = mine.filter((q) => q.classId === 'infantry');
   const back = side === SIDE_ATTACKER ? -RESERVE_BACK : RESERVE_BACK;
-  if (AI_FEATURES.cavalry) mine.forEach((q) => {
+  if (AI_FEATURES.cavalry && cfg.reserve !== false) mine.forEach((q) => {
     if (used.has(q.idx) || q.classId !== 'cavalry') return;
     const now = inMeleeWith(w, q);
     if (now && (soft(now) || now.classId === 'cavalry')) return; // already on a good target

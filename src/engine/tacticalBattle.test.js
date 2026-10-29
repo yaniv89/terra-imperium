@@ -136,7 +136,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
     // The truth is the battle as the screen fights it: THE commanded setup (the player's side never
     // routs). It was computed on the bare setup, which is the bug this test then shared (X03, X06).
     const setup = buildCommandedSetup(started, started.pendingBattle);
-    expect(setup.sides.map((s) => s.canRout)).toEqual([false, true]);
+    expect(setup.sides.map((s) => s.canRout)).toEqual([false, false]);
     const log = [{ side: 0, type: 'attackMove', squads: [0, 1, 2], x: 60 * 256, y: 30 * 256, tick: 0, seq: 0 }];
     const truth = runHeadless(setup, { orders: log });
     const forged = { outcome: 'attacker', attackerUnits: [], defenderUnits: [], report: { tactical: { decisive: true } } };
@@ -169,7 +169,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
       const { started, pb, setup } = played();
       expect(setup).toEqual(buildCommandedSetup(started, pb));
       expect(setupKeyOf(setup)).toBe(setupKeyOf(buildCommandedSetup(started, pb)));
-      expect(setup.sides.map((s) => s.canRout)).toEqual([false, true]);
+      expect(setup.sides.map((s) => s.canRout)).toEqual([false, false]);
       expect(setup.version).toBe(SETUP_VERSION);
       expect(setupKeyOf(setup)).not.toBe(setupKeyOf(buildInvasionSetup(started, pb)));
     }, 120000); // plays the shared battle once (slow on a loaded machine)

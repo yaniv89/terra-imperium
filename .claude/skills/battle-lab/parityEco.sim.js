@@ -32,8 +32,8 @@ import { ledgerShares, sharesText } from './ledgerShares';
 const N = Number(process.env.N || 32);
 // NOROUT=attacker|defender: that side never routs, as the player's side in a commanded battle
 // (buildBattleSetup.js commandedSetup): Command's edge over Auto.
-const NOROUT = process.env.NOROUT === 'attacker' ? 0 : process.env.NOROUT === 'defender' ? 1 : -1;
-const noRout = (setup) => { if (NOROUT >= 0) setup.sides[NOROUT].canRout = false; return setup; };
+const NOROUT = process.env.NOROUT === 'attacker' ? 0 : process.env.NOROUT === 'defender' ? 1 : process.env.NOROUT === 'both' ? 2 : -1; // both: a commanded battle
+const noRout = (setup) => { if (NOROUT === 2) setup.sides.forEach((s) => { s.canRout = false; }); else if (NOROUT >= 0) setup.sides[NOROUT].canRout = false; return setup; };
 const TIER = process.env.TIER || 'medium';
 const TYPES = (process.env.TYPES || 'field,assault').split(',');
 const AGE_PAIRS = (process.env.AGES || 'stone:stone,stone:bronze,stone:classical,stone:kingdoms,bronze:bronze,classical:classical,kingdoms:kingdoms,gunpowder:gunpowder,modern:modern,gunpowder:modern,modern:information,information:information,kingdoms:information,classical:information').split(',').map((p) => p.split(':'));
