@@ -92,6 +92,12 @@ export const stepToward = (w, q, gx, gy, cacheKey = null) => {
   return false;
 };
 
+// A move ordered onto a building's ground ends beside it: within two tiles' walk of the nearest free
+// tile (pathing.js walkableGoal), so squads crowding that one tile do not stand pushing forever.
+const NEAR_GOAL = 2 * TILE_COST[TILE.OPEN] + 3;
+const nearBlockedGoal = (w, q, gx, gy) => !q.stats.flying && !passableAt(w, q, gx, gy)
+  && getFlowField(w, tileOf(w.map, gx, gy), undefined, undefined, q.side)[tileOf(w.map, q.x, q.y)] <= NEAR_GOAL;
+
 // Called reserves walk on from their own edge once their entry time comes.
 export const enterReserves = (w) => {
   w.squads.forEach((q) => {
@@ -213,6 +219,9 @@ export const acquireTargets = (w) => {
     }
     const fell = q.targetKind === 'structure' || q.targetKind === 'eco' ? structureTarget(w, q) : null; // the building it took on its own fell
     const found = acquireTarget(w, q, radius);
+    // An attack-move walking round houses to a building it picked keeps it when the street leads it
+    // out of sight for a moment (it swung between the building and its goal, battle-art-8).
+    if (!found && valid && q.order.type === 'attackMove') return;
     q.target = found ? found.index : -1;
     q.targetKind = found ? found.kind : null;
     if (!found && fell && q.order.type === 'idle') continueAssault(w, q, CONTINUE_NEAR, fell.x, fell.y);
@@ -223,6 +232,7 @@ export const acquireTargets = (w) => {
 
 export const moveSquads = (w) => {
   w.squads.forEach((q) => {
+
     if (!isFighting(q) || q.inside >= 0 || q.order.type === 'work' || isStunned(w, q)) return; // a worker at work walks in economy.js; an EMP stops a machine
     if (q.routed || q.retreating) { stepToward(w, q, sideEdgeX(w, q.side), q.y); return; }
     if (q.order.type === 'hold') return;
@@ -243,7 +253,7 @@ export const moveSquads = (w) => {
     }
     if (q.order.type === 'garrison') { stepToward(w, q, q.order.x, q.order.y); return; } // objectives.js lets it in
     if (q.order.type === 'move' || q.order.type === 'attackMove') {
-      if (stepToward(w, q, q.order.x, q.order.y)) {
+      if (stepToward(w, q, q.order.x, q.order.y) || nearBlockedGoal(w, q, q.order.x, q.order.y)) {
         if (q.order.facing !== undefined) q.facing = q.order.facing;
         q.anchorX = q.x; q.anchorY = q.y;
         const { type, x: gx, y: gy } = q.order;

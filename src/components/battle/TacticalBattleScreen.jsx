@@ -57,6 +57,7 @@ import { abilityLabel, powerLabel, ecoLabel, LAND_ONLY_ABILITIES } from './battl
 import { releaseWhenDetached } from '../../utils/glContext';
 import { noteCrashEvent } from '../../utils/crashLog';
 import { coachSeen, markCoachSeen, coachSteps, mouseFirst } from './battleCoach';
+import { autoCameraGoal } from './autoCamera';
 
 const cx = (...p) => p.filter(Boolean).join(' ');
 
@@ -205,6 +206,10 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const [deployPick, setDeployPick] = useState(null); // the deploy card's preset in use (a hand placement clears it)
   const followRef = useRef(false);
   const setFollow = useCallback((on) => { followRef.current = on; setFollowState(on); }, []);
+  // battle-art-8: the camera goes to the first clash and keeps the selection in view (autoCamera.js)
+  // until a hand moves it; `handAt` is when it last did.
+  const autoCamRef = useRef({ clash: 'wait', handAt: 0 });
+  const handOnCamera = () => { autoCamRef.current.handAt = performance.now(); autoCamRef.current.clash = 'done'; };
   // I196: the minimap, off until the player turns it on (remembered on this device).
   const [minimapOn, setMinimapOn] = useState(() => readFlag(MINIMAP_KEY));
   // I198: arrow keys held, and the edge the mouse rests at ({ x, y } in -1..1), for the render loop.
@@ -439,7 +444,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       }
       const edge = edgeRef.current;
       if (edge) { px -= edge.x * EDGE_PAN_PX_S * dt; py -= edge.y * EDGE_PAN_PX_S * dt; }
-      if (px || py) { renderer.pan(px, py); if (followRef.current) setFollow(false); }
+      if (px || py) { renderer.pan(px, py); handOnCamera(); if (followRef.current) setFollow(false); }
       // I199: the camera eases towards the followed squads.
       if (followRef.current && f.cur) {
         const list = [...selectedRef.current].map((i) => f.cur.squads[i]).filter((q) => q?.alive && q.onField && !q.fled);
@@ -449,6 +454,15 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           const gx = list.reduce((s, q) => s + q.x, 0) / list.length / Q; const gz = list.reduce((s, q) => s + q.y, 0) / list.length / Q;
           renderer.target.x += (gx - renderer.target.x) * k; renderer.target.z += (gz - renderer.target.z) * k;
           renderer.clampTarget();
+        }
+      } else if (f.cur) {
+        const cam = autoCamRef.current;
+        const goal = autoCameraGoal({ cur: f.cur, selected: selectedRef.current, playerSide, state: cam, now: t, toScreen: (x, z) => renderer.worldToScreen(x, z), width: renderer.width, height: renderer.height });
+        if (goal) {
+          const k = 1 - Math.exp(-FOLLOW_RATE * dt);
+          renderer.target.x += (goal.x - renderer.target.x) * k; renderer.target.z += (goal.z - renderer.target.z) * k;
+          renderer.clampTarget();
+          if (cam.clash === 'going' && Math.hypot(goal.x - renderer.target.x, goal.z - renderer.target.z) < 1) cam.clash = 'done';
         }
       }
       const r0 = meter ? performance.now() : 0;
@@ -907,7 +921,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       radial: (p) => setRadial({ x: p.x, y: p.y, at: performance.now() }),
       radialSelect: () => setRadial((r) => r && { ...r, at: performance.now() }), // the finger lifted: its click is swallowed (below)
       radialCancel: () => setRadial(null), // held, then dragged: a battle line instead
-      pan: (dx, dy) => { rendererRef.current?.pan(dx, dy); if (followRef.current && Math.abs(dx) + Math.abs(dy) > 2) setFollow(false); },
+      pan: (dx, dy) => { rendererRef.current?.pan(dx, dy); if (Math.abs(dx) + Math.abs(dy) > 2) { handOnCamera(); if (followRef.current) setFollow(false); } },
       zoom: (factor, x, y) => rendererRef.current?.zoomBy(factor, x, y),
       formationDrag: (s, p) => setDragLine({ x0: s.x, y0: s.y, x1: p.x, y1: p.y }),
       formationEnd: (s, p) => {
@@ -1023,9 +1037,9 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const fightersOf = (cur) => cur.squads.filter((q) => q.side === playerSide && q.alive && q.onField && !q.fled && !q.routed && q.classId !== 'worker');
   // Every camera jump from the HUD (Find, Go, the keep, Enemy, Base): a hand on the camera, so a
   // follow ends (I199).
-  const lookAt = (x, z) => { rendererRef.current?.centerOn(x, z); setFollow(false); };
+  const lookAt = (x, z) => { rendererRef.current?.centerOn(x, z); handOnCamera(); setFollow(false); };
   // The whole list framed (a spread army zooms the camera out, never in), not only its middle.
-  const lookAtSquads = (list) => { if (list.length) { rendererRef.current?.frameGround(list.map((q) => ({ x: q.x / Q, z: q.y / Q }))); setFollow(false); } };
+  const lookAtSquads = (list) => { if (list.length) { rendererRef.current?.frameGround(list.map((q) => ({ x: q.x / Q, z: q.y / Q }))); handOnCamera(); setFollow(false); } };
   // None of `list` is on screen.
   const offScreen = (list) => {
     const r = rendererRef.current; if (!r) return false;

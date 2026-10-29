@@ -25,6 +25,12 @@ import { SKIN_UNIFORM, SKIN_TONES, EMBLEM_GRID, EMBLEM_INSET, getEmblemAtlas } f
 
 export const LIMB = { BODY: 0, LEG_L: 1, LEG_R: 2, ARM_L: 3, ARM_R: 4, HORSE_FRONT: 5, HORSE_BACK: 6, TURRET: 7 };
 export const PART = { PLAIN: 0, SKIN: 1, EMBLEM: 2 };
+// A hit flash rides in the instance colour's red channel (the attributes are full, see packForGPU):
+// red + 2 x level, level 0..HIT_LEVELS; the shader takes it off and lights the whole figure.
+export const HIT_LEVELS = 8;
+const HIT_GLOW = 0.85;
+/** The red channel of a figure `flash` (0..1) of the way into a hit's glow. */
+export const packHit = (r, flash) => r + 2 * Math.round(Math.max(0, Math.min(1, flash)) * HIT_LEVELS);
 // Every soldier geometry carries exactly these attributes (merging needs them to match).
 export const RIG_ATTRIBUTES = { color: 3, aLimb: 1, aPivot: 2, aTeam: 1, aPart: 1, aUv: 2, aSurface: 2 };
 // aSurface = (metalness, roughness) per vertex, for the PBR soldier material: armour, blades and
@@ -489,12 +495,14 @@ attribute vec4 aVariant; // x: skin tone (fractional: blends the two either side
 uniform vec3 uSkin[${SKIN_N}];
 varying vec3 vEmblem;    // xy: atlas uv, z: 1 on emblem parts
 varying vec3 vSide;      // the side's colour (instanceColor) for the rim
+varying float vHit;      // the hit flash (packHit), 0..1
 `;
 const VARIANT_FRAG = /* glsl */`
 uniform sampler2D uEmblems;
 varying vec3 vEmblem;
 varying vec2 vSurface;
 varying vec3 vSide;
+varying float vHit;
 `;
 
 // USE_CLIPS (I219, plans/art/clip-animation-pipeline.md): an artist's clips instead of the rigid
@@ -581,11 +589,13 @@ const patchRig = (shader, withColor, clips = null) => {
       float bakedShade = (aPart < 1.5 && aUv.x > 0.0) ? aUv.x : 1.0;
       base = mix(base * (1.0 + aVariant.z * 0.09 * (1.0 - aTeam)), skinTone * bakedShade, isSkin);
       #ifdef USE_INSTANCING_COLOR
-        vColor.rgb = mix(base * mix(vec3(1.0), instanceColor.rgb, ${f(withColor.teamTint ?? 0.12)} * (1.0 - isSkin)), instanceColor.rgb * bakedShade, aTeam);
-        vSide = instanceColor.rgb * (1.0 - isSkin); // skin keeps its tone (no lilac faces)
+        vec3 iCol = instanceColor.rgb; float hitQ = floor(iCol.r * 0.5 + 0.0001); iCol.r -= 2.0 * hitQ; // packHit
+        vHit = hitQ / ${f(HIT_LEVELS)};
+        vColor.rgb = mix(base * mix(vec3(1.0), iCol, ${f(withColor.teamTint ?? 0.12)} * (1.0 - isSkin)), iCol * bakedShade, aTeam);
+        vSide = iCol * (1.0 - isSkin); // skin keeps its tone (no lilac faces)
       #else
         vColor.rgb = base;
-        vSide = vec3(0.0);
+        vSide = vec3(0.0); vHit = 0.0;
       #endif
       float cell = clamp(floor(aVariant.y + 0.5), 0.0, ${f(EMBLEM_GRID * EMBLEM_GRID - 1)});
       vec2 cellXY = vec2(mod(cell, ${f(EMBLEM_GRID)}), floor(cell / ${f(EMBLEM_GRID)}));
@@ -601,7 +611,8 @@ const patchRig = (shader, withColor, clips = null) => {
     .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
       vec3 rimView = isOrthographic ? vec3(0.0, 0.0, 1.0) : normalize(vViewPosition);
       float rimK = 1.0 - clamp(dot(normal, rimView), 0.0, 1.0);
-      totalEmissiveRadiance += vSide * (rimK * rimK * ${f(withColor.rim ?? 0)});`);
+      totalEmissiveRadiance += vSide * (rimK * rimK * ${f(withColor.rim ?? 0)});
+      totalEmissiveRadiance += vec3(1.0, 0.86, 0.7) * vHit * ${f(HIT_GLOW)};`);
   // PBR: every vertex carries its own metalness and roughness (armour shines, cloth stays matte).
   // The rig already rotates objectNormal in beginnormal_vertex, so the lit normal (vNormal) follows
   // every swinging arm and leg; there are no normal maps, so no tangents are needed.
