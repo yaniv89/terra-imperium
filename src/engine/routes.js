@@ -42,7 +42,7 @@ import { getResearched } from './nationState';
 import { enemyFleetAt, findSeaPath, fleetPace, isFleet, portsBeside, portWaters, touchesCoastOf } from './fleets';
 import {
   BANK_CAP, DEFAULT_MOVE_POINTS, ENEMY_TILE_COST, MARCH_ATTRITION, MAX_ROUTE_STEPS, MOVE_POINTS,
-  aboardShip, armiesByTile, enemyArmyAt, findTilePath, inEnemyZoc, isHarsh, movePoints, regionAccess, regionForTile, stackPace, tileAccess, tileStepCost, unitTile
+  aboardShip, armiesByTile, enemyArmyAt, findTilePath, passableTile, inEnemyZoc, isHarsh, movePoints, regionAccess, regionForTile, stackPace, tileAccess, tileStepCost, unitTile
 } from './armies';
 import { isStationedIn } from './unitLocation';
 
@@ -278,7 +278,7 @@ export const shorePlan = (state, fromId, shore, unitIds = null) => {
   const at = mainTile(state, fleets);
   if (at != null && tiles.land[at] !== 1 && tiles.neighbors[at].includes(shore)) {
     const ids = new Set(fleets.map((f) => f.id));
-    const open = !['enemy', 'held', 'closed'].includes(tileAccess(state, shore, state.playerNationId));
+    const open = passableTile(tiles, shore) && !['enemy', 'held', 'closed'].includes(tileAccess(state, shore, state.playerNationId));
     const aboard = open ? Object.values(state.units).filter((u) => ids.has(u.embarkedOn) && u.embarkedOn !== u.id).map((u) => u.id) : [];
     return { ok: false, naval: true, shoreOf: shore, landHere: aboard, ...reasonOf(open ? 'm.why.noneAboard' : 'm.why.enemyShore') };
   }

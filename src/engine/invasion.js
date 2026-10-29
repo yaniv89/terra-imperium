@@ -196,7 +196,7 @@ export const validateAmphibious = (state, navalUnitId, targetRegionId, { ignoreC
   if (!war && !canAttack(state, state.playerNationId, targetRegion.owner)) return { ok: false, reason: 'no_war' };
   if (!ignoreBattleLocks && ((navalUnit.movesLeft ?? 1) <= 0 || !embarkedLandUnits.every((u) => (u.movesLeft ?? 1) > 0))) return { ok: false, reason: 'no_moves' };
   if (!ignoreCost && !canAfford(state.resources, ACTION_COSTS.amphibiousAssault)) return { ok: false, reason: 'cost' };
-  const defenderNavalUnits = Object.values(state.units).filter((u) => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
+  const defenderNavalUnits = Object.values(state.units).filter((u) => u.regionId === targetRegionId && u.domain === 'naval' && !u.pirate && u.ownerId !== state.playerNationId); // a pirate (pirates.js) lurks far from home
   const defenderLandUnits = Object.values(state.units).filter((u) => u.regionId === targetRegionId && u.domain === 'land' && u.ownerId !== state.playerNationId);
   const hasBeachhead = getNeighborIds(targetRegionId).some((nId) => state.regions[nId]?.owner === state.playerNationId);
   return { ok: true, navalUnit, targetRegionId, targetRegion, war, embarkedLandUnits, defenderNavalUnits, defenderLandUnits, hasBeachhead };

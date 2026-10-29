@@ -125,6 +125,10 @@ else PLAYERS.forEach((PLAYER) => SEEDS.forEach((seed) => {
           if (p) s = gameReducer(s, { type: ActionTypes.ATTACK_FLEET, payload: { fromTile: f.tile, tile: p.tile } });
         });
         s = seaVoyage(s, ms[me], t);
+        // ... else a ship sails beside the pirates off the player's city (the step's go: the sail order).
+        const pirate = Object.values(s.units).find((u) => u.pirate && s.regions[u.pirate.target]?.owner === me);
+        const hunter = pirate && Object.values(s.units).find((u) => u.ownerId === me && u.domain === 'naval' && u.strength > 0 && !u.route?.length && !tiles.neighbors[u.tile]?.includes(pirate.tile));
+        if (hunter) tiles.neighbors[pirate.tile].filter((n) => tiles.land[n] !== 1).some((n) => { const next = gameReducer(s, { type: ActionTypes.SET_ROUTE, payload: { fromRegionId: hunter.regionId, toTile: n, unitIds: [hunter.id], naval: true } }); if (next.units[hunter.id]?.route?.length) { s = next; return true; } return false; });
       }
       s = resolveTurn(s);
       if (s.activeProceduralEvent) s = { ...s, activeProceduralEvent: null };

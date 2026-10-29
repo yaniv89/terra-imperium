@@ -64,6 +64,13 @@ describe('pirates', () => {
     const after = gameReducer(mine, { type: ActionTypes.ATTACK_FLEET, payload: { fromTile: port.tile, tile: p.tile } });
     expect(after.units[p.id]?.strength ?? 0).toBeLessThan(PIRATE_STRENGTH);
     expect(after.wars.length).toBe(s.wars.length);
+    // sinking raiders off your port is no attack on their city: no grudge (grudges.js)
+    expect(after.nations[p.ownerId].indep?.grudges?.[me] || 0).toBe(s.nations[p.ownerId].indep?.grudges?.[me] || 0);
+  });
+
+  it('a truce with every coastal independent keeps pirates off', () => {
+    const truce = { ...S, nations: Object.fromEntries(Object.entries(S.nations).map(([id, n]) => [id, isIndependentNation(n) ? { ...n, indep: { ...n.indep, truceWith: { ...(n.indep?.truceWith || {}), [me]: 99999 } } } : n])) };
+    expect(firstPirate(truce)).toBeNull();
   });
 
   it('an AI ship in port beside it attacks it at peace; with no one to fight it the pirate stays put', () => {

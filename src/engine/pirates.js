@@ -25,11 +25,12 @@ import { isAgeAtLeast, speedTurns } from '../data/ages';
 import { isIndependentNation } from '../data/independents';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { hasSeaCoast } from './world/cities';
-import { portWaters, isFleet } from './fleets';
+import { portWaters, isFleet, seaPassable } from './fleets';
+import { mapEffectsFor } from './techMapEffects';
 import { unitTile } from './armies';
 import { ageOf } from './nationState';
 import { independentAgeOf } from './ageRefs';
-import { exploreOn } from './hostility';
+import { exploreOn, canFight } from './hostility';
 import { hashRoll } from './aftermath';
 import { msg, people, cityRef } from './messages';
 
@@ -70,17 +71,19 @@ export const advancePirates = (state, turn) => {
     if (!isAgeAtLeast(age, PIRATE_FROM_AGE)) return;
     const wait = speedTurns(PIRATE_REF_TURNS, state.gameSpeed, age);
     if (nation.pirateNext == null) { nations = { ...nations, [id]: { ...nations[id], pirateNext: turn + wait } }; return; } // the age's first turns are quiet
-    if (turn < nation.pirateNext || hashRoll(`${turn}|pirates|${id}`) >= PIRATE_CHANCE) return;
+    if (turn < nation.pirateNext || hashRoll(`${turn}|pirates|${state.rngSeed}|${id}`) >= PIRATE_CHANCE) return;
     const ports = Object.values(state.regions).filter((c) => c.owner === id && c.tile != null && !c.outpost && !c.ghost && hasSeaCoast(tiles, c)).sort((a, b) => (a.id < b.id ? -1 : 1));
     if (!ports.length) return;
-    const port = ports[Math.floor(hashRoll(`${turn}|pirate port|${id}`) * ports.length)];
+    const port = ports[Math.floor(hashRoll(`${turn}|pirate port|${state.rngSeed}|${id}`) * ports.length)];
     indeps ||= coastalIndependents(state, tiles);
     const at = tiles.centres[port.tile];
     const home = indeps.map((n) => ({ n, km: distanceKm(at, tiles.centres[state.regions[n.capitalRegionId].tile]), raiders: n.indep?.seaRaiders ? 0 : 1 }))
-      .filter((x) => x.km <= PIRATE_KM).sort((a, b) => a.raiders - b.raiders || a.km - b.km || (a.n.id < b.n.id ? -1 : 1))[0]?.n;
+      .filter((x) => x.km <= PIRATE_KM && canFight(state, id, x.n.id)).sort((a, b) => a.raiders - b.raiders || a.km - b.km || (a.n.id < b.n.id ? -1 : 1))[0]?.n; // a truce or tribute keeps their pirates off
+    const effects = mapEffectsFor(state, id);
     const taken = new Set(Object.values(units).filter(isFleet).map((u) => unitTile(state, u)));
     // beside the city's centre, where a ship in port can reach it (navalBattle.js: an attack is on a neighbouring tile)
-    const free = portWaters(state, tiles, port.id).filter((t) => !taken.has(t));
+    // water this major's ships can sail, so its first warship can meet them
+    const free = portWaters(state, tiles, port.id).filter((t) => !taken.has(t) && seaPassable(tiles, t, age, effects.deepOcean > 0, effects.navalMoves > 0));
     const tile = free.find((t) => tiles.neighbors[port.tile].includes(t)) ?? free[0];
     nations = { ...nations, [id]: { ...nations[id], pirateNext: turn + wait } };
     if (!home || tile == null) return;
