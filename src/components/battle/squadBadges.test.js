@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { badgesFor, clusterFlags, BADGE_MAX_ZOOM, HIT_FLASH_TICKS } from './squadBadges';
+import { badgesFor, clusterFlags, stackFlags, BADGE_MAX_ZOOM, HIT_FLASH_TICKS } from './squadBadges';
 import { TILE } from '../../battle/setup/mapgen';
 
 const sq = (idx, over = {}) => ({ idx, side: 0, alive: true, onField: true, fled: false, visible: true, x: 256 * 2.5, y: 256 * 2.5, strength: 50, maxStrength: 100, striking: false, ...over });
@@ -37,5 +37,13 @@ describe('squad flags', () => {
     expect(g).toMatchObject({ n: 3, classId: 'infantry', morale: 0.3 });
     expect(g.share).toBeCloseTo(180 / 300);
     expect(out[1]).toMatchObject({ side: 'them', n: 1 });
+  });
+  it('stack fighting squads\' flags one per squad instead of merging them (battle-art-8)', () => {
+    const f = (sx, side, striking) => ({ sx, sy: 100, side, classId: 'infantry', str: 50, max: 100, share: 0.5, morale: 1, routed: false, hit: 0, striking, selected: false });
+    const out = stackFlags([f(100, 'you', true), f(104, 'them', true), f(108, 'you', true), f(102, 'you', false), f(103, 'you', false)]);
+    const fighting = out.filter((b) => b.striking);
+    expect(fighting).toHaveLength(3);
+    expect(new Set(fighting.map((b) => b.sy)).size).toBe(3); // three rows, none covering another
+    expect(out.filter((b) => !b.striking)).toEqual([expect.objectContaining({ n: 2 })]); // the idle ones still merge
   });
 });

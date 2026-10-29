@@ -20,7 +20,7 @@ import { getBattleStats, getSoldierCount, getUnitBattleStats } from '../data/bat
 import { soldierSlots, squadSlots, figureScale, scaledSoldiers } from './capacity';
 import { trimGltfCache, forgetReleasedGltf, createGltfHold } from './gltfUnitLoader';
 import { textureCap } from './assetMemory';
-import { getSoldierGeometry, hasSoldierOverride, packForGPU, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE, clipUniforms } from './soldierFactory';
+import { getSoldierGeometry, hasSoldierOverride, packForGPU, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE, clipUniforms, packHit } from './soldierFactory';
 import { clipSetOf, newFigureState, playClip, busyUntil, setBusy, currentClip, writeAnim, baseMotion, strikeTiming } from './clipPlayer';
 import { WORK_JOB, workJobOf } from '../sim/economy';
 import { writeSoldierVariant, skinToneFor } from './unitVariants';
@@ -80,9 +80,11 @@ const SCREEN_RIGHT = new Vector3(1, 0, -1).normalize();
 const SCREEN_UP_GROUND = new Vector3(-1, 0, -1).normalize();
 export const PHONE_MAX_ZOOM = 5;
 const VIEW_TILES = 30;       // landscape; portrait phones get a closer camera (see resize)
-const PHONE_VIEW_TILES = 13; // a landscape phone (short side <= 500 css px): soldiers about 25 css px tall, the army still on one screen (r3-battle)
+const PHONE_VIEW_TILES = 11.6; // a landscape phone (short side <= 500 css px): one wheel step (1.12) closer than r3-battle's 13 (battle-art-8), soldiers about 28 css px tall
 const BANNER_HEIGHT = 0.62;  // of the old pole: standards above the men, not a forest over them
 const BANNER_MIN_ZOOM = 0.6; // zoomed further out only generals and the selection carry one
+const BANNER_MIN_PX = 24;    // a standard is never shorter than this on screen (css px, battle-art-8)
+const BANNER_POLE = 2.1;     // the pole geometry's height (bannerPoles)
 const FAR_MARK_PX = 10;      // soldiers shorter than this on screen: every squad gets its side's disc (I218)
 const FAR_MARK_MIN_PX = 26;  // ...at least this wide on screen
 const WRECK_SMOKE_LIFE = 3.5; // seconds a wreck's smoke puff takes to rise and fade (X27)
@@ -92,13 +94,13 @@ const BAR_MIN_ZOOM = 1;      // strength bars closer in than this zoom (wider, s
 // silhouette (brighter on the far level, where figures are a few pixels), and the front rank of a
 // squad that was just hit flashes towards white for HIT_FLASH_S.
 export const SIDE_RIM = { near: 0.55, far: 0.9 };
-export const HIT_FLASH_S = 0.18;
-const HIT_FLASH_MAX = 0.65;
+export const HIT_FLASH_S = 0.35; // battle-art-8: at least 150 ms of clear glow on a real GPU
+const HIT_FLASH_MAX = 1;
 /** How far towards white a squad hit at `hitTick` is drawn at sim tick `tick` (0 = not at all). */
 export const hitFlash = (hitTick, tick, tickRate = 20) => {
   if (hitTick == null || hitTick < 0) return 0;
   const age = (tick - hitTick) / tickRate;
-  return age < 0 || age >= HIT_FLASH_S ? 0 : HIT_FLASH_MAX * (1 - age / HIT_FLASH_S);
+  return age < 0 || age >= HIT_FLASH_S ? 0 : HIT_FLASH_MAX * (1 - (age / HIT_FLASH_S) ** 2); // holds, then fades
 };
 // Shots (art-2 lane): a shot flies for SHOT_LIFE seconds by its length (the sim's hit is already
 // in, so the flight is art only: short enough to land with it), trails a streak at least
@@ -135,10 +137,13 @@ const BAR_TRACK_HIT = new Color('#fecaca');
 const MORALE_STEADY = new Color('#efe3c2');
 const MORALE_SHAKEN = new Color('#fbbf24');
 const ROUT_PALE = new Color('#f8fafc');
-const HIT_FLASH_TICKS = 3;   // ticks a hit squad's figures and bar flash (0.15 s)
+const HIT_FLASH_TICKS = 7;   // ticks a hit squad's bar flashes (0.35 s, HIT_FLASH_S)
 const HIT_SHOW_TICKS = 60;   // a squad hit in the last 3 s keeps its bar up
 const BAR_PX = 34;           // the strength bar is at least this wide on screen (css px)
 const BAR_H_PX = 5;          // ...and this tall
+const BAR_ROWS = 3;          // overlapping bars stack this many rows up at most
+const BAR_GAP_PX = 3;        // ...this far apart
+const BAR_TRACK_SIDE = 0.45; // how much of the side's colour the bar's track takes
 const MARKER_RING_R = 0.85 * 0.96; // a marker ring's world radius at size 1 (the 1.7 decal, ring to 0.96)
 const MARKER_PX = 46;        // an order marker is at least this wide on screen
 const SHAKEN_AT = 40;        // morale under this: the morale strip turns amber
@@ -322,7 +327,7 @@ export class BattleRenderer {
     this.scene.environmentIntensity = 0.45;
     this.soldierDepth = this.track(createSoldierDepthMaterial());
 
-    this.canopyFade = createCanopyFade(); // trees and roofs over your selected and fighting squads fade (canopyFade.js)
+    this.canopyFade = createCanopyFade(); // tree crowns over your selected and fighting squads fade (canopyFade.js)
     this.buildTerrain();
     this.buildProps();
     this.buildStructures();
@@ -428,6 +433,15 @@ export class BattleRenderer {
     }
     const cx = ix < 0 ? 0 : ix > w - 1 ? w - 1 : ix; const cz = iz < 0 ? 0 : iz > h - 1 ? h - 1 : iz;
     return this.tileHeights[cz * w + cx];
+  }
+
+  // A building's ground at (x, z) tiles (the setup's map): a squad's block is drawn off it, so the
+  // men in a street stand in the street (battle-art-8). shortcut: a house that fell (rubble in the
+  // sim) still counts here; read the view's ground if squads need to stand on ruins.
+  onBuilding(x, z) {
+    const { w, h, tiles } = this.map;
+    const ix = Math.floor(x); const iz = Math.floor(z);
+    return ix >= 0 && iz >= 0 && ix < w && iz < h && tiles[iz * w + ix] === TILE.BUILDING;
   }
 
   // The ground's height anywhere: bilinear between tile centres, so riverbanks and slopes are smooth
@@ -655,7 +669,7 @@ export class BattleRenderer {
       painted(new BoxGeometry(0.16, 0.3, 0.02).translate(0, 0.15, 0.41), '#4a3322')
     ]);
     house.computeVertexNormals();
-    place(houses, house, { scaleFn: (r) => [0.95, 0.8 + r * 0.9, 0.95], fade: true });
+    place(houses, house, { scaleFn: (r) => [0.95, 0.8 + r * 0.9, 0.95] }); // roofs never fade: troops walk round houses (lead, 29 Oct)
   }
 
   buildStructures() {
@@ -882,7 +896,7 @@ export class BattleRenderer {
     });
     // Each squad's standard: a pole and a waving flag in the side's colour.
     const poleMat = this.track(new MeshLambertMaterial({ color: '#4a3524' }));
-    this.bannerPoles = new InstancedMesh(this.track(new CylinderGeometry(0.025, 0.025, 2.1, 5).translate(0, 1.05, 0)), poleMat, MAX);
+    this.bannerPoles = new InstancedMesh(this.track(new CylinderGeometry(0.025, 0.025, BANNER_POLE, 5).translate(0, BANNER_POLE / 2, 0)), poleMat, MAX);
     this.bannerFlags = new InstancedMesh(this.track(new PlaneGeometry(0.6, 0.38, 4, 1).translate(0.3, 1.86, 0)), this.track(new MeshLambertMaterial({ color: '#ffffff', side: DoubleSide })), MAX);
     [this.bannerPoles, this.bannerFlags].forEach((m) => { m.count = 0; m.frustumCulled = false; m.castShadow = true; this.scene.add(m); });
     this.structBarBg = mk(new PlaneGeometry(1, 0.18), '#0f172a', 0.85);
@@ -1459,8 +1473,14 @@ export class BattleRenderer {
     const wpp = this.worldPerPixel();
     const barPxW = (BAR_PX * wpp) / 1.08; const barPxH = (BAR_H_PX * wpp) / 0.22; // the bar's least size on screen, as a scale
     const farMarks = this.soldierPx() < FAR_MARK_PX;
+    // a standard's scale: its own, or larger so it stands BANNER_MIN_PX tall on the screen (an upright
+    // pole shows camBasis[5] of its height)
+    const bannerK = Math.max(1, (BANNER_MIN_PX * wpp) / (BANNER_POLE * BANNER_HEIGHT * Math.max(0.2, camBasis[5])));
+    this.bannerPxNow = (BANNER_POLE * BANNER_HEIGHT * bannerK * Math.max(0.2, camBasis[5])) / wpp; // read by battle-lab town-shot.mjs
+    const barSpots = []; // this frame's bars on the screen (css px), for stacking
+    const inTown = this.hasBuildings ??=this.map.tiles.includes(TILE.BUILDING); // onBuilding's test is per figure
     const farMarkR = (FAR_MARK_MIN_PX / 2) * this.worldPerPixel();
-    // The ground the player's selected and fighting squads stand on: trees and roofs over it fade (canopyFade.js).
+    // The ground the player's selected and fighting squads stand on: tree crowns over it fade (canopyFade.js).
     this.canopyFade.set(canopyHoles(cur.squads, selected, cur.playerSide).map((s) => ({ x: s.x / Q, z: s.y / Q, r: CANOPY_RADIUS })));
     cur.squads.forEach((s) => {
       const memo = this.soldierMemo.get(s.idx);
@@ -1502,7 +1522,7 @@ export class BattleRenderer {
       if (isSelected) tmpColor.lerp(WHITE, 0.2);
       const { r: cr, g: cg, b: cb } = tmpColor;
       const rankFlash = hitFlash(s.lastHitTick, cur.tick, this.tickRate || 20);
-      const fr = cr + (1 - cr) * rankFlash; const fg = cg + (1 - cg) * rankFlash; const fb = cb + (1 - cb) * rankFlash;
+      const fr = packHit(cr, rankFlash); // the front rank glows (soldierFactory.js packHit)
       const flashCols = rankFlash > 0 ? Math.max(1, cols) : 0; // the front rank takes the blow
       const mat = layer.matrix.array; const colArr = layer.color.array; const animArr = layer.anim.array;
       const walking = moving || s.routed ? 1 : 0; const striking = fighting ? 1 : 0;
@@ -1518,7 +1538,12 @@ export class BattleRenderer {
         if (k >= layer.capacity) break;
         const d = i * FIG;
         const lat = fig[d]; const back = fig[d + 1];
-        const px = x + (-fz) * lat - fx * back; const pz = z + fx * lat - fz * back;
+        let px = x + (-fz) * lat - fx * back; let pz = z + fx * lat - fz * back;
+        // a figure that would stand in a house steps in towards the squad's point (always free ground)
+        if (inTown && !stats.flying && this.onBuilding(px, pz)) {
+          const hx = x + (px - x) * 0.45; const hz = z + (pz - z) * 0.45;
+          if (this.onBuilding(hx, hz)) { px = x + (px - x) * 0.15; pz = z + (pz - z) * 0.15; } else { px = hx; pz = hz; }
+        }
         // Everyone faces the squad's heading, with a touch of variety (cos and sin of the turn
         // plus the figure's own small jitter, by the angle-sum rule).
         if (stats.flying) {
@@ -1535,7 +1560,7 @@ export class BattleRenderer {
           mat[o + 8] = sn; mat[o + 9] = 0; mat[o + 10] = c; mat[o + 11] = 0;
           mat[o + 12] = px; mat[o + 13] = this.heightAt(px, pz); mat[o + 14] = pz; mat[o + 15] = 1;
         }
-        if (i < flashCols) { colArr[k * 3] = fr; colArr[k * 3 + 1] = fg; colArr[k * 3 + 2] = fb; } else { colArr[k * 3] = cr; colArr[k * 3 + 1] = cg; colArr[k * 3 + 2] = cb; }
+        colArr[k * 3] = i < flashCols ? fr : cr; colArr[k * 3 + 1] = cg; colArr[k * 3 + 2] = cb;
         if (clipState) writeAnim(clipState, i, animArr, prevArr, k, (fig[d + 4] / 6.283) * 2);
         else { animArr[k * 3] = fig[d + 4]; animArr[k * 3 + 1] = walking; animArr[k * 3 + 2] = striking; }
         varArr[k * 4] = fig[d + 5]; varArr[k * 4 + 1] = fig[d + 6]; varArr[k * 4 + 2] = fig[d + 7]; varArr[k * 4 + 3] = fig[d + 8];
@@ -1578,7 +1603,7 @@ export class BattleRenderer {
       }
       if (!stats.flying && s.classId !== 'worker' && (isSelected || s.commanderId || (zoom >= BANNER_MIN_ZOOM && s.idx % this.bannerEvery === 0))) {
         const bx = x + fx * 0.25 + (-fz) * (r * 0.55); const bz = z + fz * 0.25 + fx * (r * 0.55);
-        writeYaw(poleMat, bannerN, bx, this.heightAt(bx, bz), bz, heading - Math.PI / 2 + Math.sin(this.time * 3 + s.idx) * 0.25, 1, BANNER_HEIGHT, 1);
+        writeYaw(poleMat, bannerN, bx, this.heightAt(bx, bz), bz, heading - Math.PI / 2 + Math.sin(this.time * 3 + s.idx) * 0.25, bannerK, BANNER_HEIGHT * bannerK, bannerK);
         flagMat.set(poleMat.subarray(bannerN * 16, bannerN * 16 + 16), bannerN * 16);
         flagCol[bannerN * 3] = side.r; flagCol[bannerN * 3 + 1] = side.g; flagCol[bannerN * 3 + 2] = side.b;
         bannerN += 1;
@@ -1606,10 +1631,18 @@ export class BattleRenderer {
       const hurt = s.strength < s.startStrength && (s.striking || s.target >= 0 || hitAge < HIT_SHOW_TICKS || s.routed);
       if (zoom <= BAR_MIN_ZOOM || !(isSelected || hurt)) return;
       const frac = Math.max(0, s.strength / Math.max(1, s.startStrength));
-      const by = y + (stats.flying ? 3.8 : big ? 2.1 : 1.75);
       const bw = Math.max(1, barPxW); const bh = Math.max(1, barPxH);
-      writeBasis(barBgMat, barN, camBasis, x, by, z, bw, bh);
-      const fx0 = x - camRight.x * 0.5 * bw; const fy0 = by - camRight.y * 0.5 * bw; const fz0 = z - camRight.z * 0.5 * bw;
+      // One bar per squad in a melee (battle-art-8): a bar that would cover one already drawn this
+      // frame steps up a row on the screen, up to BAR_ROWS rows, instead of piling into a blob.
+      let barX = x; let barY = y + (stats.flying ? 3.8 : big ? 2.1 : 1.75); let barZ = z;
+      const sx = (barX * camRight.x + barY * camRight.y + barZ * camRight.z) / wpp; let sy = (barX * camBasis[4] + barY * camBasis[5] + barZ * camBasis[6]) / wpp;
+      const wPx = (1.08 * bw) / wpp; const rowPx = (0.22 * bh) / wpp + BAR_GAP_PX;
+      for (let r = 0; r < BAR_ROWS && barSpots.some((p) => Math.abs(p[0] - sx) < wPx && Math.abs(p[1] - sy) < rowPx); r++) {
+        sy += rowPx; barX += camBasis[4] * rowPx * wpp; barY += camBasis[5] * rowPx * wpp; barZ += camBasis[6] * rowPx * wpp;
+      }
+      barSpots.push([sx, sy]);
+      writeBasis(barBgMat, barN, camBasis, barX, barY, barZ, bw, bh);
+      const fx0 = barX - camRight.x * 0.5 * bw; const fy0 = barY - camRight.y * 0.5 * bw; const fz0 = barZ - camRight.z * 0.5 * bw;
       writeBasis(barFillMat, barN, camBasis, fx0, fy0, fz0, frac * bw, bh);
       const mor = Math.max(0, Math.min(1, (s.morale ?? 100) / 100));
       writeBasis(moraleMat, barN, camBasis, fx0, fy0, fz0, (s.routed ? 1 : mor) * bw, bh);
@@ -1620,7 +1653,7 @@ export class BattleRenderer {
       tmpColor.copy(s.routed ? ROUT_PALE : (s.morale ?? 100) < SHAKEN_AT ? MORALE_SHAKEN : MORALE_STEADY);
       if (s.routed) tmpColor.lerp(GREY_ROUT, pulse);
       moraleCol[barN * 3] = tmpColor.r; moraleCol[barN * 3 + 1] = tmpColor.g; moraleCol[barN * 3 + 2] = tmpColor.b;
-      tmpColor.copy(BAR_TRACK).lerp(BAR_TRACK_HIT, flash);
+      tmpColor.copy(BAR_TRACK).lerp(side, BAR_TRACK_SIDE).lerp(BAR_TRACK_HIT, flash); // whose bar: the track takes the side's colour
       barBgCol[barN * 3] = tmpColor.r; barBgCol[barN * 3 + 1] = tmpColor.g; barBgCol[barN * 3 + 2] = tmpColor.b;
       barN += 1;
     });

@@ -2,7 +2,7 @@
 // carry a rim of their side's colour; striped sails tell the fleets apart.
 import { describe, it, expect } from 'vitest';
 import { hitFlash, HIT_FLASH_S, SIDE_RIM } from './BattleRenderer';
-import { createSoldierMaterial, getProceduralSoldierGeometry } from './soldierFactory';
+import { createSoldierMaterial, getProceduralSoldierGeometry, packHit, HIT_LEVELS } from './soldierFactory';
 
 describe('hit flash', () => {
   it('is brightest on the hit tick and gone after HIT_FLASH_S', () => {
@@ -25,7 +25,8 @@ describe('side rim', () => {
     const shader = { uniforms: {}, vertexShader: '#include <beginnormal_vertex>\n#include <begin_vertex>\n#include <color_vertex>', fragmentShader: '#include <color_fragment>\n#include <emissivemap_fragment>\n#include <roughnessmap_fragment>\n#include <metalnessmap_fragment>' };
     mat.onBeforeCompile(shader);
     expect(shader.fragmentShader).toContain('totalEmissiveRadiance += vSide');
-    expect(shader.vertexShader).toContain('vSide = instanceColor.rgb * (1.0 - isSkin)');
+    expect(shader.vertexShader).toContain('vSide = iCol * (1.0 - isSkin)');
+    expect(shader.fragmentShader).toContain('vHit'); // the hit glow (packHit)
     expect(mat.customProgramCacheKey()).toContain(String(SIDE_RIM.near));
   });
 });
@@ -40,5 +41,16 @@ describe('striped sails', () => {
       // a pennant is one box (24 vertices) a mast; the band adds another box a mast
       expect(n).toBeGreaterThanOrEqual(48);
     }
+  });
+});
+
+describe('hit glow (battle-art-8)', () => {
+  it('lasts at least 150 ms strongly, and its level survives the colour it rides in', () => {
+    expect(hitFlash(100, 103, 20)).toBeGreaterThan(0.5); // 150 ms after the hit
+    [0, 0.37, 1].forEach((r) => [0, 0.5, 1].forEach((k) => {
+      const enc = packHit(r, k); const q = Math.floor(enc * 0.5 + 0.0001); // the shader's decode
+      expect(enc - 2 * q).toBeCloseTo(r);
+      expect(q / HIT_LEVELS).toBeCloseTo(k, 1);
+    }));
   });
 });

@@ -71,7 +71,6 @@ export class CityLayer {
     };
     this.walls = mk(this.items.filter((i) => i.s.kind === 'wall' || i.s.kind === 'gate').length * 2 + this.items.filter((i) => i.s.kind === 'tower').length, stone);
     this.blocks = mk(this.items.filter((i) => PASSIVE_KINDS.has(i.s.kind)).length, '#d8cdb5');
-    this.r.canopyFade?.apply(this.blocks.material);
     this.rubble = new InstancedMesh(moundGeometry(), this.r.track(new MeshLambertMaterial({ color: '#8b8073' })), Math.max(1, this.items.length));
     Object.assign(this.rubble, { count: 0, castShadow: true, receiveShadow: true, frustumCulled: false });
     this.r.scene.add(this.rubble);
@@ -118,7 +117,7 @@ export class CityLayer {
         if (this.disposed) return;
         const inst = instanceTownAsset(model, setup.sides[1].color);
         showLod(inst, 0);
-        inst.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; this.r.canopyFade?.apply(o.material); } }); // roofs fade over your squads (canopyFade.js)
+        inst.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } }); // no roof fade: troops walk round houses (battle-art-8)
         enableTownDamage(inst).forEach((m) => this.r.track(m));
         // the ground under the houses the town hall replaced, and under the landmarks the art moved
         // off the square, loses their baked footprints
