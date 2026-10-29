@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getMapMarkers, shortMen, sizeBand } from './mapMarkers';
+import { SCOUT_PARTY_MEN } from '../engine/battleLedger';
 import { visibleTiles } from '../engine/sight';
 import { getTiles } from '../data/geo/tiles';
 import { peoplesWorld, rivalOf, addCity } from '../engine/testWorld';
@@ -37,6 +38,12 @@ describe('map markers', () => {
     expect(armies[0]).toMatchObject({ regionId: mine, own: true, men: 1700, mainClass: 'infantry', canMove: true });
     expect(armies[0].units).toEqual(['a', 'b', 'c']);
     expect(armies[0].morale).toBe(73);
+  });
+
+  it('counts a scout party by its few men, not 3,000, and marks its smaller figure', () => {
+    const { s, mine } = setup();
+    const st = onlyUnits(s, [unit('a', FR, mine, { classId: 'support', explorer: true, strength: 300, maxStrength: 300 })]);
+    expect(getMapMarkers(st).armies[0]).toMatchObject({ men: SCOUT_PARTY_MEN, scout: true });
   });
 
   it('calls an army mixed when no class has 60% of it', () => {

@@ -3,7 +3,7 @@
 // against the committed map (a destroyed regiment left standing, a survivor made whole, a unit
 // missing from the result), one conversion of strength to men, and the temporary troops.
 import { describe, expect, it } from 'vitest';
-import { auxiliariesOf, auxiliaryLine, checkLedger, conserved, countText, ledgerOf, menOf, menText, sideTotals } from './battleLedger';
+import { auxiliariesOf, auxiliaryLine, checkLedger, conserved, countText, ledgerOf, menOf, menText, sideTotals, unitMenOf, SCOUT_PARTY_MEN } from './battleLedger';
 import { MEN_PER_STRENGTH } from './aftermath';
 import { recordBattleReport } from './battleReports';
 
@@ -87,5 +87,13 @@ describe('battle ledger', () => {
     expect(auxiliaryLine(auto.attacker, { yours: false })).toMatch(/^Their auxiliaries raised for the battle: 4,000 men, 1,500 standing at the end\. Temporary/);
     expect(auxiliariesOf({})).toBeNull();
     expect(auxiliaryLine(null)).toBeNull();
+  });
+});
+
+describe('men of a unit', () => {
+  it('counts a regiment by its strength and a scout party by its few riders', () => {
+    expect(unitMenOf({ strength: 1000 })).toBe(menOf(1000));
+    expect(unitMenOf({ explorer: true, strength: 300, maxStrength: 300 })).toBe(SCOUT_PARTY_MEN);
+    expect(unitMenOf({ explorer: true, strength: 150, maxStrength: 300 })).toBe(SCOUT_PARTY_MEN / 2);
   });
 });

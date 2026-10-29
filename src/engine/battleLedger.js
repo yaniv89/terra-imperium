@@ -29,6 +29,13 @@ export const LEDGER_VERSION = 1;
 
 /** Men for a strength on the map. */
 export const menOf = (strength) => Math.round(Math.max(0, strength || 0) * MEN_PER_STRENGTH);
+// A scout party (unit.explorer, scouting.js) is a few riders, not a regiment: its strength is its
+// health, and at full strength it is SCOUT_PARTY_MEN men (it read "3,000 men", help-map-8 playtest).
+export const SCOUT_PARTY_MEN = 30;
+/** Men in one unit on the map: menOf its strength, a scout party's own few. */
+export const unitMenOf = (u) => (u?.explorer
+  ? Math.round((SCOUT_PARTY_MEN * Math.max(0, u.strength || 0)) / Math.max(1, u.maxStrength || u.strength || 1))
+  : menOf(u?.strength));
 /** A count of men as text: 12,340. */
 export const countText = (men) => Math.round(men || 0).toLocaleString('en-US');
 /** Men for a strength on the map, as text. */

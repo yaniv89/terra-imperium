@@ -102,6 +102,13 @@ export const FIGURE_HEIGHT_HEX = 0.85;
 export const FIGURE_WIDTH_RATIO = 0.45; // a figure's width (spear and shield) over its height
 export const GROUP_WIDTH_HEX = 0.65;
 export const SETTLER_FIGURE_SHARE = 0.55;
+// On a city's hex the figure stands in front of the town: at full size it was as tall as the whole
+// town (help-map-8 playtest, 29 Oct), so there it is CITY_FIGURE_SHARE of the field size. A scout
+// party (unit.explorer) is smaller than a regiment's figure everywhere.
+export const CITY_FIGURE_SHARE = 0.55;
+export const SCOUT_FIGURE_SHARE = 0.7;
+/** The share of the field figure's size an army marker's figure stands at (marker: mapMarkers.js). */
+export const figureShareOf = (m) => (m?.scout ? SCOUT_FIGURE_SHARE : 1) * (m?.inCity ? CITY_FIGURE_SHARE : 1);
 // ONE unit model is drawn per tile (tileStack.js), standing on its hex: at the centre of a plain hex
 // (a small step toward the viewer so the feet are on the ground), and on a city's hex a little
 // further forward and to the side, at the town's front corner (its banner beside the town, the
@@ -127,7 +134,7 @@ export const SHIP_HALF_LENGTH = 1.9;
 export const SHIP_SPACING = 2.2;
 export const fleetCapPx = (hexPx, n) => hexCapPx(hexPx, ((n - 1) / 2) * SHIP_SPACING + SHIP_HALF_LENGTH);
 /** Where an army's banner hangs over its soldiers, in pixels from its tile (one rule for the WebGL map and the SVG map). */
-export const armyBannerOffset = (hexPx, inCity = false) => { const [x, y] = armySpotPx(hexPx, inCity); return [x, y - FIGURE_HEIGHT_HEX * hexPx * 0.85 - 10]; };
+export const armyBannerOffset = (hexPx, inCity = false, share = inCity ? CITY_FIGURE_SHARE : 1) => { const [x, y] = armySpotPx(hexPx, inCity); return [x, y - FIGURE_HEIGHT_HEX * share * hexPx * 0.85 - 10]; };
 
 // How far the models lean toward the viewer (radians about the screen x axis, 0 = seen from the
 // side, pi/2 = straight down). About 35 degrees: a low three-quarter look, so towers, walls and

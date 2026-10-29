@@ -24,7 +24,7 @@ import { RESOURCES_ON_TILES, resourceKnown } from '../../../data/tileYields';
 import { resourceIconUrl, improvementIconUrl, wonderIconUrl, markerIconUrl, unitIconUrl, cityIconUrl } from '../../../data/icons';
 import { townTier } from '../closeView/townTiers';
 import { WORK_KINDS } from '../closeView/landscape';
-import { armyBannerOffset, hexPxOf, tiltFor, TIER_SCALE } from '../closeView/scale';
+import { armyBannerOffset, figureShareOf, hexPxOf, tiltFor, TIER_SCALE } from '../closeView/scale';
 import { hexTownPx } from '../closeView/cityHex';
 import { markerLatLng } from '../../../utils/markerPosition';
 import { clusterScreenMarkers, MARKER_OFFSET, markerItems } from '../mapBanners';
@@ -156,7 +156,7 @@ export const markerSprites = ({ markers, projection, k, atWar, dpr, waterTile })
     const c = markerLatLng(m);
     const p = c && projection([c.lng, c.lat]);
     if (!p) return;
-    const off = close && m.kind === 'army' ? armyBannerOffset(hexPxOf(projection, k), !!m.inCity) : MARKER_OFFSET[m.kind] || [0, 0];
+    const off = close && m.kind === 'army' ? armyBannerOffset(hexPxOf(projection, k), !!m.inCity, figureShareOf(m)) : MARKER_OFFSET[m.kind] || [0, 0];
     items.push({ ...m, anchor: p, off, x: p[0] * k + off[0], y: p[1] * k + off[1] });
   });
   const sprites = []; const hits = [];
