@@ -692,7 +692,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         const at = toScreenLatLng(markerLatLng(m));
         if (!at) return;
         // ONE model per tile: the top unit's class (a soldier over a settler, the picked or strongest soldier)
-        const classId = m.own && (m.topClass || (m.mainClass && m.mainClass !== 'mixed' && m.mainClass)) || 'infantry';
+        const classId = m.scout ? 'scout' : (m.own && (m.topClass || (m.mainClass && m.mainClass !== 'mixed' && m.mainClass)) || 'infantry');
         const ageId = (m.own && m.topAge) || ageOf(state, m.ownerId);
         const peopleId = m.ownerId ? peopleOf(m.ownerId)?.id : null;
         const sigKey = signatureLayerKey(peopleId, ageId, classId);
