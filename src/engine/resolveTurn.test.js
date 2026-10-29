@@ -121,7 +121,7 @@ describe('resolveTurn time: the year is a label, a turn is a turn (KTD3)', () =>
   it('the label moves inside a tech by its share done (follow-up 18)', () => {
     const state = withAgesResearched(world(5), P, 'bronze'); // a Bronze Age start: all Stone techs known
     const tech = bronze[0];
-    const half = getResearchCost(state, P, tech) / 2;
+    const half = getResearchCost(state, P, tech, undefined, true) / 2; // the label reads the steady price (no modifiers or diffusion)
     expect(displayYear(state)).toBe(-1520);
     expect(displayYear({ ...state, research: { ...state.research, current: tech, progress: { [tech]: half } } })).toBe(-1460);
   });

@@ -46,6 +46,7 @@ const fallbackItems = (state, city, ctx) => {
 const fallbackPick = (state, city, ctx) => fallbackItems(state, city, ctx)[0] || null;
 // A pick past the long-build line (cityEconomy.js isLongBuild, about 20 turns at Normal) gives way to
 // the first fallback item under it (civ-veteran playtest step 127: a 24-turn archer after a lost army).
+// A wonder is the player's own call, never the advisor's (manual playtest 29 Oct: the Great Wall in Greece).
 const isSlow = (view, cityId, item, ctx) => isLongBuild(view, ctx.ageId, buildQuote(view, cityId, item)?.turns);
 
 // chooseProduction remembers "this nation already weighed a settler" per regions map (one site
@@ -56,9 +57,9 @@ const pickIn = (view, cityId, ctx, counts) => {
   const city = view.regions?.[cityId];
   if (!city || city.owner !== view.playerNationId || city.outpost || city.razing || city.production?.current) return null;
   const pick = chooseProduction(view, city, { ...ctx, units: view.units, counts }) || fallbackPick(view, city, ctx);
-  if (!pick || !isSlow(view, cityId, pick, ctx)) return pick;
+  if (!pick || (pick.kind !== 'wonder' && !isSlow(view, cityId, pick, ctx))) return pick;
   const quick = fallbackItems(view, city, ctx).filter((item) => !isSlow(view, cityId, item, ctx));
-  return quick.find((item) => item.kind === pick.kind) || quick[0] || pick; // a slow unit gives way to a quick unit first
+  return quick.find((item) => item.kind === pick.kind) || quick[0] || (pick.kind === 'wonder' ? fallbackPick(view, city, ctx) : pick); // a slow unit gives way to a quick unit first
 };
 const countsOf = (state) => ({ settlers: 0, outposts: 0, landUnits: 0, ...(nationCounts(state)[state.playerNationId] || {}) });
 

@@ -33,7 +33,7 @@ import { buildingEffect, improvementEffect } from '../../engine/cityEffects';
 import { settlingOutlook } from '../../engine/settlers';
 import { rushQuote, rushGold, rushRate, RUSH_GOLD_PER_HAMMER } from '../../engine/spending';
 import { calcNationBalance } from '../../engine/economy';
-import { FIRST_AGE_ID } from '../../data/ages';
+import { FIRST_AGE_ID, isAgeBefore, nextAgeId } from '../../data/ages';
 import { techEta, techEtaText } from '../panels/researchView';
 
 export const GROUPS = ['Units', 'Armies', 'Buildings', 'Wonders', 'Improvements'];
@@ -191,6 +191,8 @@ export const buildOptions = (state, cityId, live = cityLive(state, cityId)) => {
     const tier = standing + 1;
     const def = BUILDING_CATEGORIES[category].tiers[tier];
     if (!def) return;
+    // a tier two ages ahead is noise (manual playtest 29 Oct: a Coal Plant and a 108-turn Market in the Stone Age)
+    if (def.age && isAgeBefore(nextAgeId(ageId) || ageId, def.age)) return;
     if (BUILDING_CATEGORIES[category].coastalOnly && !coast) return; // no Harbor row inland (I040); the Buildings tab says why
     const item = { kind: 'building', category, tier };
     const need = def.requiresTech && !researched.includes(def.requiresTech) ? def.requiresTech : null;

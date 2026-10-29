@@ -85,12 +85,14 @@ const researchedSetOf = (state, nationId) => new Set(isPlayer(state, nationId)
   : state.nations[nationId]?.tech?.researched || []);
 const techAgeOf = (state, nationId) => ageOf(state, nationId);
 
-export const getResearchCost = (state, nationId, techId, repeats = futureTechsOf(state, nationId)) => {
+// `steady`: without the cost modifiers and diffusion, for the year label (displayYear.js), which must not
+// move back when a new city or diffusion changes the price of a tech under way.
+export const getResearchCost = (state, nationId, techId, repeats = futureTechsOf(state, nationId), steady = false) => {
   const tech = TECH_TREE[techId];
   if (!tech) return Infinity;
   const base = (RESEARCH_AGE_BASE[tech.ageId] ?? RESEARCH_AGE_BASE.modern) * (tech.repeatable ? 1 + FUTURE_TECH_COST_GROWTH * repeats : 1);
   const speed = speedCostMult(state.gameSpeed, techAgeOf(state, nationId)); // the speed table (ages.js, KTD9): keyed by the paying nation's own age
-  const mult = withDiffusion(state, nationId, techId, getModifier(state, nationId, 'national.researchCost').total);
+  const mult = steady ? 0 : withDiffusion(state, nationId, techId, getModifier(state, nationId, 'national.researchCost').total);
   const known = getResearched(state, nationId);
   const writing = known.includes(WRITING_TECH) ? 1 : NO_WRITING_COST_MULT; // stonePhase.js: no writing, half the science
   const first = openingCostMult(known);

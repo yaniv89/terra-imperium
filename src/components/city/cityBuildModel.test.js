@@ -23,6 +23,12 @@ const withTech = (s, ids) => ({ ...s, techTree: { ...s.techTree, ...Object.fromE
 const queue = (s, item, cityId = paris) => gameReducer(s, { type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId, item } });
 
 describe('build options', () => {
+  it('lists no building tier more than one age ahead (no Coal Plant or Market in the Stone Age)', () => {
+    const rows = buildOptions(S, paris).filter((o) => o.item.kind === 'building');
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.map((o) => o.item.category)).not.toContain('energy');
+    expect(rows.some((o) => o.label === 'Market')).toBe(false);
+  });
   it('every improvement row names its own tile: no two rows read the same', () => {
     const s = withTech(S, ['economy_bronze_trade_routes', 'military_bronze_casting', 'infrastructure_mudbrick_roads', 'infrastructure_irrigation_canals']);
     const rows = buildOptions(s, paris).filter((o) => o.group === 'Improvements');
