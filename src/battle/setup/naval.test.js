@@ -1,9 +1,10 @@
 // Sea battles (playtest issues 1 and 2): ships on water only, no land units, and the fleets meet.
 import { describe, it, expect } from 'vitest';
-import { buildSetupFromArmies } from './buildBattleSetup';
+import { buildSetupFromArmies, commandedSetup } from './buildBattleSetup';
 import { TILE } from './mapgen';
 import { createWorld } from '../sim/world';
 import { runHeadless } from '../sim/headless';
+import { step } from '../sim/step';
 import { battleLimitTicks } from '../sim/constants';
 
 const fleet = (prefix, lines, strength, generalId) => lines.map((navalLine, i) => ({ id: `${prefix}${i}`, classId: 'naval', navalLine, strength, maxStrength: 1000, morale: 100, promotions: [], commanderId: i === 0 ? generalId : null, domain: 'naval', xp: 0 }));
@@ -28,6 +29,13 @@ describe('sea battle', () => {
         expect(map.tiles[Math.floor(q.y / 256) * map.w + Math.floor(q.x / 256)]).toBe(TILE.OPEN);
       });
       expect(setup.structures.every((s) => s.passive)).toBe(true);
+    });
+
+    // BC 47 (U9): a destroyer was lost before any order; the fleets form up out of reach.
+    it(`${ageId}: no ship is hit before tick 60`, () => {
+      const w = createWorld(commandedSetup(seaSetup(ageId, 3)));
+      for (let i = 0; i < 60; i++) { step(w, []); w.events.length = 0; }
+      w.squads.filter((q) => q.onField).forEach((q) => expect(q.strength).toBe(q.startStrength));
     });
 
     it(`${ageId}: with the player idle, the AI fleet comes on and the battle ends before the clock`, () => {
