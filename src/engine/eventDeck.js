@@ -8,9 +8,8 @@
 //           effects.spawnFollowUp, due a delay in reference turns later, with the city it bound
 //   draw    a procedural card (data/proceduralEvents.js): `requires`, a city subject drawn from
 //           `subjects.city`, a weight, and cooldowns per card, family and city (`once`: a story's opener, never twice)
-// A turn shows at most one: a due story first, then a due link, then a raid's aftermath
-// (raidAftermathCard), then the age's dawn card
-// (eraDawnCard, once an age), then sometimes a draw. Memory sits
+// A turn shows at most one: a due link, then a raid's aftermath (raidAftermathCard), then the age's dawn card
+// (eraDawnCard, outside the gap), then a due story once the gap is over (STORY_GAP), then sometimes a draw. Memory sits
 // in state.firedEvents (stories and links), state.pendingEventChains (links waiting) and
 // state.eventHistory (draw cooldowns). Pure; draws use the turn's seeded rng.
 import { HISTORICAL_EVENTS, ageIdOfYear, eventTechsNeeded } from '../data/events';
@@ -97,6 +96,9 @@ export const cooldownTurns = (state, kind) => Math.ceil(EVENT_COOLDOWN_TURNS[kin
 // cooldown is EVENT_COOLDOWN_TURNS.template times (1 + the times it was drawn), at most
 // REST_GROWTH_MAX + 1 times (uncapped, the last two ages ran out of cards: storyPulse.sim.js).
 export const REST_GROWTH_MAX = 2;
+// Turns after a story before the next story or draw; a drawn card comes once per player age (`a:<id>` in eventHistory).
+export const STORY_GAP = 2;
+export const NO_CARDS_COOLDOWN = 100;
 const onCooldown = (state, key, kind, times = 0) => {
   const last = state.eventHistory?.[key];
   return last != null && (state.turnNumber || 0) - last < cooldownTurns(state, kind) * (1 + Math.min(times, REST_GROWTH_MAX));
@@ -114,7 +116,7 @@ export const noteEventFired = (history, event, turnNumber) => ({
 export const drawCard = (state, rng) => {
   const ctx = factContext(state, state.playerNationId);
   const eligible = DRAWS
-    .filter((t) => (!t.theme || t.theme === peopleOf(state.playerNationId)?.theme) && !(t.once && state.eventHistory?.[`t:${t.id}`] != null) && !onCooldown(state, `t:${t.id}`, 'template', state.eventHistory?.[`n:${t.id}`] || 0) && !onCooldown(state, `f:${t.family}`, 'family') && (!t.requires || predicateMet(t.requires, ctx)))
+    .filter((t) => (!t.theme || t.theme === peopleOf(state.playerNationId)?.theme) && !(t.once && state.eventHistory?.[`t:${t.id}`] != null) && !onCooldown(state, `t:${t.id}`, 'template', state.eventHistory?.[`n:${t.id}`] || 0) && !onCooldown(state, `f:${t.family}`, 'family') && state.eventHistory?.[`a:${t.id}`] !== ageOf(state, state.playerNationId) && (!t.requires || predicateMet(t.requires, ctx)))
     .map((t) => ({ t, cities: t.subjects?.city ? t.subjects.city(state).filter((c) => !onCooldown(state, `c:${c.id}`, 'city')) : null }))
     .filter(({ cities }) => !cities || cities.length > 0);
   if (eligible.length === 0) return null;
@@ -219,9 +221,6 @@ export const drawEvent = (state, rng) => {
     eventHistory: state.eventHistory || {},
     proceduralEventCooldown: Math.max(0, (state.proceduralEventCooldown || 0) - 1)
   };
-  const story = nextStory(state);
-  if (story) return { ...out, activeEventId: story.id };
-
   const i = out.pendingEventChains.findIndex((l) => l.dueTurn <= state.turnNumber && CARDS[l.id]?.kind === 'link');
   if (i !== -1) {
     const link = out.pendingEventChains[i];
@@ -243,15 +242,22 @@ export const drawEvent = (state, rng) => {
   const raid = raidAftermathCard(state);
   if (raid) return { ...out, activeProceduralEvent: raid, eventHistory: { ...out.eventHistory, [`raid:${raid.indepId}`]: raid.raidTurn } };
 
-  // The age's dawn card takes the first free draw slot of the age; other draws come on a few quiet
-  // turns, a random few turns apart.
-  const dawn = out.proceduralEventCooldown <= 0 ? eraDawnCard(state) : null;
-  if (dawn) return { ...out, activeProceduralEvent: dawn, eventHistory: { ...out.eventHistory, [dawn.historyKey]: state.turnNumber }, proceduralEventCooldown: 3 };
+  // The age's dawn card (and its late-age follow-ups) shows at once and is outside the gap (lead 29 Oct); a cooldown
+  // past any real gap (NO_CARDS_COOLDOWN, the tests' and harnesses' "quiet") still holds it.
+  const dawn = out.proceduralEventCooldown < NO_CARDS_COOLDOWN ? eraDawnCard(state) : null;
+  if (dawn) return { ...out, activeProceduralEvent: dawn, eventHistory: { ...out.eventHistory, [dawn.historyKey]: state.turnNumber } };
+
+  // A due story waits out the gap after a story or draw, and leaves one (pacing-8, manual playtest 29 Oct: a card
+  // almost every turn on Fast; storyPulse Fast Stone 0.73 to 0.45 cards a turn).
+  const story = out.proceduralEventCooldown <= 0 ? nextStory(state) : null;
+  if (story) return { ...out, activeEventId: story.id, proceduralEventCooldown: STORY_GAP };
+
+  // Draws come on a few quiet turns, a random few turns apart.
   if (out.proceduralEventCooldown <= 0 && rng.next() < 0.3) {
     const event = drawCard(state, rng);
     if (event) {
       out.activeProceduralEvent = event;
-      out.eventHistory = noteEventFired(out.eventHistory, event, state.turnNumber);
+      out.eventHistory = { ...noteEventFired(out.eventHistory, event, state.turnNumber), [`a:${event.templateId}`]: ageOf(state, state.playerNationId) }; // once an age
       out.proceduralEventCooldown = 3 + Math.floor(rng.next() * 5);
     }
   }

@@ -965,7 +965,7 @@ describe('resolveTurn curated national events', () => {
     try {
       const held = getTechsForAge(ev.ageId).slice(0, eventTechsNeeded(ev.ageId, ev.year));
       const base = withAllEventsFired(world());
-      const state = { ...base, techAgeId: ev.ageId, techTree: { ...base.techTree, ...Object.fromEntries(held.map((t) => [t.id, { ...base.techTree?.[t.id], researched: true }])) }, firedEvents: {} };
+      const state = { ...base, techAgeId: ev.ageId, techTree: { ...base.techTree, ...Object.fromEntries(held.map((t) => [t.id, { ...base.techTree?.[t.id], researched: true }])) }, firedEvents: {}, proceduralEventCooldown: 0, eventHistory: { [`dawn:${ev.ageId}`]: 1 } }; // no gap, dawn card shown (eventDeck.js)
       const next = resolveTurn(state);
       expect(next.activeEventId).toBe(ev.id);
     } finally { delete CARDS[ev.id]; }
