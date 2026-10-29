@@ -16,7 +16,7 @@
 // {nation:agree=demand} (the English verb that agrees with the nation's name: "demands" or, for
 // "the Elamite tribes", "demand"). A var may itself be a message (`sub(key, vars)`), written in
 // place. A key with `.one` / `.two` / `.other` forms is a plural and takes its form from `count`.
-import { tableOf, pluralForm, isRtl, isolateSigned } from '../i18n/core';
+import { tableOf, pluralForm, isRtl, isolateSigned, inSentence } from '../i18n/core';
 import { agree } from './grammar';
 
 /** A name in a message: kind is 'people', 'city', 'person', 'place', 'tech', 'unit', 'building',
@@ -85,8 +85,7 @@ export const msgText = (key, vars, lang = 'en', nameOfRef = null) => {
     if (fmt === 'money') return lang === 'he' ? heMoney(v) : `${shortNumber(v)}g`;
     if (fmt === 'pct') return `${v}%`;
     if (fmt === 'agree') return agree(isRef(v) ? v.en : String(v), arg || '');
-    // "The Dacian tribes" starts a line; inside one it is "the Dacian tribes"
-    if (isRef(v) && v.k === 'people' && !/(^|[.!?:]\s+)$/.test(all.slice(0, at))) return value(v).replace(/^The /, 'the ');
+    if (isRef(v) && v.k !== 'm') return inSentence(value(v), all.slice(0, at)); // a name mid-sentence: "the Dacian tribes"
     return value(v);
   });
   return isRtl(lang) ? isolateSigned(out) : out;

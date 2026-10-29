@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { addCity, cap, gateTile } from '../../engine/testWorld';
 import { getNeighborIds } from '../../data/regions';
 import { getTiles } from '../../data/geo/tiles';
+import { inSentence } from '../../i18n/core';
 import { marchBarModel } from './MarchBar';
 import RegionInfoModal from '../modals/RegionInfoModal';
 import { peoplesWorld, rivalOf } from '../../engine/testWorld';
@@ -69,7 +70,7 @@ describe('ACT-01 march bar: an army beside a city', () => {
     const m = marchBarModel(s, march(), PLAN);
     expect(m.canAttackNow).toBe(false);
     expect(m.canMarchAttack).toBe(false);
-    expect(m.marchAttackBlocked).toBe(`At peace with ${s.nations[DE].name}: declare war before attacking (its province card).`);
+    expect(m.marchAttackBlocked).toBe(`At peace with ${inSentence(s.nations[DE].name, "x ")}: declare war before attacking (its province card).`);
   });
 
   it('far at war: March to attack, no refusal', () => {

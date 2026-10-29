@@ -77,6 +77,8 @@ const COUNTRY_TO_GROUP = {
 // The peoples of the pool (src/data/peoples.js) are ancient: their governors and advisors take
 // names of their own culture and time, never the modern pools above (Mycenaeans were named
 // Beatriz and Diego, manual playtest 29 Oct). Given names only; the dynasty pools stay legacy.
+// A people with no recorded personal names (Hopewell, Dorset, Lapita, Nuragic...) takes the pool of
+// its nearest neighbours whose names survive (lead, 29 Oct), never a generic list.
 const ANCIENT_POOLS = {
   aegean: ['Alexandros', 'Nikias', 'Theron', 'Kleon', 'Lykos', 'Damon', 'Hektor', 'Menelaos', 'Helene', 'Ariadne', 'Kassandra', 'Penelope', 'Phaidra'],
   etruscan: ['Larth', 'Arnth', 'Vel', 'Aule', 'Lars', 'Sethre', 'Laris', 'Tanaquil', 'Ramtha', 'Thana', 'Velia', 'Fasti'],
@@ -105,7 +107,7 @@ const ANCIENT_POOLS = {
   andean: ['Naymlap', 'Tacaynamo', 'Manco', 'Sinchi', 'Mayta', 'Lloque', 'Nemequene', 'Tisquesusa', 'Ceterni', 'Ocllo', 'Cusi', 'Chimpu'],
   caribbean: ['Caonabo', 'Hatuey', 'Guarionex', 'Bohechio', 'Cunhambebe', 'Aimbere', 'Arariboia', 'Anacaona', 'Higuamota', 'Paraguacu', 'Moema'],
   north_american: ['Koyah', 'Ninstints', 'Skidegate', 'Cumshewa', 'Senquene', 'Popay', 'Tecumseh', 'Wingina', 'Nanyehi', 'Weetamoo', 'Awashonks'],
-  pacific: ['Naulivou', 'Isokelekel', 'Olosohpa', 'Taga', 'Quipuha', 'Matapang', 'Hurao', 'Bunjil', 'Tui', 'Adi Kuila']
+  pacific: ['Naulivou', 'Isokelekel', 'Olosohpa', 'Taga', 'Quipuha', 'Matapang', 'Hurao', 'Tui', 'Adi Kuila']
 };
 Object.entries(ANCIENT_POOLS).forEach(([group, given]) => { NAME_POOLS[group] = { given, dynasty: [] }; });
 // A people reads the ancient group of its modern land; PEOPLE_GROUP corrects the lands that held

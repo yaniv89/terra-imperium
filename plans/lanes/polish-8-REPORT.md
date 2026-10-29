@@ -11,15 +11,18 @@ Branch `claude/polish-8`, base 0cc85a67. Ponytail loaded at session start (hook 
 - Settle site title: the tile card now shows the name the city will take (own-list names first, as
   founding does) instead of the place name. The other choice, founding cities under the real place
   name, would change the naming rule; not done.
-- Not fixed, same class as item 1: names that start with "The" (e.g. "The Arvernian people") still read
-  with a capital mid-sentence in UI strings built with t() (cf.war.title, cf.trade.title). The fix in
-  msgText covers engine messages only.
+- Lead answers (29 Oct): pools accepted, getCultureGroup kept; peoples with no recorded names use their
+  nearest neighbours' pool (documented in names.js, one deity name removed); settle card name accepted.
+- "The" mid-sentence: one helper `inSentence` (src/i18n/core.js) used by t()'s fill (every UI string:
+  cf.war.title, cf.trade.title and the rest) and by msgText for name refs. Test: src/i18n/inSentence.test.js.
+- Branch merged with origin/claude/integration (conflicts in TileSheet.jsx: city tile name first, then the
+  settle name; NationCard.jsx imports).
 
 ## Findings
 
 | # | Finding | Cause | Fix | Evidence |
 |---|---------|-------|-----|----------|
-| 1a | "Pylos stays The Dacian tribes's." | Possessive on a plural name; independent titles are capitalised for title use | `m.diplo.ownStaysTheirs` is now "{city} stays with {nation}."; `msgText` writes a people ref's leading "The" as "the" mid-sentence (src/engine/messages.js) | messages tests pass; output "Pylos stays with the Dacian tribes." |
+| 1a | "Pylos stays The Dacian tribes's." | Possessive on a plural name; independent titles are capitalised for title use | `m.diplo.ownStaysTheirs` is now "{city} stays with {nation}."; ``inSentence` (src/i18n/core.js) writes a leading "The" as "the" mid-sentence, in t() and msgText | messages tests pass; output "Pylos stays with the Dacian tribes." |
 | 1b | Dev note in Great Wall description | `description` carried the "standing in for..." note (also Pyramids, Arsenal, Seed Vault) | Notes removed in en (greatProjects.js) and he (he.world.js); Hebrew Great Wall and Arsenal lines also said the old "admin power"/"military power" effects, now match the real effects | diff of the four descriptions |
 | 1c | Focus line "costs )" | `ACTION_COSTS.setResearchFocus` is `{}` (truthy), so ", costs " with an empty list | TechPanel checks `costLine(focusCost)` instead | line reads "(+N% science for one line)" |
 | 1d | FRIENDLY at -13 opinion | NationCard chip and RegionInfoModal read `relationStatus`, frozen to Friendly when trade is signed (resolveTurn keeps it while a trade pact holds) | Both show the mood word from the opinion number (`moodWord`, same thresholds as first contact) | -13 now reads "Wary" |
