@@ -53,13 +53,37 @@ Options for the lead (each needs aiDuel and parityEco, and the Auto retune throu
 - Tests: `npm run test:related -- src/battle/sim/world.js src/battle/setup/mapgen.js src/components/battle/BattleSandbox.jsx` (result in the commit message); naval.test.js 6 of 6.
 - Not run: full suite (shared PC), aiDuel sea rows, browser shot of the sandbox sack.
 
-## Option A (lead, 29 Oct): work in progress, usage limit reached
+## Option A (lead, 29 Oct): built
 
-Built: CITY_STORES_PER_SEC 2.5 food, 1.2 wood while the keep stands (economy.js), the walled city's hall trains infantry and ranged in turns (CITY_HALL_TRAINS, `trainsOf`, HUD view row carries `trains`), the defender AI keeps laborers inside and raises nothing while the ring is whole (economyAI.js). SETUP_VERSION 32.
+### For the lead (decide before merge)
 
-parityEco N=16 MATCH=0 assault (base: bronze 32/32, classical>kingdoms 29/32 of N=32):
-- hall infantry only: bronze 15/16, classical>kingdoms 9/16
-- archers first: 11/16, 0/16
-- alternating (committed): 14/16, 0/16; Command/Auto ratio 1.44x and 2.86x, both IN
+**The Siwa test now fails** (src/battle/sim/autoContinue.test.js, audit H-02/H-26). A player who makes one attack-move with 4 x 588 on a small walled capital (2 x 190 and militia) and never trains now wins 0 of 4 (was 4 of 4). Auto still says the attacker wins 4 of 4 with 142 men lost.
+- Cause: option A lets even a weak walled town train companies at its hall (ranged fire is 4,277 of the attacker's losses). Auto assumes the attacker trains 22 companies; this player trains none.
+- Not the stores (stores off: 1 of 4) and not the held keep (multiplier 1: 0 of 4). Tried and reverted: stores scaled by housing, stores scaled by the starting garrison (both 0 of 4).
+- Options: (a) the hall trains only while the city's own garrison holds a regiment (a weak town cannot raise an army from nothing); (b) accept it, change the test to "a commanded assault that also trains wins", and give Auto the attacker's real training; (c) drop hall training, keep only the stores and laborers inside. I lean (a). The test is left red so the merge cannot miss it.
 
-Left: (1) trained men hold at the keep (tacticalAI thinkDefender: leave held auxiliaries alone while the ring is whole), aiming bronze mirror at 40-60%; (2) EconomyHud.jsx:257 and TacticalBattleScreen.jsx:815 read `building.trains || def.trains` so the player can train at the hall; (3) autoCalib retune in autoBattle.js (Auto still 13/16); (4) aiDuel, N=32 rows, test:related, a test for the hold rule. classical>kingdoms is not a mirror (defender one age ahead).
+### What is built
+
+- Stores (CITY_STORES_PER_SEC 2.5 food, 1.2 wood a second) while the keep stands. The walled city's hall trains infantry and ranged in turns (CITY_HALL_TRAINS, `trainsOf`); the HUD reads the hall's list (EconomyHud.jsx, TacticalBattleScreen.jsx), so the player can train there.
+- Defender AI with a whole ring: laborers come in, nothing is raised outside (economyAI.js). Trained companies hold at the keep, released when hit (tacticalAI.js thinkDefender).
+- A walled keep takes KEEP_HELD_MULT 0.3 of a blow while its own garrison (regiments and militia, not companies) holds CREW_FULL men (siegeRules.js `garrisonHolds`, combat.js): a city falls only when its defence is beaten. At 0 every mirror held to the clock (0 of 16); 0.25 gave 1 of 32; 0.33 gave 20 of 32.
+- Auto: AUX_TRAINED.assault [22, 5] to [22, 10] (autoCalib over A and D, other constants fixed): 0 of 9 assault rows out.
+- SETUP_VERSION 33. New test src/battle/sim/walledCity.test.js; siegeRules.test.js and autoBattle.test.js follow the new rule.
+
+### Numbers (parityEco N=32, mixed, fort 2, AI v AI)
+
+| Row | Attacker wins before | After: real time / Auto | Exchange |
+|---|---|---|---|
+| bronze mirror inf+inf+ranged | 32/32 (Auto 28) | **18/32** / 14/32 | 1.50x IN |
+| classical mirror | not run | **21/32** / 14/32 | 1.46x IN |
+| classical>kingdoms (defender one age ahead) | 29/32 (Auto 26) | 1/32 / 13/32 | IN |
+| 5 v 2 rows (bronze, classical, cl>kg) | 32, -, 26 | 26, 29, 15 | IN |
+| siege-engine rows (bronze, classical, cl>kg) | 32, -, 31 | 32, 32, 22 | IN at [22, 10] (2 OUT at [22, 5]) |
+| town rows (no walls) | code path unchanged | as before | 9 of 9 IN |
+
+aiDuel N=20 prince (old AI from origin/claude/integration; OO old v old, ON new defender): assault mirror bronze 19 to 15, kingdoms 18 to 17; 4 v 4 rows 14 to 9 and 17 to 9; siege rows 17 to 4 and 19 to 8. Attacker AI unchanged (NO = OO); sea rows unchanged. aiDuel-prep.mjs writes Windows backslash import paths; I fixed the copies by hand.
+
+### Not done
+
+- The Siwa decision above. classical>kingdoms: Auto 13 against real time 1 (WALLS_AGE_RELIEF not retuned; it moves the other age rows).
+- Full suite; a mobile shot of the hall's training buttons.

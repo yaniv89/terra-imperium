@@ -56,7 +56,7 @@ export const AUX_EFFECT = 1; // 1.6 before Auto broke units at the RTS loss shar
 // works only as strong as their crew, so the real-time attacker of a city bleeds far less; autoCalib
 // over parityEco assault and town, bronze, classical against kingdoms and bronze against classical,
 // N=16: 13 of 14 in, the bronze 3-against-3 against classical walls reads 0.41).
-export const AUX_TRAINED = { field: [6, 6], assault: [22, 5], town: [2, 2] }; // assault [22, 5] with ASSAULT_AUX_HOLD: what the real-time sides train (25.9 and 7.9 companies) at the parity stockpile (x 1.33)
+export const AUX_TRAINED = { field: [6, 6], assault: [22, 10], town: [2, 2] }; // assault [22, 10] (U9: a walled city trains at its hall on its stores; autoCalib N=32 assault rows 0 of 9 out, mirror wins 14 of 32 against 18 and 21 in real time; it was [22, 5])
 export const AUX_ROUNDS = 0; // extra auto-resolve rounds per auxiliary unit (the time to fight them)
 export const WALLS_FORT_LEVEL = 2;
 // 0.8 since SETUP_VERSION 13 (W12): with wood everywhere the real-time attacker trains more
