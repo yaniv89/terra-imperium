@@ -72,10 +72,10 @@ const NO_CHIPS = [];
  * chip, `user` (the player opened it: it takes the screen from anything).
  * Returns `shown` (draw it now), `tuck()` (set it aside as a chip) and `promote()` (bring it up).
  */
-export const useInteraction = (id, open, { priority = PRIORITY.sheet, kind = 'card', label = null, testId = null, tone = null, user = false } = {}) => {
+export const useInteraction = (id, open, { priority = PRIORITY.sheet, kind = 'card', label = null, testId = null, tone = null, user = false, keepOpener = false } = {}) => {
   useIsoLayoutEffect(() => {
     if (!open) return undefined;
-    interactions.open({ id, priority, kind, label, testId, tone }, { user });
+    interactions.open({ id, priority, kind, label, testId, tone }, { user, keepOpener });
     return () => interactions.close(id);
     // Not in the list on purpose: the words are kept fresh below, and `user` only matters at the
     // moment it opens.

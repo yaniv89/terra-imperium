@@ -24,6 +24,15 @@ const open = (e, o) => (s) => openInteraction(s, e, o);
 const close = (id) => (s) => closeInteraction(s, id);
 
 describe('interactionModel, a phone or a tablet', () => {
+  it('a card the player opens from a sheet keeps the sheet under it (Invade from the city sheet, lane battle-hud-9)', () => {
+    let s = run(open(city, { user: true }), open(preBattle, { user: true, keepOpener: true }));
+    expect(phone(s)).toEqual(['pre-battle', 'province']); // the card lives inside the sheet: closing it took the card too
+    s = closeInteraction(s, 'pre-battle');
+    expect(phone(s)).toEqual(['province']);
+    // without the flag (a card the game opens, or any other) the one-thing rule holds
+    expect(phone(run(open(city, { user: true }), open(preBattle, { user: true })))).toEqual(['pre-battle']);
+  });
+
   it('shows one thing: a decision that arrives tucks the dock and gives it back', () => {
     let s = run(open(dock, { user: true }), open(tribute));
     expect(phone(s)).toEqual(['tribute']);

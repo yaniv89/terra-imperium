@@ -84,6 +84,8 @@ export default {
   'bt.hud.raidFirst': 'First: the raiders reach your houses seconds after Start. Place your squads between them and the town now.',
   'bt.hud.raidStart': 'The raiders are coming. Tap Enemy to see them, then All and Attack to meet them.',
   'bt.hud.foldDeploy': 'Fold the deploy card',
+  'bt.hud.foldObjective': 'Fold the objective',
+  'bt.hud.showObjective': 'Show the objective',
   'bt.hud.everyShip': 'Every ship starts on the water.',
   'bt.hud.goalSea': 'Sink or scatter the enemy fleet before the clock runs out.',
   'bt.hud.recruitHint': 'More troops: select laborers, tap the hammer and build a barracks, range or stable; it trains soldiers.',

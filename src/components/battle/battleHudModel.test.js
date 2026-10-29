@@ -102,6 +102,9 @@ describe('battle HUD model', () => {
     expect(visibleAlerts(a, 120 + 8 * 20 + 1).shown).toHaveLength(0);
     expect(visibleAlerts(a, 120 + 8 * 20 + 1).history).toHaveLength(4);
     expect(visibleAlerts(a, 120 + 8 * 20 + 1).older).toBe(4);
+    // F99: 8 real seconds at every speed, so at 3x an alert stays 24 battle seconds
+    expect(visibleAlerts(a, 120 + 8 * 20 + 1, 2, 3).shown).toHaveLength(2);
+    expect(visibleAlerts(a, 120 + 24 * 20 + 1, 2, 3).shown).toHaveLength(0);
     expect(minutesLeft(1800, 1)).toBe(30);
     expect(minutesLeft(1800, 3)).toBe(10);
   });

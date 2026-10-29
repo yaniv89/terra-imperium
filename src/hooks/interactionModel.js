@@ -52,9 +52,13 @@ const pickNext = (entries) => {
 /**
  * Something opened. `entry`: { id, priority, kind: 'card' | 'panel' | 'notice', label?, testId? }.
  * `user`: the player opened it (it takes the screen); otherwise it takes it only from something
- * of lower priority.
+ * of lower priority. `keepOpener`: a card the player opened from a sheet (the pre-battle card from
+ * the city or army sheet) keeps that sheet under it; the card lives inside the sheet, so closing the
+ * sheet would take the card with it (lane battle-hud-9: Invade did nothing on a phone).
  */
-export const openInteraction = (s, entry, { user = false } = {}) => {
+export const openInteraction = (s, entry, { user = false, keepOpener = false } = {}) => {
+  const opener = find(s, s.activeId);
+  if (keepOpener && user && opener?.kind === 'panel' && !find(s, entry.id)) entry = { ...entry, over: opener.id };
   const old = find(s, entry.id);
   if (old) {
     const entries = s.entries.map((e) => (e.id === entry.id ? { ...e, ...entry, tucked: user ? false : e.tucked } : e));
@@ -109,6 +113,7 @@ export const shownIds = (s, width, compact = false) => {
   const active = find(s, s.activeId);
   if (compact) {
     if (active && !active.tucked) out.add(active.id);
+    if (active?.over && find(s, active.over)) out.add(active.over); // the sheet it was opened from stays under it
     return out;
   }
   const cards = s.entries.filter((e) => e.kind === 'card' && !e.tucked);
