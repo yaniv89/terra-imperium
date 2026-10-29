@@ -467,7 +467,7 @@ const BattleHud = ({
             </button>
           )}
           {/* Who is winning, the objective and the loot (playtest issues 3 to 5); the base rule in words (sim/base.js, UI16). */}
-          <div className="pointer-events-auto fa-panel !bg-fa-panel/95 !rounded-[10px] px-2 py-0.5 text-[10.5px] leading-tight w-[min(20rem,100%)] shadow-xl" data-testid="battle-status">
+          <div className="pointer-events-none fa-panel !bg-fa-panel/95 !rounded-[10px] px-2 py-0.5 text-[10.5px] leading-tight w-[min(20rem,100%)] shadow-xl" data-testid="battle-status">
             <div className="flex items-center gap-1.5" title={t('bt.status.title')} role="img" aria-label={t('bt.status.aria', { a: youPct, b: themPct })}>
               <span className="font-semibold text-fa-muted">{t('bt.status.army')}</span>
               <span className="font-semibold text-fa-you">{t('bt.status.you')}</span>

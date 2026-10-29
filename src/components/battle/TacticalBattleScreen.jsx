@@ -1026,10 +1026,13 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const lookAt = (x, z) => { rendererRef.current?.centerOn(x, z); setFollow(false); };
   // The whole list framed (a spread army zooms the camera out, never in), not only its middle.
   const lookAtSquads = (list) => { if (list.length) { rendererRef.current?.frameGround(list.map((q) => ({ x: q.x / Q, z: q.y / Q }))); setFollow(false); } };
+  // None of `list` is on screen.
+  const offScreen = (list) => {
+    const r = rendererRef.current; if (!r) return false;
+    return !list.some((q) => { const p = r.worldToScreen(q.x / Q, q.y / Q); return p && p.x >= 0 && p.y >= 0 && p.x <= r.width && p.y <= r.height; });
+  };
   const lookAtNearestIfOff = (list) => {
-    const r = rendererRef.current; if (!r) return;
-    const at = list.map((q) => ({ q, p: r.worldToScreen(q.x / Q, q.y / Q) }));
-    if (at.some(({ p }) => p && p.x >= 0 && p.y >= 0 && p.x <= r.width && p.y <= r.height)) return;
+    const r = rendererRef.current; if (!r || !offScreen(list)) return;
     const d = (q) => (q.x / Q - r.target.x) ** 2 + (q.y / Q - r.target.z) ** 2;
     const near = list.reduce((b, q) => (d(q) < d(b) ? q : b));
     lookAt(near.x / Q, near.y / Q);
@@ -1043,6 +1046,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     // Idle squads (AoE's idle button): the camera stays while one is on screen, else goes to the nearest one, never to the
     // middle of all of them (playtest 40651418969 step 230: that was home, every time).
     else if (classId === 'idleSquads' && picked.length) lookAtNearestIfOff(picked);
+    // All with none of them on screen frames them (manual playtest 29 Oct: "All does not centre").
+    else if (classId === 'all' && picked.length && offScreen(picked)) lookAtSquads(picked);
   };
   // Rank 6: four control groups. Hold a slot (or tap an empty one) to save the selection, tap to
   // select it, tap again while it is the selection to bring the camera to it. UI only: no orders.
@@ -1100,6 +1105,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const getRenderer = useCallback(() => rendererRef.current, []);
   const commandSelected = (type) => { const sel = [...selectedRef.current]; if (sel.length) send([{ type, squads: sel }]); setRadial(null); };
   const retreatAll = () => send([{ type: 'retreatAll' }]);
+  // Offered only with a campaign Auto behind it (onSwitchAuto): in the sandbox it only closed the battle (manual playtest 29 Oct).
   const switchToAuto = () => {
     const sw = switchRef.current; const c = clientRef.current;
     if (!sw.to || !c?.snapshot) { onAbandon?.(); return; }
@@ -1343,7 +1349,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         selectedSquads={selectedSquads}
         onTogglePause={togglePause} onSpeed={changeSpeed} onArm={arm} onFormation={cycleFormation}
         onSelectClass={selectClass} onFindArmy={findArmy} onCommand={commandSelected}
-        onRetreatAll={retreatAll} onFocusKeep={focusKeep} onAbandon={onAbandon ? switchToAuto : null}
+        onRetreatAll={retreatAll} onFocusKeep={focusKeep} onAbandon={onSwitchAuto ? switchToAuto : null}
         onPower={firePower} onAbility={triggerSquadAbility} abilities={selectedAbilities}
         deployPresets={fittingPresets} deployPreset={deployPick} onDeployPreset={applyDeployPreset}
         onCancelArmed={() => disarm()}
@@ -1376,7 +1382,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         <div className="absolute left-1/2 -translate-x-1/2 z-30 max-w-[min(30rem,calc(100vw-2rem))] flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-fa-panel/95 border border-fa-danger text-[12.5px] leading-snug text-fa-text shadow-xl" style={{ bottom: NOTE_BOTTOM }} role="status" data-testid="battle-army-gone">
           <span>{tNow(armyLeft ? 'bt.screen.armyLeft' : 'bt.screen.armyGone')}{hud?.eco ? ` ${tNow('bt.screen.armyGoneTrain')}` : ''}</span>
           <button type="button" onClick={() => { if (paused) togglePause(); changeSpeed(FINISH_SPEED); }} data-testid="battle-finish-now" className="shrink-0 h-11 px-3 -my-1 rounded-full bg-fa-danger/90 text-white text-sm font-semibold">{tNow('bt.screen.finishNow')}</button>
-          {onAbandon && <button type="button" onClick={switchToAuto} data-testid="battle-gone-auto" className="shrink-0 h-11 px-3 -my-1 rounded-full fa-btn fa-btn-secondary text-sm">{tNow('bt.hud.switchAuto')}</button>}
+          {onSwitchAuto && <button type="button" onClick={switchToAuto} data-testid="battle-gone-auto" className="shrink-0 h-11 px-3 -my-1 rounded-full fa-btn fa-btn-secondary text-sm">{tNow('bt.hud.switchAuto')}</button>}
         </div>
       )}
       {finishing && (

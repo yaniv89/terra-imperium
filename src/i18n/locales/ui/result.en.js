@@ -105,7 +105,7 @@ export default {
   'bt.rep.out.notYet': 'Victory at {place}, but the city is not yours yet',
   'bt.rep.out.held': '{place} held',
   'bt.rep.out.lost': '{place} lost',
-  'bt.rep.out.holdsOn': '{place} holds on, but the enemy gained ground',
+  'bt.rep.out.holdsOn': '{place} is still yours, but you lost the battle and the enemy gained ground',
   'bt.rep.verify.desync': 'The campaign counted this battle again and reached a different end than your screen showed. This result is the one that counts.',
   'bt.rep.verify.setup': 'The campaign counted this battle again from its own record of the armies, which differed from your screen. This result is the one that counts.',
   'bt.rep.verify.cut': 'Some of your orders could not be counted again, so this result may differ a little from what you saw. This result is the one that counts.',

@@ -152,7 +152,7 @@ export default {
   'bt.pdesc.shieldWall': 'Squads near the general take 40% less damage from the front for 20 s.',
   'bt.pdesc.volley': 'These shooters fire twice as fast for 6 s.',
   'bt.pdesc.rallyCry': 'Every squad of yours: morale +30, no rout for 8 s, the routed come back.',
-  'bt.pdesc.arrowStorm': 'Six volleys of arrows land in the ring you tap.',
+  'bt.pdesc.arrowStorm': 'Six volleys of arrows land in the ring you tap. Your own troops in it are not hurt.',
   'bt.pdesc.artilleryBarrage': 'Eight shells land in the ring you tap; strong against walls.',
   'bt.pdesc.airStrike': 'Bombs fall in a line across the point you tap.',
   'bt.pdesc.droneStrike': 'Three heavy, precise hits on the point you tap.',

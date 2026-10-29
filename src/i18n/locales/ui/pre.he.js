@@ -75,6 +75,7 @@ export default {
   'bt.war.openTown': 'עיירה פתוחה',
   'bt.war.siegeNoAge': 'חומות וללא מכונות מצור בעידן שלכם: צפו לקרב ארוך ליד השער.',
   'bt.war.siegeAdvice': 'חומות: בלי מכונות מצור הצבא יכול רק להלום בשער. הביאו {unit}, או בנו {shop} בקרב כדי לאמן אותן.',
+  'bt.war.siegeWarn': 'אין מכונות מצור.',
   'bt.war.siegeEngines': 'מכונות מצור',
   'bt.scout.likely': 'סיכוי טוב לנצח',
   'bt.scout.likelyHint': 'הצופים שלכם חושבים שחיל המצב חלש מהצבא שלכם.',

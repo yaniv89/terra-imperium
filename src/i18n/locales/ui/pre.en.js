@@ -75,6 +75,7 @@ export default {
   'bt.war.openTown': 'Open town',
   'bt.war.siegeNoAge': 'Walls and no siege engines in your age: expect a long fight at the gate.',
   'bt.war.siegeAdvice': 'Walls: without siege engines your army can only batter the gate. Bring {unit}, or build a {shop} in the battle to train them.',
+  'bt.war.siegeWarn': 'No siege engines.',
   'bt.war.siegeEngines': 'siege engines',
   'bt.scout.likely': 'Likely win',
   'bt.scout.likelyHint': 'Your scouts think the garrison is weaker than your army.',

@@ -43,7 +43,7 @@ describe('headlines say what happened (I006)', () => {
     expect(describeOutcome({ ...entry, kind: 'field', captured: false, outcome: 'defender' }).text).toMatch(/^Defeat in the field near/);
     expect(describeOutcome({ ...entry, captured: false }).text).toMatch(/but the city is not yours yet$/);
     const pressed = describeOutcome({ ...entry, playerSide: 'defender', captured: false });
-    expect(pressed.text).toMatch(/holds on, but the enemy gained ground$/);
+    expect(pressed.text).toMatch(/is still yours, but you lost the battle and the enemy gained ground$/);
     expect(pressed.text).not.toMatch(/walls/);
   });
 });

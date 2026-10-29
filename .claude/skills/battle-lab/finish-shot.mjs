@@ -12,7 +12,7 @@ import { mkdirSync } from 'node:fs';
 const outDir = process.argv[2] || '.';
 const prefix = process.argv[3] || 'finish';
 mkdirSync(outDir, { recursive: true });
-const url = process.env.URL || 'http://localhost:5343/terra-imperium/?battleSandbox&autostart&fort=0&attacker=small&defender=cavalry';
+const url = process.env.URL || 'http://localhost:5343/terra-imperium/?battleSandbox&autostart&fort=0&attacker=small&defender=balanced';
 const W = Number(process.env.W || 844); const H = Number(process.env.H || 390);
 const browser = await launchBrowser(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 2, hasTouch: W < 1000 });
@@ -24,8 +24,7 @@ const shot = (name) => page.screenshot({ path: `${outDir}/${prefix}-${name}.jpg`
 await page.goto(url, { timeout: 240000 });
 await page.getByTestId('battle-start').first().click({ timeout: 180000 });
 await page.waitForTimeout(1500);
-await page.getByTestId('battle-speed').first().click().catch(() => {}); // 2x
-await page.getByTestId('battle-speed').first().click().catch(() => {}); // 3x
+await page.getByTestId('battle-speed-3').click().catch(() => page.getByTestId('battle-speed').first().click().catch(() => {})); // 3x
 const hit = await page.getByTestId('battle-alerts').filter({ hasText: /Your .* are under attack|שלכם תחת מתקפה/ }).first()
   .waitFor({ timeout: 300000 }).then(() => true, () => false);
 await shot('clash');
