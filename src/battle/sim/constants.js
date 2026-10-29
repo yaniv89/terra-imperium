@@ -9,10 +9,10 @@ export const BATTLE_LIMIT_TICKS = 6 * 60 * TICK_HZ; // the default clock (older 
 // 7:30 so siege engines have time to breach. The longest possible battle, for replay validation:
 export const FIELD_BATTLE_TICKS = 5 * 60 * TICK_HZ;
 export const SIEGE_BATTLE_TICKS = 7.5 * 60 * TICK_HZ;
-// A battle with the economy (phase R1) runs 10 minutes in the field (master plan 6.1 had 15; cut by the battle-length report),
-// 20 for a city assault (was 30).
-export const ECONOMY_FIELD_TICKS = 10 * 60 * TICK_HZ;
-export const ECONOMY_SIEGE_TICKS = 20 * 60 * TICK_HZ;
+// A battle with the economy (phase R1) runs 15 minutes in the field and 30 for a city assault (master plan 6.1;
+// back from 10 and 20: the user won the fight and lost the base race to the clock in three full battles, 29 Oct).
+export const ECONOMY_FIELD_TICKS = 15 * 60 * TICK_HZ;
+export const ECONOMY_SIEGE_TICKS = 30 * 60 * TICK_HZ;
 // Raids are the one light battle (no base-building, master plan 6.4): a raid 10 minutes, a sack 12
 // (6.1: raid 8 to 12, sack 10 to 15).
 export const RAID_BATTLE_TICKS = 10 * 60 * TICK_HZ;
