@@ -43,6 +43,8 @@ const AUTOSAVE_IDLE_MS = 1500;
 // (X26). One slot, listed under Load on the title screen.
 export const PREVIOUS_SAVE_KEY = 'terra-imperium-save-previous';
 export const AUTOSAVE_KEY = STORAGE_KEY;
+// Menu > Save now writes here too: one manual slot the autosave never overwrites (manual playtest 29 Oct).
+export const MANUAL_SAVE_KEY = 'terra-imperium-save-manual';
 export const readSaveText = (key = STORAGE_KEY) => { try { return localStorage.getItem(key); } catch (e) { return null; } };
 export const removeSave = (key) => { try { localStorage.removeItem(key); } catch (e) { /* storage unavailable */ } };
 // While the title screen (or the new game steps reached from it) is up, nothing is played, so the
@@ -252,6 +254,11 @@ export const GameProvider = ({ children }) => {
       return false;
     }
   }, []);
+  // shortcut: one manual slot, the copy of the autosave just written; named slots if players ask
+  const saveManual = useCallback(() => {
+    if (!saveNow()) return false;
+    try { localStorage.setItem(MANUAL_SAVE_KEY, localStorage.getItem(STORAGE_KEY)); return true; } catch (e) { return false; }
+  }, [saveNow]);
   useEffect(() => {
     const id = setTimeout(() => { if (stateRef.current !== savedRef.current) saveNow(); }, AUTOSAVE_IDLE_MS);
     return () => clearTimeout(id);
@@ -433,11 +440,12 @@ export const GameProvider = ({ children }) => {
     exportSave,
     importSave,
     saveNow,
+    saveManual,
     meta,
     selectDoctrine,
     selectDifficulty,
     completeOnboarding
-  }), [state, dispatch, addLog, advanceTurn, turnPending, resolveEvent, resetGame, exportSave, importSave, saveNow, meta, selectDoctrine, selectDifficulty, completeOnboarding]);
+  }), [state, dispatch, addLog, advanceTurn, turnPending, resolveEvent, resetGame, exportSave, importSave, saveNow, saveManual, meta, selectDoctrine, selectDifficulty, completeOnboarding]);
 
   return (
     <GameContext.Provider value={contextValue}>

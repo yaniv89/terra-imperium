@@ -66,3 +66,13 @@ export const peoplesModel = (state, search = '') => {
     }
   };
 };
+
+/** The rows in the order they were first shown (`prevIds`), new ones after: a gift or a pact
+ * re-ranks opinions, and the list must not move under the finger while the tab is open
+ * (manual playtest 29 Oct). Peoples gone from `rows` drop out. */
+export const keepOrder = (rows, prevIds = []) => {
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const kept = prevIds.filter((id) => byId.has(id));
+  const seen = new Set(kept);
+  return [...kept.map((id) => byId.get(id)), ...rows.filter((r) => !seen.has(r.id))];
+};

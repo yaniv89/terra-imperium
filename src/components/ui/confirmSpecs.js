@@ -13,6 +13,10 @@ import { lawName, lawLine } from '../../i18n/gameText';
 import { t, dataText } from '../../i18n/core';
 import { VIRTUES } from '../../data/rulerVirtues';
 import { rulerPoints, virtueBlock } from '../../engine/rulers';
+import { ACTION_COSTS } from '../../data/actionCosts';
+import { tradeRouteStatus } from '../../engine/tradeDisruptions';
+import { getTradePactCapacity } from '../../engine/diplomacy';
+import { msgRefText } from '../battle/battleText';
 
 /** Their opinion of you before and after the war, from the real reducer on a funded copy. */
 export const warOpinionHit = (state, nationId, costs) => {
@@ -42,6 +46,41 @@ export const declareWarConfirm = (state, nationId) => {
     confirmLabel: t('cf.war.ok')
   };
 };
+
+/** A trade agreement's terms before it is signed (manual playtest 29 Oct: one tap signed it unseen):
+ * the price, their opinion and the route as the real reducer on a copy leaves them. */
+export const tradeConfirm = (state, nationId, shown) => {
+  const next = gameReducer(state, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId } });
+  if (!next.nations?.[nationId]?.hasTradeAgreement) return null;
+  const before = opinionOf(state, nationId);
+  const after = opinionOf(next, nationId);
+  const route = tradeRouteStatus(next, nationId);
+  return {
+    id: `trade:${nationId}`,
+    title: t('cf.trade.title', { name: shown }),
+    rows: [
+      { label: t('cf.cost'), value: costLine(ACTION_COSTS.tradeAgreement) },
+      { label: t('cf.war.opinion'), value: t('cf.fromTo', { from: before, to: after }) },
+      ...(route ? [{ label: t('cf.trade.route'), value: msgRefText(route.textMsg, route.text), tone: route.pays ? '' : 'bad' }] : []),
+      { label: t('cf.trade.pacts'), value: t('cf.trade.pactsValue', { a: Object.values(next.nations).filter((n) => n.hasTradeAgreement).length, b: getTradePactCapacity(next.nations[next.playerNationId]) }) }
+    ],
+    notes: [],
+    confirmLabel: t('cf.trade.ok')
+  };
+};
+
+/** The dock's Buy (endTurnModel.js buyHint): what it costs and leaves, like the city's own buy offer. */
+export const buyConfirm = (state, buy, cityLabel) => ({
+  id: `buy:${buy.cityId}`,
+  title: t('cf.buy.title', { city: cityLabel }),
+  rows: [
+    { label: t('cf.cost'), value: costLine({ gold: buy.gold }) },
+    { label: t('cf.buy.left'), value: costLine({ gold: Math.floor((state.resources?.gold || 0) - buy.gold) }) || '0' },
+    { label: t('cf.buy.sooner'), value: t('cf.buy.soonerValue', { turns: buy.turns }) }
+  ],
+  notes: [],
+  confirmLabel: t('cf.buy.ok', { gold: buy.gold })
+});
 
 export const changeLawConfirm = (state, category, lawId, cost) => {
   const law = getLaw(category, lawId);

@@ -2,7 +2,7 @@
 // Main application component - Terra Imperium
 
 import React, { useState, useCallback, useEffect, useRef, Suspense } from 'react';
-import { GameProvider, useGame, hasExistingSave, takePendingStart, setLaunchHold, stashCurrentGame, readSaveText, removeSave, AUTOSAVE_KEY, PREVIOUS_SAVE_KEY } from './context/GameContext';
+import { GameProvider, useGame, hasExistingSave, takePendingStart, setLaunchHold, stashCurrentGame, readSaveText, removeSave, AUTOSAVE_KEY, PREVIOUS_SAVE_KEY, MANUAL_SAVE_KEY } from './context/GameContext';
 import TitleScreen from './components/ui/TitleScreen';
 import { launchScreen, describeSave } from './utils/launchDecision';
 import { EffectsProvider, useEffects } from './context/EffectsContext';
@@ -70,12 +70,13 @@ const AGE_ADVANCE_BANNER_MS = 5000;
 // keep the game being left there). A slot this build cannot read still shows, marked as old.
 const readTitleSlots = () => [
   { id: 'autosave', key: AUTOSAVE_KEY, label: 'Last game (autosave)', info: describeSave(readSaveText(AUTOSAVE_KEY)) },
+  { id: 'manual', key: MANUAL_SAVE_KEY, label: 'Your save', info: describeSave(readSaveText(MANUAL_SAVE_KEY)) },
   { id: 'previous', key: PREVIOUS_SAVE_KEY, label: 'Game before it', info: describeSave(readSaveText(PREVIOUS_SAVE_KEY)) }
 ].filter((s) => s.info.status !== 'none');
 
 // Main game layout component
 const GameLayout = () => {
-  const { state, dispatch, resolveEvent, resetGame, importSave, saveNow, meta, completeOnboarding } = useGame();
+  const { state, dispatch, resolveEvent, resetGame, importSave, saveNow, saveManual, meta, completeOnboarding } = useGame();
   const { t, name: nm } = useT();
   const { triggerEffect } = useEffects();
   useHoldHelp();
@@ -283,7 +284,7 @@ const GameLayout = () => {
   }, []);
   const openTitle = (view) => { saveNow(); setTitleView(view); backToTitle(); };
   const menuActions = {
-    save: saveNow,
+    save: saveManual,
     load: () => openTitle('load'),
     help: () => setShowHelp(true),
     glossary: () => openGlossary('index'), // the index, never one people's page (newcomer playtest step 71)

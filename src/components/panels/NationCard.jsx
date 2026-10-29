@@ -11,7 +11,7 @@ import { Chip } from '../ui/atlas';
 import { askConfirm } from '../ui/ConfirmActionDialog';
 import { declareWarModel } from './warActions';
 import { useWhy, Bubble } from '../ui/WhyTip';
-import { declareWarConfirm } from '../ui/confirmSpecs';
+import { declareWarConfirm, tradeConfirm } from '../ui/confirmSpecs';
 import TopLayer from '../ui/TopLayer';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
 import { useEffects } from '../../context/EffectsContext';
@@ -43,6 +43,7 @@ import { nameNow } from '../../i18n/names';
 import { reasonText, logText } from '../../i18n/messageText';
 import { msgRefText } from '../battle/battleText';
 import { opinionLabel, opinionDetail } from './opinionText';
+import { moodWord } from '../modals/firstContactModel';
 import { ageOf } from '../../engine/nationState';
 import { ageVersusPlayer } from '../ui/ageProgress';
 import GlossaryLink from '../glossary/GlossaryLink';
@@ -219,7 +220,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
           <div className="fa-heading text-[17px] leading-tight"><GlossaryLink kind="people" id={nation.id}>{nameNow('people', nation.id, nation.name)}</GlossaryLink></div>
           <div className="flex items-center gap-1.5 flex-wrap mt-1">
             <span className={`fa-chip !min-h-[24px] !px-2 !text-[11px] uppercase tracking-wide ${atWarWithPlayer ? 'text-fa-danger-text border-fa-danger' : nation.hasMilitaryPact ? 'text-fa-good border-fa-good/60' : ''}`}>
-              {atWarWithPlayer ? t('nc.status.war') : isVassalOfPlayer ? t('nc.status.vassal') : nation.hasMilitaryPact ? t('nc.status.pact') : nation.hasPeaceTreaty ? t('nc.status.peace') : nation.relationStatus ? (hasKey(`nc.rel.${nation.relationStatus}`, 'en') ? t(`nc.rel.${nation.relationStatus}`) : nation.relationStatus) : t('nc.status.met')}
+              {atWarWithPlayer ? t('nc.status.war') : isVassalOfPlayer ? t('nc.status.vassal') : nation.hasMilitaryPact ? t('nc.status.pact') : nation.hasPeaceTreaty ? t('nc.status.peace') : t(`p2.mood.${moodWord(opinion)}`)}
             </span>
             <span className="fa-chip !min-h-[24px] !px-2 !text-[11px]" data-testid="nation-age" data-age-vs-you={ageVersusPlayer(state, nation.id)}>{t(`p2.pp.age.${ageVersusPlayer(state, nation.id)}`, { age: shortAge(ageOf(state, nation.id)) })}</span>
             <span className="text-[12px] text-fa-muted">{metTurn != null ? t('nc.metT', { n: metTurn }) : t('nc.known')}{nation.doctrine ? `, ${hasKey(`p2.aidoc.${nation.doctrine}`, 'en') ? t(`p2.aidoc.${nation.doctrine}`) : nation.doctrine}` : ''}</span>
@@ -266,7 +267,7 @@ export const NationCard = ({ nation, hideTitle = false, onLeave = closePanels })
             )}
             {!nation.hasTradeAgreement && (
               <Tile label={t('nc.trade')} sub={tradeBlock || t('nc.tradeSub', { cost: costLine(ACTION_COSTS.tradeAgreement), a: activeTradePactCount, b: tradePactCapacity })} blocked={tradeBlock} looksDisabled={!canPay(state, ACTION_COSTS.tradeAgreement)}
-                onClick={() => dispatchIfAffordable(ActionTypes.TRADE_AGREEMENT, ACTION_COSTS.tradeAgreement)} />
+                onClick={() => (canPay(state, ACTION_COSTS.tradeAgreement) ? askConfirm(tradeConfirm(state, nation.id, nameNow('people', nation.id, nation.name)), () => dispatchIfAffordable(ActionTypes.TRADE_AGREEMENT, ACTION_COSTS.tradeAgreement)) : dispatchIfAffordable(ActionTypes.TRADE_AGREEMENT, ACTION_COSTS.tradeAgreement))} />
             )}
             <Tile label={t('nc.demandTribute')} sub={tributeReason || (tribute.accepted ? t('nc.wouldYieldCost', { cost: costLine(ACTION_COSTS.demand) }) : t('nc.wouldRefuseCause'))} refuse={!tribute.accepted}
               looksDisabled={!!tribute.reason || !canPay(state, ACTION_COSTS.demand)}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { peoplesModel, relationOf } from './peoplesModel';
+import { peoplesModel, relationOf, keepOrder } from './peoplesModel';
 import { metNations } from '../../engine/fog';
 import { isIndependentNation } from '../../data/independents';
 import { peoplesWorld } from '../../engine/testWorld';
@@ -37,5 +37,13 @@ describe('peoples model (W07)', () => {
     expect(m.counts.war).toBe(1);
     expect(relationOf(s, { ...other, hasMilitaryPact: true })).toBe('pact');
     expect(relationOf(s, { ...other, hasTradeAgreement: true })).toBe('trade');
+  });
+});
+
+describe('keepOrder', () => {
+  it('keeps the shown order, appends new rows and drops gone ones', () => {
+    const rows = [{ id: 'b' }, { id: 'a' }, { id: 'c' }];
+    expect(keepOrder(rows, ['a', 'x', 'b']).map((r) => r.id)).toEqual(['a', 'b', 'c']);
+    expect(keepOrder(rows).map((r) => r.id)).toEqual(['b', 'a', 'c']);
   });
 });

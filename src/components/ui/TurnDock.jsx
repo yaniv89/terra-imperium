@@ -23,6 +23,9 @@ import { ActionTypes } from '../../data/types';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { softHints, WARN_ARM_MS } from './nextPromptModel';
 import { endTurnButton, endTurnPress, buyHint } from './endTurnModel';
+import { askConfirm } from './ConfirmActionDialog';
+import { buyConfirm } from './confirmSpecs';
+import { nameNow } from '../../i18n/names';
 import { goToPrompt, goToBlocker, chipLabel } from './promptActions';
 import { prewarmTurnWorker, abandonTurnInWorker } from '../../services/turnClient';
 import IdleChip from './IdleChip';
@@ -110,7 +113,7 @@ const TurnDock = () => {
         {/* "Buy N": the order that saves the most turns for its gold, while the treasury is well above
             ten turns of income (endTurnModel.js buyHint). */}
         {buy && (
-          <button type="button" onClick={() => dispatch({ type: ActionTypes.RUSH_PRODUCTION, payload: { cityId: buy.cityId, index: 0 } })}
+          <button type="button" onClick={() => askConfirm(buyConfirm(state, buy, nameNow('city', null, buy.name)), () => dispatch({ type: ActionTypes.RUSH_PRODUCTION, payload: { cityId: buy.cityId, index: 0 } }))}
             className="fa-btn fa-btn-secondary !min-h-[50px] pl:!min-h-[44px] shadow-xl gap-1.5 !px-3 text-[13px]" data-testid="dock-buy"
             title={t('turn.buyTip', { city: buy.name, gold: buy.gold, turns: buy.turns })} aria-label={t('turn.buyTip', { city: buy.name, gold: buy.gold, turns: buy.turns })}>
             <Coins className="w-4 h-4 shrink-0 text-fa-brass" aria-hidden="true" />

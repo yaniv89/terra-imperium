@@ -197,7 +197,7 @@ export default {
   'm.diplo.ownBack': '{city} is yours again: their occupation ends.',
   'm.diplo.ownReturns': '{city} goes back to {nation}: your occupation ends.',
   'm.diplo.ownStaysYours': '{city} stays yours.',
-  'm.diplo.ownStaysTheirs': "{city} stays {nation}'s.",
+  'm.diplo.ownStaysTheirs': '{city} stays with {nation}.',
   'm.diplo.moneyGold': 'You pay {nation} {gold} gold',
   'm.diplo.moneyReparations': 'You pay reparations: a tenth of your gold income for 10 turns',
 

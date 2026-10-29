@@ -51,7 +51,7 @@ const CityPolitics = ({ cityId }) => {
       </Card>
       {m.group && (
         <Card icon={Crown} title={t('cy.governorOf', { seat: m.group.seatName, count: m.group.cities })} testId="city-governor">
-          {m.governor && <div className="text-emerald-200">{t('cy.governorLine', { name: m.governor.name, skill: m.governor.skill, effects: m.governor.effects })}</div>}
+          {m.governor && <div className="text-emerald-200">{t('cy.governorLine', { name: nameNow('person', null, m.governor.name), skill: m.governor.skill, effects: m.governor.effects })}</div>}
           {m.pending && <div className="text-amber-200">{t('cy.takesOffice', { name: m.pending.name, turn: m.pending.ready })}</div>}
           {!m.governor && !m.pending && <div className="text-fa-muted">{m.mine ? t('cy.seatEmptyMine', { count: GOVERNOR_ASSIGN_TURNS }) : t('cy.seatEmpty')}</div>}
           {m.mine && m.governor && <button type="button" onClick={() => dispatch({ type: ActionTypes.DISMISS_GOVERNOR, payload: { seatId: m.group.seat } })} className="min-h-[44px] px-3 rounded-lg bg-fa-hover hover:bg-fa-line text-fa-text">{t('cy.recall')}</button>}

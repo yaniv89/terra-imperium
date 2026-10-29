@@ -54,7 +54,11 @@ export const isolateSigned = (text) => String(text).replace(/(^|[\s(:[\u2068])([
 // {name} -> value. A name with no value is left as written, so a gap is visible.
 // A "%" right after a left-to-right isolate ("{v}%" with v = isolateLtr("-3")) goes inside it, or
 // Hebrew shows "%-3" (phone pass).
-const fill = (text, vars) => (vars ? text.replace(/\{(\w+)\}/g, (m, k) => (vars[k] === undefined || vars[k] === null ? m : String(vars[k]))).replace(/\u2069%/g, '%\u2069') : text);
+/** A name filled into a sentence: "The Dacian tribes" starts a line, inside one it is "the Dacian
+ * tribes" (manual playtest 29 Oct). `before` is the text ahead of the placeholder. English only:
+ * Hebrew has no capitals and no "The". */
+export const inSentence = (value, before) => (/^The /.test(value) && !/(^|[.!?:(\n"]\s*)$/.test(before) ? `the ${value.slice(4)}` : value);
+const fill = (text, vars) => (vars ? text.replace(/\{(\w+)\}/g, (m, k, at) => (vars[k] === undefined || vars[k] === null ? m : inSentence(String(vars[k]), text.slice(0, at)))).replace(/\u2069%/g, '%\u2069') : text);
 
 const pluralRules = {};
 export const pluralForm = (n, lang = current) => {
