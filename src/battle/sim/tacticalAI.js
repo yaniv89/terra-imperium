@@ -16,6 +16,8 @@ import { canGarrison, garrisonRoom } from './objectives';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER, secondsToTicks, battleLimitTicks } from './constants';
 import { makeGrid, rebuildGrid } from './spatial';
 import { thinkEconomy } from './economyAI';
+import { walledCity } from './economy';
+import { ringBroken, isAuxiliary } from './siegeRules';
 import { generalsOf } from './squadLists';
 import { baseBuildings, hasBase } from './base';
 
@@ -340,6 +342,14 @@ const WALL_MARGIN = 3 * Q;
 const thinkDefender = (w, side, cfg, mine, enemies, orders) => {
   const keep = w.structures[0];
   if (cfg.abilities && w.assimilation === 0) mine = garrisonBuildings(w, side, mine, orders);
+  // A walled city's trained companies hold at the keep while the ring is whole (U9, lead option A):
+  // sent to the walls one by one they were shot down (siegeProbe: 46 s each, 21 damage dealt).
+  if (walledCity(w) && !ringBroken(w)) {
+    const held = mine.filter((q) => isAuxiliary(q) && !hitRecently(w, q)); // one under fire fights
+    const hold = held.filter((q) => q.order.type !== 'hold' && q.target < 0).map((q) => q.idx);
+    if (hold.length) orders.push({ side, type: 'hold', squads: hold });
+    mine = mine.filter((q) => !held.includes(q));
+  }
   // Behind standing walls the defenders hold them (Total War's garrison AI): they meet only what comes
   // up to the walls, not an army still forming up outside (trace: a walled garrison marched out
   // through its gate and lost its whole field army in the open, attacker 16 of 16).

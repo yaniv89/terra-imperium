@@ -68,9 +68,9 @@ describe('the honest auto-resolve', () => {
       }
       return n;
     };
-    // Commanded (parityEco N=32): 31 of 32. Auto a little below, never above.
-    expect(wins(AUTO_TUNE)).toBeGreaterThanOrEqual(24);
-    expect(wins(AUTO_TUNE)).toBeLessThanOrEqual(31);
+    // Commanded (parityEco N=32, U9: the walled city holds): 18 of 32. Auto close to it.
+    expect(wins(AUTO_TUNE)).toBeGreaterThanOrEqual(8);
+    expect(wins(AUTO_TUNE)).toBeLessThanOrEqual(22);
     expect(wins({ ...AUTO_TUNE, ASSAULT_AUX_HOLD: false })).toBeLessThan(wins(AUTO_TUNE));
   });
 

@@ -812,7 +812,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     const now = performance.now();
     const cycle = isCycleClick(lastPickRef.current, p, now, ownSquad, sel);
     const bRow = selectedBuildingRef.current !== null ? cur?.eco?.buildings.find((b) => b.idx === selectedBuildingRef.current) : null;
-    const selectedBuildingInfo = bRow ? { idx: bRow.idx, trains: !!bRow.built && (BUILDINGS[bRow.type]?.trains || []).length > 0 } : null;
+    const selectedBuildingInfo = bRow ? { idx: bRow.idx, trains: !!bRow.built && (bRow.trains || BUILDINGS[bRow.type]?.trains || []).length > 0 } : null;
     const act = decidePointer({
       input, shift: !!mods.shift, ownSquad, building, cycle, armed: armedRef.current, selectedBuilding: selectedBuildingInfo,
       selection: sel.map((i) => ({ idx: i, classId: cur?.squads[i]?.classId }))
