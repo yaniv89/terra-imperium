@@ -10,7 +10,7 @@
 // which marks the age as scored. `focus`: the goal the player chose on the age's dawn card
 // (eventDeck.js eraDawnCard): its reward is doubled. The turn a nation entered its age is `nation.ageSince`. The final
 // age is scored once when the ending signal fires (resolveTurn). Pure.
-import { AGES } from '../data/ages';
+import { AGES, isAgeAtLeast } from '../data/ages';
 import { ERA_GOALS_FOR_LEGACY, ERA_LEGACY_TURNS, PLAYSTYLES, goalsForAge } from '../data/eraGoals';
 import { getTechsForAge } from '../data/techTree';
 import { addNationModifier } from './modifiers/timed';
@@ -119,9 +119,18 @@ export const awardEraLegacy = (state, nation, endingAgeId, turnNumber) => {
   return { nation: next, log: msg(earned ? 'm.world.legacy' : 'm.world.noLegacy', { age: ageThing(endingAgeId), n: met.length }) };
 };
 
+// Chained goals in the last three ages (lead's call 29 Oct, after Old World's ambitions): once the focus is met,
+// the player picks a new one, up to ERA_FOCUS_PICKS picks an age (`picks` on the record).
+export const ERA_FOCUS_PICKS = 3;
+export const CHAIN_FROM_AGE = 'modern';
+/** Whether the age's record may take a new focus: its focus is met, in a late age, picks left. */
+export const canRefocus = (rec, ageId) => !!rec?.focus && !('legacy' in rec) && isAgeAtLeast(ageId, CHAIN_FROM_AGE)
+  && (rec.met || []).includes(rec.focus) && (rec.picks || 1) < ERA_FOCUS_PICKS;
+
 /** The nation with `goalId` chosen as the focus of its current age (the dawn card's answer); the record starts as payEraGoals starts it. */
 export const setEraFocus = (nation, ageId, goalId) => {
   const rec = nation.eraGoals?.[ageId];
-  if (rec?.focus || (rec && 'legacy' in rec)) return nation;
-  return { ...nation, eraGoals: { ...(nation.eraGoals || {}), [ageId]: { met: [], wonFrom: battlesWon(nation), ...rec, focus: goalId } } };
+  if ((rec?.focus && !canRefocus(rec, ageId)) || (rec && 'legacy' in rec)) return nation;
+  const picks = rec?.focus ? (rec.picks || 1) + 1 : 1;
+  return { ...nation, eraGoals: { ...(nation.eraGoals || {}), [ageId]: { met: [], wonFrom: battlesWon(nation), ...rec, focus: goalId, picks } } };
 };

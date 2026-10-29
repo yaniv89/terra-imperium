@@ -23,7 +23,7 @@ import { AGES, getAgeIndex, speedCostMult, speedTurns } from '../data/ages';
 import { countryOfNation, peopleOf } from '../data/peoples';
 import { factContext, predicateMet } from './predicates';
 import { ageOf } from './nationState';
-import { eraGoalProgress } from './eraGoals';
+import { eraGoalProgress, canRefocus } from './eraGoals';
 import { PLAYSTYLES } from '../data/eraGoals';
 
 // The player has reached the point of an age that `year` marks: in that age with enough of its techs.
@@ -143,19 +143,23 @@ export const drawCard = (state, rng) => {
  * The age's dawn card (events-8): once an age, while at least two of its goals are open, the player
  * picks the goal its people will be remembered for; that goal pays twice (eraGoals.js setEraFocus).
  * Null when it was shown this age or a focus is set. Texts: pevt.era_dawn.* (vars on `textVars`).
+ * In the last three ages a met focus brings it back as 'era_next' (eraGoals.js canRefocus, up to 3 picks an age).
+ * `historyKey`: the eventHistory key that marks it shown.
  */
 export const eraDawnCard = (state) => {
   const me = state.playerNationId;
   const ageId = ageOf(state, me);
   const rec = state.nations?.[me]?.eraGoals?.[ageId];
-  if (rec?.focus || (rec && 'legacy' in rec) || state.eventHistory?.[`dawn:${ageId}`] != null) return null;
+  const again = canRefocus(rec, ageId);
+  const historyKey = again ? `dawn:${ageId}:${rec.picks || 1}` : `dawn:${ageId}`;
+  if ((rec?.focus && !again) || (rec && 'legacy' in rec) || state.eventHistory?.[historyKey] != null) return null;
   const open = eraGoalProgress(state, ageId).goals.filter((g) => !g.done);
   if (open.length < 2) return null;
   const age = AGES[ageId]?.name || ageId;
+  const next = again ? { id: `era_next_${ageId}_${rec.picks || 1}`, templateId: 'era_next', title: `A New Goal in the ${age}`, description: `Your people met the goal they set for the ${age}. Choose the next one: when it is met, its reward is doubled.` }
+    : { id: `era_dawn_${ageId}`, templateId: 'era_dawn', title: `The Dawn of the ${age}`, description: `A new age opens for your people. Choose the goal they will be remembered for in the ${age}: when it is met, its reward is doubled.` };
   return {
-    id: `era_dawn_${ageId}`, templateId: 'era_dawn', procedural: true, mandatory: false, year: state.year,
-    title: `The Dawn of the ${age}`, textVars: { age, ageId },
-    description: `A new age opens for your people. Choose the goal they will be remembered for in the ${age}: when it is met, its reward is doubled.`,
+    ...next, historyKey, procedural: true, mandatory: false, year: state.year, textVars: { age, ageId },
     options: open.map((g) => ({ label: `${g.label}: ${g.value} of ${g.target} ${g.unit} (when met: ${PLAYSTYLES[g.id].bonusLabel.replace('{n}', g.n * 2)})`, textKey: `pevt.era_dawn.${g.id}`, textVars: { value: g.value, target: g.target, n: g.n * 2 }, effects: { eraFocus: g.id } }))
   };
 };
@@ -242,7 +246,7 @@ export const drawEvent = (state, rng) => {
   // The age's dawn card takes the first free draw slot of the age; other draws come on a few quiet
   // turns, a random few turns apart.
   const dawn = out.proceduralEventCooldown <= 0 ? eraDawnCard(state) : null;
-  if (dawn) return { ...out, activeProceduralEvent: dawn, eventHistory: { ...out.eventHistory, [`dawn:${ageOf(state, state.playerNationId)}`]: state.turnNumber }, proceduralEventCooldown: 3 };
+  if (dawn) return { ...out, activeProceduralEvent: dawn, eventHistory: { ...out.eventHistory, [dawn.historyKey]: state.turnNumber }, proceduralEventCooldown: 3 };
   if (out.proceduralEventCooldown <= 0 && rng.next() < 0.3) {
     const event = drawCard(state, rng);
     if (event) {

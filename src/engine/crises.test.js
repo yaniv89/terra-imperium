@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { crisisDue, processCrises, hitNations, crisisComing, famineShare, CHECK_PERIOD, MAX_HIT, FAMINE_SHARE } from './crises';
+import { crisisDue, processCrises, hitNations, crisisComing, famineShare, lateCrisisDue, CHECK_PERIOD, MAX_HIT, FAMINE_SHARE, LATE_CRISIS_SHARE } from './crises';
+import { withAgesResearched } from './research';
+import { techsToFillAge } from './displayYear';
+import { getTechsForAge } from '../data/techTree';
 import { CRISES, crisisCardId, crisisAnswerId } from '../data/crises';
 import { cardOf, cardChoice, drawEvent } from './eventDeck';
 import { peoplesWorld, cloneWorld, majorIds, addCities } from './testWorld';
@@ -251,5 +254,35 @@ describe('history crises (U31)', () => {
       expect(cardOf(crisisAnswerId(c.id))?.options.length, c.id).toBe(3);
       expect(cardChoice(c.answer.options).dominated, c.id).toBe(false);
     });
+  });
+});
+
+describe('a late age crisis picks the player (lead 29 Oct)', () => {
+  // Four majors with four cities each in the Modern age; the player has two thirds of the age's techs.
+  const late = () => {
+    let s = cloneWorld(peoplesWorld({ seed: 11 }));
+    majorIds(s).slice(0, 4).forEach((id) => { s = addCities(s, id, 3).state; });
+    s = withAgesResearched(s, s.playerNationId, 'modern');
+    const need = Math.ceil(techsToFillAge('modern') * LATE_CRISIS_SHARE);
+    getTechsForAge('modern').slice(0, need).forEach((t) => { s.techTree = { ...s.techTree, [t.id]: { ...(s.techTree[t.id] || {}), researched: true } }; });
+    Object.values(s.nations).forEach((n) => { n.tech = { ...(n.tech || {}), ageId: 'modern' }; });
+    return { ...s, turnNumber: CHECK_PERIOD * 40 };
+  };
+
+  it('on the first check turn, no roll, the player second (a war\'s target)', () => {
+    const s = late();
+    expect(lateCrisisDue(s)).toBe(true);
+    const due = crisisDue(s);
+    expect(due).toMatchObject({ pickMe: true });
+    expect(due.hit[1]).toBe(s.playerNationId);
+    const next = processCrises(s);
+    expect(next.crises.playerPick).toEqual({ modern: s.turnNumber });
+  });
+
+  it('once an age, and never with crises off or in explore mode', () => {
+    const s = late();
+    expect(lateCrisisDue({ ...s, crises: { playerPick: { modern: 1 } } })).toBe(false);
+    expect(crisisDue({ ...s, settings: { ...s.settings, crises: 'off' } })).toBe(null);
+    expect(crisisDue({ ...s, settings: { ...s.settings, explore: true } })).toBe(null);
   });
 });

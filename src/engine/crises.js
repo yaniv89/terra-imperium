@@ -23,8 +23,10 @@
 // crisis dropped or passing pays nothing).
 // state.settings.crises === 'off' stops all. Pure apart from the turn's working regions and units.
 import { CRISES, crisisCardId, crisisAnswerId } from '../data/crises';
-import { getAgeIndex, speedTurns, speedCostMult } from '../data/ages';
-import { ageOf } from './nationState';
+import { getAgeIndex, speedTurns, speedCostMult, isAgeAtLeast } from '../data/ages';
+import { getTechsForAge } from '../data/techTree';
+import { techsToFillAge } from './displayYear';
+import { ageOf, getResearched } from './nationState';
 import { isIndependentNation } from '../data/independents';
 import { getTiles } from '../data/geo/tiles';
 import { distanceKm } from '../data/geo/geodesic';
@@ -51,6 +53,19 @@ export const GRANARY_TIER = 1;        // the Food line's Granary (buildings.js f
 
 /** The share of its people a city loses to a famine: FAMINE_SHARE, halved by a Granary or better. */
 export const famineShare = (city) => FAMINE_SHARE * ((city.buildings?.categories?.food ?? -1) >= GRANARY_TIER ? 0.5 : 1);
+
+// A late age's crisis (lead's call 29 Oct, after Civ VII's age crises): from LATE_CRISIS_AGE on, once an age in the
+// last third of the player's own age (its techs toward the next), a crisis whose window covers that age and whose
+// conditions the player meets picks the player, without the chance roll (gaps, cooldowns and minHit still hold).
+// Memory: state.crises.playerPick = { [ageId]: turn }.
+export const LATE_CRISIS_AGE = 'modern';
+export const LATE_CRISIS_SHARE = 2 / 3;
+const ageShare = (state, id, ageId) => { const known = new Set(getResearched(state, id)); return getTechsForAge(ageId).filter((t) => known.has(t.id)).length / techsToFillAge(ageId); };
+export const lateCrisisDue = (state) => {
+  const me = state.playerNationId;
+  const ageId = me && state.nations?.[me] && !state.nations[me].isEliminated ? ageOf(state, me) : null;
+  return !!ageId && isAgeAtLeast(ageId, LATE_CRISIS_AGE) && state.crises?.playerPick?.[ageId] == null && ageShare(state, me, ageId) >= LATE_CRISIS_SHARE;
+};
 
 export const crisesOn = (state) => state.settings?.crises !== 'off' && state.settings?.explore !== true;
 
@@ -90,17 +105,21 @@ export const crisisDue = (state) => {
   if (mem.lastAny != null && turn - mem.lastAny < speedTurns(CRISIS_GAP, state.gameSpeed, age)) return null;
   const ctxs = new Map();
   const ctxOf = (id) => { if (!ctxs.has(id)) ctxs.set(id, factContext(state, id)); return ctxs.get(id); };
+  const late = lateCrisisDue(state);
   for (const crisis of CRISES) {
     const last = mem.last?.[crisis.id];
     if (last != null && turn - last < speedTurns(crisis.cooldown, state.gameSpeed, age)) continue;
     const all = hitNations(state, crisis, ctxOf);
     if (all.length < crisis.minHit) continue;
     const roll = (id) => hashRoll(`${state.rngSeed}|crisisHit|${crisis.id}|${turn}|${id}`);
-    const hit = all.map((id) => [roll(id), id]).sort((a, b) => a[0] - b[0] || (a[1] < b[1] ? -1 : 1)).slice(0, MAX_HIT).map((x) => x[1]);
+    let hit = all.map((id) => [roll(id), id]).sort((a, b) => a[0] - b[0] || (a[1] < b[1] ? -1 : 1)).slice(0, MAX_HIT).map((x) => x[1]);
+    const pickMe = late && all.includes(state.playerNationId);
+    // second: a war crisis fights hit[0] against hit[1], and the player is only ever its target
+    if (pickMe) { const others = hit.filter((id) => id !== state.playerNationId); hit = [others[0], state.playerNationId, ...others.slice(1, MAX_HIT - 1)].filter(Boolean); }
     const raiders = raidersNear(state, crisis, hit);
     if (crisis.raiders && !raiders.length) continue;
-    if (hashRoll(`${state.rngSeed}|crisis|${crisis.id}|${turn}`) >= CRISIS_CHANCE) continue;
-    return { crisis, hit, raiders: raiders.slice(0, MAX_HIT) };
+    if (!pickMe && hashRoll(`${state.rngSeed}|crisis|${crisis.id}|${turn}`) >= CRISIS_CHANCE) continue;
+    return { crisis, hit, raiders: raiders.slice(0, MAX_HIT), pickMe };
   }
   return null;
 };
@@ -127,7 +146,8 @@ export const processCrises = (state) => {
     const due = crisisDue(state);
     if (!due) return null;
     const coming = { id: due.crisis.id, turn: turn + speedTurns(WARN_TURNS, state.gameSpeed, waitAgeOf(state)), nations: due.hit, raiders: due.raiders };
-    return { nations, wars, crises: { ...mem, last: { ...mem.last, [due.crisis.id]: turn }, lastAny: turn, coming }, pendingEventChains: state.pendingEventChains, logs: [] };
+    const playerPick = due.pickMe ? { ...mem.playerPick, [ageOf(state, state.playerNationId)]: turn } : mem.playerPick;
+    return { nations, wars, crises: { ...mem, last: { ...mem.last, [due.crisis.id]: turn }, lastAny: turn, coming, ...(playerPick ? { playerPick } : {}) }, pendingEventChains: state.pendingEventChains, logs: [] };
   }
   const { coming, ...rest } = mem;
   // Crises switched off while one was coming: drop it, so it never strikes later unannounced.
