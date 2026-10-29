@@ -164,3 +164,13 @@ Seeds 1, 4 and 10 on Normal and 2, 3 on Fast end in the passive player's DEFEAT 
 - engine-rules-reviewer not run on round 4 (the lead runs it before the merge).
 - The `reach` threat uses base MOVE_POINTS, not the tech and perk bonuses (it slightly undercounts).
 - The largest garrison at war is still 14 units: that is the muster point of a war, by design.
+
+### Fast (lead's call: ages.js `fast.costMult.future` 1 to 1.6)
+
+| seed | speed | goal turn before (mult 1) | after (1.6) | leader's goal techs at the end, after | first into Future, before / after |
+|---|---|---|---|---|---|
+| 1 | Fast | 344 (with 36000: turn limit, 11/12) | - (turn limit 440) | 5 | 246 / 246 |
+| 4 | Fast | 383 (with 36000) | - (turn limit 440) | 5 | 196 / 196 |
+| 5 | Fast | not run | - (turn limit 440) | 2 | - / 271 |
+
+Fast seeds 2, 3 and 6 end in the passive player's DEFEAT before turn 100. 1.6, the low end of the lead's range, already ends every Fast seed that plays on the turn limit, so nothing smaller was tried. Normal reran with it: all 7 playing seeds still end on the turn limit (seed 10 is an early defeat).
