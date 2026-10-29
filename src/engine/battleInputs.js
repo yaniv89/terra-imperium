@@ -163,19 +163,19 @@ export const reinforcementSources = (state, regionId, nationId, enemyId, exclude
 
 /**
  * The troops standing by that Auto fights with, exactly those a commanded battle calls in
- * (gameReducer.js BEGIN_TACTICAL_BATTLE and the commanded defence): the player's assault on a city
- * brings both sides' (the player's not from the attack's origin), an assault on the player's city
- * brings the player's. Every other battle (AI against AI, field, sea, landing): none. Never a unit
- * already in the battle. Returns [attackerUnits, defenderUnits] from state.units.
+ * (gameReducer.js BEGIN_TACTICAL_BATTLE, the commanded defence and landing): the player's assault on a
+ * city brings both sides' (the player's not from the attack's origin), an assault or a landing on the
+ * player's city brings the player's. Every other battle (AI against AI, field, sea): none. Never a unit
+ * already in this or another battle, aboard a ship or a settler. Returns [attackerUnits, defenderUnits].
  */
 export const standbyFor = (state, { kind, cityId, fromRegionId = null, attackerUnits = [], defenderUnits = [] }) => {
   const me = state.playerNationId; const city = cityId ? state.regions?.[cityId] : null;
   const attId = attackerUnits[0]?.ownerId;
   if (!city || !attId) return [[], []];
   const inIt = new Set([...attackerUnits, ...defenderUnits].map((u) => u.id));
-  const pick = (sources) => sources.flatMap((src) => src.unitIds).filter((id) => !inIt.has(id)).map((id) => state.units[id]).filter((u) => u && u.strength > 0);
+  const pick = (sources) => sources.flatMap((src) => src.unitIds).filter((id) => !inIt.has(id)).map((id) => state.units[id]).filter((u) => u && u.strength > 0 && !u.embarkedOn && u.classId !== 'settler' && !isUnitInBattle(state, u.id));
   if (kind === 'invasion' && attId === me) return [pick(reinforcementSources(state, cityId, me, city.owner, [fromRegionId])), pick(reinforcementSources(state, cityId, city.owner, me))];
-  if (kind === 'defense' && city.owner === me) return [[], pick(reinforcementSources(state, cityId, me, attId))];
+  if ((kind === 'defense' || kind === 'landing') && city.owner === me) return [[], pick(reinforcementSources(state, cityId, me, attId))];
   return [[], []];
 };
 

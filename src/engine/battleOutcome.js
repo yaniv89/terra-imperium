@@ -227,9 +227,9 @@ const invasionAdapter = (s, o, war, att, def) => {
     if (!units[u.id]) return;
     if (u.strength <= 0) { delete units[u.id]; return; }
     const stays = isAir(u); // aircraft fly home
-    // A unit that stood by from another city keeps its own (battleInputs.js standbyFor).
-    const home = u.regionId === o.fromRegionId || !u.regionId ? o.fromRegionId : u.regionId;
-    units[u.id] = { ...u, regionId: stays ? u.regionId : captured ? o.regionId : home, tile: stays ? unitTile(s, u) : captured ? target.tile : unitTile(s, u), movesLeft: 0 };
+    // A unit that stood by from another city (battleInputs.js standbyFor) fought from where it stands: it keeps its tile and city.
+    const standby = !!u.regionId && u.regionId !== o.fromRegionId;
+    units[u.id] = { ...u, regionId: stays || standby ? u.regionId : captured ? o.regionId : o.fromRegionId, tile: stays || standby || !captured ? unitTile(s, u) : target.tile, movesLeft: 0 };
   });
   const out = rule === 'garrison' && o.outcome === 'attacker' ? beatenGarrison(s, o) : null;
   def.forEach((u) => {

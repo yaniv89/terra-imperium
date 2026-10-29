@@ -43,6 +43,21 @@ describe('Auto fights with the troops standing by (Q1)', () => {
     expect(att).toEqual([]);
   });
 
+  it('never a unit aboard a ship, a settler or one already in another battle (review)', () => {
+    const { s, from, target } = setup();
+    const r = s.units.r;
+    const st = { ...s, units: { ...s.units, b: { ...r, id: 'b', embarkedOn: 'ship' }, c: { ...r, id: 'c', classId: 'settler' }, e: { ...r, id: 'e' } }, pendingDefenses: [{ id: 'x', defenderUnitIds: ['e'], attackerUnitIds: [] }] };
+    const [, def] = standbyFor(st, { kind: 'invasion', cityId: target, fromRegionId: from, attackerUnits: [s.units.a], defenderUnits: [s.units.d] });
+    expect(def.map((x) => x.id)).toEqual(['r']);
+  });
+
+  it('a landing on the player\'s city brings the player\'s standby, as the commanded landing does', () => {
+    const { s, target } = setup();
+    const mine = { ...s, regions: { ...s.regions, [target]: { ...s.regions[target], owner: ME } }, units: { ...s.units, r: { ...s.units.r, ownerId: ME } } };
+    const [, def] = standbyFor(mine, { kind: 'landing', cityId: target, attackerUnits: [{ ...s.units.a, ownerId: FOE }], defenderUnits: [] });
+    expect(def.map((x) => x.id)).toContain('r');
+  });
+
   it('AI against AI and field battles take none', () => {
     const { s, target } = setup();
     const ai = { ...s, playerNationId: 'nobody' };

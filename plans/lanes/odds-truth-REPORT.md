@@ -7,29 +7,59 @@ Source: round 3b Opus playtests civ-veteran 40746164607 (steps 129 to 133, 295 t
 
 ## For the lead
 
-**Q1 (design, rule change): should Auto fight with the troops standing by?** A commanded battle calls in
-both sides' idle troops within 410 km (`reinforcementSources`, gameReducer.js BEGIN_TACTICAL_BATTLE and the
-commanded defence). Auto (autoBattle.js, every battleOdds estimate) never does. So on one state the card's
-Auto odds, the result screen's "Auto wins this battle N%" and the commanded battle read different forces.
-This is the main reason of finding 1 at Zafar: a 14,900-man garrison (scouts said "Likely win"), 30,000 Saba
-men beside it, a commanded battle of 44,900, and then "Auto wins this battle 100%" under a total loss (civ-veteran 297, 314, 316).
-- A (my recommendation): Auto takes the same standby, both sides, through battleInputs.js, and their losses
-  go through applyBattleOutcome as a commanded battle's do. One truth on every surface. Costs: an autoCalib
-  and parityEco run (battle-lab), AI assaults on the player get the player's own standby too.
-- B (built in this lane, needed either way): keep Auto as is and say it on every card: "30,000 more enemy men
-  stand near it. They join a battle you command; Auto fights without them." (march line, attack card) and
-  "20,000 of your men stand near it ..." (siege card).
+Answers received 29 Oct: Q1 = A (built, below), Q2 = P1 (built, below) and P2 (waits for ai-armies on
+integration; not started). Nothing waits on a design call.
 
-**Q2 (finding 3, the passive war): which fix may I build?** The AI does attack: on the era saves, a passive
-player at war 30 turns (peace refused) got 7 battle cards in 30 turns (classical, Akkad) and 6 in 30 (gunpowder,
-Saba), and lost one city each. What feels passive is the gaps: classical turns 116 to 123 and 132 to 142 show
-no enemy within 2 rings (Akkad's war plan switched to Pontus at 136); gunpowder Saba stacks march routes of
-13 to 18 tiles and arrive at 0 supply (starved, strength 343 to 515 of 1000). Proposal, smallest first:
-- P1 (UI only, no rule change): a turn-report line each turn an enemy stack marches on one of your cities:
-  "Saba: 6 regiments (5,900 men) march on Gaza, about 3 turns away" with Show on map. The war is visible
-  between battles. Reads unit.route and warPlan, already in state. My recommendation.
-- P2 (rule, balance-sim needed): a war plan keeps its target while its strike is on the road (no switch to
-  another enemy mid-march), and picks a muster point within supply reach of the target, so stacks arrive fed.
+## Q1 = A: Auto fights with the troops standing by
+
+- `standbyFor` (battleInputs.js): the troops a commanded city battle calls in, from the same
+  `reinforcementSources`: the player's assault brings both sides' (the player's not from the attack's
+  origin), an assault on the player's city brings the player's. AI against AI, field, sea and landings: none
+  (their commanded twins call none, or are not player battles).
+- `resolveAutoBattle` (autoBattle.js, `withStandby`) and every battleOdds estimate (`simulate`) fight with
+  them: the march line, the attack card, the siege card, the result screen's "Auto wins N%" and the game's
+  Auto read one force count.
+- battleOutcome.js: a standby unit outside the city takes its losses where it stands; it is not deleted
+  when the city falls, nor driven out with a beaten garrison, and an attacker's keeps its own city. This also
+  applies to a commanded battle's joined standby (it used to vanish with the city).
+- Card lines for A: "40,000 more enemy men stand near it and join the battle: with them and about 1,500
+  auxiliaries it trains, it meets about 55,000." With a spy report the count is Auto's own (every man standing
+  by); without, the men in sight. Siege card: "20,000 of your men stand near it and join the battle, on Auto
+  or in command."
+
+Evidence:
+- **Zafar case** (civ-veteran 297/314/316 rebuilt on the gunpowder era save: Zafar 1,000 garrison plus
+  militia, 30,000 Saba men beside it, 10,000 Israelis at its gates, spy report on Saba; probe not committed):
+  | | before | after |
+  |---|---|---|
+  | Auto, 40 seeds (resolveAutoBattle) | 32 of 40 wins, against 13,500 men | 0 of 40, against 53,500 men |
+  | attack card | (scouts' "Likely win") | autoP 0, "Likely loss", Hopeless, "40,000 more enemy men stand near it ... meets about 55,000" |
+  | result screen "Auto wins N%" (autoCompare.js) | 100% (the playtest) | 0% |
+  | the game's Auto, LAUNCH_INVASION, 20 seeds | | 0 of 20; a Saba standby unit stays on its tile and city |
+  Card, Auto and result agree. Auto's 40,000 standby is 10,000 more than the 30,000 placed: other Saba
+  troops within 410 km; the card names them all because there is a spy report.
+- **parityEco** (N=16, field, assault, town; bronze:bronze, classical:kingdoms; mixed): IN 18 of 18 before
+  and after, every row identical (it tests `autoFromInputs` on fixed armies; A changes which armies, not the
+  fight). Logs: scratchpad parity-before.log, parity-after.log.
+- **autoCalib** at the shipped constants on both runs: out 0 of 18, logSum 5.42, winGap 2.44, before and after.
+- engine-rules-reviewer on the diff: no rule breaks (determinism, purity, ages, rings, i18n, ledger sound). Its three
+  behaviour gaps are fixed: a standby attacker keeps its own tile and city on Auto (it was moved onto the
+  taken city from up to 410 km away); a unit aboard a ship, a settler or one already in another battle never
+  stands by; an AI landing on the player's city brings the player's standby, as the commanded landing does.
+- Tests: new `src/engine/autoStandby.test.js` (standby equals the commanded set; none for AI against AI or
+  field; the card's estimate, Auto's inputs and its result count the same defenders; on Auto a standby unit
+  keeps its tile and city). 27 related files, 332 tests, green.
+
+## P1: a march on your city warns when it sets out
+
+`warnMarches` (aiOperations.js) warned once, 3 tiles out; marches of 13 to 18 tiles went unsaid. Now a march
+on one of your cities warns when it sets out ("The Sabaean Empire sets out for Gaza with 59,000 men, about 4
+turns away", `unit.marchSeen`) and again 3 tiles out (as before). The turn report gives both a Defend button.
+Agreement fixed in both lines ("The Ahhiyawan tribes set out", "march on"). Test: marchWarning.test.js.
+
+## P2: not started
+
+Waits for ai-armies on claude/integration (not there at 039d3c18 when last fetched).
 
 ## Findings
 
