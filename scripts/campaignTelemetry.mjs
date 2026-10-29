@@ -171,7 +171,7 @@ export const createScriptedPlayer = ({ engine, demands = 'refuse', production = 
 
 const STACK_KINDS = ['moved', 'shuttle', 'besieging', 'waitRoute', 'idleHome', 'idleField'];
 
-export const createTelemetry = ({ playerId, isIndependent = () => false, authorityOf = null, getOverextension = null, metNations = null, getTiles = null, traceFile = null, writeLine = null }) => {
+export const createTelemetry = ({ playerId, isIndependent = () => false, authorityOf = null, getOverextension = null, metNations = null, getTiles = null, traceFile = null, writeLine = null, enemyInReach = null }) => {
   const wars = new Map(); // id -> { id, a, e, start, end, withPlayer, indep }
   const demandsSeen = new Set();
   const conquests = new Map(); // cityId -> { turn, owner } (a conquest not yet judged)
@@ -179,6 +179,7 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
   const stackSizes = []; const fieldStackSizes = []; const wallStackSizes = []; // AI majors at war: units per stack, one entry per stack per turn
   const move = { aiUnitTurns: 0, aiMoved: 0, warUnitTurns: 0, warMoved: 0, peaceUnitTurns: 0, peaceMoved: 0 };
   const stackStats = {}; // per war: { stackTurns, moved, shuttle, ... }
+  const aggr2 = { turns: 0, idleHome: 0, idleNoReach: 0 }; // aggressor stacks of 2+ (lane ai-armies): idle at home, and idle with no enemy that can reach the city next turn
   const history = new Map(); // lead unit id -> last tiles
   const sieging = new Set();
   const first = { unit: null, settler: null, building: null, city2: null, wonder: null, city1: null, tech: null };
@@ -187,6 +188,10 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
   const series = []; // { turn, gold, adm, dip, mil, majorsMet, ... } one row per observed turn
   const goldRange = { min: Infinity, max: -Infinity };
   const demandOutcome = [];
+  // AI-major army and garrison sizes per age (lane ai-armies): ageId -> { maxGarrison (land units
+  // on one city tile), unitsPerCity, garrisons }.
+  const byAge = {};
+  const bigGarrisons = []; // every AI city-turn with 8+ land units on its tile
 
   const tilesOf = () => (getTiles ? getTiles() : null);
 
@@ -237,7 +242,8 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
       const shuttle = movedNow && hist.length >= 2 && hist[hist.length - 2] === tile;
       history.set(lead.id, [...hist.slice(-3), tile]);
       const besieging = Object.values(after.regions).some((c) => c.siege?.by === owner && c.tile != null && (c.tile === tile || (tiles?.neighbors?.[tile] || []).includes(c.tile)));
-      const home = Object.values(after.regions).some((c) => c.owner === owner && c.tile === tile);
+      const cityAt = Object.values(after.regions).find((c) => c.owner === owner && c.tile === tile);
+      const home = !!cityAt;
       const hasRoute = !!lead.route?.length;
       if (!isIndependent(after.nations[owner])) {
         stackSizes.push(list.length);
@@ -247,10 +253,14 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
       }
       let verdict;
       if (shuttle) verdict = 'shuttle'; else if (movedNow) verdict = 'moved'; else if (besieging) verdict = 'besieging'; else if (hasRoute) verdict = 'waitRoute'; else if (home) verdict = 'idleHome'; else verdict = 'idleField';
+      const reach = home && enemyInReach ? enemyInReach(after, enemiesOf[owner], tile) : null;
+      if (list.length >= 2 && !isIndependent(after.nations[owner])) {
+        for (const w of activeWars) if (w.aggressor === owner) { aggr2.turns += 1; if (verdict === 'idleHome') { aggr2.idleHome += 1; if (reach === 0) aggr2.idleNoReach += 1; } }
+      }
       for (const wid of warOf[owner]) {
         const st = (stackStats[wid] ||= { stackTurns: 0, moved: 0, shuttle: 0, besieging: 0, waitRoute: 0, idleHome: 0, idleField: 0 });
         st.stackTurns += 1; st[verdict] += 1;
-        if (traceFile && writeLine) writeLine(JSON.stringify({ turn: t, war: wid, nation: owner, lead: lead.id, units: list.length, strength: list.reduce((a, u) => a + (u.strength || 0), 0), tile, from: prevTile ?? null, verdict, routeLen: lead.route?.length || 0, routeTo: hasRoute ? lead.route[lead.route.length - 1] : null, halt: lead.routeHalt || null, attack: lead.routeAttack || null, indepOp: lead.indepOp || null }));
+        if (traceFile && writeLine) writeLine(JSON.stringify({ turn: t, war: wid, nation: owner, lead: lead.id, units: list.length, strength: list.reduce((a, u) => a + (u.strength || 0), 0), tile, from: prevTile ?? null, verdict, routeLen: lead.route?.length || 0, routeTo: hasRoute ? lead.route[lead.route.length - 1] : null, halt: lead.routeHalt || null, attack: lead.routeAttack || null, indepOp: lead.indepOp || null, ...(home ? { city: cityAt.id, threatened: after.aiOperations?.[owner]?.objective === 'defend' && (after.aiOperations[owner].targets || []).includes(cityAt.id), staging: after.nations[owner]?.warPlan?.staging === cityAt.id } : {}), strike: after.nations[owner]?.warPlan?.strike ?? null, reach }));
       }
     }
   };
@@ -310,6 +320,33 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
       demandOutcome.push({ id, turn: t, from: d.from || d.indepId, kind: d.kind || 'tribute', amount: d.amount ?? d.gold ?? null });
     }
     observeStacks(before, after);
+    observeArmies(after);
+  };
+
+  const observeArmies = (s) => {
+    const cityAt = new Map(); Object.values(s.regions).forEach((c) => { if (c.tile != null && c.owner) cityAt.set(c.tile, c); });
+    const per = {}; // owner -> { units, garrison: Map(cityId -> units) }
+    for (const u of Object.values(s.units || {})) {
+      if (u.domain !== 'land' || u.classId === 'settler' || !(u.strength > 0)) continue;
+      const p = (per[u.ownerId] ||= { units: 0, garrison: new Map() }); p.units += 1;
+      const c = cityAt.get(u.tile); if (c && c.owner === u.ownerId) p.garrison.set(c.id, (p.garrison.get(c.id) || 0) + 1);
+    }
+    // Independents' city garrisons (one-city nations): the largest, under age 'indep'.
+    for (const n of Object.values(s.nations)) {
+      if (!isIndependent(n) || n.isEliminated || !per[n.id]) continue;
+      const a = (byAge.indep ||= { maxGarrison: 0, unitsPerCity: [], garrisons: [] });
+      for (const g of per[n.id].garrison.values()) { a.garrisons.push(g); if (g > a.maxGarrison) a.maxGarrison = g; }
+    }
+    for (const n of aiMajors(s)) {
+      const p = per[n.id]; const cities = Object.values(s.regions).filter((c) => c.owner === n.id && !c.outpost).length;
+      if (!p || !cities) continue;
+      const a = (byAge[n.tech?.ageId || 'none'] ||= { maxGarrison: 0, unitsPerCity: [], garrisons: [] });
+      a.unitsPerCity.push(p.units / cities);
+      for (const [cid, g] of p.garrison) {
+        a.garrisons.push(g); if (g > a.maxGarrison) a.maxGarrison = g;
+        if (g >= 8) bigGarrisons.push({ turn: s.turnNumber, nation: n.id, age: n.tech?.ageId, city: cid, units: g, cities, landUnits: p.units, capital: n.capitalRegionId === cid, staging: n.warPlan?.staging === cid, atWar: (s.wars || []).some((w) => w.active && (w.aggressor === n.id || w.enemy === n.id)), gold: Math.round(n.economy?.gold || 0), net: Math.round(n.lastNetIncome || 0) });
+      }
+    }
   };
 
   const aiMajors = (s) => Object.values(s.nations).filter((n) => n.id !== playerId && !n.isEliminated && !isIndependent(n) && !String(n.id).startsWith('free_') && n.id !== 'rebels');
@@ -357,6 +394,7 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
       stackTurns: st, stackMovedShare: r3(sum('moved') / Math.max(1, st)), stackShuttleShare: r3(sum('shuttle') / Math.max(1, st)), stackBesiegeShare: r3(sum('besieging') / Math.max(1, st)),
       stackWaitRouteShare: r3(sum('waitRoute') / Math.max(1, st)), stackIdleHomeShare: r3(sum('idleHome') / Math.max(1, st)), stackIdleFieldShare: r3(sum('idleField') / Math.max(1, st)),
       majorsMet,
+      aggrStack2Turns: aggr2.turns, aggrStack2IdleHomeShare: r3(aggr2.idleHome / Math.max(1, aggr2.turns)), aggrStack2IdleNoReachShare: r3(aggr2.idleNoReach / Math.max(1, aggr2.turns)),
       // Army size (lane W5 AI armies): land units per AI-major stack at war (all, and away from its own
       // cities), the majors' mean treasury and land units now, their bankruptcies and the player's losses.
       warStackMean: r1(mean(stackSizes)), warStackMedian: median(stackSizes), warFieldStackMean: r1(mean(fieldStackSizes)), warFieldStackMedian: median(fieldStackSizes),
@@ -367,14 +405,15 @@ export const createTelemetry = ({ playerId, isIndependent = () => false, authori
       playerOverext: getOverextension ? Math.round(getOverextension(s, me)) : 0, playerAuthority: authorityOf ? r1(authorityOf(s, me).total) : 0,
       aiTopOverext: top && getOverextension ? Math.round(getOverextension(s, top[0])) : 0, aiTopAuthority: top && authorityOf ? r1(authorityOf(s, top[0]).total) : 0,
       aiTop5OverextMean: top5.length && getOverextension ? r1(mean(top5.map((e) => getOverextension(s, e[0])))) : 0, aiTop5AuthorityMean: top5.length && authorityOf ? r1(mean(top5.map((e) => authorityOf(s, e[0]).total))) : 0,
-      telemTurn: t
+      telemTurn: t,
+      ...Object.fromEntries(Object.entries(byAge).flatMap(([age, a]) => [[`garrisonMax_${age}`, a.maxGarrison], [`garrisonP99_${age}`, a.garrisons.length ? [...a.garrisons].sort((x, y) => x - y)[Math.floor(0.99 * (a.garrisons.length - 1))] : 0], [`unitsPerCity_${age}`, r1(mean(a.unitsPerCity))]]))
     };
     delete out.sieges;
     return out;
   };
 
   const report = (s) => ({
-    snapshot: snapshot(s), series, wars: [...wars.values()], warStacks: stackStats, demands: demandOutcome, tallies,
+    snapshot: snapshot(s), series, bigGarrisons, wars: [...wars.values()], warStacks: stackStats, demands: demandOutcome, tallies,
     first: { ...first }
   });
 
