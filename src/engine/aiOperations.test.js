@@ -119,7 +119,8 @@ describe('operational AI',()=>{
     }
     if(!IN)throw new Error('fixture: no rival site a few tiles from the player capital');
     // A strike stack (warPlans.js): five regiments in New Delhi, four march and one holds the city.
-    const reg=(id)=>({id,ownerId:RV,regionId:IN,tile:s0.regions[IN].tile,domain:'land',classId:'infantry',strength:1000,maxStrength:1000,morale:100,movesLeft:1,promotions:[],xp:0});
+    // Foragers: a strike leaves only on a march it can supply (odds-truth P2); unfed, this 6-turn march arrives at 30 supply.
+    const reg=(id)=>({id,ownerId:RV,regionId:IN,tile:s0.regions[IN].tile,domain:'land',classId:'infantry',strength:1000,maxStrength:1000,morale:100,movesLeft:1,promotions:['forager'],xp:0});
     const s={...s0,wars:[{id:'w',aggressor:s0.playerNationId,enemy:RV,active:true,battleScore:0}],units:{a:reg('a'),b:reg('b'),c:reg('c'),d:reg('d'),home:{...reg('home'),strength:900}}};
     s.nations[RV]={...s.nations[RV],economy:{gold:1000,hr:1000,mil:100,adm:100},isAtWar:true};s.nations[s.playerNationId]={...s.nations[s.playerNationId],isAtWar:true};
     const tiles=getTiles();

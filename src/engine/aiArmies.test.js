@@ -3,7 +3,7 @@
 import { describe, it, expect } from 'vitest';
 import { addCity, neighbourWorld, rivalOf } from './testWorld';
 import { getNeighborIds } from '../data/regions';
-import { updateWarPlan, dropTarget, armedFor, goSize, ARM_SLACK, WAR_PREP_REF_TURNS } from './warPlans';
+import { updateWarPlan, dropTarget, armedFor, goSize, ARM_SLACK, WAR_PREP_REF_TURNS, PREP_VISIBLE_REF_TURNS, supplyAllows, STRIKE_SUPPLY_TURNS } from './warPlans';
 import { spreadGarrisons } from './aiOperations';
 import { PEACE_GARRISON_MAX } from './warPlans';
 import { chooseAIRecruitRegion } from '../utils/aiLogic';
@@ -42,15 +42,27 @@ describe('AI armies (lane ai-armies)', () => {
     const tile = s.regions[berlin].tile;
     const muster = (n) => ({ ...withNation(prep, { warPlan: plan }), units: Object.fromEntries(Array.from({ length: n }, (_, i) => [`u${i}`, unit(`u${i}`, berlin, tile)])) });
     expect(armedFor(muster(goSize(plan) - ARM_SLACK), D, P)).toBe(false); // one stays home as the garrison
-    expect(armedFor(muster(goSize(plan) + 1 - ARM_SLACK), D, P)).toBe(true); // within ARM_SLACK: no arming
-    // With no plan yet, the plan it would make is reckoned (same staging city).
-    expect(armedFor({ ...muster(goSize(plan) + 1 - ARM_SLACK), nations: s.nations }, D, P)).toBe(true);
+    // Within ARM_SLACK: no more arming, but a war on the player waits until the mustering line has shown
+    // PREP_VISIBLE_REF_TURNS (odds-truth P2).
+    const shown = s.turnNumber + speedTurns(PREP_VISIBLE_REF_TURNS, s.gameSpeed, waitAgeOf(s, D, P));
+    expect(armedFor(muster(goSize(plan) + 1 - ARM_SLACK), D, P)).toBe(false);
+    expect(armedFor({ ...muster(goSize(plan) + 1 - ARM_SLACK), turnNumber: shown }, D, P)).toBe(true);
+    // With no plan yet, the plan it would make is reckoned (same staging city); against the player, no prep: not yet.
+    expect(armedFor({ ...muster(goSize(plan) + 1 - ARM_SLACK), nations: s.nations }, D, P)).toBe(false);
     expect(armedFor({ ...muster(goSize(plan) - ARM_SLACK), nations: s.nations }, D, P)).toBe(false);
     const late = { ...muster(1), turnNumber: s.turnNumber + speedTurns(WAR_PREP_REF_TURNS, s.gameSpeed, waitAgeOf(s, D, P)) };
     expect(armedFor(late, D, P)).toBe(true);
     expect(updateWarPlan(s, D, [], 'bronze')).toBe(null); // no prep, no claim: no plan
     // A prep left over (twice the wait: the nation never got to declare) arms no longer.
     expect(updateWarPlan({ ...prep, turnNumber: s.turnNumber + 2 * speedTurns(WAR_PREP_REF_TURNS, s.gameSpeed, waitAgeOf(s, D, P)) }, D, [], 'bronze')).toBe(null);
+  });
+
+  it('a strike leaves only on a march it can supply (odds-truth P2)', () => {
+    expect(supplyAllows(null)).toBe(true); // never loses supply
+    expect(supplyAllows({ starvesAt: null, turns: null })).toBe(true); // refills at the target
+    expect(supplyAllows({ starvesAt: null, turns: STRIKE_SUPPLY_TURNS })).toBe(true);
+    expect(supplyAllows({ starvesAt: null, turns: STRIKE_SUPPLY_TURNS - 1 })).toBe(false);
+    expect(supplyAllows({ starvesAt: 3, turns: 0 })).toBe(false);
   });
 
   it('recruits join the muster point; at peace never a city already holding PEACE_GARRISON_MAX', () => {

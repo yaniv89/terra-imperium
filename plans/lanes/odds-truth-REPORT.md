@@ -57,9 +57,54 @@ on one of your cities warns when it sets out ("The Sabaean Empire sets out for G
 turns away", `unit.marchSeen`) and again 3 tiles out (as before). The turn report gives both a Defend button.
 Agreement fixed in both lines ("The Ahhiyawan tribes set out", "march on"). Test: marchWarning.test.js.
 
-## P2: not started
+## P2: strikes that arrive fed (lead go 29 Oct, after ai-armies 41d3a0af; branch merged with integration first)
 
-Waits for ai-armies on claude/integration (not there at 039d3c18 when last fetched).
+Built (warPlans.js header block, aiOperations.js):
+- **Target switching (report: only for a 15% better target):** already stricter. updateWarPlan keeps a target
+  as long as the enemy holds it; it changes only when the city is taken, peace removes the enemy, or the
+  target is dropped (no road, or the two rules below). No new rule needed; written in the header.
+- **Supplied routes only, about 3 turns of supply:** a strike or siege party leaves only on a march where no
+  unit's meter empties on the way and it holds `STRIKE_SUPPLY_TURNS` = 3 turns of supply at the target
+  (`supplyAllows` over supplyMeter.js `supplyAlongMarch`, the same forecast as the player's march bar). A plan
+  target it cannot reach that way is dropped like one with no road (`dropTarget`), so the next nearest one is
+  picked. The muster point was already the plan's own city nearest the target (pickStaging).
+- **Replan after 3 turns without progress:** `strikeProgress`: the fewest steps left of a launched strike's units
+  on the road to the target, kept on the plan (`near`, `nearTurn`); no nearer for `REPLAN_REF_TURNS` = 3 reference
+  turns (speedTurns) drops the target and stops those units.
+- **Mobilization visible ahead:** a war on the player is declared only after the mustering line (warPrep, on the
+  nation card) has shown for `PREP_VISIBLE_REF_TURNS` = 2 reference turns, even when the muster is already full
+  (ai-armies' ARM_SLACK shortcut used to declare at once). AI-vs-AI wars are unaffected. Plus P1's set-out line.
+
+Evidence: compare.sh, base 1249feb9 (integration with ai-armies, before P2), head 7515bb8a, POLICY=scripted,
+PLAYER=akkad, 200 turns, seeds 11-18 (paired). New harness counters in worldStats.sim.js (run on both sides):
+strikes = units of a nation setting out on one turn for its plan's target; attrition = strength lost on turns a
+unit stood at an empty meter.
+
+| metric | base | head | diff | 95% CI | up/down |
+|---|---|---|---|---|---|
+| strikes arriving under 80% of departure strength from attrition (target under 10%) | 5.0% | 0% | -5.0 pts | [-10, 0.04] | 0/6 |
+| strikes with a unit arriving at an empty meter | 8.4% | 1.2% | -7.2 pts | [-12, -1.9] * | 0/7 |
+| AI wars a game (warsDeclaredMajors; floor 7) | 8.25 | 7.00 | -1.25 | [-3.33, 0.83] | 2/5 |
+| AI attacks on the player per 30 turns (queued battles) | 0.22 | 0.19 | -0.04 | [-0.13, 0.05] | 0/1 |
+| wars on the player | 1.13 | 0.75 | -0.38 | [-1.14, 0.39] | 1/3 |
+| battles between majors | 56.8 | 48.0 | -8.75 | [-20.3, 2.78] | 2/6 |
+| captures (all / from majors) | 6.50 / 1.75 | 7.13 / 1.63 | +0.63 / -0.13 | n.s. | |
+| strikes | 31.9 | 27.3 | -4.6 | [-16.5, 7.2] | 3/5 |
+
+Read: the arrival target is met (it was already under 10% at the base: 5%; now 0) and starving arrivals fall
+sharply (the one starred row). AI wars a game sit at the floor (7.00, not significantly below the base); battles
+and wars on the player lean down, not significantly. The AI-attacks metric is per 30 turns of the whole game, and
+with a scripted player rarely at war (about 1 war on it a game) it is near 0 on both sides: it does not measure
+how hard the AI presses a war once it is on (my era-save probe earlier in this report did: 6 to 7 battle cards in
+30 war turns).
+
+Passive endgame test (`endgameReachability.test.js` "a passive run ... never wins by default", which ends the
+game on `{ reason: 'turnLimit' }`): passes on head (283 s). Related tests (23 files importing warPlans,
+aiOperations or aiLogic, plus autoStandby): 278 passed. Two fixture updates: aiArmies.test.js (a war on the
+player now waits for the mustering line), aiOperations.test.js (the march test's stack forages: unfed, its
+6-turn march arrives at 30 supply and the new rule keeps it home). Not run: the full suite, engine-rules-reviewer
+on the P2 diff (the lead's step before merging).
+
 
 ## Findings
 

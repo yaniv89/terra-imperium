@@ -15,7 +15,9 @@ import { resolveAutoBattle } from './autoBattle';
 import { fieldDefenseRecord } from './battleQueue';
 import { isUnitInBattle } from './invasion';
 import { placeInCity, unitTile, touchesCity, findTilePath, stackPace } from './armies';
-import { advanceMarches } from './routes';
+import { advanceMarches, scheduleSteps } from './routes';
+import { supplyAlongMarch } from './supplyMeter';
+import { speedTurns } from '../data/ages';
 import { getTiles } from '../data/geo/tiles';
 import { siegeMaxHp, siegeStrength, wallsOf, WALL_REGEN } from './sieges';
 import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs, applyFieldResult } from './fieldBattle';
@@ -41,7 +43,7 @@ import { aiScout, marchScouts, scoutsThisTurn } from './aiScouting';
 import { cityAttackStrength, cityAttackDamage, cityDefence } from './cityAssault';
 import { cityMilitia, wallsHpRatio } from './battleInputs';
 import { siegeHpOf } from './sieges';
-import { updateWarPlan, readyToStrike, launched, dropTarget, PEACE_GARRISON_MAX, hostileReach, interiorCitySafe, GATHER_MIN_UNITS } from './warPlans';
+import { updateWarPlan, readyToStrike, launched, dropTarget, supplyAllows, REPLAN_REF_TURNS, PEACE_GARRISON_MAX, hostileReach, interiorCitySafe, GATHER_MIN_UNITS } from './warPlans';
 
 const routeStep = (regions, nationId, from, goals) => {
   const queue = [from], first = new Map([[from, null]]);
@@ -329,6 +331,24 @@ const savePlan = (next, nationId, plan) => {
   return plan;
 };
 
+// May `units` at `at` leave on `steps` (warPlans.js supplyAllows: no meter empties, STRIKE_SUPPLY_TURNS at the end)?
+const routeSupplied = (state, units, at, steps, pace) => supplyAllows(supplyAlongMarch(state, units, steps, scheduleSteps(state, at, steps, pace, 0, { now: true })));
+
+// A launched strike's progress (warPlans.js REPLAN_REF_TURNS): the fewest steps left of its units on
+// the road to the target. No nearer for that long: the plan drops the target and those units stop.
+const strikeProgress = (next, nationId, plan) => {
+  const goal = next.regions[plan.cityId]?.tile;
+  if (!(plan.waves > 0) || goal == null) return plan;
+  let best = Infinity;
+  for (const u of Object.values(next.units)) if (u.ownerId === nationId && u.domain === 'land' && u.route?.length && u.route[u.route.length - 1] === goal) best = Math.min(best, u.route.length);
+  if (best === Infinity) return plan.near == null ? plan : savePlan(next, nationId, { ...plan, near: undefined, nearTurn: undefined });
+  if (plan.near == null || best < plan.near) return savePlan(next, nationId, { ...plan, near: best, nearTurn: next.turnNumber });
+  if ((next.turnNumber || 0) - plan.nearTurn < speedTurns(REPLAN_REF_TURNS, next.gameSpeed, getTechAgeId(next, nationId))) return plan;
+  for (const u of Object.values(next.units)) if (u.ownerId === nationId && u.route?.length && u.route[u.route.length - 1] === goal) next.units[u.id] = { ...u, route: null, routeHalt: null, routeBank: 0 };
+  const { near: _n, nearTurn: _t, ...rest } = dropTarget(plan); // eslint-disable-line no-unused-vars
+  return savePlan(next, nationId, rest);
+};
+
 /** Do units of ours already stand beside this city (a siege a new party may join)? */
 export const besiegedByUs = (state, nationId, city, byTile) => {
   if (city?.tile == null) return false;
@@ -468,6 +488,7 @@ export const processAIOperations = (state, rng) => {
       else if (!isIndependentNation(next.nations[nationId]) && !next.nations[nationId]?.indepGoal) next = spreadGarrisons(next, nationId, committed);
       continue;
     }
+    if (plan) plan = strikeProgress(next, nationId, plan);
     const enemies = new Set(wars.map(w => w.aggressor === nationId ? w.enemy : w.aggressor));
     const land = getOwnedRegionIds(next.regions, nationId);
     const fronts = new Set(land.filter(id => getNeighborIds(id).some(n => enemies.has(next.regions[n]?.owner))));
@@ -610,8 +631,9 @@ export const processAIOperations = (state, rng) => {
             const failed = stack[0].routeFailed;
             if (goers.length && !(failed && failed.goal === `siege:${target}` && failed.until > state.turnNumber)) {
               const path = findTilePath({ ...next, playerNationId: nationId }, at, city.tile, nationId, { maxSteps: AI_MARCH_STEPS, researched: getResearched(state, nationId) });
-              if (path.path) {
-                const pace = stackPace(goers, getResearched(state, nationId));
+              const pace = path.path ? stackPace(goers, getResearched(state, nationId)) : 0;
+              if (path.path && !routeSupplied(next, goers, at, path.path.slice(1), pace)) stack.forEach(u => { next.units[u.id] = { ...u, routeFailed: { goal: `siege:${target}`, until: state.turnNumber + ROUTE_RETRY_TURNS } }; });
+              else if (path.path) {
                 goers.forEach(u => { committed.add(u.id); next.units[u.id] = { ...u, route: path.path.slice(1), routeBank: 0, routePace: pace, routeHalt: null, routeFailed: undefined }; });
                 marching = true;
                 if (plan && !joining) plan = savePlan(next, nationId, launched(plan, state.turnNumber));
@@ -672,8 +694,9 @@ export const processAIOperations = (state, rng) => {
               const goalKey = `plan:${plan.cityId}`;
               if (failed && failed.goal === goalKey && failed.until > state.turnNumber) continue;
               const path = findTilePath({ ...next, playerNationId: nationId }, at, next.regions[plan.cityId].tile, nationId, { maxSteps: AI_MARCH_STEPS, researched: getResearched(state, nationId) });
-              if (!path.path) { stack.forEach(u => { next.units[u.id] = { ...u, routeFailed: { goal: goalKey, until: state.turnNumber + ROUTE_RETRY_TURNS } }; }); plan = savePlan(next, nationId, dropTarget(plan)); continue; }
-              const pace = stackPace(goers, getResearched(state, nationId));
+              const pace = path.path ? stackPace(goers, getResearched(state, nationId)) : 0;
+              // No road, or none it can supply (warPlans.js supplyAllows): another target.
+              if (!path.path || !routeSupplied(next, goers, at, path.path.slice(1), pace)) { stack.forEach(u => { next.units[u.id] = { ...u, routeFailed: { goal: goalKey, until: state.turnNumber + ROUTE_RETRY_TURNS } }; }); plan = savePlan(next, nationId, dropTarget(plan)); continue; }
               goers.forEach(u => { committed.add(u.id); next.units[u.id] = { ...u, route: path.path.slice(1), routeBank: 0, routePace: pace, routeHalt: null, routeFailed: undefined }; });
               marching = true;
               plan = savePlan(next, nationId, launched(plan, state.turnNumber));
