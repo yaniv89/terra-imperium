@@ -54,3 +54,7 @@ Branch `claude/polish-8`, base 0cc85a67. Ponytail loaded at session start (hook 
   advisor levels rolled and the whole world. Seeds 4244 and 4245 also lose the passive player (turn 73, 66), so
   this is the game, not a bug; the test now uses 4246 (passes). **For the lead:** a seed swap, the second for
   this test; the real fix would be a passive player that cannot lose, or a stop on DEFEAT that is not a failure.
+- Lead ruling (29 Oct): no seed swap. longRun.test.js is back on seed 4243 and treats the passive player's
+  DEFEAT as a normal end of the run: the last turn gets the NaN check, the run must end by playing all turns or
+  by DEFEAT, and a turn that does not advance while the game is active fails as a stall. auditGameState and the
+  determinism fingerprint run every turn as before. Passes (ends on DEFEAT near turn 91).
