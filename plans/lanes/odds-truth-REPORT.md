@@ -57,9 +57,18 @@ on one of your cities warns when it sets out ("The Sabaean Empire sets out for G
 turns away", `unit.marchSeen`) and again 3 tiles out (as before). The turn report gives both a Defend button.
 Agreement fixed in both lines ("The Ahhiyawan tribes set out", "march on"). Test: marchWarning.test.js.
 
-## P2: not started
+## P2: not started (lead: wait for ai-armies on integration, do not merge it here)
 
-Waits for ai-armies on claude/integration (not there at 039d3c18 when last fetched).
+Scope when it starts (lead, 29 Oct, with section 7 of plans/research/math-balance-gpt-2026-10-29.md):
+- merge origin/claude/integration first;
+- a war plan keeps its target while its strike is on the road, and switches only when a new target beats it by 15%;
+- replan after 3 turns with no progress toward the objective;
+- the muster point is within supply reach of the target: a strike carries about 3 march-turns of supply and
+  leaves only on a route it can supply;
+- mobilization stays visible 2 to 3 turns ahead (the mustering line from ai-armies).
+Proof on paired seeds (balance-sim, before and after): arrivals at 0 supply; strikes arriving under 80% of
+their departure strength from preventable attrition (target under 10%); AI attacks on the player per 30
+turns; AI wars a game (must stay at or above 7).
 
 ## Findings
 
