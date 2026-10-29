@@ -327,7 +327,7 @@ export class BattleRenderer {
     this.scene.environmentIntensity = 0.45;
     this.soldierDepth = this.track(createSoldierDepthMaterial());
 
-    this.canopyFade = createCanopyFade(); // trees and roofs over your selected and fighting squads fade (canopyFade.js)
+    this.canopyFade = createCanopyFade(); // tree crowns over your selected and fighting squads fade (canopyFade.js)
     this.buildTerrain();
     this.buildProps();
     this.buildStructures();
@@ -669,7 +669,7 @@ export class BattleRenderer {
       painted(new BoxGeometry(0.16, 0.3, 0.02).translate(0, 0.15, 0.41), '#4a3322')
     ]);
     house.computeVertexNormals();
-    place(houses, house, { scaleFn: (r) => [0.95, 0.8 + r * 0.9, 0.95], fade: true });
+    place(houses, house, { scaleFn: (r) => [0.95, 0.8 + r * 0.9, 0.95] }); // roofs never fade: troops walk round houses (lead, 29 Oct)
   }
 
   buildStructures() {
@@ -1480,7 +1480,7 @@ export class BattleRenderer {
     const barSpots = []; // this frame's bars on the screen (css px), for stacking
     const inTown = this.hasBuildings ??=this.map.tiles.includes(TILE.BUILDING); // onBuilding's test is per figure
     const farMarkR = (FAR_MARK_MIN_PX / 2) * this.worldPerPixel();
-    // The ground the player's selected and fighting squads stand on: trees and roofs over it fade (canopyFade.js).
+    // The ground the player's selected and fighting squads stand on: tree crowns over it fade (canopyFade.js).
     this.canopyFade.set(canopyHoles(cur.squads, selected, cur.playerSide).map((s) => ({ x: s.x / Q, z: s.y / Q, r: CANOPY_RADIUS })));
     cur.squads.forEach((s) => {
       const memo = this.soldierMemo.get(s.idx);
