@@ -167,7 +167,7 @@ const MarchBar = () => {
       {/* A phone held sideways: two lines at most, so the bar stays a strip and the route under it shows (I083); the title holds the rest. */}
       <div className="flex-1 min-w-0 leading-snug">
         <div className="pl:line-clamp-2" data-testid="march-line">{line}</div>
-        {m.odds && <div className={`${m.odds.hopeless ? 'text-fa-danger-text font-semibold' : 'text-fa-brass'} pl:line-clamp-2`} data-testid="march-odds" data-hopeless={m.odds.hopeless ? '' : undefined}>{m.odds.text}</div>}
+        {m.odds && <div className={`${m.odds.hopeless ? 'text-fa-danger-text font-semibold' : 'text-fa-brass'} pl:line-clamp-4`} data-testid="march-odds" data-hopeless={m.odds.hopeless ? '' : undefined}>{m.odds.text}</div>}
         {m.supplyOut && (m.supplyOut.starvesAt != null || m.supplyOut.change < 0) && <div className="text-fa-danger-text pl:line-clamp-1" data-testid="march-supply-out" data-starves={m.supplyOut.starvesAt != null ? 'way' : undefined}>
           {m.supplyOut.starvesAt != null
             ? t('march.starvesOnWay', { turns: turnsText(m.supplyOut.starvesAt) })

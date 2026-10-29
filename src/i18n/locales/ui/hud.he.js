@@ -483,6 +483,7 @@ export default {
   'bt.alert.enemyBuiltSome': 'הפועלים שלהם סיימו מבנה',
   'bt.alert.enemyBuiltDetail': 'עוד מבנה בסיס לשרוף: עכשיו {n}',
   'bt.status.loot': 'נשרפו {a} מתוך {b} הדרושים',
+  'bt.status.lootDef': 'הם שרפו {a}: ב-{b} תפסידו',
   'bt.status.lootTakenDef': 'השלל נלקח: תפסו את {n} הפושטים האחרונים לפני תום השעון',
   'bt.status.lootTakenAtk': 'השלל נלקח: ברחו או שרדו עד תום השעון (נותרו {n})',
   'bt.goal.ecoAtk': 'ניצחון: שרפו את {n} מבני הבסיס שלהם. השמדת צבאם לבדה לא מסיימת את הקרב.',

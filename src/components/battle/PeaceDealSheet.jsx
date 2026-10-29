@@ -22,7 +22,8 @@ import { isolateLtr } from '../../i18n/core';
 const signed = (v) => isolateLtr(`${v > 0 ? '+' : ''}${v}`); // Hebrew keeps "+5" and "-5" in order
 const toneOf = (v) => (v > 0 ? 'text-fa-good' : v < 0 ? 'text-fa-danger-text' : 'text-fa-muted');
 
-const PeaceDealSheet = ({ warId, onClose }) => {
+// `onSend` (NationCard): sends the offer through the card's dispatch, which shows the answer on the card.
+const PeaceDealSheet = ({ warId, onClose, onSend = null }) => {
   const { state, dispatch } = useGame();
   const { t } = useT();
   const war = state.wars.find((w) => w.id === warId && w.active);
@@ -45,7 +46,7 @@ const PeaceDealSheet = ({ warId, onClose }) => {
     }
     return next;
   });
-  const send = (terms) => { dispatch({ type: ActionTypes.OFFER_PEACE, payload: { warId, terms } }); onClose(); };
+  const send = (terms) => { (onSend || dispatch)({ type: ActionTypes.OFFER_PEACE, payload: { warId, terms } }); onClose(); };
   const scoreShare = Math.max(0, Math.min(1, (m.score + 100) / 200));
 
   // Portalled to <body>: opened from inside the side panel, whose transformed container would

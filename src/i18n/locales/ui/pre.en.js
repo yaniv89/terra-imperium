@@ -170,6 +170,8 @@ export default {
   'bt.def.enemy': 'The enemy',
   'bt.def.noDefendUndefended': 'No regiment defends it: on Auto the attack takes its defences from {a} to about {b} of {max} HP{likely}. It holds {pct}% of the time.',
   'bt.def.likelyFalls': ', and it likely falls',
+  'bt.def.wallsLine': 'No regiment inside: the attack batters its walls from {a} to about {b} of {max} HP; it falls only when they break.',
+  'bt.def.wallsNoTaker': 'Its walls are down (0 of {max} HP), but the attackers bring no foot or horse to take it.',
   'bt.def.fallsIn': ' At this rate its defences fall in about {n} turns.',
   'bt.def.vThisTurn': 'Holds this turn',
   'bt.def.noRegiment': 'No regiment defends it.',

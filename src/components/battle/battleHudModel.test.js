@@ -212,7 +212,7 @@ describe('battle endings lane: who is winning, the objective, the loot, the reas
   it('the objective line: the base rule in words with bases, the type\'s own goal without', () => {
     expect(objectiveLine({ battleType: 'field', base: [1, 9] }, {}, 0, battleGoal)).toMatch(/9 base buildings/);
     expect(objectiveLine({ battleType: 'assault', base: [3, 4] }, {}, 1, battleGoal)).toMatch(/clock/);
-    expect(objectiveLine({ battleType: 'sack', base: null }, {}, 1, battleGoal)).toMatch(/catch every last raider/);
+    expect(objectiveLine({ battleType: 'sack', base: null }, {}, 1, battleGoal)).toMatch(/^Save the town.*you lose if they burn 2.*catch every raider/);
     expect(objectiveLine({ battleType: 'field', base: null }, {}, 0, battleGoal)).toMatch(/Rout the enemy/);
   });
 
