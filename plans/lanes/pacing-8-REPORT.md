@@ -7,9 +7,7 @@ Source: round 3b Opus playtests civ-veteran 40746164607, warmonger 40746170250 (
 
 ## For the lead
 
-**Open: the event card rule (manual playtest item 1), measured, not built.** See "Event cards" below; the prototype patch is
-`pacing-8-event-gap.patch` in the shared notes folder. One question: build it with the dawn card first in each age (the fix for the one
-side effect found)? 
+Nothing open. The event card rule is built (lead's yes, 29 Oct, commit 387e021d). Before the merge: run engine-rules-reviewer.
 
 ## Design calls answered 29 Oct (built)
 
@@ -125,7 +123,7 @@ Test: `src/utils/costs.warCost.test.js`. The era-save builder now keeps 700 gold
 | Event card dates centuries off ("450 BCE" card in 39 CE) | Reproduced in code: story cards showed their historical year | Story cards come by age progress, not by year | The card shows the game's year (EventModal `year`) | App.jsx passes state.year |
 | Advisor queued the Great Wall in Greece | Reproduced in code: chooseProduction may pick a wonder | The advisor took any pick | The advisor never picks a wonder for the player (a wonder is the player's own call) | productionAdvisor.slow.test.js (a wonder pick gives way) |
 
-### Event cards: a card almost every turn, repeats (measured, not built)
+### Event cards: a card almost every turn, repeats (built, commit 387e021d)
 storyPulse now counts `rep` (a card already shown this age) and `forced` (no option could be paid; the harness used to clear these and
 the story came back next turn, which inflated repeats to 35 an age; fixed). Prototype rule: (1) a due story waits out the gap after any
 card and leaves a 2-turn gap; (2) a drawn card comes at most once per player age. Fast, seeds 11 and 12 (sum), cards a turn:
@@ -139,8 +137,23 @@ card and leaves a 2-turn gap; (2) a drawn card comes at most once per player age
 | gunpowder | 58 / 172 = 0.34 (3 repeats) | 51 / 148 = 0.34 (0 repeats) |
 | modern | 30 / 63 = 0.48 | 23 / 58 = 0.40 |
 
-Side effect: in both seeds the Stone dawn card (era goal focus) was pushed out of the Stone Age by stories (focus `stone:-`). If you
-say yes, I build it with the dawn card ahead of stories, and rerun this table.
+Side effect of the prototype: the Stone dawn card was pushed out of the Stone Age (focus `stone:-`). Built version (lead 29 Oct): links
+and raid answers first, then the dawn card outside the gap (a cooldown of 100 or more, the tests' "no cards", still holds it), then a
+due story once the gap is over (STORY_GAP 2), then draws, each drawn card once per player age. Fast, seeds 11 and 12, built version:
+
+| age | before | built |
+|---|---|---|
+| stone | 0.73 | 12 / 22 = 0.55 (dawn card kept in both seeds) |
+| bronze | 0.49 | 18 / 39 = 0.46 |
+| classical | 0.42 | 38 / 87 = 0.44 |
+| kingdoms | 0.36, 7 repeats | 47 / 132 = 0.36, 6 repeats |
+| gunpowder | 0.34, 3 repeats | 52 / 134 = 0.39, 2 repeats |
+| modern | 0.48 | 40 / 114 = 0.35 |
+
+The prototype figures (Stone 0.73 to 0.45, Kingdoms repeats 7 to 3) are above; the built rule keeps the dawn card, so Stone is 0.55.
+Remaining repeats are mostly story links of the same chain (counted by id), not drawn cards. Tests: eventDeck.test.js (gap and dawn
+case; two tests now expect each drawn card once an age), resolveTurn curated-event test sets the gap and dawn aside; 41 event-related
+test files pass (stoneAI "two raids at once" failed once under load, passes alone).
 
 ### Ages on Fast (worldStats, seeds 11 and 12)
 
@@ -153,3 +166,13 @@ say yes, I build it with the dawn card ahead of stories, and rerun this table.
 The turn-limit ratio is 440 / 923 = 0.48, so U96 scaling holds. The player's Stone Age is 11 turns on Fast and 26 on Normal (storyPulse).
 The unreachable goal is the target, not the speed: the scripted player meets 0 Stone and 0 Bronze goals on Normal too (Expand 4 cities,
 Science 7 boosts in 26 turns). Suggest a balance lane on the Stone and Bronze goal targets (src/data/eraGoals.js), not on ages.
+
+### Normal speed, seed 11, whole game, with A and B (event rule not yet in)
+Modern: 34 cards in 120 turns, 2 goals met. Information: 34 in 134, 0 crisis cards. Future: 39 in 237. B did not reach the player in this
+run (the late crises struck others: climate_shock); on Fast seed 11 it did (Information). Worth a look in the next grade round.
+
+## Not done
+- Era goal targets: Stone and Bronze goals are missed on Normal too (Expand 4 cities, Science 7 boosts in 26 turns). Goes to wave 5
+  lane early-pace (plan U8), lead's call 29 Oct.
+- "One Train Settlers tap queued 2": not reproduced.
+- Full suite and engine-rules-reviewer: the lead runs them before the merge.
