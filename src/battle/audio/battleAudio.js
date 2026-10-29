@@ -113,9 +113,17 @@ export const soundForEvent = (e, view, ageIds, playerSide, voices = new Map()) =
     case 'power': return e.power === 'rallyCry' ? { id: 'horn-order' } : null;
     case 'pointCaptured': case 'assimilationStarted': return { id: 'bell' };
     case 'ended': return { id: (e.outcome === 'attacker') === (playerSide === 0) ? 'victory' : 'defeat' };
+    case 'shieldHit': return { id: 'shield-hum', ...at(sq(e.id)) };
+    case 'ability': case 'reserveArrived': case 'deployed': return { id: 'horn-order' };
+    case 'hijacked': return { id: 'bell' };
+    case 'looted': return { id: 'fire-crackle' };
+    case 'pursuit': return { id: 'cavalry-charge' };
     default: return null;
   }
 };
+// Sim events left silent on purpose (soundRegistry.test.js cue coverage): the order that caused
+// them already clicked, or the 'ended' fanfare follows at once.
+export const SILENT_EVENTS = new Set(['garrisoned', 'ejected', 'sideSpent']);
 
 /**
  * The player's cue for one sim event (src/audio/ACTIONS.md, battle): a non-positional id heard
