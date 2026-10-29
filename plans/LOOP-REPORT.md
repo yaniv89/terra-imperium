@@ -128,3 +128,4 @@ claude/integration, main gets the push once the quick suite and CI are green.
 - Merged tech-tree-8, map-art-8, sound-hebrew-8, answers-8 (reviews: no findings; PanelDrawer conflict resolved). Quick tests: only the known load flakes.
 - Merged ai-armies (Future cost Normal 36000, Fast x1.6; ages.test updated) and map-speed-8 (plus a catch so a failed shader compile still draws). Quick tests: only challengeFiles (Windows).
 - Scout models: 8 ages built in the user's Blender (scripts/blender/build_scouts.py; bronze, modern and future from infantry because their support is a vehicle), map draws them for a scout party, settlerModels.test checks each loads.
+- Merged battle-hud-9 (review clean; Invade card on phones fixed). Scout models packed (3 MB to 1 MB). Note: scripts/ui/hebrew-audit.mjs and map-camera-shots.mjs click battle-go once and stop at the new hopeless-odds confirm.
