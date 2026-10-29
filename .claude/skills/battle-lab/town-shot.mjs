@@ -30,7 +30,7 @@ await page.waitForTimeout(seconds * 1000);
 const stats = () => page.evaluate(() => {
   const r = window.__battleRenderer; const { w, tiles } = r.map; let onBuilding = 0; let figs = 0;
   r.soldierLayers.forEach((l) => { const a = l.matrix.array; for (let i = 0; i < l.count; i++) { figs += 1; if (tiles[Math.floor(a[i * 16 + 14]) * w + Math.floor(a[i * 16 + 12])] === 7) onBuilding += 1; } });
-  return { zoom: +r.camera.zoom.toFixed(2), bars: r.barBg.count, banners: r.bannerPoles.count, bannerPx: r.bannerPx?.() ?? null, figs, onBuilding, corpses: r.corpses?.length ?? null };
+  return { perf: window.__battlePerf?.meter, zoom: +r.camera.zoom.toFixed(2), bars: r.barBg.count, banners: r.bannerPoles.count, bannerPx: r.bannerPxNow ?? null, figs, onBuilding, corpses: r.corpses?.length ?? null };
 });
 await page.screenshot({ path: `${dir}/${prefix}-default.png` });
 console.log('default', JSON.stringify(await stats()));
@@ -42,5 +42,16 @@ await page.evaluate(() => { const r = window.__battleRenderer; r.zoomBy ? r.zoom
 await page.waitForTimeout(300);
 await page.screenshot({ path: `${dir}/${prefix}-near.png` });
 console.log('near', JSON.stringify(await stats()));
+// the streets: your squad nearest the keep, the default zoom, after TOWN_WAIT more seconds
+await page.evaluate(() => { const r = window.__battleRenderer; r.zoomBy(1 / r.camera.zoom); });
+await page.waitForTimeout(Number(process.env.TOWN_WAIT || 20) * 1000);
+await page.evaluate(() => { // on your squad nearest the keep (in the streets once the army is in)
+  const r = window.__battleRenderer; const k = r.setup.structures[0]; const v = window.__battleView?.();
+  const own = (v?.squads || []).filter((q) => q.side === 0 && q.alive && q.onField && !q.fled && q.classId !== 'worker').sort((a, b) => Math.hypot(a.x - k.x, a.y - k.y) - Math.hypot(b.x - k.x, b.y - k.y));
+  if (own[0]) r.centerOn(own[0].x / 256, own[0].y / 256); else r.centerOn(k.x / 256 - 5, k.y / 256);
+});
+await page.waitForTimeout(400);
+await page.screenshot({ path: `${dir}/${prefix}-streets.png` });
+console.log('streets', JSON.stringify(await stats()));
 console.log(`errors (${errors.length}): ${errors.slice(0, 8).join(' | ')}`);
 await browser.close();
