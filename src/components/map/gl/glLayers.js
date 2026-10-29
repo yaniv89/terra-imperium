@@ -129,7 +129,8 @@ export const createTerritoryCache = (territory) => {
       renderer.setRenderTarget(target);
       const intoCache = renderer.compileAsync(scene, camera);
       renderer.setRenderTarget(before);
-      return Promise.all([intoCache, renderer.compileAsync(scene, camera)]).then(() => { linked = true; });
+      // A failed async compile must not hide the territories for good: draw anyway (it compiles on first use).
+      return Promise.all([intoCache, renderer.compileAsync(scene, camera)]).catch(() => {}).then(() => { linked = true; });
     },
     ready: () => linked,
     /** Draws the territories for view `v` (the shader's `opts`): from the cache when it fits, else live; caches when `settled`. */
