@@ -779,6 +779,8 @@ export default {
 
   // ---- Research, Peoples, Empire, Legacy headings and buttons (H2) ----
   'tech.research': 'חקר',
+  'tech.researchNow': 'חקר עכשיו',
+  'tech.queue': 'לתור',
   'tech.queueAria': 'הוספת {name} לתור',
   'tech.addQueue': 'הוספה לתור',
   'tech.nothing': 'שום דבר לא בדרך',

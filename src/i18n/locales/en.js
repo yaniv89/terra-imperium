@@ -777,6 +777,8 @@ export default {
 
   // ---- Research, Peoples, Empire, Legacy headings and buttons (H2) ----
   'tech.research': 'Research',
+  'tech.researchNow': 'Research now',
+  'tech.queue': 'Queue',
   'tech.queueAria': 'Queue {name}',
   'tech.addQueue': 'Add to the queue',
   'tech.nothing': 'Nothing under way',

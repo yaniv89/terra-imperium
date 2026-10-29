@@ -9,7 +9,7 @@
 //
 // Publishes how much of the right edge it covers as --rail-inset on <html> (cards keep clear of
 // it), the rail alone as --rail-w (End Turn is anchored to it, so it never moves when the dock
-// opens: playtest audit X17, I156; the dock leaves a strip at its foot for it), and the bottom
+// opens: playtest audit X17, I156; the dock leaves a strip at its foot for it; Research fills that strip with its age tabs), and the bottom
 // bar's height as --panel-bar-height on a phone held upright, so map corner controls stay clear.
 // The dock is one entry of the interaction registry (useExclusivePanel.js): a decision card that
 // arrives on a narrow screen tucks it, and it comes back when the card is answered.
@@ -148,7 +148,7 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
         className="fixed end-0 bottom-0 top-[var(--header-height,2.25rem)] z-20 flex pe-[var(--safe-end)] bg-fa-panel/95 border-s border-fa-line text-fa-text"
       >
         {dockShown && (
-          <div data-testid="landscape-dock" data-tab={activeTab} className={`${WIDE_TABS.has(activeTab) ? 'w-[min(600px,calc(100vw-52px-12rem))] lg:w-[640px]' : 'w-[clamp(300px,40vw,380px)] tb:w-[420px] lg:w-[420px]'} flex flex-col border-e border-fa-line shadow-2xl bg-fa-panel pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+58px)] pl:pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+50px)]`}>
+          <div data-testid="landscape-dock" data-tab={activeTab} className={`${WIDE_TABS.has(activeTab) ? 'w-[min(600px,calc(100vw-52px-12rem))] lg:w-[640px]' : 'w-[clamp(300px,40vw,380px)] tb:w-[420px] lg:w-[420px]'} flex flex-col border-e border-fa-line shadow-2xl bg-fa-panel ${activeTab === 'tech' ? '' : 'pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+58px)] pl:pb-[calc(max(env(safe-area-inset-bottom),0.75rem)+50px)]'}`}>
             <ActionPanel activeTab={activeTab} />
           </div>
         )}

@@ -7,8 +7,8 @@
 //                   first, with a Map button that switches on the lens where the fact lives
 //   next            the queue as chips (remove with x), the advisor switch
 //   era goals       your age's goals, met of needed, each with its legacy
-//   all techs       Fund Scholars, the research focus, the five lines or the research web
-//   the age strip   techs known of each age, the age you are in (sticky at the foot)
+//   all techs       Fund Scholars, the research focus, one age's techs (the age tabs) or the research web
+//   the age strip   techs known of each age; the age tabs of the list, the jump strip of the web (sticky at the foot)
 // Choosing a tech costs nothing: science pays for it at the end of each turn, the rest carries on.
 // "Research" makes a tech the target (queuing its missing earlier techs first); "Queue" adds it
 // after what's already planned. Pure numbers come from researchView.js and researchSheetModel.js.
@@ -18,26 +18,25 @@ import { useWhy } from '../ui/WhyTip';
 import { useT } from '../../i18n/useT';
 import { rich } from '../../i18n/rich';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FlaskConical, Check, Lock, X, ListPlus, Sparkles, BookOpen, GraduationCap, MapPin, ArrowDown } from 'lucide-react';
+import { FlaskConical, Check, Lock, X, ListPlus, Sparkles, BookOpen, GraduationCap, MapPin, ArrowDown, Hourglass } from 'lucide-react';
 import { ageIconUrl } from '../../data/icons';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes, TechCategories } from '../../data/types';
-import { getTechsByCategory, TECH_TREE } from '../../data/techTree';
+import { TECH_TREE } from '../../data/techTree';
 import { ACTION_COSTS, FUND_SCHOLARS_TECHPOINTS } from '../../data/actionCosts';
 import { getNationCapital } from '../../data/regions';
 import { isAgeBefore } from '../../data/ages';
 import { CATCHUP_MAX } from '../../engine/techDiffusion';
 import { researchLeaderAge } from '../../engine/ageRefs';
 import { FOCUS_SCIENCE_BONUS } from '../../engine/research';
-import { CollapsibleSection } from '../ui';
 import ActionCard from './ActionCard';
 import { Button, Chip, Label, Meter, Segmented, Switch } from '../ui/atlas';
 import { setMapLens, showMapHint } from '../ui/uiEvents';
 import { focusPlace } from '../map/marchEvents';
-import { openPanelTab, closePanels } from './panelEvents';
+import { openPanelTab, closePanels, OPEN_SECTION, takePending } from './panelEvents';
 import { advisorPlan, scholarsPreview } from '../../engine/researchStatus';
-import { describeTech, formatTurns, formatEta, techInfo, techGraph, recommendedTechs, GRAPH_NODE_W, GRAPH_NODE_H } from './researchView';
+import { describeTech, formatTurns, formatEta, techInfo, techGraph, recommendedTechs, ageRows, GRAPH_NODE_W, GRAPH_NODE_H } from './researchView';
 import { researchSheetModel } from './researchSheetModel';
 import { techName, boostLabel, playstyleName, goalUnit, goalBonus } from '../../i18n/gameText';
 import { dataText, ageName } from '../../i18n/core';
@@ -56,7 +55,10 @@ const SCIENCE = 'var(--fa-science)';
 // A leading signed number in a Hebrew bonus phrase ("+10% gold") stays left to right.
 const signed = (text) => String(text || '').replace(/^([+-]\d+%?)/, (m) => isolateLtr(m));
 
-const TechRow = ({ info, onResearch, onQueue, recommended }) => {
+// A tech in full (the web's picked node, the open row of an age list): what it gives, unlocks and
+// needs. Queue is the main button (it queues the missing earlier techs first); a missing
+// prerequisite is a chip that opens that tech (`onPick`).
+const TechRow = ({ info, onResearch, onQueue, recommended, needs = [], onPick }) => {
   const { tech, researched, current, queuedAt, canStart, reasonText, cost, turns, share, diffusion, boost, mapEffect, unlocks } = info;
   const status = researched ? tNow('p2.tr.known') : current ? tNow('p2.tr.researching', { turns: formatTurns(turns) }) : queuedAt >= 0 ? tNow('p2.tr.queued', { n: queuedAt + 2 }) : canStart ? tNow('p2.tr.costTurns', { cost, turns: formatTurns(turns) }) : info.gateText ? `${reasonText}: ${info.gateText}` : reasonText;
   const diffusionNote = !diffusion || researched ? '' : diffusion.pioneer ? tNow('p2.tr.pioneer')
@@ -70,13 +72,19 @@ const TechRow = ({ info, onResearch, onQueue, recommended }) => {
           <div className="text-[11px] text-fa-muted">{status}{diffusionNote}</div>
         </div>
         {!researched && !current && (
-          <div className="flex gap-1 shrink-0">
-            <Button size="sm" onClick={() => onResearch(tech.id)}>{tNow('tech.research')}</Button>
-            {queuedAt < 0 && <button type="button" onClick={() => onQueue(tech.id)} aria-label={tNow('tech.queueAria', { name: techName(tech.id, tech.name) })} title={tNow('tech.addQueue')} className="fa-icon-btn !w-8 !h-8"><ListPlus className="w-4 h-4" aria-hidden="true" /></button>}
+          <div className="flex gap-1.5 shrink-0">
+            {queuedAt < 0 && <Button size="sm" variant="primary" onClick={() => onQueue(tech.id)} aria-label={tNow('tech.queueAria', { name: techName(tech.id, tech.name) })} data-testid="tech-queue"><ListPlus className="w-3.5 h-3.5" aria-hidden="true" />{tNow('tech.queue')}</Button>}
+            <Button size="sm" onClick={() => onResearch(tech.id)}>{tNow('tech.researchNow')}</Button>
           </div>
         )}
       </div>
       <div className="text-[11px] text-fa-muted">{describeTech(tech)}</div>
+      {needs.length > 0 && (
+        <div className="flex items-center gap-1.5 flex-wrap text-[11px] text-fa-muted" data-testid="tech-needs">
+          {tNow('p2.row.needs')}
+          {needs.map((p) => <Chip key={p} onClick={() => onPick?.(p)} className="!min-h-[32px] text-[12px]" data-testid={`tech-need-${p}`}>{techName(p, TECH_TREE[p]?.name)}</Chip>)}
+        </div>
+      )}
       {info.repeats > 0 && <div className="text-[11px] text-fa-good" data-testid="tech-repeats">{tNow('p2.tr.repeats', { count: info.repeats })}</div>}
       {unlocks?.length > 0 && <UnlocksLine techId={tech.id} className="text-[11px] text-fa-text" />}
       {mapEffect && <div className="text-[11px] text-fa-you" data-testid="tech-map-effect">{tNow('p2.tr.map', { text: dataText(`mapfx.${tech.id}`, mapEffect) })}</div>}
@@ -191,13 +199,19 @@ const EraCard = ({ era }) => {
 // The age strip: each age's techs known of its total, the age you are in outlined.
 // It is the jump strip: tap an age to see its columns in the web (a collapsed past age opens). Its cells
 // looked like tabs and did nothing in the lines view (civ-veteran playtest, round 3).
-const AgeStrip = ({ ages, onJump }) => (
-  // It runs the web's way, Stone Age at the left, in Hebrew too.
-  <div dir="ltr" className="sticky bottom-0 z-[1] -mx-3 sm:-mx-4 mt-3 px-3 sm:px-4 py-2 bg-fa-panel border-t border-fa-line flex gap-1.5 overflow-x-auto" data-testid="research-age-strip">
+// In the list view it is the age tabs (the selected one outlined in brass).
+const AgeStrip = ({ ages, onJump, selected }) => (
+  // It fills the dock's End Turn band (PanelDrawer leaves no gap under Research; F147: the panel ended
+  // 62 px above it): the tabs on the start side, a spacer the width of End Turn's row (TurnDock's
+  // --turn-row-w) on the end side. Too little room beside a wide row: the tabs wrap above it.
+  <div className="sticky bottom-0 z-[1] -mx-3 sm:-mx-4 mt-3 ps-3 sm:ps-4 pt-1.5 pb-[max(env(safe-area-inset-bottom),0.75rem)] bg-fa-panel border-t border-fa-line flex flex-row-reverse flex-wrap-reverse items-end gap-y-1.5">
+  <div aria-hidden="true" className="shrink-0 w-[calc(var(--turn-row-w,0px)+1.25rem)] h-[50px] pl:h-11" />
+  {/* It runs the web's way, Stone Age at the left, in Hebrew too. */}
+  <div dir="ltr" className="flex-1 min-w-[10rem] flex gap-1.5 overflow-x-auto scrollbar-none" data-testid="research-age-strip">
     {ages.map((a) => {
       return (
-      <button key={a.ageId} type="button" onClick={() => onJump(a.ageId)} data-testid={`jump-${a.ageId}`} aria-label={tNow('p2.jump.to', { name: a.name })} className={`rounded-md border px-1.5 py-1 min-w-[6rem] pl:min-w-[4.5rem] flex-1 text-start ${a.current ? 'fa-selected' : 'border-fa-line'}`} aria-current={a.current ? 'step' : undefined} title={tNow('p2.as.title', { name: a.name, known: a.known, total: a.total })}>
-        <div className="flex items-baseline justify-between gap-1 pl:flex-col pl:items-start pl:gap-0">
+      <button key={a.ageId} type="button" onClick={() => onJump(a.ageId)} data-testid={`jump-${a.ageId}`} aria-label={tNow(selected ? 'p2.jump.tab' : 'p2.jump.to', { name: a.name })} aria-pressed={selected ? a.ageId === selected : undefined} className={`rounded-md border px-1.5 py-1 min-h-[44px] min-w-[4.5rem] shrink-0 text-start ${a.ageId === selected ? 'border-fa-brass bg-fa-raised' : a.current ? 'fa-selected' : 'border-fa-line'}`} aria-current={a.current ? 'step' : undefined} title={tNow('p2.as.title', { name: a.name, known: a.known, total: a.total })}>
+        <div className="flex flex-col items-start">
           <span className={`fa-heading text-[11px] truncate max-w-full ${a.current || a.known > 0 ? '' : '!text-fa-muted'}`}>{a.name}</span>
           <span className="fa-num text-[10px] text-fa-muted shrink-0">{a.known}/{a.total}</span>
         </div>
@@ -206,7 +220,12 @@ const AgeStrip = ({ ages, onJump }) => (
       );
     })}
   </div>
+  </div>
 );
+
+// The age list's row states (plan U6): an icon and a colour each.
+const ROW_ICON = { researched: Check, current: Sparkles, queued: ListPlus, available: BookOpen, locked: Lock, future: Hourglass };
+const ROW_TONE = { researched: 'text-fa-good', current: 'text-fa-text', queued: 'text-fa-you', available: 'text-fa-brass', locked: 'text-fa-muted', future: 'text-fa-muted' };
 
 const WEB_FILL = { researched: '#1F3A2C', current: '#2B3644', queued: '#1E2C40', available: '#232C38', locked: '#10141A' };
 const WEB_STROKE = { researched: '#6CC28A', current: '#ECE5D3', queued: '#5B9BF0', available: '#B9B19F', locked: '#33404F' };
@@ -215,19 +234,28 @@ const TechPanel = () => {
   useT();
   const { state, dispatch, addLog } = useGame();
   const { triggerEffect } = useEffects();
-  const categories = getTechsByCategory();
   const m = useMemo(() => researchSheetModel(state), [state]);
   // The advisor's top pick wears its reason in the lines (Civ VI's "recommended" mark).
   const top = useMemo(() => { const planned = [state.research?.current, ...(state.research?.queue || [])]; return recommendedTechs(state, 4).find((r) => !planned.includes(r.techId)) || null; }, [state]);
   const science = m.science;
-  const [web, setWeb] = useState(false); // the research web (plan C3.1) or the lines as lists
+  const [web, setWeb] = useState(false); // the research web (plan C3.1) or one age's list
+  const [ageTab, setAgeTab] = useState(state.techAgeId); // the age tab of the list (plan U6)
   // The web's jump strip: a fully known past age is one thin column until its strip cell is tapped.
   const [opened, setOpened] = useState([]);
   const [jump, setJump] = useState(null);
-  const [picked, setPicked] = useState(null); // the web node tapped: its row shows under the web
+  const [picked, setPicked] = useState(null); // the tech tapped: its full card shows under the web or its list row
+  // A prerequisite chip opens that tech, on its own age's tab.
+  const pickTech = (techId) => { if (!web) setAgeTab(TECH_TREE[techId]?.ageId || ageTab); setPicked(techId); };
   const webRef = useRef(null);
   const allRef = useRef(null); // the "All techs" heading: the header chip scrolls to it (six scrolls on a phone before)
   const collapsed = m.ages.filter((a) => a.known === a.total && !a.current && !opened.includes(a.ageId)).map((a) => a.ageId);
+  // The choice sheet's "All techs" lands on the list, not the top (it read as a loop, playtest 40746170250).
+  useEffect(() => {
+    const go = () => { if (takePending(OPEN_SECTION, (id) => id === 'tech.all')) allRef.current?.scrollIntoView?.({ block: 'start' }); };
+    go();
+    window.addEventListener(OPEN_SECTION, go);
+    return () => window.removeEventListener(OPEN_SECTION, go);
+  }, []);
   useEffect(() => { if (jump) webRef.current?.querySelector(`[data-age-head="${jump.ageId}"]`)?.scrollIntoView?.({ inline: 'start', block: 'center' }); }, [jump]);
   // Behind the research leader: known peoples in later ages make their techs cheaper (KTD5).
   const catchingUp = isAgeBefore(state.techAgeId, researchLeaderAge(state));
@@ -253,8 +281,6 @@ const TechPanel = () => {
     dispatch({ type: ActionTypes.FUND_SCHOLARS, payload: {} });
     return undefined;
   };
-  // The line of the tech being researched starts open, else the focused one, else the first.
-  const openCategory = m.current?.tech.category || state.researchFocus || TechCategories.MILITARY;
   const focusCost = ACTION_COSTS.setResearchFocus;
 
   return (
@@ -338,7 +364,7 @@ const TechPanel = () => {
       <div ref={allRef} className="mt-3 flex items-center justify-between gap-2 scroll-mt-2">
         <h3 className="fa-heading text-[16px]">{tNow('tech.all')}</h3>
         <Segmented label={tNow('tech.showAs')} className="w-[11rem]" value={web ? 'web' : 'lines'} onChange={(v) => setWeb(v === 'web')}
-          options={[{ id: 'lines', label: tNow('p2.web.lines') }, { id: 'web', label: tNow('p2.web.web'), testId: 'research-web-toggle' }]} />
+          options={[{ id: 'lines', label: tNow('p2.web.ages') }, { id: 'web', label: tNow('p2.web.web'), testId: 'research-web-toggle' }]} />
       </div>
 
       {web && (() => {
@@ -369,19 +395,36 @@ const TechPanel = () => {
         );
       })()}
 
-      {!web && Object.values(TechCategories).map((categoryId) => {
-        const techs = categories[categoryId]?.techs || [];
-        const researchedCount = techs.filter((t) => state.techTree[t.id]?.researched).length;
-        return (
-          <CollapsibleSection key={categoryId} title={CATEGORY_LABELS[categoryId]} defaultOpen={categoryId === openCategory} summary={tNow('p2.sec.known', { a: researchedCount, b: techs.length })}>
-            <div className="space-y-1.5">
-              {techs.map((tech) => <TechRow key={tech.id} info={techInfo(state, tech.id, science)} onResearch={research} onQueue={queue} recommended={top?.techId === tech.id ? top.text : null} />)}
+      {!web && (
+        <section className="mt-2 space-y-1.5" aria-label={tNow('p2.row.title', { age: ageName(ageTab) })} data-testid="research-age-list" data-age={ageTab}>
+          <div className="fa-label">{tNow('p2.row.title', { age: ageName(ageTab) })}</div>
+          {ageRows(state, ageTab, science).map((r) => (
+            <div key={r.info.tech.id}>
+              <button type="button" onClick={() => setPicked(picked === r.info.tech.id ? null : r.info.tech.id)} aria-expanded={picked === r.info.tech.id}
+                className={`w-full min-h-[44px] flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-start ${r.rowState === 'current' ? 'fa-selected' : 'border-fa-line hover:bg-fa-hover'} ${r.rowState === 'researched' || r.rowState === 'future' ? 'opacity-70' : ''}`}
+                data-testid={`tech-row-${r.info.tech.id}`} data-state={r.rowState}>
+                {React.createElement(ROW_ICON[r.rowState], { className: `w-4 h-4 shrink-0 ${ROW_TONE[r.rowState]}`, 'aria-hidden': true })}
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13px] font-semibold text-fa-text truncate">{techName(r.info.tech.id, r.info.tech.name)}</span>
+                  <span className="block text-[11px] text-fa-muted truncate">{r.line}{r.needs.length > 0 ? ` · ${tNow('p2.rs.needs', { list: r.needs.map((p) => techName(p, TECH_TREE[p]?.name)).join(tNow('p2.rs.and')) })}` : ''}</span>
+                </span>
+                <span className={`shrink-0 text-[11px] font-semibold ${ROW_TONE[r.rowState]}`}>{tNow(`p2.row.${r.rowState}`)}</span>
+              </button>
+              {picked === r.info.tech.id && (
+                <div className="mt-1" data-testid="tech-detail">
+                  <TechRow info={r.info} needs={r.needs} onPick={pickTech} onResearch={research} onQueue={queue} recommended={top?.techId === r.info.tech.id ? top.text : null} />
+                </div>
+              )}
             </div>
-          </CollapsibleSection>
-        );
-      })}
+          ))}
+        </section>
+      )}
 
-      <AgeStrip ages={m.ages} onJump={(ageId) => { setWeb(true); setOpened((o) => (o.includes(ageId) ? o : [...o, ageId])); setJump({ ageId }); }} />
+      <AgeStrip ages={m.ages} selected={web ? null : ageTab} onJump={(ageId) => {
+        if (web) { setOpened((o) => (o.includes(ageId) ? o : [...o, ageId])); setJump({ ageId }); return; }
+        setAgeTab(ageId); setPicked(null);
+        allRef.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+      }} />
     </div>
   );
 };
