@@ -31,7 +31,7 @@ const CityList = ({ onSelect, compact = false }) => {
                 {r.outpost && <span className="text-[11px] text-fa-muted">{t('cities.outpost')}</span>}
               </span>
               <span className="block text-[11px] text-fa-muted truncate">
-                {r.outpost ? t('cities.growing') : r.idle ? t('cities.nothingQueued') : `${r.building}${r.buildWait ? ` · ${r.buildWait}` : r.buildTurns ? t('cities.inTurns', { n: n(r.buildTurns) }) : ''}`}
+                {r.outpost ? `${t('cities.growing')}${r.outpostTurns ? t('cities.inTurns', { n: n(r.outpostTurns) }) : ''}` : r.idle ? t('cities.nothingQueued') : `${r.building}${r.buildWait ? ` · ${r.buildWait}` : r.buildTurns ? t('cities.inTurns', { n: n(r.buildTurns) }) : ''}`}
                 {r.growthTurns ? t('cities.growsIn', { n: n(r.growthTurns) }) : ''}
               </span>
               {r.then && <span className="block text-[11px] text-fa-muted truncate" data-testid="city-rail-then">{t(r.thenMore ? 'cities.thenMore' : 'cities.then', { name: r.then, n: n(r.thenMore) })}</span>}

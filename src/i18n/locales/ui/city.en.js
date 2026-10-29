@@ -299,6 +299,7 @@ export default {
   'cy.pay': 'Pay {n}',
   'cy.closeOffer': 'Close the offer',
   'cy.doneIn': 'done in {turns}',
+  'cy.paidWaits': 'paid: done in {turns} behind the builds ahead, next turn if moved first',
   'cy.buyItemAria': 'Buy {label} for {gold} gold',
   'cy.goldShort': '{n}g',
   'cy.buildFirst': 'Build {label} first',

@@ -69,6 +69,7 @@ import { reasonText } from '../../i18n/messageText';
 import { msgRefText } from '../battle/battleText';
 import { t as tNow, hasKey } from '../../i18n/core';
 import { ageOf } from '../../engine/nationState';
+import { outpostTurnsLeft } from '../../engine/settlers';
 import { sideAgeOf } from '../../engine/ageRefs';
 import { shownPeople } from '../../data/ages';
 import { sizeToPeople } from '../../engine/world/cities';
@@ -345,7 +346,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           data-testid="open-city-sheet"
         >
           <Settings2 className="w-4 h-4" aria-hidden="true" />
-          {t('ri.openCity')}
+          {/* an outpost builds nothing yet: the button says so (civ-veteran playtest step 187) */}
+          {regionState?.outpost ? t('ri.openOutpost', { count: outpostTurnsLeft(state, regionState, ageOf(state, state.playerNationId)) ?? 2 }) : t('ri.openCity')}
         </button>
       )}
 

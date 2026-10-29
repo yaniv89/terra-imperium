@@ -16,6 +16,7 @@ import { isBound } from '../data/worldCongress';
 import { canQueue, queueItem } from './world/cities';
 import { getTiles } from '../data/geo/tiles';
 import { BUILDING_CATEGORIES } from '../data/buildings';
+import { buildQuote, isLongBuild } from './cityEconomy';
 
 /** The context chooseProduction reads, for the player's cities. */
 export const playerProductionCtx = (state) => {
@@ -34,14 +35,18 @@ export const playerProductionCtx = (state) => {
   };
 };
 
-const fallbackPick = (state, city, ctx) => {
+const fallbackItems = (state, city, ctx) => {
   const tiles = getTiles();
   const world = { cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} };
   const buildings = buildingOrder(state.nations?.[city.owner]?.doctrine)
     .map((category) => ({ kind: 'building', category, tier: (city.buildings?.categories?.[category] ?? -1) + 1 }))
     .filter((item) => BUILDING_CATEGORIES[item.category]?.tiers[item.tier]);
-  return [...buildings, { kind: 'unit', classId: 'infantry' }].find((item) => canQueue(city, tiles, world, item, ctx).ok) || null;
+  return [...buildings, { kind: 'unit', classId: 'infantry' }].filter((item) => canQueue(city, tiles, world, item, ctx).ok);
 };
+const fallbackPick = (state, city, ctx) => fallbackItems(state, city, ctx)[0] || null;
+// A pick past the long-build line (cityEconomy.js isLongBuild, about 20 turns at Normal) gives way to
+// the first fallback item under it (civ-veteran playtest step 127: a 24-turn archer after a lost army).
+const isSlow = (view, cityId, item, ctx) => isLongBuild(view, ctx.ageId, buildQuote(view, cityId, item)?.turns);
 
 // chooseProduction remembers "this nation already weighed a settler" per regions map (one site
 // search a turn for the AI). The advisor reads its own copy so a preview never changes what the
@@ -50,7 +55,10 @@ const ownView = (state) => ({ ...state, regions: { ...state.regions } });
 const pickIn = (view, cityId, ctx, counts) => {
   const city = view.regions?.[cityId];
   if (!city || city.owner !== view.playerNationId || city.outpost || city.razing || city.production?.current) return null;
-  return chooseProduction(view, city, { ...ctx, units: view.units, counts }) || fallbackPick(view, city, ctx);
+  const pick = chooseProduction(view, city, { ...ctx, units: view.units, counts }) || fallbackPick(view, city, ctx);
+  if (!pick || !isSlow(view, cityId, pick, ctx)) return pick;
+  const quick = fallbackItems(view, city, ctx).filter((item) => !isSlow(view, cityId, item, ctx));
+  return quick.find((item) => item.kind === pick.kind) || quick[0] || pick; // a slow unit gives way to a quick unit first
 };
 const countsOf = (state) => ({ settlers: 0, outposts: 0, landUnits: 0, ...(nationCounts(state)[state.playerNationId] || {}) });
 

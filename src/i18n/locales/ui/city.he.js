@@ -300,6 +300,7 @@ export default {
   'cy.pay': 'שלמו {n}',
   'cy.closeOffer': 'סגרו את ההצעה',
   'cy.doneIn': 'מוכן בעוד {turns}',
+  'cy.paidWaits': 'שולם: מוכן בעוד {turns} אחרי הבניות שלפניו, בתור הבא אם יועבר לראש',
   'cy.buyItemAria': 'קנו את {label} ב־{gold} זהב',
   'cy.goldShort': '{n} ז׳',
   'cy.buildFirst': 'בנו קודם את {label}',

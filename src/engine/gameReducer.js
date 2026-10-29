@@ -15,7 +15,7 @@ import { queueItem, dequeueItem, moveQueueItem, itemKey, setFocus, toggleLock, c
 import { quoteBuyTile, investInGrowth } from './cityEconomy';
 import { stonePhaseOf, canAnnex } from './stonePhase';
 import { placeCamps, resolveCamp } from './tribalCamps';
-import { isSettler, settlerPath, canSettle, foundOutpost, SETTLER_MOVES, setSettlerHold, disbandSettlers, isBand, canFoundVillage, foundVillage, withVillageLog } from './settlers';
+import { isSettler, settlerPath, canSettle, foundOutpost, outpostTurns, SETTLER_MOVES, setSettlerHold, disbandSettlers, isBand, canFoundVillage, foundVillage, withVillageLog } from './settlers';
 import { markTutorialStep } from './tutorial';
 import { answerDemand } from './aiAccords';
 import { getTiles, loadedWorldSpec } from '../data/geo/tiles';
@@ -2996,7 +2996,7 @@ const reduceAction = (state, action) => {
       const founded = foundOutpost(state, state.regions, { tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} }, unit, state.turnNumber);
       if (!founded) return reject(state, msg('m.act.no.noCityHere'));
       const units = { ...state.units }; delete units[unitId];
-      return normalizeUnitTiles(syncWorldRegistry({ ...state, regions: founded.regions, world: { ...(state.world || {}), tileOwner: founded.world.tileOwner, tileState: founded.world.tileState }, units, logs: [...state.logs, { year: state.year, ...msg('m.act.outpostFounded', { city: cityRef(founded.city.id, founded.city.name) }), type: 'action' }] }));
+      return normalizeUnitTiles(syncWorldRegistry({ ...state, regions: founded.regions, world: { ...(state.world || {}), tileOwner: founded.world.tileOwner, tileState: founded.world.tileState }, units, logs: [...state.logs, { year: state.year, ...msg('m.act.outpostFounded', { city: cityRef(founded.city.id, founded.city.name), count: outpostTurns(state, unit.tile, ageOf(state, state.playerNationId)) }), type: 'action' }] }));
     }
     case ActionTypes.DEQUEUE_PRODUCTION: {
       const { cityId: id, index } = action.payload || {};
