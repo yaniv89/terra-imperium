@@ -60,7 +60,8 @@ SEEDS.forEach((seed) => {
         if (cid.startsWith('crisis_')) r.crisisCard += 1;
         if (/^raid_(beaten|suffered)/.test(cid)) r.raidCard += 1;
         if (ev?.templateId === 'era_dawn') r.dawn += 1;
-        if (ev?.procedural && ev.templateId && ev.templateId !== 'era_dawn') { gap('minSame', `t:${ev.templateId}`, s.turnNumber); gap('minFam', `f:${ev.family}`, s.turnNumber); if (DECK.HARSH_CARDS?.has(ev.templateId)) gap('minHarsh', 'h', s.turnNumber); }
+        // drawn cards only (the dawn and era_next cards have no family)
+        if (ev?.procedural && ev.templateId && ev.family) { gap('minSame', `t:${ev.templateId}`, s.turnNumber); gap('minFam', `f:${ev.family}`, s.turnNumber); if (DECK.HARSH_CARDS?.has(ev.templateId)) gap('minHarsh', 'h', s.turnNumber); }
         if (lostAt != null && s.turnNumber - lostAt <= 3 && (ev?.procedural || HISTORICAL_EVENTS[s.activeEventId]) && ev?.templateId !== 'era_dawn') gaps.afterLoss += 1;
         if (c.real) r.real += 1; if (c.free) r.free += 1; if (c.goldOnly) r.goldOnly += 1;
         s = gameReducer(s, { type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex: Math.min(PICK, (ev?.options?.length || 1) - 1) } });
