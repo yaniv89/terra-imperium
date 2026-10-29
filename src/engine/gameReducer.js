@@ -1938,10 +1938,11 @@ const reduceAction = (state, action) => {
       // Gold for science (spending.js fundQuote): the quote the research card shows is the one paid.
       const q = fundQuote(state);
       if (!q.ok) return reject(state, whyOf(q));
+      if (!canPay(state, { gold: q.gold })) return reject(state, msg('m.why.fund.tooPoor'));
+      const paid = payCost(state, { gold: q.gold });
       const progress = { ...state.research.progress, [q.techId]: (state.research.progress?.[q.techId] || 0) + q.points };
       return {
-        ...state,
-        resources: { ...state.resources, gold: state.resources.gold - q.gold },
+        ...paid,
         research: { ...state.research, progress, fundedTurn: state.turnNumber },
         logs: [...state.logs, { year: state.year, ...msg('m.act.funded', { gold: q.gold, n: q.points, tech: thing('tech', q.techId, TECH_TREE[q.techId]?.name) }), type: LogTypes.TECH }]
       };

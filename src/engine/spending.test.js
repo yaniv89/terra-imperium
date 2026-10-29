@@ -115,6 +115,11 @@ describe('rush (I019)', () => {
     expect(paid.research.progress[tech]).toBe((s.research.progress?.[tech] || 0) + big.points);
     expect(fundQuote(paid).ok).toBe(false); // once a turn
     expect(gameReducer(paid, { type: ActionTypes.FUND_RESEARCH }).resources.gold).toBe(paid.resources.gold);
+    // too little gold: nothing changes
+    const poor = withGold(s, 2);
+    const after = gameReducer(poor, { type: ActionTypes.FUND_RESEARCH });
+    expect(after.resources.gold).toBe(2);
+    expect(after.research).toBe(poor.research);
   });
 
   it('heats up with use, capped, and cools over speed-scaled turns', () => {
