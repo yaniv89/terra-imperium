@@ -110,7 +110,30 @@ No defeats, no audit violations, no non-finite values on either side.
 
 Full suite before the merge: 512 files passed, 2 skipped (4,792 tests); lint clean. Tests: new src/engine/aiArmies.test.js (target drop, arming and its timer, a stale prep, recruit placement, the peace spread). processAIWarDecisions fixtures have no economy, so they declare at once as before. aiAccords.test.js accepts a war "declared or being armed for". The engine-rules-reviewer agent found two real bugs and two small issues, all fixed: a boosted prep could turn unjustified, a stale prep armed for ever, the wait age, and recruits taken away from a besieged city.
 
+## Future margin (lead's call, 29 Oct)
+
+`RESEARCH_AGE_BASE.future` 16000 to 36000 (research.js), the one knob: `FUTURE_TECH_COST_GROWTH` only prices the repeatable Future Tech, never a goal tech. techTree.test.js's "at most 4 times the age before" guard now skips the Future (Future/Information = 6.5); 22000, the most the guard allowed, still let seeds 6 and 8 meet the goal at 830 and 869.
+
+Passive player, peoples world, this branch (with integration). Goal turn = the turn the leader met every Future goal tech (the game ends there); "-" = it never did, the game ended on the turn limit, with the leader's goal techs out of 12.
+
+| seed | speed | goal turn before (16000) | after (36000) | leader's goal techs at the end, after | first into Future, before / after |
+|---|---|---|---|---|---|
+| 2 | Normal | - (11/12) | - | 5 | 450 / 450 |
+| 3 | Normal | 918 | - | 4 | 577 / 577 |
+| 5 | Normal | - (11/12) | - | 3 | 573 / 573 |
+| 6 | Normal | 749 | - | 9 | 481 / 481 |
+| 7 | Normal | 794 | - | 9 | 538 / 538 |
+| 8 | Normal | 779 | - | 8 | 486 / 486 |
+| 9 | Normal | 913 | - | 4 | 553 / 553 |
+| 11 | Normal | 832 | - | 8 | 531 / 531 |
+| 1 | Fast | 344 | - (turn limit 440) | 11 | 246 / 246 |
+| 4 | Fast | 287 | 383 | 12 | 196 / 196 |
+
+Seeds 1, 4 and 10 on Normal and 2, 3 on Fast end in the passive player's DEFEAT before turn 100, so they say nothing; seeds 9 and 11 replace them. First into Information is unchanged too on every seed. endgameReachability.test.js, unchanged, passes (with resolveTurn.test.js: 2 files, 99 tests); the 11 research, age and ending test files pass (392 tests); lint clean.
+
 ## For the lead (design calls)
+
+000. **Fast still ends on the Future goal on seed 4** (383 of 440; seed 1 now passes with 11 of 12). Fast's leader enters the Future at turn 196 to 246 of 440, a larger share of the game than Normal's 450 to 577 of 923, so one cost for both speeds cannot fit both: about 2.7 times more on seed 4 would push Normal's Future goal out of any game. The Fast knob is the speed table (ages.js `fast.costMult.future`, now 1). Raise it (about 1.6 to 2 by this data), or accept a Fast Future goal for the strongest AI?
 
 00. **endgameReachability passive run (29 Oct).** Head = this branch merged with integration 039d3c18, base = 039d3c18. Same seed 7, passive player:
    - base: COMPLETE on the turn limit at 923; the leader (gojoseon) never gets every Future goal tech.
